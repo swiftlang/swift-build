@@ -51,6 +51,7 @@
                 Name = __INPUT_FILE_LIST_PATH__;
                 Type = Path;
                 // this is set up for us as a read-only property
+                Condition = "$(LIBTOOL_USE_RESPONSE_FILE) != NO";
                 DefaultValue = "$(LINK_FILE_LIST_$(variant)_$(arch))";
                 CommandLineArgs = (
                     "@$(value)",

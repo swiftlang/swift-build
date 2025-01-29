@@ -758,7 +758,7 @@ class LocalFS: FSProxy, @unchecked Sendable {
     }
 
     func listExtendedAttributes(_ path: Path) throws -> [String] {
-        #if os(Windows)
+        #if os(Windows) || os(FreeBSD) // FreeBSD blocked on https://github.com/swiftlang/swift/pull/77836
         // no xattrs on Windows
         return []
         #else
@@ -796,7 +796,7 @@ class LocalFS: FSProxy, @unchecked Sendable {
     }
 
     func setExtendedAttribute(_ path: Path, key: String, value: ByteString) throws {
-        #if os(Windows)
+        #if os(Windows) || os(FreeBSD) // FreeBSD blocked on https://github.com/swiftlang/swift/pull/77836
         // no xattrs on Windows
         #else
         try value.bytes.withUnsafeBufferPointer { buf throws -> Void in
@@ -813,7 +813,7 @@ class LocalFS: FSProxy, @unchecked Sendable {
     }
 
     func getExtendedAttribute(_ path: Path, key: String) throws -> ByteString? {
-        #if os(Windows)
+        #if os(Windows) || os(FreeBSD) // FreeBSD blocked on https://github.com/swiftlang/swift/pull/77836
         return nil // no xattrs on Windows
         #else
         var bufferSize = 4096

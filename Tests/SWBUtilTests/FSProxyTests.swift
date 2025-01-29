@@ -565,7 +565,7 @@ import SWBTestSupport
             // String.utf8CString *includes* the trailing null byte
 #if canImport(Darwin)
             #expect(setxattr(testDataPath.str, "attr.string", "true", "true".utf8CString.count, 0, 0) == 0)
-#elseif !os(Windows)
+#elseif !os(Windows) && !os(FreeBSD) // FreeBSD blocked on https://github.com/swiftlang/swift/pull/77836
             #expect(setxattr(testDataPath.str, "attr.string", "true", "true".utf8CString.count, 0) == 0)
 #endif
             #expect(try localFS.getExtendedAttribute(testDataPath, key: "attr.string") == "true\0")
@@ -574,7 +574,7 @@ import SWBTestSupport
             // String.utf8CString *includes* the trailing null byte
 #if canImport(Darwin)
             #expect(setxattr(testDataPath.str, "attr.string", "tr\0ue", "tr\0ue".utf8CString.count, 0, 0) == 0)
-#elseif !os(Windows)
+#elseif !os(Windows) && !os(FreeBSD) // FreeBSD blocked on https://github.com/swiftlang/swift/pull/77836
             #expect(setxattr(testDataPath.str, "attr.string", "tr\0ue", "tr\0ue".utf8CString.count, 0) == 0)
 #endif
             #expect(try localFS.getExtendedAttribute(testDataPath, key: "attr.string") == "tr\0ue\0")

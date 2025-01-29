@@ -747,8 +747,10 @@ public final class SDKRegistry: SDKRegistryLookup, CustomStringConvertible {
     private func fallbackSystemSDKSettings(operatingSystem: OperatingSystem) throws -> [String: PropertyListItem] {
         let defaultProperties: [String: PropertyListItem]
         switch operatingSystem {
-        case .linux:
+        case .linux, .freebsd:
             defaultProperties = [
+                "LIBTOOL_USE_RESPONSE_FILE": .plString("NO"), // TODO: Need to make this specific to FreeBSD
+
                 // Workaround to avoid `-add_ast_path` on Linux, apparently this needs to perform some "swift modulewrap" step instead.
                 "GCC_GENERATE_DEBUGGING_SYMBOLS": .plString("NO"),
 
@@ -800,7 +802,7 @@ public final class SDKRegistry: SDKRegistryLookup, CustomStringConvertible {
                 operatingSystem.xcodePlatformName: .plDict([
                     "Archs": .plArray([.plString(Architecture.hostStringValue ?? "unknown")]),
                     "LLVMTargetTripleEnvironment": .plString(tripleEnvironment),
-                    "LLVMTargetTripleSys": .plString(operatingSystem.xcodePlatformName),
+                    "LLVMTargetTripleSys": .plString(operatingSystem.xcodePlatformName + "14.1"), // TODO: Need to get the FreeBSD version and plumb it through somehow
                     "LLVMTargetTripleVendor": .plString("unknown"),
                 ])
             ]),

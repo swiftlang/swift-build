@@ -82,8 +82,8 @@ fileprivate struct BuildOperationTests: CoreBasedTests {
                         type: .dynamicLibrary,
                         buildConfigurations: [
                             TestBuildConfiguration("Debug", buildSettings: [
-                                "DYLIB_INSTALL_NAME_BASE": "@rpath",
-                                "DYLIB_INSTALL_NAME_BASE[sdk=linux*]": "$ORIGIN",
+                                "DYLIB_INSTALL_NAME_BASE": "$ORIGIN",
+                                "DYLIB_INSTALL_NAME_BASE[sdk=macosx*]": "@rpath",
 
                                 // FIXME: Find a way to make these default
                                 "EXECUTABLE_PREFIX": "lib",
@@ -145,8 +145,12 @@ fileprivate struct BuildOperationTests: CoreBasedTests {
 
                 let toolchain = try #require(try await getCore().toolchainRegistry.defaultToolchain)
                 let environment: [String: String]
-                if destination.platform == "linux" {
-                    environment = ["LD_LIBRARY_PATH": toolchain.path.join("usr/lib/swift/linux").str]
+                if ["linux", "freebsd"].contains(destination.platform) {
+                    // FIXME: Should be for "any ELF platform", not hardcoded to Linux and FreeBSD
+                    environment = ["LD_LIBRARY_PATH": [
+                        toolchain.path.join("usr/lib/swift/\(destination.platform)").str,
+                        toolchain.path.join("usr/local/lib/swift/\(destination.platform)").str,
+                    ].joined(separator: String(Path.pathEnvironmentSeparator))]
                 } else {
                     environment = [:]
                 }

@@ -670,6 +670,6 @@ struct CoreRegistryDelegate : PlatformRegistryDelegate, SDKRegistryDelegate, Spe
 extension OperatingSystem {
     /// Whether the Core is allowed to create a fallback toolchain, SDK, and platform for this operating system in cases where no others have been provided.
     internal var createFallbackSystemToolchain: Bool {
-        return self == .linux
+        return self == .linux || self == .freebsd
     }
 }

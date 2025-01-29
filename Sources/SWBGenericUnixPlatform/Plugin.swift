@@ -24,6 +24,9 @@ struct GenericUnixPlatformSpecsExtension: SpecificationsExtension {
     }
 
     func specificationDomains() -> [String: [String]] {
-        ["linux": ["generic-unix"]]
+        [
+            "linux": ["generic-unix"],
+            "freebsd": ["generic-unix"],
+        ]
     }
 }

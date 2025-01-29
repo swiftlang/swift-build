@@ -20,6 +20,17 @@ let appleOS = true
 let appleOS = false
 #endif
 
+// Workaround until FreeBSD platform condition lands
+#if os(FreeBSD)
+let nonApplePlatformsCondition: TargetDependencyCondition? = nil
+let nonAppleUnixPlatformsCondition: TargetDependencyCondition? = nil
+let noCustomExecutionTraitCondition: BuildSettingCondition? = nil
+#else
+let nonApplePlatformsCondition: TargetDependencyCondition? = .when(platforms: [.linux, .openbsd, .android, .windows])
+let nonAppleUnixPlatformsCondition: TargetDependencyCondition? = .when(platforms: [.linux, .openbsd, .android])
+let noCustomExecutionTraitCondition: BuildSettingCondition? = .when(platforms: [.macOS, .macCatalyst, .iOS, .tvOS, .watchOS, .visionOS, .windows])
+#endif
+
 let useLocalDependencies = Context.environment["SWIFTCI_USE_LOCAL_DEPS"] != nil
 let useLLBuildFramework = Context.environment["SWIFTBUILD_LLBUILD_FWK"] != nil
 let readlinePackage = !appleOS ? "readline" : nil
@@ -82,7 +93,7 @@ let package = Package(
                 "SWBBuildSystem",
                 "SWBServiceCore",
                 "SWBTaskExecution",
-                .product(name: "SystemPackage", package: "swift-system", condition: .when(platforms: [.linux, .android, .windows])),
+                .product(name: "SystemPackage", package: "swift-system", condition: nonApplePlatformsCondition),
             ],
             swiftSettings: swiftSettings),
         .target(
@@ -164,8 +175,8 @@ let package = Package(
                 "SWBLibc",
                 .target(name: "readline", condition: .when(platforms: [.linux])),
                 .product(name: "ArgumentParser", package: "swift-argument-parser"),
-                .product(name: "Crypto", package: "swift-crypto", condition: .when(platforms: [.linux, .android])),
-                .product(name: "SystemPackage", package: "swift-system", condition: .when(platforms: [.linux, .android, .windows])),
+                .product(name: "Crypto", package: "swift-crypto", condition: nonAppleUnixPlatformsCondition),
+                .product(name: "SystemPackage", package: "swift-system", condition: nonApplePlatformsCondition),
             ],
             swiftSettings: swiftSettings),
         .target(
@@ -210,20 +221,20 @@ let package = Package(
         // Test support
         .target(
             name: "SwiftBuildTestSupport",
-            dependencies: ["SwiftBuild", "SWBTestSupport", "SWBUtil"],
+            dependencies: ["SwiftBuild", "SWBTestSupport", "SWBUtil", .product(name: "Testing", package: "swift-testing")],
             swiftSettings: swiftSettings,
             linkerSettings: [
                 .linkedFramework("Testing", .when(platforms: [.macOS]))
             ]),
         .target(
             name: "SWBTestSupport",
-            dependencies: ["SwiftBuild", "SWBBuildSystem", "SWBCore", "SWBTaskConstruction", "SWBTaskExecution", "SWBUtil", "SWBLLBuild", "SWBMacro"],
+            dependencies: ["SwiftBuild", "SWBBuildSystem", "SWBCore", "SWBTaskConstruction", "SWBTaskExecution", "SWBUtil", "SWBLLBuild", "SWBMacro", .product(name: "Testing", package: "swift-testing")],
             swiftSettings: swiftSettings + [
                 // Temporary until swift-testing introduces replacement for this SPI
-                .define("DONT_HAVE_CUSTOM_EXECUTION_TRAIT", .when(platforms: [.macOS, .macCatalyst, .iOS, .tvOS, .watchOS, .visionOS, .windows]))
+                .define("DONT_HAVE_CUSTOM_EXECUTION_TRAIT", noCustomExecutionTraitCondition)
             ],
             linkerSettings: [
-                .linkedFramework("Testing", .when(platforms: [.macOS]))
+                .linkedFramework("Testing", .when(platforms: [.macOS])),
             ]),
 
         // Tests
@@ -260,11 +271,11 @@ let package = Package(
             swiftSettings: swiftSettings),
         .testTarget(
             name: "SWBProjectModelTests",
-            dependencies: ["SWBProjectModel"],
+            dependencies: ["SWBProjectModel", .product(name: "Testing", package: "swift-testing")],
             swiftSettings: swiftSettings),
         .testTarget(
             name: "SWBProtocolTests",
-            dependencies: ["SWBProtocol", "SWBUtil"],
+            dependencies: ["SWBProtocol", "SWBUtil", .product(name: "Testing", package: "swift-testing")],
             swiftSettings: swiftSettings),
         .testTarget(
             name: "SWBUtilTests",
@@ -280,7 +291,7 @@ let package = Package(
             swiftSettings: swiftSettings),
         .testTarget(
             name: "SWBServiceCoreTests",
-            dependencies: ["SWBServiceCore"],
+            dependencies: ["SWBServiceCore", .product(name: "Testing", package: "swift-testing")],
             swiftSettings: swiftSettings),
         .testTarget(
             name: "SWBCoreTests",
@@ -401,15 +412,32 @@ if useLocalDependencies {
         package.dependencies +=  [.package(path: "../llbuild"),]
     }
 } else {
+    #if os(FreeBSD)
+    package.dependencies += [
+        // https://github.com/apple/swift-crypto/commit/bce1725222a0547c061fb71eab460aff1aa1e28b is not yet in a tag
+        .package(url: "https://github.com/apple/swift-crypto.git", branch: "main"),
+
+        // https://github.com/apple/swift-system/commit/4fa2a719c5d225fc763f21f2d341c0c8d825d65e is not yet in a tag
+        .package(url: "https://github.com/apple/swift-system.git", branch: "main"),
+    ]
+    #else    
     package.dependencies += [
         // https://github.com/apple/swift-crypto/issues/262
         // 3.7.1 introduced a regression which fails to link on aarch64-windows; revert to <4.0.0 for the upper bound when this is fixed
         .package(url: "https://github.com/apple/swift-crypto.git", "2.0.0"..<"3.7.1"),
-        .package(url: "https://github.com/apple/swift-driver.git", branch: "main"),
+
         .package(url: "https://github.com/apple/swift-system.git", .upToNextMajor(from: "1.4.0")),
+    ]
+    #endif
+
+    package.dependencies += [
+        .package(url: "https://github.com/apple/swift-driver.git", branch: "main"),
         .package(url: "https://github.com/apple/swift-argument-parser.git", from: "1.0.3"),
     ]
     if !useLLBuildFramework {
         package.dependencies += [.package(url: "https://github.com/apple/swift-llbuild.git", branch: "main"),]
     }
 }
+
+
+package.dependencies += [.package(url: "https://github.com/swiftlang/swift-testing", branch: "main")]

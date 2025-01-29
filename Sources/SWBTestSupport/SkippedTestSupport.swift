@@ -48,6 +48,8 @@ extension KnownSDK {
             return windows
         case .success(.linux):
             return linux
+        case .success(.freebsd):
+            return freebsd
         case .success(.android):
             return android
         case .success(.unknown), .failure:
@@ -68,6 +70,7 @@ extension KnownSDK {
 extension KnownSDK {
     package static let windows: Self = "windows"
     package static let linux: Self = "linux"
+    package static let freebsd: Self = "freebsd"
     package static let android: Self = "android"
     package static let qnx: Self = "qnx"
 }

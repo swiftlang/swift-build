@@ -98,7 +98,13 @@ public struct Architecture: Sendable {
             if uname(&buf) == 0 {
                 return withUnsafeBytes(of: &buf.machine) { buf in
                     let data = Data(buf)
-                    return String(decoding: data[0...(data.lastIndex(where: { $0 != 0 }) ?? 0)], as: UTF8.self)
+                    let value = String(decoding: data[0...(data.lastIndex(where: { $0 != 0 }) ?? 0)], as: UTF8.self)
+                    switch value {
+                    case "amd64":
+                        return "x86_64"
+                    default:
+                        return value
+                    }
                 }
             }
             #endif
