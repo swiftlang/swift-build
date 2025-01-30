@@ -19,17 +19,20 @@ Documentation
 
 [SwiftBuild.docc](SwiftBuild.docc) contains additional technical documentation.
 
+Testing
+-------------
+Before submitting the pull request, please make sure you have tested your changes. You can run the full test suite by running `swift test` from the root of the repository. The test suite is organized into a number of different test targets, with each corresponding to a specific component. For example, `SWBTaskConstructionTests` contains tests for the `SWBTaskConstruction` module which plan builds and then inspect the resulting build graph. Many tests in Swift Build operate on test project model objects which emulate those constructed by a higher level client and validate behavior at different layers. You can learn more about how these tests are written and organized in [Project Tests](SwiftBuild.docc/Development/test-development-project-tests.md).
+
+ 
 Contributing to Swift Build
 ------------
 
 Contributions to Swift Build are welcomed and encouraged! Please see the
 [Contributing to Swift guide](https://swift.org/contributing/).
 
-Before submitting the pull request, please make sure you have [tested your
- changes](https://github.com/apple/swift/blob/main/docs/ContinuousIntegration.md)
- and that they follow the Swift project [guidelines for contributing
+Before submitting the pull request, please make sure that they follow the Swift project [guidelines for contributing
  code](https://swift.org/contributing/#contributing-code). Bug reports should be 
- filed in [the issue tracker](https://github.com/apple/swift-build/issues) of 
+ filed in [the issue tracker](https://github.com/swiftlang/swift-build/issues) of 
  `swift-build` repository on GitHub.
 
 To be a truly great community, [Swift.org](https://swift.org/) needs to welcome
