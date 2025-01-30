@@ -4,7 +4,7 @@
    @TechnologyRoot
 }
 
-Swift Build is a build engine based on (llbuild)[https://github.com/swiftlang/swift-llbuild] with great support for building Swift. It is used by Xcode to build Xcode projects and Swift packages. It can also be used as the Swift Package Manager build system in preview form when passing `--build-system swift-build`.
+Swift Build is a high-level build system based on (llbuild)[https://github.com/swiftlang/swift-llbuild] with great support for building Swift. It is used by Xcode to build Xcode projects and Swift packages. It can also be used as the Swift Package Manager build system in preview form when passing `--build-system swift-build`.
 
 ## Overview
 
