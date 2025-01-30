@@ -1,14 +1,14 @@
 Swift Build
 =======
 
-Swift Build is a high-level build system based on [llbuild](https://github.com/swiftlang/swift-llbuild) with great support for building Swift. It is used by Xcode to build Xcode projects and Swift packages. It can also be used as the Swift Package Manager build system in preview form when passing `--build-system swift-build`.
+Swift Build is a high-level build system based on [llbuild](https://github.com/swiftlang/swift-llbuild) with great support for building Swift. It is used by Xcode to build Xcode projects and Swift packages. It can also be used as the Swift Package Manager build system in preview form when passing `--build-system swiftbuild`.
 
 Usage
 -----
 
 ### With SwiftPM
 
-When building SwiftPM from sources which include Swift Build integration, passing `--build-system swift-build` will enable the new build-system. This functionality is not currently available in nightly toolchains.
+When building SwiftPM from sources which include Swift Build integration, passing `--build-system swiftbuild` will enable the new build-system. This functionality is not currently available in nightly toolchains.
 
 ### With Xcode
 
