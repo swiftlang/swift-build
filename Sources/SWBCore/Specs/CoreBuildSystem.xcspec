@@ -3499,7 +3499,7 @@ When this setting is enabled:
 
 * `GCC_SYMBOLS_PRIVATE_EXTERN` is disabled (`-fvisibility=hidden` will not be passed to `clang`).
 * `-enable-testing` is passed to the Swift compiler.
-* `-export_dynamic` is passed to the linker.
+* `-rdynamic` is passed to the linker.
 * `STRIP_INSTALLED_PRODUCT` is disabled (`strip` will not be run on the produced binary).";
             },
 

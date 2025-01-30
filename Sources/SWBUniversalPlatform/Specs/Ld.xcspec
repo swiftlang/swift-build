@@ -359,8 +359,7 @@
                 DefaultValue = NO;
                 CommandLineArgs = {
                     YES = (
-                        "-Xlinker",
-                        "-export_dynamic",
+                        "-rdynamic",
                     );
                     NO = ();
                 };

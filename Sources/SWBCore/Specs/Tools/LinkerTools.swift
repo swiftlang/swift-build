@@ -949,14 +949,14 @@ public final class LdLinkerSpec : GenericLinkerSpec, SpecIdentifierType {
         let argPrefix = "-Xlinker"
 
         // Args without parameters
-        for arg in ["-dynamiclib", "-bundle", "-r", "-fembed-bitcode-marker", "-dead_strip", "-nostdlib"] {
+        for arg in ["-dynamiclib", "-bundle", "-r", "-fembed-bitcode-marker", "-dead_strip", "-nostdlib", "-rdynamic"] {
             while let index = commandLine.firstIndex(of: arg) {
                 commandLine.remove(at: index)
             }
         }
 
         // Args without parameters (-Xlinker-prefixed, e.g. -Xlinker)
-        for arg in ["-bitcode_verify", "-export_dynamic"] {
+        for arg in ["-bitcode_verify"] {
             while let index = commandLine.firstIndex(of: arg) {
                 guard index > 0, commandLine[index - 1] == argPrefix else { break }
                 commandLine.removeSubrange(index - 1 ... index)

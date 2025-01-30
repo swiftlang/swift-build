@@ -133,15 +133,6 @@
                 );
                 IsInputDependency = Yes;
             },
-            {
-                Name = "LD_EXPORT_GLOBAL_SYMBOLS";
-                Type = Boolean;
-                DefaultValue = NO;
-                CommandLineArgs = {
-                    YES = ();
-                    NO = ();
-                };
-            },
         );
     },
 )
