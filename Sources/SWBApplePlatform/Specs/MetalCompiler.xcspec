@@ -27,7 +27,7 @@
             "$(MTLCOMPILER_OUTPUT_FILE)",
         );
         IsArchitectureNeutral = YES;
-        SynthesizeBuildRule = NO;
+        SynthesizeBuildRule = YES;
         CommandResultsPostprocessor = XCClangResultsPostprocessor;
         OptionConditionFlavors = (
             sdk,
@@ -327,52 +327,5 @@
                 DependencyDataFormat = makefile;
             },
         );
-        IncludeInUnionedToolDefaults = NO;
-    },
-    {
-        Type = Compiler;
-        Identifier = "com.apple.compilers.metal";
-        BasedOn = "default:com.apple.compilers.metal";
-        Domain = iphoneos;
-        SynthesizeBuildRule = YES;
-    },
-    {
-        Type = Compiler;
-        Identifier = "com.apple.compilers.metal";
-        BasedOn = "iphoneos:com.apple.compilers.metal";
-        Domain = iphonesimulator;
-    },
-    {
-        Type = Compiler;
-        Identifier = "com.apple.compilers.metal";
-        BasedOn = "default:com.apple.compilers.metal";
-        Domain = macosx;
-        SynthesizeBuildRule = YES;
-    },
-    {
-        Type = Compiler;
-        Identifier = "com.apple.compilers.metal";
-        BasedOn = "default:com.apple.compilers.metal";
-        Domain = appletvos;
-        SynthesizeBuildRule = YES;
-    },
-    {
-        Type = Compiler;
-        Identifier = "com.apple.compilers.metal";
-        BasedOn = "appletvos:com.apple.compilers.metal";
-        Domain = appletvsimulator;
-    },
-    {
-        Type = Compiler;
-        Identifier = "com.apple.compilers.metal";
-        BasedOn = "default:com.apple.compilers.metal";
-        Domain = xros;
-        SynthesizeBuildRule = YES;
-    },
-    {
-        Type = Compiler;
-        Identifier = "com.apple.compilers.metal";
-        BasedOn = "xros:com.apple.compilers.metal";
-        Domain = xrsimulator;
     },
 )
