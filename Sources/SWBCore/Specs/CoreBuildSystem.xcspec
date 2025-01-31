@@ -3000,6 +3000,11 @@ For more information on mergable libraries, see [Configuring your project to use
                 DefaultValue = "$(TEMP_ROOT)/UninstalledProducts";
             },
             {
+                Name = "PER_ARCH_MODULE_FILE_DIR";
+                Type = Path;
+                DefaultValue = "$(PER_ARCH_OBJECT_FILE_DIR)/Modules";
+            },
+            {
                 Name = "ENABLE_HEADER_DEPENDENCIES";
                 Type = Boolean;
                 DefaultValue = YES;

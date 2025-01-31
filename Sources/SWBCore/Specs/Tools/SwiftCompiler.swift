@@ -1355,9 +1355,9 @@ public final class SwiftCompilerSpec : CompilerSpec, SpecIdentifierType, SwiftDi
     }
 
     static func getSwiftModuleFilePathInternal(_ scope: MacroEvaluationScope, _ mode: SwiftCompilationMode) -> Path {
-        let objectFileDir = scope.evaluate(BuiltinMacros.PER_ARCH_OBJECT_FILE_DIR)
+        let moduleFileDir = scope.evaluate(BuiltinMacros.PER_ARCH_MODULE_FILE_DIR)
         let moduleName = scope.evaluate(BuiltinMacros.SWIFT_MODULE_NAME)
-        return objectFileDir.join(moduleName + ".swiftmodule").appendingFileNameSuffix(mode.moduleBaseNameSuffix)
+        return moduleFileDir.join(moduleName + ".swiftmodule").appendingFileNameSuffix(mode.moduleBaseNameSuffix)
     }
 
     static public func getSwiftModuleFilePath(_ scope: MacroEvaluationScope) -> Path {
@@ -2976,8 +2976,8 @@ public final class SwiftCompilerSpec : CompilerSpec, SpecIdentifierType, SwiftDi
             let containsSources = (producer.configuredTarget?.target as? StandardTarget)?.sourcesBuildPhase?.buildFiles.filter { currentPlatformFilter.matches($0.platformFilters) }.isEmpty == false
             if containsSources && inputFileTypes.contains(where: { $0.conformsTo(identifier: "sourcecode.swift") }) && scope.evaluate(BuiltinMacros.GCC_GENERATE_DEBUGGING_SYMBOLS) {
                 let moduleName = scope.evaluate(BuiltinMacros.SWIFT_MODULE_NAME)
-                let objectFileDir = scope.evaluate(BuiltinMacros.PER_ARCH_OBJECT_FILE_DIR)
-                let moduleFilePath = objectFileDir.join(moduleName + ".swiftmodule")
+                let moduleFileDir = scope.evaluate(BuiltinMacros.PER_ARCH_MODULE_FILE_DIR)
+                let moduleFilePath = moduleFileDir.join(moduleName + ".swiftmodule")
                 args += [["-Xlinker", "-add_ast_path", "-Xlinker", moduleFilePath.str]]
                 if scope.evaluate(BuiltinMacros.SWIFT_GENERATE_ADDITIONAL_LINKER_ARGS) {
                     args += [["@\(Path(moduleFilePath.appendingFileNameSuffix("-linker-args").withoutSuffix + ".resp").str)"]]

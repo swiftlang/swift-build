@@ -12,6 +12,8 @@
 
 public import SWBUtil
 import SWBCore
+import SWBMacro
+import SWBProtocol
 import Foundation
 import SWBTaskConstruction
 
@@ -23,6 +25,7 @@ import SWBTaskConstruction
     manager.register(XCStringsInputFileGroupingStrategyExtension(), type: InputFileGroupingStrategyExtensionPoint.self)
     manager.register(TaskProducersExtension(), type: TaskProducerExtensionPoint.self)
     manager.register(MacCatalystInfoExtension(), type: SDKVariantInfoExtensionPoint.self)
+    manager.register(AppleSettingsBuilderExtension(), type: SettingsBuilderExtensionPoint.self)
 }
 
 struct TaskProducersExtension: TaskProducerExtension {
@@ -157,4 +160,27 @@ struct XCStringsInputFileGroupingStrategyExtension: InputFileGroupingStrategyExt
         }
         return ["xcstrings": Factory()]
     }
+}
+
+struct AppleSettingsBuilderExtension: SettingsBuilderExtension {
+    func addSDKSettings(_ sdk: SDK, _ variant: SDKVariant?, _ sparseSDKs: [SDK]) throws -> [String : String] {
+        guard variant?.llvmTargetTripleVendor == "apple" else {
+            return [:]
+        }
+
+        return [
+            "PER_ARCH_MODULE_FILE_DIR": "$(PER_ARCH_OBJECT_FILE_DIR)",
+        ]
+    }
+
+    func addBuiltinDefaults(fromEnvironment environment: [String : String], parameters: BuildParameters) throws -> [String : String] { [:] }
+    func addOverrides(fromEnvironment: [String : String], parameters: BuildParameters) throws -> [String : String] { [:] }
+    func addProductTypeDefaults(productType: ProductTypeSpec) -> [String : String] { [:] }
+    func addSDKOverridingSettings(_ sdk: SDK, _ variant: SDKVariant?, _ sparseSDKs: [SDK], specLookupContext: any SWBCore.SpecLookupContext) throws -> [String : String] { [:] }
+    func addPlatformSDKSettings(_ platform: SWBCore.Platform?, _ sdk: SDK, _ sdkVariant: SDKVariant?) -> [String : String] { [:] }
+    func xcconfigOverrideData(fromParameters: BuildParameters) -> ByteString { ByteString() }
+    func getTargetTestingSwiftPluginFlags(_ scope: MacroEvaluationScope, toolchainRegistry: ToolchainRegistry, sdkRegistry: SDKRegistry, activeRunDestination: RunDestinationInfo?, project: SWBCore.Project?) -> [String] { [] }
+    func shouldSkipPopulatingValidArchs(platform: SWBCore.Platform) -> Bool { false }
+    func shouldDisableXOJITPreviews(platformName: String, sdk: SDK?) -> Bool { false }
+    func overridingBuildSettings(_: MacroEvaluationScope, platform: SWBCore.Platform?, productType: ProductTypeSpec) -> [String : String] { [:] }
 }
