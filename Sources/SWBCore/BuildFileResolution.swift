@@ -31,6 +31,7 @@ extension BuildFileResolution {
 public protocol GlobalTargetInfoProvider {
     func getTargetSettings(_ configuredTarget: ConfiguredTarget) -> Settings
     func dependencies(of target: ConfiguredTarget) -> [ConfiguredTarget]
+    func transitiveDependencies(of: ConfiguredTarget) -> [ConfiguredTarget]
     var dynamicallyBuildingTargets: Set<Target> { get }
 }
 
@@ -41,7 +42,7 @@ extension BuildFileResolution {
     /// - remark: If the producing target is a dependency of the current target (likely, but not guaranteed), then the `Settings` will be looked up from the `TargetInfoProvider` (which is likely the `GlobalProductPlan`).  Otherwise a more complicated heuristic is used.
     public func settingsForProductReferenceTarget(_ productRefTarget: Target, parameters: BuildParameters) -> Settings {
         // If we have a concrete client target, we can look up the exact configured target that is producing the referenced product.
-        if let clientConfiguredTarget = self.configuredTarget, let productRefConfiguredTarget = globalTargetInfoProvider.dependencies(of: clientConfiguredTarget).filter({ $0.target.guid == productRefTarget.guid }).only {
+        if let clientConfiguredTarget = self.configuredTarget, let productRefConfiguredTarget = globalTargetInfoProvider.transitiveDependencies(of: clientConfiguredTarget).filter({ $0.target.guid == productRefTarget.guid }).only {
             return globalTargetInfoProvider.getTargetSettings(productRefConfiguredTarget)
         } else {
             // FIXME: A more reliable fallback might be to use GlobalProductPlan.productPathsToProducingTargets (where GlobalProductPlan conforms to TargetInfoProvider) if the absolute path of the product reference in this context were passed in.
