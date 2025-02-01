@@ -1,0 +1,64 @@
+//===----------------------------------------------------------------------===//
+//
+// This source file is part of the Swift open source project
+//
+// Copyright (c) 2025 Apple Inc. and the Swift project authors
+// Licensed under Apache License v2.0 with Runtime Library Exception
+//
+// See http://swift.org/LICENSE.txt for license information
+// See http://swift.org/CONTRIBUTORS.txt for the list of Swift project authors
+//
+//===----------------------------------------------------------------------===//
+
+(
+    {
+        Identifier = "com.apple.build-tasks.compile-rk-assets.xcplugin";
+        Type = Compiler;
+        Name = "Compile Reality Assets";
+        Description = "Compile Reality Assets.";
+        Version = Default;
+        Vendor = Apple;
+        CommandLine = "realitytool compile [options] -o=$(ProductResourcesDir) [input]";
+        RuleName = "CompileRealityAssets $(ProductResourcesDir)/$(InputFileBase).reality $(InputFile)";
+        ExecDescription = "Compile Reality Assets $(InputFileName)";
+        ProgressDescription = "Compiling $(CommandProgressByType) Reality Assets";
+        SynthesizeBuildRule = YES;
+        IsArchitectureNeutral = YES;
+        DeeplyStatInputDirectories = YES;
+        InputFileTypes = (
+            folder.rkassets,
+        );
+        Outputs = (
+            "$(ProductResourcesDir)/$(InputFileBase).reality",
+        );
+        Options = (
+            {
+                Name = "PLATFORM_NAME";
+                Type = String;
+                CommandLineFlag = "--platform";
+            },
+            {
+                Name = "REALITYASSET_DEPLOYMENT_TARGET";
+                Type = String;
+                DefaultValue = "$($(DEPLOYMENT_TARGET_SETTING_NAME))";
+                CommandLineFlag = "--deployment-target";
+            },
+        );
+    },
+
+    {
+        AppliesToBuildRules = YES;
+        CanSetIncludeInIndex = YES;
+        Extensions = (
+            rkassets,
+        );
+        Identifier = "folder.rkassets";
+        IncludeInIndex = YES;
+        IsFolder = YES;
+        IsTextFile = NO;
+        IsWrapperFolder = YES;
+        Name = "Reality Assets";
+        Type = FileType;
+        UTI = "com.apple.rkassets";
+    },
+)

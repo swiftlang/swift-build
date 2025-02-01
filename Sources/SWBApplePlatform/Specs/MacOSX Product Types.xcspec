@@ -1,0 +1,126 @@
+//===----------------------------------------------------------------------===//
+//
+// This source file is part of the Swift open source project
+//
+// Copyright (c) 2025 Apple Inc. and the Swift project authors
+// Licensed under Apache License v2.0 with Runtime Library Exception
+//
+// See http://swift.org/LICENSE.txt for license information
+// See http://swift.org/CONTRIBUTORS.txt for the list of Swift project authors
+//
+//===----------------------------------------------------------------------===//
+
+(
+    // Java tool
+    {
+        _Domain = macosx;
+        Type = ProductType;
+        Identifier = com.apple.product-type.tool.java;
+        Name = "Java Command-line Tool";
+        Description = "Java Command-line tool";
+        DefaultTargetName = "Java Command-line Tool";
+        DefaultBuildProperties = {
+            FULL_PRODUCT_NAME = "$(EXECUTABLE_NAME)";
+            REZ_EXECUTABLE = YES;
+            INSTALL_PATH = "/usr/local/bin";
+        };
+        IsJava = YES;
+        PackageTypes = (
+            com.apple.package-type.jarfile,   // default
+            com.apple.package-type.zipfile,
+            com.apple.package-type.javaclassfolder
+        );
+    },
+
+    // Java library (jar or zip file)
+    {
+        _Domain = macosx;
+        Type = ProductType;
+        Identifier = com.apple.product-type.library.java.archive;
+        Name = "Java Library";
+        Description = "Java library packaged as a Jar file, Zip file, or class folder";
+        DefaultTargetName = "Java Library";
+        DefaultBuildProperties = {
+            FULL_PRODUCT_NAME = "$(PRODUCT_NAME)";
+            INSTALL_PATH = "/usr/local/lib";
+        };
+        IsJava = YES;
+        PackageTypes = (
+            com.apple.package-type.jarfile,   // default
+            com.apple.package-type.zipfile,
+            com.apple.package-type.javaclassfolder
+        );
+    },
+
+    // Java Application
+    {
+        _Domain = macosx;
+        Type = ProductType;
+        Identifier = com.apple.product-type.application.java;
+        BasedOn = com.apple.product-type.application;
+        Name = "Java Application";
+        Description = "Java Application";
+        DefaultTargetName = "Java Application";
+        DefaultBuildProperties = {
+            INFOPLIST_PATH = "";
+            PKGINFO_PATH = "";
+            ENABLE_DEBUG_DYLIB = NO;
+        };
+        IsJava = YES;
+    },
+
+    // Xcode Extension
+    {
+        _Domain = macosx;
+        Type = ProductType;
+        Identifier = "com.apple.product-type.xcode-extension";
+        BasedOn = "com.apple.product-type.app-extension";
+        Name = "Xcode Extension";
+        Description = "Xcode Extension";
+        DefaultTargetName = "Xcode Extension";
+        "DefaultBuildProperties" = {
+            "CODE_SIGNING_ALLOWED" = YES;
+            "APPLICATION_EXTENSION_API_ONLY" = YES;
+            "LD_ENTRY_POINT" = "_XCExtensionMain";
+            "PRODUCT_SPECIFIC_LDFLAGS" = "-lXcodeExtension";
+            "PRODUCT_TYPE_FRAMEWORK_SEARCH_PATHS" = (
+                "$(inherited)",
+                "$(DEVELOPER_FRAMEWORKS_DIR)",
+            );
+            "PRODUCT_TYPE_LIBRARY_SEARCH_PATHS" = (
+                "$(inherited)",
+                "$(DEVELOPER_USR_DIR)/lib",
+            );
+            LD_RUNPATH_SEARCH_PATHS = (
+                "@loader_path/../Frameworks",
+            );
+            WRAPPER_EXTENSION = "appex";
+
+            PROVISIONING_PROFILE_SUPPORTED = YES;
+            PROVISIONING_PROFILE_REQUIRED = NO;
+        };
+        PackageTypes = (
+            "com.apple.package-type.app-extension",
+        );
+        WantsBundleIdentifierEditing = YES;
+        WantsSigningEditing = YES;
+    },
+
+    // Spotlight Importer
+    {
+        _Domain = macosx;
+        Type = ProductType;
+        Identifier = "com.apple.product-type.spotlight-importer";
+        BasedOn = "com.apple.product-type.bundle";
+        Class = PBXBundleProductType;
+        Name = "Spotlight Importer";
+        Description = "Spotlight Importer";
+        DefaultTargetName = "Spotlight";
+        "DefaultBuildProperties" = {
+            "CODE_SIGNING_ALLOWED" = YES;
+        };
+        PackageTypes = (
+            "com.apple.package-type.spotlight-importer",
+        );
+    },
+)

@@ -1,0 +1,49 @@
+//===----------------------------------------------------------------------===//
+//
+// This source file is part of the Swift open source project
+//
+// Copyright (c) 2025 Apple Inc. and the Swift project authors
+// Licensed under Apache License v2.0 with Runtime Library Exception
+//
+// See http://swift.org/LICENSE.txt for license information
+// See http://swift.org/CONTRIBUTORS.txt for the list of Swift project authors
+//
+//===----------------------------------------------------------------------===//
+
+"Name" = "xcmpCompile Build Settings";
+"Description" = "xcmpCompile Build Settings";
+
+
+// Language Settings
+
+"[Language]-category" = "Language";
+
+"[XCMPCOMPILE_PROMOTE_TO_DOUBLE_PRECISION]-name" = "Promote to double precision";
+"[XCMPCOMPILE_PROMOTE_TO_DOUBLE_PRECISION]-description" = "Description for 'Promote to double precision'.";
+"[XCMPCOMPILE_PROMOTE_TO_DOUBLE_PRECISION]-value-[stack]" = "Stack";
+"[XCMPCOMPILE_PROMOTE_TO_DOUBLE_PRECISION]-description-[stack]" = "Description for 'stack'.";
+"[XCMPCOMPILE_PROMOTE_TO_DOUBLE_PRECISION]-value-[static]" = "Static";
+"[XCMPCOMPILE_PROMOTE_TO_DOUBLE_PRECISION]-description-[static]" = "Description for 'static'.";
+
+
+// Code Generation Settings
+
+"[CodeGeneration]-category" = "Code Generation";
+
+"[XCMPCOMPILE_VARIABLE_STORAGE]-name" = "XCMPCOMPILE_VARIABLE_STORAGE";
+"[XCMPCOMPILE_TRAP_UNINITIALIZED_VARIABLES]-name" = "XCMPCOMPILE_TRAP_UNINITIALIZED_VARIABLES";
+
+
+// Warnings Settings
+
+"[Warnings]-category" = "Warnings";
+
+"[XCMPCOMPILE_COMPLAIN_ABOUT_UNDECLARED_VARIABLES]-name" = "XCMPCOMPILE_COMPLAIN_ABOUT_UNDECLARED_VARIABLES";
+"[XCMPCOMPILE_WARN_ABOUT_FORTRAN_66_COMPATIBILITY]-name" = "XCMPCOMPILE_WARN_ABOUT_FORTRAN_66_COMPATIBILITY";
+
+
+// Preprocessing Settings
+
+"[Preprocessing]-category" = "Preprocessing";
+
+"[XCMPCOMPILE_PREPROCESSOR_DEFINITIONS]-name" = "XCMPCOMPILE_PREPROCESSOR_DEFINITIONS";

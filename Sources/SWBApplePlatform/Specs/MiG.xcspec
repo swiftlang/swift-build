@@ -1,0 +1,114 @@
+//===----------------------------------------------------------------------===//
+//
+// This source file is part of the Swift open source project
+//
+// Copyright (c) 2025 Apple Inc. and the Swift project authors
+// Licensed under Apache License v2.0 with Runtime Library Exception
+//
+// See http://swift.org/LICENSE.txt for license information
+// See http://swift.org/CONTRIBUTORS.txt for the list of Swift project authors
+//
+//===----------------------------------------------------------------------===//
+
+(
+    {   Type = Compiler;
+        Identifier = com.apple.compilers.mig;
+        Name = "MiG";
+        Description = "Mach Interface Stub Generator";
+        CommandLine = "$(MIG_EXEC) [special-args] [options] [input]";
+        RuleName = "Mig $(InputFile) $(arch)";
+        ExecDescription = "Mig $(InputFileName)";
+        ProgressDescription = "Running Mig on $(CommandProgressByType) files";
+        InputFileTypes = (
+            sourcecode.mig
+        );
+        EnvironmentVariables = {
+            DEVELOPER_DIR = "$(DEVELOPER_DIR)";
+            SDKROOT = "$(SDKROOT)";
+            TOOLCHAINS = "$(TOOLCHAINS)";
+        };
+        SynthesizeBuildRule = Yes;
+        OptionConditionFlavors = (
+            sdk,
+        );
+        OutputsAreSourceFiles = Yes;
+        CommandOutputParser = (
+            ("errors found. Abort.$",  ignore),
+            ("^(?:/.*/mig|mig): fatal: \\\"(.*)\\\", line ([0-9]*): (.*)$",  emit-error),
+            ("^(?:/.*/mig|mig): \\\"(.*)\\\", line ([0-9]*): (.*)$",  emit-error),
+            ("^\\\"(.*)\\\", line ([0-9]*): (.*)$",  emit-error),
+        );
+        Options = (
+            // Special flags (not shown in user interface)
+            {   Name = arch;
+                Type = String;
+                CommandLineArgs = {
+                    "<<otherwise>>" = (-arch, "$(value)");
+                };
+            },
+
+            // Source generation flags
+            {   Name = mig_generate_client_sources;
+                Type = Boolean;
+                DefaultValue = YES;
+                Values = (
+                    {   Value = YES;
+                        CommandLine = "-header $(DERIVED_FILE_DIR)/$(CURRENT_ARCH)/$(InputFileBase).h -user $(DERIVED_FILE_DIR)/$(CURRENT_ARCH)/$(InputFileBase)User.c";
+                        Outputs = (
+                            "$(DERIVED_FILE_DIR)/$(CURRENT_ARCH)/$(InputFileBase).h",
+                            "$(DERIVED_FILE_DIR)/$(CURRENT_ARCH)/$(InputFileBase)User.c",
+                        );
+                    },
+                    {   Value = NO;
+                        // MiG doesn't have a good way to force it to not generate the client files, but we can fake it by generating them into /dev/null.
+                        CommandLine = "-header /dev/null -user /dev/null";
+                    },
+                );
+                OutputsAreSourceFiles = Yes;
+            },
+            {   Name = mig_generate_server_sources;
+                Type = Boolean;
+                DefaultValue = NO;
+                Values = (
+                    {   Value = YES;
+                        CommandLine = "-sheader $(DERIVED_FILE_DIR)/$(CURRENT_ARCH)/$(InputFileBase)Server.h -server $(DERIVED_FILE_DIR)/$(CURRENT_ARCH)/$(InputFileBase)Server.c";
+                        Outputs = (
+                            "$(DERIVED_FILE_DIR)/$(CURRENT_ARCH)/$(InputFileBase)Server.h",
+                            "$(DERIVED_FILE_DIR)/$(CURRENT_ARCH)/$(InputFileBase)Server.c",
+                        );
+                    },
+                    {   Value = NO;
+                        // MiG doesn't have a good way to force it to not generate the server files, but we can fake it by generating them into /dev/null.
+                        CommandLine = "-sheader /dev/null -server /dev/null";
+                    },
+                );
+                OutputsAreSourceFiles = Yes;
+            },
+
+            {
+                Name = MIG_EXEC;
+                Type = Path;
+                DefaultValue = mig;
+            },
+
+            // Other flags
+            {   Name = OTHER_MIGFLAGS;
+                Type = StringList;
+                DefaultValue = "";
+                CommandLineArgs = ( "$(value)" );
+                Category = BuildOptions;
+            },
+            {   Name = HEADER_SEARCH_PATHS;
+                Type = PathList;
+                DefaultValue = "";
+                CommandLineArgs = ( "-I$(value)" );
+            },
+
+            {   Name = MIG_DEPLOYMENT_TARGET;
+                Type = String;
+                DefaultValue = "$($(DEPLOYMENT_TARGET_SETTING_NAME))";
+                SetValueInEnvironmentVariable = "$(DEPLOYMENT_TARGET_CLANG_ENV_NAME)";
+            },
+        );
+    }
+)

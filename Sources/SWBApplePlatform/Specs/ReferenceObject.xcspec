@@ -1,0 +1,57 @@
+//===----------------------------------------------------------------------===//
+//
+// This source file is part of the Swift open source project
+//
+// Copyright (c) 2025 Apple Inc. and the Swift project authors
+// Licensed under Apache License v2.0 with Runtime Library Exception
+//
+// See http://swift.org/LICENSE.txt for license information
+// See http://swift.org/CONTRIBUTORS.txt for the list of Swift project authors
+//
+//===----------------------------------------------------------------------===//
+
+(
+    {
+        Type = FileType;
+        Identifier = "file.referenceobject";
+        BasedOn = sourcecode;
+        Name = "ARKit Reference Object";
+        Extensions = (
+            referenceobject,
+        );
+        AppliesToBuildRules = YES;
+        IncludeInIndex = YES;
+        CanSetIncludeInIndex = YES;
+        UTI = "com.apple.arkit.referenceobject";
+    },
+    {
+        Type = Compiler;
+        Identifier = "com.apple.compilers.referenceobject";
+        Name = "Reference Object Compiler";
+        Description = "referenceobjectc: compiler for referenceobject files";
+        "IsArchitectureNeutral" = Yes;
+        CommandLine = "referenceobjectc $(InputFile) $(ProductResourcesDir)/ [options]";
+        RuleName = "ReferenceObjectCompile $(ProductResourcesDir)/ $(InputFile)";
+        ExecDescription = "Compile Reference Object file $(InputFileName)";
+        ProgressDescription = "Compiling $(CommandProgressByType) Reference Object files";
+        InputFileTypes = (
+            "file.referenceobject"
+        );
+        "DeeplyStatInputDirectories" = Yes;
+        SynthesizeBuildRule = Yes;
+        Outputs = (
+            "$(ProductResourcesDir)/$(InputFileBase).referenceobject",
+        );
+        Options = (
+            {
+                Name = "REFERENCEOBJECT_STRIP_USDZ";
+                DisplayName = "Strip USDZ file(s) from Reference Object";
+                Description = "Strip any embedded USDZ files when compiling a Reference Object file.";
+                Category = Deployment;
+                Type = Boolean;
+                DefaultValue = NO;
+                CommandLineFlag = "--strip-usdz";
+            },
+        );
+    },
+)

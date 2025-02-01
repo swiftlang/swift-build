@@ -1,0 +1,81 @@
+//===----------------------------------------------------------------------===//
+//
+// This source file is part of the Swift open source project
+//
+// Copyright (c) 2025 Apple Inc. and the Swift project authors
+// Licensed under Apache License v2.0 with Runtime Library Exception
+//
+// See http://swift.org/LICENSE.txt for license information
+// See http://swift.org/CONTRIBUTORS.txt for the list of Swift project authors
+//
+//===----------------------------------------------------------------------===//
+
+(
+    {   Type = ProductType;
+        Identifier = com.apple.product-type.metal-library;
+        Class = XCStandaloneExecutableProductType;
+        Name = "Metal Library";
+        Description = "Metal Library";
+        IconNamePrefix = "TargetLibrary";
+        DefaultTargetName = "Metal Library";
+        DefaultBuildProperties = {
+            FULL_PRODUCT_NAME = "$(EXECUTABLE_NAME)";
+            EXECUTABLE_SUFFIX = ".$(EXECUTABLE_EXTENSION)";
+            EXECUTABLE_EXTENSION = "metallib";
+            METAL_LIBRARY_FILE_BASE = "$(PRODUCT_NAME)";
+            METAL_LIBRARY_OUTPUT_DIR = "$(TARGET_BUILD_DIR)";
+            PUBLIC_HEADERS_FOLDER_PATH = "/usr/local/include";
+            PRIVATE_HEADERS_FOLDER_PATH = "/usr/local/include";
+            INSTALL_PATH = "$(HOME)/Metal";
+            SKIP_INSTALL = YES;
+        };
+        AllowedBuildPhases = (
+            "com.apple.buildphase.sources",
+            "com.apple.buildphase.copy-files",
+            "com.apple.buildphase.shell-script",
+        );
+        AllowedFileTypes = {
+            "com.apple.buildphase.sources" = (
+                "sourcecode.metal",
+            );
+        };
+        PackageTypes = (
+            com.apple.package-type.metal-library,   // default
+        );
+    },
+    {   Type = ProductType;
+        Identifier = com.apple.product-type.metal-library;
+        BasedOn = "default:com.apple.product-type.metal-library";
+        Domain = macosx;
+    },
+    {   Type = ProductType;
+        Identifier = com.apple.product-type.metal-library;
+        BasedOn = "default:com.apple.product-type.metal-library";
+        Domain = iphoneos;
+    },
+    {   Type = ProductType;
+        Identifier = com.apple.product-type.metal-library;
+        BasedOn = "iphoneos:com.apple.product-type.metal-library";
+        Domain = iphonesimulator;
+    },
+    {   Type = ProductType;
+        Identifier = com.apple.product-type.metal-library;
+        BasedOn = "default:com.apple.product-type.metal-library";
+        Domain = appletvos;
+    },
+    {   Type = ProductType;
+        Identifier = com.apple.product-type.metal-library;
+        BasedOn = "appletvos:com.apple.product-type.metal-library";
+        Domain = appletvsimulator;
+    },
+    {   Type = ProductType;
+        Identifier = com.apple.product-type.metal-library;
+        BasedOn = "default:com.apple.product-type.metal-library";
+        Domain = xros;
+    },
+    {   Type = ProductType;
+        Identifier = com.apple.product-type.metal-library;
+        BasedOn = "xros:com.apple.product-type.metal-library";
+        Domain = xrsimulator;
+    },
+)

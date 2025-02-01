@@ -1,0 +1,43 @@
+//===----------------------------------------------------------------------===//
+//
+// This source file is part of the Swift open source project
+//
+// Copyright (c) 2025 Apple Inc. and the Swift project authors
+// Licensed under Apache License v2.0 with Runtime Library Exception
+//
+// See http://swift.org/LICENSE.txt for license information
+// See http://swift.org/CONTRIBUTORS.txt for the list of Swift project authors
+//
+//===----------------------------------------------------------------------===//
+
+(
+    {   Identifier = com.apple.xcode.linkers.lipo;
+        Type = Linker;
+        Name = "Lipo";
+        Description = "Create a universal binary using lipo";
+        IsAbstract = Yes;       // This is an internal tool, so we keep it out of the user interface
+        BinaryFormats = (mach-o);
+        CommandLine = "lipo -create -arch_only [inputs] [options] -output $(OutputPath)";
+        RuleName = "CreateUniversalBinary $(OutputPath) $(CURRENT_VARIANT) $(ARCHS:quote)";
+        CommandIdentifier = "create:$(OutputPath)";
+        ExecDescription = "Create universal binary $(OutputFile:file)";
+        ProgressDescription = "Creating universal binary";
+        InputFileTypes = (
+            compiled.mach-o.executable,
+            compiled.mach-o.bundle,
+            compiled.mach-o.dylib,
+        );
+        Outputs = (
+            // We're a linker-like task, so we expect to be given an output path in 'OutputPath'.
+            "$(OutputPath)"
+        );
+        CommandOutputParser = (
+            ("^fatal error: (.*lipo): ()(.*)$",  emit-error),
+            ("^error: (.*lipo): ()(.*)$",  emit-error),
+            ("^warning: (.*lipo): ()(.*)$",  emit-warning),
+        );
+        Options = (
+            // None yet
+        );
+    }
+)

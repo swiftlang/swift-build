@@ -1,0 +1,96 @@
+//===----------------------------------------------------------------------===//
+//
+// This source file is part of the Swift open source project
+//
+// Copyright (c) 2025 Apple Inc. and the Swift project authors
+// Licensed under Apache License v2.0 with Runtime Library Exception
+//
+// See http://swift.org/LICENSE.txt for license information
+// See http://swift.org/CONTRIBUTORS.txt for the list of Swift project authors
+//
+//===----------------------------------------------------------------------===//
+
+//        OptionsForCommandLine = (REZ_SCRIPT_TYPE, REZ_RESOLVE_ALIASES, REZ_RESOURCE_MAP_READ_ONLY, REZ_SHOW_DEBUG_OUTPUT, REZ_SUPPRESS_REDECLARED_RESOURCE_TYPE_WARNINGS, REZ_PREPROCESSOR_DEFINITIONS, REZ_PREPROCESSOR_UNDEFINITIONS);
+
+// Localized strings for basic info
+"Name" = "Rez";
+"Description" = "Rez";
+"Version" = "Default";
+"Vendor" = "Apple";
+
+// Localized strings for output-parse-info
+"OutputParseInfo-ProgressStatusFormat" = "Running Rez on %@";      // arg 1 is name of rule's input file
+"OutputParseInfo-MessageStatusFormat" = "Rez %@";       // arg 1 is name of rule's input file, arg 2 is name of file containing message (@"" if unknown)
+
+"[Language]-category" = "Language";
+
+"[REZ_SCRIPT_TYPE]-name" = "Rez Script Type";
+"[REZ_SCRIPT_TYPE]-description" = "Enables the recognition of a specific 2-byte character script identifier to use when compiling resource manager resources. This allows for 2-byte characters in strings to be handled as indivisible entities. The default language is Roman, which specifies 1-byte character sets.";
+"[REZ_SCRIPT_TYPE]-value-[Roman]" = "Roman";
+"[REZ_SCRIPT_TYPE]-description-[Roman]" = "Specifies that the Roman script (1-byte character set) should be used when compiling resource manager resources. [-script Roman]";
+"[REZ_SCRIPT_TYPE]-value-[Japanese]" = "Japanese";
+"[REZ_SCRIPT_TYPE]-description-[Japanese]" = "Specifies that the Japanese script (2-byte character set) should be used when compiling resource manager resources. [-script Japanese]";
+"[REZ_SCRIPT_TYPE]-value-[Korean]" = "Korean";
+"[REZ_SCRIPT_TYPE]-description-[Korean]" = "Specifies that the Korean script (2-byte character set) should be used when compiling resource manager resources. [-script Korean]";
+"[REZ_SCRIPT_TYPE]-value-[SimpChinese]" = "Simplified Chinese";
+"[REZ_SCRIPT_TYPE]-description-[SimpChinese]" = "Specifies that the Simplified Chinese script (2-byte character set) should be used when compiling resource manager resources. [-script SimpChinese]";
+"[REZ_SCRIPT_TYPE]-value-[TradChinese]" = "Traditional Chinese";
+"[REZ_SCRIPT_TYPE]-description-[TradChinese]" = "Specifies that the Traditional Chinese script (2-byte character set) should be used when compiling resource manager resources. [-script TradChinese]";
+
+"[REZ_PREFIX_FILE]-name" = "Rez Prefix File";
+"[REZ_PREFIX_FILE]-description" = "Implicitly include the named file on the command line for each `Rez` file compiled. The path given should either be a project relative path or an absolute path.";
+
+"[OTHER_REZFLAGS]-name" = "Other Rez Flags";
+"[OTHER_REZFLAGS]-description" = "Space-separated list of additional flags to pass to the `Rez` compiler. Be sure to backslash-escape any arguments that contain spaces or special characters, such as path names that may contain spaces. Use this setting if Xcode does not already provide UI for a particular `Rez` flag.";
+
+
+"[Preprocessing]-category" = "Preprocessing";
+
+"[REZ_PREPROCESSOR_DEFINITIONS]-name" = "Preprocessor Defines";
+"[REZ_PREPROCESSOR_DEFINITIONS]-description" = "These strings will be defined when compiling resource manager resources.";
+
+"[REZ_PREPROCESSOR_UNDEFINITIONS]-name" = "Preprocessor Undefines";
+"[REZ_PREPROCESSOR_UNDEFINITIONS]-description" = "These strings will be undefined when compiling resource manager resources.";
+
+
+"[ResourceGeneration]-category" = "Resource Generation";
+
+"[REZ_RESOLVE_ALIASES]-name" = "Resolve Aliases";
+"[REZ_RESOLVE_ALIASES]-description" = "Enables aliases to be unresolved or conditionally resolved. The default is to resolve aliases always.";
+"[REZ_RESOLVE_ALIASES]-value-[Always]" = "Always";
+"[REZ_RESOLVE_ALIASES]-description-[Always]" = "Resolve all aliases. [Always]";
+"[REZ_RESOLVE_ALIASES]-value-[Includes]" = "Included Files";
+"[REZ_RESOLVE_ALIASES]-description-[Includes]" = "Resolve aliases only for included resource files. [Includes, -noResolve output]";
+"[REZ_RESOLVE_ALIASES]-value-[Outputs]" = "Output Files";
+"[REZ_RESOLVE_ALIASES]-description-[Outputs]" = "Resolve aliases only for the output file. [Outputs, -noResolve include]";
+"[REZ_RESOLVE_ALIASES]-value-[Never]" = "Never";
+"[REZ_RESOLVE_ALIASES]-description-[Never]" = "Never resolve aliases. [Never, -noResolve]";
+
+"[REZ_RESOURCE_MAP_READ_ONLY]-name" = "Read-only Resource Map";
+"[REZ_RESOURCE_MAP_READ_ONLY]-description" = "Enabling this option causes the resource map output to be read-only.";
+"[REZ_RESOURCE_MAP_READ_ONLY]-value-[NO]" = "No";
+"[REZ_RESOURCE_MAP_READ_ONLY]-value-[YES]" = "Yes";
+
+
+"[Warnings]-category" = "Warnings";
+
+"[REZ_SHOW_DEBUG_OUTPUT]-name" = "Show Diagnostic Output";
+"[REZ_SHOW_DEBUG_OUTPUT]-description" = "Enabling this option causes version and progress information to be written when compiling resource manager resources.";
+"[REZ_SHOW_DEBUG_OUTPUT]-value-[NO]" = "No";
+"[REZ_SHOW_DEBUG_OUTPUT]-value-[YES]" = "Yes";
+
+"[REZ_SUPPRESS_REDECLARED_RESOURCE_TYPE_WARNINGS]-name" = "Suppress Type Redeclaration Warnings";
+"[REZ_SUPPRESS_REDECLARED_RESOURCE_TYPE_WARNINGS]-description" = "Enabling this option causes warnings about redeclared resource types to be suppressed.";
+"[REZ_SUPPRESS_REDECLARED_RESOURCE_TYPE_WARNINGS]-value-[NO]" = "No";
+"[REZ_SUPPRESS_REDECLARED_RESOURCE_TYPE_WARNINGS]-value-[YES]" = "Yes";
+
+"[BinarySources]-category" = "Binary Source Files";
+
+"[RESMERGER_SOURCES_FORK]-name" = "File Fork of Binary Sources";
+"[RESMERGER_SOURCES_FORK]-description" = "Determines whether `ResMerger` treats binary input files as data-fork hosted or resource-fork hosted, or whether it automatically examines each input file.";
+"[RESMERGER_SOURCES_FORK]-value-[data]" = "Data Fork";
+"[RESMERGER_SOURCES_FORK]-description-[data]" = "ResMerger treats binary input files as data-fork hosted resource files. [data, -useDF]";
+"[RESMERGER_SOURCES_FORK]-value-[resource]" = "Resource Fork";
+"[RESMERGER_SOURCES_FORK]-description-[resource]" = "ResMerger treats binary input files as resource-fork hosted resource files. [resource]";
+"[RESMERGER_SOURCES_FORK]-value-[auto]" = "Automatic";
+"[RESMERGER_SOURCES_FORK]-description-[auto]" = "ResMerger examines each binary input file to determine whether it is data-fork hosted or resource-fork hosted. The data fork is examined first, so that unintended 'MPSR' resources etc do not cause problems. [auto]";

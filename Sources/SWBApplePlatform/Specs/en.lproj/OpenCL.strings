@@ -1,0 +1,87 @@
+//===----------------------------------------------------------------------===//
+//
+// This source file is part of the Swift open source project
+//
+// Copyright (c) 2025 Apple Inc. and the Swift project authors
+// Licensed under Apache License v2.0 with Runtime Library Exception
+//
+// See http://swift.org/LICENSE.txt for license information
+// See http://swift.org/CONTRIBUTORS.txt for the list of Swift project authors
+//
+//===----------------------------------------------------------------------===//
+
+// Localized strings for basic info
+"Name" = "OpenCL";
+"Description" = "OpenCL Compiler";
+"Version" = "Default";
+"Vendor" = "Apple";
+
+// Localized strings for output-parse-info
+"OutputParseInfo-ProgressStatusFormat" = "OpenCL %@";   // arg 1 is name of rule's input file
+"OutputParseInfo-MessageStatusFormat" = "OpenCL %@";    // arg 1 is name of rule's input file, arg 2 is name of file containing message (@"" if unknown)
+
+
+
+"[BuildOptions]-category" = "Build";
+
+"[OPENCL_COMPILER_VERSION]-name" = "OpenCL Compiler Version";
+"[OPENCL_COMPILER_VERSION]-description" = "The `OpenCL` C compiler version supported by the platform.";
+
+"[OPENCL_ARCHS]-name" = "OpenCL Architectures";
+"[OPENCL_ARCHS]-description" = "A list of the architectures for which the product will be built. This is usually set to a predefined build setting provided by the platform.";
+
+"[OPENCL_OTHER_BC_FLAGS]-name" = "OpenCL Other Flags";
+"[OPENCL_OTHER_BC_FLAGS]-description" = "Space-separated list of additional flags to pass to the compiler. Be sure to backslash-escape any arguments that contain spaces or special characters, such as path names that may contain spaces. Use this setting if Xcode does not already provide UI for a particular compiler flag.";
+
+
+
+"[Preprocessing]-category" = "Preprocessing";
+
+"[OPENCL_PREPROCESSOR_DEFINITIONS]-name" = "OpenCL Preprocessor Macros";
+"[OPENCL_PREPROCESSOR_DEFINITIONS]-description" = "Space-separated list of preprocessor macros of the form `foo` or `foo=bar`.";
+
+
+
+"[CodeGen]-category" = "Code Generation";
+
+"[OPENCL_MAD_ENABLE]-name" = "Use MAD";
+"[OPENCL_MAD_ENABLE]-description" = "Allow `a * b + c` to be replaced by a `mad` instruction. The `mad` computes `a * b + c` with reduced accuracy. For example, some `OpenCL` devices implement `mad` as truncate the result of `a * b` before adding it to `c`.
+
+This is intended to be a performance optimization.";
+
+"[OPENCL_FAST_RELAXED_MATH]-name" = "Relax IEEE Compliance";
+"[OPENCL_FAST_RELAXED_MATH]-description" = "This allows optimizations for floating-point arithmetic that may violate the IEEE 754 standard and the `OpenCL` numerical compliance requirements defined in in section 7.4 for single-precision floating-point, section 9.3.9 for double-precision floating-point, and edge case behavior in section 7.5 of the `OpenCL` 1.1 specification.
+
+This is intended to be a performance optimization.
+
+This option causes the preprocessor macro `__FAST_RELAXED_MATH__` to be defined in the `OpenCL` program.";
+
+"[OPENCL_DOUBLE_AS_SINGLE]-name" = "Double as single";
+"[OPENCL_DOUBLE_AS_SINGLE]-description" = "Treat double precision floating-point expression as a single precision floating-point expression. This option is available for GPUs only.";
+
+"[OPENCL_DENORMS_ARE_ZERO]-name" = "Flush denorms to zero";
+"[OPENCL_DENORMS_ARE_ZERO]-description" = "This option controls how single precision and double precision denormalized numbers are handled. If specified as a build option, the single precision denormalized numbers may be flushed to zero; double precision denormalized numbers may also be flushed to zero if the optional extension for double precision is supported. This is intended to be a performance hint and the `OpenCL` compiler can choose not to flush denorms to zero if the device supports single precision (or double precision) denormalized numbers.
+
+This option is ignored for single precision numbers if the device does not support single precision denormalized numbers, for example, `CL_FP_DENORM` bit is not set in `CL_DEVICE_SINGLE_FP_CONFIG`.
+
+This option is ignored for double precision numbers if the device does not support double precision or if it does support double precision but not double precision denormalized numbers, for example, `CL_FP_DENORM` bit is not set in `CL_DEVICE_DOUBLE_FP_CONFIG`.
+
+This flag only applies for scalar and vector single precision floating-point variables and computations on these floating-point variables inside a program. It does not apply to reading from or writing to image objects.";
+
+"[OPENCL_AUTO_VECTORIZE_ENABLE]-name" = "Auto-vectorizer";
+"[OPENCL_AUTO_VECTORIZE_ENABLE]-description" = "Auto-vectorizes the `OpenCL` kernels for the CPU. This setting takes effect only for the CPU. This makes it possible to write a single kernel that is portable and performant across CPUs and GPUs.";
+
+"[OPENCL_OPTIMIZATION_LEVEL]-name" = "Optimization Level";
+"[OPENCL_OPTIMIZATION_LEVEL]-description" = "* *None:* Do not optimize. [-O0]
+  With this setting, the compiler's goal is to reduce the cost of compilation and to make debugging produce the expected results. Statements are independent: if you stop the program with a breakpoint between statements, you can then assign a new value to any variable or change the program counter to any other statement in the function and get exactly the results you would expect from the source code.
+* *Fast:* Optimizing compilation takes somewhat more time, and a lot more memory for a large function. [-O, -O1]
+  With this setting, the compiler tries to reduce code size and execution time, without performing any optimizations that take a great deal of compilation time. In Apple's compiler, strict aliasing, block reordering, and inter-block scheduling are disabled by default when optimizing.
+* *Faster:* The compiler performs nearly all supported optimizations that do not involve a space-speed tradeoff. [-O2]
+  With this setting, the compiler does not perform loop unrolling or function inlining, or register renaming. As compared to the `Fast` setting, this setting increases both compilation time and the performance of the generated code.
+* *Fastest:* Turns on all optimizations specified by the `Faster` setting and also turns on function inlining and register renaming options. This setting may result in a larger binary. [-O3]
+* *Fastest, smallest:* Optimize for size. This setting enables all `Faster` optimizations that do not typically increase code size. It also performs further optimizations designed to reduce code size. [-Os]";
+"[OPENCL_OPTIMIZATION_LEVEL]-value-[0]" = "None [-O0]";
+"[OPENCL_OPTIMIZATION_LEVEL]-value-[1]" = "Fast [-O, O1]";
+"[OPENCL_OPTIMIZATION_LEVEL]-value-[2]" = "Faster [-O2]";
+"[OPENCL_OPTIMIZATION_LEVEL]-value-[3]" = "Fastest [-O3]";
+"[OPENCL_OPTIMIZATION_LEVEL]-value-[s]" = "Fastest, Smallest [-Os]";

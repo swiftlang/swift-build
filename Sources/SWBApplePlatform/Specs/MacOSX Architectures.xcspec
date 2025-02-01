@@ -1,0 +1,103 @@
+//===----------------------------------------------------------------------===//
+//
+// This source file is part of the Swift open source project
+//
+// Copyright (c) 2025 Apple Inc. and the Swift project authors
+// Licensed under Apache License v2.0 with Runtime Library Exception
+//
+// See http://swift.org/LICENSE.txt for license information
+// See http://swift.org/CONTRIBUTORS.txt for the list of Swift project authors
+//
+//===----------------------------------------------------------------------===//
+
+(
+    // Architecture settings shown in the UI.
+	{
+        _Domain = macosx;
+		Type = Architecture;
+		Identifier = Standard;
+		Name = "Standard Architectures";
+		ListInEnum = YES;
+		SortNumber = 0;
+		RealArchitectures = ( arm64, x86_64 );
+		ArchitectureSetting = "ARCHS_STANDARD";
+	},
+
+    // Architecture settings not shown in the UI.
+	{
+        _Domain = macosx;
+		Type = Architecture;
+		Identifier = Universal;
+		SortNumber = 2;
+		RealArchitectures = ( arm64, x86_64, i386 );
+		ArchitectureSetting = "ARCHS_STANDARD_32_64_BIT";
+	},
+	{
+        _Domain = macosx;
+		Type = Architecture;
+		Identifier = Standard32bit;
+		SortNumber = 101;
+		RealArchitectures = ( i386 );
+		ArchitectureSetting = "ARCHS_STANDARD_32_BIT";
+	},
+	{
+        _Domain = macosx;
+		Type = Architecture;
+		Identifier = Standard64bit;
+		SortNumber = 102;
+		RealArchitectures = ( arm64, x86_64 );
+		ArchitectureSetting = "ARCHS_STANDARD_64_BIT";
+	},
+	{
+        _Domain = macosx;
+		Type = Architecture;
+		Identifier = Standard_Including_64_bit;
+		SortNumber = 103;
+		RealArchitectures = ( arm64, x86_64 );
+		ArchitectureSetting = "ARCHS_STANDARD_INCLUDING_64_BIT";
+	},
+
+    // Concrete architectures.
+	{
+        _Domain = macosx;
+		Type = Architecture;
+		Identifier = i386;
+		Name = "Intel 32-bit";
+		Description = "32-bit Intel";
+		PerArchBuildSettingName = "Intel 32-bit";
+		ListInEnum = NO;
+		SortNumber = 105;
+        DeprecatedError = YES;
+        SupportsMergeableLibraries = NO;
+	},
+	{
+        _Domain = macosx;
+		Type = Architecture;
+		Identifier = "x86_64";
+		Name = "Intel 64-bit";
+		Description = "64-bit Intel";
+		PerArchBuildSettingName = "Intel 64-bit";
+		ListInEnum = NO;
+		SortNumber = 106;
+	},
+    {
+        _Domain = macosx;
+        Type = Architecture;
+        Identifier = arm64;
+        Name = "arm64";
+        Description = "arm64";
+        PerArchBuildSettingName = "arm64";
+        SortNumber = 152;
+    },
+    {
+        _Domain = macosx;
+        Type = Architecture;
+        Identifier = arm64e;
+        Name = "arm64e";
+        Description = "arm64e";
+        PerArchBuildSettingName = "arm64e";
+        CompatibilityArchitectures = arm64;
+        SortNumber = 153;
+    },
+
+)

@@ -1,0 +1,24 @@
+{
+  "Outputs" : {
+    "tokens" : {
+      "MLFeatureShortDescription" : "Tokens"
+    },
+    "lengths" : {
+      "MLFeatureShortDescription" : "Token lengths"
+    },
+    "locations" : {
+      "MLFeatureShortDescription" : "Token locations"
+    },
+    "labels" : {
+      "MLFeatureShortDescription" : "Token tags"
+    }
+  },
+  "Inputs" : {
+    "text" : {
+      "MLFeatureShortDescription" : "Input text"
+    }
+  },
+  "TrainingInputs" : {
+
+  }
+}

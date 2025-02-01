@@ -1,0 +1,68 @@
+//===----------------------------------------------------------------------===//
+//
+// This source file is part of the Swift open source project
+//
+// Copyright (c) 2025 Apple Inc. and the Swift project authors
+// Licensed under Apache License v2.0 with Runtime Library Exception
+//
+// See http://swift.org/LICENSE.txt for license information
+// See http://swift.org/CONTRIBUTORS.txt for the list of Swift project authors
+//
+//===----------------------------------------------------------------------===//
+
+(
+    {
+        Domain = windows;
+        Type = Architecture;
+        Identifier = Standard;
+        Name = "Standard Architectures";
+        Description = "Standard architectures";
+        ArchitectureSetting = "ARCHS_STANDARD";
+        RealArchitectures = (
+            "$(VALID_ARCHS)"
+        );
+        SortNumber = 0;
+    },
+
+    {
+        Domain = windows;
+        Type = ProductType;
+        Identifier = com.apple.product-type.tool;
+        BasedOn = default:com.apple.product-type.tool;
+        DefaultBuildProperties = {
+            EXECUTABLE_SUFFIX = ".$(EXECUTABLE_EXTENSION)";
+            EXECUTABLE_EXTENSION = "exe";
+        };
+    },
+
+    {
+        Domain = windows;
+        Type = ProductType;
+        Identifier = com.apple.product-type.tool.host-build;
+        BasedOn = com.apple.product-type.tool;
+    },
+
+    {
+        Domain = windows;
+        Type = ProductType;
+        Identifier = com.apple.product-type.library.static;
+        BasedOn = default:com.apple.product-type.library.static;
+        DefaultBuildProperties = {
+            EXECUTABLE_EXTENSION = "lib";
+        };
+    },
+
+    {
+        Domain = windows;
+        Type = Compiler;
+        Identifier = com.apple.compilers.documentation;
+        BasedOn = default:com.apple.compilers.documentation;
+        Options = (
+            {
+                Name = "DOCC_EXEC";
+                Type = Path;
+                DefaultValue = docc.exe;
+            },
+        );
+    },
+)

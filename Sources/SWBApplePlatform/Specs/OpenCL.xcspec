@@ -1,0 +1,113 @@
+//===----------------------------------------------------------------------===//
+//
+// This source file is part of the Swift open source project
+//
+// Copyright (c) 2025 Apple Inc. and the Swift project authors
+// Licensed under Apache License v2.0 with Runtime Library Exception
+//
+// See http://swift.org/LICENSE.txt for license information
+// See http://swift.org/CONTRIBUTORS.txt for the list of Swift project authors
+//
+//===----------------------------------------------------------------------===//
+
+(
+    {
+        Identifier = "com.apple.compilers.opencl";
+        Type = Tool;
+        Name = OpenCL;
+        Description = OpenCL;
+        InputFileTypes = (
+            "sourcecode.opencl",
+        );
+        Outputs = (
+            "$(DerivedFilesDir)/$(InputFileName).c",
+            "$(DerivedFilesDir)/$(InputFileName).h",
+        );
+        SynthesizeBuildRule = Yes;
+        CommandOutputParser = "XCClangCommandOutputParser";
+        ExecDescriptionForCreateBitcode = "Create $(BitcodeArch) bitcode for $(InputFileName)";
+        ExecDescriptionForCompile = "Compile $(InputFileName)";
+        ProgressDescriptionForCreateBitcode = "Creating bitcode for $(CommandProgressByType) OpenCL source files";
+        ProgressDescriptionForCompile = "Compiling $(CommandProgressByType) OpenCL source files";
+        "IsArchitectureNeutral" = Yes;
+        Options = (
+            {
+                Name = OPENCLC;
+                Type = String;
+                DefaultValue = "/System/Library/Frameworks/OpenCL.framework/Libraries/openclc";
+            },
+            {
+                Name = "OPENCL_COMPILER_VERSION";
+                Type = Enumeration;
+                DefaultValue = "CL1.1";
+                Values = (
+                    "CL1.2",
+                    "CL1.1",
+                );
+                FileTypes = (
+                    "sourcecode.opencl",
+                );
+                Category = BuildOptions;
+            },
+            {
+                Name = "OPENCL_ARCHS";
+                Type = OpenCLArchitectures;
+                DefaultValue = "i386 x86_64 gpu_32 gpu_64";
+                Category = BuildOptions;
+            },
+            {
+                Name = "OPENCL_OTHER_BC_FLAGS";
+                Type = StringList;
+                Category = BuildOptions;
+            },
+            {
+                Name = "OPENCL_PREPROCESSOR_DEFINITIONS";
+                Type = StringList;
+                Category = Preprocessing;
+            },
+            {
+                Name = "OPENCL_MAD_ENABLE";
+                Type = Boolean;
+                DefaultValue = NO;
+                Category = CodeGen;
+            },
+            {
+                Name = "OPENCL_FAST_RELAXED_MATH";
+                Type = Boolean;
+                DefaultValue = NO;
+                Category = CodeGen;
+            },
+            {
+                Name = "OPENCL_DENORMS_ARE_ZERO";
+                Type = Boolean;
+                DefaultValue = NO;
+                Category = CodeGen;
+            },
+            {
+                Name = "OPENCL_AUTO_VECTORIZE_ENABLE";
+                Type = Boolean;
+                DefaultValue = YES;
+                Category = CodeGen;
+            },
+            {
+                Name = "OPENCL_DOUBLE_AS_SINGLE";
+                Type = Boolean;
+                DefaultValue = NO;
+                Category = CodeGen;
+            },
+            {
+                Name = "OPENCL_OPTIMIZATION_LEVEL";
+                Type = Enumeration;
+                Category = CodeGen;
+                Values = (
+                    0,
+                    1,
+                    2,
+                    3,
+                    s,
+                );
+                DefaultValue = s;
+            },
+        );
+    }
+)

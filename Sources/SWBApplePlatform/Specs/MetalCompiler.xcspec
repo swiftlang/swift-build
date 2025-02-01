@@ -1,0 +1,378 @@
+//===----------------------------------------------------------------------===//
+//
+// This source file is part of the Swift open source project
+//
+// Copyright (c) 2025 Apple Inc. and the Swift project authors
+// Licensed under Apache License v2.0 with Runtime Library Exception
+//
+// See http://swift.org/LICENSE.txt for license information
+// See http://swift.org/CONTRIBUTORS.txt for the list of Swift project authors
+//
+//===----------------------------------------------------------------------===//
+
+(
+    {
+        Type = Compiler;
+        Identifier = "com.apple.compilers.metal";
+        Name = "Metal Compiler";
+        Description = "Compiles Metal files";
+        CommandLine = "metal -c [options] [inputs]";
+        RuleName = "CompileMetalFile [input]";
+        ExecDescription = "Compile $(InputFileName)";
+        ProgressDescription = "Compiling $(CommandProgressByType) Metal files";
+        InputFileTypes = (
+            "sourcecode.metal",
+        );
+        Outputs = (
+            "$(MTLCOMPILER_OUTPUT_FILE)",
+        );
+        IsArchitectureNeutral = YES;
+        SynthesizeBuildRule = NO;
+        CommandResultsPostprocessor = XCClangResultsPostprocessor;
+        OptionConditionFlavors = (
+            sdk,
+        );
+        RelatedDisplaySpecifications = (
+            "com.apple.compilers.metal-linker",
+        );
+        Options = (
+            {
+                Name = "MTL_TARGET_TRIPLE";
+                Type = String;
+                DefaultValue = "air64-$(LLVM_TARGET_TRIPLE_VENDOR)-$(LLVM_TARGET_TRIPLE_OS_VERSION)$(LLVM_TARGET_TRIPLE_SUFFIX)";
+                CommandLineArgs = ( "-target", "$(value)" );
+            },
+            {
+                Name = "MTL_ENABLE_DEBUG_INFO";
+                Type = Enumeration;
+                DefaultValue = NO;
+                Values = (
+                    YES,
+                    INCLUDE_SOURCE,
+                    NO,
+                );
+                Category = BuildOptions;
+                CommandLineArgs = {
+                    YES = (
+                        "-gline-tables-only",
+                    );
+                    INCLUDE_SOURCE = (
+                        "-gline-tables-only", "-frecord-sources",
+                    );
+                    NO = ();
+                };
+            },
+            {
+                Name = "MTL_HEADER_SEARCH_PATH_BUILT_PRODUCTS_DIR";
+                Type = Path;
+                CommandLineArgs = "-I$(BUILT_PRODUCTS_DIR)/include";
+            },
+            {
+                Name = "MTL_FRAMEWORK_SEARCH_PATH_BUILT_PRODUCTS_DIR";
+                Type = Path;
+                CommandLineArgs = "-F$(BUILT_PRODUCTS_DIR)";
+            },
+            {
+                Name = "MTL_HEADER_SEARCH_PATHS";
+                Type = PathList;
+                "FlattenRecursiveSearchPathsInValue" = Yes;
+                DefaultValue = "";
+                CommandLinePrefixFlag = "-I";
+                Category = BuildOptions;
+            },
+            {
+                Name = SDKROOT;
+                Type = Path;
+                CommandLineFlag = "-isysroot";
+                IsInputDependency = Yes;
+                SetValueInEnvironmentVariable = SDKROOT;
+            },
+            {
+                Name = "MTL_PREPROCESSOR_DEFINITIONS";
+                Type = stringlist;
+                CommandLinePrefixFlag = "-D";
+                Category = BuildOptions;
+            },
+            {
+                Name = MTL_TREAT_WARNINGS_AS_ERRORS;
+                Type = Boolean;
+                DefaultValue = NO;
+                Category = BuildOptions;
+                CommandLineArgs = {
+                    YES = (
+                        "-Werror",
+                    );
+                    NO = ();
+                };
+                },
+                {
+                    Name = MTL_IGNORE_WARNINGS;
+                    Type = Boolean;
+                    DefaultValue = NO;
+                    Category = BuildOptions;
+                    CommandLineArgs = {
+                    YES = (
+                        "-w",
+                    );
+                    NO = ();
+                };
+            },
+            {
+                Name = "MTL_FAST_MATH";
+                Type = Bool;
+                DefaultValue = YES;
+            },
+            {
+                Name = "MTL_MATH_MODE_derived_NO";
+                Type = String;
+                DefaultValue = "SAFE";
+            },
+            {
+                Name = "MTL_MATH_MODE";
+                Type = Enumeration;
+                Values = (
+                    UseLanguageDefault,
+                    RELAXED,
+                    FAST,
+                    SAFE,
+                );
+                DefaultValue = "$(MTL_MATH_MODE_derived_$(MTL_FAST_MATH):default=FAST)";
+                Category = BuildOptions;
+                CommandLineArgs = {
+                    UseLanguageDefault = (  );
+                    RELAXED = (
+                        "-fmetal-math-mode=relaxed",
+                    );
+                    FAST = (
+                        "-fmetal-math-mode=fast",
+                    );
+                    SAFE = (
+                        "-fmetal-math-mode=safe",
+                    );
+                };
+            },
+            {
+                Name = "MTL_MATH_FP32_FUNCTIONS_derived_NO";
+                Type = String;
+                DefaultValue = "PRECISE";
+            },
+            {
+                Name = "MTL_MATH_FP32_FUNCTIONS";
+                Type = Enumeration;
+                Values = (
+                    UseLanguageDefault,
+                    FAST,
+                    PRECISE,
+                );
+                DefaultValue = "$(MTL_MATH_FP32_FUNCTIONS_derived_$(MTL_FAST_MATH):default=FAST)";
+                Category = BuildOptions;
+                CommandLineArgs = {
+                    UseLanguageDefault = (  );
+                    FAST = (
+                        "-fmetal-math-fp32-functions=fast",
+                    );
+                    PRECISE = (
+                        "-fmetal-math-fp32-functions=precise",
+                    );
+                };
+            },
+            {
+                Name = "MTL_ENABLE_MODULES";
+                Type = Enumeration;
+                DefaultValue = STDLIB;
+                Values = (
+                    YES,
+                    STDLIB,
+                    NO,
+                );
+                Category = BuildOptions;
+                CommandLineArgs = {
+                    YES = (
+                        "-fmodules=all"
+                    );
+                    STDLIB = ();
+                    NO  = (
+                        "-fmodules=none"
+                    );
+                };
+            },
+            {
+                Name = "CLANG_DIAGNOSTICS_FILE";
+                Type = Path;
+                DefaultValue = "$(MTLCOMPILER_OUTPUT_FILE:dir)$(InputFileBase)$(InputFileBaseUniquefier).dia";
+                CommandLineFlag = "-serialize-diagnostics";
+            },
+            {
+                Name = "MTLCOMPILER_OUTPUT_FILE";
+                Type = String;
+                DefaultValue = "$(TARGET_TEMP_DIR)/Metal/$(InputFileBase)$(InputFileBaseUniquefier).air";
+                CommandLineArgs = (
+                    "-o",
+                    "$(value)",
+                );
+            },
+            {
+                Name = build_file_compiler_flags;
+                Type = StringList;
+                DefaultValue = "";
+                CommandLinePrefixFlag = "";
+            },
+            {
+                Name = "MTL_INDEX_STORE_PATH";
+                Type = Path;
+                DefaultValue = "$(INDEX_DATA_STORE_DIR)";
+            },
+            {
+                Name = "MTL_ENABLE_INDEX_STORE";
+                Type = Boolean;
+                DefaultValue = "$(INDEX_ENABLE_DATA_STORE)";
+                Condition = "$(COMPILER_INDEX_STORE_ENABLE) == YES || ( $(COMPILER_INDEX_STORE_ENABLE) == Default && $(MTL_ENABLE_DEBUG_INFO) != NO )";
+                Category = BuildOptions;
+                CommandLineArgs = {
+                    YES = (
+                        "-index-store-path", "$(MTL_INDEX_STORE_PATH)",
+                    );
+                    NO = ();
+                };
+            },
+            {
+                Name = "MTL_LANGUAGE_REVISION";
+                Type = Enumeration;
+                DefaultValue = UseDeploymentTarget;
+                Values = (
+                    UseDeploymentTarget,
+                    iOSMetal10,
+                    Metal11,
+                    Metal12,
+                    Metal20,
+                    Metal21,
+                    Metal22,
+                    Metal23,
+                    Metal24,
+                    Metal30,
+                    Metal31,
+                    Metal32,
+                );
+                Category = BuildOptions;
+            },
+            {
+                Name = "MTL_LANGUAGE_REVISION_optgen";
+                Type = Enumeration;
+                DefaultValue = "$(MTL_LANGUAGE_REVISION)";
+                Values = (
+                    UseDeploymentTarget,
+                    iOSMetal10,
+                    Metal11,
+                    Metal12,
+                    Metal20,
+                    Metal21,
+                    Metal22,
+                    Metal23,
+                    Metal24,
+                    Metal30,
+                    Metal31,
+                    Metal32,
+                );
+                CommandLineArgs = {
+                    UseDeploymentTarget = (  );
+                    iOSMetal10 = ( "-std=$(MTL_LANGUAGE_REVISION_dialect)-metal1.0", );
+                    Metal11 = ( "-std=$(MTL_LANGUAGE_REVISION_dialect)-metal1.1", );
+                    Metal12 = ( "-std=$(MTL_LANGUAGE_REVISION_dialect)-metal1.2", );
+                    Metal20 = ( "-std=$(MTL_LANGUAGE_REVISION_dialect)-metal2.0", );
+                    Metal21 = ( "-std=$(MTL_LANGUAGE_REVISION_dialect)-metal2.1", );
+                    Metal22 = ( "-std=$(MTL_LANGUAGE_REVISION_dialect)-metal2.2", );
+                    Metal23 = ( "-std=$(MTL_LANGUAGE_REVISION_dialect)-metal2.3", );
+                    Metal24 = ( "-std=$(MTL_LANGUAGE_REVISION_dialect)-metal2.4", );
+                    Metal30 = ( "-std=metal3.0", );
+                    Metal31 = ( "-std=metal3.1", );
+                    Metal32 = ( "-std=metal3.2", );
+                };
+            },
+            {
+                Name = "MTL_LANGUAGE_REVISION_dialect";
+                Type = String;
+                DefaultValue = "$(MTL_LANGUAGE_REVISION_dialect_$(PLATFORM_NAME):default=ios)";
+            },
+            {
+                Name = "MTL_LANGUAGE_REVISION_dialect_macosx";
+                Type = String;
+                DefaultValue = "macos";
+            },
+            {
+                Name = "MTL_COMPILER_FLAGS";
+                Type = StringList;
+                Category = BuildOptions;
+                DefaultValue = "";
+                CommandLinePrefixFlag = "";
+            },
+            {
+                Name = "MTL_OPTIMIZATION_LEVEL";
+                Type = Enumeration;
+                Values = (
+                    default,
+                    s,
+                );
+                DefaultValue = default;
+                CommandLineArgs = {
+                    default = ();
+                    s = ( "-Os" );
+                };
+                Category = BuildOptions;
+            },
+            {
+                Name = "MTLCOMPILER_DEPENDENCY_INFO_FILE";
+                Type = String;
+                DefaultValue = "$(TARGET_TEMP_DIR)/Metal/$(InputFileBase)$(InputFileBaseUniquefier).dat";
+                CommandLineArgs = ("-MMD", "-MT", "dependencies", "-MF", "$(value)");
+                DependencyDataFormat = makefile;
+            },
+        );
+        IncludeInUnionedToolDefaults = NO;
+    },
+    {
+        Type = Compiler;
+        Identifier = "com.apple.compilers.metal";
+        BasedOn = "default:com.apple.compilers.metal";
+        Domain = iphoneos;
+        SynthesizeBuildRule = YES;
+    },
+    {
+        Type = Compiler;
+        Identifier = "com.apple.compilers.metal";
+        BasedOn = "iphoneos:com.apple.compilers.metal";
+        Domain = iphonesimulator;
+    },
+    {
+        Type = Compiler;
+        Identifier = "com.apple.compilers.metal";
+        BasedOn = "default:com.apple.compilers.metal";
+        Domain = macosx;
+        SynthesizeBuildRule = YES;
+    },
+    {
+        Type = Compiler;
+        Identifier = "com.apple.compilers.metal";
+        BasedOn = "default:com.apple.compilers.metal";
+        Domain = appletvos;
+        SynthesizeBuildRule = YES;
+    },
+    {
+        Type = Compiler;
+        Identifier = "com.apple.compilers.metal";
+        BasedOn = "appletvos:com.apple.compilers.metal";
+        Domain = appletvsimulator;
+    },
+    {
+        Type = Compiler;
+        Identifier = "com.apple.compilers.metal";
+        BasedOn = "default:com.apple.compilers.metal";
+        Domain = xros;
+        SynthesizeBuildRule = YES;
+    },
+    {
+        Type = Compiler;
+        Identifier = "com.apple.compilers.metal";
+        BasedOn = "xros:com.apple.compilers.metal";
+        Domain = xrsimulator;
+    },
+)

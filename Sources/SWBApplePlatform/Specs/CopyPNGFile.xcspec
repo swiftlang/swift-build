@@ -1,0 +1,63 @@
+//===----------------------------------------------------------------------===//
+//
+// This source file is part of the Swift open source project
+//
+// Copyright (c) 2025 Apple Inc. and the Swift project authors
+// Licensed under Apache License v2.0 with Runtime Library Exception
+//
+// See http://swift.org/LICENSE.txt for license information
+// See http://swift.org/CONTRIBUTORS.txt for the list of Swift project authors
+//
+//===----------------------------------------------------------------------===//
+
+(
+
+    {   Type = Compiler;
+        Identifier = com.apple.build-tasks.copy-png-file;
+        Name = "Compress PNG Files";
+        Description = "Copies a .png file resource, optionally compressing it.";
+        CommandLine = "copypng [options] $(IPHONE_OPTIMIZE_OPTIONS) [input] [output]";
+        SynthesizeBuildRule = Yes;
+        RuleName = "CopyPNGFile $(ProductResourcesDir)/$(InputFileName) $(InputFileRelativePath)";
+        ExecDescription = "Copy $(InputFileName)";
+        ProgressDescription = "Copying $(CommandProgressByType) files";
+        InputFileTypes = (
+            image.png
+        );
+        Outputs = (
+            "$(ProductResourcesDir)/$(InputFileName)"
+        );
+        EnvironmentVariables = {
+            DEVELOPER_DIR = "$(DEVELOPER_DIR)";
+            TOOLCHAINS = "$(TOOLCHAINS)";
+            SDKROOT = "$(SDKROOT)";
+        };
+        // The asset catalog compiler also uses the COMPRESS_PNG_FILES setting when it runs pngcrush, if we add more modify settings here, we probably need to update it too.
+        Options = (
+            {   Name = COMPRESS_PNG_FILES;
+                Type = Boolean;
+                Category = Packaging;
+                DefaultValue = YES;
+                CommandLineArgs = { YES = (-compress); NO = (); };
+                DisplayName = "Compress PNG Files";
+                Description = "If enabled, PNG resource files are compressed as they are copied.";
+            },
+            {   Name = STRIP_PNG_TEXT;
+                Type = Boolean;
+                Category = Packaging;
+                DefaultValue = YES;
+                CommandLineArgs = { YES = (-strip-PNG-text); NO = (); };
+                DisplayName = "Remove Text Metadata From PNG Files";
+                Description = "Metadata in the form of text chunks in PNG files will be removed to reduce their footprint on disk.";
+            },
+        );
+        CommandOutputParser = (
+            ("()()(^.*caught libpng error.*)",  emit-error),
+            ("()()(^Could not find file:.*)",  emit-error),
+            ("()()(^[^:]+: [^:]+: No such file or directory)",  emit-error),
+            ("()()(^[^:]+: [^:]+: Permission denied)",  emit-error),
+            ("()()(^[^:]+: [^:]+: Is a directory)",  emit-error),
+        );
+    },
+
+)

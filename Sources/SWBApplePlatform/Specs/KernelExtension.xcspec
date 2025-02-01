@@ -1,0 +1,121 @@
+//===----------------------------------------------------------------------===//
+//
+// This source file is part of the Swift open source project
+//
+// Copyright (c) 2025 Apple Inc. and the Swift project authors
+// Licensed under Apache License v2.0 with Runtime Library Exception
+//
+// See http://swift.org/LICENSE.txt for license information
+// See http://swift.org/CONTRIBUTORS.txt for the list of Swift project authors
+//
+//===----------------------------------------------------------------------===//
+
+(
+    // Kernel extension wrapper
+    {   Type = PackageType;
+        Identifier = com.apple.package-type.wrapper.kernel-extension;
+        BasedOn = com.apple.package-type.wrapper;
+        Name = "Kernel Extension Wrapper";
+        Description = "Kernel Extension Wrapper";
+        DefaultBuildSettings = {
+            PRODUCT_BUNDLE_PACKAGE_TYPE = "KEXT";
+            PUBLIC_HEADERS_FOLDER_PATH = "$(KEXT_FRAMEWORK)$(_WRAPPER_CONTENTS_DIR)/Headers/$(KEXT_FAMILY_NAME)";
+            PRIVATE_HEADERS_FOLDER_PATH = "$(KEXT_FRAMEWORK)$(_WRAPPER_CONTENTS_DIR)/PrivateHeaders/$(KEXT_FAMILY_NAME)";
+        };
+        ProductReference = {
+            FileType = wrapper.cfbundle;
+            Name = "$(WRAPPER_NAME)";
+            IsLaunchable = NO;
+        };
+    },
+
+    // Kernel Extension
+    {   Type = ProductType;
+        Identifier = com.apple.product-type.kernel-extension;
+        BasedOn = com.apple.product-type.bundle;
+        Class = XCKernelExtensionProductType;
+        Name = "Kernel Extension";
+        Description = "Kernel extension";
+        DefaultTargetName = "Kernel Extension";
+        DefaultBuildProperties = {
+            MACH_O_TYPE = "mh_execute";
+            WRAPPER_SUFFIX = ".$(WRAPPER_EXTENSION)";
+            WRAPPER_EXTENSION = "kext";
+            INSTALL_PATH = "$(DEFAULT_KEXT_INSTALL_PATH)";
+            STRIP_STYLE = "debugging";
+
+            KEXT_FRAMEWORK_NAME = "Kernel";
+            KEXT_FRAMEWORK = "$(SYSTEM_PREFIX)$(SYSTEM_LIBRARY_DIR)/Frameworks/$(KEXT_FRAMEWORK_NAME).framework";
+            KEXT_FAMILY_NAME = "family";
+            MODULE_NAME = "com.company.driver.modulename";
+            MODULE_VERSION = "1.0";
+            MODULE_START = "0";
+            MODULE_STOP = "0";
+
+            GENERATE_KERNEL_MODULE_INFO_FILE = YES;
+
+            ENABLE_APPLE_KEXT_CODE_GENERATION = YES;                // -fapple-kext
+            GCC_ENABLE_KERNEL_DEVELOPMENT = YES;                    // -mkernel
+
+            GCC_ENABLE_PASCAL_STRINGS = NO;                         // Disables -fpascal-strings
+            GCC_CHECK_RETURN_VALUE_OF_OPERATOR_NEW = YES;           // -fcheck-new
+            GCC_INLINES_ARE_PRIVATE_EXTERN = NO;                    // -fvisibility-inlines-hidden
+            GCC_ENABLE_BUILTIN_FUNCTIONS = NO;                      // -fno-builtin
+            GCC_NO_COMMON_BLOCKS = YES;                             // -fno-common
+            GCC_ENABLE_CPP_EXCEPTIONS = NO;                         // -fno-exceptions
+            GCC_ENABLE_CPP_RTTI = NO;                               // -fno-rtti
+
+            // Supposedly these two flags are the default in GCC, but they're provided here for compatibility with older Xcode versions.
+            GCC_ENABLE_FUNCTION_INLINING = YES;                     // -finline
+            GCC_DISABLE_STATIC_FUNCTION_INLINING = YES;             // -fno-keep-inline-functions
+
+            // Per-product-type settings.
+            // The KERNEL_*** settings are defined differently for some SDKs, so we continue to use them for compatibility reasons.
+            KERNEL_FRAMEWORK = "$(SDKROOT)$(SYSTEM_PREFIX)$(SYSTEM_LIBRARY_DIR)/Frameworks/Kernel.framework";
+            KERNEL_FRAMEWORK_HEADERS = "$(KERNEL_FRAMEWORK)/Headers";
+            KERNEL_EXTENSION_HEADER_SEARCH_PATHS = "$(KERNEL_FRAMEWORK)/PrivateHeaders $(KERNEL_FRAMEWORK_HEADERS)";
+            // These settings are reserved for use by product types.
+            GCC_PRODUCT_TYPE_PREPROCESSOR_DEFINITIONS = "$(inherited) KERNEL KERNEL_PRIVATE DRIVER_PRIVATE APPLE NeXT";
+            PRODUCT_TYPE_CFLAGS = "$(inherited) $(KEXT_CFLAGS)";
+            PRODUCT_TYPE_CPLUSPLUSFLAGS = "$(inherited) $(KEXT_CPLUSPLUSFLAGS)";
+            PRODUCT_SPECIFIC_LDFLAGS = "$(inherited) $(KEXT_LDFLAGS) -Xlinker -kext -lkmodc++ -lkmod -lcc_kext";
+            PRODUCT_TYPE_HEADER_SEARCH_PATHS = "$(inherited) $(KERNEL_EXTENSION_HEADER_SEARCH_PATHS)";
+
+            CODE_SIGNING_ALLOWED = YES;
+
+            "ARCHS_STANDARD[sdk=macosx*]" = "arm64e x86_64";
+            "ARCHS_STANDARD_64_BIT[sdk=macosx*]" = "$(ARCHS_STANDARD)";
+            "ARCHS_STANDARD_INCLUDING_64_BIT[sdk=macosx*]" = "$(ARCHS_STANDARD)";
+
+            GCC_USE_STANDARD_INCLUDE_SEARCHING = NO; // -nostdinc
+            LINK_WITH_STANDARD_LIBRARIES = NO; // -nostdlib
+
+            "STRIP_INSTALLED_PRODUCT" = NO;
+            "UNSTRIPPED_PRODUCT" = YES;
+            "DWARF_DSYM_FILE_SHOULD_ACCOMPANY_PRODUCT__macosx" = NO;
+            "DWARF_DSYM_FILE_SHOULD_ACCOMPANY_PRODUCT" = "$(DWARF_DSYM_FILE_SHOULD_ACCOMPANY_PRODUCT__$(PLATFORM_NAME):default=YES)";
+            "COPY_PHASE_STRIP" = NO;
+            "PLIST_FILE_OUTPUT_FORMAT" = XML;
+            "INFOPLIST_OUTPUT_FORMAT" = XML;
+        };
+        PackageTypes = (
+            com.apple.package-type.wrapper.kernel-extension
+        );
+    },
+
+    // IOKit Kernel Extension
+    {   Type = ProductType;
+        Identifier = com.apple.product-type.kernel-extension.iokit;
+        BasedOn = com.apple.product-type.kernel-extension;
+        Class = XCKernelExtensionProductType;
+        Name = "IOKit Kernel Extension";
+        Description = "IOKit Kernel extension";
+        DefaultTargetName = "IOKit Kernel Extension";
+        DefaultBuildProperties = {
+            CODE_SIGNING_ALLOWED = YES;
+        };
+        PackageTypes = (
+            com.apple.package-type.wrapper.kernel-extension
+        );
+    },
+)

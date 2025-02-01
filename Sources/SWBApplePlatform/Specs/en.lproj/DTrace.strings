@@ -1,0 +1,24 @@
+//===----------------------------------------------------------------------===//
+//
+// This source file is part of the Swift open source project
+//
+// Copyright (c) 2025 Apple Inc. and the Swift project authors
+// Licensed under Apache License v2.0 with Runtime Library Exception
+//
+// See http://swift.org/LICENSE.txt for license information
+// See http://swift.org/CONTRIBUTORS.txt for the list of Swift project authors
+//
+//===----------------------------------------------------------------------===//
+
+
+// Localized strings for basic info
+"Name" = "dtrace";
+"Description" = "DTrace Compiler";
+"Vendor" = "Apple";
+
+// Build Options Category
+//
+"[BuildOptions]-category" = "Build Options";
+
+"[DTRACE_OTHER_FLAGS]-name" = "Other DTrace Flags";
+"[DTRACE_OTHER_FLAGS]-description" = "Space-separated list of additional flags to pass to the `dtrace` compiler. Be sure to backslash-escape any arguments that contain spaces or special characters, such as path names that may contain spaces. Use this setting if Xcode does not already provide UI for a particular `dtrace` flag.";

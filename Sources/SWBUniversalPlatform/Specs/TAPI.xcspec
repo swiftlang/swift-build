@@ -1,0 +1,490 @@
+//===----------------------------------------------------------------------===//
+//
+// This source file is part of the Swift open source project
+//
+// Copyright (c) 2025 Apple Inc. and the Swift project authors
+// Licensed under Apache License v2.0 with Runtime Library Exception
+//
+// See http://swift.org/LICENSE.txt for license information
+// See http://swift.org/CONTRIBUTORS.txt for the list of Swift project authors
+//
+//===----------------------------------------------------------------------===//
+
+(
+    {
+        Identifier = "com.apple.build-tools.tapi.installapi";
+        Type = Tool;
+        Name = TextBasedAPITool;
+        Description = "Text-based API Tool";
+        RuleName = "GenerateTAPI $(OutputPath) $(CURRENT_VARIANT) $(ARCHS:quote)";
+        ExecDescription = "Generate InstallAPI $(OutputFileName)";
+        ProgressDescription = "Generating $(CommandProgressByType) text-based API files";
+        CommandLine = "$(TAPI_EXEC) installapi [options] -o $(OutputPath)";
+        // For now, use the GCC output parser for TAPI.
+        //
+        // Use of serialized diagnostics is tracked by: <rdar://problem/21141931>
+        CommandOutputParser = XCGccCommandOutputParser;
+        Outputs = (
+            "$(OutputPath)",
+        );
+        Options = (
+            // Whether to enable TAPI verification mode, which also determines whether we run during "install" builds or not. This setting should go away once TAPI is fully enabled by default.
+            {
+                Name = "TAPI_ENABLE_VERIFICATION_MODE";
+                Type = Boolean;
+                DefaultValue = "YES";
+            },
+
+            // The binary to verify against, when verification mode is enabled.
+            {
+                Name = "TAPI_VERIFY_AGAINST";
+                Type = String;
+                DefaultValue = "$(BuiltBinaryPath)";
+                CommandLineFlag = "-verify-against";
+                Condition = "$(TAPI_ENABLE_VERIFICATION_MODE) && $(SUPPORTS_TEXT_BASED_API)";
+            },
+
+            // Severity setting for verification mode.
+            {
+                Name = "TAPI_VERIFY_MODE";
+                Type = Enumeration;
+                DefaultValue = "ErrorsOnly";
+                Values = (
+                    {   Value = "ErrorsOnly"; // Default
+                    },
+                    {   Value = "ErrorsAndWarnings";
+                    },
+                    {   Value = "Pedantic";
+                    },
+                );
+                CommandLineArgs = "--verify-mode=$(value)";
+            },
+
+            // Target triple (arch, OS, and deployment target)
+            {
+                Name = "TAPI_TARGET_TRIPLE_ARCHS";
+                Type = StringList;
+                DefaultValue = "$(ARCHS)";
+                CommandLineArgs = ( "-target", "$(value)-$(LLVM_TARGET_TRIPLE_VENDOR)-$(LLVM_TARGET_TRIPLE_OS_VERSION)$(LLVM_TARGET_TRIPLE_SUFFIX)" );
+            },
+            {
+                Name = "TAPI_TARGET_TRIPLE_VARIANTS";
+                Type = StringList;
+                CommandLineFlag = "-target-variant";
+            },
+
+            // Linker options.
+            {   Name = "TAPI_PRODUCT_TYPE";
+                Type = String;
+                DefaultValue = "$(PRODUCT_TYPE)";
+                CommandLineArgs = {
+                    "com.apple.product-type.library.dynamic" = (
+                        "-dynamiclib",
+                    );
+                    "<<otherwise>>" = ();
+                };
+            },
+            {
+                //Note: Cannot be of type 'Path' as value is used with relative '../' paths
+                Name = TAPI_DYLIB_INSTALL_NAME;
+                Type = String;
+                DefaultValue = "$(LD_DYLIB_INSTALL_NAME)";
+                CommandLineFlag = "-install_name";
+            },
+            {   Name = TAPI_DYLIB_COMPATIBILITY_VERSION;
+                Type = String;
+                DefaultValue = "$(DYLIB_COMPATIBILITY_VERSION)";
+                CommandLineFlag = "-compatibility_version";
+            },
+            {   Name = TAPI_DYLIB_CURRENT_VERSION;
+                Type = String;
+                DefaultValue = "$(DYLIB_CURRENT_VERSION)";
+                CommandLineFlag = "-current_version";
+            },
+            {   Name = "TAPI_APPLICATION_EXTENSION_API_ONLY";
+                Type = bool;
+                DefaultValue = "$(APPLICATION_EXTENSION_API_ONLY)";
+                CommandLineArgs = {
+                    YES = (
+                        "-fapplication-extension",
+                    );
+                    NO = ();
+                };
+            },
+            {   Name = TAPI_REEXPORTED_FRAMEWORK_INSTALL_NAMES;
+                Type = StringList;
+                DefaultValue = "$(REEXPORTED_FRAMEWORK_INSTALL_NAMES)";
+                CommandLineArgs = ("-reexport_install_name", "$(value)");
+            },
+            {   Name = TAPI_REEXPORTED_LIBRARY_INSTALL_NAMES;
+                Type = StringList;
+                DefaultValue = "$(REEXPORTED_LIBRARY_INSTALL_NAMES)";
+                CommandLineArgs = ("-reexport_install_name", "$(value)");
+            },
+            {
+                Name = TAPI_REEXPORTED_FRAMEWORK_NAMES;
+                Type = StringList;
+                DefaultValue = "$(REEXPORTED_FRAMEWORK_NAMES)";
+                CommandLineArgs = ("-reexport_framework", "$(value)");
+            },
+            {
+                Name = TAPI_REEXPORTED_LIBRARY_NAMES;
+                Type = StringList;
+                DefaultValue = "$(REEXPORTED_LIBRARY_NAMES)";
+                CommandLineArgs = ("-reexport-l$(value)");
+            },
+            {
+                Name = TAPI_REEXPORTED_LIBRARY_PATHS;
+                Type = StringList;
+                DefaultValue = "$(REEXPORTED_LIBRARY_PATHS)";
+                CommandLineArgs = ("-reexport_library", "$(value)");
+            },
+            {
+                Name = "TAPI_DYLIB_ALLOWABLE_CLIENTS";
+                Type = StringList;
+                DefaultValue = "$(LD_DYLIB_ALLOWABLE_CLIENTS)";
+                CommandLineArgs = (
+                    "-allowable_client",
+                    "$(value)",
+                );
+            },
+            {
+                Name = "TAPI_RUNPATH_SEARCH_PATHS";
+                //Note: Cannot be of type 'PathList' as value is used with relative '../' paths
+                Type = StringList;
+                DefaultValue = "$(LD_RUNPATH_SEARCH_PATHS)";
+                CommandLineArgs = (
+                    "-rpath",
+                    "$(value)",
+                );
+                SupportedVersionRanges = ( "1500.0.7" );
+            },
+            {
+                Name = "TAPI_SHARED_CACHE_ELIGIBLE";
+                Type = Enumeration;
+                Values = (
+                    Automatic,
+                    NO,
+                );
+                DefaultValue = "$(LD_SHARED_CACHE_ELIGIBLE)";
+                CommandLineArgs = {
+                    "Automatic" = ();
+                    NO = ( "-not_for_dyld_shared_cache" );
+                };
+                SupportedVersionRanges = ( "1600.0.6" );
+            },
+            {
+                Name = "TAPI_READ_DSYM";
+                Type = Boolean;
+                DefaultValue = "$(GCC_GENERATE_DEBUGGING_SYMBOLS)";
+            },
+            {
+                Name = "TAPI_ENABLE_MODULES";
+                Type = Boolean;
+                DefaultValue = "NO";
+                CommandLineArgs = {
+                    YES = ( "-fmodules" );
+                    NO  = ();
+                };
+            },
+            {
+                Name = "TAPI_MODULE_CACHE_PATH";
+                Type = String;
+                DefaultValue = "$(CLANG_MODULE_CACHE_PATH)";
+                CommandLineArgs = {
+                    "" = ();
+                    "<<otherwise>>" = ( "-fmodules-cache-path=$(value)" );
+                };
+                Condition = "$(TAPI_ENABLE_MODULES)";
+            },
+            {
+                Name = "TAPI_MODULES_VALIDATE_SYSTEM_HEADERS";
+                Type = Boolean;
+                DefaultValue = "$(CLANG_MODULES_VALIDATE_SYSTEM_HEADERS)";
+                CommandLineArgs = {
+                    YES = ("-fmodules-validate-system-headers",);
+                    NO = ();
+                };
+                Condition = "$(TAPI_ENABLE_MODULES)";
+            },
+            {
+                Name = "TAPI_USE_SRCROOT";
+                Type = Boolean;
+                DefaultValue = NO;
+                ConditionFlavors = (
+                  arch,
+                  sdk,
+                );
+            },
+
+            // Language mode.
+            {
+                Name = "TAPI_LANGUAGE";
+                Type = Enumeration;
+                DefaultValue = "objective-c";
+                Values = (
+                  { Value = "objective-c"; // Default
+                  },
+                  { Value = "objective-c++";
+                  },
+                  { Value = "c++";
+                  },
+                  { Value = "c";
+                  },
+                );
+                CommandLineArgs = "-x $(value)";
+            },
+
+            // Language Dialects
+            {
+                Name = "TAPI_LANGUAGE_STANDARD";
+                Type = Enumeration;
+                Values = (
+                  { Value = "c89";
+                  },
+                  { Value = "gnu89";
+                  },
+                  { Value = "c99";
+                  },
+                  { Value = "gnu99";
+                  },
+                  { Value = "c11";
+                  },
+                  { Value = "gnu11";
+                  },
+                  { Value = "c17";
+                  },
+                  { Value = "gnu17";
+                  },
+                  { Value = "c23";
+                  },
+                  { Value = "gnu23";
+                  },
+                  { Value = "c++98";
+                  },
+                  { Value = "gnu++98";
+                  },
+                  { Value = "c++0x";
+                  },
+                  { Value = "gnu++0x";
+                  },
+                  { Value = "c++14";
+                  },
+                  { Value = "gnu++14";
+                  },
+                  { Value = "c++17";
+                  },
+                  { Value = "gnu++17";
+                  },
+                  { Value = "c++20";
+                  },
+                  { Value = "gnu++20";
+                  },
+                  { Value = "c++23";
+                  },
+                  { Value = "gnu++23";
+                  },
+                  { Value = "compiler-default"; // Default
+                  },
+                );
+        DefaultValue = "compiler-default";
+                CommandLineArgs = {
+                    "compiler-default" = ();
+                    // We need these two entries that reference c++0x to
+                    // maintain compatibility of old build settings.
+                    "c++0x" = ( "-std=c++11" );
+                    "gnu++0x" = ( "-std=gnu++11" );
+                    // Default for everything else.
+                    "<<otherwise>>" = (
+                        "-std=$(value)",
+                    );
+                };
+            },
+
+            // Demangle symbols
+            {
+                Name = "TAPI_DEMANGLE";
+                Type = Boolean;
+                DefaultValue = "YES";
+                CommandLineArgs = {
+                    YES = ( "--demangle" );
+                    NO  = ();
+                };
+            },
+
+            // Extra Header options
+            {
+                Name = "TAPI_EXTRA_PUBLIC_HEADERS";
+                Type = StringList;
+                CommandLineArgs = (
+                    "-extra-public-header",
+                    "$(value)",
+                );
+            },
+            {
+                Name = "TAPI_EXTRA_PRIVATE_HEADERS";
+                Type = StringList;
+                CommandLineArgs = (
+                    "-extra-private-header",
+                    "$(value)",
+                );
+            },
+            {
+                Name = "TAPI_EXTRA_PROJECT_HEADERS";
+                Type = StringList;
+                CommandLineArgs = (
+                    "-extra-project-header",
+                    "$(value)",
+                );
+            },
+
+            // Exclude Header options
+            {
+                Name = "TAPI_EXCLUDE_PUBLIC_HEADERS";
+                Type = StringList;
+                CommandLineArgs = (
+                    "-exclude-public-header",
+                    "$(value)",
+                );
+            },
+            {
+                Name = "TAPI_EXCLUDE_PRIVATE_HEADERS";
+                Type = StringList;
+                CommandLineArgs = (
+                    "-exclude-private-header",
+                    "$(value)",
+                );
+            },
+            {
+                Name = "TAPI_EXCLUDE_PROJECT_HEADERS";
+                Type = StringList;
+                CommandLineArgs = (
+                    "-exclude-project-header",
+                    "$(value)",
+                );
+            },
+
+            // Compiler search paths.
+            {   Name = SDKROOT;
+                Type = Path;
+                CommandLineFlag = "-isysroot";
+                IsInputDependency = YES;
+            },
+            {   Name = TAPI_FRAMEWORK_SEARCH_PATHS;
+                Type = PathList;
+                DefaultValue = "$(FRAMEWORK_SEARCH_PATHS)";
+                FlattenRecursiveSearchPathsInValue = YES;     // causes any paths that have a '/**' suffix to be replaced with matching paths
+                CommandLinePrefixFlag = "-F";
+            },
+            {   Name = TAPI_SYSTEM_FRAMEWORK_SEARCH_PATHS;
+                Type = PathList;
+                DefaultValue = "$(SYSTEM_FRAMEWORK_SEARCH_PATHS)";
+                FlattenRecursiveSearchPathsInValue = YES;     // causes any paths that have a '/**' suffix to be replaced with matching paths
+                CommandLineFlag = "-iframework";
+            },
+            {   Name = TAPI_LIBRARY_SEARCH_PATHS;
+                Type = PathList;
+                DefaultValue = "$(LIBRARY_SEARCH_PATHS)";
+                FlattenRecursiveSearchPathsInValue = YES;
+                CommandLinePrefixFlag = "-L";
+            },
+            {   Name = TAPI_HEADER_SEARCH_PATHS;
+                Type = PathList;
+                DefaultValue = "$(HEADER_SEARCH_PATHS)";
+                FlattenRecursiveSearchPathsInValue = YES;     // causes any paths that have a '/**' suffix to be replaced with matching paths
+                CommandLinePrefixFlag = "-I";
+            },
+            {   Name = TAPI_SYSTEM_HEADER_SEARCH_PATHS;
+                Type = PathList;
+                DefaultValue = "$(SYSTEM_HEADER_SEARCH_PATHS)";
+                FlattenRecursiveSearchPathsInValue = YES;     // causes any paths that have a '/**' suffix to be replaced with matching paths
+                CommandLineFlag = "-isystem";
+            },
+            // Compiler defines.
+            {   Name = TAPI_PREPROCESSOR_DEFINITIONS;
+                Type = StringList;
+                DefaultValue = "$(GCC_PREPROCESSOR_DEFINITIONS) $(GCC_PREPROCESSOR_DEFINITIONS_NOT_USED_IN_PRECOMPS)";
+                CommandLineArgs = (
+                    "-D$(value)",
+                );
+            },
+            {
+                Name = "TAPI_EMIT_PROFILING_SYMBOLS";
+                Type = Boolean;
+                DefaultValue = YES;
+                CommandLineArgs = {
+                  YES = (
+                    "-fprofile-instr-generate",
+                  );
+                  NO = ();
+                };
+                Condition = "$(CLANG_INSTRUMENT_FOR_OPTIMIZATION_PROFILING) || $(CLANG_COVERAGE_MAPPING)";
+            },
+            {
+                Name = OTHER_TAPI_FLAGS;
+                Type = StringList;
+                CommandLinePrefixFlag = "";
+            },
+            {
+                Name = "TAPI_INPUTS";
+                Type = PathList;
+                CommandLineArgs = (
+                    "$(value)",
+                );
+                IsInputDependency = Yes;
+            },
+        );
+    },
+    {
+        Identifier = "com.apple.build-tools.tapi.stubify";
+        Type = Tool;
+        Name = TextBasedAPITool;
+        Description = "Text-based API Tool";
+        RuleName = "GenerateTAPI $(OutputPath)";
+        ExecDescription = "Generate TBD $(InputFileName)";
+        ExecPath = "$(TAPI_EXEC)";
+        ProgressDescription = "Generating $(CommandProgressByType) text-based API files";
+        CommandLine = "[exec-path] stubify [options] [input] -o $(OutputPath)";
+        CommandOutputParser = "XCGccCommandOutputParser";
+        Outputs = (
+        "$(OutputPath)",
+        );
+        Options = (
+            {
+                Name = SDKROOT;
+                Type = Path;
+                CommandLineFlag = "-isysroot";
+                IsInputDependency = YES;
+            },
+            {
+                Name = TAPI_FRAMEWORK_SEARCH_PATHS;
+                Type = PathList;
+                DefaultValue = "$(FRAMEWORK_SEARCH_PATHS)";
+                FlattenRecursiveSearchPathsInValue = YES;
+                CommandLinePrefixFlag = "-F";
+            },
+            {
+                Name = TAPI_SYSTEM_FRAMEWORK_SEARCH_PATHS;
+                Type = PathList;
+                DefaultValue = "$(SYSTEM_FRAMEWORK_SEARCH_PATHS)";
+                FlattenRecursiveSearchPathsInValue = YES;     // causes any paths that have a '/**' suffix to be replaced with matching paths
+                CommandLineFlag = "-iframework";
+            },
+            {
+                Name = TAPI_LIBRARY_SEARCH_PATHS;
+                Type = PathList;
+                DefaultValue = "$(LIBRARY_SEARCH_PATHS)";
+                FlattenRecursiveSearchPathsInValue = YES;
+                CommandLinePrefixFlag = "-L";
+            },
+            {
+                Name = INLINE_PRIVATE_FRAMEWORKS;
+                Type = bool;
+                CommandLineArgs = {
+                  YES = ("--inline-private-frameworks");
+                  NO = ();
+                };
+            },
+        );
+    }
+)

@@ -1,0 +1,75 @@
+//===----------------------------------------------------------------------===//
+//
+// This source file is part of the Swift open source project
+//
+// Copyright (c) 2025 Apple Inc. and the Swift project authors
+// Licensed under Apache License v2.0 with Runtime Library Exception
+//
+// See http://swift.org/LICENSE.txt for license information
+// See http://swift.org/CONTRIBUTORS.txt for the list of Swift project authors
+//
+//===----------------------------------------------------------------------===//
+
+(
+
+    {
+        _Domain = appletvos;
+        Type = Architecture;
+        Identifier = Standard;
+        Name = "Standard Architectures";
+        Description = "Standard architectures";
+        ListInEnum = YES;
+        SortNumber = 0;
+        RealArchitectures = ( arm64 );
+        ArchitectureSetting = "ARCHS_STANDARD";
+    },
+
+    {
+        _Domain = appletvos;
+        Type = Architecture;
+        Identifier = arm64;
+        Name = "arm64";
+    },
+    {
+        _Domain = appletvos;
+        Type = Architecture;
+        Identifier = arm64e;
+        Name = "arm64e";
+        CompatibilityArchitectures = ( arm64 );   // treat this one just like arm64 for toolchain compatibility
+    },
+
+    // DEPRECATED
+
+    {
+        _Domain = appletvos;
+        Type = Architecture;
+        Identifier = Platform64_bit;
+        RealArchitectures = ( arm64, arm64e );
+        ArchitectureSetting = "ARCHS_STANDARD_64_BIT";
+    },
+
+    {
+        _Domain = appletvos;
+        Type = Architecture;
+        Identifier = Platform32_64_bit;
+        RealArchitectures = ( arm64 );
+        ArchitectureSetting = "ARCHS_STANDARD_32_64_BIT";
+    },
+
+    {
+        _Domain = appletvos;
+        Type = Architecture;
+        Identifier = PlatformStandardUniversal;
+        RealArchitectures = ( arm64, arm64e );
+        ArchitectureSetting = "ARCHS_UNIVERSAL_IPHONE_OS";
+    },
+
+    {
+        _Domain = appletvos;
+        Type = Architecture;
+        Identifier = Standard_Including_64_bit;
+        RealArchitectures = ( "$(ARCHS_STANDARD)" );
+        ArchitectureSetting = "ARCHS_STANDARD_INCLUDING_64_BIT";
+    },
+
+)

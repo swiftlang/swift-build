@@ -1,0 +1,658 @@
+//===----------------------------------------------------------------------===//
+//
+// This source file is part of the Swift open source project
+//
+// Copyright (c) 2025 Apple Inc. and the Swift project authors
+// Licensed under Apache License v2.0 with Runtime Library Exception
+//
+// See http://swift.org/LICENSE.txt for license information
+// See http://swift.org/CONTRIBUTORS.txt for the list of Swift project authors
+//
+//===----------------------------------------------------------------------===//
+
+"Name" = "Standard Build Settings";
+"Description" = "General";
+
+
+// Architectures
+
+"[Architectures]-category" = "Architectures";
+
+"[ARCHS]-name" = "Architectures";
+"[ARCHS]-description" = "A list of the architectures for which the product will be built. This is usually set to a predefined build setting provided by the platform. If more than one architecture is specified, a universal binary will be produced.";
+
+"[ONLY_ACTIVE_ARCH]-name" = "Build Active Architecture Only";
+"[ONLY_ACTIVE_ARCH]-description" = "If enabled, only the active architecture is built. This setting will be ignored when building with a run destination which does not define a specific architecture, such as a 'Generic Device' run destination.";
+
+"[EXCLUDED_ARCHS]-name" = "Excluded Architectures";
+"[EXCLUDED_ARCHS]-description" = "A list of architectures for which the target should not be built. These architectures will be removed from the list in `ARCHS` when the target is built. If the resulting list of architectures is empty, no binary will be produced. This can be used to declare architectures a target does not support for use in environments where `ARCHS` is being overridden at a higher level (e.g., via `xcodebuild`).";
+
+// Standard build paths
+
+"[Build Locations]-category" = "Build Locations";
+
+"[SDKROOT]-name" = "Base SDK";
+"[SDKROOT]-description" = "The name or path of the base SDK being used during the build. The product will be built against the headers and libraries located inside the indicated SDK. This path will be prepended to all search paths, and will be passed through the environment to the compiler and linker. Additional SDKs can be specified in the `ADDITIONAL_SDKS` setting.";
+
+"[ADDITIONAL_SDKS]-name" = "Additional SDKs";
+"[ADDITIONAL_SDKS]-description" = "The locations of any sparse SDKs that should be layered on top of the one specified by `SDKROOT`. If more than one SDK is listed, the first one has highest precedence. Every SDK specified in this setting should be a \"sparse\" SDK, for example, not an SDK for an entire macOS release.";
+
+"[SUPPORTED_PLATFORMS]-name" = "Supported Platforms";
+"[SUPPORTED_PLATFORMS]-description" = "The list of supported platforms from which a base SDK can be used. This setting is used if the product can be built for multiple platforms using different SDKs.";
+
+"[SYMROOT]-name" = "Build Products Path";
+"[SYMROOT]-description" = "The path at which all products will be placed when performing a build. Typically this path is not set per target, but is set per-project or per-user. By default, this is set to `$(PROJECT_DIR)/build`.";
+
+"[OBJROOT]-name" = "Intermediate Build Files Path";
+"[OBJROOT]-description" = "The path where intermediate files will be placed during a build. Intermediate files include generated sources, object files, etc. Shell script build phases can place and access files here, as well. Typically this path is not set per target, but is set per project or per user. By default, this is set to `$(PROJECT_DIR)/build`.";
+
+"[CONFIGURATION_BUILD_DIR]-name" = "Per-configuration Build Products Path";
+"[CONFIGURATION_BUILD_DIR]-description" = "The base path where build products will be placed during a build for a given configuration. By default, this is set to `$(BUILD_DIR)/$(CONFIGURATION)`.";
+
+"[CONFIGURATION_TEMP_DIR]-name" = "Per-configuration Intermediate Build Files Path";
+"[CONFIGURATION_TEMP_DIR]-description" = "The base path where intermediates will be placed during a build for a given configuration. By default, this is set to `$(PROJECT_TEMP_DIR)/$(CONFIGURATION)`.";
+
+"[SHARED_PRECOMPS_DIR]-name" = "Precompiled Headers Cache Path";
+"[SHARED_PRECOMPS_DIR]-description" = "The path where precompiled prefix header files are placed during a build. Defaults to `$(OBJROOT)/SharedPrecompiledHeaders`. Using a common location allows precompiled headers to be shared between multiple projects.";
+
+// Search Paths Settings
+
+"[Search Paths]-category" = "Search Paths";
+
+"[HEADER_SEARCH_PATHS]-name" = "Header Search Paths";
+"[HEADER_SEARCH_PATHS]-description" = "This is a list of paths to folders to be searched by the compiler for included or imported header files when compiling C, Objective-C, C++, or Objective-C++. Paths are delimited by whitespace, so any paths with spaces in them need to be properly quoted.";
+
+"[USER_HEADER_SEARCH_PATHS]-name" = "User Header Search Paths";
+"[USER_HEADER_SEARCH_PATHS]-description" = "This is a list of paths to folders to be searched by the compiler for included or imported user header files (those headers listed in quotes) when compiling C, Objective-C, C++, or Objective-C++. Paths are delimited by whitespace, so any paths with spaces in them need to be properly quoted. See `ALWAYS_SEARCH_USER_PATHS` for more details on how this setting is used. If the compiler doesn't support the concept of user headers, then the search paths are prepended to the any existing header search paths defined in `HEADER_SEARCH_PATHS`.";
+
+"[LIBRARY_SEARCH_PATHS]-name" = "Library Search Paths";
+"[LIBRARY_SEARCH_PATHS]-description" = "This is a list of paths to folders to be searched by the linker for libraries used by the product. Paths are delimited by whitespace, so any paths with spaces in them need to be properly quoted.";
+
+"[FRAMEWORK_SEARCH_PATHS]-name" = "Framework Search Paths";
+"[FRAMEWORK_SEARCH_PATHS]-description" = "This is a list of paths to folders containing frameworks to be searched by the compiler for both included or imported header files when compiling C, Objective-C, C++, or Objective-C++, and by the linker for frameworks used by the product. Paths are delimited by whitespace, so any paths with spaces in them must be properly quoted.";
+
+"[REZ_SEARCH_PATHS]-name" = "Rez Search Paths";
+"[REZ_SEARCH_PATHS]-description" = "This is a list of paths to search for files with resource manager resources. Paths are delimited by whitespace, so any paths with spaces in them need to be properly quoted.";
+
+"[ALWAYS_SEARCH_USER_PATHS]-name" = "Always Search User Paths (Deprecated)";
+"[ALWAYS_SEARCH_USER_PATHS]-description" = "This setting is deprecated as of Xcode 8.3 and may not be supported in future versions. It is recommended that you disable the setting.
+
+If enabled, both `#include <header.h>`-style and `#include \"header.h\"`-style directives search the paths in `USER_HEADER_SEARCH_PATHS` before `HEADER_SEARCH_PATHS`. As a consequence, user headers, such as your own `String.h` header, have precedence over system headers when using `#include <header.h>`. This is done using the `-iquote` flag for the paths provided in `USER_HEADER_SEARCH_PATHS`. If disabled and your compiler fully supports separate user paths, user headers are only accessible with `#include \"header.h\"`-style preprocessor directives.
+
+For backwards compatibility reasons, this setting is enabled by default. Disabling it is strongly recommended.";
+
+"[INCLUDED_RECURSIVE_SEARCH_PATH_SUBDIRECTORIES]-name" = "Sub-Directories to Include in Recursive Searches";
+"[INCLUDED_RECURSIVE_SEARCH_PATH_SUBDIRECTORIES]-description" = "This is a list of `fnmatch()`-style patterns of file or directory names to include when performing a recursive search. By default, this is empty and is only customized when you want to provide exceptions to the list of filename patterns provided in `EXCLUDED_RECURSIVE_SEARCH_PATH_SUBDIRECTORIES`.";
+
+"[EXCLUDED_RECURSIVE_SEARCH_PATH_SUBDIRECTORIES]-name" = "Sub-Directories to Exclude in Recursive Searches";
+"[EXCLUDED_RECURSIVE_SEARCH_PATH_SUBDIRECTORIES]-description" = "This is a list of `fnmatch()`-style patterns of file or directory names to exclude when performing a recursive search. By default, this is set to `*.nib *.lproj *.framework *.gch *.xcode* *.xcassets (*) .DS_Store CVS .svn .git .hg *.pbproj *.pbxproj`. Normally, if you override this value you should include the default values via the `$(inherited)` macro.";
+
+"[USE_HEADERMAP]-name" = "Use Header Maps";
+"[USE_HEADERMAP]-description" = "Enable the use of *Header Maps*, which provide the compiler with a mapping from textual header names to their locations, bypassing the normal compiler header search path mechanisms. This allows source code to include headers from various locations in the file system without needing to update the header search path build settings.";
+
+// Versioning Settings
+
+"[Versioning]-category" = "Versioning";
+
+"[VERSIONING_SYSTEM]-name" = "Versioning System";
+"[VERSIONING_SYSTEM]-description" = "Selects the process used for version-stamping generated files.
+
+* *None:* Use no versioning system.
+* *Apple Generic:* Use the current project version setting. [apple-generic]
+* *Apple Generic (Hidden Symbols):* Use the current project version setting with hidden-visibility symbols. [apple-generic-hidden]";
+"[VERSIONING_SYSTEM]-value-[]" = "None";
+"[VERSIONING_SYSTEM]-description-[]" = "Use no versioning system.";
+"[VERSIONING_SYSTEM]-value-[apple-generic]" = "Apple Generic";
+"[VERSIONING_SYSTEM]-description-[apple-generic]" = "Use the current project version setting.";
+"[VERSIONING_SYSTEM]-value-[apple-generic-hidden]" = "Apple Generic (Hidden Symbols)";
+"[VERSIONING_SYSTEM]-description-[apple-generic-hidden]" = "Use the current project version setting with hidden-visibility symbols.";
+
+"[MARKETING_VERSION]-name" = "Marketing Version";
+"[MARKETING_VERSION]-description" = "This setting defines the user-visible version of the project.
+
+When `GENERATE_INFOPLIST_FILE` is enabled, sets the value of the [CFBundleShortVersionString](https://developer.apple.com/documentation/bundleresources/information_property_list/cfbundleshortversionstring) key in the `Info.plist` file to the value of this build setting.";
+
+"[CURRENT_PROJECT_VERSION]-name" = "Current Project Version";
+"[CURRENT_PROJECT_VERSION]-description" = "This setting defines the current version of the project. The value must be a integer or floating point number, such as `57` or `365.8`.
+
+When `GENERATE_INFOPLIST_FILE` is enabled, sets the value of the [CFBundleVersion](https://developer.apple.com/documentation/bundleresources/information_property_list/cfbundleversion) key in the `Info.plist` file to the value of this build setting.";
+
+"[VERSION_INFO_PREFIX]-name" = "Versioning Name Prefix";
+"[VERSION_INFO_PREFIX]-description" = "Used as a prefix for the name of the version info symbol in the generated versioning source file. If you prefix your exported symbols you will probably want to set this to the same prefix.";
+
+"[VERSION_INFO_SUFFIX]-name" = "Versioning Name Suffix";
+"[VERSION_INFO_SUFFIX]-description" = "Used as a suffix for the name of the version info symbol in the generated versioning source file. This is rarely used.";
+
+"[VERSION_INFO_BUILDER]-name" = "Versioning Username";
+"[VERSION_INFO_BUILDER]-description" = "This defines a reference to the user performing a build to be included in the generated Apple Generic Versioning stub. Defaults to the value of the `USER` environment variable.";
+
+"[VERSION_INFO_EXPORT_DECL]-name" = "Generated Versioning Variables";
+"[VERSION_INFO_EXPORT_DECL]-description" = "This defines a prefix string for the version info symbol declaration in the generated Apple Generic Versioning stub. This can be used, for example, to add an optional `export` keyword to the version symbol declaration. This should rarely be changed.";
+
+"[VERSION_INFO_FILE]-name" = "Generated Versioning Source Filename";
+"[VERSION_INFO_FILE]-description" = "Used to specify a name for the source file that will be generated by Apple Generic Versioning and compiled into your product. By default, this is set to `$(PRODUCT_NAME)_vers.c`.";
+
+// Build options
+
+"[BuildOptions]-category" = "Build Options";
+
+"[BUILD_VARIANTS]-name" = "Build Variants";
+"[BUILD_VARIANTS]-description" = "A list of the build variants of the linked binary that will be produced. By default, only the `normal` variant is produced. Other common values include `debug` and `profile`.";
+
+"[DEBUG_INFORMATION_FORMAT]-name" = "Debug Information Format";
+"[DEBUG_INFORMATION_FORMAT]-description" = "The type of debug information to produce.
+
+* *DWARF:* Object files and linked products will use DWARF as the debug information format. [dwarf]
+* *DWARF with dSYM File:* Object files and linked products will use DWARF as the debug information format, and Xcode will also produce a dSYM file containing the debug information from the individual object files (except that a dSYM file is not needed and will not be created for static library or object file products). [dwarf-with-dsym]";
+"[DEBUG_INFORMATION_FORMAT]-value-[dwarf]" = "DWARF";
+"[DEBUG_INFORMATION_FORMAT]-description-[dwarf]" = "Object files and linked products will use DWARF as the debug information format. A separate symbol repository can optionally be used to store much of this information outside of the binary files. [dwarf]";
+"[DEBUG_INFORMATION_FORMAT]-value-[dwarf-with-dsym]" = "DWARF with dSYM File";
+"[DEBUG_INFORMATION_FORMAT]-description-[dwarf-with-dsym]" = "Object files and linked products will use DWARF as the debug information format, and Xcode will also produce a dSYM file containing the debug information from the individual object files (except that a dSYM file is not needed and will not be created for static library or object file products). [dwarf-with-dsym]";
+
+"[DEBUG_INFORMATION_VERSION]-name" = "Debug Information Version";
+"[DEBUG_INFORMATION_VERSION]-description" = "The format of the debug information to produce.
+
+* *Compiler Default*: The compiler will emit debug information of a version appropriate for the platform and minimum deployment target being built. [compiler-default]
+* *DWARF 4*: The compiler will emit DWARF 4 debug information. [dwarf4]
+* *DWARF 5*: The compiler will emit DWARF 5 debug information. [dwarf5]";
+"[DEBUG_INFORMATION_VERSION]-value-[compiler-default]" = "Compiler Default";
+"[DEBUG_INFORMATION_VERSION]-description-[compiler-default]" = "The compiler will emit debug information of a version appropriate for the platform and minimum deployment target being built. [compiler-default]";
+"[DEBUG_INFORMATION_VERSION]-value-[dwarf4]" = "DWARF 4";
+"[DEBUG_INFORMATION_VERSION]-description-[dwarf4]" = "The compiler will emit DWARF 4 debug information. [dwarf4]";
+"[DEBUG_INFORMATION_VERSION]-value-[dwarf5]" = "DWARF 5";
+"[DEBUG_INFORMATION_VERSION]-description-[dwarf5]" = "The compiler will emit DWARF 5 debug information. [dwarf5]";
+
+"[SCAN_ALL_SOURCE_FILES_FOR_INCLUDES]-name" = "Scan All Source Files for Includes";
+"[SCAN_ALL_SOURCE_FILES_FOR_INCLUDES]-description" = "Activating this setting will cause all source files to be scanned for includes (for example, of header files) when computing the dependency graph, in which case if an included file is changed then the including file will be rebuilt next time a target containing it is built. Normally only certain types of files, such as C-language source files, are scanned.
+
+This setting is useful if your project contains files of unusual types, which are compiled using a custom build rule.";
+
+"[GENERATE_PROFILING_CODE]-name" = "Generate Profiling Code";
+"[GENERATE_PROFILING_CODE]-description" = "Activating this setting will cause the compiler and linker to generate profiling code. For example, GCC will generate code suitable for use with `gprof(1)`.";
+
+"[PRECOMPS_INCLUDE_HEADERS_FROM_BUILT_PRODUCTS_DIR]-name" = "Precompiled Header Uses Files From Build Directory";
+"[PRECOMPS_INCLUDE_HEADERS_FROM_BUILT_PRODUCTS_DIR]-description" = "This setting allows for better control of sharing precompiled prefix header files between projects. By default, Xcode assumes that the prefix header file may include header files from the build directory if the build directory is outside of the project directory. Xcode cannot determine this ahead of time since other projects may not have been built into the shared build directory at the time the information is needed.
+
+If your prefix file never includes files from the build directory you may set this to `NO` to improve sharing of precompiled headers. If the prefix does use files from a build directory that is inside your project directory, you may set this to `YES` to avoid unintended sharing that may result in build failures.";
+
+"[VALIDATE_PRODUCT]-name" = "Validate Built Product";
+"[VALIDATE_PRODUCT]-description" = "If enabled, perform validation checks on the product as part of the build process.";
+
+// Code-signing Settings
+"[Code Signing]-category" = "Signing";
+
+"[CODE_SIGN_IDENTITY]-name" = "Code Signing Identity";
+"[CODE_SIGN_IDENTITY]-description" = "The name, also known as the *common name*, of a valid code-signing certificate in a keychain within your keychain path. A missing or invalid certificate will cause a build error.";
+
+"[CODE_SIGN_STYLE]-name" = "Code Signing Style";
+"[CODE_SIGN_STYLE]-description" = "This setting specifies the method used to acquire and locate signing assets. Choose `Automatic` to let Xcode automatically create and update profiles, app IDs, and certificates. Choose `Manual` to create and update these yourself on the developer website.";
+
+"[DEVELOPMENT_TEAM]-name" = "Development Team";
+"[DEVELOPMENT_TEAM]-description" = "The team ID of a development team to use for signing certificates and provisioning profiles.";
+
+"[PROVISIONING_PROFILE_SPECIFIER]-name" = "Provisioning Profile";
+"[PROVISIONING_PROFILE_SPECIFIER]-description" = "Must contain a profile name (or UUID). A missing or invalid profile will cause a build error. Use in conjunction with [DEVELOPMENT_TEAM] to fully specify provisioning profile.";
+
+"[OTHER_CODE_SIGN_FLAGS]-name" = "Other Code Signing Flags";
+"[OTHER_CODE_SIGN_FLAGS]-description" = "A list of additional options to pass to `codesign(1)`.";
+
+"[CODE_SIGN_ENTITLEMENTS]-name" = "Code Signing Entitlements";
+"[CODE_SIGN_ENTITLEMENTS]-description" = "The path to a file specifying code-signing entitlements.";
+
+"[CODE_SIGN_INJECT_BASE_ENTITLEMENTS]-name" = "Code Signing Inject Base Entitlements";
+"[CODE_SIGN_INJECT_BASE_ENTITLEMENTS]-description" = "Automatically inject entitlements from the platform's BaseEntitlements.plist into the code signatures of executables.";
+
+"[ENABLE_HARDENED_RUNTIME]-name" = "Enable Hardened Runtime";
+"[ENABLE_HARDENED_RUNTIME]-description" = "Hardened Runtime defends your application by preventing modifications to its code and provides fine-grained controls over what can run in your process. Hardening the runtime also prevents access to sensitive resources unless your application pre-declares its intent to use them, which reduces the attack surface by eliminating unnecessary access.  These properties help prevent exploitation of your application and this capability is required for your app to be notarized.";
+
+"[LAUNCH_CONSTRAINT_SELF]-name" = "Launch Constraint Process Plist";
+"[LAUNCH_CONSTRAINT_SELF]-description" = "A path to a plist representation of a Requirements Dictionary indicating the desired constraint on this binary.";
+"[LAUNCH_CONSTRAINT_PARENT]-name" = "Launch Constraint Parent Process Plist";
+"[LAUNCH_CONSTRAINT_PARENT]-description" = "A path to a plist representation of a Requirements Dictionary indicating the desired constraint on the parent of this binary.";
+"[LAUNCH_CONSTRAINT_RESPONSIBLE]-name" = "Launch Constraint Responsible Process Plist";
+"[LAUNCH_CONSTRAINT_RESPONSIBLE]-description" = "A path to a plist representation of a Requirements Dictionary indicating the desired constraint on the responsible process for this binary.";
+
+"[LIBRARY_LOAD_CONSTRAINT]-name" = "Library Load Constraint Plist";
+"[LIBRARY_LOAD_CONSTRAINT]-description" = "A path to a plist representation of a Requirements Dictionary that specifies the desired set of libraries that can be loaded by this process. Supported when building on macOS 14 or later.";
+
+// Code-signing App Sandbox Settings
+"[App Sandbox]-category" = "Signing - App Sandbox";
+
+"[ENABLE_APP_SANDBOX]-name" = "Enable App Sandbox";
+"[ENABLE_APP_SANDBOX]-description" = "When set, enables App Sandbox for a target.";
+
+"[ENABLE_USER_SELECTED_FILES]-name" = "Enable User Selected Files";
+"[ENABLE_USER_SELECTED_FILES]-description" = "This setting indicates whether App Sandbox allows access to files the user selects with an Open or Save dialog.";
+"[ENABLE_USER_SELECTED_FILES]-value-[]" = "None";
+"[ENABLE_USER_SELECTED_FILES]-description-[]" = "Do not allow access to files specified by the user.";
+"[ENABLE_USER_SELECTED_FILES]-value-[readonly]" = "Read-Only";
+"[ENABLE_USER_SELECTED_FILES]-description-[readonly]" = "Allow read-only access to files specified by the user.";
+"[ENABLE_USER_SELECTED_FILES]-value-[readwrite]" = "Read/Write";
+"[ENABLE_USER_SELECTED_FILES]-description-[readwrite]" = "Allow read/write access to files specified by the user.";
+
+"[ENABLE_FILE_ACCESS_DOWNLOADS_FOLDER]-name" = "Enable Downloads Folder";
+"[ENABLE_FILE_ACCESS_DOWNLOADS_FOLDER]-description" = "This setting indicates whether App Sandbox allows access to files in the user's downloads directory.";
+"[ENABLE_FILE_ACCESS_DOWNLOADS_FOLDER]-value-[]" = "None";
+"[ENABLE_FILE_ACCESS_DOWNLOADS_FOLDER]-description-[]" = "Do not allow access to the downloads directory.";
+"[ENABLE_FILE_ACCESS_DOWNLOADS_FOLDER]-value-[readonly]" = "Read-Only";
+"[ENABLE_FILE_ACCESS_DOWNLOADS_FOLDER]-description-[readonly]" = "Allow read-only access to files in the downloads directory.";
+"[ENABLE_FILE_ACCESS_DOWNLOADS_FOLDER]-value-[readwrite]" = "Read/Write";
+"[ENABLE_FILE_ACCESS_DOWNLOADS_FOLDER]-description-[readwrite]" = "Allow read/write access to files in the downloads directory.";
+
+"[ENABLE_FILE_ACCESS_PICTURE_FOLDER]-name" = "Enable Pictures Folder";
+"[ENABLE_FILE_ACCESS_PICTURE_FOLDER]-description" = "This setting indicates whether App Sandbox allows access to files in the user's pictures directory.";
+"[ENABLE_FILE_ACCESS_PICTURE_FOLDER]-value-[]" = "None";
+"[ENABLE_FILE_ACCESS_PICTURE_FOLDER]-description-[]" = "Do not allow access to the pictures directory.";
+"[ENABLE_FILE_ACCESS_PICTURE_FOLDER]-value-[readonly]" = "Read-Only";
+"[ENABLE_FILE_ACCESS_PICTURE_FOLDER]-description-[readonly]" = "Allow read-only access to files in the pictures directory.";
+"[ENABLE_FILE_ACCESS_PICTURE_FOLDER]-value-[readwrite]" = "Read/Write";
+"[ENABLE_FILE_ACCESS_PICTURE_FOLDER]-description-[readwrite]" = "Allow read/write access to files in the pictures directory.";
+
+"[ENABLE_FILE_ACCESS_MUSIC_FOLDER]-name" = "Enable Music Folder";
+"[ENABLE_FILE_ACCESS_MUSIC_FOLDER]-description" = "This setting indicates whether App Sandbox allows access to files in the user's music directory.";
+"[ENABLE_FILE_ACCESS_MUSIC_FOLDER]-value-[]" = "None";
+"[ENABLE_FILE_ACCESS_MUSIC_FOLDER]-description-[]" = "Do not allow access to the music directory.";
+"[ENABLE_FILE_ACCESS_MUSIC_FOLDER]-value-[readonly]" = "Read-Only";
+"[ENABLE_FILE_ACCESS_MUSIC_FOLDER]-description-[readonly]" = "Allow read-only access to files in the music directory.";
+"[ENABLE_FILE_ACCESS_MUSIC_FOLDER]-value-[readwrite]" = "Read/Write";
+"[ENABLE_FILE_ACCESS_MUSIC_FOLDER]-description-[readwrite]" = "Allow read/write access to files in the music directory.";
+
+"[ENABLE_FILE_ACCESS_MOVIES_FOLDER]-name" = "Enable Movies Folder";
+"[ENABLE_FILE_ACCESS_MOVIES_FOLDER]-description" = "This setting indicates whether App Sandbox allows access to files in the user's movies directory.";
+"[ENABLE_FILE_ACCESS_MOVIES_FOLDER]-value-[]" = "None";
+"[ENABLE_FILE_ACCESS_MOVIES_FOLDER]-description-[]" = "Do not allow access to the movies directory.";
+"[ENABLE_FILE_ACCESS_MOVIES_FOLDER]-value-[readonly]" = "Read-Only";
+"[ENABLE_FILE_ACCESS_MOVIES_FOLDER]-description-[readonly]" = "Allow read-only access to files in the movies directory.";
+"[ENABLE_FILE_ACCESS_MOVIES_FOLDER]-value-[readwrite]" = "Read/Write";
+"[ENABLE_FILE_ACCESS_MOVIES_FOLDER]-description-[readwrite]" = "Allow read/write access to files in the movies directory.";
+
+"[ENABLE_INCOMING_NETWORK_CONNECTIONS]-name" = "Incoming Connections (Server)";
+"[ENABLE_INCOMING_NETWORK_CONNECTIONS]-description" = "When set, enables incoming network connections.";
+
+"[ENABLE_OUTGOING_NETWORK_CONNECTIONS]-name" = "Outgoing Connections (Client)";
+"[ENABLE_OUTGOING_NETWORK_CONNECTIONS]-description" = "When set, enables outgoing network connections.";
+
+"[ENABLE_RESOURCE_ACCESS_CAMERA]-name" = "Camera";
+"[ENABLE_RESOURCE_ACCESS_CAMERA]-description" = "When set, enables capture of images and movies with the built-in and external cameras.";
+
+"[ENABLE_RESOURCE_ACCESS_AUDIO_INPUT]-name" = "Audio Input";
+"[ENABLE_RESOURCE_ACCESS_AUDIO_INPUT]-description" = "When set, enables capture of audio with the built-in and external microphones.";
+
+"[ENABLE_RESOURCE_ACCESS_USB]-name" = "USB";
+"[ENABLE_RESOURCE_ACCESS_USB]-description" = "When set, enables communication with connected USB devices.";
+
+"[ENABLE_RESOURCE_ACCESS_PRINTING]-name" = "Printing";
+"[ENABLE_RESOURCE_ACCESS_PRINTING]-description" = "When set, enables access to print documents and media using the system’s configured printers.";
+
+"[ENABLE_RESOURCE_ACCESS_BLUETOOTH]-name" = "Bluetooth";
+"[ENABLE_RESOURCE_ACCESS_BLUETOOTH]-description" = "When set, enables communication with connected Bluetooth devices.";
+
+"[ENABLE_RESOURCE_ACCESS_CONTACTS]-name" = "Contacts";
+"[ENABLE_RESOURCE_ACCESS_CONTACTS]-description" = "When set, enables read-write access to the user’s Contacts database.";
+
+"[ENABLE_RESOURCE_ACCESS_LOCATION]-name" = "Location";
+"[ENABLE_RESOURCE_ACCESS_LOCATION]-description" = "When set, enables access to determine the user’s location using Location Services.";
+
+"[ENABLE_RESOURCE_ACCESS_CALENDARS]-name" = "Calendar";
+"[ENABLE_RESOURCE_ACCESS_CALENDARS]-description" = "When set, enables read-write access to the user’s calendar.";
+
+// Linking Settings
+
+"[Linking - General]-category" = "Linking - General";
+
+"[MACH_O_TYPE]-name" = "Mach-O Type";
+"[MACH_O_TYPE]-description" = "This setting determines the format of the produced binary and how it can be linked when building other binaries. For information on binary types, see [Building Mach-O Files](https://developer.apple.com/library/content/documentation/DeveloperTools/Conceptual/MachOTopics/1-Articles/building_files.html#//apple_ref/doc/uid/TP40001828-SW1) in [Mach-O Programming Topics](https://developer.apple.com/library/content/documentation/DeveloperTools/Conceptual/MachOTopics/0-Introduction/introduction.html).
+
+* *Executable:* Executables and standalone binaries and cannot be linked. [mh_execute]
+* *Dynamic Library:* Dynamic libraries are linked at build time and loaded automatically when needed. [mh_dylib]
+* *Bundle:* Bundle libraries are loaded explicitly at run time. [mh_bundle]
+* *Static Library:* Static libraries are linked at build time and loaded at execution time. [staticlib]
+* *Relocatable Object File:* Object files are single-module files that are linked at build time. [mh_object]";
+"[MACH_O_TYPE]-value-[mh_execute]" = "Executable";
+"[MACH_O_TYPE]-description-[mh_execute]" = "Executables and standalone binaries and cannot be linked. [mh_execute]";
+"[MACH_O_TYPE]-value-[mh_dylib]" = "Dynamic Library";
+"[MACH_O_TYPE]-description-[mh_dylib]" = "Dynamic libraries are linked at build time and loaded automatically when needed. [mh_dylib]";
+"[MACH_O_TYPE]-value-[mh_bundle]" = "Bundle";
+"[MACH_O_TYPE]-description-[mh_bundle]" = "Bundle libraries are loaded explicitly at run time. [mh_bundle]";
+"[MACH_O_TYPE]-value-[staticlib]" = "Static Library";
+"[MACH_O_TYPE]-description-[staticlib]" = "Static libraries are linked at build time and loaded at execution time. [staticlib]";
+"[MACH_O_TYPE]-value-[mh_object]" = "Relocatable Object File";
+"[MACH_O_TYPE]-description-[mh_object]" = "Relocatable object files are single-module files that are linked at build time. [mh_object]";
+
+"[LINK_WITH_STANDARD_LIBRARIES]-name" = "Link With Standard Libraries";
+"[LINK_WITH_STANDARD_LIBRARIES]-description" = "When this setting is enabled, the compiler driver will automatically pass its standard libraries to the linker to use during linking. If desired, this flag can be used to disable linking with the standard libraries, and then individual libraries can be passed as `OTHER_LDFLAGS`.";
+
+"[KEEP_PRIVATE_EXTERNS]-name" = "Preserve Private External Symbols";
+"[KEEP_PRIVATE_EXTERNS]-description" = "Activating this setting will preserve private external symbols, rather than turning them into static symbols. This setting is also respected when performing a single-object prelink.";
+
+"[INIT_ROUTINE]-name" = "Initialization Routine";
+"[INIT_ROUTINE]-description" = "This is the name of the routine to use for initialization.";
+
+"[LD_EXPORT_SYMBOLS]-name" = "Export Symbols";
+"[LD_EXPORT_SYMBOLS]-description" = "Export symbols from the binaries. Disabling this setting can be useful for binaries which have no API or plug-ins and thus need no symbol exports. [-no_exported_symbols]";
+
+"[EXPORTED_SYMBOLS_FILE]-name" = "Exported Symbols File";
+"[EXPORTED_SYMBOLS_FILE]-description" = "This is a project-relative path to a file that lists the symbols to export. See `ld -exported_symbols_list` for details on exporting symbols.";
+
+"[UNEXPORTED_SYMBOLS_FILE]-name" = "Unexported Symbols File";
+"[UNEXPORTED_SYMBOLS_FILE]-description" = "A project-relative path to a file that lists the symbols not to export. See `ld -exported_symbols_list` for details on exporting symbols.";
+
+"[SEPARATE_SYMBOL_EDIT]-name" = "Separately Edit Symbols";
+"[SEPARATE_SYMBOL_EDIT]-description" = "Activating this setting when the linked product's symbols are to be edited will cause editing to occur via a separate invocation of `nmedit(1)`. Otherwise editing will occur during linking, if possible.";
+
+"[DYLIB_CURRENT_VERSION]-name" = "Current Library Version";
+"[DYLIB_CURRENT_VERSION]-description" = "This setting defines the current version of any framework built by the project. As with `CURRENT_PROJECT_VERSION`, the value must be an integer or floating point number, such as `57` or `365.8`. See [Dynamic Library Design Guidelines](https://developer.apple.com/library/content/documentation/DeveloperTools/Conceptual/DynamicLibraries/100-Articles/DynamicLibraryDesignGuidelines.html#//apple_ref/doc/uid/TP40002013-SW19) in [Dynamic Library Programming Topics](https://developer.apple.com/library/content/documentation/DeveloperTools/Conceptual/DynamicLibraries/000-Introduction/Introduction.html) for details on assigning version numbers of dynamic libraries.";
+
+"[DYLIB_COMPATIBILITY_VERSION]-name" = "Compatibility Version";
+"[DYLIB_COMPATIBILITY_VERSION]-description" = "Determines the compatibility version of the resulting library, bundle, or framework binary. See [Dynamic Library Design Guidelines](https://developer.apple.com/library/content/documentation/DeveloperTools/Conceptual/DynamicLibraries/100-Articles/DynamicLibraryDesignGuidelines.html#//apple_ref/doc/uid/TP40002013-SW19) in [Dynamic Library Programming Topics](https://developer.apple.com/library/content/documentation/DeveloperTools/Conceptual/DynamicLibraries/000-Introduction/Introduction.html) for details on assigning version numbers of dynamic libraries.";
+
+"[LD_DYLIB_INSTALL_NAME]-name" = "Dynamic Library Install Name";
+"[LD_DYLIB_INSTALL_NAME]-description" = "Sets an internal `install path` (`LC_ID_DYLIB`) in a dynamic library. Any clients linked against the library will record that path as the way `dyld` should locate this library. If this option is not specified, then the `-o` path will be used. This setting is ignored when building any product other than a dynamic library. See [Dynamic Library Programming Topics](https://developer.apple.com/library/content/documentation/DeveloperTools/Conceptual/DynamicLibraries/000-Introduction/Introduction.html).";
+
+"[DYLIB_INSTALL_NAME_BASE]-name" = "Dynamic Library Install Name Base";
+"[DYLIB_INSTALL_NAME_BASE]-description" = "Sets the base value for the internal `install path` (`LC_ID_DYLIB`) in a dynamic library. This will be combined with the `EXECUTABLE_PATH` to form the full install path. Setting `LD_DYLIB_INSTALL_NAME` directly will override this setting. This setting defaults to the target's `INSTALL_PATH`. It is ignored when building any product other than a dynamic library.";
+
+"[SECTORDER_FLAGS]-name" = "Symbol Ordering Flags";
+"[SECTORDER_FLAGS]-description" = "These flags are typically used to specify options for ordering symbols within segments, for example the `-sectorder` option to `ld`.
+
+Generally you should not specify symbol ordering options in Debug or Development configurations, as this will make the linked binary less readable to the debugger. Use them only in Release or Deployment configurations.";
+
+"[ORDER_FILE]-name" = "Order File";
+"[ORDER_FILE]-description" = "The path to a file that alters the order in which functions and data are laid out.
+
+For each section in the output file, any symbol in that section that are specified in the order file is moved to the start of its section and laid out in the same order as in the order file. Order files are text files with one symbol name per line. Lines starting with a `#` are comments. A symbol name may be optionally preceded with its object file leafname and a colon (for example, `foo.o:_foo`). This is useful for static functions/data that occur in multiple files. A symbol name may also be optionally preceded with the architecture (for example, `ppc:_foo` or `ppc:foo.o:_foo`). This enables you to have one order file that works for multiple architectures. Literal C-strings may be ordered by quoting the string in the order file (for example, `\"Hello, world\\n\"`).
+
+Generally you should not specify an order file in Debug or Development configurations, as this will make the linked binary less readable to the debugger. Use them only in Release or Deployment configurations.";
+
+"[LD_RUNPATH_SEARCH_PATHS]-name" = "Runpath Search Paths";
+"[LD_RUNPATH_SEARCH_PATHS]-description" = "This is a list of paths to be added to the `runpath` search path list for the image being created. At runtime, `dyld` uses the `runpath` when searching for dylibs whose load path begins with `@rpath/`. See [Dynamic Library Programming Topics](https://developer.apple.com/library/content/documentation/DeveloperTools/Conceptual/DynamicLibraries/000-Introduction/Introduction.html).";
+
+"[LD_GENERATE_MAP_FILE]-name" = "Write Link Map File";
+"[LD_GENERATE_MAP_FILE]-description" = "Activating this setting will cause the linker to write a map file to disk, which details all symbols and their addresses in the output image. The path to the map file is defined by the `LD_MAP_FILE_PATH` setting.";
+
+"[LD_MAP_FILE_PATH]-name" = "Path to Link Map File";
+"[LD_MAP_FILE_PATH]-description" = "This setting defines the path to the map file written by the linker when the `LD_GENERATE_MAP_FILE` setting is activated. By default, a separate file will be written for each architecture and build variant, and these will be generated in the Intermediates directory for the target whose product is being linked.";
+
+"[OTHER_LDFLAGS]-name" = "Other Linker Flags";
+"[OTHER_LDFLAGS]-description" = "Options defined in this setting are passed to invocations of the linker.";
+
+"[OTHER_LIBTOOLFLAGS]-name" = "Other Librarian Flags";
+"[OTHER_LIBTOOLFLAGS]-description" = "Options defined in this setting are passed to all invocations of the archive librarian, which is used to generate static libraries.";
+
+"[DEAD_CODE_STRIPPING]-name" = "Dead Code Stripping";
+"[DEAD_CODE_STRIPPING]-description" = "Activating this setting causes the `-dead_strip` flag to be passed to `ld(1)` via `cc(1)` to turn on dead code stripping.";
+
+"[BUNDLE_LOADER]-name" = "Bundle Loader";
+"[BUNDLE_LOADER]-description" = "Specifies the executable that will load the bundle output file being linked. Undefined symbols from the bundle are checked against the specified executable as if it is one of the dynamic libraries the bundle was linked with.";
+
+"[LINKER_DISPLAYS_MANGLED_NAMES]-name" = "Display Mangled Names";
+"[LINKER_DISPLAYS_MANGLED_NAMES]-description" = "Activating this setting causes the linker to display mangled names for C++ symbols. Normally, this is not recommended, but turning it on can help to diagnose and solve C++ link errors.";
+
+"[GENERATE_MASTER_OBJECT_FILE]-name" = "Perform Single-Object Prelink";
+"[GENERATE_MASTER_OBJECT_FILE]-description" = "Activating this setting will cause the object files built by a target to be prelinked using `ld -r` into a single object file, and that object file will then be linked into the final product. This is useful to force the linker to resolve symbols and link the object files into a single module before building a static library. Also, a separate set of link flags can be applied to the prelink allowing additional control over, for instance, exported symbols.";
+
+"[PRELINK_LIBS]-name" = "Prelink libraries";
+"[PRELINK_LIBS]-description" = "Additional libraries to pass when performing a single-object prelink.";
+
+"[PRELINK_FLAGS]-name" = "Single-Object Prelink Flags";
+"[PRELINK_FLAGS]-description" = "Additional flags to pass when performing a single-object prelink.";
+
+"[LD_NO_PIE]-name" = "Generate Position-Dependent Executable";
+"[LD_NO_PIE]-description" = "Activating this setting will prevent Xcode from building a main executable that is position independent (PIE). When targeting macOS 10.7 or later, PIE is the default for main executables, so activating this setting will change that behavior. When targeting OS X 10.6 or earlier, or when building for i386, PIE is not the default, so activating this setting does nothing.
+
+You cannot create a PIE from `.o` files compiled with `-mdynamic-no-pic`. Using PIE means the codegen is less optimal, but the address randomization adds some security.";
+
+"[LD_DEPENDENCY_INFO_FILE]-name" = "Path to Linker Dependency Info File";
+"[LD_DEPENDENCY_INFO_FILE]-description" = "This setting defines the path to which the linker should emit information about what files it used as inputs and generated. Xcode uses this information for its dependency tracking. Setting the value of this setting to empty will disable passing this option to the linker.";
+
+"[LD_QUOTE_LINKER_ARGUMENTS_FOR_COMPILER_DRIVER]-name" = "Quote Linker Arguments";
+"[LD_QUOTE_LINKER_ARGUMENTS_FOR_COMPILER_DRIVER]-description" = "This setting controls whether arguments to the linker should be quoted using `-Xlinker`. By default, Xcode invokes the linker by invoking the driver of the compiler used to build the source files in the target, and passing `-Xlinker` to quote arguments will cause the compiler driver to pass them through to the linker (rather than trying to evaluate them within the driver). By default, this setting is enabled. Disabling it will cause Xcode to not use `-Xlinker` to pass arguments to the linker. Disabling this setting is useful if the target has instructed Xcode to use an alternate linker (for example, by setting the `LD` setting to the path to another linker) and that alternate linker does not recognize `-Xlinker`.";
+
+"[LD_DYLIB_ALLOWABLE_CLIENTS]-name" = "Dynamic Library Allowable Clients";
+"[LD_DYLIB_ALLOWABLE_CLIENTS]-description" = "This setting restricts the clients allowed to link a dylib by passing `-allowable_client` to the linker for each supplied value.";
+
+"[LD_CLIENT_NAME]-name" = "Client Name";
+"[LD_CLIENT_NAME]-description" = "This setting passes the value with `-client_name` when linking the executable.";
+
+"[LD_ENVIRONMENT]-name" = "Dynamic Linker Environment";
+"[LD_ENVIRONMENT]-description" = "This setting allows `key=value` pairs of `dyld` environment variables to be embedded in a generated executable as `LC_DYLD_ENVIRONMENT` load commands in order to supplement the environment in which the executable is launched, if allowed by the platform and its security environment.";
+
+"[LD_WARN_UNUSED_DYLIBS]-name" = "Unused Dylibs";
+"[LD_WARN_UNUSED_DYLIBS]-description" = "Warn for any dylib linked to but not used.";
+
+"[LD_WARN_DUPLICATE_LIBRARIES]-name" = "Duplicate Libraries";
+"[LD_WARN_DUPLICATE_LIBRARIES]-description" = "Warn for linking the same library multiple times.";
+
+// Localization Settings
+
+"[Localization]-category" = "Localization";
+
+// Packaging Settings
+
+"[Packaging]-category" = "Packaging";
+
+"[PRODUCT_NAME]-name" = "Product Name";
+"[PRODUCT_NAME]-description" = "This is the basename of the product generated by the target.
+
+When `GENERATE_INFOPLIST_FILE` is enabled, sets the value of the [CFBundleName](https://developer.apple.com/documentation/bundleresources/information_property_list/cfbundlename) key in the `Info.plist` file to the value of this build setting.";
+
+"[EXECUTABLE_PREFIX]-name" = "Executable Prefix";
+"[EXECUTABLE_PREFIX]-description" = "The prefix used for the executable product generated by the target, which has a default value based on the product type.";
+
+"[EXECUTABLE_EXTENSION]-name" = "Executable Extension";
+"[EXECUTABLE_EXTENSION]-description" = "This is the extension used for the executable product generated by the target, which has a default value based on the product type.";
+
+"[WRAPPER_EXTENSION]-name" = "Wrapper Extension";
+"[WRAPPER_EXTENSION]-description" = "The extension used for product wrappers, which has a default value based on the product type.";
+
+"[PRIVATE_HEADERS_FOLDER_PATH]-name" = "Private Headers Folder Path";
+"[PRIVATE_HEADERS_FOLDER_PATH]-description" = "The location to copy the private headers to during building, relative to the built products folder.";
+
+"[PUBLIC_HEADERS_FOLDER_PATH]-name" = "Public Headers Folder Path";
+"[PUBLIC_HEADERS_FOLDER_PATH]-description" = "The location to copy the public headers to during building, relative to the built products folder.";
+
+"[GENERATE_PKGINFO_FILE]-name" = "Force Package Info Generation";
+"[GENERATE_PKGINFO_FILE]-description" = "Forces the `PkgInfo` file to be written to wrapped products even if this file is not expected.";
+
+"[GENERATE_INFOPLIST_FILE]-name" = "Generate Info.plist File";
+"[GENERATE_INFOPLIST_FILE]-description" = "If enabled, automatically generate an Info.plist file with content from build settings, and from content in the file pointed to by `INFOPLIST_FILE`, if defined.";
+
+"[DONT_GENERATE_INFOPLIST_FILE]-name" = "Don't Force Info.plist Generation";
+"[DONT_GENERATE_INFOPLIST_FILE]-description" = "If enabled, don't automatically generate an Info.plist file for wrapped products when the `INFOPLIST_FILE` build setting is empty.";
+
+"[INFOPLIST_FILE]-name" = "Info.plist File";
+"[INFOPLIST_FILE]-description" = "The project-relative path to the property list file that contains the `Info.plist` information used by bundles.
+
+The build system merges the values you specify in this file with other values it generates during the build process. The product type, target platform, App Privacy manifests, input from other build tools, and other built-in logic impact the contents of the final `Info.plist` file it produces. When `GENERATE_INFOPLIST_FILE` is enabled, the build system also includes content from build settings in the merge process.
+
+For details on information property list files, see [Information Property List](https://developer.apple.com/documentation/bundleresources/information_property_list).";
+
+"[INFOPLIST_PREPROCESS]-name" = "Preprocess Info.plist File";
+"[INFOPLIST_PREPROCESS]-description" = "Preprocess the `Info.plist` file using the C Preprocessor.";
+
+"[INFOPLIST_EXPAND_BUILD_SETTINGS]-name" = "Expand Build Settings in Info.plist File";
+"[INFOPLIST_EXPAND_BUILD_SETTINGS]-description" = "Expand build settings in the `Info.plist` file.";
+
+"[INFOPLIST_PREFIX_HEADER]-name" = "Info.plist Preprocessor Prefix File";
+"[INFOPLIST_PREFIX_HEADER]-description" = "Implicitly include the given file when preprocessing the `Info.plist` file. The path given should either be a project relative path or an absolute path.";
+
+"[INFOPLIST_PREPROCESSOR_DEFINITIONS]-name" = "Info.plist Preprocessor Definitions";
+"[INFOPLIST_PREPROCESSOR_DEFINITIONS]-description" = "Space-separated list of preprocessor macros of the form `foo` or `foo=bar`. These macros are used when preprocessing the `Info.plist` file.";
+
+"[INFOPLIST_OTHER_PREPROCESSOR_FLAGS]-name" = "Info.plist Other Preprocessor Flags";
+"[INFOPLIST_OTHER_PREPROCESSOR_FLAGS]-description" = "Other flags to pass to the C preprocessor when preprocessing the `Info.plist` file.";
+
+"[INFOPLIST_OUTPUT_FORMAT]-name" = "Info.plist Output Encoding";
+"[INFOPLIST_OUTPUT_FORMAT]-description" = "Specifies the output encoding for the output `Info.plist`. The output encodings can be `binary` or `XML`. By default, the output encoding will be unchanged from the input.";
+
+"[CREATE_INFOPLIST_SECTION_IN_BINARY]-name" = "Create Info.plist Section in Binary";
+"[CREATE_INFOPLIST_SECTION_IN_BINARY]-description" = "Enabling this setting creates a section called `__info_plist` in the `__TEXT` segment of the product's linked binary containing the processed `Info.plist` file for the target.
+
+You can read the processed `Info.plist` file from the linked binary at runtime using the [CFBundle](https://developer.apple.com/documentation/corefoundation/cfbundle) and [NSBundle](https://developer.apple.com/documentation/foundation/nsbundle) (Objective-C) or [Bundle](https://developer.apple.com/documentation/foundation/nsbundle) (Swift) APIs. To print the processed `Info.plist` file, use the `plutil(1)` command-line utility.
+
+This setting only applies to command-line tool targets.";
+
+
+"[PLIST_FILE_OUTPUT_FORMAT]-name" = "Property List Output Encoding";
+"[PLIST_FILE_OUTPUT_FORMAT]-description" = "Specifies the output encoding for property list files (`.plist`). The output encodings can be `binary` or `XML`. By default, the output encoding will be unchanged from the input.";
+
+
+"[STRINGS_FILE_OUTPUT_ENCODING]-name" = "Strings File Output Encoding";
+"[STRINGS_FILE_OUTPUT_ENCODING]-description" = "Specify the output encoding to be used for Strings files - the default is UTF-16. The value can be either an `NSStringEncoding`, such as one of the numeric values recognized by `NSString`, or an IANA character set name as understood by `CFString`. It is recommended that the source file be in UTF-8 encoding, which is the default encoding for standard strings files, and Xcode will automatically process it to the output encoding. Processing will fail if the file cannot be converted to the specified encoding.";
+
+"[STRINGS_FILE_INFOPLIST_RENAME]-name" = "Adjust Strings File Names for Info.plist";
+"[STRINGS_FILE_INFOPLIST_RENAME]-description" = "If enabled, renames .strings files whose basename matches that of the target's Info.plist file, to InfoPlist.strings in the built product.";
+
+
+"[APPLY_RULES_IN_COPY_FILES]-name" = "Convert Copied Files";
+"[APPLY_RULES_IN_COPY_FILES]-description" = "Enabling this setting will cause files in the target's Copy Files build phases to be processed by build rules. For example, property list files (`.plist`) and strings files will be converted as specified by `PLIST_FILE_OUTPUT_FORMAT` and `STRINGS_FILE_OUTPUT_ENCODING`, respectively.";
+
+"[APPLY_RULES_IN_COPY_HEADERS]-name" = "Process Header Files";
+"[APPLY_RULES_IN_COPY_HEADERS]-description" = "Enabling this setting will cause all Public and Private headers in the target's Copy Headers build phase to be processed by build rules. This allows custom build rules to be defined to process these headers. Custom script rules can define their outputs relative to `HEADER_OUTPUT_DIR`, which will be provided to that script, taking the header visibility into account. The scripts are also passed `SCRIPT_HEADER_VISIBILITY` (\"public\" or \"private\"). Files that should not be processed by build rules may need to be moved to a Copy Files build phase when this setting is enabled.";
+
+"[COPYING_PRESERVES_HFS_DATA]-name" = "Preserve HFS Data";
+"[COPYING_PRESERVES_HFS_DATA]-description" = "Causes the copying of resources to preserve resource forks and Finder info.";
+
+"[FRAMEWORK_VERSION]-name" = "Framework Version";
+"[FRAMEWORK_VERSION]-description" = "Framework bundles are versioned by having contents in subfolders of a version folder that has links to the current version and its contents.";
+
+"[DEFINES_MODULE]-name" = "Defines Module";
+"[DEFINES_MODULE]-description" = "If enabled, the product will be treated as defining its own module. This enables automatic production of LLVM module map files when appropriate, and allows the product to be imported as a module.";
+
+"[MODULEMAP_FILE]-name" = "Module Map File";
+"[MODULEMAP_FILE]-description" = "This is the project-relative path to the LLVM module map file that defines the module structure for the compiler. If empty, it will be automatically generated for appropriate products when `DEFINES_MODULE` is enabled.";
+
+"[MODULEMAP_PRIVATE_FILE]-name" = "Private Module Map File";
+"[MODULEMAP_PRIVATE_FILE]-description" = "This is the project-relative path to the LLVM module map file that defines the module structure for private headers.";
+
+"[PRODUCT_MODULE_NAME]-name" = "Product Module Name";
+"[PRODUCT_MODULE_NAME]-description" = "The name to use for the source code module constructed for this target, and which will be used to import the module in implementation source files. Must be a valid identifier.";
+
+
+// Deployment Settings
+
+"[Deployment]-category" = "Deployment";
+
+"[MACOSX_DEPLOYMENT_TARGET]-name" = "macOS Deployment Target";
+"[MACOSX_DEPLOYMENT_TARGET]-description" = "Code will load on this and later versions of macOS. Framework APIs that are unavailable in earlier versions will be weak-linked; your code should check for `null` function pointers or specific system versions before calling newer APIs.";
+"[MACOSX_DEPLOYMENT_TARGET]-value-[]" = "Compiler Default";
+"[MACOSX_DEPLOYMENT_TARGET]-description-[]" = "Code will load on any Mac OS system that supports the APIs that are used.";
+
+"[DEPLOYMENT_LOCATION]-name" = "Deployment Location";
+"[DEPLOYMENT_LOCATION]-description" = "If enabled, built products are placed in their installed locations in addition to the built products folder.";
+
+"[DEPLOYMENT_POSTPROCESSING]-name" = "Deployment Postprocessing";
+"[DEPLOYMENT_POSTPROCESSING]-description" = "If enabled, indicates that binaries should be stripped and file mode, owner, and group information should be set to standard values.";
+
+"[DSTROOT]-name" = "Installation Build Products Location";
+"[DSTROOT]-description" = "The path at which all products will be rooted when performing an install build. For instance, to install your products on the system proper, set this path to `/`. Defaults to `/tmp/$(PROJECT_NAME).dst` to prevent a *test* install build from accidentally overwriting valid and needed data in the ultimate install path.
+
+Typically this path is not set per target, but is provided as an option on the command line when performing an `xcodebuild install`. It may also be set in a build configuration in special circumstances.";
+
+"[INSTALL_PATH]-name" = "Installation Directory";
+"[INSTALL_PATH]-description" = "The directory in which to install the build products. This path is prepended by the `DSTROOT`.";
+
+"[SKIP_INSTALL]-name" = "Skip Install";
+"[SKIP_INSTALL]-description" = "If enabled, don't install built products even if deployment locations are active.";
+
+"[INSTALL_OWNER]-name" = "Install Owner";
+"[INSTALL_OWNER]-description" = "The owner name or `uid` for installed products.";
+
+"[INSTALL_GROUP]-name" = "Install Group";
+"[INSTALL_GROUP]-description" = "The group name or `gid` for installed products.";
+
+"[INSTALL_MODE_FLAG]-name" = "Install Permissions";
+"[INSTALL_MODE_FLAG]-description" = "Permissions used for installed product files.";
+
+"[ALTERNATE_PERMISSIONS_FILES]-name" = "Alternate Permissions Files";
+"[ALTERNATE_PERMISSIONS_FILES]-description" = "List of files to which the alternate owner, group and permissions are applied.";
+
+"[ALTERNATE_OWNER]-name" = "Alternate Install Owner";
+"[ALTERNATE_OWNER]-description" = "The owner name or uid for the files listed under the `ALTERNATE_PERMISSIONS_FILES` setting.";
+
+"[ALTERNATE_GROUP]-name" = "Alternate Install Group";
+"[ALTERNATE_GROUP]-description" = "The group name or gid for the files listed under the `ALTERNATE_PERMISSIONS_FILES` setting.";
+
+"[ALTERNATE_MODE]-name" = "Alternate Install Permissions";
+"[ALTERNATE_MODE]-description" = "Permissions used for the files listed under the `ALTERNATE_PERMISSIONS_FILES` setting.";
+
+"[MARKETPLACES]-name" = "Alternative Distribution - Marketplaces";
+"[MARKETPLACES]-description" = "Enable overriding your app's distributor identifier with a list of additional marketplace identifiers when running from Xcode.";
+
+"[ALTERNATIVE_DISTRIBUTION_WEB]-name" = "Alternative Distribution - Web";
+"[ALTERNATIVE_DISTRIBUTION_WEB]-description" = "Enable overriding your app's distributor identifier for web distribution when running from Xcode.";
+
+"[TARGETED_DEVICE_FAMILY]-value-[1]" = "iPhone";
+"[TARGETED_DEVICE_FAMILY]-value-[2]" = "iPad";
+"[TARGETED_DEVICE_FAMILY]-value-[1,2]" = "Universal";
+
+"[RESOURCES_TARGETED_DEVICE_FAMILY]-name" = "Resources Targeted Device Family";
+"[RESOURCES_TARGETED_DEVICE_FAMILY]-description" = "Overrides `TARGETED_DEVICE_FAMILY` when the resource copying needs to differ from the default targeted device.";
+
+"[STRIP_INSTALLED_PRODUCT]-name" = "Strip Linked Product";
+"[STRIP_INSTALLED_PRODUCT]-description" = "If enabled,  the linked product of the build will be stripped of symbols when performing deployment postprocessing.";
+
+"[STRIP_STYLE]-name" = "Strip Style";
+"[STRIP_STYLE]-description" = "The level of symbol stripping to be performed on the linked product of the build. The default value is defined by the target's product type.
+
+* *All Symbols:* Completely strips the binary, removing the symbol table and relocation information. [all, -s]
+* *Non-Global Symbols:* Strips non-global symbols, but saves external symbols. [non-global, -x]
+* *Debugging Symbols:* Strips debugging symbols, but saves local and global symbols. [debugging, -S]";
+"[STRIP_STYLE]-value-[all]" = "All Symbols";
+"[STRIP_STYLE]-description-[all]" = "Completely strips the binary, removing the symbol table and relocation information. [all, -s]";
+"[STRIP_STYLE]-value-[non-global]" = "Non-Global Symbols";
+"[STRIP_STYLE]-description-[non-global]" = "Strips non-global symbols, but saves external symbols. [non-global, -x]";
+"[STRIP_STYLE]-value-[debugging]" = "Debugging Symbols";
+"[STRIP_STYLE]-description-[debugging]" = "Strips debugging symbols, but saves local and global symbols. [debugging, -S]";
+
+"[STRIP_SWIFT_SYMBOLS]-name" = "Strip Swift Symbols";
+"[STRIP_SWIFT_SYMBOLS]-description" = "Adjust the level of symbol stripping specified by the STRIP_STYLE setting so that when the linked product of the build is stripped, all Swift symbols will be removed.";
+
+"[STRIPFLAGS]-name" = "Additional Strip Flags";
+"[STRIPFLAGS]-description" = "Additional flags to be passed when stripping the linked product of the build.";
+
+"[COPY_PHASE_STRIP]-name" = "Strip Debug Symbols During Copy";
+"[COPY_PHASE_STRIP]-description" = "Specifies whether binary files that are copied during the build, such as in a Copy Bundle Resources or Copy Files build phase, should be stripped of debugging symbols. It does not cause the linked product of a target to be stripped—use `STRIP_INSTALLED_PRODUCT` for that.";
+
+// Testing Settings
+
+"[UnitTesting]-category" = "Testing";
+
+"[TEST_HOST]-name" = "Test Host";
+"[TEST_HOST]-description" = "Path to the executable into which a bundle of tests is injected. Only specify this setting if testing an application or other executable.";
+
+"[TREAT_MISSING_BASELINES_AS_TEST_FAILURES]-name" = "Treat missing baselines as test failures";
+"[TREAT_MISSING_BASELINES_AS_TEST_FAILURES]-description" = "When running tests that measure performance via `XCTestCase`, report missing baselines as test failures.";
+
+// Index-While-Building Settings
+
+"[COMPILER_INDEX_STORE_ENABLE]-description-[Default]" = "Default behavior.";
+"[COMPILER_INDEX_STORE_ENABLE]-value-[YES]" = "Yes";
+"[COMPILER_INDEX_STORE_ENABLE]-description-[YES]" = "Enable emitting index data while building, regardless of configuration.";
+"[COMPILER_INDEX_STORE_ENABLE]-value-[NO]" = "No";
+"[COMPILER_INDEX_STORE_ENABLE]-description-[NO]" = "Disable emitting index data while building, regardless of configuration.";
+
+// Kernel Module Settings
+
+"[KernelModule]-category" = "Kernel Module";
+
+"[MODULE_NAME]-name" = "Module Identifier";
+"[MODULE_NAME]-description" = "This is the identifier of the kernel module listed in the generated stub. This is only used when building kernel extensions.";
+
+"[MODULE_VERSION]-name" = "Module Version";
+"[MODULE_VERSION]-description" = "This is the version of the kernel module listed in the generated stub. This is only used when building kernel extensions.";
+
+"[MODULE_START]-name" = "Module Start Routine";
+"[MODULE_START]-description" = "This defines the name of the kernel module start routine. This is only used when building kernel extensions.";
+
+"[MODULE_STOP]-name" = "Module Stop Routine";
+"[MODULE_STOP]-description" = "This defines the name of the kernel module stop routine. This is only used when building kernel extensions.";
+
+// Compiler Version
+
+"[GCC_VERSION]-name" = "Compiler for C/C++/Objective-C";
+"[GCC_VERSION]-description" = "The compiler to use for C, C++, and Objective-C.";
+
+// App extension API
+"[APPLICATION_EXTENSION_API_ONLY]-name" = "Require Only App-Extension-Safe API";
+"[APPLICATION_EXTENSION_API_ONLY]-description" = "When enabled, this causes the compiler and linker to disallow use of APIs that are not available to app extensions and to disallow linking to frameworks that have not been built with this setting enabled.";

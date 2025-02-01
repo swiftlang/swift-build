@@ -1,0 +1,123 @@
+//===----------------------------------------------------------------------===//
+//
+// This source file is part of the Swift open source project
+//
+// Copyright (c) 2025 Apple Inc. and the Swift project authors
+// Licensed under Apache License v2.0 with Runtime Library Exception
+//
+// See http://swift.org/LICENSE.txt for license information
+// See http://swift.org/CONTRIBUTORS.txt for the list of Swift project authors
+//
+//===----------------------------------------------------------------------===//
+
+(
+    {
+        Type = Compiler;
+        Identifier = "com.apple.xcode.tools.ibtool.storyboard.linker";
+        Name = "Interface Builder Storyboard Linker";
+        Description = "Links Interface Builder Storyboard files into deployable files.";
+        CommandLine = "$(IBC_EXEC) [options] [special-args] --output-format human-readable-text --link $(UnlocalizedProductResourcesDir) [inputs]";
+        RuleName = LinkStoryboards;
+        ExecDescription = "Link Storyboards";
+        ProgressDescription = "Linking Storyboard files";
+        "MessageCategoryInfoOptions" = (
+            "--print-diagnostic-categories",
+        );
+        InputFileTypes = (
+            "wrapper.storyboardc",
+        );
+        InputFileGroupings = (
+            tool,
+        );
+        Outputs = (
+            // Outputs are computed dynamically.
+        );
+        EnvironmentVariables = {
+            "XCODE_DEVELOPER_USR_PATH" = "$(DEVELOPER_BIN_DIR)/..";
+        };
+        CommandOutputParser = (
+            (
+                "^([^:]*):([^:]*): warning: (.*)$",
+                "emit-warning",
+            ),
+            (
+                "^([^:]*):([^:]*): error: (.*)$",
+                "emit-error",
+            ),
+            (
+                "^([^:]*):([^:]*): note: (.*)$",
+                "emit-notice",
+            ),
+            (
+                "^([^:]*):() error: (.*)$",
+                "emit-error",
+            ),
+            (
+                "^([^:]*):() warning: (.*)$",
+                "emit-warning",
+            ),
+            (
+                "^([^:]*):() note: (.*)$",
+                "emit-notice",
+            ),
+        );
+        Options = (
+            {
+                Name = "IBSC_ERRORS";
+                Type = Boolean;
+                DefaultValue = YES;
+                CommandLineFlag = "--errors";
+                Category = "IBSC_COMPILER_OPTIONS";
+            },
+            {
+                Name = "IBSC_WARNINGS";
+                Type = Boolean;
+                DefaultValue = YES;  // This should depend on `SUPPRESS_WARNINGS` (see rdar://114094331)
+                CommandLineFlag = "--warnings";
+                Category = "IBSC_COMPILER_OPTIONS";
+            },
+            {
+                Name = "IBSC_NOTICES";
+                Type = Boolean;
+                DefaultValue = YES;
+                CommandLineFlag = "--notices";
+                Category = "IBSC_COMPILER_OPTIONS";
+            },
+            {
+                Name = "IBSC_OTHER_FLAGS";
+                Type = StringList;
+                DefaultValue = "";
+                CommandLineFlag = "";
+                Category = "IBSC_COMPILER_OPTIONS";
+            },
+            {
+                Name = "RESOURCES_PLATFORM_NAME";
+                Type = String;
+                CommandLineFlag = "--platform";
+            },
+            {
+                Name = "RESOURCES_TARGETED_DEVICE_FAMILY";
+                Type = StringList;
+                CommandLineFlag = "--target-device";
+            },
+            {
+                Name = "IBSC_MODULE";
+                Type = String;
+                DefaultValue = "$(PRODUCT_MODULE_NAME)";
+                CommandLineFlag = "--module";
+                Category = "IBSC_COMPILER_OPTIONS";
+            },
+            {
+                Name = "build_file_compiler_flags";
+                Type = StringList;
+                DefaultValue = "";
+                "CommandLinePrefixFlag" = "";
+            },
+        );
+        OutputsAreProducts = YES;
+        DontProcessOutputs = YES;
+        "MightNotEmitAllOutputs" = YES;
+        SynthesizeBuildRule = YES;
+        IsArchitectureNeutral = YES;
+    },
+)

@@ -1,0 +1,98 @@
+//===----------------------------------------------------------------------===//
+//
+// This source file is part of the Swift open source project
+//
+// Copyright (c) 2025 Apple Inc. and the Swift project authors
+// Licensed under Apache License v2.0 with Runtime Library Exception
+//
+// See http://swift.org/LICENSE.txt for license information
+// See http://swift.org/CONTRIBUTORS.txt for the list of Swift project authors
+//
+//===----------------------------------------------------------------------===//
+
+(
+    {
+        Domain = windows;
+        Identifier = "com.apple.compilers.llvm.clang.1_0";
+        Type = Compiler;
+        BasedOn = "default:com.apple.compilers.llvm.clang.1_0";
+        EnvironmentVariables = {
+        };
+        Name = "Apple LLVM Windows";
+        Description = "Apple LLVM Windows compiler";
+        IsAbstract = Yes;
+        ShowInCompilerSelectionPopup = No;
+        OptionConditionFlavors = (
+            arch,
+            sdk,
+        );
+        // Don't know why these are necessary, but without it, errors aren't reported
+        CommandOutputParser = (
+            ("^([^:]*):([0-9]*):[0-9]*: [^:]*error: (.*)$", "emit-error"),
+            ("^([^:]*):([0-9]*):[0-9]*: [^:]*warning: (.*)$", "emit-warning"),
+            ("^()().* error: (.*)$", "emit-error"),
+            ("^()().* warning: (.*)$", "emit-warning"),
+        );
+        SupportsMacOSXDeploymentTarget = No;
+        SupportsMacOSXMinVersionFlag = No;
+        SupportsIsysroot = No;
+        Options = (
+        );
+    },
+    {
+        Domain = windows;
+        Identifier = "com.apple.compilers.llvm.clang.1_0.compiler";
+        Type = Compiler;
+        BasedOn = "com.apple.compilers.llvm.clang.1_0";
+        Name = "Apple Clang (Windows)";
+        Description = "Apple Clang compiler (Windows)";
+        IsAbstract = YES;
+        ShowInCompilerSelectionPopup = NO;
+    },
+    {
+        Domain = windows;
+        Identifier = "com.apple.compilers.llvm.clang.1_0.astbuilder";
+        Type = Compiler;
+        BasedOn = "default:com.apple.compilers.llvm.clang.1_0.astbuilder";
+        Options = (
+            {
+                Name = SDKROOT;
+                Type = Path;
+                CommandLineFlag = "--sysroot";
+            },
+        );
+        IsAbstract = YES;
+        ShowInCompilerSelectionPopup = NO;
+    },
+    {
+        Domain = windows;
+        Identifier = "com.apple.compilers.llvm.clang.1_0.analyzer";
+        Type = Compiler;
+        BasedOn = "default:com.apple.compilers.llvm.clang.1_0.analyzer";
+        Options = (
+            {
+                Name = SDKROOT;
+                Type = Path;
+                CommandLineFlag = "--sysroot";
+            },
+        );
+    },
+    {
+        Domain = windows;
+        Identifier = "com.apple.xcode.tools.swift.compiler";
+        Type = Compiler;
+        BasedOn = "default:com.apple.xcode.tools.swift.compiler";
+        EnvironmentVariables = {
+            "PATH" = "$(TOOLCHAIN_DIR)/usr/bin;$(DEVELOPER_DIR)/Runtimes/$(TOOLCHAIN_VERSION)/usr/bin;$(PATH)";
+        };
+        Options = (
+            {
+                Name = __WINDOWS_STATIC_FLAG;
+                Type = Bool;
+                DefaultValue = YES;
+                Condition = "$(PRODUCT_TYPE) == 'com.apple.product-type.library.static'";
+                CommandLineArgs = ("-static");
+            }
+        );
+    },
+)

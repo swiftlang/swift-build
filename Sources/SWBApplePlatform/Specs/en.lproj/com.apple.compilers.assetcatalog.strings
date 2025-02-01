@@ -1,0 +1,28 @@
+//===----------------------------------------------------------------------===//
+//
+// This source file is part of the Swift open source project
+//
+// Copyright (c) 2025 Apple Inc. and the Swift project authors
+// Licensed under Apache License v2.0 with Runtime Library Exception
+//
+// See http://swift.org/LICENSE.txt for license information
+// See http://swift.org/CONTRIBUTORS.txt for the list of Swift project authors
+//
+//===----------------------------------------------------------------------===//
+
+"Name" = "Asset Catalog Compiler";
+"Description" = "Compiles Asset Catalogs into CAR files.";
+
+"[ASSETCATALOG_COMPILER_OPTIONS]-category" = "Options";
+
+"[ASSETCATALOG_COMPILER_LAUNCHIMAGE_NAME]-name" = "Asset Catalog Launch Image Set Name";
+"[ASSETCATALOG_COMPILER_LAUNCHIMAGE_NAME]-description" = "Name of an asset catalog launch image set whose contents will be merged into the `Info.plist`.";
+
+"[ASSETCATALOG_NOTICES]-name" = "Show Notices";
+"[ASSETCATALOG_NOTICES]-description" = "Show notices encountered during the compilation of asset catalogs.";
+
+"[ASSETCATALOG_WARNINGS]-name" = "Show Warnings";
+"[ASSETCATALOG_WARNINGS]-description" = "Show warnings encountered during the compilation of asset catalogs.";
+
+"[ASSETCATALOG_OTHER_FLAGS]-name" = "Asset Catalog Other Flags";
+"[ASSETCATALOG_OTHER_FLAGS]-description" = "Pass additional flags through to the asset catalog compiler.";

@@ -1,0 +1,81 @@
+//===----------------------------------------------------------------------===//
+//
+// This source file is part of the Swift open source project
+//
+// Copyright (c) 2025 Apple Inc. and the Swift project authors
+// Licensed under Apache License v2.0 with Runtime Library Exception
+//
+// See http://swift.org/LICENSE.txt for license information
+// See http://swift.org/CONTRIBUTORS.txt for the list of Swift project authors
+//
+//===----------------------------------------------------------------------===//
+
+(
+
+    {
+        _Domain = watchos;
+        Type = ProductType;
+        Identifier = com.apple.product-type.application;
+        BasedOn = embedded:com.apple.product-type.application;
+        IsEmbeddable = YES;
+        BuildPhaseInjectionsWhenEmbedding = (
+            {
+                BuildPhase = "CopyFiles";
+                Name = "Embed Watch Content";
+                RunOnlyForDeploymentPostprocessing = NO;
+                DstSubFolderSpec = 16;
+                DstPath = "$(CONTENTS_FOLDER_PATH)/Watch";
+            }
+        );
+    },
+
+    // --- Architectures
+    {
+        _Domain = watchos;
+        Type = Architecture;
+        Identifier = Standard;
+        Name = "Standard Architectures";
+        Description = "Standard architectures";
+        ListInEnum = YES;
+        SortNumber = 0;
+        RealArchitectures = ( arm64, armv7k, arm64_32 );
+        ArchitectureSetting = "ARCHS_STANDARD";
+    },
+
+    {
+        _Domain = watchos;
+        Type = Architecture;
+        Identifier = armv7k;
+        Name = "armv7k";
+        DeploymentTargetRange = ( "0", "9" );
+        SupportsMergeableLibraries = NO;
+    },
+    {
+        _Domain = watchos;
+        Type = Architecture;
+        Identifier = arm64_32;
+        CompatibilityArchitectures = ( arm64 );
+    },
+    {
+        _Domain = watchos;
+        Type = Architecture;
+        Identifier = arm64;
+    },
+    {
+        _Domain = watchos;
+        Type = Architecture;
+        Identifier = arm64e;
+        CompatibilityArchitectures = ( arm64 );   // treat this one just like arm64 for toolchain compatibility
+    },
+
+    // DEPRECATED
+
+    {
+        _Domain = watchos;
+        Type = Architecture;
+        Identifier = Platform32_bit;
+        RealArchitectures = ( armv7k, arm64_32 );
+        ArchitectureSetting = "ARCHS_STANDARD_32_BIT";
+    },
+
+)

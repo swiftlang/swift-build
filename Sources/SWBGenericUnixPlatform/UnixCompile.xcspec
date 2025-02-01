@@ -1,0 +1,131 @@
+//===----------------------------------------------------------------------===//
+//
+// This source file is part of the Swift open source project
+//
+// Copyright (c) 2025 Apple Inc. and the Swift project authors
+// Licensed under Apache License v2.0 with Runtime Library Exception
+//
+// See http://swift.org/LICENSE.txt for license information
+// See http://swift.org/CONTRIBUTORS.txt for the list of Swift project authors
+//
+//===----------------------------------------------------------------------===//
+
+(
+    {
+        Domain = generic-unix;
+        Identifier = "com.apple.compilers.llvm.clang.1_0";
+        Type = Compiler;
+        BasedOn = "default:com.apple.compilers.llvm.clang.1_0";
+        Name = "LLVM";
+        Description = "LLVM compiler";
+        IsAbstract = Yes;
+        ShowInCompilerSelectionPopup = No;
+        OptionConditionFlavors = (
+            arch,
+            sdk,
+        );
+        // Don't know why these are necessary, but without it, errors aren't reported
+        CommandOutputParser = (
+            ("^([^:]*):([0-9]*):[0-9]*: [^:]*error: (.*)$", "emit-error"),
+            ("^([^:]*):([0-9]*):[0-9]*: [^:]*warning: (.*)$", "emit-warning"),
+            ("^()().* error: (.*)$", "emit-error"),
+            ("^()().* warning: (.*)$", "emit-warning"),
+        );
+        SupportsMacOSXDeploymentTarget = No;
+        SupportsMacOSXMinVersionFlag = No;
+        SupportsIsysroot = No;
+        Options = (
+            {
+                Name = SDKROOT;
+                Type = Path;
+                CommandLineFlag = "--sysroot";
+            },
+            {
+                Name = "GCC_DYNAMIC_NO_PIC";
+                Type = Boolean;
+                DefaultValue = NO;
+                CommandLineArgs = {
+                    YES = ();
+                    NO = ("-fPIC");
+                };
+                Category = CodeGeneration;
+            },
+            {
+                Name = "LD_NO_PIE";
+                Type = Boolean;
+                DefaultValue = NO;
+                CommandLineArgs = {
+                    YES = ();
+                    NO = ("-fPIE");
+                };
+                Condition = "$(MACH_O_TYPE) == mh_execute";
+                Category = Linking;
+            },
+            {
+                Name = "ENABLE_BLOCKS";
+                Type = Boolean;
+                DefaultValue = YES;
+                CommandLineArgs = {
+                    YES = ("-fblocks");
+                    NO = ();
+                };
+                Category = CodeGeneration;
+            },
+        );
+    },
+    {
+        Domain = generic-unix;
+        Identifier = "com.apple.compilers.llvm.clang.1_0.compiler";
+        Type = Compiler;
+        BasedOn = "com.apple.compilers.llvm.clang.1_0";
+        Name = "Apple Clang";
+        Description = "Apple Clang compiler";
+        IsAbstract = YES;
+        ShowInCompilerSelectionPopup = NO;
+    },
+    {
+        Domain = generic-unix;
+        Identifier = "com.apple.compilers.llvm.clang.1_0.astbuilder";
+        Type = Compiler;
+        BasedOn = "default:com.apple.compilers.llvm.clang.1_0.astbuilder";
+        Options = (
+            {
+                Name = SDKROOT;
+                Type = Path;
+                CommandLineFlag = "--sysroot";
+            },
+        );
+        IsAbstract = YES;
+        ShowInCompilerSelectionPopup = NO;
+    },
+    {
+        Domain = generic-unix;
+        Identifier = "com.apple.compilers.llvm.clang.1_0.analyzer";
+        Type = Compiler;
+        BasedOn = "default:com.apple.compilers.llvm.clang.1_0.analyzer";
+        Options = (
+            {
+                Name = SDKROOT;
+                Type = Path;
+                CommandLineFlag = "--sysroot";
+            },
+        );
+    },
+    {
+        Domain = generic-unix;
+        Identifier = "com.apple.xcode.tools.swift.compiler";
+        Type = Compiler;
+        BasedOn = "default:com.apple.xcode.tools.swift.compiler";
+        Options = (
+            {
+                Name = "__SWIFT_OPTIMIZATION_LEVEL_LINKER_ARGS";
+                Type = String;
+                DefaultValue = "$(SWIFT_OPTIMIZATION_LEVEL)";
+                AdditionalLinkerArgs = {
+                    "-Onone" = ("-lswiftCore", "-lswiftSwiftOnoneSupport");
+                    "<<otherwise>>" = "-lswiftCore";
+                };
+            },
+        );
+    },
+)

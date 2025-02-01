@@ -1,0 +1,58 @@
+//===----------------------------------------------------------------------===//
+//
+// This source file is part of the Swift open source project
+//
+// Copyright (c) 2025 Apple Inc. and the Swift project authors
+// Licensed under Apache License v2.0 with Runtime Library Exception
+//
+// See http://swift.org/LICENSE.txt for license information
+// See http://swift.org/CONTRIBUTORS.txt for the list of Swift project authors
+//
+//===----------------------------------------------------------------------===//
+
+(
+    {   Identifier = com.apple.compilers.dtrace;
+        Type = Compiler;
+        Name = "DTrace";
+        Description = "Invoke the 'dtrace' command line utility to compile a DTrace script file.";
+        CommandLine = "/usr/sbin/dtrace [options] -s $(InputFileRelativePath) -o $(DerivedFilesDir)/$(InputFileBase).h";
+        RuleName = "CompileDTraceScript $(InputFileRelativePath)";
+        ExecDescription = "Process DTrace script $(InputFileName)";
+        ProgressDescription = "Processing $(CommandProgressByType) DTrace scripts";
+        InputFileTypes = (
+            sourcecode.dtrace
+        );
+        SynthesizeBuildRule = Yes;
+        Outputs = (
+            "$(DerivedFilesDir)/$(InputFileBase).h"
+        );
+        OutputsAreSourceFiles = Yes;
+        CommandOutputParser = (
+            ("^dtrace: failed to compile script ([^:]+): line ([0-9]+): (.*)$",  emit-error),
+            ("^dtrace: ()()(.*)$",  emit-error),
+        );
+        IsArchitectureNeutral = YES;
+        Options = (
+            {   Name = DTRACE_OUTPUT_FILE_TYPE;
+                Type = Enumeration;
+                Values = (
+                    {   Value = "Header";
+                        CommandLineFlag = "-h";
+                    }
+                );
+                DefaultValue = "Header";
+            },
+            {   Name = DTRACE_OTHER_FLAGS;
+                Type = StringList;
+                Category = BuildOptions;
+                DefaultValue = "";
+                CommandLinePrefixFlag = "";
+            },
+            {   Name = build_file_compiler_flags;
+                Type = StringList;
+                DefaultValue = "";
+                CommandLinePrefixFlag = "";
+            },
+        );
+    }
+)

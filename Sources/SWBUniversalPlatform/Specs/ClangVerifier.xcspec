@@ -1,0 +1,154 @@
+//===----------------------------------------------------------------------===//
+//
+// This source file is part of the Swift open source project
+//
+// Copyright (c) 2025 Apple Inc. and the Swift project authors
+// Licensed under Apache License v2.0 with Runtime Library Exception
+//
+// See http://swift.org/LICENSE.txt for license information
+// See http://swift.org/CONTRIBUTORS.txt for the list of Swift project authors
+//
+//===----------------------------------------------------------------------===//
+
+(
+    {
+        Identifier = "com.apple.build-tools.modules-verifier";
+        Type = Tool;
+        Name = "Apple Clang Module Verifier";
+        Description = "Apple Clang Module Verifier Tool"; // Not used for anything - just informative
+        RuleName = "VerifyModule $(BUILT_PRODUCTS_DIR)/$(FULL_PRODUCT_NAME)";
+        ExecPath = "$(MODULES_VERIFIER_EXEC)";
+        CommandLine = "[exec-path] $(BUILT_PRODUCTS_DIR)/$(FULL_PRODUCT_NAME) [special-args] [options]";
+        Outputs = (
+        );
+        IsArchitectureNeutral = YES;
+        ExecDescription = "Verify Modularization of $(FULL_PRODUCT_NAME)";
+
+        Properties = (
+            {
+                Name = "ENABLE_MODULE_VERIFIER";
+                Type = Boolean;
+                DefaultValue = "$(CLANG_MODULES_ENABLE_VERIFIER_TOOL)";
+                Category = "MODULE_VERIFIER_OPTIONS";
+            },
+            {
+                Name = "MODULES_VERIFIER_EXEC";
+                Type = Path;
+                DefaultValue = "modules-verifier";
+            },
+
+            {
+                Name = "SDKROOT";
+                Type = Path;
+                CommandLineFlag = "--sdk";
+            },
+            {
+                Name = "TARGET_TEMP_DIR";
+                Type = Path;
+                CommandLineArgs = (
+                    "--intermediates-directory",
+                    "$(value)/VerifyModule",
+                );
+            },
+
+            // Target triples
+            {
+                Name = "MODULE_VERIFIER_TARGET_TRIPLE_ARCHS";
+                Type = StringList;
+                DefaultValue = "$(ARCHS)";
+                CommandLineArgs = (
+                    "--target",
+                    "$(value)-$(LLVM_TARGET_TRIPLE_VENDOR)-$(LLVM_TARGET_TRIPLE_OS_VERSION)$(LLVM_TARGET_TRIPLE_SUFFIX)",
+                );
+            },
+            {
+                Name = "MODULE_VERIFIER_TARGET_TRIPLE_VARIANTS";
+                Type = StringList;
+                CommandLineFlag = "--target-variant";
+            },
+
+            {
+                Name = "MODULE_VERIFIER_SUPPORTED_LANGUAGES";
+                Type = StringList;
+                /*Values = (
+                    "c",
+                    "c++",
+                    "objective-c",
+                    "objective-c++",
+                );*/
+                DefaultValue = "objective-c";
+                CommandLineFlag = "--language";
+                Category = "MODULE_VERIFIER_OPTIONS";
+            },
+            {
+                Name = "MODULE_VERIFIER_SUPPORTED_LANGUAGE_STANDARDS";
+                Type = StringList;
+                /*Values = (
+                    "ansi",
+                    "c89",
+                    "gnu89",
+                    "c99",
+                    "gnu99",
+                    "c11",
+                    "gnu11",
+                    "c17",
+                    "gnu17",
+                    "c23",
+                    "gnu23",
+                    "c++98",
+                    "gnu++98",
+                    "c++11",
+                    "gnu++11",
+                    "c++14",
+                    "gnu++14",
+                    "c++17",
+                    "gnu++17",
+                    "c++20",
+                    "gnu++20",
+                    "c++23",
+                    "gnu++23",
+                    "c++26",
+                    "gnu++26",
+                );*/
+                CommandLineFlag = "--standard";
+                Category = "MODULE_VERIFIER_OPTIONS";
+            },
+            {
+                Name = "MODULE_VERIFIER_VERBOSE";
+                Type = Boolean;
+                DefaultValue = "$(CLANG_MODULES_VERIFIER_VERBOSE_OUTPUT)";
+                CommandLineFlag = "--verbose";
+            },
+            {
+                Name = "MODULE_VERIFIER_LSV";
+                Type = Boolean;
+                DefaultValue = NO;
+                CommandLineFlag = "--enable-local-submodule-visibility";
+            },
+            {
+                Name = "OTHER_MODULE_VERIFIER_FLAGS";
+                Type = StringList;
+                DefaultValue = "$(OTHER_CLANG_MODULES_VERIFIER_FLAGS)";
+                CommandLineArgs = "$(value)";
+                Category = "MODULE_VERIFIER_OPTIONS";
+            },
+
+            // Deprecated names
+            {
+                Name = "CLANG_MODULES_ENABLE_VERIFIER_TOOL";
+                Type = Boolean;
+                DefaultValue = NO;
+            },
+            {
+                Name = "CLANG_MODULES_VERIFIER_VERBOSE_OUTPUT";
+                Type = Boolean;
+                DefaultValue = NO;
+            },
+            {
+                Name = "OTHER_CLANG_MODULES_VERIFIER_FLAGS";
+                Type = StringList;
+                DefaultValue = "";
+            },
+        );
+    },
+)

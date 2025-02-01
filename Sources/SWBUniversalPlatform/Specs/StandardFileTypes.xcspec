@@ -1,0 +1,1696 @@
+//===----------------------------------------------------------------------===//
+//
+// This source file is part of the Swift open source project
+//
+// Copyright (c) 2025 Apple Inc. and the Swift project authors
+// Licensed under Apache License v2.0 with Runtime Library Exception
+//
+// See http://swift.org/LICENSE.txt for license information
+// See http://swift.org/CONTRIBUTORS.txt for the list of Swift project authors
+//
+//===----------------------------------------------------------------------===//
+
+(
+    // Source code file types
+    {
+        Type = FileType;
+        Identifier = sourcecode.java;
+        BasedOn = sourcecode;
+        Name = "Java source files";
+        Extensions = (java);
+        ComputerLanguage = java;
+        Language = "xcode.lang.java";
+        AppliesToBuildRules = yes;
+        CanSetIncludeInIndex = YES;
+        UTI = "com.sun.java-source";
+    },
+    {
+        Type = FileType;
+        Identifier = sourcecode.c;
+        BasedOn = sourcecode;
+        Name = "C source files";
+        ComputerLanguage = c;
+        Language = "xcode.lang.c";
+        AppliesToBuildRules = yes;
+        GccDialectName = "c";
+        CanSetIncludeInIndex = YES;
+        IsScannedForIncludes = YES;
+        UTI = "public.c-source";
+    },
+    {
+        Type = FileType;
+        Identifier = sourcecode.c.h;
+        BasedOn = sourcecode.c;
+        Extensions = (h, pch);
+        ComputerLanguage = c.objcpp;
+        Language = "xcode.lang.objcpp";
+        AppliesToBuildRules = no;
+        IncludeInIndex = NO;
+        CanSetIncludeInIndex = NO;
+        UTI = "public.c-header";
+    },
+    {
+        Type = FileType;
+        Identifier = sourcecode.c.c;
+        BasedOn = sourcecode.c;
+        Extensions = (c);
+        AppliesToBuildRules = no;
+        UTI = "public.c-source";
+    },
+    {
+        Type = FileType;
+        Identifier = sourcecode.c.c.preprocessed;
+        BasedOn = sourcecode.c.c;
+        Name = "C preprocessed source files";
+        IsPreprocessed = yes;
+        Extensions = (i);
+        AppliesToBuildRules = no;
+        UTI = "public.c-source.preprocessed";
+    },
+    {
+        Type = FileType;
+        Identifier = sourcecode.c.objc;
+        BasedOn = sourcecode.c;
+        Name = "Objective-C source files";
+        Extensions = (m);
+        ComputerLanguage = c.objc;
+        Language = "xcode.lang.objc";
+        AppliesToBuildRules = no;
+        GccDialectName = "objective-c";
+        UTI = "public.objective-c-source";
+    },
+    {
+        Type = FileType;
+        Identifier = sourcecode.c.objc.preprocessed;
+        BasedOn = sourcecode.c.objc;
+        Name = "Objective-C preprocessed source files";
+        IsPreprocessed = yes;
+        Extensions = (mi);
+        AppliesToBuildRules = no;
+        UTI = "public.objective-c-source.preprocessed";
+    },
+    {
+        Type = FileType;
+        Identifier = sourcecode.cpp;
+        BasedOn = sourcecode.c;
+        Name = "C++ source files";
+        ComputerLanguage = c.cpp;
+        Language = "xcode.lang.cpp";
+        AppliesToBuildRules = yes;
+        GccDialectName = "c++";
+        UTI = "public.c-plus-plus-source";
+    },
+    {
+        Type = FileType;
+        Identifier = sourcecode.cpp.h;
+        BasedOn = sourcecode.cpp;
+        Extensions = (hp, hpp, hxx, "h++", H, "pch++", hh, ipp);
+        AppliesToBuildRules = no;
+        IncludeInIndex = NO;
+        CanSetIncludeInIndex = NO;
+        UTI = "public.c-plus-plus-header";
+    },
+    {
+        Type = FileType;
+        Identifier = sourcecode.cpp.cpp;
+        BasedOn = sourcecode.cpp;
+        Extensions = (cp, cpp, cc, cxx, "c++", C, tcc);
+        AppliesToBuildRules = no;
+        UTI = "public.c-plus-plus-source";
+    },
+    {
+        Type = FileType;
+        Identifier = sourcecode.cpp.cpp.preprocessed;
+        BasedOn = sourcecode.cpp.cpp;
+        Name = "C++ preprocessed source files";
+        IsPreprocessed = yes;
+        Extensions = (ii);
+        UTI = "public.c-plus-plus-source.preprocessed";
+    },
+    {
+        Type = FileType;
+        Identifier = sourcecode.cpp.objcpp;
+        BasedOn = sourcecode.cpp;
+        Name = "Objective-C++ source files";
+        Extensions = (mm, M);
+        ComputerLanguage = c.objcpp;
+        Language = "xcode.lang.objcpp";
+        AppliesToBuildRules = no;
+        GccDialectName = "objective-c++";
+        UTI = "public.objective-c-plus-plus-source";
+    },
+    {
+        Type = FileType;
+        Identifier = sourcecode.cpp.objcpp.preprocessed;
+        BasedOn = sourcecode.cpp.objcpp;
+        Name = "Objective-C++ preprocessed source files";
+        IsPreprocessed = yes;
+        Extensions = (mii);
+        UTI = "public.objective-c-plus-plus-source.preprocessed";
+    },
+    {
+        Type = FileType;
+        Identifier = sourcecode.opencl;
+        BasedOn = sourcecode;
+        Name = "OpenCL source files";
+        Extensions = (cl);
+        Language = "xcode.lang.opencl";
+        AppliesToBuildRules = yes;
+        IsScannedForIncludes = yes;
+        UTI = "public.opencl-source";
+    },
+    {
+        Type = FileType;
+        Identifier = sourcecode.glsl;
+        BasedOn = sourcecode;
+        Name = "GLSL source files";
+        Extensions = (fs, fsh, frag, fragment, vs, vsh, vert, vertex, gs, geom, gsh, geometry, ctrl, eval);
+        Language = "xcode.lang.glsl";
+        AppliesToBuildRules = yes;
+        UTI = "org.khronos.glsl-source";
+    },
+    {
+        Type = FileType;
+        Identifier = sourcecode.lex;
+        BasedOn = sourcecode;
+        Name = "Lex source files";
+        Extensions = (l, lm, lmm, lpp, lp, lxx, ll);
+        ComputerLanguage = c.objcpp;
+        Language = "xcode.lang.objcpp";
+        AppliesToBuildRules = yes;
+        UTI = "public.lex-source";
+    },
+    {
+        Type = FileType;
+        Identifier = sourcecode.yacc;
+        BasedOn = sourcecode;
+        Name = "Yacc source files";
+        Extensions = (y, ym, ymm, ypp, yp, yxx, yy);
+        ComputerLanguage = c.objcpp;
+        Language = "xcode.lang.objcpp";
+        AppliesToBuildRules = yes;
+        UTI = "public.yacc-source";
+    },
+    {
+        Type = FileType;
+        Identifier = sourcecode.make;
+        BasedOn = sourcecode;
+        Extensions = (mak, make, gmk);
+        FilenamePatterns = ( "[mM]akefile" );
+        RequiresHardTabs = yes;
+        ComputerLanguage = make;
+        Language = "xcode.lang.make";
+        UTI = "public.make-source";
+    },
+    {
+        Type = FileType;
+        Identifier = sourcecode.pascal;
+        BasedOn = sourcecode;
+        Name = "Pascal source files";
+        Extensions = (pas, p, pp, inc);
+        ComputerLanguage = pascal;
+        Language = "xcode.lang.pascal";
+        AppliesToBuildRules = yes;
+        UTI = "public.pascal-source";
+    },
+    {
+        Type = FileType;
+        Identifier = sourcecode.ada;
+        BasedOn = sourcecode;
+        Extensions = (ada, adb, ads);
+        ComputerLanguage = ada;
+        Language = "xcode.lang.ada";
+        UTI = "public.ada-source";
+    },
+    {
+        Type = FileType;
+        Identifier = sourcecode.nqc;
+        BasedOn = sourcecode;
+        Extensions = (nqc);
+        ComputerLanguage = nqc;
+        Language = "xcode.lang.nqc";
+        UTI = "com.lego.nqc-source";
+    },
+    {
+        Type = FileType;
+        Identifier = sourcecode.asm;
+        BasedOn = sourcecode;
+        Extensions = (s);
+        Name = "Assembly files";
+        ComputerLanguage = asm.ppc;
+        Language = "xcode.lang.asm.ppc";
+        GccDialectName = assembler-with-cpp;
+        AppliesToBuildRules = yes;
+        UTI = "public.assembly-source";
+    },
+    {
+        Type = FileType;
+        Identifier = sourcecode.asm.asm;
+        BasedOn = sourcecode.asm;
+        Extensions = (asm);
+        Name = "Assembly files";
+        ComputerLanguage = asm.ppc;
+        Language = "xcode.lang.asm.ppc";
+        GccDialectName = assembler-with-cpp;
+        AppliesToBuildRules = yes;
+        UTI = "public.ppc-assembly-source";
+    },
+    {
+        Type = FileType;
+        Identifier = sourcecode.asm.llvm;
+        BasedOn = sourcecode;
+        Extensions = (ll, llx);
+        Name = "LLVM assembly files";
+        Language = "xcode.lang.llvm";
+        AppliesToBuildRules = yes;
+        UTI = "public.llvm-assembly-source";
+    },
+    {
+        Type = FileType;
+        Identifier = sourcecode.nasm;
+        BasedOn = sourcecode;
+        Extensions = (nasm);
+        Name = "Nasm assembly files";
+        ComputerLanguage = asm.i386;
+        Language = "xcode.lang.asm.i386";
+        AppliesToBuildRules = yes;
+        UTI = "public.nasm-assembly-source";
+    },
+    {
+        Type = FileType;
+        Identifier = sourcecode.dylan;
+        BasedOn = sourcecode;
+        Name = "Dylan source files";
+        Extensions = (dylan, lid);
+        ComputerLanguage = dylan;
+        Language = "xcode.lang.dylan";
+        AppliesToBuildRules = yes;
+        UTI = "public.dylan-source";
+    },
+    {
+        Type = FileType;
+        Identifier = sourcecode.fortran;
+        BasedOn = sourcecode;
+        Name = "Fortran source files";
+        Extensions = (f, for);
+        ComputerLanguage = fortran;
+        Language = "xcode.lang.fortran";
+        GccDialectName = fortran;
+        AppliesToBuildRules = yes;
+        UTI = "public.fortran-source";
+    },
+    {
+        Type = FileType;
+        Identifier = sourcecode.fortran.f77;
+        BasedOn = sourcecode.fortran;
+        Extensions = (f77);
+        AppliesToBuildRules = no;
+        UTI = "public.fortran-77-source";
+    },
+    {
+        Type = FileType;
+        Identifier = sourcecode.fortran.f90;
+        BasedOn = sourcecode.fortran;
+        Extensions = (f90, f95);
+        ComputerLanguage = fortran.f90;
+        Language = "xcode.lang.fortran.f90";
+        AppliesToBuildRules = no;
+        UTI = "public.fortran-90-source";
+    },
+    {
+        Type = FileType;
+        Identifier = sourcecode.iig;
+        BasedOn = sourcecode.c;
+        Name = "Iig source files";
+        Extensions = (iig);
+        ComputerLanguage = c.objcpp;
+        Language = "xcode.lang.objcpp";
+        AppliesToBuildRules = yes;
+        UTI = "com.apple.iig-source";
+    },
+    {
+        Type = FileType;
+        Identifier = sourcecode.mig;
+        BasedOn = sourcecode;
+        Name = "MiG source files";
+        Extensions = (defs, mig);
+        AppliesToBuildRules = yes;
+        UTI = "public.mig-source";
+    },
+    {
+        Type = FileType;
+        Identifier = sourcecode.dtrace;
+        BasedOn = sourcecode;
+        Name = "DTrace source files";
+        Extensions = (d);
+        Language = "xcode.lang.dtrace";
+        AppliesToBuildRules = yes;
+         UTI = "public.dtrace-source";
+    },
+    {
+        Type = FileType;
+        Identifier = sourcecode.clips;
+        BasedOn = sourcecode;
+        Name = "CLIPS source files";
+        Extensions = (clp);
+        Language = "xcode.lang.clips";
+        AppliesToBuildRules = yes;
+        UTI = "com.apple.clips-source";
+    },
+    {
+        Type = FileType;
+        Identifier = sourcecode.exports;
+        BasedOn = sourcecode;
+        Extensions = (exp);
+        UTI = "com.apple.symbol-export";
+    },
+    {
+        Type = FileType;
+        Identifier = sourcecode.rez;
+        BasedOn = sourcecode;
+        Name = "Rez source files";
+        Extensions = (r, rez);
+        ComputerLanguage = rez;
+        Language = "xcode.lang.rez";
+        AppliesToBuildRules = YES;
+        IsScannedForIncludes = YES;
+        UTI = "com.apple.rez-source";
+    },
+    {
+        Type = FileType;
+        Identifier = sourcecode.javascript;
+        BasedOn = sourcecode;
+        Extensions = (js, jscript, javascript);
+        MIMETypes = ("text/javascript");
+        ComputerLanguage = javascript;
+        Language = "xcode.lang.javascript";
+        UTI = "com.netscape.javascript-source";
+    },
+    {
+        Type = FileType;
+        Identifier = text.json;
+        BasedOn = text;
+        Extensions = (json);
+        MIMETypes = ("application/json");
+        ComputerLanguage = javascript;
+        Language = "xcode.lang.javascript";
+        UTI = "public.json";
+    },
+    {
+        Type = FileType;
+        Identifier = sourcecode.typescript;
+        BasedOn = sourcecode;
+        Extensions = (ts, tsx);
+        ComputerLanguage = javascript;
+        Language = "xcode.lang.javascript";
+        UTI = "com.microsoft.typescript";
+    },
+    {
+        Type = FileType;
+        Identifier = text.yaml;
+        BasedOn = text;
+        Extensions = (yaml, yml);
+        MIMETypes = ("text/yaml");
+        ComputerLanguage = yaml;
+        Language = "xcode.lang.yaml";
+        UTI = "public.yaml";
+    },
+    {
+        Type = FileType;
+        Identifier = text.apinotes;
+        BasedOn = text.yaml;
+        Extensions = (apinotes);
+        ComputerLanguage = yaml;
+        Language = "xcode.lang.yaml";
+        UTI = "com.apple.xcode.apinotes";
+    },
+    {
+        Type = FileType;
+        Identifier = sourcecode.applescript;
+        BasedOn = sourcecode;
+        Extensions = (applescript);
+        ComputerLanguage = javascript;
+        Language = "xcode.lang.applescript";
+        UTI = "com.apple.applescript.text";
+    },
+
+    // Other text file types
+    {
+        Type = FileType;
+        Identifier = text.html;
+        BasedOn = text;
+        Extensions = (htm, html);
+        MIMETypes = ("text/html");
+        Class = PBXHTMLFileType;
+        ComputerLanguage = html;
+        Language = "xcode.lang.html";
+        UTI = "public.html";
+    },
+    // HTML Documentation sub-type
+    {
+        Type = FileType;
+        Identifier = text.html.documentation;
+        BasedOn = text.html;
+        IsDocumentation = YES;
+    },
+    // html-like files
+    {
+        Type = FileType;
+        Identifier = text.html.other;
+        BasedOn = text.html;
+        Extensions = (shtml, jsp, rhtml);
+    },
+    {
+        Type = FileType;
+        Identifier = net.daringfireball.markdown;
+        BasedOn = sourcecode;
+        Extensions = (md, mdown, markdown, text);
+        MIMETypes = ("text/markdown", "text/x-markdown", "text/x-web-markdown");
+        Language = "xcode.lang.markdown";
+        UTI = "net.daringfireball.markdown";
+    },
+    {
+        Type = FileType;
+        Identifier = text.rtf;
+        BasedOn = text;
+        Extensions = (rtf);
+        TypeCodes = ("RTF ");
+        MIMETypes = ("application/rtf");
+        UTI = "public.rtf";
+    },
+    {
+        Type = FileType;
+        Identifier = text.xml;
+        BasedOn = text;
+        MagicWord = (
+            "<?xml",
+            <FFFE3C003F0078006D006C00>, // little endian utf-16
+            <FEFF003C003F0078006D006C>, // big endian utf-16
+            <EFBBBF3C3F786D6C>      // utf-8 with BOM
+        );
+        MIMETypes = ("text/xml");
+        Extensions = (xml, dtd, xslt, xmap, xconf, xsp, xsl, xhtml);
+        ComputerLanguage = html;
+        Language = "xcode.lang.xml";
+        UTI = "public.xml";
+    },
+    {
+        Type = FileType;
+        Identifier = text.css;
+        BasedOn = text;
+        Extensions = (css);
+        MIMETypes = ("text/css");
+        Language = "xcode.lang.css";
+        UTI = "public.css";
+    },
+    {
+        Type = FileType;
+        Identifier = text.plist;
+        BasedOn = text;
+        MIMETypes = ("text/x-plist");
+        Extensions = (plist, dict);
+        ComputerLanguage = plist;
+        Class = PBXPlistFileType;
+        Language = "xcode.lang.plist";
+        UTI = "com.apple.property-list";
+    },
+    // an XML property list
+    {
+        Type = FileType;
+        Identifier = text.plist.xml;
+        BasedOn = text.plist;
+        ComputerLanguage = html;
+        Language = "xcode.lang.xml";
+        UTI = "com.apple.xml-property-list";
+    },
+    // Information property list
+    {
+        Type = FileType;
+        Identifier = text.plist.info;
+        BasedOn = text.plist.xml;
+        Name = "Information plist files";
+        FilenamePatterns = ( "Info*.plist", "*Info.plist" );
+        PlistStructureDefinition = "com.apple.xcode.plist.structure-definition.info-plist";
+        ChangesCauseDependencyGraphInvalidation = YES;
+        UTI = "com.apple.xml-property-list.info";
+    },
+    // App Intents Vocabulary property list
+    {
+        Type = FileType;
+        Identifier = text.plist.vocabulary;
+        BasedOn = text.plist.xml;
+        Name = "App Intents Vocabulary plist files";
+        FilenamePatterns = ( "AppIntents.vocabulary" );
+    },
+    // Localization .strings file subtype
+    // (It's kinda a plist, but we want to open them in the standard text editor, instead of the embedded property list editor, so make it BasedOn text instead of text.plist.)
+    {
+        Type = FileType;
+        Identifier = text.plist.strings;
+        BasedOn = text;
+        Name = "Localization string files";
+        Extensions = (strings);
+        Language = "xcode.lang.plist";
+        AppliesToBuildRules = Yes;
+        UTI = "com.apple.xcode.strings-text";
+    },
+    // Localization .stringsdict file subtype
+    // Also BasedOn text, since it is distinct from .strings files, especially in processing as a companion file to xibs or storyboards
+    {
+        Type = FileType;
+        Identifier = text.plist.stringsdict;
+        BasedOn = text;
+        Name = "Localization string dictionary files";
+        Extensions = (stringsdict);
+        Language = "xcode.lang.plist";
+        AppliesToBuildRules = Yes;
+        UTI = "com.apple.xcode.strings-text";
+    },
+    // LLVM module.map file subtype
+    {
+        Type = FileType;
+        Identifier = sourcecode.module-map;
+        BasedOn = sourcecode;
+        Name = "LLVM Module Map files";
+        Extensions = ("map", "modulemap");
+        Language = "xcode.lang.module-map";
+        UTI = "public.module-map";
+    },
+    // Xcode .xcspec file subtype
+    {
+        Type = FileType;
+        Identifier = text.plist.xcspec;
+        BasedOn = text.plist;
+        Name = "Xcode specification plist files";
+        Extensions = (xcspec);
+        AppliesToBuildRules = Yes;
+        PlistStructureDefinition = "com.apple.xcode.plist.structure-definition.xcode-specs.xcspec";
+        UTI = "com.apple.xcode.xcspec-property-list";
+    },
+    // App Privacy (.privacy) file subtype
+    {
+        Type = FileType;
+        Identifier = text.plist.app-privacy;
+        BasedOn = text.plist;
+        Name = "Xcode App Privacy configuration files";
+        Extensions = (privacy);
+        AppliesToBuildRules = Yes;
+        PlistStructureDefinition = "com.apple.xcode.plist.structure-definition.app-privacy.privacy";
+        UTI = "com.apple.xcode.app-privacy-property-list";
+    },
+    // Xcode project.pbxproject file subtype
+    {
+        Type = FileType;
+        Identifier = text.pbxproject;
+        BasedOn = text;
+        FilenamePatterns = ( "project.pbxproj" );
+        Extensions = (pbxproj);
+        UTI = "com.apple.xcode.projectdata";
+    },
+    // Xcode .pbfilespec file subtype
+    {
+        Type = FileType;
+        Identifier = text.plist.pbfilespec;
+        BasedOn = text.plist;
+        Extensions = (pbfilespec);
+        PlistStructureDefinition = "com.apple.xcode.plist.structure-definition.xcode-specs.pbfilespec";
+        UTI = "com.apple.xcode.pbfilespec-property-list";
+    },
+    // Xcode .pblangspec file subtype
+    {
+        Type = FileType;
+        Identifier = text.plist.pblangspec;
+        BasedOn = text.plist;
+        Extensions = (pblangspec);
+        PlistStructureDefinition = "com.apple.xcode.plist.structure-definition.xcode-specs.xcspec";
+        UTI = "com.apple.projectbuilder.pblangspec-property-list";
+    },
+    // Xcode .xclangspec file subtype
+    {
+        Type = FileType;
+        Identifier = text.plist.xclangspec;
+        Name = "Xcode Language Specification";
+        BasedOn = text.plist;
+        Extensions = (xclangspec);
+        ComputerLanguage = xclangspec;
+        Language = "xcode.lang.xclangspec";
+        PlistStructureDefinition = "com.apple.xcode.plist.structure-definition.xcode-specs.xclangspec";
+        UTI = "com.apple.xcode.xclangspec-property-list";
+    },
+    // Xcode .xcsynspec file subtype
+    {
+        Type = FileType;
+        Identifier = text.plist.xcsynspec;
+        Name = "Xcode Syntax Specification";
+        BasedOn = text.plist;
+        Extensions = (xcsynspec);
+        ComputerLanguage = xcsynspec;
+        Language = "xcode.lang.xcsynspec";
+        PlistStructureDefinition = "com.apple.xcode.plist.structure-definition.xcode-specs.xcsynspec";
+        UTI = "com.apple.xcode.xcsynspec-property-list";
+    },
+    // .xcbuildrules file subtype
+    {
+        Type = FileType;
+        Identifier = text.plist.xcbuildrules;
+        Name = "Build Rules Specification";
+        BasedOn = text.plist;
+        Extensions = (xcbuildrules);
+        ComputerLanguage = xcbuildrules;
+        Language = "xcode.lang.xcbuildrules";
+        PlistStructureDefinition = "com.apple.xcode.plist.structure-definition.xcode-specs.xcspec";
+        UTI = "com.apple.xcode.xcbuildrules-property-list";
+    },
+    // Xcode .xctxtmacro file subtype
+    {
+        Type = FileType;
+        Identifier = text.plist.xctxtmacro;
+        BasedOn = text.plist;
+        Extensions = (xctxtmacro);
+        ComputerLanguage = xctxtmacro;
+        Language = "xcode.lang.xctxtmacro";
+        PlistStructureDefinition = "com.apple.xcode.plist.structure-definition.xcode-specs.xctxtmacro";
+        UTI = "com.apple.xcode.xctxtmacro-property-list";
+    },
+    {
+        Type = FileType;
+        Identifier = text.plist.scriptSuite;
+        BasedOn = text.plist;
+        Extensions = (scriptSuite);
+        PlistStructureDefinition = "com.apple.xcode.plist.structure-definition.script-suite";
+        UTI = "com.apple.dt.document.script-suite-property-list";
+    },
+    {
+        Type = FileType;
+        Identifier = text.plist.scriptTerminology;
+        BasedOn = text.plist;
+        Extensions = (scriptTerminology);
+        PlistStructureDefinition = "com.apple.xcode.plist.structure-definition.script-terminology";
+        UTI = "com.apple.dt.document.script-terminology-property-list";
+    },
+    {
+        Type = FileType;
+        Identifier = text.plist.ibClassDescription;
+        BasedOn = text.plist;
+        Extensions = (classdescription, classdescriptions);
+        PlistStructureDefinition = "com.apple.xcode.plist.structure-definition.interface-builder.class-description";
+        UTI = "com.apple.dt.document.interface-builder.class-description-property-list";
+    },
+    {
+        Type = FileType;
+        Identifier = text.xml.ibArchivingDescription;
+        BasedOn = text.xml;
+        Extensions = (archivingdescription);
+        UTI = "com.apple.dt.document.interface-builder.archiving-description-xml";
+    },
+    {
+        Type = FileType;
+        Identifier = file.bplist;
+        BasedOn = file;
+        MagicWord = ( "bplist00" );
+        UTI = "com.apple.binary-property-list";
+    },
+    {
+        Type = FileType;
+        Identifier = text.script;
+        BasedOn = text;
+        MIMETypes = ("text/x-script");
+        Permissions = executable;
+        ComputerLanguage = shell;
+        Language = "xcode.lang.sh";
+        UTI = "public.shell-script";
+    },
+    {
+        Type = FileType;
+        Identifier = text.script.sh;
+        BasedOn = text.script;
+        Extensions = (sh);
+        MIMETypes = ("text/x-sh-script");
+        MagicWord = ("#!/bin/sh", "#! /bin/sh", "#!/bin/zsh", "#! /bin/zsh", "#!/bin/bash", "#! /bin/bash", "#!/usr/local/bin/bash", "#! /usr/local/bin/bash");
+        ComputerLanguage = shell.sh;
+        Language = "xcode.lang.sh";
+        IsExecutable = YES;
+        UTI = "public.bash-script";
+    },
+    {
+        Type = FileType;
+        Identifier = text.script.csh;
+        BasedOn = text.script;
+        Extensions = (csh);
+        MIMETypes = ("text/x-csh-script");
+        MagicWord = ("#!/bin/csh", "#! /bin/csh", "#!/bin/tcsh", "#! /bin/tcsh", "#!/usr/bin/tcsh", "#! /usr/bin/tcsh", "#!/usr/local/bin/tcsh", "#! /usr/local/bin/tcsh");
+        ComputerLanguage = shell.csh;
+        Language = "xcode.lang.csh";
+        IsExecutable = YES;
+        UTI = "public.csh-script";
+    },
+    {
+        Type = FileType;
+        Identifier = text.script.perl;
+        BasedOn = text.script;
+        Extensions = (pl, pm, perl);
+        MIMETypes = ("text/x-perl-script");
+        MagicWord = ("#!/bin/perl", "#! /bin/perl", "#!/usr/bin/perl", "#! /usr/bin/perl", "#!/usr/local/bin/perl", "#! /usr/local/bin/perl");
+        ComputerLanguage = shell.perl;
+        Language = "xcode.lang.perl";
+        IsExecutable = YES;
+        UTI = "public.perl-script";
+    },
+    {
+        Type = FileType;
+        Identifier = text.script.python;
+        BasedOn = text.script;
+        Extensions = (py);
+        MIMETypes = ("text/x-python-script");
+        MagicWord = ("#!/bin/python", "#! /bin/python", "#!/usr/bin/python", "#! /usr/bin/python", "#!/usr/local/bin/python", "#! /usr/local/bin/python");
+        ComputerLanguage = shell.python;
+        Language = "xcode.lang.python";
+        UTI = "public.python-script";
+    },
+    {
+        Type = FileType;
+        Identifier = text.script.ruby;
+        BasedOn = text.script;
+        Extensions = (rb,rbw);
+        MagicWord = ("#!/bin/ruby", "#! /bin/ruby", "#!/usr/bin/ruby", "#! /usr/bin/ruby", "#!/usr/local/bin/ruby", "#! /usr/local/bin/ruby");
+        ComputerLanguage = shell.ruby;
+        Language = "xcode.lang.ruby";
+        IsExecutable = YES;
+        UTI = "public.ruby-script";
+    },
+    {
+        Type = FileType;
+        Identifier = text.script.php;
+        BasedOn = text.script;
+        Extensions = (php,php3,php4,phtml);
+        MIMETypes = ("text/x-php-script");
+        ComputerLanguage = php;
+        Language = "xcode.lang.php";
+        UTI = "public.php-script";
+    },
+    {
+        Type = FileType;
+        Identifier = text.script.worksheet;
+        BasedOn = text.script;
+        Extensions = (worksheet);
+        UTI = "com.apple.worksheet-script";
+    },
+    {
+        Type = FileType;
+        Identifier = text.xcconfig;
+        Name = "Build Configuration Properties File";
+        BasedOn = text;
+        Extensions = (xcconfig);
+        ComputerLanguage = xcconfig;
+        Language = "xcode.lang.xcconfig";
+        IsBuildPropertiesFile = YES;
+        ChangesCauseDependencyGraphInvalidation = YES;
+        UTI = "com.apple.xcode.configsettings";
+    },
+
+    {
+        Type = FileType;
+        Identifier = text.xcfilelist;
+        Name = "Build Phase File List";
+        BasedOn = text;
+        Extensions = (xcfilelist);
+        ComputerLanguage = xcfilelist;
+        Language = "xcode.lang.xcfilelist";
+        ChangesCauseDependencyGraphInvalidation = YES;
+        UTI = "com.apple.xcode.xcfilelist";
+    },
+
+
+    // Man page
+    {
+        Type = FileType;
+        Identifier = text.man;
+        BasedOn = text;
+        Extensions = (1);
+        ComputerLanguage = man;
+        Language = "xcode.lang.man";
+        UTI = "com.apple.xcode.manualpage";
+    },
+
+    // Compiled file types ("binaries", e.g. Mach-O, CFM, or Java bytecode .class files)
+    {
+        Type = FileType;
+        Identifier = compiled.mach-o;
+        Class = PBXMachOFileType;
+        BasedOn = compiled;
+        Name = "Mach-O files";
+        ContainsNativeCode = YES;
+        AppliesToBuildRules = yes;
+        UTI = "public.object-code";
+    },
+    {
+        Type = FileType;
+        Identifier = compiled.mach-o.objfile;
+        Class = PBXMachOFileType;
+        BasedOn = compiled.mach-o;
+        Name = "Mach-O object files";
+        Extensions = (o);
+        AppliesToBuildRules = yes;
+        UTI = "com.apple.mach-o-object";
+    },
+    {
+        Type = FileType;
+        Identifier = compiled.mach-o.executable;
+        Class = PBXMachOFileType;
+        BasedOn = compiled.mach-o;
+        IsExecutable = YES;
+        CodeSignOnCopy = YES;
+        AppliesToBuildRules = no;
+        UTI = "com.apple.mach-o-executable";
+    },
+    {
+        Type = FileType;
+        Identifier = compiled.mach-o.fvmlib;
+        Class = PBXMachOFileType;
+        BasedOn = compiled.mach-o;
+        AppliesToBuildRules = no;
+        UTI = "com.apple.mach-o-fvmlib";
+    },
+    {
+        Type = FileType;
+        Identifier = compiled.mach-o.corefile;
+        Class = PBXMachOFileType;
+        BasedOn = compiled.mach-o;
+        AppliesToBuildRules = no;
+        UTI = "com.apple.mach-o-core";
+    },
+    {
+        Type = FileType;
+        Identifier = compiled.mach-o.preload;
+        Class = PBXMachOFileType;
+        BasedOn = compiled.mach-o;
+        AppliesToBuildRules = no;
+        UTI = "com.apple.mach-o-preload";
+    },
+    {
+        Type = FileType;
+        Identifier = compiled.mach-o.dylib;
+        Class = PBXMachOFileType;
+        BasedOn = compiled.mach-o;
+        Extensions = (dylib);
+        IsLibrary = YES;
+        IsDynamicLibrary = YES;
+        CodeSignOnCopy = YES;
+        AppliesToBuildRules = no;
+        UTI = "com.apple.mach-o-dylib";
+        IsEmbeddable = YES;
+        BuildPhaseInjectionsWhenEmbedding = (
+            {
+                BuildPhase = "CopyFiles";
+                Name = "Embed Libraries";
+                RunOnlyForDeploymentPostprocessing = NO;
+                DstSubFolderSpec = 10;
+            }
+        );
+    },
+    {
+        Type = FileType;
+        Identifier = compiled.mach-o.dylinker;
+        Class = PBXMachOFileType;
+        BasedOn = compiled.mach-o;
+        AppliesToBuildRules = no;
+    },
+    {
+        Type = FileType;
+        Identifier = compiled.mach-o.bundle;
+        Class = PBXMachOFileType;
+        BasedOn = compiled.mach-o;
+        CodeSignOnCopy = YES;
+        AppliesToBuildRules = no;
+        UTI = "com.apple.mach-o-bundle";
+    },
+    {
+        Type = FileType;
+        Identifier = sourcecode.text-based-dylib-definition;
+        BasedOn = sourcecode;
+        Extensions = (tbd);
+        IsLibrary = YES;
+        IsDynamicLibrary = YES;
+        CodeSignOnCopy = YES;
+        AppliesToBuildRules = no;
+        UTI = "com.apple.text-based-dylib";
+    },
+    {
+        Type = FileType;
+        Identifier = compiled.cfm;
+        BasedOn = compiled;
+        UTI = "com.apple.cfm";
+    },
+    // (need to fill in CFM subtypes here...)
+    {
+        Type = FileType;
+        Identifier = compiled.javaclass;
+        BasedOn = compiled;
+        Extensions = (class);
+        IncludeInIndex = YES;
+        CanSetIncludeInIndex = YES;
+        ComputerLanguage = java;
+        Language = "xcode.lang.java";
+        UTI = "com.sun.java-class";
+    },
+    {
+        Type = FileType;
+        Identifier = compiled.rcx;
+        BasedOn = compiled;
+        Extensions = (rcx);
+        UTI = "com.lego.rcx";
+    },
+
+    // Wrapper types
+    {
+        Type = FileType;
+        Identifier = wrapper.dsym;
+        BasedOn = wrapper;
+        Extensions = (dsym, dSYM);
+        IsTransparent = NO;
+        Name = "Archived Debug Symbol Files";
+        UTI = "com.apple.xcode.dsym";
+    },
+    {
+        Type = FileType;
+        Identifier = wrapper.rtfd;
+        BasedOn = wrapper;
+        Extensions = (rtfd);
+        IsTransparent = NO;
+        UTI = "com.apple.rtfd";
+    },
+    {
+        Type = FileType;
+        Identifier = wrapper.htmld;
+        BasedOn = wrapper;
+        Extensions = (htmld);
+        IsTransparent = NO;
+        UTI = "com.apple.htmld";
+    },
+    {
+        Type = FileType;
+        Identifier = wrapper.nib;
+        BasedOn = wrapper;
+        Name = "Nib files";
+        Extensions = (nib, "nib~");
+        IsTransparent = NO;
+        AppliesToBuildRules = yes;
+        IncludeInIndex = YES;
+        CanSetIncludeInIndex = YES;
+        UTI = "com.apple.interfacebuilder.document";
+    },
+    {
+        Type = FileType;
+        Identifier = wrapper.workspace;
+        BasedOn = wrapper;
+        Extensions = (xcworkspace);
+        IsTransparent = NO;
+        UTI = "com.apple.dt.document.workspace";
+    },
+    {
+        Type = FileType;
+        Identifier = wrapper.pb-project;
+        BasedOn = wrapper;
+        Extensions = (xcode, xcodeproj);
+        IsProjectWrapper = YES;
+        UTI = "com.apple.xcode.project";
+    },
+    {
+        Type = FileType;
+        Identifier = wrapper.pb-target;
+        BasedOn = wrapper.pb-project;
+        Extensions = (xctarget);
+        IsTargetWrapper = YES;
+        UTI = "com.apple.xcode.target";
+    },
+    {
+        Type = FileType;
+        Identifier = wrapper.installer-pkg;
+        BasedOn = wrapper;
+        Extensions = (pkg);
+        IsTransparent = NO;
+        UTI = "com.apple.installer-package";
+    },
+    {
+        Type = FileType;
+        Identifier = wrapper.installer-mpkg;
+        BasedOn = wrapper;
+        Extensions = (mpkg);
+        IsTransparent = NO;
+        UTI = "com.apple.installer-meta-package";
+    },
+    {
+        Type = FileType;
+        Identifier = wrapper.cfbundle;
+        Class = PBXCFBundleWrapperFileType;
+        BasedOn = wrapper;
+        ContainsNativeCode = YES;
+        IsBundle = YES;
+        CodeSignOnCopy = YES;
+        RemoveHeadersOnCopy = YES;
+        ExtraPropertyNames = (
+            // Specifies the names of extra properties for instances of this file type.  The array in this specification just lists the property names -- the concrete PBXFileType subclass is responsible for actually filling in zero or more of them.
+            FileName,         // Name of the wrapper instance, sans the suffix (if any)
+            FileSuffix,       // Suffix of the wrapper instance
+            ExecutableName,   // Name of the bundle's main executable (from CFBundleExecutable key in Info.plist)
+            Architectures,    // Architectures of main executable, using the architecture specification identifiers
+        );
+        ComponentParts = {
+            // Defines the potential pats that comprise the file type.  Each entry is a mapping between an internally used tag and an array of the format ({'directory'|'file'|'symlink'}, subpath, permitted-types).  The first path component of the subpath can be enclosed in square brackets, in which case it should be the name of one of the other tags in this dictionary (see below for examples).  The subpath may also contain references to properties defined in the 'ExtraPropertyNames' key -- such references are enclosed in European quotes («»).  The presence of a 'ComponentParts' key in the specification dictionary indicates that the specification is for a compound file type.
+            WrapperDir          = (folder,  "");
+              ContentsDir         = (folder,  "[WrapperDir]/Contents");
+                InfoPList           = (file,    "[ContentsDir]/Info.plist");
+                VersionPList        = (file,    "[ContentsDir]/version.plist");
+                PkgInfo             = (file,    "[ContentsDir]/PkgInfo");
+                ExecutablesDir      = (folder,  "[ContentsDir]/MacOS");
+                  MainExecutable      = (file,    "[ExecutablesDir]/«ExecutableName»");
+                  DebugExecutable     = (file,    "[ExecutablesDir]/«ExecutableName»_debug");
+                  ProfileExecutable   = (file,    "[ExecutablesDir]/«ExecutableName»_profile");
+                ResourcesDir        = (folder,  "[ContentsDir]/Resources", (wrapper.lproj, file, folder));
+                  AppleScriptsDir     = (folder,  "[ResourcesDir]/AppleScripts");
+                  JavaDir             = (folder,  "[ResourcesDir]/Java");
+                PlugInsDir          = (folder,  "[ContentsDir]/Plug-ins", (wrapper));
+                FrameworksDir       = (folder,  "[ContentsDir]/Frameworks", (wrapper.framework));
+                SharedFrameworksDir = (folder,  "[ContentsDir]/SharedFrameworks", (wrapper.framework));
+                SharedSupportDir    = (folder,  "[ContentsDir]/SharedSupport");
+                HeadersDir          = (folder,  "[ContentsDir]/Headers", (sourcecode));
+                PrivateHeadersDir   = (folder,  "[ContentsDir]/PrivateHeaders", (sourcecode));
+        };
+        IsEmbeddable = YES;
+        BuildPhaseInjectionsWhenEmbedding = (
+            {
+                BuildPhase = "CopyFiles";
+                Name = "Embed PlugIns";
+                RunOnlyForDeploymentPostprocessing = NO;
+                DstSubFolderSpec = 13;  // Plug-ins
+            }
+        );
+        UTI = "com.apple.xcode.cfbundle";
+    },
+    {
+        Type = FileType;
+        Identifier = wrapper.application;
+        Class = PBXApplicationWrapperFileType;
+        BasedOn = wrapper.cfbundle;
+        Extensions = (app);
+        TypeCodes = (APPL);
+        IsApplication = YES;
+        IsTransparent = NO;
+        IsExecutable = YES;
+        IsExecutableWithGUI = YES;
+        CodeSignOnCopy = NO;
+        ValidateOnCopy = YES;
+        UTI = "com.apple.application-bundle";
+        IsEmbeddable = YES;
+        BuildPhaseInjectionsWhenEmbedding = (
+            {
+                BuildPhase = "Resources";
+            }
+        );
+    },
+    {
+        Type = FileType;
+        Identifier = wrapper.framework;
+        Class = PBXFrameworkWrapperFileType;
+        BasedOn = wrapper.cfbundle;
+        Extensions = (framework);
+        TypeCodes = (FMWK);
+        IsFrameworkWrapper = YES;
+        ExtraPropertyNames = (
+            FileName,         // Name of the wrapper instance, sans the suffix (if any)
+            FileSuffix,       // Suffix of the wrapper instance
+            ExecutableName,   // Name of the bundle's main executable (from CFBundleExecutable key in Info.plist)
+            Architectures,    // Architectures of main executable, using the architecture specification identifiers
+            Versions,         // Major versions of the framework
+            CurrentVersion,   // Which of those versions is the current one?
+        );
+        ComponentParts = {
+            WrapperDir           = (folder,  "");
+              VersionsDir          = (folder,  "[WrapperDir]/Versions");
+                MainExecutable       = (file,    "[VersionsDir]/«ExecutableName»");
+                DebugExecutable      = (file,    "[VersionsDir]/«ExecutableName»_debug");
+                ProfileExecutable    = (file,    "[VersionsDir]/«ExecutableName»_profile");
+                InfoPList            = (file,    "[VersionsDir]/Info.plist");
+                VersionPList         = (file,    "[VersionsDir]/version.plist");
+                ResourcesDir         = (folder,  "[VersionsDir]/Resources", (wrapper.lproj, file, folder));
+                  AppleScriptsDir      = (folder,  "[ResourcesDir]/AppleScripts");
+                  JavaDir              = (folder,  "[ResourcesDir]/Java");
+                PlugInsDir           = (folder,  "[VersionsDir]/Plug-ins", (wrapper));
+                FrameworksDir        = (folder,  "[VersionsDir]/Frameworks", (wrapper.framework));
+                SharedFrameworksDir  = (folder,  "[VersionsDir]/SharedFrameworks", (wrapper.framework));
+                SharedSupportDir     = (folder,  "[VersionsDir]/SharedSupport");
+                HeadersDir           = (folder,  "[VersionsDir]/Headers", (sourcecode));
+                PrivateHeadersDir    = (folder,  "[VersionsDir]/PrivateHeaders", (sourcecode));
+              MainExecutableLnk    = (symlink, "[WrapperDir]/«ExecutableName»", MainExecutable);
+              DebugExecutableLnk   = (symlink, "[WrapperDir]/«ExecutableName»_debug", DebugExecutable);
+              ProfileExecutableLnk = (symlink, "[WrapperDir]/«ExecutableName»_profile", ProfileExecutable);
+              InfoPListLnk         = (symlink, "[WrapperDir]/Info.plist", InfoPList);
+              VersionPListLnk      = (symlink, "[WrapperDir]/version.plist", VersionPList);
+              ResourcesLnk         = (symlink, "[WrapperDir]/Resources", ResourcesDir);
+              PlugInsLnk           = (symlink, "[WrapperDir]/Plug-ins", PlugInsDir);
+              FrameworksLnk        = (symlink, "[WrapperDir]/Frameworks", FrameworksDir);
+              SharedFrameworksLnk  = (symlink, "[WrapperDir]/SharedFrameworks", SharedFrameworksDir);
+              SharedSupportLnk     = (symlink, "[WrapperDir]/SharedSupport", SharedSupportDir);
+              HeadersLnk           = (symlink, "[WrapperDir]/Headers", HeadersDir);
+              PrivateHeadersLnk    = (symlink, "[WrapperDir]/PrivateHeaders", PrivateHeadersDir);
+        };
+        IsEmbeddable = YES;
+        BuildPhaseInjectionsWhenEmbedding = (
+            {
+                BuildPhase = "Frameworks";
+            },
+            {
+                BuildPhase = "CopyFiles";
+                Name = "Embed Frameworks";
+                RunOnlyForDeploymentPostprocessing = NO;
+                DstSubFolderSpec = 10;
+                NeedsRunpathSearchPathForFrameworks = YES;
+            }
+        );
+        UTI = "com.apple.framework";
+    },
+    {
+        Type = FileType;
+        Identifier = wrapper.framework.static;
+        Class = XCStaticFrameworkWrapperFileType;
+        BasedOn = wrapper.framework;
+        IsFrameworkWrapper = YES;
+        IsStaticFrameworkWrapper = YES;
+        UTI = "com.apple.framework";
+    },
+    {
+        Type = FileType;
+        Identifier = wrapper.xcframework;
+        BasedOn = wrapper;
+        IsTransparent = NO;
+        Extensions = (xcframework);
+        IsEmbeddable = YES;
+        CodeSignOnCopy = YES;
+        RemoveHeadersOnCopy = YES;
+        UTI = "com.apple.xcframework";
+        BuildPhaseInjectionsWhenEmbedding = (
+            {
+                BuildPhase = "Frameworks";
+            },
+            {
+                BuildPhase = "CopyFiles";
+                Name = "Embed Frameworks";
+                RunOnlyForDeploymentPostprocessing = NO;
+                DstSubFolderSpec = 10;
+                NeedsRunpathSearchPathForFrameworks = YES;
+            }
+        );
+    },
+    {
+        Type = FileType;
+        Identifier = wrapper.plug-in;
+        Class = PBXCFBundleWrapperFileType;
+        BasedOn = wrapper.cfbundle;
+        Extensions = (bundle);
+        TypeCodes = (BNDL);
+        UTI = "com.apple.bundle";
+    },
+    {
+        Type = FileType;
+        Identifier = wrapper.xpc-service;
+        Class = PBXXPCServiceWrapperFileType;
+        BasedOn = wrapper.cfbundle;
+        Extensions = (xpc);
+        IsExecutable = YES;
+        CodeSignOnCopy = NO;
+        IsEmbeddable = YES;
+        IsTransparent = NO;
+        UTI = "com.apple.xpc-service";
+        BuildPhaseInjectionsWhenEmbedding = (
+            {
+                BuildPhase = "CopyFiles";
+                Name = "Embed XPC Services";
+                RunOnlyForDeploymentPostprocessing = NO;
+                DstSubFolderSpec = 16;
+                DstPath = "$(CONTENTS_FOLDER_PATH)/XPCServices";
+            }
+        );
+    },
+    {
+        Type = FileType;
+        Identifier = wrapper.app-extension;
+        Class = PBXPlugInKitPluginWrapperFileType;
+        BasedOn = wrapper.xpc-service;
+        Extensions = (pluginkit, appex);
+        IsExecutable = YES;
+        CodeSignOnCopy = NO;
+        ValidateOnCopy = YES;
+        IsEmbeddable = YES;
+        IsTransparent = NO;
+        UTI = "com.apple.pluginkit";
+        BuildPhaseInjectionsWhenEmbedding = (
+            {
+                BuildPhase = "CopyFiles";
+                Name = "Embed Foundation Extensions";
+                RunOnlyForDeploymentPostprocessing = NO;
+                DstSubFolderSpec = 13;
+            }
+        );
+    },
+    {
+        Type = FileType;
+        Identifier = wrapper.extensionkit-extension;
+        BasedOn = wrapper.app-extension;
+        Extensions = (appex);
+        BuildPhaseInjectionsWhenEmbedding = (
+            {
+                BuildPhase = "CopyFiles";
+                Name = "Embed ExtensionKit Extensions";
+                RunOnlyForDeploymentPostprocessing = NO;
+                DstSubFolderSpec = 16;
+                DstPath = "$(EXTENSIONS_FOLDER_PATH)";
+            }
+        );
+    },
+    {
+        Type = FileType;
+        Identifier = wrapper.spotlight-importer;
+        Class = PBXSpotlightImporternWrapperFileType;
+        BasedOn = wrapper.cfbundle;
+        Extensions = (mdimporter);
+        IsEmbeddable = YES;
+        IsTransparent = NO;
+        UTI = "com.apple.metadata-importer";
+        BuildPhaseInjectionsWhenEmbedding = (
+            {
+                BuildPhase = "Resources";
+            }
+        );
+    },
+    {
+        Type = FileType;
+        Identifier = wrapper.kernel-extension;
+        Class = PBXCFBundleWrapperFileType;
+        BasedOn = wrapper.plug-in;
+        Extensions = (kext);
+        TypeCodes = (KEXT);
+        UTI = "com.apple.plugin";
+    },
+    {
+        Type = FileType;
+        Identifier = wrapper.system-extension;
+        Class = PBXCFBundleWrapperFileType;
+        BasedOn = wrapper.plug-in;
+        Extensions = (systemextension);
+        TypeCodes = (SYSX);
+        IsExecutable = YES;
+        CodeSignOnCopy = NO;
+        ValidateOnCopy = YES;
+        IsEmbeddable = YES;
+        IsTransparent = NO;
+        UTI = "com.apple.plugin";
+        BuildPhaseInjectionsWhenEmbedding = (
+            {
+                BuildPhase = "CopyFiles";
+                Name = "Embed System Extensions";
+                RunOnlyForDeploymentPostprocessing = NO;
+                DstSubFolderSpec = 16;
+                DstPath = "$(SYSTEM_EXTENSIONS_FOLDER_PATH)";
+            }
+        );
+    },
+    {
+        Type = FileType;
+        Identifier = wrapper.driver-extension;
+        Class = PBXCFBundleWrapperFileType;
+        BasedOn = wrapper.system-extension;
+        Extensions = (dext);
+        TypeCodes = (DEXT);
+        IsExecutable = YES;
+        CodeSignOnCopy = NO;
+        IsEmbeddable = YES;
+        IsTransparent = NO;
+        UTI = "com.apple.plugin";
+        BuildPhaseInjectionsWhenEmbedding = (
+            {
+                BuildPhase = "CopyFiles";
+                Name = "Embed System Extensions";
+                RunOnlyForDeploymentPostprocessing = NO;
+                DstSubFolderSpec = 16;
+                DstPath = "$(SYSTEM_EXTENSIONS_FOLDER_PATH)";
+            }
+        );
+    },
+    {
+        Type = FileType;
+        Identifier = wrapper.java-classfolder;
+        BasedOn = wrapper;
+        IsTransparent = NO;
+        UTI = "com.apple.java-class-folder";
+    },
+
+    {
+        Type = FileType;
+        IsProjectWrapper = Yes;
+        Identifier = file.swiftpm-manifest;
+        BasedOn = sourcecode.swift;
+        UTI = com.apple.dt.swiftpm.manifest;
+        AppliesToBuildRules = No;
+    },
+
+    {
+        Type = FileType;
+        Identifier = file.uicatalog;
+        BasedOn = file;
+        Extensions = (uicatalog);
+        UTI = "com.apple.uicatalog";
+    },
+
+    {
+        // Iconsets are not really wrappers according to launch services, but we treat them like wrappers in Xcode as we want them to be opaque
+        Type = FileType;
+        Identifier = folder.iconset;
+        BasedOn = wrapper;
+        Extensions = (iconset);
+        IsTransparent = NO;
+        UTI = "com.apple.iconset";
+    },
+
+    {
+        // asset catalogs are not really wrappers according to launch services, but we treat them like wrappers in Xcode as we want them to be opaque
+        Type = FileType;
+        Identifier = folder.abstractassetcatalog;
+        BasedOn = wrapper;
+        IsTransparent = NO;
+        IncludeInIndex = YES;
+        CanSetIncludeInIndex = YES;
+        AppliesToBuildRules = YES;
+        UTI = "com.apple.dt.abstractassetcatalog";
+    },
+
+    {
+        // asset catalogs are not really wrappers according to launch services, but we treat them like wrappers in Xcode as we want them to be opaque
+        Type = FileType;
+        Identifier = folder.assetcatalog;
+        BasedOn = folder.abstractassetcatalog;
+        Extensions = (xcassets);
+        IsTransparent = NO;
+        UTI = "com.apple.dt.assetcatalog";
+    },
+
+    {
+        // image catalogs are not really wrappers according to launch services, but we treat them like wrappers in Xcode as we want them to be opaque
+        Type = FileType;
+        Identifier = folder.imagecatalog;
+        BasedOn = folder.assetcatalog;
+        Extensions = (imagecatalog);
+        IsTransparent = NO;
+        UTI = "com.apple.imagecatalog";
+    },
+
+    {
+        // stickers catalogs are not really wrappers according to launch services, but we treat them like wrappers in Xcode as we want them to be opaque
+        Type = FileType;
+        Identifier = folder.stickers;
+        BasedOn = folder.abstractassetcatalog;
+        Extensions = (xcstickers);
+        IsTransparent = NO;
+        UTI = "com.apple.dt.stickers";
+    },
+
+    // Archive file types
+    {
+        Type = FileType;
+        Identifier = archive.macbinary;
+        BasedOn = archive;
+        Extensions = (bin);
+        TypeCodes = (BINA);
+        MIMETypes = ("application/macbinary");
+        UTI = "com.apple.macbinary-archive";
+    },
+    {
+        Type = FileType;
+        Identifier = archive.binhex;
+        BasedOn = archive;
+        Extensions = (hqx);
+        MIMETypes = ("application/mac-binhex40");
+        UTI = "com.apple.binhex-archive";
+    },
+    {
+        Type = FileType;
+        Identifier = archive.stuffit;
+        BasedOn = archive;
+        Extensions = (sit);
+        MIMETypes = ("application/x-stuffit");
+        UTI = "com.stuffit.archive.sit";
+    },
+    {
+        Type = FileType;
+        Identifier = archive.ar;
+        BasedOn = archive;
+        Extensions = (a);
+        Prefix = (lib);
+        IsLibrary = YES;
+        IsStaticLibrary = YES;
+        ContainsNativeCode = YES;
+        UTI = "com.apple.mach-o-binary";
+    },
+    {
+        Type = FileType;
+        Identifier = archive.tar;
+        BasedOn = archive;
+        Extensions = (tar);
+        UTI = "public.tar-archive";
+    },
+    {
+        Type = FileType;
+        Identifier = archive.gzip;
+        BasedOn = archive;
+        Extensions = (gz);
+        UTI = "org.gnu.gnu-zip-archive";
+    },
+    {
+        Type = FileType;
+        Identifier = archive.zip;
+        BasedOn = archive;
+        Extensions = (zip);
+        CanSetIncludeInIndex = YES;
+        UTI = "public.zip-archive";
+    },
+    {
+        Type = FileType;
+        Identifier = archive.jar;
+        BasedOn = archive.zip;
+        Extensions = (jar);
+        UTI = "com.sun.java-archive";
+    },
+    {
+        Type = FileType;
+        Identifier = archive.war;
+        BasedOn = archive.jar;
+        Extensions = (war);
+        UTI = "com.sun.web-application-archive";
+    },
+    {
+        Type = FileType;
+        Identifier = archive.ear;
+        BasedOn = archive.jar;
+        Extensions = (ear);
+        UTI = "com.sun.enterprise-archive";
+    },
+    {
+        Type = FileType;
+        Identifier = archive.rsrc;
+        BasedOn = archive;
+        Extensions = ( rsrc, view );
+        TypeCodes = ( rsrc, RSRC, view, "SF20", "aLib", "BAPd" );
+        FallbackAutoroutingBuildPhase = Resources;
+        UTI = "com.apple.rsrc-archive";
+    },
+    {
+        Type = FileType;
+        Identifier = archive.ppob;
+        BasedOn = archive.rsrc;
+        Extensions = (ppob);
+        UTI = "com.apple.ppob-archive";
+    },
+    {
+        Type = FileType;
+        Identifier = archive.asdictionary;
+        BasedOn = archive;
+        Extensions = (asdictionary);
+        UTI = "com.apple.asdictionary-archive";
+    },
+
+    // Audio file types
+    {
+        Type = FileType;
+        Identifier = audio.mp3;
+        BasedOn = audio;
+        Extensions = (mp3);
+        TypeCodes = ("MP3 ");
+        MIMETypes = ("audio/mpeg3","audio/mp3","audio/mpeg");
+        UTI = "public.mp3";
+    },
+    {
+        Type = FileType;
+        Identifier = audio.aiff;
+        BasedOn = audio;
+        Extensions = (aiff, cdda);
+        TypeCodes = (AIFF);
+        MIMETypes = ("audio/aiff");
+        UTI = "public.aiff-audio";
+    },
+    {
+        Type = FileType;
+        Identifier = audio.midi;
+        BasedOn = audio;
+        Extensions = (mid, midi);
+        MIMETypes = ("audio/midi");
+        UTI = "public.midi-audio";
+    },
+    {
+        Type = FileType;
+        Identifier = audio.au;
+        BasedOn = audio;
+        Extensions = (au);
+        MIMETypes = ("audio/basic");
+        UTI = "public.au-audio";
+    },
+    {
+        Type = FileType;
+        Identifier = audio.wav;
+        BasedOn = audio;
+        Extensions = (wav);
+        TypeCodes = ("WAV ");
+        MIMETypes = ("audio/wav");
+        UTI = "com.microsoft.waveform-audio";
+    },
+
+    // Image file types
+    {
+        Type = FileType;
+        Identifier = image.tiff;
+        BasedOn = image;
+        Extensions = (tiff, tif);
+        TypeCodes = (TIFF);
+        MIMETypes = ("image/tiff");
+        UTI = "public.tiff";
+    },
+    {
+        Type = FileType;
+        Identifier = image.png;
+        BasedOn = image;
+        Extensions = (png);
+        TypeCodes = ("PNG ");
+        MIMETypes = ("image/png");
+        UTI = "public.png";
+    },
+    {
+        Type = FileType;
+        Identifier = image.jpeg;
+        BasedOn = image;
+        Extensions = (jpg, jpeg);
+        TypeCodes = (JPEG);
+        MIMETypes = ("image/jpeg");
+        UTI = "public.jpeg";
+    },
+    {
+        Type = FileType;
+        Identifier = image.gif;
+        BasedOn = image;
+        Extensions = (gif);
+        TypeCodes = (GIFf);
+        MIMETypes = ("image/gif");
+        UTI = "com.compuserve.gif";
+    },
+    {
+        Type = FileType;
+        Identifier = image.pdf;
+        BasedOn = image;
+        Extensions = (pdf);
+        TypeCodes = ("PDF ");
+        MIMETypes = ("application/pdf");
+        UTI = "com.adobe.pdf";
+    },
+    {
+        Type = FileType;
+        Identifier = image.icns;
+        BasedOn = image;
+        Extensions = (icns);
+        TypeCodes = (icns);
+        UTI = "com.apple.icns";
+    },
+    {
+        Type = FileType;
+        Identifier = image.ico;
+        BasedOn = image;
+        Extensions = (ico);
+        UTI = "com.microsoft.ico";
+    },
+    {
+        Type = FileType;
+        Identifier = image.bmp;
+        BasedOn = image;
+        Extensions = (bmp);
+        UTI = "com.microsoft.bmp";
+    },
+    {
+        Type = FileType;
+        Identifier = image.pict;
+        BasedOn = image;
+        Extensions = (pict, pct);
+        TypeCodes = (PICT);
+        UTI = "com.apple.pict";
+    },
+
+    // Motion video file types
+    {
+        Type = FileType;
+        Identifier = video.quicktime;
+        BasedOn = video;
+        Extensions = (mov, moov);
+        TypeCodes = (MooV);
+        MIMETypes = ("video/quicktime");
+        UTI = "com.apple.quicktime-movie";
+    },
+    {
+        Type = FileType;
+        Identifier = video.mpeg;
+        BasedOn = video;
+        Extensions = (mpg, mpeg);
+        TypeCodes = (MPEG);
+        MIMETypes = ("video/mpeg");
+        UTI = "public.mpeg";
+    },
+    {
+        Type = FileType;
+        Identifier = video.avi;
+        BasedOn = video;
+        Extensions = (avi);
+        MIMETypes = ("video/avi");
+        UTI = "public.avi";
+    },
+    {
+        Type = FileType;
+        Identifier = video.quartz-composer;
+        BasedOn = video;
+        Extensions = (qtz);
+        MIMETypes = ("application/x-quartzcomposer");
+        UTI = "com.apple.quartz-composer-composition";
+    },
+    {
+        Type = FileType;
+        Identifier = text.plist.entitlements;
+        BasedOn = text.plist;
+        Extensions = (entitlements);
+        UTI = "com.apple.xcode.entitlements-property-list";
+    },
+    {
+        Type = FileType;
+        Identifier = sourcecode.protobuf;
+        BasedOn = sourcecode;
+        Name = "Protobuf source files";
+        Extensions = (proto);
+        ComputerLanguage = Protobuf;
+        Language = "xcode.lang.protobuf";
+        AppliesToBuildRules = yes;
+        CanSetIncludeInIndex = YES;
+        UTI = "public.protobuf-source";
+    },
+)

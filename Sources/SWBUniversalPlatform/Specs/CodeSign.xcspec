@@ -1,0 +1,107 @@
+//===----------------------------------------------------------------------===//
+//
+// This source file is part of the Swift open source project
+//
+// Copyright (c) 2025 Apple Inc. and the Swift project authors
+// Licensed under Apache License v2.0 with Runtime Library Exception
+//
+// See http://swift.org/LICENSE.txt for license information
+// See http://swift.org/CONTRIBUTORS.txt for the list of Swift project authors
+//
+//===----------------------------------------------------------------------===//
+
+(
+    {   Type = Tool;
+        Identifier = com.apple.build-tools.codesign;
+        Name = "Code Sign";
+        Description = "Code-sign a framework, application, or other built target.";
+        ExecDescription = "Sign $(InputFileName)";
+        ProgressDescription = "Signing product";
+        ExecPath = "/usr/bin/codesign";
+        // codesign is currently not safe to interrupt, tracked by 20712615.
+        IsUnsafeToInterrupt = YES;
+        CommandOutputParser = (
+            ("()()(codesign: .+)",  emit-error),
+            ("()()(error: .+)",  emit-error),
+            ("()()(Warning: .+)",  emit-warning),
+            ("()()(Usage: .+)",  emit-notice),
+        );
+        EnvironmentVariables = {
+            CODESIGN_ALLOCATE = "codesign_allocate";
+        };
+        Options = (
+            {   Name = CODE_SIGN_IDENTITY;
+                Type = CodeSignIdentity;
+                DefaultValue = "";
+            },
+            {   Name = PROVISIONING_PROFILE;
+                Type = ProvisioningProfile;
+                DefaultValue = "";
+            },
+            {   Name = OTHER_CODE_SIGN_FLAGS;
+                Type = StringList;
+                DefaultValue = "";
+            },
+            {
+                Name = "CODE_SIGN_KEYCHAIN";
+                Type = string;
+                DefaultValue = "";
+            },
+        );
+    },
+
+    {   Type = Tool;
+        Identifier = com.apple.tools.product-pkg-utility;
+        Name = "Product Packaging Utility";
+        IsAbstract = Yes;       // This is an internal tool, so we keep it out of the user interface
+        CommandIdentifier = "create:$(OutputPath)";
+        CommandLine = "builtin-productPackagingUtility [inputs] [options] -o [output]";
+        RuleName = "ProcessProductPackaging $(InputPath) $(OutputPath)";
+        ExecDescription = "Process product packaging";
+        ProgressDescription = "Processing product packaging";
+        Options = (
+            {   Name = "RemoveFile";
+                Type = Boolean;
+                CommandLineFlag = "-removefile";
+            },
+            {   Name = "CodeSignEntitlements";
+                Type = Boolean;
+                CommandLineFlag = "-entitlements";
+            },
+            {   Name = "CodeSignResourceRules";
+                Type = Boolean;
+                CommandLineFlag = "-resourcerules";
+            },
+            {   Name = PROVISIONING_PROFILE_DESTINATION_PATH;
+                Type = string;
+                DefaultValue = "$(TARGET_BUILD_DIR)/$(CONTENTS_FOLDER_PATH)";
+            },
+            {   Name = "OutputFormat";
+                Type = Enumeration;
+                Values = (
+                    {   Value = "openstep";
+                        CommandLineArgs = ( "-format", "$(value)" );
+                    },
+                    {   Value = "none";
+                        // this is the default, and so we generate no command line flag
+                        CommandLineArgs = ( );
+                    },
+                    {   Value = "xml";
+                        CommandLineArgs = ( "-format", "$(value)" );
+                    },
+                    {   Value = "binary";
+                        CommandLineArgs = ( "-format", "$(value)" );
+                    },
+                );
+                DefaultValue = "none";
+            },
+        );
+        CommandOutputParser = (
+            ("()()(^[^:]+: [^:]+: No such file or directory)",  emit-error),
+            ("()()(^[^:]+: [^:]+: Permission denied)",  emit-error),
+            ("()()(^[^:]+: [^:]+: Is a directory)",  emit-error),
+            ("()()(error: .+)",  emit-error),
+            ("()()(warning: .+)", emit-warning),
+        );
+    },
+)

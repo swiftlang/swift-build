@@ -1,0 +1,38 @@
+//===----------------------------------------------------------------------===//
+//
+// This source file is part of the Swift open source project
+//
+// Copyright (c) 2025 Apple Inc. and the Swift project authors
+// Licensed under Apache License v2.0 with Runtime Library Exception
+//
+// See http://swift.org/LICENSE.txt for license information
+// See http://swift.org/CONTRIBUTORS.txt for the list of Swift project authors
+//
+//===----------------------------------------------------------------------===//
+
+(
+    {   Identifier = com.apple.build-tasks.copy-tiff-file;
+        Type = Compiler;
+        Name = "Copy Tiff File";
+        Description = "Copies a .tiff file resource with optional compression of the destination file";
+        CommandLine = "builtin-copyTiff [options] --outdir $(ProductResourcesDir) -- $(InputFileRelativePath)";
+        RuleName = "CopyTiffFile $(ProductResourcesDir)/$(InputFileName) $(InputFileRelativePath)";
+        ExecDescription = "Copy $(InputFileName)";
+        ProgressDescription = "Copying $(CommandProgressByType) resources to product";
+        SynthesizeBuildRule = Yes;
+        CommandOutputParser = XCGenericCommandOutputParser;
+        InputFileTypes = (
+            image.tiff
+        );
+        Outputs = (
+            "$(ProductResourcesDir)/$(InputFileName)"
+        );
+        Options = (
+            {   Name = COMPRESS_TIFF_FILES_WHILE_COPYING;
+                Type = Boolean;
+                DefaultValue = NO;
+                CommandLineArgs = { NO = ();  YES = ("--compression", "lzw"); };
+            },
+        );
+    }
+)

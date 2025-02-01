@@ -1,0 +1,97 @@
+//===----------------------------------------------------------------------===//
+//
+// This source file is part of the Swift open source project
+//
+// Copyright (c) 2025 Apple Inc. and the Swift project authors
+// Licensed under Apache License v2.0 with Runtime Library Exception
+//
+// See http://swift.org/LICENSE.txt for license information
+// See http://swift.org/CONTRIBUTORS.txt for the list of Swift project authors
+//
+//===----------------------------------------------------------------------===//
+
+(
+    {   Type = Tool;
+        Identifier = com.apple.tools.info-plist-utility;
+        Name = "Info.plist Utility";
+        IsAbstract = Yes;               // This is an internal tool, so we keep it out of the user interface
+        CommandLine = "builtin-infoPlistUtility [input] [options] -o [output]";
+        RuleName = "ProcessInfoPlistFile $(OutputPath) $(InputPath)";
+        ExecDescription = "Process $(InputFileName)";
+        ProgressDescription = "Processing Info.plist file";
+        AdditionalInputFiles = "$(AdditionalContentFilePaths) $(AppPrivacyContentFilePaths)";
+        CommandOutputParser = (
+            ("()()^warning: (.*)",  emit-warning),
+            ("()()^error: (.*)",  emit-error),
+        );
+        Options = (
+            {   Name = "GeneratedPkgInfoFile";
+                Type = Path;
+                CommandLineFlag = "-genpkginfo";
+            },
+
+            {   Name = "ExpandBuildSettings";
+                Type = Boolean;
+                CommandLineFlag = "-expandbuildsettings";
+            },
+
+            {   Name = "OutputFormat";
+                Type = Enumeration;
+                Values = (
+                    {   Value = "same-as-input";
+                        // this is the default, and so we generate no command line flag
+                        CommandLineArgs = ( );
+                    },
+                    {   Value = "openstep";
+                        CommandLineArgs = ( "-format", "openstep" );
+                    },
+                    {   Value = "XML";
+                        CommandLineArgs = ( "-format", "xml" );
+                    },
+                    {   Value = "xml";
+                        CommandLineArgs = ( "-format", "xml" );
+                    },
+                    {   Value = "binary";
+                        CommandLineArgs = ( "-format", "binary" );
+                    },
+                );
+                DefaultValue = "same-as-input";
+            },
+
+            {   Name = "PLATFORM_NAME";
+                Type = String;
+                CommandLineFlag = "-platform";
+            },
+
+            {   Name = "CODE_SIGN_RESOURCE_RULES_IN_BUNDLE";
+                Type = String;
+                CommandLineFlag = "-resourcerulesfile";
+            },
+
+            {   Name = "AdditionalContentFilePaths";
+                Type = PathList;
+                CommandLineFlag = "-additionalcontentfile";
+            },
+
+            {   Name = "RequiredArchitectures";
+                Type = StringList;
+                CommandLineFlag = "-requiredArchitecture";
+            },
+
+            {   Name = "AdditionalInfoFileKeys";
+                Type = String;
+                CommandLineFlag = "-infofilekeys";
+            },
+
+            {   Name = "AdditionalInfoFileValues";
+                Type = String;
+                CommandLineFlag = "-infofilevalues";
+            },
+
+            {   Name = "AppPrivacyContentFilePaths";
+                Type = PathList;
+                CommandLineFlag = "-scanforprivacyfile";
+            },
+        );
+    }
+)

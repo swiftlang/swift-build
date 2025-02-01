@@ -1,0 +1,112 @@
+//===----------------------------------------------------------------------===//
+//
+// This source file is part of the Swift open source project
+//
+// Copyright (c) 2025 Apple Inc. and the Swift project authors
+// Licensed under Apache License v2.0 with Runtime Library Exception
+//
+// See http://swift.org/LICENSE.txt for license information
+// See http://swift.org/CONTRIBUTORS.txt for the list of Swift project authors
+//
+//===----------------------------------------------------------------------===//
+
+(
+    // ***********************************************
+    // Product types for the device (domain iphoneos)
+    // ***********************************************
+    // WatchKit App
+    {   Type = ProductType;
+        Identifier = com.apple.product-type.application.watchapp;
+        BasedOn = com.apple.product-type.application;
+        Domain = iphoneos;
+        Name = "WatchKit App";
+        Description = "WatchKit App";
+        DefaultTargetName = "Watch";
+        DefaultBuildProperties = {
+            PRODUCT_BINARY_SOURCE_PATH = "$(SDKROOT)/Library/Application Support/WatchKit/WK";
+            PRODUCT_TYPE_HAS_STUB_BINARY = YES;
+            RESOURCES_TARGETED_DEVICE_FAMILY = "watch";
+            ENABLE_ON_DEMAND_RESOURCES = NO;
+        };
+        WantsSimpleTargetEditing = YES;
+        DeprecationReason = "WatchKit 1.0 is no longer supported.";
+        DeprecationLevel = "error";
+        SupportsHostingTests = NO;
+        SupportsBeingUITestTarget = NO;
+    },
+
+    // WatchKit Extension
+    {
+        Type = ProductType;
+        Identifier = "com.apple.product-type.watchkit-extension";
+        BasedOn = "com.apple.product-type.app-extension";
+        Domain = iphoneos;
+        Name = "WatchKit Extension";
+        Description = "WatchKit Extension";
+        DefaultTargetName = "WatchKit Extension";
+        "DefaultBuildProperties" = {
+            "CODE_SIGNING_ALLOWED" = YES;
+            "APPLICATION_EXTENSION_API_ONLY" = YES;
+            WRAPPER_EXTENSION = "appex";
+            "PRODUCT_SPECIFIC_LDFLAGS" = "-framework WatchKit";
+            RESOURCES_TARGETED_DEVICE_FAMILY = "watch";
+        };
+        PackageTypes = (
+            "com.apple.package-type.app-extension",
+        );
+        AddWatchCompanionRequirement = YES;
+        DisableSchemeAutocreation = YES;
+        DeprecationReason = "WatchKit 1.0 is no longer supported.";
+        DeprecationLevel = "error";
+    },
+
+    // *********************************************************
+    // Product types for the simulator (domain iphonesimulator)
+    // *********************************************************
+    // WatchKit App
+    {   Type = ProductType;
+        Identifier = com.apple.product-type.application.watchapp;
+        BasedOn = com.apple.product-type.application;
+        Domain = iphonesimulator;
+        Name = "WatchKit App";
+        Description = "WatchKit App";
+        DefaultTargetName = "Watch";
+        DefaultBuildProperties = {
+            PRODUCT_BINARY_SOURCE_PATH = "$(SDKROOT)/Library/Application Support/WatchKit/WK";
+            PRODUCT_TYPE_HAS_STUB_BINARY = YES;
+            RESOURCES_TARGETED_DEVICE_FAMILY = "watch";
+            ENABLE_ON_DEMAND_RESOURCES = NO;
+        };
+        WantsSimpleTargetEditing = YES;
+        DeprecationReason = "WatchKit 1.0 is no longer supported.";
+        DeprecationLevel = "error";
+        SupportsHostingTests = NO;
+        SupportsBeingUITestTarget = NO;
+    },
+
+    // WatchKit Extension
+    {
+        Type = ProductType;
+        Identifier = "com.apple.product-type.watchkit-extension";
+        BasedOn = "com.apple.product-type.app-extension";
+        Domain = iphonesimulator;
+        Name = "WatchKit Extension";
+        Description = "WatchKit Extension";
+        DefaultTargetName = "WatchKit Extension";
+        "DefaultBuildProperties" = {
+            "CODE_SIGNING_ALLOWED" = YES;
+            "APPLICATION_EXTENSION_API_ONLY" = YES;
+            WRAPPER_EXTENSION = "appex";
+            "PRODUCT_SPECIFIC_LDFLAGS" = "-framework WatchKit";
+            RESOURCES_TARGETED_DEVICE_FAMILY = "watch";
+        };
+        PackageTypes = (
+            "com.apple.package-type.app-extension",
+        );
+        AddWatchCompanionRequirement = YES;
+        DisableSchemeAutocreation = YES;
+        DeprecationReason = "WatchKit 1.0 is no longer supported.";
+        DeprecationLevel = "error";
+    },
+
+)

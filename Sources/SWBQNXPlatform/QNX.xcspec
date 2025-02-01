@@ -1,0 +1,101 @@
+//===----------------------------------------------------------------------===//
+//
+// This source file is part of the Swift open source project
+//
+// Copyright (c) 2025 Apple Inc. and the Swift project authors
+// Licensed under Apache License v2.0 with Runtime Library Exception
+//
+// See http://swift.org/LICENSE.txt for license information
+// See http://swift.org/CONTRIBUTORS.txt for the list of Swift project authors
+//
+//===----------------------------------------------------------------------===//
+
+(
+    {
+        Domain = qnx;
+        Type = Architecture;
+        Identifier = Standard;
+        Name = "Standard Architectures";
+        Description = "Standard architectures";
+        ArchitectureSetting = "ARCHS_STANDARD";
+        RealArchitectures = (
+            "$(VALID_ARCHS)"
+        );
+        SortNumber = 0;
+    },
+
+    // Test type bundle (bodged to be a tool)
+    {
+        Domain = qnx;
+        Type = ProductType;
+        Identifier = com.apple.product-type.bundle.unit-test;
+        Class = PBXToolProductType;
+        Name = "Command-line Tool";
+        Description = "Standalone command-line tool";
+        DefaultTargetName = "Command-line Tool";
+        DefaultBuildProperties = {
+            FULL_PRODUCT_NAME = "$(EXECUTABLE_NAME)";
+            EXECUTABLE_PREFIX = "";
+            EXECUTABLE_SUFFIX = ".xctest";
+            REZ_EXECUTABLE = YES;
+            INSTALL_PATH = "/usr/local/bin";
+            FRAMEWORK_FLAG_PREFIX = "-framework";
+            LIBRARY_FLAG_PREFIX = "-l";
+            LIBRARY_FLAG_NOSPACE = YES;
+            GCC_DYNAMIC_NO_PIC = NO;
+            LD_NO_PIE = NO;
+            GCC_SYMBOLS_PRIVATE_EXTERN = YES;
+            GCC_INLINES_ARE_PRIVATE_EXTERN = YES;
+            STRIP_STYLE = "all";
+            CODE_SIGNING_ALLOWED = NO;
+            IsUnitTest = YES;
+            SWIFT_FORCE_DYNAMIC_LINK_STDLIB = YES;
+            SWIFT_FORCE_STATIC_LINK_STDLIB = NO;
+            // Avoid warning for executable types
+            ALWAYS_EMBED_SWIFT_STANDARD_LIBRARIES = NO;
+        };
+        PackageTypes = (
+            com.apple.package-type.mach-o-executable   // default
+        );
+    },
+
+    // Dynamic library (masquarading as a framework to placate Swift's project structure)
+    {
+        Domain = qnx;
+        Type = ProductType;
+        Identifier = com.apple.product-type.framework;
+        BasedOn = default:com.apple.product-type.framework;
+        Class = PBXDynamicLibraryProductType;
+        Name = "Dynamic Library";
+        Description = "Dynamic library";
+        DefaultTargetName = "Dynamic Library";
+        DefaultBuildProperties = {
+            FULL_PRODUCT_NAME = "$(EXECUTABLE_NAME)";
+            MACH_O_TYPE = "mh_dylib";
+            REZ_EXECUTABLE = YES;
+            EXECUTABLE_SUFFIX = ".$(EXECUTABLE_EXTENSION)";
+            EXECUTABLE_EXTENSION = "so";
+            INSTALL_PATH = "/usr/local/lib";
+            LD_DYLIB_INSTALL_NAME = "$(EXECUTABLE_PATH)";
+            FRAMEWORK_FLAG_PREFIX = "-framework";
+            GCC_DYNAMIC_NO_PIC = NO;
+            LD_NO_PIE = NO;
+            LIBRARY_FLAG_PREFIX = "-l";
+            LIBRARY_FLAG_NOSPACE = YES;
+            STRIP_STYLE = "debugging";
+            GCC_INLINES_ARE_PRIVATE_EXTERN = YES;
+            CODE_SIGNING_ALLOWED = NO;
+            MODULES_FOLDER_PATH = "";
+        };
+        PackageTypes = (
+            com.apple.package-type.mach-o-dylib   // default
+        );
+    },
+
+    {
+        Domain = qnx;
+        Type = ProductType;
+        Identifier = com.apple.product-type.framework.static;
+        BasedOn = com.apple.product-type.framework;
+    },
+)

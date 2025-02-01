@@ -1,0 +1,209 @@
+//===----------------------------------------------------------------------===//
+//
+// This source file is part of the Swift open source project
+//
+// Copyright (c) 2025 Apple Inc. and the Swift project authors
+// Licensed under Apache License v2.0 with Runtime Library Exception
+//
+// See http://swift.org/LICENSE.txt for license information
+// See http://swift.org/CONTRIBUTORS.txt for the list of Swift project authors
+//
+//===----------------------------------------------------------------------===//
+
+(
+    {
+        Identifier = "com.apple.compilers.scntool";
+        Type = Compiler;
+        Name = "Process SceneKit Document";
+        Description = "Processes SceneKit documents";
+        Version = Default;
+        Vendor = Apple;
+        CommandLine = "scntool $(RESOURCE_FLAG) [input] -o [output] [options]";
+        RuleName = "Process SceneKit document $(InputFile)";
+        ExecDescription = "Process SceneKit document $(InputFileName)";
+        ProgressDescription = "Processing $(CommandProgressByType) SceneKit documents";
+        InputFileTypes = (
+            "text.xml.dae",
+        );
+        Outputs = (
+            "$(ProductResourcesDir)/$(InputFileBase).dae",
+        );
+        SynthesizeBuildRule = YES;
+        CommandOutputParser = (
+            (
+                "^([^:]*):([^:]*)debug: (.*)$",
+                "emit-notice",
+            ),
+            (
+                "^([^:]*):([^:]*)warning: (.*)$",
+                "emit-warning",
+            ),
+            (
+                "^([^:]*):([^:]*)error: (.*)$",
+                "emit-error",
+            ),
+        );
+        Options = (
+            {
+                Name = "PLATFORM_NAME";
+                Type = String;
+                "CommandLinePrefixFlag" = "--target-platform=";
+            },
+            {
+                Name = "SCENEKIT_DEPLOYMENT_TARGET";
+                Type = String;
+                DefaultValue = "$($(DEPLOYMENT_TARGET_SETTING_NAME))";
+                "CommandLinePrefixFlag" = "--target-version=";
+            },
+            {
+                Name = "XCODE_DEVELOPER_DIR_PATH";
+                Type = Path;
+                "CommandLinePrefixFlag" = "--developer-dir=";
+            },
+            {
+                Name = "TARGET_BUILD_DIR";
+                Type = Path;
+                "CommandLinePrefixFlag" = "--target-build-dir=";
+            },
+            {
+                Name = "UNLOCALIZED_RESOURCES_FOLDER_PATH";
+                Type = Path;
+                "CommandLinePrefixFlag" = "--resources-folder-path=";
+            },
+        );
+    },
+    {
+        Identifier = "com.apple.build-tasks.copy-scenekit-assets";
+        Type = Compiler;
+        Name = "Copy SceneKit Assets";
+        Description = "Copies SceneKit assets";
+        Version = Default;
+        Vendor = Apple;
+        CommandLine = "copySceneKitAssets [input] -o [output] [options]";
+        RuleName = "Copy SceneKit assets $(InputFile)";
+        ExecDescription = "Copy SceneKit assets $(InputFileName)";
+        ProgressDescription = "Copying $(CommandProgressByType) SceneKit assets";
+        OutputsAreProducts = YES;
+        DontProcessOutputs = YES;
+        SynthesizeBuildRule = YES;
+        "DeeplyStatInputDirectories" = YES;
+        InputFileTypes = (
+            "wrapper.scnassets",
+        );
+        Outputs = (
+            "$(ProductResourcesDir)/$(InputFileBase).scnassets",
+        );
+        CommandOutputParser = (
+            (
+                "^([^:]*):([^:]*)debug: (.*)$",
+                "emit-notice",
+            ),
+            (
+                "^([^:]*):([^:]*)warning: (.*)$",
+                "emit-warning",
+            ),
+            (
+                "^([^:]*):([^:]*)error: (.*)$",
+                "emit-error",
+            ),
+        );
+        Options = (
+            {
+                Name = "PLATFORM_NAME";
+                Type = String;
+                "CommandLinePrefixFlag" = "--target-platform=";
+            },
+            {
+                Name = "SCENEKIT_DEPLOYMENT_TARGET";
+                Type = String;
+                DefaultValue = "$($(DEPLOYMENT_TARGET_SETTING_NAME))";
+                "CommandLinePrefixFlag" = "--target-version=";
+            },
+            {
+                Name = "XCODE_DEVELOPER_DIR_PATH";
+                Type = Path;
+                "CommandLinePrefixFlag" = "--developer-dir=";
+            },
+            {
+                Name = "TARGET_BUILD_DIR";
+                Type = Path;
+                "CommandLinePrefixFlag" = "--target-build-dir=";
+            },
+            {
+                Name = "UNLOCALIZED_RESOURCES_FOLDER_PATH";
+                Type = Path;
+                "CommandLinePrefixFlag" = "--resources-folder-path=";
+            },
+        );
+    },
+
+    {
+        Identifier = "com.apple.build-tasks.compile-scenekit-shadercache";
+        Type = Compiler;
+        Name = "Compile SceneKit Shaders";
+        Description = "Compile SceneKit Shader Cache";
+        Version = Default;
+        Vendor = Apple;
+        CommandLine = "compileSceneKitShaders [input] -o [output] [options]";
+        RuleName = "Compile SceneKit Shaders $(InputFile)";
+        ExecDescription = "Compile SceneKit Shaders $(InputFileName)";
+        ProgressDescription = "Compiling $(CommandProgressByType) SceneKit shaders";
+        OutputsAreProducts = YES;
+        DontProcessOutputs = YES;
+        SynthesizeBuildRule = YES;
+        "DeeplyStatInputDirectories" = YES;
+        InputFileTypes = (
+            "wrapper.scncache",
+        );
+        Outputs = (
+            "$(ProductResourcesDir)/scenekit.metallib",
+        );
+        CommandOutputParser = (
+            (
+                "^([^:]*):([^:]*)debug: (.*)$",
+                "emit-notice",
+            ),
+            (
+                "^([^:]*):([^:]*)warning: (.*)$",
+                "emit-warning",
+            ),
+            (
+                "^([^:]*):([^:]*)error: (.*)$",
+                "emit-error",
+            ),
+        );
+        Options = (
+            {
+                Name = "PLATFORM_NAME";
+                Type = String;
+                "CommandLinePrefixFlag" = "--target-platform=";
+            },
+            {
+                Name = "SCENEKIT_DEPLOYMENT_TARGET";
+                Type = String;
+                DefaultValue = "$($(DEPLOYMENT_TARGET_SETTING_NAME))";
+                "CommandLinePrefixFlag" = "--target-version=";
+            },
+            {
+                Name = "XCODE_DEVELOPER_DIR_PATH";
+                Type = Path;
+                "CommandLinePrefixFlag" = "--developer-dir=";
+            },
+            {
+                Name = "TARGET_BUILD_DIR";
+                Type = Path;
+                "CommandLinePrefixFlag" = "--target-build-dir=";
+            },
+            {
+                Name = "UNLOCALIZED_RESOURCES_FOLDER_PATH";
+                Type = Path;
+                "CommandLinePrefixFlag" = "--resources-folder-path=";
+            },
+            {
+                Name = "TARGET_TEMP_DIR";
+                Type = Path;
+                "CommandLinePrefixFlag" = "--intermediate-dir=";
+            },
+        );
+    },
+)

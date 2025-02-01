@@ -1,0 +1,78 @@
+//===----------------------------------------------------------------------===//
+//
+// This source file is part of the Swift open source project
+//
+// Copyright (c) 2025 Apple Inc. and the Swift project authors
+// Licensed under Apache License v2.0 with Runtime Library Exception
+//
+// See http://swift.org/LICENSE.txt for license information
+// See http://swift.org/CONTRIBUTORS.txt for the list of Swift project authors
+//
+//===----------------------------------------------------------------------===//
+
+(
+    {
+        Type = FileType;
+        Identifier = "file.intentdefinition";
+        BasedOn = sourcecode;
+        Name = "SiriKit Intent Definition";
+        Extensions = (
+            intentdefinition,
+        );
+        AppliesToBuildRules = YES;
+        IncludeInIndex = YES;
+        CanSetIncludeInIndex = YES;
+        UTI = "com.apple.sirikit.intentdefinition";
+        "FallbackAutoroutingBuildPhase" = Resources;
+    },
+
+    {
+        Type = Compiler;
+        Identifier = "com.apple.compilers.intents";
+        Name = "Intent Definition Compiler";
+        Description = "intentbuilderc: processes Intent Definitions .intentdefinition";
+        "IsArchitectureNeutral" = Yes;
+        CommandLine = "intentbuilderc compile -input $(InputFile) -output $(ProductResourcesDir)/ [special-args]";
+        RuleName = "IntentDefinitionCompile $(ProductResourcesDir)/ $(InputFile)";
+        ExecDescription = "Process Intent Definition $(InputFileName)";
+        ProgressDescription = "Processing $(CommandProgressByType) Intent Definitions";
+        InputFileTypes = (
+            "file.intentdefinition",
+        );
+        "DeeplyStatInputDirectories" = Yes;
+        SynthesizeBuildRule = Yes;
+        Outputs = (
+            "$(ProductResourcesDir)/$(InputFileBase).intentdefinition",
+        );
+        CommandOutputParser = (
+            (
+                "^([^:]*):() warning: (.*)$",
+                "emit-warning",
+            ),
+            (
+                "^([^:]*):() error: (.*)$",
+                "emit-error",
+            ),
+        );
+        "MessageCategoryInfoOptions" = (
+            "--print-diagnostic-categories",
+            destination,
+            source,
+        );
+        Options = (
+            {
+                Name = "INTENTS_CODEGEN_LANGUAGE";
+                DisplayName = "Intent Class Generation Language";
+                Description = "The Source-code language to use for generated Intent class.  By default \"Automatic\" will analyze your project to determine the correct language.  Adjust this setting to explicitly select \"Swift\" or \"Objective-C\".";
+                Type = enum;
+                Values = (
+                    "Swift",
+                    "Objective-C",
+                    "Automatic"
+                );
+                DefaultValue = "Automatic";
+                Category = "Code Generation";
+            }
+        );
+    },
+)

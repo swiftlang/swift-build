@@ -1,0 +1,169 @@
+//===----------------------------------------------------------------------===//
+//
+// This source file is part of the Swift open source project
+//
+// Copyright (c) 2025 Apple Inc. and the Swift project authors
+// Licensed under Apache License v2.0 with Runtime Library Exception
+//
+// See http://swift.org/LICENSE.txt for license information
+// See http://swift.org/CONTRIBUTORS.txt for the list of Swift project authors
+//
+//===----------------------------------------------------------------------===//
+
+(
+    {   Identifier = com.apple.compilers.iig;
+        Type = Compiler;
+        Name = "IOKit Interface Generator";
+        Description = "Invoke the 'iig' command line utility to compile an IIG file.";
+        CommandLine = "$(IIG_EXEC) --def $(InputFileRelativePath) --header $(IIG_HEADERS_DIR)/$(InputFileBase).h --impl $(IIG_IMPLEMENTATION_DIR)/$(InputFileBase).iig.cpp [options]";
+        RuleName = "Iig $(InputFileRelativePath)";
+        ExecDescription = "Iig $(InputFileName)";
+        ProgressDescription = "Running Iig on $(CommandProgressByType) files";
+        InputFileTypes = (
+            sourcecode.iig
+        );
+        EnvironmentVariables = {
+            DEVELOPER_DIR = "$(DEVELOPER_DIR)";
+            SDKROOT = "$(SDKROOT)";
+            TOOLCHAINS = "$(TOOLCHAINS)";
+        };
+        SynthesizeBuildRule = Yes;
+        Outputs = (
+            "$(IIG_HEADERS_DIR)/$(InputFileBase).h",
+            "$(IIG_IMPLEMENTATION_DIR)/$(InputFileBase).iig.cpp"
+        );
+        OutputsAreSourceFiles = Yes;
+        IsArchitectureNeutral = YES;
+        Options = (
+            {
+                Name = IIG_EXEC;
+                Type = Path;
+                DefaultValue = iig;
+            },
+            {
+                Name = __IIG_DEPLOYMENT_TARGET__;
+                Type = String;
+                DefaultValue = "$($(DEPLOYMENT_TARGET_SETTING_NAME))";
+                SupportedVersionRanges = ( ( "107.60.2", "107.60.999" ), ( "107.100.3", "107.100.999" ), "119" ); // [107.60.2, 107.61) ∪ [107.100.3, 107.101) ∪ [119, ∞)
+                CommandLineArgs = (
+                    "--deployment-target",
+                    "$(value)"
+                );
+            },
+            {
+                Name = IIG_FRAMEWORK_NAME;
+                Type = String;
+                DefaultValue = "$(PRODUCT_NAME)";
+            },
+            {   Name = __IIG_FRAMEWORK_NAME__;
+                Type = String;
+                Condition = "$(IIG_FRAMEWORK_NAME) != ''";
+                DefaultValue = "$(PRODUCT_TYPE)";
+                CommandLineArgs = {
+                    "com.apple.product-type.framework" = (
+                        "--framework-name",
+                        "$(IIG_FRAMEWORK_NAME)",
+                    );
+                    "com.apple.product-type.framework.static" = (
+                        "--framework-name",
+                        "$(IIG_FRAMEWORK_NAME)",
+                    );
+                    "<<otherwise>>" = ();
+                };
+            },
+            {   Name = OTHER_IIG_FLAGS;
+                DisplayName = "Other IIG Flags";
+                Description = "Space-separated list of additional flags to pass to the `iig` compiler. Be sure to backslash-escape any arguments that contain spaces or special characters, such as path names that may contain spaces. Use this setting if Xcode does not already provide UI for a particular `iig` flag";
+                Type = StringList;
+                Category = "Build Options";
+                DefaultValue = "";
+                CommandLinePrefixFlag = "";
+            },
+            {
+                Name = __OTHER_IIG_CFLAGS__;
+                Type = Boolean;
+                DefaultValue = YES;
+                CommandLineArgs = ("--");
+            },
+            {   Name = SDKROOT;
+                Type = Path;
+                CommandLineFlag = "-isysroot";
+                IsInputDependency = YES;
+            },
+            {
+                Name = IIG_CXX_LANGUAGE_STANDARD;
+                Type = String;
+                DefaultValue = "$(CLANG_CXX_LANGUAGE_STANDARD)";
+                CommandLineArgs = {
+                    "compiler-default" = (
+                        "-x",
+                        "c++",
+                    );
+                    "<<otherwise>>" = (
+                        "-x",
+                        "c++",
+                        "-std=$(value)",
+                    );
+                };
+            },
+            {   Name = IIG_PREPROCESSOR_DEFINITIONS;
+                Type = StringList;
+                DefaultValue = "__IIG=1";
+                CommandLineArgs = (
+                    "-D$(value)",
+                );
+            },
+            {   Name = OTHER_IIG_CFLAGS;
+                DisplayName = "Other IIG C Flags";
+                Description = "Space-separated list of additional flags to pass to the `iig` invocation of clang. Be sure to backslash-escape any arguments that contain spaces or special characters, such as path names that may contain spaces. Use this setting if Xcode does not already provide UI for a particular `iig` flag";
+                Type = StringList;
+                Category = "Build Options";
+                DefaultValue = "";
+                CommandLinePrefixFlag = "";
+            },
+
+            {
+                Name = USER_HEADER_SEARCH_PATHS;
+                Type = PathList;
+                CommandLineFlag = "-iquote";
+            },
+            {
+                Name = HEADER_SEARCH_PATHS;
+                Type = PathList;
+                CommandLinePrefixFlag = "-I";
+            },
+            {
+                Name = SYSTEM_HEADER_SEARCH_PATHS;
+                Type = PathList;
+                CommandLineFlag = "-isystem";
+            },
+            {
+                Name = FRAMEWORK_SEARCH_PATHS;
+                Type = PathList;
+                CommandLinePrefixFlag = "-F";
+            },
+            {
+                Name = SYSTEM_FRAMEWORK_SEARCH_PATHS;
+                Type = PathList;
+                CommandLineFlag = "-iframework";
+            },
+
+            // Intermediate settings
+
+            {   Name = IIG_DERIVED_FILE_DIR;
+                Type = String;
+                DefaultValue = "$(DERIVED_FILE_DIR)/$(IIG_FRAMEWORK_NAME)";
+            },
+            {
+                Name = IIG_HEADERS_DIR;
+                Type = String;
+                DefaultValue = "$(IIG_DERIVED_FILE_DIR)";
+            },
+            {
+                Name = IIG_IMPLEMENTATION_DIR;
+                Type = String;
+                DefaultValue = "$(IIG_DERIVED_FILE_DIR)";
+            },
+        );
+    }
+)

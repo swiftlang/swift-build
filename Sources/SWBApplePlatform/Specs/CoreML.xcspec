@@ -1,0 +1,180 @@
+//===----------------------------------------------------------------------===//
+//
+// This source file is part of the Swift open source project
+//
+// Copyright (c) 2025 Apple Inc. and the Swift project authors
+// Licensed under Apache License v2.0 with Runtime Library Exception
+//
+// See http://swift.org/LICENSE.txt for license information
+// See http://swift.org/CONTRIBUTORS.txt for the list of Swift project authors
+//
+//===----------------------------------------------------------------------===//
+
+(
+    {
+        Type = FileType;
+        Identifier = "file.mlmodel";
+        BasedOn = sourcecode;
+        Name = "CoreML Machine Learning Model";
+        Extensions = (
+            mlmodel,
+            mlkitmodel,
+        );
+        AppliesToBuildRules = YES;
+        IncludeInIndex = YES;
+        CanSetIncludeInIndex = YES;
+        UTI = "com.apple.coreml.model";
+    },
+    {
+        Type = FileType;
+        Identifier = "folder.mlpackage";
+        BasedOn = wrapper;
+        Name = "CoreML Machine Learning Model Package";
+        Extensions = (
+            mlpackage,
+        );
+        IsWrapperFolder = YES;
+        IsFolder = YES;
+        AppliesToBuildRules = YES;
+        IncludeInIndex = YES;
+        CanSetIncludeInIndex = YES;
+        UTI = "com.apple.coreml.mlpackage";
+    },
+    {
+        Type = Compiler;
+        Identifier = "com.apple.compilers.coreml";
+        Name = "CoreML Model Compiler";
+        Description = "coremlc: compiler of CoreML model .mlmodel into .mlmodelc";
+        "IsArchitectureNeutral" = Yes;
+        CommandLine = "coremlc compile $(InputFile) $(ProductResourcesDir)/ [options]";
+        RuleName = "CoreMLModelCompile $(ProductResourcesDir)/ $(InputFile)";
+        ExecDescription = "Compile CoreML model $(InputFileName)";
+        ProgressDescription = "Compiling $(CommandProgressByType) CoreML models";
+        InputFileTypes = (
+            "file.mlmodel",
+            "folder.mlpackage"
+        );
+        "DeeplyStatInputDirectories" = Yes;
+        SynthesizeBuildRule = Yes;
+        Outputs = (
+            "$(ProductResourcesDir)/$(InputFileBase).mlmodelc/",
+        );
+               GeneratedInfoPlistContentFilePath = "$(COREML_COMPILER_INFOPLIST_CONTENT_FILE)";
+        CommandOutputParser = (
+            (
+                "^[^:]*: Warning: (?=[^:]*: (/.*)$)()([^:]*):",
+                "emit-warning",
+            ),
+            (
+                "()()Warning: (.+)",
+                "emit-warning",
+            ),
+            (
+                "^[^:]*: Error: (?=[^:]*: (/.*)$)()([^:]*):",
+                "emit-error",
+            ),
+            (
+                "^([^:]*)(): Error: (.*)$",
+                "emit-error",
+            ),
+            (
+                "^detail: ()()(.*)$",
+                "emit-notice",
+            ),
+        );
+        "MessageCategoryInfoOptions" = (
+            "--print-diagnostic-categories",
+            destination,
+            source,
+        );
+        Options = (
+            {
+                Name = "COREML_CODEGEN_SWIFT_GLOBAL_MODULE";
+                DisplayName = "CoreML Generated Model Inherits NSObject";
+                Description = "Generate Swift model classes that are marked with @objc and are descendants of NSObject, in order to be accessible and usable in Objective-C.  This setting has no effect if \"CoreML Model Class Generation Language\" is set to \"Objective-C\".";
+                Type = Boolean;
+                DefaultValue = NO;
+                Category = "Code Generation";
+            },
+            {
+                Name = "COREML_CODEGEN_LANGUAGE";
+                DisplayName = "CoreML Model Class Generation Language";
+                Description = "The Source-code language to use for generated CoreML model class.  By default \"Automatic\" will analyze your project to determine the correct language.  Adjust this setting to explicitly select \"Swift\" or \"Objective-C\", or select \"None\" to disable model class generation.";
+                Type = enum;
+                Values = (
+                    "Swift",
+                    "Objective-C",
+                    "Automatic",
+                    "None"
+                );
+                DefaultValue = "Automatic";
+                Category = "Code Generation";
+            },
+            {
+                Name = "COREML_CODEGEN_SWIFT_VERSION";
+                Type = String;
+                DefaultValue = "$(SWIFT_VERSION)";
+            },
+
+            // For Catalyst apps we want to use the iOS Deployment Target
+            {
+                Name = "COREML_DEPLOYMENT_TARGET";
+                Type = String;
+                DefaultValue = "$(COREML_DEPLOYMENT_TARGET__$(IS_MACCATALYST:default=NO))";
+                CommandLineFlag = "--deployment-target";
+            },
+            {
+                Name = "COREML_DEPLOYMENT_TARGET__YES";
+                Type = String;
+                DefaultValue = "$(IPHONEOS_DEPLOYMENT_TARGET)";
+            },
+            {
+                Name = "COREML_DEPLOYMENT_TARGET__NO";
+                Type = String;
+                DefaultValue = "$($(DEPLOYMENT_TARGET_SETTING_NAME))";
+            },
+            {
+                Name = "SDKROOT";
+                Type = Path;
+                CommandLineFlag = "--sdkroot";
+            },
+            // Pass "macos", "ios", "watchos", "tvos", "maccatalyst" as appropriate
+            {
+                Name = "COREML_PLATFORM_NAME";
+                Type = String;
+                DefaultValue = "$(COREML_PLATFORM_NAME__$(IS_MACCATALYST:default=NO))";
+                CommandLineFlag = "--platform";
+            },
+            {
+                Name = "COREML_PLATFORM_NAME__YES";
+                Type = String;
+                DefaultValue = "maccatalyst";
+            },
+            {
+                Name = "COREML_PLATFORM_NAME__NO";
+                Type = String;
+                DefaultValue = "$(SWIFT_PLATFORM_TARGET_PREFIX)";
+            },
+
+            {
+                Name = "COREML_COMPILER_INFOPLIST_CONTENT_FILE";
+                Type = Path;
+                DefaultValue = "$(TARGET_TEMP_DIR)/$(InputFileBase)-CoreMLPartialInfo.plist";
+                CommandLineFlag = "--output-partial-info-plist";
+            },
+            {
+                Name = "COREML_COMPILER_CONTAINER";
+                Type = String;
+                DefaultValue = "bundle-resources";
+                CommandLineFlag = "--container";
+            },
+            // Keep this at the end so our override behavior works:
+            {
+                Name = "build_file_compiler_flags";
+                Type = StringList;
+                DefaultValue = "";
+                "CommandLinePrefixFlag" = "";
+            },
+        );
+    },
+)

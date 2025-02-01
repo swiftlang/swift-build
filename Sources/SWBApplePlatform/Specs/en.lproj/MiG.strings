@@ -1,0 +1,27 @@
+//===----------------------------------------------------------------------===//
+//
+// This source file is part of the Swift open source project
+//
+// Copyright (c) 2025 Apple Inc. and the Swift project authors
+// Licensed under Apache License v2.0 with Runtime Library Exception
+//
+// See http://swift.org/LICENSE.txt for license information
+// See http://swift.org/CONTRIBUTORS.txt for the list of Swift project authors
+//
+//===----------------------------------------------------------------------===//
+
+
+// Localized strings for basic info
+"Name" = "MiG";
+"Description" = "Mach Interface Stub Generator";
+"Version" = "Default";
+"Vendor" = "Apple";
+
+// Localized strings for output-parse-info
+"OutputParseInfo-ProgressStatusFormat" = "Generating Mach Interface Stub %@";     // arg 1 is name of rule's input file
+"OutputParseInfo-MessageStatusFormat" = "Generate Mach Interface Stub %@";      // arg 1 is name of rule's input file, arg 2 is name of file containing message (@"" if unknown)
+
+"[BuildOptions]-category" = "Build Options";
+
+"[OTHER_MIGFLAGS]-name" = "Other MiG Flags";
+"[OTHER_MIGFLAGS]-description" = "Space-separated list of additional flags to pass to `mig`. Be sure to backslash-escape any arguments that contain spaces or special characters, such as path names that may contain spaces. Use this setting if Xcode does not already provide UI for a `mig` flag.";

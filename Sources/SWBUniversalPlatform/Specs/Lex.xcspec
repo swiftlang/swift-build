@@ -1,0 +1,64 @@
+//===----------------------------------------------------------------------===//
+//
+// This source file is part of the Swift open source project
+//
+// Copyright (c) 2025 Apple Inc. and the Swift project authors
+// Licensed under Apache License v2.0 with Runtime Library Exception
+//
+// See http://swift.org/LICENSE.txt for license information
+// See http://swift.org/CONTRIBUTORS.txt for the list of Swift project authors
+//
+//===----------------------------------------------------------------------===//
+
+(
+    {   Identifier = com.apple.compilers.lex;
+        Type = Tool;
+        Name = "Lex";
+        Description = "Lex Scanner Generator";
+        ExecPath = "$(LEX)";
+        ExecDescription = "Lex $(InputFileName)";
+        ProgressDescription = "Lexing $(CommandProgressByType) files";
+        InputFileTypes = (sourcecode.lex);
+        SynthesizeBuildRule = YES;
+        IsArchitectureNeutral = YES;
+        Options = (
+            // Build options
+            {   Name = LEX_CASE_INSENSITIVE_SCANNER;
+                Type = Boolean;
+                DefaultValue = NO;
+                Category = BuildOptions;
+                CommandLineFlag = "-i";
+            },
+            {   Name = LEX_SUPPRESS_DEFAULT_RULE;
+                Type = Boolean;
+                DefaultValue = NO;
+                Category = BuildOptions;
+                CommandLineFlag = "-s";
+            },
+            {   Name = LEX_INSERT_LINE_DIRECTIVES;
+                Type = Boolean;
+                DefaultValue = YES;
+                Category = BuildOptions;
+                CommandLineArgs = {
+                    NO = ("-L");
+                };
+            },
+            {   Name = LEXFLAGS;
+                Type = StringList;
+                DefaultValue = "";
+                FileTypes = (
+                    sourcecode.lex
+                );
+                Category = BuildOptions;
+            },
+
+            // Warnings
+            {   Name = LEX_SUPPRESS_WARNINGS;
+                Type = Boolean;
+                DefaultValue = "$(SUPPRESS_WARNINGS)";
+                Category = Warnings;
+                CommandLineFlag = "-w";
+            },
+        );
+    }
+)

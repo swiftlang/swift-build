@@ -1,0 +1,69 @@
+//===----------------------------------------------------------------------===//
+//
+// This source file is part of the Swift open source project
+//
+// Copyright (c) 2025 Apple Inc. and the Swift project authors
+// Licensed under Apache License v2.0 with Runtime Library Exception
+//
+// See http://swift.org/LICENSE.txt for license information
+// See http://swift.org/CONTRIBUTORS.txt for the list of Swift project authors
+//
+//===----------------------------------------------------------------------===//
+
+(
+    {
+        _Domain = embedded-simulator;
+        Type = BuildSystem;
+        Identifier = com.apple.build-system.core;
+        BasedOn = "embedded:com.apple.build-system.core";
+        DeletedProperties = ( PROVISIONING_PROFILE, CODE_SIGN_ENTITLEMENTS );
+        Properties = (
+        );
+    },
+
+    {
+        _Domain = embedded-simulator;
+        Type = BuildSystem;
+        Identifier = com.apple.build-system.native;
+        BasedOn = "embedded:com.apple.build-system.native";
+        DeletedProperties = ( PROVISIONING_PROFILE, CODE_SIGN_ENTITLEMENTS );
+        Properties = (
+            {
+                Name = "GCC_ENABLE_EXCEPTIONS";
+                Type = Boolean;
+                DefaultValue = YES;
+            },
+        );
+    },
+
+
+    {
+        _Domain = embedded-simulator;
+        Type = Linker;
+        Identifier = com.apple.pbx.linkers.ld;
+        BasedOn = "embedded:com.apple.pbx.linkers.ld";
+        Name = "Apple Mach-O Linker";
+        Options = (
+            {
+                Name = "LD_ENTITLEMENTS_SECTION";
+                Type = String;
+                DefaultValue = "";
+                IsInputDependency = YES;
+                CommandLineArgs = {
+                    "" = ();
+                    "<<otherwise>>" = ( "-Xlinker", "-sectcreate", "-Xlinker", "__TEXT", "-Xlinker", "__entitlements", "-Xlinker", "$(value)" );
+                };
+            },
+            {
+                Name = "LD_ENTITLEMENTS_SECTION_DER";
+                Type = String;
+                DefaultValue = "";
+                IsInputDependency = YES;
+                CommandLineArgs = {
+                    "" = ();
+                    "<<otherwise>>" = ( "-Xlinker", "-sectcreate", "-Xlinker", "__TEXT", "-Xlinker", "__ents_der", "-Xlinker", "$(value)" );
+                };
+            },
+        );
+    },
+)

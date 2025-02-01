@@ -1,0 +1,32 @@
+//===----------------------------------------------------------------------===//
+//
+// This source file is part of the Swift open source project
+//
+// Copyright (c) 2025 Apple Inc. and the Swift project authors
+// Licensed under Apache License v2.0 with Runtime Library Exception
+//
+// See http://swift.org/LICENSE.txt for license information
+// See http://swift.org/CONTRIBUTORS.txt for the list of Swift project authors
+//
+//===----------------------------------------------------------------------===//
+
+// The build rules that are built in to the build system.  Any or all of these could be overridden by a project, target or build style.
+// Most specs should use SynthesizeBuildRule=YES, which makes explicit declaration of these build rules unnecessary.  However, the CCompiler spec makes some unusual use of inheritance and needs the rules for its input file types to be explicitly declared.  It's possible this could be done in a different, better way, though.
+
+// IMPORTANT: The order of build rule dictionaries in this file is significant, since the build system will attempt to match a given file against each build rule's file type in turn, starting with the first one in the list, and the first one that matches will be the one used to build the file.  This implies that more specific build rules should come BEFORE less specific rules in this list.
+
+(
+    // C-language files (C, Objective-C, C++, and Objective-C++)
+    {
+        Name = "System C rule";
+        FileType = "sourcecode.c";
+        CompilerSpec = "com.apple.compilers.gcc";
+    },
+
+    // Assembler files
+    {
+        Name = "System Assembler rule";
+        FileType = "sourcecode.asm";
+        CompilerSpec = "com.apple.compilers.gcc";
+    },
+)

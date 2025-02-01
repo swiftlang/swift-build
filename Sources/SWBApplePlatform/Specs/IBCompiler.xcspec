@@ -1,0 +1,188 @@
+//===----------------------------------------------------------------------===//
+//
+// This source file is part of the Swift open source project
+//
+// Copyright (c) 2025 Apple Inc. and the Swift project authors
+// Licensed under Apache License v2.0 with Runtime Library Exception
+//
+// See http://swift.org/LICENSE.txt for license information
+// See http://swift.org/CONTRIBUTORS.txt for the list of Swift project authors
+//
+//===----------------------------------------------------------------------===//
+
+(
+    {
+        Type = Compiler;
+        Identifier = "com.apple.xcode.tools.ibtool.compiler";
+        Name = "Interface Builder XIB Compiler";
+        Description = "Compiles Interface Builder XIB files into deployable NIB files.";
+        CommandLine = "$(IBC_EXEC) [options] [special-args] --output-format human-readable-text --compile $(ProductResourcesDir)/$(InputFileBase).nib $(InputFile)";
+        RuleName = "CompileXIB $(InputFile)";
+        ExecDescription = "Compile XIB file $(InputFileName)";
+        ProgressDescription = "Compiling $(CommandProgressByType) XIB files";
+        "MessageCategoryInfoOptions" = (
+            "--print-diagnostic-categories",
+        );
+        SynthesizeBuildRule = YES;
+        IsArchitectureNeutral = YES;
+        "MightNotEmitAllOutputs" = YES;
+        InputFileTypes = (
+            "file.xib",
+        );
+        Outputs = (
+            "$(ProductResourcesDir)/$(InputFileBase).nib",
+            "$(ProductResourcesDir)/$(InputFileBase)~iphone.nib",
+            "$(ProductResourcesDir)/$(InputFileBase)~ipad.nib",
+        );
+        "GeneratedInfoPlistContentFilePath" = "$(XIB_COMPILER_INFOPLIST_CONTENT_FILE)";
+        EnvironmentVariables = {
+            "XCODE_DEVELOPER_USR_PATH" = "$(DEVELOPER_BIN_DIR)/..";
+        };
+        CommandOutputParser = (
+            (
+                "^([^:]*):([^:]*): warning: (.*)$",
+                "emit-warning",
+            ),
+            (
+                "^([^:]*):([^:]*): error: (.*)$",
+                "emit-error",
+            ),
+            (
+                "^([^:]*):([^:]*): note: (.*)$",
+                "emit-notice",
+            ),
+            (
+                "^([^:]*):() error: (.*)$",
+                "emit-error",
+            ),
+            (
+                "^([^:]*):() warning: (.*)$",
+                "emit-warning",
+            ),
+            (
+                "^([^:]*):() note: (.*)$",
+                "emit-notice",
+            ),
+        );
+        "GenericCommandFailedErrorString" = "Command %@ failed with exit code %d. The tool may have crashed. Please file a bug report at https://feedbackassistant.apple.com with the above output and attach any crash logs for ibtool, ibtoold, Xcode, and IBAgent created around the time of this failure. These logs can be found in ~/Library/Logs/DiagnosticReports or /Library/Logs/DiagnosticReports.";
+        Options = (
+            {
+                Name = "IBC_EXEC";
+                Type = Path;
+                DefaultValue = ibtool;
+            },
+            {
+                Name = "IBC_FLATTEN_NIBS";
+                Type = Boolean;
+                DefaultValue = YES;
+                Category = "IBC_COMPILER_OPTIONS";
+                CommandLineArgs = {
+                    YES = ();
+                    NO = (
+                        "--flatten",
+                        NO,
+                    );
+                };
+            },
+            {
+                Name = "IBC_ERRORS";
+                Type = Boolean;
+                DefaultValue = YES;
+                CommandLineFlag = "--errors";
+                Category = "IBC_COMPILER_OPTIONS";
+            },
+            {
+                Name = "IBC_WARNINGS";
+                Type = Boolean;
+                DefaultValue = YES;
+                CommandLineFlag = "--warnings";
+                Category = "IBC_COMPILER_OPTIONS";
+            },
+            {
+                Name = "IBC_NOTICES";
+                Type = Boolean;
+                DefaultValue = YES;
+                CommandLineFlag = "--notices";
+                Category = "IBC_COMPILER_OPTIONS";
+            },
+            {
+                Name = "IBC_OTHER_FLAGS";
+                Type = StringList;
+                DefaultValue = "";
+                CommandLineFlag = "";
+                Category = "IBC_COMPILER_OPTIONS";
+            },
+            {
+                Name = "IBC_PLUGINS";
+                Type = StringList;
+                DefaultValue = "";
+                CommandLineFlag = "--plugin";
+            },
+            {
+                Name = "RESOURCES_PLATFORM_NAME";
+                Type = String;
+                CommandLineFlag = "--platform";
+            },
+            {
+                Name = "RESOURCES_TARGETED_DEVICE_FAMILY";
+                Type = StringList;
+                CommandLineFlag = "--target-device";
+            },
+            {
+                Name = "IBC_REGIONS_AND_STRINGS_FILES";
+                Type = StringList;
+                DefaultValue = "";
+                CommandLineFlag = "--companion-strings-file";
+            },
+            {
+                Name = "IBC_PLUGIN_SEARCH_PATHS";
+                Type = PathList;
+                "FlattenRecursiveSearchPathsInValue" = YES;
+                DefaultValue = "";
+                CommandLineFlag = "--plugin-dir";
+            },
+            {
+                Name = "IBC_MODULE";
+                Type = String;
+                DefaultValue = "$(PRODUCT_MODULE_NAME)";
+                CommandLineFlag = "--module";
+                Category = "IBC_COMPILER_OPTIONS";
+            },
+            {
+                Name = "IBC_OVERRIDING_PLUGINS_AND_FRAMEWORKS_DIR";
+                Type = Path;
+                "SetValueInEnvironmentVariable" = "DYLD_FRAMEWORK_PATH";
+            },
+            {
+                Name = "build_file_compiler_flags";
+                Type = StringList;
+                DefaultValue = "";
+                "CommandLinePrefixFlag" = "";
+            },
+            {
+                Name = "XIB_COMPILER_INFOPLIST_CONTENT_FILE";
+                Type = Path;
+                DefaultValue = "$(TARGET_TEMP_DIR)/$(InputFileRegionPathComponent)$(InputFileBase)-PartialInfo.plist";
+                CommandLineFlag = "--output-partial-info-plist";
+            },
+            {
+                Name = "IBC_COMPILER_AUTO_ACTIVATE_CUSTOM_FONTS";
+                Type = Boolean;
+                DefaultValue = YES;
+                CommandLineFlag = "--auto-activate-custom-fonts";
+                Category = "IBC_COMPILER_OPTIONS";
+            },
+            {
+                Name = "IBC_COMPILER_USE_NIBKEYEDARCHIVER_FOR_MACOS";
+                Type = Boolean;
+                DefaultValue = NO;
+                CommandLineArgs = { YES = ("--use-nibkeyedarchiver-for-macos"); NO = (); };
+            },
+            {
+                Name = "IBC_COMPILATION_MODE_FOR_IOS";
+                Type = String;
+                CommandLineFlag = "--compilation-mode-for-ios";
+            },
+        );
+    },
+)

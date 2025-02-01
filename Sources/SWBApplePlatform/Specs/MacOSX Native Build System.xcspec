@@ -1,0 +1,36 @@
+//===----------------------------------------------------------------------===//
+//
+// This source file is part of the Swift open source project
+//
+// Copyright (c) 2025 Apple Inc. and the Swift project authors
+// Licensed under Apache License v2.0 with Runtime Library Exception
+//
+// See http://swift.org/LICENSE.txt for license information
+// See http://swift.org/CONTRIBUTORS.txt for the list of Swift project authors
+//
+//===----------------------------------------------------------------------===//
+
+(
+    {
+        _Domain = macosx;
+        Type = BuildSystem;
+        Identifier = com.apple.build-system.native;
+        BasedOn = "default:com.apple.build-system.native";
+        Name = "Native Build System";
+        Properties = (
+
+            {   Name = COMBINE_HIDPI_IMAGES;
+                Type = bool;
+                DefaultValue = NO;
+                Category = "Deployment";
+                Description = "Combines image files at different resolutions into one multi-page TIFF file that is HiDPI compliant for macOS 10.7 and later. Only image files in the same directory and with the same base name and extension are combined. The file names must conform to the naming convention used in HiDPI.";
+            },
+            {   Name = PRODUCT_DEFINITION_PLIST;
+                Type = String;
+                DefaultValue = "";
+                Category = "Deployment";
+                Description = "Path to a file specifying additional requirements for a product archive.";
+            },
+        );
+    }
+)

@@ -1,0 +1,28 @@
+//===----------------------------------------------------------------------===//
+//
+// This source file is part of the Swift open source project
+//
+// Copyright (c) 2025 Apple Inc. and the Swift project authors
+// Licensed under Apache License v2.0 with Runtime Library Exception
+//
+// See http://swift.org/LICENSE.txt for license information
+// See http://swift.org/CONTRIBUTORS.txt for the list of Swift project authors
+//
+//===----------------------------------------------------------------------===//
+
+"Name" = "Data Model Compiler - MOMC";
+"Description" = "MOMC: Managed Object Model Compiler";
+"Version" = "Default";
+"Vendor" = "Apple Computer";
+
+"[MOMC_NO_WARNINGS]-name" = "Suppress all momc warnings";
+"[MOMC_NO_WARNINGS]-description" = "Suppress managed object model compiler (`momc`) warnings from output during the compilation of `.xcdatamodel(d)` files";
+"[MOMC_NO_INVERSE_RELATIONSHIP_WARNINGS]-name" = "Suppress momc warnings on missing inverse relationships";
+"[MOMC_NO_INVERSE_RELATIONSHIP_WARNINGS]-description" = "Suppress managed object model compiler (`momc`) warnings from output on missing inverse relationships during the compilation of `.xcdatamodel(d)` files";
+"[MOMC_SUPPRESS_INVERSE_TRANSIENT_ERROR]-name" = "Suppress momc error on transient inverse relationships";
+"[MOMC_SUPPRESS_INVERSE_TRANSIENT_ERROR]-description" = "Suppress managed object model compiler (`momc`) warnings from output on transient inverse relationships during the compilation of `.xcdatamodel(d)` files. This is only intended to be used on 10.4.x created models that compiled properly in 10.4.x before the error was introduced in 10.5";
+"[MOMC_NO_MAX_PROPERTY_COUNT_WARNINGS]-name" = "Suppress momc warnings for entities with more than 100 properties";
+"[MOMC_NO_MAX_PROPERTY_COUNT_WARNINGS]-description" = "Suppress managed object model compiler (`momc`) warnings from output on entities with more than 100 properties during the compilation of `.xcdatamodel(d)` files.";
+"[MOMC_NO_DELETE_RULE_WARNINGS]-name" = "Suppress momc warnings for delete rules";
+"[MOMC_NO_DELETE_RULE_WARNINGS]-description" = "Suppress managed object model compiler (`momc`) warnings for delete rules during the compilation of `.xcdatamodel(d)` files.";
+

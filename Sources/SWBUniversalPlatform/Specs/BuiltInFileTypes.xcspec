@@ -1,0 +1,83 @@
+//===----------------------------------------------------------------------===//
+//
+// This source file is part of the Swift open source project
+//
+// Copyright (c) 2025 Apple Inc. and the Swift project authors
+// Licensed under Apache License v2.0 with Runtime Library Exception
+//
+// See http://swift.org/LICENSE.txt for license information
+// See http://swift.org/CONTRIBUTORS.txt for the list of Swift project authors
+//
+//===----------------------------------------------------------------------===//
+
+(
+    // Very primitive file types (should probably not be overridden)
+    {   Type = FileType;
+        Identifier = file;
+        MIMETypes = ("application/x-octet-stream");
+        UTI = "public.data";
+    },
+        {   Type = FileType;
+            Identifier = text;
+            BasedOn = file;
+            Extensions = (txt, "");
+            TypeCodes = (TEXT);
+            MIMETypes = ("text/plain");
+            IsTextFile = YES;
+            UTI = "public.plain-text";
+        },
+            {   Type = FileType;
+                Identifier = sourcecode;
+                BasedOn = text;
+                ComputerLanguage = default;
+                Language = "xcode.lang.simpleColoring";
+                IncludeInIndex = YES;
+                IsSourceCode = YES;
+                UTI = "public.source-code";
+            },
+        {   Type = FileType;
+            Identifier = compiled;
+            BasedOn = file;
+            UTI = "public.data";
+        },
+        {   Type = FileType;
+            Identifier = archive;
+            BasedOn = file;
+            IncludeInIndex = YES;
+            UTI = "public.archive";
+        },
+        {   Type = FileType;
+            Identifier = audio;
+            BasedOn = file;
+            UTI = "public.audio";
+        },
+        {   Type = FileType;
+            Identifier = image;
+            BasedOn = file;
+            UTI = "public.image";
+        },
+        {   Type = FileType;
+            Identifier = video;
+            BasedOn = file;
+            UTI = "public.video";
+        },
+
+
+    // Very primitive folder types (should probably not be overridden)
+    {   Type = FileType;
+        Identifier = folder;
+        IsFolder = YES;
+        IsTransparent = YES;
+        IncludeInIndex = YES;
+        CanSetIncludeInIndex = YES;
+        UTI = "public.directory";
+    },
+        {   Type = FileType;
+            Identifier = wrapper;
+            BasedOn = folder;
+            IsWrapperFolder = YES;
+            IncludeInIndex = NO;
+            CanSetIncludeInIndex = NO;
+            UTI = "com.apple.package";
+        },
+)

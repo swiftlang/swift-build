@@ -1,0 +1,191 @@
+//===----------------------------------------------------------------------===//
+//
+// This source file is part of the Swift open source project
+//
+// Copyright (c) 2025 Apple Inc. and the Swift project authors
+// Licensed under Apache License v2.0 with Runtime Library Exception
+//
+// See http://swift.org/LICENSE.txt for license information
+// See http://swift.org/CONTRIBUTORS.txt for the list of Swift project authors
+//
+//===----------------------------------------------------------------------===//
+
+(
+    // Application wrapper
+    {
+        _Domain = darwin;
+        Type = PackageType;
+        Identifier = com.apple.package-type.wrapper.application;
+        BasedOn = com.apple.package-type.wrapper;
+        Name = "Application Wrapper";
+        Description = "Application Wrapper";
+        DefaultBuildSettings = {
+            PRODUCT_BUNDLE_PACKAGE_TYPE = "APPL";
+            GENERATE_PKGINFO_FILE = YES;
+        };
+        ProductReference = {
+            FileType = wrapper.application;
+            Name = "$(WRAPPER_NAME)";
+            IsLaunchable = YES;
+        };
+    },
+
+    // System extension wrapper
+    {
+        _Domain = darwin;
+        Type = PackageType;
+        Identifier = com.apple.package-type.wrapper.system-extension;
+        BasedOn = com.apple.package-type.wrapper;
+        Name = "System Extension Wrapper";
+        Description = "System Extension Wrapper";
+        DefaultBuildSettings = {
+            PRODUCT_BUNDLE_PACKAGE_TYPE = "SYSX";
+        };
+        ProductReference = {
+            FileType = wrapper.system-extension;
+            Name = "$(WRAPPER_NAME)";
+            IsLaunchable = NO;
+        };
+    },
+
+    // Legacy OCUnit Test Bundle wrapper
+    {
+        _Domain = darwin;
+        Type = PackageType;
+        Identifier = com.apple.package-type.bundle.ocunit-test;
+        BasedOn = com.apple.package-type.wrapper;
+        Name = "OCUnit Test Bundle";
+        Description = "OCUnit Test Bundle";
+        DefaultBuildSettings = {
+            WRAPPER_SUFFIX = "octest";
+            ENABLE_BITCODE = NO;
+        };
+        ProductReference = {
+            FileType = wrapper.cfbundle;
+            Name = "$(WRAPPER_NAME)";
+            IsLaunchable = NO;
+        };
+    },
+
+    // In-app Purchase Content wrapper
+    {
+        _Domain = darwin;
+        Type = PackageType;
+        Identifier = com.apple.package-type.in-app-purchase-content;
+        BasedOn = com.apple.package-type.wrapper;
+        Name = "In-App Purchase Content";
+        Description = "In-App Purchase Content";
+        DefaultBuildSettings = {
+            PRODUCT_BUNDLE_PACKAGE_TYPE = "";
+            WRAPPER_SUFFIX = "";
+            EXECUTABLE_FOLDER_PATH = "$(CONTENTS_FOLDER_PATH)";
+            INFOPLIST_PATH = "$(WRAPPER_NAME)/ContentInfo.plist";
+            CONTENTS_FOLDER_PATH = "$(WRAPPER_NAME)/Contents";
+            INFOSTRINGS_PATH = "$(LOCALIZED_RESOURCES_FOLDER_PATH)/ContentInfo.strings";
+            PUBLIC_HEADERS_FOLDER_PATH = "$(CONTENTS_FOLDER_PATH)";
+            PRIVATE_HEADERS_FOLDER_PATH = "$(CONTENTS_FOLDER_PATH)";
+            EXECUTABLES_FOLDER_PATH = "$(CONTENTS_FOLDER_PATH)";
+            FRAMEWORKS_FOLDER_PATH = "$(CONTENTS_FOLDER_PATH)";
+            SHARED_FRAMEWORKS_FOLDER_PATH = "$(CONTENTS_FOLDER_PATH)";
+            SHARED_SUPPORT_FOLDER_PATH = "$(CONTENTS_FOLDER_PATH)";
+            UNLOCALIZED_RESOURCES_FOLDER_PATH = "$(CONTENTS_FOLDER_PATH)";
+            LOCALIZED_RESOURCES_FOLDER_PATH = "$(UNLOCALIZED_RESOURCES_FOLDER_PATH)/$(DEVELOPMENT_LANGUAGE).lproj";
+            DOCUMENTATION_FOLDER_PATH = "$(LOCALIZED_RESOURCES_FOLDER_PATH)";
+            MODULES_FOLDER_PATH = "$(CONTENTS_FOLDER_PATH)";
+            PLUGINS_FOLDER_PATH = "$(CONTENTS_FOLDER_PATH)";
+            SCRIPTS_FOLDER_PATH = "$(UNLOCALIZED_RESOURCES_FOLDER_PATH)";
+            JAVA_FOLDER_PATH = "$(UNLOCALIZED_RESOURCES_FOLDER_PATH)";
+        };
+        ProductReference = {
+            FileType = folder;
+            Name = "$(WRAPPER_NAME)";
+            IsLaunchable = NO;
+        };
+    },
+
+    // XPC Service wrapper
+    {
+        _Domain = darwin;
+        Type = PackageType;
+        Identifier = com.apple.package-type.xpc-service;
+        BasedOn = com.apple.package-type.wrapper;
+        Name = "XPC Service";
+        Description = "XPC Service";
+        DefaultBuildSettings = {
+            PRODUCT_BUNDLE_PACKAGE_TYPE = "XPC!";
+            WRAPPER_SUFFIX = ".xpc";
+        };
+        ProductReference = {
+            FileType = wrapper.xpc-service;
+            Name = "$(WRAPPER_NAME)";
+            IsLaunchable = NO;
+        };
+    },
+
+    // PlugInKit PlugIn wrapper
+    {
+        _Domain = darwin;
+        Type = PackageType;
+        Identifier = com.apple.package-type.pluginkit-plugin;
+        BasedOn = com.apple.package-type.xpc-service;
+        Name = "PlugInKit PlugIn";
+        Description = "PlugInKit PlugIn";
+        DefaultBuildSettings = {
+            WRAPPER_SUFFIX = ".pluginkit";
+        };
+        ProductReference = {
+            FileType = wrapper.app-extension;
+            Name = "$(WRAPPER_NAME)";
+            IsLaunchable = NO;
+        };
+    },
+
+    // App Extension wrapper
+    {
+        _Domain = darwin;
+        Type = PackageType;
+        Identifier = com.apple.package-type.app-extension;
+        BasedOn = com.apple.package-type.pluginkit-plugin;
+        Name = "App Extension";
+        Description = "App Extension";
+        DefaultBuildSettings = {
+            WRAPPER_SUFFIX = ".appex";
+        };
+        ProductReference = {
+            FileType = wrapper.app-extension;
+            Name = "$(WRAPPER_NAME)";
+            IsLaunchable = NO;
+        };
+    },
+
+    // App Extension wrapper (ExtensionKit)
+    {
+        _Domain = darwin;
+        Type = PackageType;
+        Identifier = com.apple.package-type.extensionkit-extension;
+        BasedOn = com.apple.package-type.pluginkit-plugin;
+        ProductReference = {
+            FileType = wrapper.extensionkit-extension;
+            Name = "$(WRAPPER_NAME)";
+            IsLaunchable = NO;
+        };
+    },
+
+    // Driver extension wrapper
+    {
+        _Domain = darwin;
+        Type = PackageType;
+        Identifier = com.apple.package-type.wrapper.driver-extension;
+        BasedOn = com.apple.package-type.wrapper.system-extension;
+        Name = "Driver Extension Wrapper";
+        Description = "Driver Extension Wrapper";
+        DefaultBuildSettings = {
+            PRODUCT_BUNDLE_PACKAGE_TYPE = "DEXT";
+        };
+        ProductReference = {
+            FileType = wrapper.driver-extension;
+            Name = "$(WRAPPER_NAME)";
+            IsLaunchable = NO;
+        };
+    },
+)

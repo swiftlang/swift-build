@@ -1,0 +1,23 @@
+//===----------------------------------------------------------------------===//
+//
+// This source file is part of the Swift open source project
+//
+// Copyright (c) 2025 Apple Inc. and the Swift project authors
+// Licensed under Apache License v2.0 with Runtime Library Exception
+//
+// See http://swift.org/LICENSE.txt for license information
+// See http://swift.org/CONTRIBUTORS.txt for the list of Swift project authors
+//
+//===----------------------------------------------------------------------===//
+
+(
+    {
+        Identifier = "com.apple.build-tools.module-verifier-input-generator";
+        Type = Tool;
+        Name = "Apple Clang Module Verifier Input Generator";
+        ExecDescription = "Generate Module Verifier Input for $(FULL_PRODUCT_NAME)";
+        RuleName = "GenerateVerifyModuleInput $(BUILT_PRODUCTS_DIR)/$(FULL_PRODUCT_NAME)";
+        CommandLine = "builtin-GenerateVerifyModuleInput $(BUILT_PRODUCTS_DIR)/$(FULL_PRODUCT_NAME) [special-args]";
+        IsArchitectureNeutral = YES;
+    }
+)

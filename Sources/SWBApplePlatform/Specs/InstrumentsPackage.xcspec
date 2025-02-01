@@ -1,0 +1,161 @@
+//===----------------------------------------------------------------------===//
+//
+// This source file is part of the Swift open source project
+//
+// Copyright (c) 2025 Apple Inc. and the Swift project authors
+// Licensed under Apache License v2.0 with Runtime Library Exception
+//
+// See http://swift.org/LICENSE.txt for license information
+// See http://swift.org/CONTRIBUTORS.txt for the list of Swift project authors
+//
+//===----------------------------------------------------------------------===//
+
+(
+
+    {
+        Type = FileType;
+        Identifier = "com.apple.instruments.package-definition";
+        BasedOn = text.xml;
+        Name = "Instruments Package Definition";
+        Extensions = (instrpkg);
+        AppliesToBuildRules = Yes;
+        UTI = "com.apple.instruments.package-definition";
+    },
+
+    {
+        Type = FileType;
+        Identifier = "com.apple.instruments.instrdst";
+        BasedOn = wrapper;
+        Name = "Instruments Distribution Package";
+        Extensions = (instrdst);
+        UTI = "com.apple.instruments.instrdst";
+    },
+
+    {
+        Type = ProductType;
+        Identifier = "com.apple.product-type.instruments-package";
+        Name = "Instruments Package";
+        Class = XCStandaloneExecutableProductType;
+        DefaultTargetName = "Instruments Package";
+        DefaultBuildProperties = {
+            CODE_SIGNING_ALLOWED = "NO";
+            EXECUTABLE_SUFFIX = ".$(EXECUTABLE_EXTENSION)";
+            EXECUTABLE_EXTENSION = "instrdst";
+            FULL_PRODUCT_NAME = "$(EXECUTABLE_NAME)";
+            INSTALL_PATH = "$(LOCAL_LIBRARY_DIR)/Instruments/Packages";
+        };
+        OverridingBuildSettings = {
+            VERSIONING_SYSTEM = "";
+        };
+        AllowedFileTypes = {
+            "com.apple.buildphase.sources" = ( "com.apple.instruments.package-definition" );
+        };
+        PackageTypes = (
+            com.apple.package-type.instruments-package,
+        );
+
+        HasInfoPlist = NO;
+    },
+
+    {
+        Type = PackageType;
+        Identifier = com.apple.package-type.instruments-package;
+        Name = "Instruments Package";
+        DefaultBuildSettings = {
+            EXECUTABLE_PREFIX = "";
+            EXECUTABLE_SUFFIX = "";
+            EXECUTABLE_NAME = "$(EXECUTABLE_PREFIX)$(PRODUCT_NAME)$(EXECUTABLE_SUFFIX)";
+            EXECUTABLE_PATH = "$(EXECUTABLE_NAME)";
+        };
+        ProductReference = {
+            FileType = com.apple.instruments.instrdst;
+            Name = "$(FULL_PRODUCT_NAME)";
+            IsLaunchable = NO;
+        };
+    },
+
+    {
+        Type = Compiler;
+        Identifier = "com.apple.compilers.instruments-package-builder";
+        Name = "Instruments Package Builder";
+        CommandLine = "$(INSTRUMENTS_PACKAGE_BUILDER) [options] -i [inputs] -o [output]";
+        RuleName = "BuildInstrumentsPackage $(OutputPath)";
+        ExecDescription = "BuildInstrumentsPackage $(OutputFile:file)";
+        ProgressDescription = "Building Instruments Package $(CommandProgressByType)";
+        SynthesizeBuildRule = Yes;
+        IsArchitectureNeutral = YES;
+        InputFileTypes = (
+            "com.apple.instruments.package-definition"
+        );
+
+        // We're grouping the inputs so that, if there are multiple, the tool can emit an error.
+        InputFileGroupings = (
+            tool,
+        );
+
+        OutputsAreProducts = YES;
+        DontProcessOutputs = YES;
+        Outputs = (
+            "$(TARGET_BUILD_DIR)/$(FULL_PRODUCT_NAME)",
+        );
+
+        CommandOutputParser = XCGenericCommandOutputParser;
+
+        EnvironmentVariables = {
+            "DYLD_FRAMEWORK_PATH" = "$(INSTRUMENTS_PACKAGE_BUILDER_FRAMEWORK_PATH)";
+            "TARGET_TEMP_DIR" = "$(TARGET_TEMP_DIR)";
+        };
+
+        Options = (
+            {
+                Name = "INSTRUMENTS_PACKAGE_BUILDER";
+                Type = Path;
+                DefaultValue = "instrumentbuilder";
+            },
+
+            {
+                Name = "INSTRUMENTS_PACKAGE_BUILDER_SEARCH_PATHS";
+                DisplayName = "Instruments Package Builder Search Paths";
+                Type = StringList;
+                DefaultValue = "$(BUILT_PRODUCTS_DIR)";
+                CommandLineFlag = "-L";
+                Category = "Search Paths";
+            },
+
+            {
+                Name = "INSTRUMENTS_PACKAGE_BUILDER_LINKED_PACKAGES";
+                DisplayName = "Linked Instruments Packages";
+                Type = StringList;
+                DefaultValue = "";
+                CommandLineFlag = "-l";
+                Category = "Linking";
+            },
+
+            {
+                Name = INSTRUMENTS_PACKAGE_BUILDER_DEPENDENCY_INFO_FILE;
+                Type = Path;
+                DefaultValue = "$(TARGET_TEMP_DIR)/instruments-package-builder.dependencies";
+                CommandLineArgs = ( "--emit-dependency-info", "$(value)" );
+            },
+
+            {
+                Name = "INSTRUMENTS_PACKAGE_BUILDER_NO_SYSTEM_SEARCH";
+                DisplayName = "Disable Standard Instruments Package Search Path";
+                Type = Boolean;
+                DefaultValue = NO;
+                CommandLineFlag = "--disable-system-search-path";
+                Category = "Search Paths";
+            },
+
+            {
+                Name = "INSTRUMENTS_PACKAGE_BUILDER_VERSION_OVERRIDE";
+                DisplayName = "Instruments Package Version";
+                Type = String;
+                DefaultValue = "";
+                CommandLineFlag = "--version";
+                Category = "Versioning";
+            },
+        );
+    },
+
+)

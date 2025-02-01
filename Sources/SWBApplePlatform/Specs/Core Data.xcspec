@@ -1,0 +1,269 @@
+//===----------------------------------------------------------------------===//
+//
+// This source file is part of the Swift open source project
+//
+// Copyright (c) 2025 Apple Inc. and the Swift project authors
+// Licensed under Apache License v2.0 with Runtime Library Exception
+//
+// See http://swift.org/LICENSE.txt for license information
+// See http://swift.org/CONTRIBUTORS.txt for the list of Swift project authors
+//
+//===----------------------------------------------------------------------===//
+
+(
+    // XDesign file types
+    {
+        Identifier = wrapper.xcdatamodel;
+        Type = FileType;
+        // Has to base on 'sourcecode' so that when we are adding data model file to a target,
+        // it gets dropped into the source code bucket to be compiled later.
+        BasedOn = sourcecode;
+        Name = "Data model files";
+        Extensions = (xcdatamodel);
+        AppliesToBuildRules = yes;
+
+        // from wrapper
+        IsWrapperFolder = YES;
+        IsFolder = NO;
+        IncludeInIndex = YES;
+        CanSetIncludeInIndex = YES;
+
+        // Don't set encoding
+        IsTextFile = NO;
+
+        UTI = "com.apple.xcode.model.data";
+    },
+
+    {
+        Identifier = wrapper.xcdatamodeld;
+        Type = FileType;
+        // Has to base on 'sourcecode' so that when we are adding data model file to a target,
+        // it gets dropped into the source code bucket to be compiled later.
+        BasedOn = sourcecode;
+        Name = "Data model version files";
+        Extensions = (xcdatamodeld);
+        AppliesToBuildRules = yes;
+
+        // from wrapper
+        IsWrapperFolder = YES;
+        IsFolder = YES;
+        IncludeInIndex = YES;
+        CanSetIncludeInIndex = YES;
+
+        // Don't set encoding
+        IsTextFile = NO;
+
+        UTI = "com.apple.xcode.model.data-version";
+    },
+
+    {
+        Identifier = wrapper.xcmappingmodel;
+        Type = FileType;
+        // Has to base on 'sourcecode' so that when we are adding data model file to a target,
+        // it gets dropped into the source code bucket to be compiled later.
+        BasedOn = sourcecode;
+        Name = "Mapping model files";
+        Extensions = (xcmappingmodel);
+        AppliesToBuildRules = yes;
+
+        // from wrapper
+        IsWrapperFolder = YES;
+        IsFolder = NO;
+        IncludeInIndex = YES;
+        CanSetIncludeInIndex = YES;
+
+        // Don't set encoding
+        IsTextFile = NO;
+
+        UTI = "com.apple.xcode.model.data-mapping";
+    },
+
+    {
+        Identifier = wrapper.xcclassmodel;
+        Type = FileType;
+        BasedOn = wrapper;
+        Name = "Class model files";
+        Extensions = (xcclassmodel);
+        IsTransparent = NO;
+        AppliesToBuildRules = yes;
+        UTI = "com.apple.xcode.model.class";
+    },
+    {
+        Type = Compiler;
+        Identifier = "com.apple.compilers.model.coredata";
+        Name = "Data Model Compiler (MOMC)";
+        Description = "MOMC: compiler of data model .xcdatamodeld/.xcdatamodel into .momd/.mom";
+        "IsArchitectureNeutral" = Yes;
+        CommandLine = "momc [options] $(InputFile) $(ProductResourcesDir)/";
+        RuleName = "DataModelCompile $(ProductResourcesDir)/ $(InputFile)";
+        ExecDescription = "Compile data model $(InputFileName)";
+        ProgressDescription = "Compiling $(CommandProgressByType) data models";
+        InputFileTypes = (
+            "wrapper.xcdatamodeld",
+            "wrapper.xcdatamodel",
+        );
+        "DeeplyStatInputDirectories" = Yes;
+        SynthesizeBuildRule = Yes;
+        Outputs = (
+            "$(ProductResourcesDir)/$(InputFileBase)$(MOMC_OUTPUT_SUFFIX)",
+        );
+        CommandOutputParser = (
+            (
+                "^([^:]*):([^:]*): warning: (.*)$",
+                "emit-warning",
+            ),
+            (
+                "^([^:]*):([^:]*): error: (.*)$",
+                "emit-error",
+            ),
+        );
+        "MessageCategoryInfoOptions" = (
+            "--print-diagnostic-categories",
+            destination,
+            source,
+        );
+        Options = (
+            {
+                Name = "MOMC_OUTPUT_SUFFIX";
+                Type = String;
+                DefaultValue = "$(MOMC_OUTPUT_SUFFIX_$(InputFileSuffix:identifier))";
+            },
+            {
+                Name = "MOMC_OUTPUT_SUFFIX__xcdatamodeld";
+                Type = String;
+                DefaultValue = ".momd";
+            },
+            {
+                Name = "MOMC_OUTPUT_SUFFIX__xcdatamodel";
+                Type = String;
+                DefaultValue = ".mom";
+            },
+            {
+                Name = SDKROOT;
+                Type = Path;
+                DefaultValue = "$(SDKROOT)";
+                CommandLineFlag = "--sdkroot";
+            },
+            {
+                Name = "DEPLOYMENT_TARGET";
+                Type = String;
+                DefaultValue = "$($(DEPLOYMENT_TARGET_SETTING_NAME))";
+                CommandLineFlag = "--$(PLATFORM_NAME)-deployment-target";
+            },
+            {
+                Name = "MOMC_NO_WARNINGS";
+                Type = Boolean;
+                DefaultValue = NO;
+                CommandLineFlag = "--no-warnings";
+                Category = Warnings;
+            },
+            {
+                Name = "MOMC_NO_INVERSE_RELATIONSHIP_WARNINGS";
+                Type = Boolean;
+                DefaultValue = NO;
+                CommandLineFlag = "--no-inverse-relationship-warnings";
+                Category = Warnings;
+            },
+            {
+                Name = "MOMC_NO_MAX_PROPERTY_COUNT_WARNINGS";
+                Type = Boolean;
+                DefaultValue = NO;
+                CommandLineFlag = "--no-max-property-count-warnings";
+                Category = Warnings;
+            },
+            {
+                Name = "MOMC_NO_DELETE_RULE_WARNINGS";
+                Type = Boolean;
+                DefaultValue = NO;
+                CommandLineFlag = "--no-delete-rule-warnings";
+                Category = Warnings;
+            },
+            {
+                Name = "MOMC_SUPPRESS_INVERSE_TRANSIENT_ERROR";
+                Type = Boolean;
+                DefaultValue = NO;
+                CommandLineFlag = "--suppress-inverse-transient-error";
+                Category = Warnings;
+            },
+            {
+                Name = "MOMC_MODULE";
+                Type = String;
+                DefaultValue = "$(PRODUCT_MODULE_NAME)";
+                CommandLineFlag = "--module";
+            },
+            {
+                Name = build_file_compiler_flags;
+                Type = StringList;
+                DefaultValue = "";
+                CommandLinePrefixFlag = "";
+            },
+        );
+    },
+    {
+        Type = Compiler;
+        Identifier = "com.apple.compilers.model.coredatamapping";
+        Name = "Core Data Mapping Model Compiler (MAPC)";
+        "IsArchitectureNeutral" = Yes;
+        CommandLine = "mapc [options] $(InputFile) $(ProductResourcesDir)/$(InputFileBase).cdm";
+        RuleName = "MappingModelCompile $(ProductResourcesDir)/$(InputFileBase).cdm $(InputFile)";
+        Description = "MAPC: compiler of mapping model files .xcmappingmodel into .cdm";
+        ExecDescription = "Compile mapping model $(InputFileName)";
+        ProgressDescription = "Compiling $(CommandProgressByType) mapping models";
+        InputFileTypes = (
+            "wrapper.xcmappingmodel",
+        );
+        "DeeplyStatInputDirectories" = Yes;
+        SynthesizeBuildRule = Yes;
+        Outputs = (
+            "$(ProductResourcesDir)/$(InputFileBase).cdm",
+        );
+        CommandOutputParser = (
+            (
+                "^([^:]*):([^:]*)warning: (.*)$",
+                "emit-warning",
+            ),
+            (
+                "^([^:]*):([^:]*)error: (.*)$",
+                "emit-error",
+            ),
+        );
+        "MessageCategoryInfoOptions" = (
+            "--print-diagnostic-categories",
+            source,
+            destination,
+        );
+        Options = (
+            {
+                Name = "MAPC_NO_WARNINGS";
+                Type = Boolean;
+                DefaultValue = NO;
+                CommandLineFlag = "--mapc-no-warnings";
+                Category = Warnings;
+            },
+            {
+                Name = SDKROOT;
+                Type = Path;
+                DefaultValue = "$(SDKROOT)";
+                CommandLineFlag = "--sdkroot";
+            },
+            {
+                Name = "DEPLOYMENT_TARGET";
+                Type = String;
+                DefaultValue = "$($(DEPLOYMENT_TARGET_SETTING_NAME))";
+                CommandLineFlag = "--$(PLATFORM_NAME)-deployment-target";
+            },
+            {
+                Name = build_file_compiler_flags;
+                Type = StringList;
+                DefaultValue = "";
+                CommandLinePrefixFlag = "";
+            },
+            {
+                Name = "MAPC_MODULE";
+                Type = String;
+                DefaultValue = "$(PRODUCT_MODULE_NAME)";
+                CommandLineFlag = "--module";
+            },
+        );
+    },
+)

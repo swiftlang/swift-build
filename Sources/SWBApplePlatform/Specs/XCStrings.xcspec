@@ -1,0 +1,65 @@
+//===----------------------------------------------------------------------===//
+//
+// This source file is part of the Swift open source project
+//
+// Copyright (c) 2025 Apple Inc. and the Swift project authors
+// Licensed under Apache License v2.0 with Runtime Library Exception
+//
+// See http://swift.org/LICENSE.txt for license information
+// See http://swift.org/CONTRIBUTORS.txt for the list of Swift project authors
+//
+//===----------------------------------------------------------------------===//
+
+(
+    {
+        Type = FileType;
+        Identifier = "text.json.xcstrings";
+        BasedOn = text.json;
+        Name = "XCStrings files";
+        UTI = "com.apple.xcode.xcstrings";
+        Extensions = (
+            xcstrings,
+        );
+        AppliesToBuildRules = YES;
+        IncludeInIndex = YES;
+        CanSetIncludeInIndex = YES;
+    },
+
+    {
+        Type = Compiler;
+        Identifier = "com.apple.compilers.xcstrings";
+        Name = "XCStrings Compiler";
+        Description = "Compiles XCStrings files";
+        InputFileTypes = (
+            "text.json.xcstrings"
+        );
+        InputFileGroupings = (
+            xcstrings,
+        );
+        CommandLine = "xcstringstool compile [options] --output-directory $(TempResourcesDir) $(InputFile)";
+        RuleName = "CompileXCStrings $(TempResourcesDir)/ $(InputFile)";
+        ExecDescription = "Compile XCStrings $(InputFileName)";
+        ProgressDescription = "Compiling $(CommandProgressByType) XCStrings files";
+        IsArchitectureNeutral = YES;
+        SynthesizeBuildRule = YES;
+        // Outputs are calculated dynamically with a call to xcstringstool compile --dry-run.
+        Outputs = ();
+        Options = (
+            {
+                Name = "XCSTRINGS_LANGUAGES_TO_COMPILE";
+                Type = StringList;
+                DefaultValue = "$(INSTALLLOC_LANGUAGE)";
+                CommandLineFlag = "-l";
+            },
+            {
+                Name = "XCSTRINGS_FORCE_BUILD_ALL_STRINGS";
+                Type = Boolean;
+                DefaultValue = NO;
+                CommandLineArgs = {
+                    YES = ("--force-build-all-strings");
+                    NO = ();
+                };
+            },
+        );
+    },
+)

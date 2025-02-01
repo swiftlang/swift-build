@@ -1,0 +1,95 @@
+//===----------------------------------------------------------------------===//
+//
+// This source file is part of the Swift open source project
+//
+// Copyright (c) 2025 Apple Inc. and the Swift project authors
+// Licensed under Apache License v2.0 with Runtime Library Exception
+//
+// See http://swift.org/LICENSE.txt for license information
+// See http://swift.org/CONTRIBUTORS.txt for the list of Swift project authors
+//
+//===----------------------------------------------------------------------===//
+
+(
+    // Spotlight Importer wrapper
+    {
+        _Domain = macosx;
+        Type = PackageType;
+        Identifier = com.apple.package-type.spotlight-importer;
+        BasedOn = com.apple.package-type.wrapper;
+        Name = "Spotlight Importer";
+        Description = "Spotlight Importer";
+        DefaultBuildSettings = {
+        };
+        ProductReference = {
+            FileType = wrapper.spotlight-importer;
+            Name = "$(WRAPPER_NAME)";
+            IsLaunchable = NO;
+        };
+    },
+
+    // Jar file
+    {
+        _Domain = macosx;
+        Type = PackageType;
+        Identifier = com.apple.package-type.jarfile;
+        Name = "Jar File";
+        Description = "Jar file";
+        DefaultBuildSettings = {
+            EXECUTABLE_PREFIX = "";
+            EXECUTABLE_SUFFIX = ".jar";
+            EXECUTABLE_NAME = "$(EXECUTABLE_PREFIX)$(PRODUCT_NAME)$(EXECUTABLE_SUFFIX)";
+            EXECUTABLE_PATH = "$(EXECUTABLE_NAME)";
+            JAVA_ARCHIVE_CLASSES = YES;
+            JAVA_MAKE_ZIPFILE = NO;
+        };
+        ProductReference = {
+            FileType = archive.jar;
+            Name = "$(EXECUTABLE_NAME)";
+            IsLaunchable = NO;
+        };
+    },
+
+    // Zip file
+    {
+        _Domain = macosx;
+        Type = PackageType;
+        Identifier = com.apple.package-type.zipfile;
+        Name = "Zip File";
+        Description = "Zip file";
+        DefaultBuildSettings = {
+            EXECUTABLE_PREFIX = "";
+            EXECUTABLE_SUFFIX = ".zip";
+            EXECUTABLE_NAME = "$(EXECUTABLE_PREFIX)$(PRODUCT_NAME)$(EXECUTABLE_SUFFIX)";
+            EXECUTABLE_PATH = "$(EXECUTABLE_NAME)";
+            JAVA_ARCHIVE_CLASSES = YES;
+            JAVA_MAKE_ZIPFILE = YES;
+        };
+        ProductReference = {
+            FileType = archive.zip;
+            Name = "$(EXECUTABLE_NAME)";
+            IsLaunchable = NO;
+        };
+    },
+
+    // Java class folder
+    {
+        _Domain = macosx;
+        Type = PackageType;
+        Identifier = com.apple.package-type.javaclassfolder;
+        Name = "Class Folder";
+        Description = "Class folder";
+        DefaultBuildSettings = {
+            EXECUTABLE_PREFIX = "";
+            EXECUTABLE_SUFFIX = "";
+            EXECUTABLE_NAME = "$(EXECUTABLE_PREFIX)$(PRODUCT_NAME)$(EXECUTABLE_SUFFIX)";
+            EXECUTABLE_PATH = "$(EXECUTABLE_NAME)";
+            JAVA_ARCHIVE_CLASSES = NO;
+        };
+        ProductReference = {
+            FileType = wrapper.java-classfolder;
+            Name = "$(EXECUTABLE_NAME)";
+            IsLaunchable = NO;
+        };
+    },
+)

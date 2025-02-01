@@ -1,0 +1,51 @@
+//===----------------------------------------------------------------------===//
+//
+// This source file is part of the Swift open source project
+//
+// Copyright (c) 2025 Apple Inc. and the Swift project authors
+// Licensed under Apache License v2.0 with Runtime Library Exception
+//
+// See http://swift.org/LICENSE.txt for license information
+// See http://swift.org/CONTRIBUTORS.txt for the list of Swift project authors
+//
+//===----------------------------------------------------------------------===//
+
+(
+    {
+        Identifier = "com.apple.compilers.osacompile";
+        Type = Compiler;
+        Name = "OSACompile";
+        Description = "AppleScript Compiler";
+        Vendor = "Apple";
+        CommandLine = "/usr/bin/osacompile -l AppleScript -d -o $(ProductResourcesDir)/$(InputFileBase).scpt [options] $(InputFileRelativePath)";
+        RuleName = "OSACompile $(InputFileRelativePath)";
+        ExecDescription = "Compile $(InputFileName)";
+        ProgressDescription = "Compiling $(CommandProgressByType) AppleScripts";
+        IsArchitectureNeutral = YES;
+        SynthesizeBuildRuleForBuildPhases = (
+            "com.apple.buildphase.sources"
+        );
+        InputFileTypes = (
+            "sourcecode.applescript",
+        );
+        Outputs = (
+            "$(ProductResourcesDir)/$(InputFileBase).scpt",
+        );
+        Options = (
+            {
+                Name = OSACOMPILE_EXECUTE_ONLY;
+                Type = Boolean;
+                DefaultValue = NO;
+                Category = BuildOptions;
+                CommandLineFlag = "-x";
+            },
+            {
+                Name = OTHER_OSACOMPILEFLAGS;
+                Type = StringList;
+                DefaultValue = "";
+                Category = BuildOptions;
+                CommandLinePrefixFlag = "";
+            },
+        );
+    }
+)

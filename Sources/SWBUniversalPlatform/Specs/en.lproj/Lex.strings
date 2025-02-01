@@ -1,0 +1,39 @@
+//===----------------------------------------------------------------------===//
+//
+// This source file is part of the Swift open source project
+//
+// Copyright (c) 2025 Apple Inc. and the Swift project authors
+// Licensed under Apache License v2.0 with Runtime Library Exception
+//
+// See http://swift.org/LICENSE.txt for license information
+// See http://swift.org/CONTRIBUTORS.txt for the list of Swift project authors
+//
+//===----------------------------------------------------------------------===//
+
+
+// Localized strings for basic info
+"Name" = "Lex";
+"Description" = "Lex Scanner Generator";
+"Version" = "Default";
+"Vendor" = "Apple";
+
+// Localized strings for output-parse-info
+"OutputParseInfo-ProgressStatusFormat" = "Lex %@";   // arg 1 is name of rule's input file
+"OutputParseInfo-MessageStatusFormat" = "Lex %@";    // arg 1 is name of rule's input file, arg 2 is name of file containing message (@"" if unknown)
+
+"[BuildOptions]-category" = "Build Options";
+
+"[LEX_CASE_INSENSITIVE_SCANNER]-name" = "Generate Case-Insensitive Scanner";
+"[LEX_CASE_INSENSITIVE_SCANNER]-description" = "Enabling this option causes `lex` to generate a case-insensitive scanner. The case of letters given in the `lex` input patterns will be ignored, and tokens in the input will be matched regardless of case. The matched text given in `yytext` will have the preserved case (for example, it will not be folded).";
+
+"[LEX_SUPPRESS_DEFAULT_RULE]-name" = "Suppress Default Rule";
+"[LEX_SUPPRESS_DEFAULT_RULE]-description" = "Enabling this option causes the default rule (that unmatched scanner input is echoed to `stdout`) to be suppressed. If the scanner encounters input that does not match any of its rules, it aborts with an error. This option is useful for finding holes in a scanner's rule set.";
+
+"[LEX_SUPPRESS_WARNINGS]-name" = "Suppress Warning Messages";
+"[LEX_SUPPRESS_WARNINGS]-description" = "Enabling this option causes `lex` to suppress its warning messages.";
+
+"[LEX_INSERT_LINE_DIRECTIVES]-name" = "Insert #line Directives";
+"[LEX_INSERT_LINE_DIRECTIVES]-description" = "Enabling this option instructs `lex` to insert `#line` directives so error messages in the actions will be correctly located with respect to either the original `lex` input file (if the errors are due to code in the input file), or `lex.yy.c` (if the errors are `lex`'s fault). This option is enabled by default; disabling it passes a flag to `lex` to not insert `#line` directives.";
+
+"[LEXFLAGS]-name" = "Other Lex Flags";
+"[LEXFLAGS]-description" = "Space-separated list of additional flags to pass to `lex`. Be sure to backslash-escape any arguments that contain spaces or special characters, such as path names that may contain spaces. Use this setting if Xcode does not already provide UI for a `lex` flag.";

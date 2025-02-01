@@ -1,0 +1,221 @@
+//===----------------------------------------------------------------------===//
+//
+// This source file is part of the Swift open source project
+//
+// Copyright (c) 2025 Apple Inc. and the Swift project authors
+// Licensed under Apache License v2.0 with Runtime Library Exception
+//
+// See http://swift.org/LICENSE.txt for license information
+// See http://swift.org/CONTRIBUTORS.txt for the list of Swift project authors
+//
+//===----------------------------------------------------------------------===//
+
+(
+    {   Type = Tool;
+        Identifier = com.apple.compilers.pbxcp;
+        Name = "PBXCp";
+        Description = "Xcode File-Copying Tool";
+        ExecPath = "builtin-copy";
+        CommandOutputParser = (
+            ("()()(^warning: .*)",  emit-warning),
+            ("()()(^error: .*)",  emit-error),
+            ("()()(^[^:]+: [^:]+: No such file or directory)",  emit-error),
+            ("()()(^[^:]+: [^:]+: Permission denied)",  emit-error),
+            ("()()(^[^:]+: [^:]+: Is a directory)",  emit-error),
+        );
+        RuleFormat = "$(pbxcp_rule_name:quote) $(Output:quote) $(Input:quote)";
+        ExecDescription = "Copy $(InputFileName)";
+        /* This description is dynamically overriden for certain rule types. */
+        ProgressDescription = "Copying $(CommandProgressByType) files";
+        DeeplyStatInputDirectories = YES;
+        CaresAboutInclusionDependencies = NO;
+        Options = (
+            {   Name = VERBOSE_PBXCP;
+                Type = Boolean;
+                DefaultValue = NO;
+                CommandLineArgs = {
+                    YES = (
+                        "-V",
+                    );
+                    NO = ();
+                };
+            },
+
+            {   Name = _exclude_ds_store_files_;
+                Type = String;
+                CommandLineArgs = ("-exclude", ".DS_Store");
+            },
+
+            {   Name = REMOVE_CVS_FROM_RESOURCES;
+                Type = Boolean;
+                DefaultValue = YES;
+                CommandLineArgs = {
+                    YES = (
+                        "-exclude",
+                        "CVS",
+                    );
+                    NO = ();
+                };
+            },
+
+            {   Name = REMOVE_SVN_FROM_RESOURCES;
+                Type = Boolean;
+                DefaultValue = YES;
+                CommandLineArgs = {
+                    YES = (
+                        "-exclude",
+                        ".svn",
+                    );
+                    NO = ();
+                };
+            },
+
+            {   Name = REMOVE_GIT_FROM_RESOURCES;
+                Type = Boolean;
+                DefaultValue = YES;
+                CommandLineArgs = {
+                    YES = (
+                        "-exclude",
+                        ".git",
+                    );
+                    NO = ();
+                };
+            },
+
+            {   Name = REMOVE_HG_FROM_RESOURCES;
+                Type = Boolean;
+                DefaultValue = YES;
+                CommandLineArgs = {
+                    YES = (
+                        "-exclude",
+                        ".hg",
+                    );
+                    NO = ();
+                };
+            },
+
+            {   Name = REMOVE_HEADER_DIRECTORIES;
+                Type = Boolean;
+                DefaultValue = NO;
+                CommandLineArgs = {
+                    YES = (
+                        "-exclude",
+                        "Headers",
+                        "-exclude",
+                        "PrivateHeaders",
+                        "-exclude",
+                        "Modules",
+                        "-exclude",
+                        "*.tbd",
+                    );
+                    NO = ();
+                };
+            },
+
+            {   Name = PBXCP_EXCLUDE_SUBPATHS;
+                Type = StringList;
+                DefaultValue = "";
+                CommandLineFlag = "-exclude_subpath";
+            },
+
+            {   Name = PBXCP_INCLUDE_ONLY_SUBPATHS;
+                Type = StringList;
+                DefaultValue = "";
+                CommandLineFlag = "-include_only_subpath";
+            },
+
+            {   Name = PBXCP_STRIP_UNSIGNED_BINARIES;
+                Type = Boolean;
+                DefaultValue = "$(COPY_PHASE_STRIP)";
+                CommandLineArgs = {
+                    YES = (
+                        "-strip-unsigned-binaries",
+                    );
+                    NO = ();
+                };
+            },
+
+            {   Name = PBXCP_STRIP_SUBPATHS;
+                Type = StringList;
+                DefaultValue = "";
+                CommandLineFlag = "-strip_subpath";
+            },
+
+            {
+                Name = STRIP_DETERMINISTIC_MODE;
+                Type = Boolean;
+                DefaultValue = YES;
+                Condition = "$(PBXCP_STRIP_UNSIGNED_BINARIES) != NO || $(PBXCP_STRIP_SUBPATHS) != ''";
+                CommandLineArgs = {
+                    YES = (
+                        "-strip-deterministic",
+                    );
+                    NO = ();
+                };
+            },
+
+            {   Name = PBXCP_STRIP_TOOL;
+                Type = Path;
+                DefaultValue = "";
+                CommandLineFlag = "-strip-tool";
+            },
+
+            {   Name = PBXCP_STRIP_BITCODE;
+                Type = Boolean;
+                DefaultValue = NO;
+            },
+
+            {   Name = PBXCP_BITCODE_STRIP_MODE;
+                Type = Enumeration;
+                Values = (
+                    none,
+                    replace-with-marker,
+                    all,
+                );
+                DefaultValue = "";
+                Condition = "$(PBXCP_STRIP_BITCODE)";
+                CommandLineArgs = {
+                    "" = ();
+                    "none" = ();
+                    "<<otherwise>>" = (
+                        "-bitcode-strip",
+                        "$(value)"
+                    );
+                };
+            },
+
+            {   Name = PBXCP_BITCODE_STRIP_TOOL;
+                Type = Path;
+                DefaultValue = "";
+                CommandLineFlag = "-bitcode-strip-tool";
+            },
+
+            {   Name = COPYING_PRESERVES_HFS_DATA;
+                Type = Boolean;
+                DefaultValue = NO;
+                CommandLineArgs = {
+                    YES = (
+                        "-preserve-hfs-data",
+                    );
+                    NO = ();
+                };
+            },
+
+            {   Name = _resolve_src_symlinks_;
+                Type = String;
+                CommandLineArgs = ( "-resolve-src-symlinks" );
+            },
+
+            {   Name = PBXCP_IGNORE_MISSING_INPUTS;
+                Type = Boolean;
+                DefaultValue = NO;
+                CommandLineArgs = {
+                    YES = (
+                        "-ignore-missing-inputs",
+                    );
+                    NO = ();
+                };
+            },
+        );
+    }
+)

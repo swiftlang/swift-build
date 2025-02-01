@@ -1,0 +1,1317 @@
+//===----------------------------------------------------------------------===//
+//
+// This source file is part of the Swift open source project
+//
+// Copyright (c) 2025 Apple Inc. and the Swift project authors
+// Licensed under Apache License v2.0 with Runtime Library Exception
+//
+// See http://swift.org/LICENSE.txt for license information
+// See http://swift.org/CONTRIBUTORS.txt for the list of Swift project authors
+//
+//===----------------------------------------------------------------------===//
+
+(
+    {
+        Identifier = "sourcecode.swift";
+        Type = FileType;
+        BasedOn = sourcecode;
+        Name = "Swift source files";
+        Extensions = (
+            swift,
+        );
+        ComputerLanguage = swift;
+        Language = "xcode.lang.swift";
+        AppliesToBuildRules = YES;
+        CanSetIncludeInIndex = YES;
+        IsSwiftSourceCode = YES;
+        IsScannedForIncludes = NO;
+        UTI = "public.swift-source";
+    },
+    {
+        Identifier = "file.playground";
+        Type = FileType;
+        BasedOn = wrapper;
+        Name = "Swift Playground file";
+        Extensions = (
+            playground,
+        );
+        UTI = "com.apple.dt.playground";
+    },
+    {
+        Identifier = "file.xcplaygroundpage";
+        Type = FileType;
+        BasedOn = wrapper;
+        Name = "Swift Playground Page file";
+        Extensions = (
+            xcplaygroundpage,
+        );
+        UTI = "com.apple.dt.playgroundpage";
+    },
+    {
+        Identifier = "com.apple.xcode.tools.swift.compiler";
+        Type = Compiler;
+        Name = "Swift Compiler";
+        Description = "Compiles Swift source code into object files.";
+        Vendor = Apple;
+        Version = "4.0";
+        IsAbstract = NO;
+        "ShowInCompilerSelectionPopup" = NO;
+        InputFileGroupings = (
+            tool,
+        );
+        InputFileTypes = (
+            "sourcecode.swift",
+        );
+        "OptionConditionFlavors" = (
+            arch,
+            sdk,
+        );
+        ExecPath = "$(SWIFT_EXEC)";
+        SynthesizeBuildRule = YES;
+        ExecDescription = "Compile Swift source files";
+        ProgressDescription = "Compiling Swift source files";
+        CommandOutputParser = "XCSwiftCommandOutputParser";
+        "SupportsGenerateAssemblyFile" = YES;
+        "SupportsGeneratePreprocessedFile" = NO;
+        SupportedLanguageVersions = (
+            4.0,
+            4.2,
+            5.0,
+            6.0,
+        );
+        LanguageVersionDisplayNames = {
+            3.0 = "Swift 3 (unsupported)";
+            4.0 = "Swift 4";
+            4.2 = "Swift 4.2";
+            5.0 = "Swift 5";
+            6.0 = "Swift 6";
+        };
+        Options = (
+            {
+                Name = "SWIFT_EXEC";
+                Type = Path;
+                DefaultValue = swiftc;
+            },
+            {
+                Name = "SWIFT_LIBRARIES_ONLY";
+                Type = Boolean;
+                DefaultValue = NO;
+                CommandLineArgs = {
+                    YES = (
+                        "-parse-as-library",
+                    );
+                    NO = ();
+                };
+            },
+            {
+                Name = "SWIFT_ENABLE_INCREMENTAL_COMPILATION";
+                Type = Boolean;
+                DefaultValue = YES;
+            },
+            {
+                Name = "SWIFT_ENABLE_LAYOUT_STRING_VALUE_WITNESSES";
+                Type = Boolean;
+                DefaultValue = NO;
+                CommandLineArgs = {
+                    YES = (
+                        "-enable-experimental-feature", "LayoutStringValueWitnesses",
+                        "-enable-experimental-feature", "LayoutStringValueWitnessesInstantiation",
+                        "-Xfrontend", "-enable-layout-string-value-witnesses",
+                        "-Xfrontend", "-enable-layout-string-value-witnesses-instantiation"
+                    );
+                    NO = ();
+                };
+            },
+            {
+                Name = "SWIFT_CROSS_MODULE_OPTIMIZATION";
+                Type = Boolean;
+                DefaultValue = NO;
+                CommandLineArgs = {
+                    YES = (
+                        "-cross-module-optimization",
+                    );
+                    NO = ();
+                };
+            },
+            {
+                Name = "SWIFT_PRECOMPILE_BRIDGING_HEADER";
+                Type = Boolean;
+                DefaultValue = YES;
+                CommandLineArgs = {
+                    YES = ();
+                    NO = (
+                        "-disable-bridging-pch",
+                    );
+                };
+                Category = "General";
+                DisplayName = "Precompile Bridging Header";
+                Description = "Generate a precompiled header for the Objective-C bridging header, if used, in order to reduce overall build times.";
+            },
+
+            // Hidden build setting to control whether parallel -WMO is enabled.
+            {
+                Name = "SWIFT_USE_PARALLEL_WHOLE_MODULE_OPTIMIZATION";
+                Type = Boolean;
+                DefaultValue = YES;
+            },
+
+            // Hidden build setting to control whether, when building -WMO, targets are built in parallel.
+            {
+                Name = "SWIFT_USE_PARALLEL_WMO_TARGETS";
+                Type = Boolean;
+                DefaultValue = YES;
+            },
+
+            // Legacy WMO setting, still supported but this has been replaced by a unified SWIFT_OPTIMIZATION_LEVEL.
+            {
+                Name = "SWIFT_WHOLE_MODULE_OPTIMIZATION";
+                Type = Boolean;
+                DefaultValue = NO;
+                CommandLineArgs = {
+                    YES = "-whole-module-optimization";
+                    NO = ();
+                };
+            },
+            {
+                Name = "SWIFT_EAGER_MODULE_EMISSION_IN_WMO";
+                Type = Boolean;
+                DefaultValue = YES;
+            },
+            {
+                Name = "SWIFT_LIBRARY_PATH";
+                Type = Path;
+                DefaultValue = "";
+            },
+            {
+                Name = "SWIFT_RESOURCE_DIR";
+                Type = Path;
+                CommandLineFlag = "-resource-dir";
+            },
+            {
+                Name = "SWIFT_MODULE_NAME";
+                Type = String;
+                DefaultValue = "$(PRODUCT_MODULE_NAME)";
+                CommandLineArgs = (
+                    "-module-name",
+                    "$(value)",
+                );
+            },
+            {
+                Name = "SWIFT_MODULE_ALIASES";
+                Type = StringList;
+                DefaultValue = "";
+                CommandLineFlag = "-module-alias";
+            },
+            {
+                Name = "SWIFT_OBJC_BRIDGING_HEADER";
+                Type = String;
+                DefaultValue = "";
+                Category = "General";
+                DisplayName = "Objective-C Bridging Header";
+                Description = "Path to the header defining the Objective-C interfaces to be exposed in Swift.";
+            },
+            {
+                Name = "SWIFT_OBJC_INTERFACE_HEADER_NAME";
+                Type = String;
+                DefaultValue = "$(SWIFT_MODULE_NAME)-Swift.h";
+                Category = "General";
+                DisplayName = "Generated Header Name";
+                Description = "Name to use for the header that is generated by the Swift compiler for use in `#import` statements in Objective-C or C++.";
+            },
+            {
+                Name = "SWIFT_INSTALL_OBJC_HEADER";
+                Type = Boolean;
+                DefaultValue = "YES";
+                Category = "General";
+                DisplayName = "Install Generated Header";
+                Description = "For frameworks, install the C++/Objective-C generated header describing bridged Swift types into the `PUBLIC_HEADERS_FOLDER_PATH` so they may be accessed from Objective-C or C++ code using the framework. Defaults to `YES`.";
+            },
+            {
+                Name = "SWIFT_ALLOW_INSTALL_OBJC_HEADER";
+                Type = Boolean;
+                DefaultValue = "YES";
+            },
+            {
+                Name = "SWIFT_INSTALL_MODULE";
+                Type = Boolean;
+                DefaultValue = "YES";
+                Category = "General";
+                DisplayName = "Install Swift Module";
+                Description = "For frameworks, install the Swift module so it can be accessed from Swift code using the framework.";
+            },
+            {
+                Name = "SWIFT_INSTALL_MODULE_ABI_DESCRIPTOR";
+                Type = Boolean;
+                DefaultValue = YES;
+            },
+            {
+                Name = "SWIFT_MODULES_AUTOLINK";
+                Type = Boolean;
+                DefaultValue = YES;
+                CommandLineArgs = {
+                        YES = ();
+                        NO  = ("-Xfrontend", "-disable-all-autolinking");
+                };
+                Category = "General";
+                DisplayName = "Link Frameworks and Libraries Automatically";
+                Description = "Automatically link frameworks and libraries that are referenced using `import`.";
+            },
+            {
+                Name = "SWIFT_SKIP_AUTOLINKING_ALL_FRAMEWORKS";
+                Type = Boolean;
+                DefaultValue = "NO";
+                CommandLineArgs = {
+                    YES = ("-Xfrontend", "-disable-autolink-frameworks");
+                    NO  = ();
+                };
+                Category = "General";
+                DisplayName = "Skip Automatically Linking All Frameworks";
+                Description = "When enabled, does not automatically link any frameworks which are referenced using `import`.";
+            },
+            {
+                Name = "SWIFT_SKIP_AUTOLINKING_FRAMEWORKS";
+                Type = StringList;
+                CommandLineArgs = (
+                    "-Xfrontend", "-disable-autolink-framework", "-Xfrontend", "$(value)"
+                );
+                Category = "General";
+                DisplayName = "Skip Automatically Linking Frameworks";
+                Description = "A list of framework names which should not be automatically linked when referenced using `import`.";
+            },
+            {
+                Name = "SWIFT_SKIP_AUTOLINKING_LIBRARIES";
+                Type = StringList;
+                CommandLineArgs = (
+                    "-Xfrontend", "-disable-autolink-library", "-Xfrontend", "$(value)"
+                );
+                Category = "General";
+                DisplayName = "Skip Automatically Linking Libraries";
+                Description = "A list of library names which should not be automatically linked when referenced using `import`.";
+            },
+            {
+                Name = "SWIFT_OPTIMIZATION_LEVEL";
+                Type = Enumeration;
+                Values = (
+                    "-Onone",
+                    "-O",
+                    "-Osize",
+                );
+                DefaultValue = "-O";
+                CommandLineArgs = {
+                    "-Owholemodule" = ("-O", "-whole-module-optimization");
+                    "<<otherwise>>" = "$(value)";
+                };
+                Category = "Code Generation";
+                DisplayName = "Optimization Level";
+            },
+            {
+                Name = "SWIFT_LTO";
+                Type = Enumeration;
+                Values = (
+                    YES,
+                    YES_THIN,
+                    NO,
+                );
+                DefaultValue = NO;
+                CommandLineArgs = {
+                    YES = ( "-lto=llvm-full" );
+                    YES_THIN = ( "-lto=llvm-thin" );
+                    NO  = ();
+                };
+                AdditionalLinkerArgs = {
+                    YES_THIN = ( "-flto=thin", "-Xlinker", "-cache_path_lto", "-Xlinker", "$(OBJROOT)/LTOCache" );
+                    NO = ();
+                };
+            },
+            {
+                Name = "SWIFT_COMPILATION_MODE";
+                Type = Enumeration;
+                Values = (
+                    "singlefile",
+                    "wholemodule",
+                );
+                DefaultValue = "singlefile";
+                Condition = "!$(SWIFT_WHOLE_MODULE_OPTIMIZATION) && $(SWIFT_OPTIMIZATION_LEVEL) != '-Owholemodule'";
+                CommandLineArgs = {
+                    "wholemodule" = "-whole-module-optimization";
+                    "<<otherwise>>" = ();
+                };
+                Category = "Code Generation";
+                DisplayName = "Compilation Mode";
+            },
+            // Hidden internal setting that decides whether to enable batch mode. The value of this setting will be ignored when compiling with whole module optimization.
+            {
+                Name = "SWIFT_ENABLE_BATCH_MODE";
+                Type = Boolean;
+                DefaultValue = YES;
+            },
+            {
+                Name = "SWIFT_DISABLE_SAFETY_CHECKS";
+                Type = Boolean;
+                DefaultValue = NO;
+                CommandLineFlag = "-remove-runtime-asserts";
+                Category = "Code Generation";
+                DisplayName = "Disable Safety Checks";
+                Description = "Disable runtime safety checks when optimizing.";
+            },
+            {
+                Name = "SWIFT_ENFORCE_EXCLUSIVE_ACCESS";
+                Type = Enumeration;
+                Values = (
+                    "on",
+                    "debug-only",
+                    "off",
+                );
+                DefaultValue = "on";
+                CommandLineArgs = {
+                    "on" = "-enforce-exclusivity=checked";
+                    "full" = (); // Handled by __SWIFT_ENFORCE_EXCLUSIVE_ACCESS_DEBUG_ENFORCEMENT
+                    "debug-only" = (); // Handled by __SWIFT_ENFORCE_EXCLUSIVE_ACCESS_DEBUG_ENFORCEMENT
+                    "off" = "-enforce-exclusivity=unchecked";
+                    "compile-time" = "-enforce-exclusivity=unchecked";
+                    "none" = "-enforce-exclusivity=none";
+                    "<<otherwise>>" = "-enforce-exclusivity=$(value)";
+                };
+                Category = "Code Generation";
+                DisplayName = "Exclusive Access to Memory";
+                Description = "Enforce exclusive access at run-time.";
+            },
+            {
+                Name = "__SWIFT_ENFORCE_EXCLUSIVE_ACCESS_DEBUG_ENFORCEMENT_RELEASE";
+                Type = Boolean;
+                DefaultValue = YES;
+                                // Disable run-time enforcement in non-Onone builds.
+                                Condition = "$(SWIFT_OPTIMIZATION_LEVEL) != '-Onone' && ($(SWIFT_ENFORCE_EXCLUSIVE_ACCESS) == 'full' || $(SWIFT_ENFORCE_EXCLUSIVE_ACCESS) == 'debug-only')";
+                CommandLineArgs = {
+                    YES = ( "-enforce-exclusivity=unchecked", );
+                    NO = ();
+                };
+            },
+            {
+                Name = "__SWIFT_ENFORCE_EXCLUSIVE_ACCESS_DEBUG_ENFORCEMENT_DEBUG";
+                Type = Boolean;
+                DefaultValue = YES;
+                // Enable run-time enforcement in -Onone builds.
+                Condition = "$(SWIFT_OPTIMIZATION_LEVEL) == '-Onone' && ($(SWIFT_ENFORCE_EXCLUSIVE_ACCESS) == 'full' || $(SWIFT_ENFORCE_EXCLUSIVE_ACCESS) == 'debug-only')";
+                CommandLineArgs = {
+                    YES = ( "-enforce-exclusivity=checked" );
+                    NO = ();
+                };
+            },
+            {
+                Name = "SWIFT_STDLIB";
+                Type = String;
+                DefaultValue = "swiftCore";
+            },
+            {
+                Name = "SWIFT_INCLUDE_PATHS";
+                Type = PathList;
+                "FlattenRecursiveSearchPathsInValue" = Yes;
+                Category = "Search Paths";
+                DisplayName = "Import Paths";
+                Description = "A list of paths to be searched by the Swift compiler for additional Swift modules.";
+            },
+            {
+                Name = "FRAMEWORK_SEARCH_PATHS";
+                Type = PathList;
+                "FlattenRecursiveSearchPathsInValue" = Yes;
+            },
+            {
+                Name = "SWIFT_PACKAGE_NAME";
+                Type = String;
+                Condition = "$(SWIFT_PACKAGE_NAME) != \"\"";
+                Category = "General";
+                DisplayName = "Package Access Identifier";
+                Description = "An identifier that allows grouping of modules with access to symbols with a package access modifier.";
+            },
+            {
+                Name = "SWIFT_RESPONSE_FILE_PATH";
+                Type = Path;
+                DefaultValue = "$(SWIFT_RESPONSE_FILE_PATH_$(variant)_$(arch))";
+                CommandLineArgs = {
+                    "" = ();
+                    "<<otherwise>>" = "@$(value)";
+                };
+                IsInputDependency = Yes;
+            },
+            {
+                Name = "SWIFT_ACTIVE_COMPILATION_CONDITIONS";
+                Type = StringList;
+                DefaultValue = "";
+                CommandLineArgs = (
+                    "-D$(value)",
+                );
+                Category = "Custom Flags";
+                DisplayName = "Active Compilation Conditions";
+                Description = "A list of compilation conditions to enable for conditional compilation expressions.";
+            },
+            {
+                // Custom compiler flags for a toolchain's
+                // ToolchainInfo.plist.  Should be before
+                // OTHER_SWIFT_FLAGS to allow flags to be
+                // overridden there.
+                Name = "SWIFT_TOOLCHAIN_FLAGS";
+                Type = StringList;
+                CommandLineArgs = (
+                    "$(value)",
+                );
+                // Hidden.
+            },
+            {
+                Name = "OTHER_SWIFT_FLAGS";
+                Type = StringList;
+                CommandLineArgs = (
+                    "$(value)",
+                );
+                Category = "Custom Flags";
+                DisplayName = "Other Swift Flags";
+                Description = "A list of additional flags to pass to the Swift compiler.";
+            },
+
+            {
+                Name = "_PREFIXED_SWIFT_VERSION";
+                Type = String;
+                DefaultValue = "_$(SWIFT_VERSION)";
+            },
+
+            // Upcoming Swift 6.0 features
+            {
+                Name = "ENABLE_SWIFT_6_UPCOMING_FEATURES_IN_SWIFT_VERSION_6_0";
+                Type = Boolean;
+                DefaultValue = "YES";
+            },
+            {
+                Name = "SWIFT_UPCOMING_FEATURE_6_0";
+                Type = Boolean;
+                DefaultValue = "$(ENABLE_SWIFT_6_UPCOMING_FEATURES_IN_SWIFT_VERSION$(_PREFIXED_SWIFT_VERSION:c99extidentifier):default=NO)";
+            },
+
+            {
+                Name = "SWIFT_UPCOMING_FEATURE_CONCISE_MAGIC_FILE";
+                Type = Boolean;
+                DefaultValue = "$(SWIFT_UPCOMING_FEATURE_6_0)";
+                Condition = "$(EFFECTIVE_SWIFT_VERSION) == '4' || $(EFFECTIVE_SWIFT_VERSION) == '4.2' || $(EFFECTIVE_SWIFT_VERSION) == '5'";
+                CommandLineArgs = {
+                    YES = ( "-enable-upcoming-feature", "ConciseMagicFile" );
+                    NO  = ();
+                };
+                DisplayName = "Concise Magic File";
+                Category = "Upcoming Features";
+                Description = "Changes #file to evaluate to a string literal of the format `<module-name>/<file-name>`, with the existing behavior preserved in a new #filePath. This is always enabled when in the Swift 6 language mode.";
+            },
+
+            {
+                Name = "SWIFT_UPCOMING_FEATURE_FORWARD_TRAILING_CLOSURES";
+                Type = Boolean;
+                DefaultValue = "$(SWIFT_UPCOMING_FEATURE_6_0)";
+                Condition = "$(EFFECTIVE_SWIFT_VERSION) == '4' || $(EFFECTIVE_SWIFT_VERSION) == '4.2' || $(EFFECTIVE_SWIFT_VERSION) == '5'";
+                CommandLineArgs = {
+                    YES = ( "-enable-upcoming-feature", "ForwardTrailingClosures" );
+                    NO  = ();
+                };
+                DisplayName = "Forward Trailing Closures";
+                Category = "Upcoming Features";
+                Description = "Updates trailing closures to be evaluated such that arguments are matched forwards instead of backwards. This is always enabled when in the Swift 6 language mode.";
+            },
+
+            {
+                Name = "SWIFT_STRICT_CONCURRENCY_IN_SWIFT_VERSION_6_0";
+                Type = Boolean;
+                DefaultValue = "complete";
+            },
+            {
+                Name = "SWIFT_STRICT_CONCURRENCY_DEFAULT";
+                Type = Boolean;
+                DefaultValue = "$(SWIFT_STRICT_CONCURRENCY_IN_SWIFT_VERSION$(_PREFIXED_SWIFT_VERSION:c99extidentifier):default=minimal)";
+            },
+            {
+                Name = "SWIFT_STRICT_CONCURRENCY";
+                Type = Enumeration;
+                Values = (
+                    minimal,
+                    targeted,
+                    complete
+                );
+                DefaultValue = "$(SWIFT_STRICT_CONCURRENCY_DEFAULT)";
+                Condition = "$(EFFECTIVE_SWIFT_VERSION) == '4' || $(EFFECTIVE_SWIFT_VERSION) == '4.2' || $(EFFECTIVE_SWIFT_VERSION) == '5'";
+                CommandLineArgs = {
+                    minimal = ();
+                    targeted = ("-strict-concurrency=targeted");
+                    "<<otherwise>>" = ( "-enable-upcoming-feature", "StrictConcurrency" );
+                };
+                DisplayName = "Strict Concurrency Checking";
+                Category = "Upcoming Features";
+                Description = "Enables strict concurrency checking to produce warnings for possible data races. This is always 'complete' when in the Swift 6 language mode and produces errors instead of warnings.";
+            },
+
+            {
+                Name = "SWIFT_ENABLE_BARE_SLASH_REGEX";
+                Type = Boolean;
+                DefaultValue = "YES";
+                Condition = "$(EFFECTIVE_SWIFT_VERSION) == '4' || $(EFFECTIVE_SWIFT_VERSION) == '4.2' || $(EFFECTIVE_SWIFT_VERSION) == '5'";
+                CommandLineArgs = {
+                    YES = ( "-enable-bare-slash-regex" );
+                    NO = ();
+                };
+                DisplayName = "Bare Slash Regex Literals";
+                Category = "Upcoming Features";
+                Description = "Enables the use of the forward slash syntax for regular-expressions (`/.../`). This is always enabled when in the Swift 6 language mode.";
+            },
+
+            {
+                Name = "SWIFT_UPCOMING_FEATURE_DEPRECATE_APPLICATION_MAIN";
+                Type = Boolean;
+                DefaultValue = "$(SWIFT_UPCOMING_FEATURE_6_0)";
+                Condition = "$(EFFECTIVE_SWIFT_VERSION) == '4' || $(EFFECTIVE_SWIFT_VERSION) == '4.2' || $(EFFECTIVE_SWIFT_VERSION) == '5'";
+                CommandLineArgs = {
+                    YES = ( "-enable-upcoming-feature", "DeprecateApplicationMain" );
+                    NO  = ();
+                };
+                DisplayName = "Deprecate Application Main";
+                Category = "Upcoming Features";
+                Description = "Causes any use of `@UIApplicationMain` or `@NSApplicationMain` to produce a warning (use `@main` instead). This is always enabled when in the Swift 6 language mode and an error instead of a warning.";
+            },
+
+            {
+                Name = "SWIFT_UPCOMING_FEATURE_IMPORT_OBJC_FORWARD_DECLS";
+                Type = Boolean;
+                DefaultValue = "$(SWIFT_UPCOMING_FEATURE_6_0)";
+                Condition = "$(EFFECTIVE_SWIFT_VERSION) == '4' || $(EFFECTIVE_SWIFT_VERSION) == '4.2' || $(EFFECTIVE_SWIFT_VERSION) == '5'";
+                CommandLineArgs = {
+                    YES = ( "-enable-upcoming-feature", "ImportObjcForwardDeclarations" );
+                    NO  = ();
+                };
+                DisplayName = "Import Objective-C Forward Declarations";
+                Category = "Upcoming Features";
+                Description = "Synthesizes placeholder types to represent forward declared Objective-C interfaces and protocols. This is always enabled when in the Swift 6 language mode.";
+            },
+
+            {
+                Name = "SWIFT_UPCOMING_FEATURE_DISABLE_OUTWARD_ACTOR_ISOLATION";
+                Type = Boolean;
+                DefaultValue = "$(SWIFT_UPCOMING_FEATURE_6_0)";
+                Condition = "$(EFFECTIVE_SWIFT_VERSION) == '4' || $(EFFECTIVE_SWIFT_VERSION) == '4.2' || $(EFFECTIVE_SWIFT_VERSION) == '5'";
+                CommandLineArgs = {
+                    YES = ( "-enable-upcoming-feature", "DisableOutwardActorInference" );
+                    NO  = ();
+                };
+                DisplayName = "Disable Outward Actor Isolation Inference";
+                Category = "Upcoming Features";
+                Description = "Removes inferred actor isolation inference from property wrappers. This is always enabled when in the Swift 6 language mode.";
+            },
+
+            {
+                Name = "SWIFT_UPCOMING_FEATURE_ISOLATED_DEFAULT_VALUES";
+                Type = Boolean;
+                DefaultValue = "$(SWIFT_UPCOMING_FEATURE_6_0)";
+                Condition = "$(EFFECTIVE_SWIFT_VERSION) == '4' || $(EFFECTIVE_SWIFT_VERSION) == '4.2' || $(EFFECTIVE_SWIFT_VERSION) == '5'";
+                CommandLineArgs = {
+                    YES = ( "-enable-upcoming-feature", "IsolatedDefaultValues" );
+                    NO  = ();
+                };
+                DisplayName = "Isolated Default Values";
+                Category = "Upcoming Features";
+                Description = "Adds actor isolation for default values, matching its enclosing function or stored property. This is always enabled when in the Swift 6 language mode.";
+            },
+
+            {
+                Name = "SWIFT_UPCOMING_FEATURE_GLOBAL_CONCURRENCY";
+                Type = Boolean;
+                DefaultValue = "$(SWIFT_UPCOMING_FEATURE_6_0)";
+                Condition = "$(EFFECTIVE_SWIFT_VERSION) == '4' || $(EFFECTIVE_SWIFT_VERSION) == '4.2' || $(EFFECTIVE_SWIFT_VERSION) == '5'";
+                CommandLineArgs = {
+                    YES = ( "-enable-upcoming-feature", "GlobalConcurrency" );
+                    NO  = ();
+                };
+                DisplayName = "Isolated Global Variables";
+                Category = "Upcoming Features";
+                Description = "Adds a warning for global variables that are neither isolated to a global actor or are not both immutable and Sendable. This is always enabled when in the Swift 6 language mode and an error instead of a warning.";
+            },
+
+            {
+                Name = "SWIFT_UPCOMING_FEATURE_INFER_SENDABLE_FROM_CAPTURES";
+                Type = Boolean;
+                DefaultValue = "$(SWIFT_UPCOMING_FEATURE_6_0)";
+                Condition = "$(EFFECTIVE_SWIFT_VERSION) == '4' || $(EFFECTIVE_SWIFT_VERSION) == '4.2' || $(EFFECTIVE_SWIFT_VERSION) == '5'";
+                CommandLineArgs = {
+                    YES = ( "-enable-upcoming-feature", "InferSendableFromCaptures" );
+                    NO  = ();
+                };
+                DisplayName = "Infer Sendable for Methods and Key Path Literals";
+                Category = "Upcoming Features";
+                Description = "Adds sendability inference for partial and unapplied methods, and allows specifying whether a key path literal is Sendable. This is always enabled when in the Swift 6 language mode.";
+            },
+
+            {
+                Name = "SWIFT_UPCOMING_FEATURE_IMPLICIT_OPEN_EXISTENTIALS";
+                Type = Boolean;
+                DefaultValue = "$(SWIFT_UPCOMING_FEATURE_6_0)";
+                Condition = "$(EFFECTIVE_SWIFT_VERSION) == '4' || $(EFFECTIVE_SWIFT_VERSION) == '4.2' || $(EFFECTIVE_SWIFT_VERSION) == '5'";
+                CommandLineArgs = {
+                    YES = ( "-enable-upcoming-feature", "ImplicitOpenExistentials" );
+                    NO  = ();
+                };
+                DisplayName = "Implicitly Opened Existentials";
+                Category = "Upcoming Features";
+                Description = "Enables passing an existential where a generic is expected. This is always enabled when in the Swift 6 language mode.";
+            },
+
+            {
+                Name = "SWIFT_UPCOMING_FEATURE_REGION_BASED_ISOLATION";
+                Type = Boolean;
+                DefaultValue = "$(SWIFT_UPCOMING_FEATURE_6_0)";
+                Condition = "$(EFFECTIVE_SWIFT_VERSION) == '4' || $(EFFECTIVE_SWIFT_VERSION) == '4.2' || $(EFFECTIVE_SWIFT_VERSION) == '5'";
+                CommandLineArgs = {
+                    YES = ( "-enable-upcoming-feature", "RegionBasedIsolation" );
+                    NO  = ();
+                };
+                DisplayName = "Region Based Isolation";
+                Category = "Upcoming Features";
+                Description = "Enable passing non-Sendable values over isolation boundaries when there's no possibility of concurrent access. This is always enabled when in the Swift 6 language mode.";
+            },
+
+            // Upcoming Swift "next" features
+            {
+                Name = "SWIFT_UPCOMING_FEATURE_INTERNAL_IMPORTS_BY_DEFAULT";
+                Type = Boolean;
+                DefaultValue = NO;
+                CommandLineArgs = {
+                    YES = ( "-enable-upcoming-feature", "InternalImportsByDefault" );
+                    NO  = ();
+                };
+                DisplayName = "Default Internal Imports";
+                Category = "Upcoming Features";
+                Description = "Switches the default accessibility of module imports to `internal` rather than `public`.";
+            },
+
+            {
+                Name = "SWIFT_UPCOMING_FEATURE_MEMBER_IMPORT_VISIBILITY";
+                Type = Boolean;
+                DefaultValue = NO;
+                CommandLineArgs = {
+                    YES = ( "-enable-upcoming-feature", "MemberImportVisibility" );
+                    NO  = ();
+                };
+                DisplayName = "Member Import Visibility";
+                Category = "Upcoming Features";
+                Description = "Requires that a module be imported directly in order for its member declarations to be accessible.";
+            },
+
+            {
+                Name = "SWIFT_UPCOMING_FEATURE_EXISTENTIAL_ANY";
+                Type = Boolean;
+                DefaultValue = NO;
+                CommandLineArgs = {
+                    YES = ( "-enable-upcoming-feature", "ExistentialAny" );
+                    NO  = ();
+                };
+                DisplayName = "Require Existential any";
+                Category = "Upcoming Features";
+                Description = "Changes existential types to require explicit annotation with the `any` keyword.";
+            },
+
+            // Experimental features
+            {
+                Name = "SWIFT_EXPERIMENTAL_FEATURE_DEBUG_DESCRIPTION_MACRO";
+                Type = Boolean;
+                DefaultValue = YES;
+                CommandLineArgs = {
+                    YES = ( "-enable-experimental-feature", "DebugDescriptionMacro" );
+                    NO  = ();
+                };
+            },
+
+            {
+                Name = SDKROOT;
+                Type = Path;
+                CommandLineFlag = "-sdk";
+            },
+            {
+                Name = "SWIFT_DEPLOYMENT_TARGET";
+                Type = String;
+                DefaultValue = "$($(DEPLOYMENT_TARGET_SETTING_NAME))";
+            },
+            {
+                Name = "SWIFT_TARGET_TRIPLE";
+                Type = String;
+                DefaultValue = "$(CURRENT_ARCH)-$(LLVM_TARGET_TRIPLE_VENDOR)-$(SWIFT_PLATFORM_TARGET_PREFIX)$(SWIFT_DEPLOYMENT_TARGET)$(LLVM_TARGET_TRIPLE_SUFFIX)";
+                CommandLineFlag = "-target";
+            },
+            {
+                Name = "SWIFT_TARGET_TRIPLE_VARIANTS";
+                Type = StringList;
+                CommandLineFlag = "-target-variant";
+                ConditionFlavors = ( arch );
+            },
+            {
+                Name = "SWIFT_VERSION";
+                Type = String;
+                Category = "Language";
+                UIType = swiftversion;
+                DefaultValue = "";
+                DisplayName = "Swift Language Version";
+                Description = "The language version used to compile the target's Swift code.";
+                Basic = YES;
+            },
+            {
+                Name = "SWIFT_ENABLE_EMIT_CONST_VALUES";
+                Type = Boolean;
+                DefaultValue = YES;
+                Category = "Language";
+                DisplayName = "Emit Swift const values";
+                Description = "Emit the extracted compile-time known values from the Swift compiler (-emit-const-values)";
+            },
+            {
+                Name = "SWIFT_EMIT_CONST_VALUE_PROTOCOLS";
+                Type = StringList;
+                DefaultValue = "AppIntent EntityQuery AppEntity TransientEntity AppEnum AppShortcutProviding AppShortcutsProvider AnyResolverProviding AppIntentsPackage DynamicOptionsProvider _IntentValueRepresentable _AssistantIntentsProvider _GenerativeFunctionExtractable";
+                DisplayName = "Const value emission protocol list";
+                Description = "A list of protocol names whose conformances the Swift compiler is to emit compile-time-known values for.";
+            },
+            {
+                Name = "SWIFT_OBJC_INTEROP_MODE";
+                Type = Enumeration;
+                Values = (
+                    "objcxx",
+                    "objc",
+                );
+                DefaultValue = "objc";
+                CommandLineArgs = {
+                    "objcxx" = "-cxx-interoperability-mode=default";
+                    "objc" = "";
+                };
+                Category = "Language";
+                DisplayName = "C++ and Objective-C Interoperability";
+                Description = "Determines whether Swift can interoperate with C++ in addition to Objective-C.";
+            },
+            {
+                Name = "SWIFT_DEBUG_INFORMATION_FORMAT";
+                Type = Enumeration;
+                Values = (
+                    dwarf,
+                    "dwarf-with-dsym",
+                );
+                CommandLineArgs = {
+                    dwarf = (
+                        "-g",
+                    );
+                    "dwarf-with-dsym" = (
+                        "-g",
+                    );
+                    "<<otherwise>>" = ();
+                };
+                DefaultValue = "$(DEBUG_INFORMATION_FORMAT)";
+                Condition = "$(GCC_GENERATE_DEBUGGING_SYMBOLS)";
+            },
+            {
+                Name = "SWIFT_DEBUG_INFORMATION_VERSION";
+                Type = Enumeration;
+                Values = (
+                    "compiler-default",
+                    dwarf4,
+                    dwarf5,
+                );
+                CommandLineArgs = {
+                    dwarf4 = (
+                        "-dwarf-version=4",
+                    );
+                    dwarf5 = (
+                        "-dwarf-version=5",
+                    );
+                    "<<otherwise>>" = ();
+                };
+                DefaultValue = "$(DEBUG_INFORMATION_VERSION)";
+                Condition = "$(GCC_GENERATE_DEBUGGING_SYMBOLS) && $(DEBUG_INFORMATION_FORMAT) != \"\"";
+            },
+            {
+                Name = "CLANG_MODULE_CACHE_PATH";
+                Type = Path;
+                CommandLineFlag = "-module-cache-path";
+            },
+            {
+                Name = "SWIFT_AUTOLINK_EXTRACT_OUTPUT_PATH";
+                Type = Path;
+                DefaultValue = "$(PER_ARCH_OBJECT_FILE_DIR)/$(SWIFT_MODULE_NAME).autolink";
+            },
+            {
+                Name = "SWIFT_VALIDATE_CLANG_MODULES_ONCE_PER_BUILD_SESSION";
+                Type = Boolean;
+                DefaultValue = YES;
+            },
+            {
+                Name = "_EXPERIMENTAL_SWIFT_EXPLICIT_MODULES";
+                Type = Enumeration;
+                Values = (
+                    YES,
+                    NO
+                );
+                DisplayName = "Explicitly Built Modules";
+                Category = "General";
+                Description = "Coordinates the build of the main module's modular dependencies via explicit tasks scheduled by the build system.";
+            },
+            {
+                Name = "SWIFT_GENERATE_ADDITIONAL_LINKER_ARGS";
+                Type = Boolean;
+                DefaultValue = "$(_EXPERIMENTAL_SWIFT_EXPLICIT_MODULES:default=$(SWIFT_ENABLE_EXPLICIT_MODULES))";
+            },
+            {
+                Name = "SWIFT_ADDITIONAL_LINKER_ARGS_OUTPUT_PATH";
+                Type = Path;
+                DefaultValue = "$(PER_ARCH_OBJECT_FILE_DIR)/$(SWIFT_MODULE_NAME)-linker-args.resp";
+            },
+            {
+                Name = "SWIFT_SERIALIZE_DEBUGGING_OPTIONS";
+                Type = Boolean;
+                DefaultValue = YES;
+                CommandLineArgs = {
+                    YES = ( "-Xfrontend", "-serialize-debugging-options" );
+                    NO  = ( "-Xfrontend", "-no-serialize-debugging-options" );
+                };
+            },
+            {
+                Name = "SWIFT_ENABLE_APP_EXTENSION";
+                Type = Boolean;
+                DefaultValue = "$(APPLICATION_EXTENSION_API_ONLY)";
+                CommandLineArgs = {
+                    YES = ( "-application-extension" );
+                    NO  = ();
+                };
+                // NOTE: These arguments are passed to *Clang*.
+                AdditionalLinkerArgs = {
+                    YES = ( "-fapplication-extension" );
+                    NO = ();
+                };
+            },
+            {
+                Name = "SWIFT_LINK_OBJC_RUNTIME";
+                Type = Boolean;
+                DefaultValue = "$(LINK_OBJC_RUNTIME)";
+                CommandLineArgs = {
+                    YES = ();
+                    NO = ();
+                };
+                // This option is passed for linking to inform the compiler
+                // that the ObjC runtime must be linked in (with possible
+                // backwards compatibility libraries linked in).
+                AdditionalLinkerArgs = {
+                    YES = ( "-fobjc-link-runtime" );
+                    NO = ();
+                };
+            },
+
+            {
+                Name = "CLANG_COVERAGE_MAPPING";
+                Type = Boolean;
+                DefaultValue = NO;
+                Condition = "$(ENABLE_CODE_COVERAGE)";
+                CommandLineArgs = {
+                    YES = (
+                        "-profile-coverage-mapping",
+                        "-profile-generate",
+                    );
+                    NO = ();
+                };
+            },
+
+            {
+                Name = "CLANG_COVERAGE_MAPPING_LINKER_ARGS";
+                Type = Boolean;
+                DefaultValue = "$(CLANG_COVERAGE_MAPPING)";
+                AdditionalLinkerArgs = {
+                    NO = ();
+                    YES = (
+                        "-fprofile-instr-generate",
+                    );
+                };
+            },
+
+            // Reflection metadata options
+            {
+                Name = "SWIFT_REFLECTION_METADATA_LEVEL";
+                Type = Enumeration;
+                Values = (
+                    all,
+                    without-names,
+                    none,
+                );
+                DefaultValue = all;
+                CommandLineArgs = {
+                    all = ();
+                    without-names = (
+                        "-Xfrontend",
+                        "-disable-reflection-names",
+                    );
+                    none = (
+                        "-Xfrontend",
+                        "-disable-reflection-metadata",
+                    );
+                };
+                Category = "General";
+                DisplayName = "Reflection Metadata Level";
+            },
+
+            // Generate bitcode options
+            {
+                Name = "SWIFT_BITCODE_GENERATION_MODE";
+                Type = Enumeration;
+                Values = (
+                    marker,
+                    bitcode,
+                );
+                DefaultValue = "$(BITCODE_GENERATION_MODE)";
+                Architectures = ( arm64, arm64e, armv7, armv7s, armv7k, arm64_32 );
+                Condition = "$(ENABLE_BITCODE)";
+                CommandLineArgs = {
+                    marker = (
+                        "-embed-bitcode-marker",
+                    );
+                    bitcode = (
+                        "-embed-bitcode",
+                    );
+                };
+                // Not visible in the build settings editor
+            },
+
+            // Fuzzer option.
+            {
+                Name = "SWIFT_LIBFUZZER";
+                Type = Boolean;
+                DefaultValue = "$(ENABLE_LIBFUZZER)";
+                CommandLineArgs = {
+                    YES = (
+                        "-sanitize=fuzzer",
+                        "-sanitize-coverage=edge,indirect-calls,trace-cmp,inline-8bit-counters"
+                    );
+                    NO = ();
+                };
+                AdditionalLinkerArgs = {
+                    YES = (
+                        "-fsanitize=fuzzer",
+                        "-fno-sanitize-coverage=pc-table"
+                    );
+                    NO = ();
+                };
+            },
+
+            // Address sanitizer options
+            {
+                Name = "SWIFT_ADDRESS_SANITIZER";
+                Type = Boolean;
+                DefaultValue = "$(ENABLE_ADDRESS_SANITIZER)";
+                CommandLineArgs = {
+                    YES = (
+                        "-sanitize=address",
+                    );
+                    NO = ();
+                };
+                AdditionalLinkerArgs = {
+                    YES = (
+                        "-fsanitize=address",
+                    );
+                    NO = ();
+                };
+                // Not visible in the build settings editor
+            },
+            {
+                Name = "SWIFT_ADDRESS_SANITIZER_ALLOW_ERROR_RECOVERY";
+                Type = Boolean;
+                DefaultValue = "$(ENABLE_ADDRESS_SANITIZER_ALLOW_ERROR_RECOVERY)";
+                CommandLineArgs = {
+                    YES = (
+                        "-sanitize-recover=address",
+                    );
+                    NO = ();
+                };
+                Condition = "$(SWIFT_ADDRESS_SANITIZER)";
+                // Not visible in the build settings editor due to no `Category`.
+            },
+
+            // Thread Sanitizer options.
+            {
+                Name = "SWIFT_THREAD_SANITIZER";
+                Type = Boolean;
+                DefaultValue = "$(ENABLE_THREAD_SANITIZER)";
+                Architectures = (
+                    x86_64,
+                    x86_64h,
+                    arm64,
+                    arm64e,
+                );
+                CommandLineArgs = {
+                    YES = (
+                        "-sanitize=thread",
+                    );
+                    NO = ();
+                };
+                // Not visible in the build settings editor
+            },
+            {
+                Name = "ENABLE_SYSTEM_SANITIZERS";
+                Type = Boolean;
+                CommandLineArgs = {
+                    YES = (
+                        "-sanitize-stable-abi",
+                    );
+                    NO = ();
+                };
+                AdditionalLinkerArgs = {
+                    YES = (
+                        "-fsanitize-stable-abi",
+                    );
+                    NO = ();
+                };
+                Condition = "$(SWIFT_ADDRESS_SANITIZER)";
+            },
+            // Testing options
+            {
+                Name = "SWIFT_ENABLE_TESTABILITY";
+                Type = Boolean;
+                DefaultValue = NO;
+                CommandLineArgs = {
+                    YES = (
+                        "-enable-testing",
+                    );
+                    NO = ();
+                };
+                // Not visible in the build settings editor
+            },
+
+            // Warnings policy options
+            {
+                Name = "SWIFT_SUPPRESS_WARNINGS";
+                Type = Boolean;
+                DefaultValue = "$(SUPPRESS_WARNINGS)";
+                CommandLineFlag = "-suppress-warnings";
+                Category = "Warnings Policies";
+                DisplayName = "Suppress Warnings";
+                Description = "Don't emit any warnings.";
+            },
+            {
+                Name = "SWIFT_TREAT_WARNINGS_AS_ERRORS";
+                Type = Boolean;
+                DefaultValue = NO;
+                CommandLineArgs = {
+                    YES = (
+                        "-warnings-as-errors",
+                    );
+                    NO = ();
+                };
+                Category = "Warnings Policies";
+                DisplayName = "Treat Warnings as Errors";
+                Description = "Treat all warnings as errors.";
+            },
+
+            // Index-while-building options, not visible in build settings.
+            {
+                Name = "SWIFT_INDEX_STORE_PATH";
+                Type = Path;
+                DefaultValue = "$(INDEX_DATA_STORE_DIR)";
+            },
+            {
+                Name = "SWIFT_INDEX_STORE_ENABLE";
+                Type = Boolean;
+                DefaultValue = "$(INDEX_ENABLE_DATA_STORE)";
+                Condition = "$(COMPILER_INDEX_STORE_ENABLE)  ||  ( $(COMPILER_INDEX_STORE_ENABLE) == Default  &&  $(SWIFT_OPTIMIZATION_LEVEL) == '-Onone' )";
+                CommandLineArgs = {
+                    YES = (
+                        "-index-store-path",
+                        "$(SWIFT_INDEX_STORE_PATH)",
+                    );
+                    NO = ();
+                };
+            },
+
+            // Swift caching options.
+            {
+                Name = "SWIFT_ENABLE_PREFIX_MAPPING";
+                Type = Boolean;
+                // `DefaultValue` is not set to allow configuring the setting via an environment variable.
+                CommandLineArgs = {
+                    YES = (
+                        "-scanner-prefix-map-sdk", "/^sdk",
+                        "-scanner-prefix-map-toolchain", "/^toolchain",
+                        "-scanner-prefix-map", "$(DEVELOPER_DIR)=/^xcode",
+                        // FIXME: add source and build directory mappings by default
+                    );
+                    NO = ();
+                };
+                Condition = "$(SWIFT_ENABLE_COMPILE_CACHE)";
+            },
+            {
+                Name = "SWIFT_OTHER_PREFIX_MAPPINGS";
+                Type = StringList;
+                DefaultValue = "";
+                CommandLineArgs = (
+                    "-scanner-prefix-map", "$(value)",
+                );
+                Condition = "$(SWIFT_ENABLE_COMPILE_CACHE) && $(SWIFT_ENABLE_PREFIX_MAPPING)";
+            },
+
+            // Distribution settings
+            {
+                Name = "SWIFT_EMIT_MODULE_INTERFACE";
+                Type = Boolean;
+                DefaultValue = "$(BUILD_LIBRARY_FOR_DISTRIBUTION)";
+            },
+
+            {
+                Name = "SWIFT_ENABLE_LIBRARY_EVOLUTION";
+                Type = Boolean;
+                DefaultValue = "$(BUILD_LIBRARY_FOR_DISTRIBUTION)";
+                CommandLineArgs = {
+                    YES = (
+                        "-enable-library-evolution",
+                    );
+                    NO = ();
+                };
+            },
+
+            {
+                Name = "SWIFT_ENABLE_OPAQUE_TYPE_ERASURE";
+                Type = Boolean;
+                // rdar://143344956 (Disable opaque type erasure for debug builds)
+                DefaultValue = NO;
+                CommandLineArgs = {
+                    YES = (
+                        "-enable-experimental-feature",
+                        "OpaqueTypeErasure",
+                    );
+                    NO = ();
+                };
+            },
+
+            // Hidden clang importer options to control C++ behavior
+            // in the clang importer, not visible in build settings.
+            {
+                Name = "SWIFT_CLANG_CXX_LANGUAGE_STANDARD";
+                Type = String;
+                DefaultValue = "$(SWIFT_OBJC_INTEROP_MODE)-$(CLANG_CXX_LANGUAGE_STANDARD)";
+                // Note: C++14 is set by the clang importer, so we should only pass standards above C++14.
+                CommandLineArgs = {
+                    "objcxx-c++17" = ("-Xcc", "-std=$(CLANG_CXX_LANGUAGE_STANDARD)");
+                    "objcxx-gnu++17" = ("-Xcc", "-std=$(CLANG_CXX_LANGUAGE_STANDARD)");
+                    "objcxx-c++20" = ("-Xcc", "-std=$(CLANG_CXX_LANGUAGE_STANDARD)");
+                    "objcxx-gnu++20" = ("-Xcc", "-std=$(CLANG_CXX_LANGUAGE_STANDARD)");
+                    "objcxx-c++23" = ("-Xcc", "-std=$(CLANG_CXX_LANGUAGE_STANDARD)");
+                    "objcxx-gnu++23" = ("-Xcc", "-std=$(CLANG_CXX_LANGUAGE_STANDARD)");
+                    "<<otherwise>>" = ();
+                };
+            },
+
+            {
+                Name = "SWIFT_OVERLOAD_PREBUILT_MODULE_CACHE_PATH";
+                Type = Path;
+                DefaultValue = "";
+                CommandLineArgs = {
+                    "" = ();
+                    "<<otherwise>>" = (
+                        "-Xfrontend",
+                        "-prebuilt-module-cache-path",
+                        "-Xfrontend",
+                        "$(value)",
+                    );
+                };
+            },
+        );
+    },
+  {
+    Identifier = "com.apple.build-tools.swift-abi-checker";
+    Type = Tool;
+    Name = SwiftFrameworkABIChecker;
+    Description = "Swift ABI Checking Tool";
+    RuleName = "CheckSwiftABI $(CURRENT_VARIANT) $(CURRENT_ARCH)";
+    ExecDescription = "Check ABI stability for $(PRODUCT_MODULE_NAME).swiftinterface";
+    ProgressDescription = "Checking ABI stability for $(PRODUCT_MODULE_NAME).swiftinterface";
+    CommandLine = "swift-api-digester -diagnose-sdk -abort-on-module-fail -abi -compiler-style-diags [options]";
+    CommandOutputParser = "XCGccCommandOutputParser";
+    Options = (
+          {
+              Name = "SWIFT_TARGET_TRIPLE";
+              Type = String;
+              DefaultValue = "$(CURRENT_ARCH)-$(LLVM_TARGET_TRIPLE_VENDOR)-$(SWIFT_PLATFORM_TARGET_PREFIX)$(SWIFT_DEPLOYMENT_TARGET)$(LLVM_TARGET_TRIPLE_SUFFIX)";
+              CommandLineFlag = "-target";
+          },
+          {
+              Name = FRAMEWORK_SEARCH_PATHS;
+              Type = PathList;
+              DefaultValue = "$(FRAMEWORK_SEARCH_PATHS)";
+              FlattenRecursiveSearchPathsInValue = YES;
+              CommandLineFlag = "-F";
+          },
+          {
+              Name = SDKROOT;
+              Type = Path;
+              CommandLineFlag = "-sdk";
+              IsInputDependency = YES;
+          },
+          {
+              Name = "SWIFT_MODULE_NAME";
+              Type = String;
+              DefaultValue = "$(PRODUCT_MODULE_NAME)";
+              CommandLineArgs = (
+                "-module",
+                "$(value)",
+                "-use-interface-for-module",
+                "$(value)",
+              );
+          },
+          {
+              Name = "OTHER_SWIFT_ABI_CHECKER_FLAGS";
+              Type = StringList;
+              CommandLineArgs = (
+                "$(value)",
+              );
+          }
+        );
+  },
+  {
+    Identifier = "com.apple.build-tools.swift-abi-generation";
+    Type = Tool;
+    Name = SwiftABIBaselineGenerator;
+    Description = "Swift ABI Baseline Generation Tool";
+    RuleName = "GenerateSwiftABIBaseline $(CURRENT_VARIANT) $(CURRENT_ARCH)";
+    ExecDescription = "Generate ABI baseline for $(PRODUCT_MODULE_NAME).swiftinterface";
+    ProgressDescription = "Generating ABI baseline for $(PRODUCT_MODULE_NAME).swiftinterface";
+    CommandLine = "swift-api-digester -dump-sdk -abort-on-module-fail -abi -swift-only -avoid-tool-args [options]";
+    CommandOutputParser = "XCGccCommandOutputParser";
+    Options = (
+          {
+              Name = "SWIFT_TARGET_TRIPLE";
+              Type = String;
+              DefaultValue = "$(CURRENT_ARCH)-$(LLVM_TARGET_TRIPLE_VENDOR)-$(SWIFT_PLATFORM_TARGET_PREFIX)$(SWIFT_DEPLOYMENT_TARGET)$(LLVM_TARGET_TRIPLE_SUFFIX)";
+              CommandLineFlag = "-target";
+          },
+          {
+              Name = FRAMEWORK_SEARCH_PATHS;
+              Type = PathList;
+              DefaultValue = "$(FRAMEWORK_SEARCH_PATHS)";
+              FlattenRecursiveSearchPathsInValue = YES;
+              CommandLineFlag = "-F";
+          },
+          {
+              Name = SDKROOT;
+              Type = Path;
+              CommandLineFlag = "-sdk";
+              IsInputDependency = YES;
+          },
+          {
+              Name = "SWIFT_MODULE_NAME";
+              Type = String;
+              DefaultValue = "$(PRODUCT_MODULE_NAME)";
+              CommandLineArgs = (
+                "-module",
+                "$(value)",
+                "-use-interface-for-module",
+                "$(value)",
+              );
+          },
+          {
+              Name = "OTHER_SWIFT_ABI_CHECKER_FLAGS";
+              Type = StringList;
+              CommandLineArgs = (
+                "$(value)",
+              );
+          }
+        );
+  }
+)

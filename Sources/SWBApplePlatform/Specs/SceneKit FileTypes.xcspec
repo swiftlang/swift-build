@@ -1,0 +1,59 @@
+//===----------------------------------------------------------------------===//
+//
+// This source file is part of the Swift open source project
+//
+// Copyright (c) 2025 Apple Inc. and the Swift project authors
+// Licensed under Apache License v2.0 with Runtime Library Exception
+//
+// See http://swift.org/LICENSE.txt for license information
+// See http://swift.org/CONTRIBUTORS.txt for the list of Swift project authors
+//
+//===----------------------------------------------------------------------===//
+
+(
+    {
+        Name = "DAE files";
+        Type = FileType;
+        Identifier = "text.xml.dae";
+        BasedOn = "text.xml";
+        Extensions = (
+            dae,
+        );
+        AppliesToBuildRules = YES;
+        UTI = "org.khronos.collada.digital-asset-exchange";
+    },
+    {
+        Name = "SceneKit Particle System Document";
+        Type = FileType;
+        Identifier = "file.scp";
+        BasedOn = file;
+        Extensions = (
+            scnp,
+        );
+        UTI = "com.apple.scenekit.particlesystem";
+    },
+    {
+        Name = "SceneKit Asset Catalog";
+        Type = FileType;
+        Identifier = "wrapper.scnassets";
+        BasedOn = wrapper;
+        IsWrapperFolder = YES;
+        IsTransparent = YES;
+        Extensions = (
+            scnassets,
+        );
+        UTI = "com.apple.scenekit.assetcatalog";
+    },
+    {
+        Name = "SceneKit shader cache";
+        Type = FileType;
+        Identifier = "wrapper.scncache";
+        BasedOn = wrapper;
+        IsWrapperFolder = YES;
+        IsTransparent = YES;
+        Extensions = (
+            scncache,
+        );
+        UTI = "com.apple.scenekit.shadercache";
+    },
+)

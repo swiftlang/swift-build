@@ -1,0 +1,58 @@
+//===----------------------------------------------------------------------===//
+//
+// This source file is part of the Swift open source project
+//
+// Copyright (c) 2025 Apple Inc. and the Swift project authors
+// Licensed under Apache License v2.0 with Runtime Library Exception
+//
+// See http://swift.org/LICENSE.txt for license information
+// See http://swift.org/CONTRIBUTORS.txt for the list of Swift project authors
+//
+//===----------------------------------------------------------------------===//
+
+(
+    {
+        _Domain = macosx;
+        Type = BuildSystem;
+        Identifier = com.apple.build-system.core;
+        BasedOn = "com.apple.buildsettings.standard";
+        Name = "Core Build System";
+        IsGlobalDomainInUI = Yes;
+        Properties = (
+
+            {   Name = COMBINE_HIDPI_IMAGES;
+                Type = bool;
+                DefaultValue = NO;
+                Category = "Deployment";
+            },
+            {   Name = PRODUCT_DEFINITION_PLIST;
+                Type = String;
+                DefaultValue = "";
+                Category = "Deployment";
+            },
+        );
+    },
+
+    {
+        _Domain = macosx;
+        Type = BuildSettings;
+        Identifier = com.apple.build-settings.macos;
+        Name = "macOS Additional Core Build Settings";
+        Properties = (
+            {
+                Name = "BUNDLE_FORMAT";
+                Type = Enumeration;
+                Values = (
+                    deep,
+                    shallow,
+                );
+                DefaultValue = "deep";
+            },
+            {
+                Name = "EMBEDDED_PROFILE_NAME";
+                Type = String;
+                DefaultValue = "embedded.provisionprofile";
+            },
+        );
+    },
+)

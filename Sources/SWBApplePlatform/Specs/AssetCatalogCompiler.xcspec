@@ -1,0 +1,441 @@
+//===----------------------------------------------------------------------===//
+//
+// This source file is part of the Swift open source project
+//
+// Copyright (c) 2025 Apple Inc. and the Swift project authors
+// Licensed under Apache License v2.0 with Runtime Library Exception
+//
+// See http://swift.org/LICENSE.txt for license information
+// See http://swift.org/CONTRIBUTORS.txt for the list of Swift project authors
+//
+//===----------------------------------------------------------------------===//
+
+(
+    {
+        Type = Compiler;
+        Identifier = com.apple.compilers.assetcatalog;
+        Name = "Asset Catalog Compiler";
+        Description = "Compiles Asset Catalogs";
+        CommandLine = "$(ASSETCATALOG_EXEC) [options] [special-args]";
+        RuleName = "CompileAssetCatalog $(UnlocalizedProductResourcesDir) $(ASSETCATALOG_COMPILER_INPUTS)";
+        ExecDescription = "Compile asset catalogs";
+        ProgressDescription = "Compiling asset catalogs";
+        InputFileTypes = (
+            folder.assetcatalog,
+            folder.imagecatalog,
+            folder.stickers,
+        );
+        DeeplyStatInputDirectories = YES;
+        InputFileGroupings = (
+            actool,
+        );
+        Outputs = (
+        );
+        AdditionalDirectoriesToCreate = (
+            "$(UnlocalizedProductResourcesDir)",
+        );
+        OutputsAreProducts = YES;
+        SynthesizeBuildRule = YES;
+        IsArchitectureNeutral = YES;
+        GeneratedInfoPlistContentFilePath = "$(ASSETCATALOG_COMPILER_INFOPLIST_CONTENT_FILE)";
+        CommandOutputParser = (
+            /* Content Issues */
+            ("^([^:]*):([^:]*): note: (.*)$", emit-notice),
+            ("^([^:]*):([^:]*): warning: (.*)$", emit-warning),
+            ("^([^:]*):([^:]*): error: (.*)$", emit-error),
+
+            /* Tool Errors */
+            ("^([^:]*):() error: (.*)$", "emit-error"),
+            ("^([^:]*):() warning: (.*)$", "emit-warning"),
+            ("^([^:]*):() note: (.*)$", "emit-notice"),
+
+        );
+        OptionConditionFlavors = (
+            sdk,
+        );
+
+        Options = (
+            {
+                Name = "ASSETCATALOG_EXEC";
+                Type = Path;
+                DefaultValue = actool;
+            },
+            {
+                Name = "ASSETCATALOG_COMPILER_INPUTS";
+                Type = PathList;
+                CommandLineArgs = ( "$(value)" );
+            },
+            // Output settings
+            {
+                Name = ASSETCATALOG_COMPILER_OUTPUT_DIR;
+                Type = Path;
+                DefaultValue = "$(UnlocalizedProductResourcesDir)";
+                CommandLineArgs = ( "--compile", "$(value)" );
+            },
+            {   Name = ASSETCATALOG_OUTPUT_FORMAT;
+                Type = Enumeration;
+                Values = (
+                    "human-readable-text",
+                );
+                DefaultValue = "human-readable-text";
+                CommandLineArgs = ( "--output-format", "$(value)" );
+            },
+            {
+                Name = "ASSETCATALOG_NOTICES";
+                Type = Boolean;
+                DefaultValue = YES;
+                CommandLineFlag = "--notices";
+                Category = "ASSETCATALOG_COMPILER_OPTIONS";
+            },
+            {
+                Name = "ASSETCATALOG_WARNINGS";
+                Type = Boolean;
+                DefaultValue = YES;
+                CommandLineFlag = "--warnings";
+                Category = "ASSETCATALOG_COMPILER_OPTIONS";
+            },
+            {
+                Name = "ASSETCATALOG_LIGHTWEIGHT_ASSET_RUNTIME_MODE";
+                Type = Enumeration;
+                DefaultValue = default;
+                Values = (
+                    {
+                        Value = default;
+                        CommandLineArgs = ( );
+                    },
+                    {
+                        Value = enabled;
+                        CommandLineArgs = ("--lightweight-asset-runtime-mode", "$(value)");
+                    },
+                    {
+                        Value = disabled;
+                        CommandLineArgs = ("--lightweight-asset-runtime-mode", "$(value)");
+                    }
+                );
+                DisplayName = "Lightweight Asset Runtime Mode";
+            },
+            {
+                Name = "ASSETCATALOG_OTHER_FLAGS";
+                Type = StringList;
+                DefaultValue = "";
+                CommandLineFlag = "";
+                Category = "ASSETCATALOG_COMPILER_OPTIONS";
+            },
+
+            {
+                Name = ASSETCATALOG_COMPILER_DEPENDENCY_INFO_FILE;
+                Type = Path;
+                DefaultValue = "$(TARGET_TEMP_DIR)/assetcatalog_dependencies";
+                CommandLineArgs = ( "--export-dependency-info", "$(value)" );
+            },
+
+            {
+                Name = "ASSETCATALOG_COMPILER_GENERATE_ASSET_SYMBOLS";
+                Category = "ASSETCATALOG_COMPILER_OPTIONS";
+                DisplayName = "Generate Asset Symbols";
+                Description = "Generate asset symbols for each color and image in the catalog.";
+                Type = Boolean;
+                DefaultValue = YES;
+            },
+
+            {
+                Name = "ASSETCATALOG_COMPILER_GENERATE_SWIFT_ASSET_SYMBOL_EXTENSIONS";
+                Category = "ASSETCATALOG_COMPILER_OPTIONS";
+                DisplayName = "Generate Swift Asset Symbol Extensions";
+                Description = "Generate asset symbol extensions on Apple framework color and image types.";
+                Type = Boolean;
+                DefaultValue = NO;
+            },
+
+            {
+                Name = "ASSETCATALOG_COMPILER_GENERATE_ASSET_SYMBOL_FRAMEWORKS";
+                Category = "ASSETCATALOG_COMPILER_OPTIONS";
+                DisplayName = "Generate Swift Asset Symbol Framework Support";
+                Description = "Generate asset symbol support for the specified UI frameworks (e.g. SwiftUI, UIKit, AppKit).";
+                Type = StringList;
+                DefaultValue = "SwiftUI UIKit AppKit";
+            },
+
+            {
+                Name = "ASSETCATALOG_COMPILER_GENERATE_ASSET_SYMBOL_WARNINGS";
+                Type = Boolean;
+                DefaultValue = YES;
+            },
+
+            {
+                Name = "ASSETCATALOG_COMPILER_GENERATE_ASSET_SYMBOL_ERRORS";
+                Type = Boolean;
+                DefaultValue = YES;
+            },
+
+            {
+                Name = "ASSETCATALOG_COMPILER_GENERATE_ASSET_SYMBOL_BACKWARDS_DEPLOYMENT_SUPPORT";
+                Type = String;
+                DefaultValue = ""; // Automatic, based on deployment target.
+            },
+
+            {
+                Name = "ASSETCATALOG_COMPILER_GENERATE_SWIFT_ASSET_SYMBOLS_PATH";
+                Type = Path;
+                DefaultValue = "$(DERIVED_SOURCES_DIR)/GeneratedAssetSymbols.swift";
+            },
+
+            {
+                Name = "ASSETCATALOG_COMPILER_GENERATE_OBJC_ASSET_SYMBOLS_PATH";
+                Type = Path;
+                DefaultValue = "$(DERIVED_SOURCES_DIR)/GeneratedAssetSymbols.h";
+            },
+
+            {
+                Name = "ASSETCATALOG_COMPILER_GENERATE_ASSET_SYMBOL_INDEX_PATH";
+                Type = Path;
+                DefaultValue = "$(DERIVED_SOURCES_DIR)/GeneratedAssetSymbols-Index.plist";
+            },
+
+            {
+                Name = "ASSETCATALOG_COMPILER_BUNDLE_IDENTIFIER";
+                Type = String;
+                DefaultValue = "$(PRODUCT_BUNDLE_IDENTIFIER)";
+            },
+
+            {
+                Name = ASSETCATALOG_COMPILER_INFOPLIST_CONTENT_FILE;
+                Type = Path;
+                DefaultValue = "$(TARGET_TEMP_DIR)/assetcatalog_generated_info.plist";
+                CommandLineArgs = ( "--output-partial-info-plist", "$(value)" );
+            },
+
+            {
+                Name = "ASSETCATALOG_COMPILER_STICKER_PACK_STRINGS";
+                Type = PathList;
+                DefaultValue = "";
+                CommandLineFlag = "--sticker-pack-strings-file";
+            },
+
+            {
+                Name = "ASSETCATALOG_COMPILER_APPICON_NAME";
+                Type = String;
+                CommandLineFlag = "--app-icon";
+                Category = "ASSETCATALOG_COMPILER_OPTIONS";
+                DisplayName = "Primary App Icon Set Name";
+                Description = "Name of an app icon set for the target's default app icon. The contents will be merged into the `Info.plist`.";
+            },
+            {
+                Name = "ASSETCATALOG_COMPILER_INCLUDE_ALL_APPICON_ASSETS";
+                Type = Boolean;
+                DefaultValue = NO;
+                CommandLineArgs = { YES = (--include-all-app-icons); NO = (); };
+                Category = "ASSETCATALOG_COMPILER_OPTIONS";
+                DisplayName = "Include All App Icon Assets";
+                Description = "When true, all app icon assets from the target's Asset Catalogs will be included in the built product, making the available at runtime for use as alternate app icons. When false, only the primary app icon will be included in the built product.";
+            },
+            {
+                Name = "ASSETCATALOG_COMPILER_ALTERNATE_APPICON_NAMES";
+                Type = StringList;
+                CommandLineFlag = "--alternate-app-icon";
+                Category = "ASSETCATALOG_COMPILER_OPTIONS";
+                DisplayName = "Alternate App Icon Sets";
+                Description = "A set of additional app icon set names to include as in the built product. The icons will be available at runtime for use as alternate app icons. This is an alternative to `--include-all-app-icons` providing more detailed control.";
+            },
+            {
+                Name = "ASSETCATALOG_COMPILER_SKIP_APP_STORE_DEPLOYMENT";
+                Type = Boolean;
+                CommandLineFlag = "--skip-app-store-deployment";
+                Category = "ASSETCATALOG_COMPILER_OPTIONS";
+                DisplayName = "Skip App Store Deployment";
+                Description = "Whether to perform App Store-specific behaviors such as validations. For example, building for an iOS or watchOS app will warn if a 1024 App Store icon is not present, but only when compiling for App Store deployment.";
+            },
+            {
+                Name = "ASSETCATALOG_COMPILER_LAUNCHIMAGE_NAME";
+                Type = String;
+                CommandLineFlag = "--launch-image";
+                Category = "ASSETCATALOG_COMPILER_OPTIONS";
+            },
+            {
+                Name = "ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME";
+                Type = String;
+                CommandLineFlag = "--accent-color";
+                Category = "ASSETCATALOG_COMPILER_OPTIONS";
+                DisplayName = "Global Accent Color Name";
+                Description = "The name of a color resource to use as a the target's accent color, used as the default tint color on iOS and watchOS, and accent color on macOS.";
+            },
+            {
+                Name = "ASSETCATALOG_COMPILER_WIDGET_BACKGROUND_COLOR_NAME";
+                Type = String;
+                CommandLineFlag = "--widget-background-color";
+                Category = "ASSETCATALOG_COMPILER_OPTIONS";
+                DisplayName = "Widget Background Color Name";
+                Description = "The name of a color resource to use as the background color for a widget.";
+            },
+            {
+                Name = "RESOURCES_TARGETED_DEVICE_FAMILY";
+                Type = StringList;
+                CommandLineFlag = "--target-device";
+            },
+            {
+                Name = "RESOURCES_UI_FRAMEWORK_FAMILY";
+                Type = String;
+                CommandLineFlag = "--ui-framework-family";
+            },
+
+            // COMPRESS_PNG_FILES is defined by CopyPNGFile.xcspec
+            {
+                Name = ASSETCATALOG_COMPILER_COMPRESS_PNGS;
+                Type = bool;
+                DefaultValue = "$(COMPRESS_PNG_FILES)";
+                CommandLineArgs = { YES = (--compress-pngs); NO = (); };
+            },
+
+            {
+                Name = ASSETCATALOG_COMPILER_ENABLE_ON_DEMAND_RESOURCES;
+                Type = bool;
+                DefaultValue = "$(ENABLE_ON_DEMAND_RESOURCES)";
+                CommandLineArgs = ( "--enable-on-demand-resources", "$(value)" );
+            },
+
+            {
+                Name = ASSETCATALOG_COMPILER_STANDALONE_ICON_BEHAVIOR;
+                Type = Enumeration;
+                DefaultValue = default;
+                Values = (
+                    {
+                        Value = default;
+                        DisplayName = Default;
+                    },
+                    {
+                        Value = all;
+                        DisplayName = All;
+                        CommandLineArgs = ("--standalone-icon-behavior", "$(value)");
+                    },
+                    {
+                        Value = none;
+                        DisplayName = None;
+                        CommandLineArgs = ("--standalone-icon-behavior", "$(value)");
+                    }
+                );
+                Category = "ASSETCATALOG_COMPILER_OPTIONS";
+                DisplayName = "Standalone Icon File Behavior";
+                Description = "Controls whether loose PNG or ICNS files are created for the primary app icon, in addition to including the content in the Assets.car file. By default, a small subset of sizes are included as loose files, allowing external management tools to display a representative icon without reading the CAR file. This can be set to 'all' or 'none' to include more or fewer icon sizes as loose files.";
+            },
+
+            {
+                Name = ASSETCATALOG_COMPILER_INCLUDE_STICKER_CONTENT;
+                Type = bool;
+                DefaultValue = NO;
+                Category = "ASSETCATALOG_COMPILER_OPTIONS";
+                DisplayName = "Include Sticker Content";
+                CommandLineArgs = { YES = ("--include-sticker-content"); NO = (); };
+            },
+            {
+                Name = ASSETCATALOG_COMPILER_TARGET_STICKERS_ICON_ROLE;
+                Type = Enumeration;
+                Values = (
+                    {
+                        Value = "";
+                        DisplayName = None;
+                    },
+                    {
+                        Value = host-app;
+                        DisplayName = "Host App";
+                        CommandLineArgs = ("--stickers-icon-role", "$(value)");
+                    },
+                    {
+                        Value = extension;
+                        DisplayName = Extension;
+                        CommandLineArgs = ("--stickers-icon-role", "$(value)");
+                    }
+                );
+                Category = "ASSETCATALOG_COMPILER_OPTIONS";
+                DisplayName = "Stickers Icon Role";
+            },
+
+            {
+                Name = ENABLE_ONLY_ACTIVE_RESOURCES;
+                Type = bool;
+                DefaultValue = YES;
+                Category = "ASSETCATALOG_COMPILER_OPTIONS";
+                DisplayName = "Build Active Resources Only";
+                Description = "Omit inapplicable resources when building for a single device. For example, when building for a device with a Retina display, exclude 1x resources.";
+            },
+
+            {
+                Name = ENABLE_INCREMENTAL_DISTILL;
+                Type = bool;
+                DefaultValue = NO;
+                Category = "ASSETCATALOG_COMPILER_OPTIONS";
+                CommandLineArgs = ( "--enable-incremental-distill", "$(value)", "--target-name", "$(TARGET_NAME)");
+                Condition = "$(ENABLE_INCREMENTAL_DISTILL)";
+                DisplayName = "Enable Incremental Distill";
+                Description = "Enabled the incremental `distill` option in the asset catalog compiler. This feature is experimental and should only be enabled with caution.";
+            },
+
+            {
+                Name = ASSETCATALOG_COMPILER_OPTIMIZATION;
+                Type = Enumeration;
+                Category = "ASSETCATALOG_COMPILER_OPTIONS";
+                CommandLineArgs = ( "--optimization", "$(value)" );
+                Values = (
+                    "",
+                    "time",
+                    "space",
+                );
+                Condition = "$(ASSETCATALOG_COMPILER_OPTIMIZATION) != \"\"";
+                DefaultValue = "";
+                DisplayName = "Optimization";
+                Description = "With no value, the compiler uses the default optimization. You can also specify `time` to optimize for speed of access or `space` to optimize for a smaller compiled asset catalogs.";
+            },
+
+            {
+                // For App Thinning, this argument represents a device model + an optional thinning configuration.
+                Name = ASSETCATALOG_FILTER_FOR_THINNING_DEVICE_CONFIGURATION;
+                Type = String;
+                DefaultValue = "$(TARGET_THINNING_DEVICE_CONFIGURATION)";
+                Condition = "$(ENABLE_ONLY_ACTIVE_RESOURCES) && $(BUILD_ACTIVE_RESOURCES_ONLY)";
+                CommandLineFlag = "--filter-for-thinning-device-configuration";
+                // Hidden
+            },
+
+            {
+                Name = ASSETCATALOG_FILTER_FOR_DEVICE_MODEL;
+                Type = String;
+                DefaultValue = "$(TARGET_DEVICE_MODEL)";
+                Condition = "$(ENABLE_ONLY_ACTIVE_RESOURCES) && $(BUILD_ACTIVE_RESOURCES_ONLY) && $(ASSETCATALOG_FILTER_FOR_THINNING_DEVICE_CONFIGURATION) == \"\"";
+                CommandLineFlag = "--filter-for-device-model";
+                // Hidden
+            },
+
+            {
+                Name = ASSETCATALOG_FILTER_FOR_DEVICE_OS_VERSION;
+                Type = String;
+                DefaultValue = "$(TARGET_DEVICE_OS_VERSION)";
+                Condition = "$(ENABLE_ONLY_ACTIVE_RESOURCES) && $(BUILD_ACTIVE_RESOURCES_ONLY)";
+                CommandLineFlag = "--filter-for-device-os-version";
+                // Hidden
+            },
+
+            {
+                Name = "ASSETCATALOG_COMPILER_INCLUDE_INFOPLIST_LOCALIZATIONS";
+                DisplayName = "Include Asset Localizations in Info.plist";
+                Description = "When enabled, includes the localization information of the selected assets in the generated partial Info.plist file under the CFBundleLocalizations key. This will allow the assets to be used at runtime in the absence of a corresponding lproj directory in the bundle.";
+                Type = Boolean;
+                DefaultValue = "YES";
+                CommandLineArgs = { YES = (); NO = ("--include-partial-info-plist-localizations", "$(value)"); }; // Defaults to YES when omitted
+                Category = "ASSETCATALOG_COMPILER_OPTIONS";
+            },
+
+            {
+                Name = "ASSETCATALOG_COMPILER_STICKER_PACK_IDENTIFIER_PREFIX";
+                DisplayName = "Sticker Pack Identifier Prefix";
+                Description = "Sticker Packs in the asset catalog may optionally specify an identifier. If they do not, their name will be prefixed by this value to form an automatically generated identifier.";
+                Type = String;
+                CommandLineFlag = "--sticker-pack-identifier-prefix";
+                Category = "ASSETCATALOG_COMPILER_OPTIONS";
+            },
+            {
+                Name = DEVELOPMENT_LANGUAGE;
+                Type = String;
+                CommandLineFlag = "--development-region";
+            },
+        );
+    },
+)

@@ -1,0 +1,28 @@
+# Ignore OS X cruft.
+.DS_Store
+/default.profraw
+
+# Ignore editor temporary files.
+*~
+.#*
+\#*
+*.pyc
+
+# Ignore Xcode user data.
+xcuserdata
+
+# Ignore VSCode user data.
+.vscode/*
+
+# Commonly used name for build products, at the top level.
+/build
+/.build
+/Packages
+
+# Ignore bootstrap build dir.
+/.xbuild
+/.DD
+/.previous-builds
+/.full-build
+/.swiftpm
+Package.resolved

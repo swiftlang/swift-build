@@ -1,0 +1,27 @@
+//===----------------------------------------------------------------------===//
+//
+// This source file is part of the Swift open source project
+//
+// Copyright (c) 2025 Apple Inc. and the Swift project authors
+// Licensed under Apache License v2.0 with Runtime Library Exception
+//
+// See http://swift.org/LICENSE.txt for license information
+// See http://swift.org/CONTRIBUTORS.txt for the list of Swift project authors
+//
+//===----------------------------------------------------------------------===//
+
+"Name" = "Apple Clang Module Verifier";
+
+"[MODULE_VERIFIER_OPTIONS]-category" = "Options";
+
+"[ENABLE_MODULE_VERIFIER]-name" = "Enable Module Verifier";
+"[ENABLE_MODULE_VERIFIER]-description" = "Enables clang module verification for frameworks.";
+
+"[MODULE_VERIFIER_SUPPORTED_LANGUAGES]-name" = "Supported Languages";
+"[MODULE_VERIFIER_SUPPORTED_LANGUAGES]-description" = "Languages to verify the module, i.e. the languages supported for framework clients. Allowed values are 'c', 'c++', 'objective-c', 'objective-c++'";
+
+"[MODULE_VERIFIER_SUPPORTED_LANGUAGE_STANDARDS]-name" = "Supported Language Dialects";
+"[MODULE_VERIFIER_SUPPORTED_LANGUAGE_STANDARDS]-description" = "Language dialects to verify the module, i.e. the language dialects supported for framework clients. Allowed values are 'ansi', 'c89', 'gnu89', 'c99', 'gnu99', 'c11', 'gnu11', 'c17', 'gnu17', 'c23', 'gnu23', 'c++98', 'gnu++98', 'c++11', 'gnu++11', 'c++14', 'gnu++14', 'c++17', 'gnu++17', 'c++20', 'gnu++20', 'c++23', 'gnu++23'";
+
+"[OTHER_MODULE_VERIFIER_FLAGS]-name" = "Other Module Verifier Flags";
+"[OTHER_MODULE_VERIFIER_FLAGS]-description" = "Additional flags to pass to the modules-verifier tool.";

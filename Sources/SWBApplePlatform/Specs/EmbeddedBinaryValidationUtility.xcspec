@@ -1,0 +1,61 @@
+//===----------------------------------------------------------------------===//
+//
+// This source file is part of the Swift open source project
+//
+// Copyright (c) 2025 Apple Inc. and the Swift project authors
+// Licensed under Apache License v2.0 with Runtime Library Exception
+//
+// See http://swift.org/LICENSE.txt for license information
+// See http://swift.org/CONTRIBUTORS.txt for the list of Swift project authors
+//
+//===----------------------------------------------------------------------===//
+
+(
+    {
+        Type = Tool;
+        Identifier = "com.apple.tools.validate-embedded-binary-utility";
+        Name = "Embedded Binary Validation Utility";
+        IsAbstract = Yes;
+        CommandLine = "builtin-embeddedBinaryValidationUtility [input] [options]";
+        RuleName = "ValidateEmbeddedBinary $(InputPath)";
+        ExecDescription = "Validate $(InputFileName)";
+        ProgressDescription = "Validating $(InputFile)";
+        Outputs = (
+            "$(OutputPath)",
+        );
+        Options = (
+            {
+                Name = SigningCert;
+                Type = string;
+                CommandLineFlag = "-signing-cert";
+            },
+            {
+                Name = InfoPlistPath;
+                Type = Path;
+                CommandLineFlag = "-info-plist-path";
+            },
+        );
+        CommandOutputParser = (
+            (
+                "()()(^[^:]+: [^:]+: No such file or directory)",
+                "emit-error",
+            ),
+            (
+                "()()(^[^:]+: [^:]+: Permission denied)",
+                "emit-error",
+            ),
+            (
+                "()()(^[^:]+: [^:]+: Is a directory)",
+                "emit-error",
+            ),
+            (
+                "()()(error: .+)",
+                "emit-error",
+            ),
+            (
+                "()()(warning: .+)",
+                "emit-warning",
+            ),
+        );
+    },
+)

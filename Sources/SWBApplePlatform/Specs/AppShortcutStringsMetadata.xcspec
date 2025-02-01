@@ -1,0 +1,101 @@
+//===----------------------------------------------------------------------===//
+//
+// This source file is part of the Swift open source project
+//
+// Copyright (c) 2025 Apple Inc. and the Swift project authors
+// Licensed under Apache License v2.0 with Runtime Library Exception
+//
+// See http://swift.org/LICENSE.txt for license information
+// See http://swift.org/CONTRIBUTORS.txt for the list of Swift project authors
+//
+//===----------------------------------------------------------------------===//
+
+(
+    {
+        Type = Compiler;
+        Identifier = "com.apple.compilers.appshortcutstringsmetadata";
+        Name = "App Shortcut Strings Metadata Extractor";
+        Description = "Validate AppShortcuts.strings metadata";
+        CommandLine = "appshortcutstringsprocessor [options]";
+        RuleName = "ValidateAppShortcutStringsMetadata";
+        ExecDescription = "Validate app shortcut strings metadata";
+        ProgressDescription = "Validating app shortcut strings metadata";
+        Outputs = ();
+        IsArchitectureNeutral = YES;
+        Options = (
+            {
+                Name = LM_STRINGS_FILE_PATH_LIST;
+                Type = StringList;
+                CommandLineFlag = "--source-file";
+                IsInputDependency = Yes;
+            },
+            {
+                Name = APP_INTENTS_METADATA_PATH;
+                Type = String;
+                DefaultValue = "$(ProductResourcesDir)/Metadata.appintents";
+                CommandLineFlag = "--input-data-path";
+            },
+            {
+                Name = LM_ENABLE_STRING_VALIDATION;
+                Type = Boolean;
+                DefaultValue = YES;
+                CommandLineArgs = {
+                    YES = ();
+                    NO = ( "--disable" );
+                };
+            },
+            {
+                Name = LM_ENABLE_APP_NAME_OVERRIDE;
+                Type = Boolean;
+                DefaultValue = NO;
+                CommandLineArgs = {
+                    YES = ( "--app-name-override" );
+                    NO = ();
+                };
+            },
+            {
+                Name = APP_INTENTS_PLATFORM_FAMILY;
+                Type = String;
+                DefaultValue = "$(PLATFORM_FAMILY_NAME)";
+                CommandLineFlag = "--platform-family";
+            },
+            {
+                Name = APP_INTENTS_DEPLOYMENT_TARGET;
+                Type = String;
+                DefaultValue = "$($(DEPLOYMENT_TARGET_SETTING_NAME))";
+                CommandLineFlag = "--deployment-target";
+            },
+            {
+                Name = ENABLE_ASSISTANT_INTENTS_PROVIDER_VALIDATION;
+                Type = Boolean;
+                DefaultValue = YES;
+                CommandLineArgs = {
+                    YES = ( "--validate-assistant-intents" );
+                    NO = ();
+                };
+            },
+            {
+                Name = LM_ENABLE_ASSISTANT_INTENT_APP_NAME_OVERRIDE;
+                Type = Boolean;
+                DefaultValue = NO;
+                CommandLineArgs = {
+                    YES = ( "--assistant-intents-app-name-override" );
+                    NO = ();
+                };
+            },
+            {
+                Name = LM_AUX_INTENTS_METADATA_FILES_LIST_PATH;
+                Type = Path;
+                DefaultValue = "$(TEMP_DIR)/$(PRODUCT_NAME).DependencyMetadataFileList";
+                IsInputDependency = Yes;
+            },
+            {
+                Name = LM_INTENTS_METADATA_FILES_LIST_PATH;
+                Type = StringList;
+                CommandLineFlag = "--metadata-file-list";
+                IsInputDependency = Yes;
+            },
+        );
+    },
+)
+

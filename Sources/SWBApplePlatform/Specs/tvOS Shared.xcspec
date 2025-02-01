@@ -1,0 +1,76 @@
+//===----------------------------------------------------------------------===//
+//
+// This source file is part of the Swift open source project
+//
+// Copyright (c) 2025 Apple Inc. and the Swift project authors
+// Licensed under Apache License v2.0 with Runtime Library Exception
+//
+// See http://swift.org/LICENSE.txt for license information
+// See http://swift.org/CONTRIBUTORS.txt for the list of Swift project authors
+//
+//===----------------------------------------------------------------------===//
+
+(
+    {
+        _Domain = appletvos-shared;
+        Type = ProductType;
+        Identifier = "com.apple.product-type.tv-app-extension";
+        BasedOn = "com.apple.product-type.app-extension";
+        Name = "TV App Extension";
+        Description = "TV App Extension";
+        DefaultTargetName = "App Extension";
+        "DefaultBuildProperties" = {
+            "LD_ENTRY_POINT" = "_TVExtensionMain";
+            "PRODUCT_SPECIFIC_LDFLAGS" = "-framework TVServices";
+            "CODE_SIGNING_ALLOWED" = YES;
+            "APPLICATION_EXTENSION_API_ONLY" = YES;
+            "WRAPPER_EXTENSION" = appex;
+            ASSETCATALOG_COMPILER_STANDALONE_ICON_BEHAVIOR = default; // Override value from com.apple.product-type.app-extension to preserve previous behavior. Restrict special behavior in the based-on-type to just iOS extensions. If any other platform / types need it, prefer a fix in IconServices over adding extra files to bundles.
+            ENABLE_DEBUG_DYLIB = NO;
+        };
+        PackageTypes = (
+            "com.apple.package-type.app-extension",
+        );
+    },
+    {
+        _Domain = appletvos-shared;
+        Type = Compiler;
+        Identifier = "com.apple.compilers.assetcatalog";
+        BasedOn = "default:com.apple.compilers.assetcatalog";
+        Options = (
+            {
+                Name = "ASSETCATALOG_COMPILER_LEADERBOARD_IDENTIFIER_PREFIX";
+                DisplayName = "Leaderboard Identifier Prefix";
+                Description = "Leaderboards in the asset catalog may optionally specify a Game Center identifier. If they do not, their name will be prefixed by this value to form an automatically generated identifier.";
+                Type = String;
+                DefaultValue = "$(PRODUCT_NAME:identifier).game-center.leaderboard.";
+                CommandLineFlag = "--leaderboard-identifier-prefix";
+                Category = "ASSETCATALOG_COMPILER_OPTIONS";
+            },
+            {
+                Name = "ASSETCATALOG_COMPILER_LEADERBOARD_SET_IDENTIFIER_PREFIX";
+                DisplayName = "Leaderboard Set Identifier Prefix";
+                Description = "Leaderboard sets in the asset catalog may optionally specify a Game Center identifier. If they do not, their name will be prefixed by this value to form an automatically generated identifier.";
+                Type = String;
+                DefaultValue = "$(PRODUCT_NAME:identifier).game-center.leaderboard-set.";
+                CommandLineFlag = "--leaderboard-set-identifier-prefix";
+                Category = "ASSETCATALOG_COMPILER_OPTIONS";
+            },
+            {
+                Name = "ASSETCATALOG_COMPILER_FLATTENED_APP_ICON_PATH";
+                Type = String;
+                CommandLineFlag = "--flattened-app-icon-path";
+            },
+        );
+    },
+    {
+        _Domain = appletvos-shared;
+        Type = ProductType;
+        Identifier = "com.apple.product-type.tv-broadcast-extension";
+        BasedOn = "com.apple.product-type.tv-app-extension";
+        "DefaultBuildProperties" = {
+            "LD_ENTRY_POINT" = "_NSExtensionMain";
+            "PRODUCT_SPECIFIC_LDFLAGS" = "-framework TVServices";
+        };
+    },
+)

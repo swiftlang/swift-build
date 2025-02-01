@@ -1,0 +1,20 @@
+//===----------------------------------------------------------------------===//
+//
+// This source file is part of the Swift open source project
+//
+// Copyright (c) 2025 Apple Inc. and the Swift project authors
+// Licensed under Apache License v2.0 with Runtime Library Exception
+//
+// See http://swift.org/LICENSE.txt for license information
+// See http://swift.org/CONTRIBUTORS.txt for the list of Swift project authors
+//
+//===----------------------------------------------------------------------===//
+
+"Name" = "Machine Learning Model Compiler";
+"Description" = "coremlc: Machine Learning Model Compiler";
+"Version" = "Default";
+"Vendor" = "Apple Computer";
+
+// TODO: actually make these work
+"[COREML_NO_WARNINGS]-name" = "Suppress all coremlc warnings";
+"[COREML_NO_WARNINGS]-description" = "Suppress machine learning model compiler warnings from output during the compilation of .mlmodel files";

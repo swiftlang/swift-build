@@ -1,0 +1,17 @@
+//===----------------------------------------------------------------------===//
+//
+// This source file is part of the Swift open source project
+//
+// Copyright (c) 2025 Apple Inc. and the Swift project authors
+// Licensed under Apache License v2.0 with Runtime Library Exception
+//
+// See http://swift.org/LICENSE.txt for license information
+// See http://swift.org/CONTRIBUTORS.txt for the list of Swift project authors
+//
+//===----------------------------------------------------------------------===//
+
+"Name" = "Standard Build Settings - Swift";
+"Description" = "General";
+
+"[ALWAYS_EMBED_SWIFT_STANDARD_LIBRARIES]-name" = "Always Embed Swift Standard Libraries";
+"[ALWAYS_EMBED_SWIFT_STANDARD_LIBRARIES]-description" = "Always embed the Swift standard libraries in the target's products, even if the target does not contain any Swift code.  For example, this should be enabled if the target is embedding other products which contain Swift, or if it is a test target which does not contain Swift but which is testing a product which does.  This setting only applies to wrapped products, not to standalone binary products.";

@@ -1,0 +1,58 @@
+//===----------------------------------------------------------------------===//
+//
+// This source file is part of the Swift open source project
+//
+// Copyright (c) 2025 Apple Inc. and the Swift project authors
+// Licensed under Apache License v2.0 with Runtime Library Exception
+//
+// See http://swift.org/LICENSE.txt for license information
+// See http://swift.org/CONTRIBUTORS.txt for the list of Swift project authors
+//
+//===----------------------------------------------------------------------===//
+
+(
+    {   Identifier = com.apple.compilers.cpp;
+        Type = Tool;
+        Name = "Cpp";
+        Description = "Standalone C Preprocessor";
+        CommandLine = "cc -E -P -x c -Wno-trigraphs  [input] -F$(BUILT_PRODUCTS_DIR) [options] -o [output]";
+        RuleName = "Preprocess $(OutputPath) $(InputPath)";
+        ExecDescription = "Preprocess $(InputFileName)";
+        ProgressDescription = "Preprocessing $(CommandProgressByType) files";
+        IsAbstract = YES;           // not really abstract, but preprocessing is only supported for the Info.plist, so don't show the settings
+        CommandOutputParser = XCGccCommandOutputParser;
+        Options = (
+            {
+                Name = "CLANG_TARGET_TRIPLE_ARCHS";
+                Type = StringList;
+                DefaultValue = "$(CURRENT_ARCH)";
+                CommandLineArgs = ( "-target", "$(value)-$(LLVM_TARGET_TRIPLE_VENDOR)-$(LLVM_TARGET_TRIPLE_OS_VERSION)$(LLVM_TARGET_TRIPLE_SUFFIX)" );
+            },
+            {
+                Name = "CLANG_TARGET_TRIPLE_VARIANTS";
+                Type = StringList;
+                CommandLineFlag = "-target-variant";
+                ConditionFlavors = ( arch );
+            },
+            {
+                Name = SDKROOT;
+                Type = Path;
+                CommandLineFlag = "-isysroot";
+            },
+            {   Name = CPP_PREPROCESSOR_DEFINITIONS;
+                Type = stringlist;
+                CommandLinePrefixFlag = "-D";
+            },
+            {   Name = __CPP_PREFIX_HEADER;
+                Type = Path;
+                DefaultValue = "$(CPP_PREFIX_HEADER:standardizepath)";
+                CommandLineFlag = "-include";
+                InputInclusions = "$(CPP_PREFIX_HEADER)";
+            },
+            {   Name = CPP_OTHER_PREPROCESSOR_FLAGS;
+                Type = stringlist;
+                CommandLinePrefixFlag = "";           // probably not correct... we probably need to split it by whitespace
+            },
+        );
+    }
+)

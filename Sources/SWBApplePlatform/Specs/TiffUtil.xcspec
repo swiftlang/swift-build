@@ -1,0 +1,38 @@
+//===----------------------------------------------------------------------===//
+//
+// This source file is part of the Swift open source project
+//
+// Copyright (c) 2025 Apple Inc. and the Swift project authors
+// Licensed under Apache License v2.0 with Runtime Library Exception
+//
+// See http://swift.org/LICENSE.txt for license information
+// See http://swift.org/CONTRIBUTORS.txt for the list of Swift project authors
+//
+//===----------------------------------------------------------------------===//
+
+(
+    {   Identifier = com.apple.compilers.tiffutil;
+        Type = Compiler;
+        Name = "TiffUtil";
+        Description = "Combine a set of images at different resolutions into one HiDPI compliant file using TiffUtil";
+        IsAbstract = Yes;       // This is an internal tool, so we keep it out of the user interface
+        CommandLine = "tiffutil -cathidpicheck [inputs] -out $(ProductResourcesDir)/$(OutputFileBase).tiff";
+    //    CommandLine = "tiffutil -cat [inputs] -out $(ProductResourcesDir)/$(OutputFileBase).tiff";
+        RuleName = "TiffUtil $(ProductResourcesDir)/$(OutputFileBase).tiff";
+        ExecDescription = "Combine images into $(OutputFileBase).tiff";
+        ProgressDescription = "Combining images";
+        SynthesizeBuildRule = No;
+        CommandOutputParser = XCGenericCommandOutputParser;
+        InputFileTypes = (
+            image.jpeg,
+            image.png,
+            image.tiff,
+        );
+        InputFileGroupings = (
+            "image-scale-factors",
+        );
+        Outputs = (
+            "$(ProductResourcesDir)/$(OutputFileBase).tiff"
+        );
+    }
+)

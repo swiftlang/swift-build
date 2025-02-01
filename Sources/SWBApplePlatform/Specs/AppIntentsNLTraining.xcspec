@@ -1,0 +1,54 @@
+//===----------------------------------------------------------------------===//
+//
+// This source file is part of the Swift open source project
+//
+// Copyright (c) 2025 Apple Inc. and the Swift project authors
+// Licensed under Apache License v2.0 with Runtime Library Exception
+//
+// See http://swift.org/LICENSE.txt for license information
+// See http://swift.org/CONTRIBUTORS.txt for the list of Swift project authors
+//
+//===----------------------------------------------------------------------===//
+
+(
+    {
+        Type = Compiler;
+        Identifier = "com.apple.compilers.appintents-ssu-training";
+        Name = "App Intents SSU Training Processor";
+        Description = "Create SSU assets";
+        CommandLine = "appintentsnltrainingprocessor --infoplist-path $(InputFileRelativePath) --temp-dir-path $(TARGET_TEMP_DIR)/ssu --bundle-id $(PRODUCT_BUNDLE_IDENTIFIER) --product-path $(ProductResourcesDir) [options] --archive-ssu-assets";
+        RuleName = "AppIntentsSSUTraining";
+        ExecDescription = "Generate SSU asset files";
+        Outputs = ("$(TARGET_TEMP_DIR)/ssu/root.ssu.yaml");
+        IsArchitectureNeutral = YES;
+        Options = (
+            {
+                Name = APP_INTENTS_METADATA_PATH;
+                Type = String;
+                DefaultValue = "$(ProductResourcesDir)/Metadata.appintents";
+                CommandLineFlag = "--extracted-metadata-path";
+            },
+            {
+                Name = APP_INTENTS_DEPLOYMENT_POSTPROCESSING;
+                Type = Boolean;
+                DefaultValue = "$(DEPLOYMENT_POSTPROCESSING)";
+                CommandLineArgs = {
+                    YES = ( "--deployment-postprocessing" );
+                    NO = ();
+                };
+            },
+            {
+                Name = LM_INTENTS_METADATA_FILES_LIST_PATH;
+                Type = StringList;
+                CommandLineFlag = "--metadata-file-list";
+                IsInputDependency = Yes;
+            },
+            {
+                Name = LM_AUX_INTENTS_METADATA_FILES_LIST_PATH;
+                Type = Path;
+                DefaultValue = "$(TEMP_DIR)/$(PRODUCT_NAME).DependencyMetadataFileList";
+                IsInputDependency = Yes;
+            }
+        );
+    },
+)

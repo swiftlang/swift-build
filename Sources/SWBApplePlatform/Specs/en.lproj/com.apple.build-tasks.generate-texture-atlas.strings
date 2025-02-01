@@ -1,0 +1,25 @@
+//===----------------------------------------------------------------------===//
+//
+// This source file is part of the Swift open source project
+//
+// Copyright (c) 2025 Apple Inc. and the Swift project authors
+// Licensed under Apache License v2.0 with Runtime Library Exception
+//
+// See http://swift.org/LICENSE.txt for license information
+// See http://swift.org/CONTRIBUTORS.txt for the list of Swift project authors
+//
+//===----------------------------------------------------------------------===//
+
+"Name" = "SpriteKit Texture Atlas Generator";
+"Description" = "Generates a SpriteKit texture atlas and manifest file, from a folder of loose texture files.";
+
+"[SPRITEKIT_TEXTUREATLAS_OPTION]-category" = "SpriteKit Deployment Options";
+
+"[SPRITEKIT_TEXTURE_ATLAS_FORMAT]-name" = "Output Texture Atlas Format";
+"[SPRITEKIT_TEXTURE_ATLAS_FORMAT]-description" = "The enumeration flag is to control the output format of the image file inside .atlasc in the application bundle.";
+
+"[SPRITEKIT_TEXTURE_ATLAS_SIZE]-name" = "Maximum Output Texture Dimension";
+"[SPRITEKIT_TEXTURE_ATLAS_SIZE]-description" = "The enumeration flag is to control the maximum output dimension of the image file inside .atlasc in the application bundle.";
+
+"[SPRITEKIT_TEXTURE_ATLAS_WARNINGS]-name" = "Log Warnings";
+"[SPRITEKIT_TEXTURE_ATLAS_WARNINGS]-description" = "The enumeration flag is to control warning logging when generate texture atlas.";

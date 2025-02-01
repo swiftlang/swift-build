@@ -1,0 +1,37 @@
+//===----------------------------------------------------------------------===//
+//
+// This source file is part of the Swift open source project
+//
+// Copyright (c) 2025 Apple Inc. and the Swift project authors
+// Licensed under Apache License v2.0 with Runtime Library Exception
+//
+// See http://swift.org/LICENSE.txt for license information
+// See http://swift.org/CONTRIBUTORS.txt for the list of Swift project authors
+//
+//===----------------------------------------------------------------------===//
+
+(
+    {   Identifier = com.apple.compilers.iconutil;
+        Type = Compiler;
+        Name = "Iconutil";
+        Description = "Icon conversion utility";
+        Version = "Default";
+        Vendor = "Apple";
+        CommandLine = "iconutil [options] --convert icns --output [output] [input]";
+        RuleName = "ConvertIconsetFile [output] [input]";
+        ExecDescription = "Convert iconset $(InputFileName)";
+        ProgressDescription = "Converting $(CommandProgressByType) iconsets";
+        InputFileTypes = (
+            folder.iconset
+        );
+        Outputs = (
+            "$(ProductResourcesDir)/$(InputFileBase).icns",
+        );
+        SynthesizeBuildRule = Yes;
+        CommandOutputParser = (
+            ("^([^:]+)():debug: (.*)$", emit-notice),
+            ("^([^:]+)():warning: (.*)$", emit-warning),
+            ("^([^:]+)():error: (.*)$", emit-error),
+        );
+    }
+)

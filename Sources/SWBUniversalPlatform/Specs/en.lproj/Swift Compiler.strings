@@ -1,0 +1,59 @@
+//===----------------------------------------------------------------------===//
+//
+// This source file is part of the Swift open source project
+//
+// Copyright (c) 2025 Apple Inc. and the Swift project authors
+// Licensed under Apache License v2.0 with Runtime Library Exception
+//
+// See http://swift.org/LICENSE.txt for license information
+// See http://swift.org/CONTRIBUTORS.txt for the list of Swift project authors
+//
+//===----------------------------------------------------------------------===//
+
+"[SWIFT_COMPILATION_MODE]-value-[singlefile]" = "Incremental";
+"[SWIFT_COMPILATION_MODE]-value-[wholemodule]" = "Whole Module";
+"[SWIFT_COMPILATION_MODE]-description" = "This setting controls the way the Swift files in a module are rebuilt.
+
+* *Incremental*: Only rebuild the Swift source files in the module that are out of date, running multiple compiler processes as needed.
+* *Whole Module*: Always rebuild all Swift source files in the module, in a single compiler process.
+";
+
+"[SWIFT_OPTIMIZATION_LEVEL]-value-[-Onone]" = "No Optimization [-Onone]";
+"[SWIFT_OPTIMIZATION_LEVEL]-value-[-O]" = "Optimize for Speed [-O]";
+"[SWIFT_OPTIMIZATION_LEVEL]-value-[-Osize]" = "Optimize for Size [-Osize]";
+"[SWIFT_OPTIMIZATION_LEVEL]-value-[-Owholemodule]" = "Whole Module Optimization  [-O -whole-module-optimization]";
+"[SWIFT_OPTIMIZATION_LEVEL]-description" = "* *None:* Compile without any optimization. [-Onone]
+* *Optimize for Speed:* [-O]
+* *Optimize for Size:* [-Osize]
+* *Whole Module Optimization:* [-O -whole-module-optimization]";
+
+"[SWIFT_REFLECTION_METADATA_LEVEL]-description" = "This setting controls the level of reflection metadata the Swift compiler emits.
+
+* *All:* Type information about stored properties of Swift structs and classes, Swift enum cases, and their names, are emitted into the binary for reflection and analysis in the Memory Graph Debugger.
+* *Without Names:*  Only type information about stored properties and cases are emitted into the binary, with their names omitted. [-disable-reflection-names]
+* *None:* No reflection metadata is emitted into the binary. Accuracy of detecting memory issues involving Swift types in the Memory Graph Debugger will be degraded and reflection in Swift code may not be able to discover children of types, such as properties and enum cases. [-disable-reflection-metadata]";
+"[SWIFT_REFLECTION_METADATA_LEVEL]-value-[all]" = "All";
+"[SWIFT_REFLECTION_METADATA_LEVEL]-value-[without-names]" = "Without Names";
+"[SWIFT_REFLECTION_METADATA_LEVEL]-value-[none]" = "None";
+
+"[SWIFT_ENFORCE_EXCLUSIVE_ACCESS]-value-[on]" = "Full Enforcement (Run-time Checks in All Builds)";
+"[SWIFT_ENFORCE_EXCLUSIVE_ACCESS]-value-[full]" = "Full Enforcement (Run-time Checks in Debug Builds Only)";
+"[SWIFT_ENFORCE_EXCLUSIVE_ACCESS]-value-[debug-only]" = "Full Enforcement (Run-time Checks in Debug Builds Only)";
+"[SWIFT_ENFORCE_EXCLUSIVE_ACCESS]-value-[off]" = "Compile-time Enforcement Only";
+"[SWIFT_ENFORCE_EXCLUSIVE_ACCESS]-value-[compile-time]" = "Compile-time Enforcement";
+"[SWIFT_ENFORCE_EXCLUSIVE_ACCESS]-value-[none]" = "No Enforcement";
+"[SWIFT_ENFORCE_EXCLUSIVE_ACCESS]-description" = "This setting controls enforcement of exclusive access to memory.  [SWIFT_ENFORCE_EXCLUSIVE_ACCESS, -enforce-exclusivity]";
+
+"[SWIFT_STRICT_CONCURRENCY]-value-[minimal]" = "Minimal";
+"[SWIFT_STRICT_CONCURRENCY]-value-[targeted]" = "Targeted";
+"[SWIFT_STRICT_CONCURRENCY]-value-[complete]" = "Complete";
+"[SWIFT_STRICT_CONCURRENCY]-description" = "This setting controls the level of `Sendable` enforcement and actor-isolation checking performed by the Swift compiler.
+* *Minimal:* Enforce Sendable constraints only where it has been explicitly adopted and perform actor-isolation checking wherever code has adopted concurrency.
+* *Targeted:* Enforce Sendable constraints and perform actor-isolation checking wherever code has adopted concurrency, including code that has explicitly adopted Sendable.
+* *Complete:* Enforce Sendable constraints and actor-isolation checking throughout the entire module.";
+
+"[SWIFT_OBJC_INTEROP_MODE]-value-[objcxx]" = "C++ / Objective-C++";
+"[SWIFT_OBJC_INTEROP_MODE]-value-[objc]" = "C / Objective-C";
+
+"[_EXPERIMENTAL_SWIFT_EXPLICIT_MODULES]-value-[YES]" = "Yes";
+"[_EXPERIMENTAL_SWIFT_EXPLICIT_MODULES]-value-[NO]" = "No";

@@ -1,0 +1,34 @@
+//===----------------------------------------------------------------------===//
+//
+// This source file is part of the Swift open source project
+//
+// Copyright (c) 2025 Apple Inc. and the Swift project authors
+// Licensed under Apache License v2.0 with Runtime Library Exception
+//
+// See http://swift.org/LICENSE.txt for license information
+// See http://swift.org/CONTRIBUTORS.txt for the list of Swift project authors
+//
+//===----------------------------------------------------------------------===//
+
+(
+    {   Identifier = public.build-task.unifdef;
+        Type = Tool;
+        Name = "Unifdef";
+        ExecPath = "unifdef";
+        Description = "Copies files while optionally removing specified preprocessor conditionals.";
+        InputFileTypes = (
+            sourcecode.c.h,
+            sourcecode.cpp.h,
+            sourcecode.module-map,
+        );
+        ExecDescription = "Copy $(InputFileName) while removing preprocessor conditionals";
+        ProgressDescription = "Copying $(CommandProgressByType) files";
+        CommandOutputParser = (
+            ("()()(^[^:]+: [^:]+: No such file or directory)",  emit-error),
+            ("()()(^[^:]+: [^:]+: Permission denied)",  emit-error),
+            ("()()(^[^:]+: [^:]+: Is a directory)",  emit-error),
+        );
+        Options = (
+        );
+    }
+)

@@ -1,0 +1,46 @@
+//===----------------------------------------------------------------------===//
+//
+// This source file is part of the Swift open source project
+//
+// Copyright (c) 2025 Apple Inc. and the Swift project authors
+// Licensed under Apache License v2.0 with Runtime Library Exception
+//
+// See http://swift.org/LICENSE.txt for license information
+// See http://swift.org/CONTRIBUTORS.txt for the list of Swift project authors
+//
+//===----------------------------------------------------------------------===//
+
+"Name" = "Interface Builder XIB Compiler";
+"Description" = "Compiles Interface Builder XIB files to deployable NIB files.";
+
+"[IBC_COMPILER_OPTIONS]-category" = "Options";
+
+"[IBC_ERRORS]-name" = "Show Errors";
+"[IBC_ERRORS]-description" = "Show errors encountered during the compilation of XIB files.";
+
+"[IBC_WARNINGS]-name" = "Show Warnings";
+"[IBC_WARNINGS]-description" = "Show warnings encountered during the compilation of XIB files.";
+
+"[IBC_NOTICES]-name" = "Show Notices";
+"[IBC_NOTICES]-description" = "Show notices encountered during the compilation of XIB files.";
+
+"[IBC_OTHER_FLAGS]-name" = "Other Interface Builder Compiler Flags";
+"[IBC_OTHER_FLAGS]-description" = "A list of additional flags to pass to the Interface Builder Compiler. Use this setting if Xcode does not already provide UI for a particular Interface Builder Compiler flag.";
+
+"[IBC_FLATTEN_NIBS]-name" = "Flatten Compiled XIB Files";
+"[IBC_FLATTEN_NIBS]-description" = "If enabled, compile XIB files into flattened (non-wrapper) NIB files. After flattening, the resulting NIB is more compact but no longer editable by Interface Builder. When this option is disabled, the resulting NIB file remains editable in Interface Builder.";
+
+"[IBC_PLUGINS]-name" = "Plug-Ins";
+"[IBC_PLUGINS]-description" = "A list of paths to Interface Builder plugins to load when compiling XIB files.";
+
+"[IBC_PLUGIN_SEARCH_PATHS]-name" = "Plug-In Search Paths";
+"[IBC_PLUGIN_SEARCH_PATHS]-description" = "A list of paths to be searched for Interface Builder plug-ins to load when compiling XIB files.";
+
+"[IBC_OVERRIDING_PLUGINS_AND_FRAMEWORKS_DIR]-name" = "Overriding Plug-In and Framework Directory";
+"[IBC_OVERRIDING_PLUGINS_AND_FRAMEWORKS_DIR]-description" = "Instructs Interface Builder to load frameworks and Interface Builder plugins from the specified directory. Setting this value to `$(BUILD_DIR)/$(CONFIGURATION)$(EFFECTIVE_PLATFORM_NAME)` will ensure that Interface Builder will load frameworks and plug-ins from the built products directory of the current build configuration.";
+
+"[IBC_COMPILER_AUTO_ACTIVATE_CUSTOM_FONTS]-name" = "Auto-Activate Custom Fonts";
+"[IBC_COMPILER_AUTO_ACTIVATE_CUSTOM_FONTS]-description" = "Instructs the XIB compiler to add custom fonts to the application's `Info.plist`, which will cause the fonts to activate upon application launch.";
+
+"[IBC_MODULE]-name" = "Default Module";
+"[IBC_MODULE]-description" = "Defines the module name for Swift classes referenced without a specific module name.";

@@ -1,0 +1,55 @@
+//===----------------------------------------------------------------------===//
+//
+// This source file is part of the Swift open source project
+//
+// Copyright (c) 2025 Apple Inc. and the Swift project authors
+// Licensed under Apache License v2.0 with Runtime Library Exception
+//
+// See http://swift.org/LICENSE.txt for license information
+// See http://swift.org/CONTRIBUTORS.txt for the list of Swift project authors
+//
+//===----------------------------------------------------------------------===//
+
+(
+    {   Identifier = com.apple.build-tasks.copy-strings-file;
+        Type = Compiler;
+        Name = "Copy Strings File";
+        Description = "Copies a .strings file to the product";
+        CommandLine = "builtin-copyStrings [options] --outdir $(ProductResourcesDir) -- $(InputFileRelativePath)";
+        RuleName = "CopyStringsFile $(ProductResourcesDir)/$(InputFileName) $(InputFileRelativePath)";
+        ExecDescription = "Copy $(InputFileName)";
+        ProgressDescription = "Copying $(CommandProgressByType) resources to product";
+        IsArchitectureNeutral = Yes;
+        SynthesizeBuildRule = Yes;
+        CommandOutputParser = XCGenericCommandOutputParser;
+        InputFileTypes = (
+            text.plist.strings,
+            text.plist.stringsdict,
+        );
+        Outputs = (
+            "$(ProductResourcesDir)/$(STRINGS_FILE_OUTPUT_FILENAME)"
+        );
+        Options = (
+            {   Name = VALIDATE_STRINGS_FILES_WHILE_COPYING;
+                Type = Boolean;
+                DefaultValue = YES;
+                CommandLineFlag = "--validate";
+            },
+            {   Name = STRINGS_FILE_INPUT_ENCODING;
+                Type = String;
+                DefaultValue = "$(InputFileTextEncoding)";
+                CommandLineFlag = "--inputencoding";
+            },
+            {   Name = STRINGS_FILE_OUTPUT_ENCODING;
+                Type = String;
+                DefaultValue = "UTF-16";
+                CommandLineFlag = "--outputencoding";
+            },
+            {   Name = STRINGS_FILE_OUTPUT_FILENAME;
+                Type = String;
+                DefaultValue = "$(InputFileName)";
+                CommandLineFlag = "--outfilename";
+            },
+        );
+    }
+)

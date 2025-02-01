@@ -1,0 +1,57 @@
+//===----------------------------------------------------------------------===//
+//
+// This source file is part of the Swift open source project
+//
+// Copyright (c) 2025 Apple Inc. and the Swift project authors
+// Licensed under Apache License v2.0 with Runtime Library Exception
+//
+// See http://swift.org/LICENSE.txt for license information
+// See http://swift.org/CONTRIBUTORS.txt for the list of Swift project authors
+//
+//===----------------------------------------------------------------------===//
+
+(
+    {   Identifier = com.apple.compilers.yacc;
+        Type = Tool;
+        Name = "Yacc";
+        Description = "Yacc Parser Generator";
+        InputFileTypes = (sourcecode.yacc);
+        ExecPath = "$(YACC)";
+        ExecDescription = "Yacc $(InputFileName)";
+        ProgressDescription = "Yaccing $(CommandProgressByType) files";
+        SynthesizeBuildRule = YES;
+        IsArchitectureNeutral = YES;
+        EnvironmentVariables = {
+            DEVELOPER_DIR = "$(DEVELOPER_DIR)";
+        };
+        Options = (
+            // Defines options supported by Yacc.
+
+            // Build options
+            {   Name = YACC_GENERATED_FILE_STEM;
+                Type = enum;
+                Values = (Standard, InputFileStem);
+                DefaultValue = Standard;
+                Category = BuildOptions;
+            },
+            {   Name = YACC_INSERT_LINE_DIRECTIVES;
+                Type = bool;
+                DefaultValue = YES;
+                Category = BuildOptions;
+                CommandLineArgs = { YES = (); NO = (-l); };
+            },
+            {   Name = YACC_GENERATE_DEBUGGING_DIRECTIVES;
+                Type = bool;
+                DefaultValue = NO;
+                Category = BuildOptions;
+                CommandLineArgs = { YES = (-t); NO = (); };
+            },
+            {   Name = YACCFLAGS;
+                Type = StringList;
+                DefaultValue = "";
+                FileTypes = (sourcecode.yacc);
+                Category = BuildOptions;
+            },
+        );
+    }
+)

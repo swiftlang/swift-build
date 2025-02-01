@@ -1,0 +1,212 @@
+//===----------------------------------------------------------------------===//
+//
+// This source file is part of the Swift open source project
+//
+// Copyright (c) 2025 Apple Inc. and the Swift project authors
+// Licensed under Apache License v2.0 with Runtime Library Exception
+//
+// See http://swift.org/LICENSE.txt for license information
+// See http://swift.org/CONTRIBUTORS.txt for the list of Swift project authors
+//
+//===----------------------------------------------------------------------===//
+
+(
+    {
+        Type = Compiler;
+        Identifier = com.apple.compilers.documentation.objc-symbol-extract;
+        Name = "Clang Symbol Extractor";
+        Description = "Extract documentation";
+        CommandLine = "[exec-path] extractapi [inputs] [options] [special-args]";
+        RuleName = "ExtractAPI $(TAPI_EXTRACT_API_SDKDB_OUTPUT_PATH)";
+        ExecDescription = "Extract symbol information ($TARGET_NAME)";
+        ProgressDescription = "Extracting symbol information";
+        ExecPath = "$(TAPI_EXEC)";
+
+        IsAbstract = YES; // This is an internal tool.
+
+        Outputs = (
+            "$(TAPI_EXTRACT_API_SDKDB_OUTPUT_PATH)",
+        );
+
+        SynthesizeBuildRule = YES;
+        CommandOutputParser = XCGenericCommandOutputParser;
+
+        Options = (
+            {
+                Name = "TAPI_EXEC";
+                Type = Path;
+                DefaultValue = tapi;
+            },
+            {
+                Name = "SDKDB_TO_SYMGRAPH_EXEC";
+                Type = Path;
+                DefaultValue = "$(DEVELOPER_DIR)/../SharedFrameworks/CoreDocumentation.framework/Resources/sdkdb_to_symgraph";
+            },
+
+            // Output
+            {
+                Name = TAPI_EXTRACT_API_OUTPUT_DIR;
+                Type = Path;
+                DefaultValue = "$(SYMBOL_GRAPH_EXTRACTOR_OUTPUT_BASE)/clang/$(TAPI_EXTRACT_API_TARGET_TRIPLE)";
+            },
+            {
+                Name = TAPI_EXTRACT_API_SDKDB_OUTPUT_PATH;
+                Type = Path;
+                CommandLineFlag = "-o";
+                DefaultValue = "$(TAPI_EXTRACT_API_OUTPUT_DIR)/$(PRODUCT_NAME).sdkdb";
+            },
+
+            // Target
+            {
+                Name = TAPI_EXTRACT_API_TARGET_TRIPLE;
+                Type = String;
+                CommandLineArgs = ( "--target=$(value)" );
+                DefaultValue = "$(CURRENT_ARCH)-$(LLVM_TARGET_TRIPLE_VENDOR)-$(LLVM_TARGET_TRIPLE_OS_VERSION)$(LLVM_TARGET_TRIPLE_SUFFIX)";
+            },
+
+            // Compiler search paths.
+            {   Name = TAPI_EXTRACT_API_SYSTEM_ROOT;
+                Type = Path;
+                CommandLineFlag = "-isysroot";
+                DefaultValue = "$(SDKROOT)";
+                IsInputDependency = YES;
+            },
+            {   Name = TAPI_EXTRACT_API_SEARCH_PATHS;
+                Type = StringList;
+                // We use a custom lookup for this in `TAPISymbolExtractor` to find all types of search paths (headers, system headers, user headers,
+                // frameworks, system frameworks, etc.) to also provide search paths for header maps and VFS overlays.
+                DefaultValue = "";
+                CommandLineFlag = ""; // The option needs some "template" so that it doesn't skip these values.
+            },
+
+            // Enable modules
+            {
+                Name = "TAPI_EXTRACT_API_ENABLE_MODULES";
+                Type = Boolean;
+                DefaultValue = "$(CLANG_ENABLE_MODULES)";
+                CommandLineArgs = {
+                        YES = ( "-fmodules" );
+                        NO  = ();
+                };
+            },
+            {
+                Name = "TAPI_EXTRACT_API_MODULE_CACHE_PATH";
+                Type = Path;
+                DefaultValue = "$(MODULE_CACHE_DIR)";
+                CommandLineArgs = {
+                        "" = ();
+                        "<<otherwise>>" = ( "-fmodules-cache-path=$(value)" );
+                };
+                Condition = "$(TAPI_EXTRACT_API_ENABLE_MODULES)";
+            },
+
+            // ARC
+            {
+                Name = "TAPI_EXTRACT_API_ENABLE_OBJC_ARC";
+                Type = Boolean;
+                DefaultValue = "$(CLANG_ENABLE_OBJC_ARC)";
+                CommandLineArgs = {
+                        YES = ( "-fobjc-arc" );
+                        NO  = ();
+                };
+            },
+
+            // Compiler defines.
+            {   Name = TAPI_PREPROCESSOR_DEFINITIONS;
+                Type = StringList;
+                DefaultValue = "$(GCC_PREPROCESSOR_DEFINITIONS) $(GCC_PREPROCESSOR_DEFINITIONS_NOT_USED_IN_PRECOMPS)";
+                CommandLineArgs = (
+                    "-D$(value)",
+                );
+            },
+        );
+    },
+
+    {
+        Type = Compiler;
+        Identifier = com.apple.compilers.documentation.swift-symbol-extract;
+        Name = "Swift Symbol Extractor";
+        Description = "Extract Swift documentation";
+        CommandLine = "[exec-path] [inputs] [options] [special-args]";
+        RuleName = "ExtractSwiftAPI $(SWIFT_TARGET_TRIPLE)";
+        ExecDescription = "Extract Swift symbol information ($TARGET_NAME)";
+        ProgressDescription = "Extracting Swift symbol information";
+
+        ExecPath = "$(SYMBOL_GRAPH_EXTRACTOR_EXEC)";
+
+        IsAbstract = YES; // This is an internal tool.
+
+        SynthesizeBuildRule = YES;
+        CommandOutputParser = XCGenericCommandOutputParser;
+
+        Options = (
+            {
+                Name = "SYMBOL_GRAPH_EXTRACTOR_EXEC";
+                Type = Path;
+                DefaultValue = swift-symbolgraph-extract;
+            },
+
+            // These 4 are copied, but modified, from Documentation.xcspec
+
+            // Symbol graph extraction options
+            {
+                Name = DOCC_EXTRACT_SPI_DOCUMENTATION;
+                Type = bool;
+                DefaultValue = NO;
+            },
+            // Symbol graph output directory
+            {
+                Name = SYMBOL_GRAPH_EXTRACTOR_TARGET_TRIPLE;
+                Type = String;
+                DefaultValue = "$(SWIFT_TARGET_TRIPLE)";
+                CommandLineFlag = "-target";
+            },
+            {
+                Name = SYMBOL_GRAPH_EXTRACTOR_OUTPUT_DIR;
+                Type = String;
+                DefaultValue = "$(SYMBOL_GRAPH_EXTRACTOR_OUTPUT_BASE)/swift/$(SYMBOL_GRAPH_EXTRACTOR_TARGET_TRIPLE)";
+                DisplayName = "Output directory";
+                Description = "The symbol graph JSON output directory.";
+                CommandLineFlag = "-output-dir";
+            },
+            // Main symbol graph module name
+            {
+                Name = SYMBOL_GRAPH_EXTRACTOR_MODULE_NAME;
+                Type = String;
+                DefaultValue = "$(PRODUCT_MODULE_NAME)";
+                DisplayName = "Module name";
+                Description = "The name of the main module to extract.";
+                CommandLineFlag = "-module-name";
+            },
+
+            // End of copied options
+
+            // Compiler search paths.
+            {   Name = SYMBOL_GRAPH_EXTRACTOR_SDK;
+                Type = String;
+                CommandLineFlag = "-sdk";
+                DefaultValue = "$(SDKROOT)";
+            },
+            {   Name = SYMBOL_GRAPH_EXTRACTOR_SEARCH_PATHS;
+                Type = PathList;
+                // We use a custom lookup for this in `SwiftSymbolExtractor` to find all types of search paths (headers, system headers, user headers,
+                // frameworks, system frameworks, etc.) to also provide search paths for header maps and VFS overlays.
+                DefaultValue = "";
+                CommandLineFlag = ""; // The option needs some "template" so that it doesn't skip these values.
+            },
+
+            {
+                Name = SYMBOL_GRAPH_EXTRACTOR_MODULE_CACHE_PATH;
+                Type = Path;
+                DefaultValue = "$(MODULE_CACHE_DIR)";
+                CommandLineFlag = "-module-cache-path";
+            },
+            {
+                Name = SYMBOL_GRAPH_EXTRACTOR_SWIFT_VERSION;
+                Type = String;
+                DefaultValue = "$(SWIFT_VERSION)";
+                CommandLineFlag = "-swift-version";
+            },
+        );
+    },
+)

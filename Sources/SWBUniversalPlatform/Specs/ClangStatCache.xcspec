@@ -1,0 +1,33 @@
+//===----------------------------------------------------------------------===//
+//
+// This source file is part of the Swift open source project
+//
+// Copyright (c) 2025 Apple Inc. and the Swift project authors
+// Licensed under Apache License v2.0 with Runtime Library Exception
+//
+// See http://swift.org/LICENSE.txt for license information
+// See http://swift.org/CONTRIBUTORS.txt for the list of Swift project authors
+//
+//===----------------------------------------------------------------------===//
+
+(
+    {
+        Type = Compiler;
+        Identifier = "com.apple.compilers.clang-stat-cache";
+        Name = "Apple Clang Stat Cache Builder";
+        Description = "Build a stat cache for a directory which can be consumed by Clang";
+        CommandLine = "clang-stat-cache $(SDKROOT) [options] -o $(OutputPath)";
+        RuleName = "ClangStatCache $(CLANG_STAT_CACHE_EXEC) $(SDKROOT) $(OutputPath)";
+        ExecDescription = "Build stat cache for $(SDKROOT)";
+        Outputs = ("$(OutputPath)");
+        IsArchitectureNeutral = YES;
+        Options = (
+            {
+                Name = SDK_STAT_CACHE_VERBOSE_LOGGING;
+                Type = Boolean;
+                DefaultValue = NO;
+                CommandLineFlag = "-v";
+            }
+        );
+    }
+)

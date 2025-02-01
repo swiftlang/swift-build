@@ -1,0 +1,97 @@
+//===----------------------------------------------------------------------===//
+//
+// This source file is part of the Swift open source project
+//
+// Copyright (c) 2025 Apple Inc. and the Swift project authors
+// Licensed under Apache License v2.0 with Runtime Library Exception
+//
+// See http://swift.org/LICENSE.txt for license information
+// See http://swift.org/CONTRIBUTORS.txt for the list of Swift project authors
+//
+//===----------------------------------------------------------------------===//
+
+(
+    {
+        Identifier = "com.apple.build-tasks.generate-texture-atlas.xcplugin";
+        Type = Compiler;
+        Name = "Generate SpriteKit Texture Atlas";
+        Description = "Generate a texture atlas from a folder of images source.";
+        Version = Default;
+        Vendor = Apple;
+        CommandLine = "TextureAtlas [options] $(InputFile) $(ProductResourcesDir)";
+        RuleName = "GenerateTextureAtlas $(ProductResourcesDir)/$(InputFileBase).atlasc $(InputFile)";
+        ExecDescription = "Generate texture atlas file $(InputFileName)";
+        ProgressDescription = "Generating $(CommandProgressByType) texture atlas files";
+        SynthesizeBuildRule = YES;
+        IsGlobalDomainInUI = YES;
+        InputFileTypes = (
+            "folder.skatlas",
+        );
+        Outputs = (
+            "$(ProductResourcesDir)/$(InputFileBase).atlasc",
+        );
+        Options = (
+            {
+                Name = "TEXTURE_ATLAS_FORMAT";
+                Type = Enumeration;
+                Values = (
+                    {   Value = "RGBA8888_PNG";
+                        CommandLineArgs = ( );
+                    },
+                    {   Value = "RGBA8888_COMPRESSED";
+                        CommandLineArgs = ( "-f 2" );
+                    },
+                    {   Value = "RGBA4444_COMPRESSED";
+                        CommandLineArgs = ( "-f 3" );
+                    },
+                    {   Value = "RGBA5551_COMPRESSED";
+                        CommandLineArgs = ( "-f 4" );
+                    },
+                    {   Value = "RGB565_COMPRESSED";
+                        CommandLineArgs = ( "-f 5" );
+                    },
+                );
+                DefaultValue = "RGBA8888_PNG";
+                Category = "SpriteKit Texture Atlas Options";
+            },
+            {
+                Name = "TEXTURE_ATLAS_MAXIMUM_SIZE";
+                Type = Enumeration;
+                Values = (
+                    {   Value = "2048x2048";
+                        CommandLineArgs = ( );
+                    },
+                    {   Value = "4096x4096";
+                        CommandLineArgs = ( "-s 2" );
+                    },
+                );
+                DefaultValue = "2048x2048";
+                Category = "SpriteKit Texture Atlas Options";
+            },
+            {
+                Name = "TEXTURE_ATLAS_ENABLE_WARNINGS";
+                Type = Enumeration;
+                Values = (
+                    {   Value = "Yes";
+                        CommandLineArgs = ( );
+                    },
+                    {   Value = "No";
+                        CommandLineArgs = ( "-g" );
+                    },
+                );
+                DefaultValue = "Yes";
+                Category = "SpriteKit Texture Atlas Options";
+            },
+        );
+        CommandOutputParser = (
+            (
+                "^([^:]*):([^:]*)warning: (.*)$",
+                "emit-warning",
+            ),
+            (
+                "^([^:]*):([^:]*)error: (.*)$",
+                "emit-error",
+            ),
+        );
+    }
+)

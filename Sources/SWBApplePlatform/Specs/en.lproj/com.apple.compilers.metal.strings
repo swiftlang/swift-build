@@ -1,0 +1,127 @@
+//===----------------------------------------------------------------------===//
+//
+// This source file is part of the Swift open source project
+//
+// Copyright (c) 2025 Apple Inc. and the Swift project authors
+// Licensed under Apache License v2.0 with Runtime Library Exception
+//
+// See http://swift.org/LICENSE.txt for license information
+// See http://swift.org/CONTRIBUTORS.txt for the list of Swift project authors
+//
+//===----------------------------------------------------------------------===//
+
+"Name" = "Metal Compiler";
+"Description" = "Metal Compiler";
+"Version" = "Default";
+"Vendor" = "Apple";
+
+"[BuildOptions]-category" = "Build Options";
+
+"[MTL_HEADER_SEARCH_PATHS]-name" = "Header Search Paths";
+"[MTL_HEADER_SEARCH_PATHS]-description" = "This is a list of paths to folders to be searched by the compiler for included or imported header files when compiling Metal. Paths are delimited by whitespace, so any paths with spaces in them need to be properly quoted. [MTL_HEADER_SEARCH_PATHS, -I]";
+
+"[MTL_PREPROCESSOR_DEFINITIONS]-name" = "Preprocessor Definitions";
+"[MTL_PREPROCESSOR_DEFINITIONS]-description" = "Space-separated list of preprocessor macros of the form \"foo\" or \"foo=bar\".";
+
+"[MTL_FAST_MATH]-name" = "Enable Fast Math";
+"[MTL_FAST_MATH]-description" = "Enable optimizations for floating-point arithmetic that may violate the IEEE 754 standard and disable the high precision variant of math functions for single and half precision floating-point.";
+
+"[MTL_MATH_MODE]-name" = "Math Mode";
+"[MTL_MATH_MODE]-description" = "Controls floating-point optimizations";
+"[MTL_MATH_MODE]-value-[UseLanguageDefault]" = "Use default for language version";
+"[MTL_MATH_MODE]-description-[UseLanguageDefault]" = "Use default for language version";
+"[MTL_MATH_MODE]-value-[FAST]" = "Fast";
+"[MTL_MATH_MODE]-description-[FAST]" = "Allows aggressive, unsafe floating-point optimizations";
+"[MTL_MATH_MODE]-value-[RELAXED]" = "Relaxed";
+"[MTL_MATH_MODE]-description-[RELAXED]" = "Allows aggressive, unsafe floating-point optimizations but preserves infs and nans";
+"[MTL_MATH_MODE]-value-[SAFE]" = "Safe";
+"[MTL_MATH_MODE]-description-[SAFE]" = "Disables unsafe floating-point optimizations";
+
+"[MTL_MATH_FP32_FUNCTIONS]-name" = "Single-Precision Floating Point Functions";
+"[MTL_MATH_FP32_FUNCTIONS]-description" = "Controls default math functions for single precision floating-point";
+"[MTL_MATH_FP32_FUNCTIONS]-value-[UseLanguageDefault]" = "Use default for language version";
+"[MTL_MATH_FP32_FUNCTIONS]-description-[UseLanguageDefault]" = "Use default for language version";
+"[MTL_MATH_FP32_FUNCTIONS]-value-[FAST]" = "Fast";
+"[MTL_MATH_FP32_FUNCTIONS]-description-[FAST]" = "selects the corresponding functions in 'metal::fast' namespace";
+"[MTL_MATH_FP32_FUNCTIONS]-value-[PRECISE]" = "Precise";
+"[MTL_MATH_FP32_FUNCTIONS]-description-[PRECISE]" = "selects the corresponding functions in 'metal::precise' namespace";
+
+"[MTL_ENABLE_MODULES]-name" = "Enable Modules (Metal)";
+"[MTL_ENABLE_MODULES]-description" = "Enable the use of modules. Headers are imported as semantic modules instead of raw headers. This can result in faster builds and project indexing.
+
+* *All:* Enable for all headers.
+
+* *Standard library:* Enable for standard library headers only (default).
+
+* *None:* Disable the feature.";
+"[MTL_ENABLE_MODULES]-value-[YES]" = "All";
+"[MTL_ENABLE_MODULES]-description-[YES]" = "Enable for all headers";
+"[MTL_ENABLE_MODULES]-value-[STDLIB]" = "Standard library (default)";
+"[MTL_ENABLE_MODULES]-description-[STDLIB]" = "Enable for standard library headers only (default)";
+"[MTL_ENABLE_MODULES]-value-[NO]" = "None";
+"[MTL_ENABLE_MODULES]-description-[NO]" = "Disable the feature";
+
+"[MTL_ENABLE_INDEX_STORE]-name" = "Enable Index-While-Building Functionality (Metal)";
+"[MTL_ENABLE_INDEX_STORE]-description" = "Control whether the compiler should emit index data while building.";
+
+"[MTL_LANGUAGE_REVISION]-name" = "Metal Language Revision";
+"[MTL_LANGUAGE_REVISION]-description" = "Determine the language revision to use. A value for this option must be provided.";
+"[MTL_LANGUAGE_REVISION]-value-[UseDeploymentTarget]" = "Use default for deployment target";
+"[MTL_LANGUAGE_REVISION]-description-[UseDeploymentTarget]" = "Use default for deployment target";
+"[MTL_LANGUAGE_REVISION]-value-[iOSMetal10]" = "Metal 1.0 (deprecated)";
+"[MTL_LANGUAGE_REVISION]-description-[iOSMetal10]" = "Metal 1.0 (deprecated)";
+"[MTL_LANGUAGE_REVISION]-value-[Metal11]" = "Metal 1.1";
+"[MTL_LANGUAGE_REVISION]-description-[Metal11]" = "Metal 1.1";
+"[MTL_LANGUAGE_REVISION]-value-[Metal12]" = "Metal 1.2";
+"[MTL_LANGUAGE_REVISION]-description-[Metal12]" = "Metal 1.2";
+"[MTL_LANGUAGE_REVISION]-value-[Metal20]" = "Metal 2.0";
+"[MTL_LANGUAGE_REVISION]-description-[Metal20]" = "Metal 2.0";
+"[MTL_LANGUAGE_REVISION]-value-[Metal21]" = "Metal 2.1";
+"[MTL_LANGUAGE_REVISION]-description-[Metal21]" = "Metal 2.1";
+"[MTL_LANGUAGE_REVISION]-value-[Metal22]" = "Metal 2.2";
+"[MTL_LANGUAGE_REVISION]-description-[Metal22]" = "Metal 2.2";
+"[MTL_LANGUAGE_REVISION]-value-[Metal23]" = "Metal 2.3";
+"[MTL_LANGUAGE_REVISION]-description-[Metal23]" = "Metal 2.3";
+"[MTL_LANGUAGE_REVISION]-value-[Metal24]" = "Metal 2.4";
+"[MTL_LANGUAGE_REVISION]-description-[Metal24]" = "Metal 2.4";
+"[MTL_LANGUAGE_REVISION]-value-[Metal30]" = "Metal 3.0";
+"[MTL_LANGUAGE_REVISION]-description-[Metal30]" = "Metal 3.0";
+"[MTL_LANGUAGE_REVISION]-value-[Metal31]" = "Metal 3.1";
+"[MTL_LANGUAGE_REVISION]-description-[Metal31]" = "Metal 3.1";
+"[MTL_LANGUAGE_REVISION]-value-[Metal32]" = "Metal 3.2";
+"[MTL_LANGUAGE_REVISION]-description-[Metal32]" = "Metal 3.2";
+
+"[MTL_ENABLE_DEBUG_INFO]-name" = "Produce Debugging Information";
+"[MTL_ENABLE_DEBUG_INFO]-description" = "Debugging information is required for shader debugging and profiling.";
+"[MTL_ENABLE_DEBUG_INFO]-value-[YES]" = "Yes, exclude source code";
+"[MTL_ENABLE_DEBUG_INFO]-description-[YES]" = "Produce debugging information, excluding Metal shader source code";
+"[MTL_ENABLE_DEBUG_INFO]-value-[INCLUDE_SOURCE]" = "Yes, include source code";
+"[MTL_ENABLE_DEBUG_INFO]-description-[INCLUDE_SOURCE]" = "Produce debugging information, including Metal shader source code";
+"[MTL_ENABLE_DEBUG_INFO]-value-[NO]" = "No";
+"[MTL_ENABLE_DEBUG_INFO]-description-[NO]" = "Don't produce debugging information";
+
+"[MTL_TREAT_WARNINGS_AS_ERRORS]-name" = "Treat Warnings as Errors";
+"[MTL_TREAT_WARNINGS_AS_ERRORS]-description" = "Enabling this option causes all warnings to be treated as errors.  [MTL_TREAT_WARNINGS_AS_ERRORS, -Werror]";
+"[MTL_TREAT_WARNINGS_AS_ERRORS]-value-[NO]" = "No";
+"[MTL_TREAT_WARNINGS_AS_ERRORS]-value-[YES]" = "Yes";
+
+"[MTL_IGNORE_WARNINGS]-name" = "Ignore Warnings";
+"[MTL_IGNORE_WARNINGS]-description" = "Enabling this option causes all warnings to be ignored.  [MTL_IGNORE_WARNINGS, -W]";
+"[MTL_IGNORE_WARNINGS]-value-[NO]" = "No";
+"[MTL_IGNORE_WARNINGS]-value-[YES]" = "Yes";
+
+"[MTL_COMPILER_FLAGS]-name" = "Other Metal Compiler Flags";
+"[MTL_COMPILER_FLAGS]-description" = "Space-separated list of compiler flags";
+
+"[MTL_OPTIMIZATION_LEVEL]-name" = "Optimization Level";
+"[MTL_OPTIMIZATION_LEVEL]-description" = "Optimization level for the Metal compiler.
+
+* *Default:* Optimize for program performance [-O2].
+  This setting applies a moderate level of optimization that enables most optimizations.
+
+* *Size:* Like default, with extra optimizations to reduce code size [-Os].
+  This setting limits optimizations that increase code size, such as loop unrolling and function inlining, and enables other optimizations for size. It may reduce compile time and compiler memory in cases where optimizing for performance results in very large code.";
+"[MTL_OPTIMIZATION_LEVEL]-value-[default]" = "Default [-O2]";
+"[MTL_OPTIMIZATION_LEVEL]-description-[default]" = "Optimize for program performance";
+"[MTL_OPTIMIZATION_LEVEL]-value-[s]" = "Size [-Os]";
+"[MTL_OPTIMIZATION_LEVEL]-description-[s]" = "Like default, with extra optimizations to reduce code size";

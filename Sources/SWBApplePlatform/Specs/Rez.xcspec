@@ -1,0 +1,189 @@
+//===----------------------------------------------------------------------===//
+//
+// This source file is part of the Swift open source project
+//
+// Copyright (c) 2025 Apple Inc. and the Swift project authors
+// Licensed under Apache License v2.0 with Runtime Library Exception
+//
+// See http://swift.org/LICENSE.txt for license information
+// See http://swift.org/CONTRIBUTORS.txt for the list of Swift project authors
+//
+//===----------------------------------------------------------------------===//
+
+(
+    {   Identifier = com.apple.compilers.rez;
+        Type = Tool;
+        Name = "Rez";
+        Description = "Resource Manager Resource Compiler";
+        CommandLine = "Rez -o $(OutputPath) -d SystemSevenOrLater=1 -useDF [options] [input]";
+        RuleName = "Rez $(OutputPath) $(InputPath)";
+        ExecPath = "$(DEVELOPER_BIN_DIR)/Rez";
+        ExecDescription = "Rez $(InputFileName)";
+        ProgressDescription = "Running Rez on $(CommandProgressByType) files";
+        InputFileTypes = (
+            sourcecode.rez
+        );
+        SynthesizeBuildRule = YES;
+        IsArchitectureNeutral = YES;
+        CommandOutputParser = (
+            ("()() (Fatal Error, can't recover\\.)", append-to-previous),
+            ("^([^:]+):([0-9]+): ### /.*/Tools/Rez - Warning: (.*)$", emit-warning),
+            ("^([^:]+):([0-9]+): ### /.*/Tools/Rez - (.*)$", emit-error),
+            ("Since errors occurred, .* was not written\\.$", ignore)
+        );
+        Outputs = (
+            "$(REZ_OBJECTS_DIR)/$(InputFileRegionPathComponent)/$(InputFileBase).rsrc"
+        );
+        Options = (
+            // Defines options supported by Rez.
+
+            // Language
+            {   Name = REZ_SCRIPT_TYPE;
+                Type = Enumeration;
+                Values = (Roman, Japanese, Korean, SimpChinese, TradChinese);
+                DefaultValue = Roman;
+                CommandLineArgs = ( "-script", "$(value)");
+                Category = Language;
+            },
+
+            // Resource generation
+            {   Name = REZ_RESOLVE_ALIASES;
+                Type = Enumeration;
+                Values = (Always, Never, Includes, Outputs);
+                DefaultValue = Always;
+                CommandLineArgs = { Always = (); Never = (-noResolve); Includes = ("-noResolve", "output"); Outputs = ("-noResolve", "include"); };
+                Category = ResourceGeneration;
+            },
+            {   Name = REZ_RESOURCE_MAP_READ_ONLY;
+                Type = Boolean;
+                DefaultValue = NO;
+                CommandLineFlag = "-ro";
+                Category = ResourceGeneration;
+            },
+
+            // Preprocessing
+            {   Name = REZ_PREPROCESSOR_DEFINITIONS;
+                Type = StringList;
+                DefaultValue = "";
+                CommandLineFlag = "-define";
+                Category = Preprocessing;
+            },
+            {   Name = REZ_PREPROCESSOR_UNDEFINITIONS;
+                Type = StringList;
+                DefaultValue = "";
+                CommandLineFlag = "-undef";
+                Category = Preprocessing;
+            },
+
+            // Warnings
+            {   Name = REZ_SHOW_DEBUG_OUTPUT;
+                Type = Boolean;
+                DefaultValue = NO;
+                Category = Warnings;
+                CommandLineFlag = "-progress";
+            },
+            {   Name = REZ_SUPPRESS_REDECLARED_RESOURCE_TYPE_WARNINGS;
+                Type = Boolean;
+                DefaultValue = NO;
+                Category = Warnings;
+                CommandLineFlag = "-rd";
+            },
+
+            // Format of binary source files
+            {   Name = RESMERGER_SOURCES_FORK;
+                Type = Enumeration;
+                Values = (data, resource, auto);
+                DefaultValue = auto;
+                Category = BinarySources;
+            },
+
+            {
+                Name = OTHER_REZFLAGS;
+                Type = StringList;
+                DefaultValue = "";
+                Category = Language;
+                CommandLineArgs = (
+                    "$(value)",
+                );
+            },
+
+            {
+                Name = ARCHS;
+                Type = StringList;
+                CommandLineArgs = (
+                    "-arch", "$(value)",
+                );
+            },
+
+            {
+                Name = REZ_SEARCH_PATHS;
+                Type = PathList;
+                CommandLineArgs = (
+                    "-i", "$(value)",
+                );
+            },
+
+            {
+                Name = FRAMEWORK_SEARCH_PATHS;
+                Type = PathList;
+                Condition = "$(REZ_NO_AUTOMATIC_SEARCH_PATHS) != YES";
+                CommandLineArgs = (
+                    "-i", "$(value)",
+                );
+            },
+
+            {
+                Name = SYSTEM_FRAMEWORK_SEARCH_PATHS;
+                Type = PathList;
+                Condition = "$(REZ_NO_AUTOMATIC_SEARCH_PATHS) != YES";
+                CommandLineArgs = (
+                    "-F", "$(value)",
+                );
+            },
+
+            {
+                Name = HEADER_SEARCH_PATHS;
+                Type = PathList;
+                Condition = "$(REZ_NO_AUTOMATIC_SEARCH_PATHS) != YES";
+                CommandLineArgs = (
+                    "-i", "$(value)",
+                );
+            },
+
+            {
+                Name = SYSTEM_HEADER_SEARCH_PATHS;
+                Type = PathList;
+                Condition = "$(REZ_NO_AUTOMATIC_SEARCH_PATHS) != YES";
+                CommandLineArgs = (
+                    "-i", "$(value)",
+                );
+            },
+
+            {
+                Name = REZ_PREFIX_FILE;
+                Type = Path;
+                DefaultValue = "";
+                Category = Language;
+                InputInclusions = "$(_REZ_PREFIX_FILE:standardizepath)";
+                CommandLineArgs = {
+                    "" = ();
+                    "<<otherwise>>" = (
+                        "$(_REZ_PREFIX_FILE:standardizepath)"
+                    );
+                };
+            },
+
+            {
+                Name = _REZ_PREFIX_FILE;
+                Type = Path;
+                DefaultValue = "$(PROJECT_DIR)/$(REZ_PREFIX_FILE)";
+            },
+
+            {
+                Name = SDKROOT;
+                Type = Path;
+                CommandLineFlag = "-isysroot";
+            },
+        );
+    }
+)

@@ -1,0 +1,134 @@
+//===----------------------------------------------------------------------===//
+//
+// This source file is part of the Swift open source project
+//
+// Copyright (c) 2025 Apple Inc. and the Swift project authors
+// Licensed under Apache License v2.0 with Runtime Library Exception
+//
+// See http://swift.org/LICENSE.txt for license information
+// See http://swift.org/CONTRIBUTORS.txt for the list of Swift project authors
+//
+//===----------------------------------------------------------------------===//
+
+(
+    // Specification for shell scripts, just to provide output-parsing regexes.
+    {   Type = Tool;
+        Identifier = com.apple.commands.shell-script;
+        Name = "Shell Script Invocation";
+        IsAbstract = Yes;       // This is an internal tool, so we keep it out of the user interface
+        ExecDescription = "Run custom shell script '$(ShellScriptName)'";
+        ProgressDescription = "Running $(CommandProgressByType) custom shell scripts";
+        CommandOutputParser = (
+            XCShellScriptOutputParser,
+            (   ("()()^.+\.sh: (line.+)" , emit-error),
+            ),
+            (   ("()()(warning: [^:]+: No such file or directory)",  emit-error),
+                ("()()(^[^:]+: [^:]+: Permission denied)",  emit-error),
+                ("()()(^[^:]+: [^:]+: Is a directory)",  emit-error),
+            ),
+            XCGccCommandOutputParser,
+        );
+        // Never limit messages from user provided commands (0 == unlimited).
+        MessageLimit = 0;
+    },
+
+    // dsymutil tool
+    {   Type = Tool;
+        Identifier = com.apple.tools.dsymutil;
+        Name = "dsymutil";
+        Description = "dsymutil dSYM file generator";
+        IsAbstract = YES;
+        CommandLine = "dsymutil [options] [input] -o $(OutputPath)";
+        RuleName = "GenerateDSYMFile $(OutputPath) $(InputPath)";
+
+        ExecDescription = "Generate $(OutputFile:file) for $(InputPath:file)";
+        ProgressDescription = "Generating dSYM file";
+
+        InputFileTypes = (compiled.mach-o.executable, compiled.mach-o.objfile, compiled.mach-o.dylib, compiled.mach-o.bundle, archive.ar);
+        Outputs = ( "$(OutputPath)" );
+
+        Options = (
+            {   Name = DSYMUTIL_VERBOSE;
+                Type = Boolean;
+                DefaultValue = NO;
+                CommandLineFlag = "--verbose";
+            },
+            {   Name = DSYMUTIL_VARIANT_SUFFIX;
+                Type = String;
+                DefaultValue = "";
+                CommandLinePrefixFlag = "-build-variant-suffix=_";
+            },
+            {   Name = DSYMUTIL_DSYM_SEARCH_PATHS;
+                Type = PathList;
+                DefaultValue = "";
+                CommandLineFlag = "-D";
+            },
+            {   Name = DSYMUTIL_QUIET_OPERATION;
+                Type = Boolean;
+                DefaultValue = NO;
+                CommandLineFlag = "-q";
+            },
+        );
+
+        CommandOutputParser = (
+            (   ("()()(warning: .+)",  emit-warning),
+                ("()()(error: .+)",  emit-error),
+            ),
+        );
+    },
+
+    // Touch tool
+    {   Type = Tool;
+        Identifier = com.apple.tools.touch;
+        Name = "touch";
+        Description = "Touch";
+        IsAbstract = YES;
+
+        ExecDescription = "Touch $(OutputFile:file)";
+        ProgressDescription = "Touch product";
+    },
+
+    // Ditto tool
+    {   Type = Tool;
+        Identifier = com.apple.tools.ditto;
+        Name = "ditto";
+        Description = "Ditto";
+        IsAbstract = YES;
+
+        ExecDescription = "Ditto $(InputFileName) to $(OutputFile:file)";
+        ProgressDescription = "Dittoing files";
+    },
+
+    // Plutil tool
+    {   Type = Tool;
+        Identifier = com.apple.tools.plutil;
+        Name = "plutil";
+        Description = "Plutil";
+        IsAbstract = YES;
+
+        ExecDescription = "Plutil $(InputFileName) to $(OutputFile:file)";
+        ProgressDescription = "Dittoing files";
+    },
+
+    // SymLink tool
+    {   Type = Tool;
+        Identifier = com.apple.tools.symlink;
+        Name = "ln";
+        Description = "SymLink";
+        IsAbstract = YES;
+
+        ExecDescription = "Make symlink $(OutputFile:file)";
+        ProgressDescription = "Making $(CommandProgressByType) symlinks";
+    },
+
+    // MkDir tool
+    {   Type = Tool;
+        Identifier = com.apple.tools.mkdir;
+        Name = "mkdir";
+        Description = "MkDir";
+        IsAbstract = YES;
+
+        ExecDescription = "Create directory $(OutputFile:file)";
+        ProgressDescription = "Creating $(CommandProgressByType) directories";
+    },
+)

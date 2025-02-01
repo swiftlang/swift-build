@@ -1,0 +1,111 @@
+//===----------------------------------------------------------------------===//
+//
+// This source file is part of the Swift open source project
+//
+// Copyright (c) 2025 Apple Inc. and the Swift project authors
+// Licensed under Apache License v2.0 with Runtime Library Exception
+//
+// See http://swift.org/LICENSE.txt for license information
+// See http://swift.org/CONTRIBUTORS.txt for the list of Swift project authors
+//
+//===----------------------------------------------------------------------===//
+
+(
+    {
+        Type = Compiler;
+        Identifier = "com.apple.compilers.metal-linker";
+        Name = "Metal Linker";
+        Description = "Links Metal AIR files";
+        CommandLine = "metal [options] [inputs]";
+        RuleName = "MetalLink [output]";
+        ExecDescription = "Linking Metal AIR $(OutputFile:file)";
+        ProgressDescription = "Linking Metal AIR $(CommandProgressByType)";
+        InputFileTypes = (
+            "compiled.air",
+        );
+        InputFileGroupings = (
+            tool,
+        );
+        Outputs = (
+            "$(MTLLINKER_OUTPUT_FILE)",
+        );
+        OutputsAreProducts = YES;
+        IsArchitectureNeutral = YES;
+        SynthesizeBuildRule = YES;
+        CommandOutputParser = "XCGccCommandOutputParser";
+        Options = (
+            {
+                Name = "MTLLINKER_TARGET_TRIPLE";
+                Type = String;
+                DefaultValue = "air64-$(LLVM_TARGET_TRIPLE_VENDOR)-$(LLVM_TARGET_TRIPLE_OS_VERSION)$(LLVM_TARGET_TRIPLE_SUFFIX)";
+                CommandLineArgs = ( "-target", "$(value)" );
+            },
+            {
+                Name = "MTLLINKER_INCLUDE_SOURCE";
+                Type = String;
+                CommandLineArgs = ( "-frecord-sources" );
+                Condition = "$(MTL_ENABLE_DEBUG_INFO) == INCLUDE_SOURCE";
+            },
+            {
+                Name = "MTLLINKER_OUTPUT_FILE";
+                Type = String;
+                DefaultValue = "$(METAL_LIBRARY_OUTPUT_DIR)/$(METAL_LIBRARY_FILE_BASE).metallib";
+                CommandLineArgs = (
+                    "-o",
+                    "$(value)",
+                );
+            },
+            {
+                Name = "MTL_LANGUAGE_REVISION_optgen";
+                Type = Enumeration;
+                DefaultValue = "$(MTL_LANGUAGE_REVISION)";
+                Values = (
+                    UseDeploymentTarget,
+                    iOSMetal10,
+                    Metal11,
+                    Metal12,
+                    Metal20,
+                    Metal21,
+                    Metal22,
+                    Metal23,
+                    Metal24,
+                );
+                CommandLineArgs = {
+                    UseDeploymentTarget = (  );
+                    iOSMetal10 = ( "-std=$(MTL_LANGUAGE_REVISION_dialect)-metal1.0", );
+                    Metal11 = ( "-std=$(MTL_LANGUAGE_REVISION_dialect)-metal1.1", );
+                    Metal12 = ( "-std=$(MTL_LANGUAGE_REVISION_dialect)-metal1.2", );
+                    Metal20 = ( "-std=$(MTL_LANGUAGE_REVISION_dialect)-metal2.0", );
+                    Metal21 = ( "-std=$(MTL_LANGUAGE_REVISION_dialect)-metal2.1", );
+                    Metal22 = ( "-std=$(MTL_LANGUAGE_REVISION_dialect)-metal2.2", );
+                    Metal23 = ( "-std=$(MTL_LANGUAGE_REVISION_dialect)-metal2.3", );
+                    Metal24 = ( "-std=$(MTL_LANGUAGE_REVISION_dialect)-metal2.4", );
+                    Metal30 = ( "-std=metal3.0", );
+                    Metal31 = ( "-std=metal3.1", );
+                    Metal32 = ( "-std=metal3.2", );
+                };
+            },
+            {
+                Name = "MTLLINKER_FLAGS";
+                Type = StringList;
+                Category = BuildOptions;
+                DefaultValue = "";
+                CommandLinePrefixFlag = "";
+            },
+            {
+                Name = "MTLLINKER_ALTERNATE_LINKER";
+                Type = String;
+                CommandLineArgs = {
+                    "" = ();
+                    "<<otherwise>>" = ( "-fuse-ld=$(value)" );
+                };
+            },
+            {
+                Name = SDKROOT;
+                Type = Path;
+                SetValueInEnvironmentVariable = SDKROOT;
+            },
+        );
+        IncludeInUnionedToolDefaults = NO;
+    },
+)

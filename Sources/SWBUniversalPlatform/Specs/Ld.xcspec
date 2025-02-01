@@ -1,0 +1,703 @@
+//===----------------------------------------------------------------------===//
+//
+// This source file is part of the Swift open source project
+//
+// Copyright (c) 2025 Apple Inc. and the Swift project authors
+// Licensed under Apache License v2.0 with Runtime Library Exception
+//
+// See http://swift.org/LICENSE.txt for license information
+// See http://swift.org/CONTRIBUTORS.txt for the list of Swift project authors
+//
+//===----------------------------------------------------------------------===//
+
+(
+    {
+        Identifier = "com.apple.pbx.linkers.ld";
+        Type = Linker;
+        Name = Ld;
+        Description = "Link executable using Apple Mach-O Linker (ld)";
+        IsAbstract = Yes;
+        BinaryFormats = (
+            "mach-o",
+        );
+        CommandLine = "[exec-path] [options] [special-args] -o $(OutputPath)";
+        RuleName = "Ld $(OutputPath) $(variant) $(arch)";
+        CommandIdentifier = "create:$(OutputPath)";
+        ExecDescription = "Link $(OutputFile:file)";
+        ProgressDescription = Linking;
+        InputFileTypes = (
+            "compiled.mach-o.objfile",
+            "compiled.mach-o.dylib",
+            "sourcecode.text-based-dylib-definition",
+            "wrapper.framework",
+            "archive.ar",
+        );
+        Outputs = (
+            "$(OutputPath)",
+        );
+        CommandOutputParser = "XCGccCommandOutputParser";
+        "SupportsInputFileList" = Yes;
+        Options = (
+            {   Name = LD_DETERMINISTIC_MODE;
+                Type = Boolean;
+                DefaultValue = YES;
+                CommandLineArgs = {
+                    YES = (
+                        "-Xlinker",
+                        "-reproducible",
+                    );
+                    NO = ();
+                };
+                SupportedVersionRanges = ( "804" );
+            },
+            // Target triple (mutually exclusive with os-min-version/arch).
+            {
+                Name = "LD_TARGET_TRIPLE_ARCHS";
+                Type = StringList;
+                DefaultValue = "$(CURRENT_ARCH)";
+                CommandLineArgs = ( "-target", "$(value)-$(LLVM_TARGET_TRIPLE_VENDOR)-$(LLVM_TARGET_TRIPLE_OS_VERSION)$(LLVM_TARGET_TRIPLE_SUFFIX)" );
+            },
+            {
+                Name = "LD_TARGET_TRIPLE_VARIANTS";
+                Type = StringList;
+                CommandLineFlag = "-target-variant";
+                ConditionFlavors = ( arch );
+            },
+            {
+                Name = "LD_ADDITIONAL_DEPLOYMENT_TARGET_FLAGS";
+                Type = StringList;
+                CommandLineArgs = "$(value)";
+                ConditionFlavors = ( arch );
+            },
+            {
+                Name = "MACH_O_TYPE";
+                Type = Enumeration;
+                Values = (
+                    {
+                        Value = "mh_execute";
+                        CommandLineFlag = "";
+                    },
+                    {
+                        Value = "mh_dylib";
+                        CommandLineFlag = "-dynamiclib";
+                    },
+                    {
+                        Value = "mh_bundle";
+                        CommandLineFlag = "-bundle";
+                    },
+                    {
+                        Value = "mh_object";
+                        CommandLineFlag = "-r";
+                    },
+                );
+            },
+            {
+                Name = SDKROOT;
+                Type = Path;
+                CommandLineFlag = "-isysroot";
+                IsInputDependency = Yes;
+            },
+            {   Name = "LD_OPTIMIZATION_LEVEL";
+                Type = String;
+                DefaultValue = "$(GCC_OPTIMIZATION_LEVEL)";
+                "CommandLinePrefixFlag" = "-O";
+            },
+            {
+                Name = "LD_SUPPRESS_WARNINGS";
+                Type = Boolean;
+                DefaultValue = "$(SUPPRESS_WARNINGS)";
+                CommandLineFlag = "-w";
+            },
+            {
+                Name = "LD_WARN_UNUSED_DYLIBS";
+                Type = Boolean;
+                DefaultValue = NO;
+                CommandLineArgs = {
+                    YES = (
+                        "-Xlinker",
+                        "-warn_unused_dylibs",
+                    );
+                    NO = ();
+                };
+            },
+            {
+                Name = "LD_WARN_DUPLICATE_LIBRARIES";
+                Type = Boolean;
+                DefaultValue = NO;
+                CommandLineArgs = {
+                    YES = (
+                        "-Xlinker",
+                        "-warn_duplicate_libraries",
+                    );
+                    NO = ();
+                };
+            },
+            {
+                Name = "LIBRARY_SEARCH_PATHS";
+                Type = PathList;
+                "FlattenRecursiveSearchPathsInValue" = Yes;
+                "CommandLinePrefixFlag" = "-L";
+            },
+            {
+                Name = "FRAMEWORK_SEARCH_PATHS";
+                Type = PathList;
+                "FlattenRecursiveSearchPathsInValue" = Yes;
+                "CommandLinePrefixFlag" = "-F";
+            },
+            {
+                Name = "SYSTEM_FRAMEWORK_SEARCH_PATHS";
+                Type = PathList;
+                FlattenRecursiveSearchPathsInValue = Yes;
+                CommandLineFlag = "-iframework";
+            },
+            {
+                Name = "PRODUCT_TYPE_LIBRARY_SEARCH_PATHS";
+                Type = PathList;
+                "FlattenRecursiveSearchPathsInValue" = Yes;
+                "CommandLinePrefixFlag" = "-L";
+            },
+            {
+                Name = "PRODUCT_TYPE_FRAMEWORK_SEARCH_PATHS";
+                Type = PathList;
+                "FlattenRecursiveSearchPathsInValue" = Yes;
+                "CommandLinePrefixFlag" = "-F";
+            },
+            {
+                Name = "__INPUT_FILE_LIST_PATH__";
+                Type = Path;
+                DefaultValue = "$(LINK_FILE_LIST_$(variant)_$(arch))";
+                CommandLineFlag = "-filelist";
+                IsInputDependency = Yes;
+            },
+            {
+                Name = "LINKER_DISPLAYS_MANGLED_NAMES";
+                Type = Boolean;
+                DefaultValue = NO;
+                CommandLineArgs = {
+                    YES = (
+                        "-Xlinker",
+                        "--no-demangle",
+                    );
+                    NO = ();
+                };
+            },
+            {
+                Name = "INIT_ROUTINE";
+                Type = String;
+                CommandLineFlag = "-init";
+            },
+            {
+                Name = "LD_EXPORT_SYMBOLS";
+                Type = Boolean;
+                DefaultValue = YES;
+                CommandLineArgs = {
+                    YES = ();
+                    NO = (
+                        "-Xlinker",
+                        "-no_exported_symbols",
+                    );
+                };
+            },
+            {
+                Name = "EXPORTED_SYMBOLS_FILE";
+                Type = Path;
+                Condition = "!$(SEPARATE_SYMBOL_EDIT)";
+                CommandLineFlag = "-exported_symbols_list";
+                IsInputDependency = Yes;
+            },
+            {
+                Name = "UNEXPORTED_SYMBOLS_FILE";
+                Type = Path;
+                Condition = "!$(SEPARATE_SYMBOL_EDIT)";
+                CommandLineFlag = "-unexported_symbols_list";
+                IsInputDependency = Yes;
+            },
+            {
+                Name = "REEXPORTED_LIBRARY_NAMES";
+                Type = StringList;
+                CommandLineArgs = (
+                    "-Xlinker",
+                    "-reexport-l$(value)",
+                );
+            },
+            {
+                Name = "REEXPORTED_LIBRARY_PATHS";
+                Type = PathList;
+                CommandLineArgs = (
+                    "-Xlinker",
+                    "-reexport_library",
+                    "-Xlinker",
+                    "$(value)",
+                );
+            },
+            {
+                Name = "REEXPORTED_FRAMEWORK_NAMES";
+                Type = StringList;
+                CommandLineArgs = (
+                    "-Xlinker",
+                    "-reexport_framework",
+                    "-Xlinker",
+                    "$(value)",
+                );
+            },
+            {
+                Name = "GENERATE_PROFILING_CODE";
+                Type = Boolean;
+                Condition = "$(variant) == profile";
+                CommandLineFlag = "-pg";
+            },
+            {
+                Name = "LD_NO_PIE";
+                Type = Boolean;
+                DefaultValue = NO;
+                CommandLineArgs = {
+                    YES = (
+                        "-Xlinker",
+                        "-no_pie",
+                    );
+                    NO = ();
+                };
+            },
+            {
+                Name = "LD_DYLIB_INSTALL_NAME";
+                Type = String;
+                DefaultValue = "";
+                CommandLineFlag = "-install_name";
+                Condition = "$(MACH_O_TYPE) == mh_dylib";
+            },
+            {
+                Name = "LD_RUNPATH_SEARCH_PATHS";
+                //Note: Cannot be of type 'PathList' as value is used with relative '../' paths
+                Type = StringList;
+                DefaultValue = "";
+                CommandLineArgs = (
+                    "-Xlinker",
+                    "-rpath",
+                    "-Xlinker",
+                    "$(value)",
+                );
+            },
+            {
+                Name = "LD_GENERATE_MAP_FILE";
+                Type = Boolean;
+                DefaultValue = NO;
+                CommandLineArgs = {
+                    YES = (
+                        "-Xlinker",
+                        "-map",
+                        "-Xlinker",
+                        "$(LD_MAP_FILE_PATH)",
+                    );
+                    NO = ();
+                };
+            },
+            {
+                Name = "LD_MAP_FILE_PATH";
+                Type = Path;
+                DefaultValue = "$(TARGET_TEMP_DIR)/$(PRODUCT_NAME)-LinkMap-$(CURRENT_VARIANT)-$(CURRENT_ARCH).txt";
+            },
+            {
+                Name = "LINK_WITH_STANDARD_LIBRARIES";
+                Type = Boolean;
+                DefaultValue = YES;
+                CommandLineArgs = {
+                    NO = ("-nostdlib");
+                };
+            },
+            {
+                Name = "KEEP_PRIVATE_EXTERNS";
+                Type = Boolean;
+                DefaultValue = NO;
+                CommandLineFlag = "-keep_private_externs";
+            },
+            {
+                Name = "DEAD_CODE_STRIPPING";
+                Type = Boolean;
+                DefaultValue = NO;
+                Condition = "$(MACH_O_TYPE) != mh_object";
+                CommandLineFlag = "-dead_strip";
+            },
+            {
+                Name = "BUNDLE_LOADER";
+                Type = Path;
+                DefaultValue = "";
+                CommandLineFlag = "-bundle_loader";
+            },
+            {
+                Name = "ORDER_FILE";
+                Type = Path;
+                DefaultValue = "";
+                CommandLineArgs = {
+                    "" = ();
+                    "<<otherwise>>" = (
+                        "-Xlinker",
+                        "-order_file",
+                        "-Xlinker",
+                        "$(value)",
+                    );
+                };
+            },
+            {
+                Name = "LD_LTO_OBJECT_FILE";
+                Type = Path;
+                DefaultValue = "$(OBJECT_FILE_DIR_$(CURRENT_VARIANT))/$(CURRENT_ARCH)/$(PRODUCT_NAME)_lto.o";
+                Condition = "$(GCC_GENERATE_DEBUGGING_SYMBOLS)";
+                OutputDependencies = "$(LD_LTO_OBJECT_FILE)";
+                CommandLineArgs = {
+                    "" = ();
+                    "<<otherwise>>" = (
+                        "-Xlinker",
+                        "-object_path_lto",
+                        "-Xlinker",
+                        "$(value)",
+                    );
+                };
+            },
+            {
+                Name = "LD_EXPORT_GLOBAL_SYMBOLS";
+                Type = Boolean;
+                DefaultValue = NO;
+                CommandLineArgs = {
+                    YES = (
+                        "-Xlinker",
+                        "-export_dynamic",
+                    );
+                    NO = ();
+                };
+            },
+            {
+                Name = "LD_DONT_RUN_DEDUPLICATION";
+                Type = Boolean;
+                DefaultValue = YES;
+                Condition = "$(GCC_OPTIMIZATION_LEVEL) == '0'";
+                CommandLineArgs = {
+                    YES = (
+                        "-Xlinker",
+                        "-no_deduplicate",
+                    );
+                    NO = ();
+                };
+            },
+            {
+                Name = "LD_OBJC_ABI_VERSION";
+                Type = Enumeration;
+                Values = (
+                    1,
+                    2,
+                );
+                DefaultValue = "$(OBJC_ABI_VERSION)";
+                CommandLineArgs = {
+                    "" = ();
+                    "<<otherwise>>" = (
+                        "-Xlinker",
+                        "-objc_abi_version",
+                        "-Xlinker",
+                        "$(value)",
+                    );
+                };
+            },
+            {
+                Name = "LD_QUOTE_LINKER_ARGUMENTS_FOR_COMPILER_DRIVER";
+                Type = Boolean;
+                DefaultValue = YES;
+            },
+
+            // Bitcode options
+            {
+                Name = "LD_BITCODE_GENERATION_MODE";
+                Type = Enumeration;
+                Values = (
+                    marker,
+                    bitcode,
+                );
+                DefaultValue = "$(BITCODE_GENERATION_MODE)";
+                Architectures = (
+                    arm64e,
+                    arm64,
+                    arm64_32,
+                    armv7,
+                    armv7s,
+                    armv7k,
+                );
+                Condition = "$(ENABLE_BITCODE)";
+                CommandLineArgs = {
+                    marker = (
+                        "-fembed-bitcode-marker",
+                    );
+                    bitcode = (
+                        "-fembed-bitcode",
+                    );
+                };
+            },
+            {
+                Name = "LD_VERIFY_BITCODE";
+                Type = Boolean;
+                DefaultValue = YES;
+                Architectures = (
+                    arm64e,
+                    arm64,
+                    arm64_32,
+                    armv7,
+                    armv7s,
+                    armv7k,
+                );
+                Condition = "$(ENABLE_BITCODE)  &&  $(BITCODE_GENERATION_MODE) == bitcode";
+                CommandLineArgs = {
+                    YES = (
+                        "-Xlinker",
+                        "-bitcode_verify",
+                    );
+                    NO = ();
+                };
+            },
+            {
+                Name = "LD_HIDE_BITCODE_SYMBOLS";
+                Type = Boolean;
+                DefaultValue = "$(HIDE_BITCODE_SYMBOLS)";
+                Architectures = (
+                    arm64,
+                    arm64e,
+                    arm64_32,
+                    armv7,
+                    armv7s,
+                    armv7k,
+                );
+                Condition = "$(ENABLE_BITCODE)  &&  $(BITCODE_GENERATION_MODE) == bitcode  &&  $(MACH_O_TYPE) != mh_object";
+                CommandLineArgs = {
+                    YES = (
+                        "-Xlinker",
+                        "-bitcode_hide_symbols",
+                    );
+                    NO = ();
+                };
+            },
+            {
+                Name = "LD_GENERATE_BITCODE_SYMBOL_MAP";
+                Type = Boolean;
+                DefaultValue = "$(HIDE_BITCODE_SYMBOLS)";
+                Architectures = (
+                    arm64,
+                    arm64e,
+                    arm64_32,
+                    armv7,
+                    armv7s,
+                    armv7k,
+                );
+                Condition = "$(ENABLE_BITCODE)  &&  $(BITCODE_GENERATION_MODE) == bitcode  &&  $(MACH_O_TYPE) != mh_object";
+                CommandLineArgs = {
+                    YES = (
+                        "-Xlinker",
+                        "-bitcode_symbol_map",
+                        "-Xlinker",
+                        "$(BUILT_PRODUCTS_DIR)",
+                    );
+                    NO = ();
+                };
+            },
+
+            // Thread Sanitizer options
+            {
+                Name = "LD_THREAD_SANITIZER";
+                Type = Boolean;
+                DefaultValue = "$(ENABLE_THREAD_SANITIZER)";
+                Architectures = (
+                    x86_64,
+                    x86_64h,
+                    arm64,
+                    arm64e,
+                );
+                CommandLineArgs = {
+                    YES = (
+                        "-fsanitize=thread",
+                    );
+                    NO = ();
+                };
+                // Not visible in the build settings editor
+            },
+
+            {
+                Name = "LD_DEBUG_VARIANT";
+                Type = Boolean;
+                DefaultValue = YES;
+                Condition = "$(ENABLE_ADDRESS_SANITIZER) || $(ENABLE_THREAD_SANITIZER) || $(ENABLE_SANITIZER_COVERAGE) || $(ENABLE_UNDEFINED_BEHAVIOR_SANITIZER) || $(CLANG_COVERAGE_MAPPING)";
+                CommandLineArgs = {
+                    YES = (
+                        "-Xlinker",
+                        "-debug_variant"
+                    );
+                    NO = ();
+                };
+            },
+
+            // Final output file, relative to $(INSTALL_ROOT)
+            {
+                Name = "LD_FINAL_OUTPUT_FILE";
+                Type = Path;
+                DefaultValue = "$(INSTALL_PATH)/$(EXECUTABLE_PATH)";
+                Condition = "$(DEPLOYMENT_POSTPROCESSING)  &&  !$(SKIP_INSTALL)  &&  $(INSTALL_PATH) != \"\"";
+                CommandLineArgs = {
+                    "" = ();
+                    "<<otherwise>>" = (
+                        "-Xlinker",
+                        "-final_output",
+                        "-Xlinker",
+                        "$(value)",
+                    );
+                };
+                // Not visible in the build settings editor
+            },
+
+            // Dependency info file
+            {
+                Name = "LD_DEPENDENCY_INFO_FILE";
+                Type = Path;
+                DefaultValue = "$(OBJECT_FILE_DIR_$(CURRENT_VARIANT))/$(CURRENT_ARCH)/$(PRODUCT_NAME)_dependency_info.dat";
+                CommandLineArgs = {
+                    "" = ();
+                    "<<otherwise>>" = (
+                        "-Xlinker", 
+                        "-dependency_info",
+                        "-Xlinker",
+                        "$(value)",
+                    );
+                };
+                DependencyDataFormat = dependencyInfo;
+            },
+
+            // Allowable Clients
+            {
+                Name = "LD_DYLIB_ALLOWABLE_CLIENTS";
+                Type = StringList;
+                DefaultValue = "";
+                CommandLineArgs = (
+                    "-Xlinker",
+                    "-allowable_client",
+                    "-Xlinker",
+                    "$(value)",
+                );
+            },
+
+            // Mergeable library options
+            {   Name = LD_MAKE_MERGEABLE;
+                Type = Boolean;
+                DefaultValue = "$(MAKE_MERGEABLE)";
+                CommandLineArgs = {
+                    YES = (
+                        "-Xlinker",
+                        "-make_mergeable",
+                    );
+                    NO = ();
+                };
+            },
+
+            {
+                Name = "LD_SHARED_CACHE_ELIGIBLE";
+                Type = Enumeration;
+                Values = (
+                    Automatic,
+                    NO,
+                );
+                DefaultValue = "Automatic";
+                CommandLineArgs = {
+                    "Automatic" = ();
+                    NO = (
+                        "-Xlinker",
+                        "-not_for_dyld_shared_cache",
+                        "-Xlinker",
+                        "-no_shared_cache_eligible"
+                    );
+                };
+            },
+
+            {
+                Name = "LD_ENTRY_POINT";
+                Type = String;
+                Condition = "$(MACH_O_TYPE) == mh_execute";
+                CommandLineArgs = {
+                    "" = ();
+                    "<<otherwise>>" = (
+                        "-e",
+                        "$(value)",
+                    );
+                };
+            },
+
+            {
+                Name = "LD_ENVIRONMENT";
+                Type = StringList;
+                Condition = "$(MACH_O_TYPE) == mh_execute";
+                CommandLineArgs = (
+                    "-Xlinker",
+                    "-dyld_env",
+                    "-Xlinker",
+                    "$(value)",
+                );
+            },
+
+            {
+                Name = "LD_CLIENT_NAME";
+                Type = String;
+                Condition = "$(MACH_O_TYPE) == mh_execute || $(MACH_O_TYPE) == mh_bundle";
+                CommandLineArgs = {
+                    "" = ();
+                    "<<otherwise>>" = (
+                        "-Xlinker",
+                        "-client_name",
+                        "-Xlinker",
+                        "$(value)",
+                    );
+                };
+            },
+
+            {
+                Name = "__CREATE_INFOPLIST_SECTION_IN_BINARY";
+                Type = Boolean;
+                DefaultValue = "$(CREATE_INFOPLIST_SECTION_IN_BINARY)";
+                Condition = "$(MACH_O_TYPE) == mh_execute";
+                CommandLineArgs = {
+                    YES = (
+                        "-sectcreate",
+                        "__TEXT",
+                        "__info_plist",
+                        "$(PROCESSED_INFOPLIST_PATH)"
+                    );
+                    NO = ();
+                };
+                InputInclusions = "$(PROCESSED_INFOPLIST_PATH)";
+            },
+
+            // Options defined by compilers
+            {
+                Name = "AdditionalCommandLineArguments";
+                Type = StringList;
+                "CommandLinePrefixFlag" = "";
+            },
+
+            // Other options, mostly user-defined
+            {
+                Name = "ALL_OTHER_LDFLAGS";
+                Type = StringList;
+                DefaultValue = "$(LD_FLAGS) $(SECTORDER_FLAGS) $(OTHER_LDFLAGS) $(OTHER_LDFLAGS_$(variant)) $(OTHER_LDFLAGS_$(arch)) $(OTHER_LDFLAGS_$(variant)_$(arch)) $(PRODUCT_SPECIFIC_LDFLAGS)";
+                Condition = "$(MACH_O_TYPE) != mh_object";
+                "CommandLinePrefixFlag" = "";
+            },
+            {
+                Name = "OTHER_LDRFLAGS";
+                Type = StringList;
+                DefaultValue = "$(OTHER_LDFLAGS)";
+                Condition = "$(MACH_O_TYPE) == mh_object";
+                "CommandLinePrefixFlag" = "";
+            },
+            {
+                Name = "ALTERNATE_LINKER";
+                Type = String;
+                CommandLineArgs = {
+                    "" = ();
+                    "<<otherwise>>" = (
+                        "-fuse-ld=$(value)"
+                    );
+                };
+            },
+        );
+    }
+)

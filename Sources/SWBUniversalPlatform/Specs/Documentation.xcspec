@@ -1,0 +1,257 @@
+//===----------------------------------------------------------------------===//
+//
+// This source file is part of the Swift open source project
+//
+// Copyright (c) 2025 Apple Inc. and the Swift project authors
+// Licensed under Apache License v2.0 with Runtime Library Exception
+//
+// See http://swift.org/LICENSE.txt for license information
+// See http://swift.org/CONTRIBUTORS.txt for the list of Swift project authors
+//
+//===----------------------------------------------------------------------===//
+
+(
+    // Define a file type for doc bundles so that that input can cause documentation do be built
+    {
+        Name = "Documentation Catalog";
+        Type = FileType;
+        Identifier = folder.documentationcatalog;
+        BasedOn = wrapper;
+        Extensions = (
+            docc
+        );
+        IsTransparent = NO;
+        AppliesToBuildRules = YES;
+        UTI = "com.apple.documentation.catalog"; // This needs to match the identifier in IDEDocumentation.plugindata
+    },
+
+    {
+        Type = Compiler;
+        Identifier = com.apple.compilers.documentation;
+        Name = "Documentation Compiler";
+        Description = "Compiles documentation";
+        CommandLine = "[exec-path] convert [options] [inputs] [special-args]";
+        RuleName = "CompileDocumentation $(DOCC_INPUTS)";
+        ExecDescription = "Compile documentation";
+        ProgressDescription = "Compiling documentation";
+        ExecPath = "$(DOCC_EXEC)";
+
+        InputFileGroupings = (tool); // Ensure a single task for all input.
+        InputFileTypes = (
+            folder.documentationcatalog,
+        );
+        Outputs = (
+            "$(DOCC_ARCHIVE_PATH)",
+        );
+
+        SynthesizeBuildRule = YES;
+        IsArchitectureNeutral = YES;
+        CommandOutputParser = XCGenericCommandOutputParser;
+
+        Options = (
+            {
+                Name = "DOCC_EXEC";
+                Type = Path;
+                DefaultValue = docc;
+            },
+
+            // Whether or not to perform additional documentation analysis and emit warnings about style and other content issues that are syntactically correct.
+            {
+                Name = DOCC_ANALYZE_DIAGNOSTICS;
+                Type = bool;
+                DefaultValue = NO;
+                CommandLineArgs = { YES = ("--analyze"); NO = (); };
+            },
+            // Whether or not to output additional "digest" files in the .doccarchive with supplementary information about the documentation content.
+            {
+                Name = DOCC_OUTPUT_DIGEST_INFORMATION;
+                Type = bool;
+                DefaultValue = NO;
+                CommandLineArgs = { YES = ("--emit-digest"); NO = (); };
+            },
+            // Whether or not to produce a navigator index for the built documentation. This is needed for the Documentation Window but not needed for hosting a .doccarchive online.
+            {
+                Name = DOCC_OUTPUT_NAVIGATOR_INDEX;
+                Type = bool;
+                DefaultValue = YES;
+                CommandLineArgs = { YES = ("--emit-lmdb-index"); NO = (); };
+            },
+
+            // Options to override values that's specified in the Info.plist in the documentation bundle (not the target's Info.plist file).
+
+            // A fallback name for the output DocC archive. This is required unless the DocC catalog contains an Info.plist that specify the display name.
+            {
+                Name = DOCC_CATALOG_DISPLAY_NAME;
+                Type = String;
+                CommandLineFlag = "--fallback-display-name";
+                DefaultValue = "$(PRODUCT_NAME)";
+            },
+            // A fallback identifier for the output DocC archive. This is required unless the DocC catalog contains an Info.plist that specify the identifier.
+            {
+                Name = DOCC_CATALOG_IDENTIFIER;
+                Type = String;
+                CommandLineFlag = "--fallback-bundle-identifier";
+                DefaultValue = "$(PRODUCT_BUNDLE_IDENTIFIER:default=$DOCC_CATALOG_DISPLAY_NAME)";
+            },
+
+            // A base path where the produced DocC archive will be hosted. This is optional.
+            {
+                Name = DOCC_HOSTING_BASE_PATH;
+                Type = String;
+                DefaultValue = "";
+                CommandLineArgs = {
+                        "" = ();
+                        "<<otherwise>>" = ( "--hosting-base-path", "$(value)" );
+                };
+                DisplayName = "DocC Archive Hosting Base Path";
+                Description = "The base path your documentation website will be hosted at.\nFor example, if you plan on hosting your DocC archive at `https://example.com/ProjectName/documentation` instead of `https://example.com/documentation`, set this value to `\"ProjectName\"`.";
+                Category = "Options";
+            },
+
+            // Whether or not the produced DocC archive should be transformed to be compatible
+            // with static hosting environments.
+            {
+                Name = DOCC_TRANSFORM_FOR_STATIC_HOSTING;
+                Type = bool;
+                DefaultValue = YES;
+                CommandLineArgs = { YES = (); NO = ("--no-transform-for-static-hosting"); };
+            },
+
+            // The directory where the documentation compiler writes the built documentation.
+            // This setting exists so that the developer can specify one directory where all documentation will be written.
+            {
+                Name = DOCC_OUTPUT_DIR;
+                Type = String;
+                DefaultValue = "$(BUILT_PRODUCTS_DIR)";
+            },
+
+            // The path where the documentation compiler writes the documentation archive.";
+            // This setting exists so that the docc executable knows where it should write each individual documentation archive.
+            {
+                Name = DOCC_ARCHIVE_PATH;
+                Type = String;
+                CommandLineFlag = "--output-dir";
+                DefaultValue = "$(DOCC_OUTPUT_DIR)/$(DOCC_CATALOG_DISPLAY_NAME).doccarchive";
+            },
+
+            // Options that are not passed as command line arguments.
+
+            // A custom template that the documentation compiler uses as the base for the documentation output.
+            {
+                Name = DOCC_TEMPLATE_PATH;
+                Type = String;
+                // This Option shouldn't be specify a CommandLineFlag, because it's used passed as an environment.
+                DefaultValue = "";
+            },
+
+            // Run documentation compiler. This can be used to build documentation on a per-target basis.
+            {
+                Name = RUN_DOCUMENTATION_COMPILER;
+                Type = bool;
+                DefaultValue = NO;
+                DisplayName = "Build Documentation During 'Build'";
+                Description = "Also build documentation as part of the 'Build' action.";
+                Category = "Options";
+            },
+
+            // If the Swift compiler / Swift symbol graph extractor should extract information for SPI symbols.
+            {
+                Name = DOCC_EXTRACT_SPI_DOCUMENTATION;
+                Type = bool;
+                DefaultValue = NO;
+            },
+
+            {
+                Name = DOCC_EXTRACT_SWIFT_INFO_FOR_OBJC_SYMBOLS;
+                Type = bool;
+                DefaultValue = NO;
+                DisplayName = "Build Multi-Language Documentation for Objective-C Only Targets";
+                Description = "Extract Swift symbol information for targets that contain only Objective-C code so that the documentation output can be read as both Swift and Objective-C.";
+                Category = "Options";
+            },
+            {
+                Name = DOCC_EXTRACT_OBJC_INFO_FOR_SWIFT_SYMBOLS;
+                Type = bool;
+                DefaultValue = NO;
+                DisplayName = "Build Multi-Language Documentation for Swift Only Targets";
+                Description = "Extract Objective-C symbol information for targets that contain only Swift code so that the documentation output can be read as both Swift and Objective-C.";
+                Category = "Options";
+            },
+            {
+                Name = DOCC_ENABLE_CXX_SUPPORT;
+                Type = bool;
+                DefaultValue = YES;
+                DisplayName = "Build Documentation for C++/Objective-C++";
+                Description = "Include documentation for symbols defined in C++/Objective-C++ headers.";
+                Category = "Options";
+            },
+            {
+                Name = DOCC_EXTRACT_EXTENSION_SYMBOLS;
+                Type = bool;
+                DefaultValue = YES;
+                DisplayName = "Include Documentation for Symbols in Swift Extensions";
+                Description = "Extract Swift symbol information for symbols defined within an extension to a type that is not defined in the current module.";
+                Category = "Options";
+            },
+            {
+                Name = SYMBOL_GRAPH_EXTRACTOR_TARGET_TRIPLE;
+                Type = String;
+                DefaultValue = "$(SWIFT_TARGET_TRIPLE)";
+            },
+            // The symbol graph JSON output directory. One ore more symbol graphs files will be written inside this directory.
+            {
+                Name = SYMBOL_GRAPH_EXTRACTOR_OUTPUT_BASE;
+                Type = String;
+                DefaultValue = "$(TARGET_TEMP_DIR)/symbol-graph";
+            },
+            // The symbol graph JSON output directory. One ore more symbol graphs files will be written inside this directory.
+            {
+                Name = SYMBOL_GRAPH_EXTRACTOR_OUTPUT_DIR;
+                Type = String;
+                DefaultValue = "$(SYMBOL_GRAPH_EXTRACTOR_OUTPUT_BASE)/swift/$(SYMBOL_GRAPH_EXTRACTOR_TARGET_TRIPLE)";
+            },
+            // The name of the main module to extract symbol information for.
+            {
+                Name = SYMBOL_GRAPH_EXTRACTOR_MODULE_NAME;
+                Type = String;
+                DefaultValue = "$(PRODUCT_MODULE_NAME)";
+            },
+
+            // No longer applicable when DocC has the "diagnostics-file" feature (replaced by DOCC_CONSOLE_STYLE)
+            {
+                Name = DOCC_EMIT_FIXITS;
+                Type = bool;
+                DefaultValue = YES;
+                CommandLineArgs = { YES = ("--emit-fixits"); NO = (); };
+            },
+            // Only available when DocC has the "diagnostics-file" feature
+            {
+                Name = DOCC_IDE_CONSOLE_OUTPUT;
+                Type = bool;
+                DefaultValue = YES;
+                CommandLineArgs = { YES = ("--ide-console-output"); NO = (); };
+            },
+            // Only available when DocC has the "diagnostics-file" feature
+            {
+                Name = DOCC_DIAGNOSTICS_FILE;
+                Type = Path;
+                DefaultValue = "$(TARGET_TEMP_DIR)/$(DOCC_CATALOG_DISPLAY_NAME)-diagnostics.json";
+                CommandLineArgs = {
+                    "" = ();
+                    "<<otherwise>>" = ( "--diagnostics-file", "$(value)" );
+                };
+            },
+
+            {
+                Name = "OTHER_DOCC_FLAGS";
+                Type = StringList;
+                CommandLineArgs = (
+                    "$(value)",
+                );
+                DisplayName = "Other DocC Flags";
+                Description = "A list of additional flags to pass to DocC";
+                Category = "Options";
+            },
+        );
+    },
+)

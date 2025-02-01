@@ -1,0 +1,173 @@
+//===----------------------------------------------------------------------===//
+//
+// This source file is part of the Swift open source project
+//
+// Copyright (c) 2025 Apple Inc. and the Swift project authors
+// Licensed under Apache License v2.0 with Runtime Library Exception
+//
+// See http://swift.org/LICENSE.txt for license information
+// See http://swift.org/CONTRIBUTORS.txt for the list of Swift project authors
+//
+//===----------------------------------------------------------------------===//
+
+(
+    {
+        Identifier = "com.apple.build-tools.swift-stdlib-tool";
+        Type = Tool;
+        Name = "Swift stdlib tool";
+        Description = "Copy standard libraries for Swift";
+        RuleName = "CopySwiftLibs $(OutputPath)";
+        ExecDescription = "Copy Swift standard libraries into $(OutputFile:file)";
+        ProgressDescription = "Copying Swift standard libraries";
+        IsAbstract = Yes;
+        DeeplyStatInputDirectories = Yes;
+        CommandLine = "builtin-swiftStdLibTool [options]";
+        Outputs = (
+            "$(OutputPath)",
+        );
+        Options = (
+            {
+                Name = "SWIFT_STDLIB_TOOL_ACTION";
+                Type = String;
+                CommandLineArgs = ( "--copy" );
+            },
+
+            {
+                Name = "SWIFT_STDLIB_TOOL_VERBOSITY";
+                Type = Enumeration;
+                Values = (
+                    none,
+                    verbose,
+                    extra-verbose,
+                );
+                DefaultValue = "verbose";
+                CommandLineArgs = {
+                    none = ();
+                    verbose = (
+                        "--verbose",
+                    );
+                    extra-verbose = (
+                        "--verbose",
+                        "--verbose",
+                    );
+                };
+            },
+
+            {
+                Name = "SWIFT_STDLIB_TOOL_CODE_SIGN_IDENTITY";
+                Type = String;
+                DefaultValue = "$(EXPANDED_CODE_SIGN_IDENTITY)";
+                CommandLineFlag = "--sign";
+            },
+
+            {
+                Name = "SWIFT_STDLIB_TOOL_KEYCHAIN";
+                Type = String;
+                DefaultValue = "$(CODE_SIGN_KEYCHAIN)";
+                CommandLineFlag = "--keychain";
+            },
+
+            {
+                Name = "SWIFT_STDLIB_TOOL_OTHER_CODE_SIGN_FLAGS";
+                Type = StringList;
+                DefaultValue = "$(OTHER_CODE_SIGN_FLAGS)";
+                CommandLineFlag = "--Xcodesign";
+            },
+
+            {
+                Name = "SWIFT_STDLIB_TOOL_EXECUTABLE_TO_SCAN";
+                Type = Path;
+                DefaultValue = "$(InputPath)";
+                CommandLineFlag = "--scan-executable";
+            },
+
+            {
+                Name = "SWIFT_STDLIB_TOOL_FOLDERS_TO_SCAN";
+                Type = PathList;
+                DefaultValue = "";
+                CommandLineFlag = "--scan-folder";
+            },
+
+            {
+                Name = "SWIFT_STDLIB_TOOL_SOURCE_LIBRARIES";
+                Type = Path;
+                DefaultValue = "$(SWIFT_LIBRARY_PATH)";
+                CommandLineArgs = {
+                    "" = ( "--platform", "$(PLATFORM_NAME)" );
+                    "<<otherwise>>" = ( "--source-libraries", "$(value)" );
+                };
+            },
+
+            {
+                Name = "SWIFT_STDLIB_TOOL_TOOLCHAINS";
+                Type = PathList;
+                DefaultValue = "$(EFFECTIVE_TOOLCHAINS_DIRS)";
+                CommandLineFlag = "--toolchain";
+            },
+
+            {
+                Name = "SWIFT_STDLIB_TOOL_DESTINATION_DIR";
+                Type = Path;
+                DefaultValue = "$(TARGET_BUILD_DIR)/$(FRAMEWORKS_FOLDER_PATH)";
+                CommandLineFlag = "--destination";
+            },
+
+            {
+                Name = "SWIFT_STDLIB_TOOL_UNSIGNED_DESTINATION_DIR";
+                Type = Path;
+                DefaultValue = "";
+                CommandLineFlag = "--unsigned-destination";
+            },
+
+            {
+                Name = "SWIFT_STDLIB_TOOL_STRIP_BITCODE";
+                Type = Boolean;
+                DefaultValue = YES;
+                CommandLineFlag = "--strip-bitcode";
+                Condition = "!$(ENABLE_BITCODE)  ||  $(BITCODE_GENERATION_MODE) != bitcode";
+            },
+
+            {
+                Name = "OTHER_SWIFT_STDLIB_TOOL_FLAGS";
+                Type = StringList;
+                DefaultValue = "";
+                CommandLineFlag = "";
+            },
+
+            {
+                Name = "PRODUCT_TYPE_SWIFT_STDLIB_TOOL_FLAGS";
+                Type = StringList;
+                DefaultValue = "";
+                CommandLineFlag = "";
+            },
+
+            {
+                Name = TOOLCHAINS;
+                Type = StringList;
+                SetValueInEnvironmentVariable = TOOLCHAINS;
+            },
+
+            {
+                Name = SDKROOT;
+                Type = Path;
+                SetValueInEnvironmentVariable = SDKROOT;
+            },
+
+            {
+                Name = DEVELOPER_DIR;
+                Type = Path;
+                SetValueInEnvironmentVariable = DEVELOPER_DIR;
+            },
+        );
+        CommandOutputParser = (
+            (
+                "()()error:(.*$)",
+                "emit-error",
+            ),
+            (
+                "()()warning:(.*$)",
+                "emit-warning",
+            ),
+        );
+    },
+)

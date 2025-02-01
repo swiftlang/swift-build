@@ -1,0 +1,86 @@
+//===----------------------------------------------------------------------===//
+//
+// This source file is part of the Swift open source project
+//
+// Copyright (c) 2025 Apple Inc. and the Swift project authors
+// Licensed under Apache License v2.0 with Runtime Library Exception
+//
+// See http://swift.org/LICENSE.txt for license information
+// See http://swift.org/CONTRIBUTORS.txt for the list of Swift project authors
+//
+//===----------------------------------------------------------------------===//
+
+(
+    {
+        Type = Compiler;
+        Identifier = "com.apple.xcode.tools.ibtool.storyboard.postprocessor";
+        Name = "Interface Builder Storyboard Postprocessor";
+        Description = "Strips design-time content from Interface Builder storyboardc files to reduce deployment size.";
+        IsAbstract = NO;
+        CommandLine = "$(IBC_EXEC) [options] --output-format human-readable-text $(InputFile)";
+        RuleName = "StripStoryboard $(InputFile)";
+        ExecDescription = "Postprocess Storyboardc file $(InputFileName)";
+        ProgressDescription = "Postprocessing $(CommandProgressByType) Storyboardc files";
+        SynthesizeBuildRule = YES;
+        IsArchitectureNeutral = YES;
+        Outputs = (
+            "$(ProductResourcesDir)/$(InputFileBase).storyboardc",
+        );
+        InputFileTypes = (
+            "wrapper.storyboardc",
+        );
+        EnvironmentVariables = {
+            "XCODE_DEVELOPER_USR_PATH" = "$(DEVELOPER_BIN_DIR)/..";
+        };
+        CommandOutputParser = (
+            (
+                "^([^:]*):([^:]*): error: (.*)$",
+                "emit-error",
+            ),
+            (
+                "^([^:]*):([^:]*): warning: (.*)$",
+                "emit-warning",
+            ),
+            (
+                "^([^:]*):([^:]*): note: (.*)$",
+                "emit-notice",
+            ),
+            (
+                "^([^:]*):() error: (.*)$",
+                "emit-error",
+            ),
+            (
+                "^([^:]*):() warning: (.*)$",
+                "emit-warning",
+            ),
+            (
+                "^([^:]*):() note: (.*)$",
+                "emit-notice",
+            ),
+        );
+        Options = (
+            {
+                Name = "IBSC_STRIP_NIBS";
+                Type = Boolean;
+                DefaultValue = "$(IBSC_FLATTEN_NIBS)";
+                Category = "IBSC_POSTPROCESSOR_OPTIONS";
+                CommandLineArgs = {
+                    YES = (
+                        "--strip",
+                        "$(ProductResourcesDir)/$(InputFileBase).storyboardc",
+                    );
+                    NO = (
+                        "--write",
+                        "$(ProductResourcesDir)/$(InputFileBase).storyboardc",
+                    );
+                };
+            },
+            {
+                Name = "IBSC_REGIONS_AND_STRINGS_FILES";
+                Type = StringList;
+                DefaultValue = "$(IBC_REGIONS_AND_STRINGS_FILES)";
+                CommandLineFlag = "--companion-strings-file";
+            },
+        );
+    },
+)

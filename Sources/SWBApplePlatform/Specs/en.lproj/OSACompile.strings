@@ -1,0 +1,29 @@
+//===----------------------------------------------------------------------===//
+//
+// This source file is part of the Swift open source project
+//
+// Copyright (c) 2025 Apple Inc. and the Swift project authors
+// Licensed under Apache License v2.0 with Runtime Library Exception
+//
+// See http://swift.org/LICENSE.txt for license information
+// See http://swift.org/CONTRIBUTORS.txt for the list of Swift project authors
+//
+//===----------------------------------------------------------------------===//
+
+
+// Localized strings for basic info
+"Name" = "OSACompile";
+"Description" = "Compile an AppleScript text file using osascript.";
+"Vendor" = "Apple";
+
+// Localized strings for output-parse-info
+"OutputParseInfo-ProgressStatusFormat" = "Compiling %@";      // arg 1 is name of rule's input file
+"OutputParseInfo-MessageStatusFormat" = "Compile %@";       // arg 1 is name of rule's input file, arg 2 is name of file containing message (@"" if unknown)
+
+"[BuildOptions]-category" = "Build Options";
+
+"[OSACOMPILE_EXECUTE_ONLY]-name" = "Save as Execute-Only";
+"[OSACOMPILE_EXECUTE_ONLY]-description" = "Saves the output script in execute-only form; the script can be run, but cannot be opened in Script Editor or Xcode. With this option turned off, a user may see the original script source by opening the script.";
+
+"[OTHER_OSACOMPILEFLAGS]-name" = "Other OSACompile Flags";
+"[OTHER_OSACOMPILEFLAGS]-description" = "Space-separated list of additional flags to pass to `osacompile`. Be sure to backslash-escape any arguments that contain spaces or special characters, such as path names that may contain spaces. Use this setting if Xcode does not already provide UI for a particular `osacompile` flag.";

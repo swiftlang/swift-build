@@ -1,0 +1,160 @@
+//===----------------------------------------------------------------------===//
+//
+// This source file is part of the Swift open source project
+//
+// Copyright (c) 2025 Apple Inc. and the Swift project authors
+// Licensed under Apache License v2.0 with Runtime Library Exception
+//
+// See http://swift.org/LICENSE.txt for license information
+// See http://swift.org/CONTRIBUTORS.txt for the list of Swift project authors
+//
+//===----------------------------------------------------------------------===//
+
+(
+
+    {
+        _Domain = iphoneos;
+        Type = Architecture;
+        Identifier = Standard;
+        Name = "Standard Architectures";
+        Description = "Standard architectures";
+        ListInEnum = YES;
+        SortNumber = 0;
+        RealArchitectures = ( arm64 );
+        ArchitectureSetting = "ARCHS_STANDARD";
+    },
+
+    {
+        _Domain = iphoneos;
+        Type = Architecture;
+        Identifier = armv7;
+        Name = "armv7";
+        DeploymentTargetRange = ( "0", "11" ); // retained for EDM
+        DeprecatedError = YES;
+    },
+
+    {
+        _Domain = iphoneos;
+        Type = Architecture;
+        Identifier = armv7s;
+        Name = "armv7s";
+        DeploymentTargetRange = ( "0", "11" ); // retained for EDM
+        DeprecatedError = YES;
+    },
+
+    {
+        _Domain = iphoneos;
+        Type = Architecture;
+        Identifier = arm64;
+        Name = "arm64";
+    },
+
+    {
+        _Domain = iphoneos;
+        Type = Architecture;
+        Identifier = arm64e;
+        Name = "arm64e";
+        CompatibilityArchitectures = ( arm64 );   // treat this one just like arm64 for toolchain compatibility
+    },
+
+
+    // DEPRECATED
+
+    {
+        _Domain = iphoneos;
+        Type = Architecture;
+        Identifier = Platform32_bit;
+        RealArchitectures = ( armv7 );
+        ArchitectureSetting = "ARCHS_STANDARD_32_BIT";
+    },
+
+    {
+        _Domain = iphoneos;
+        Type = Architecture;
+        Identifier = Platform64_bit;
+        RealArchitectures = ( arm64 );
+        ArchitectureSetting = "ARCHS_STANDARD_64_BIT";
+    },
+
+    {
+        _Domain = iphoneos;
+        Type = Architecture;
+        Identifier = Platform32_64_bit;
+        RealArchitectures = ( armv7, arm64 );
+        ArchitectureSetting = "ARCHS_STANDARD_32_64_BIT";
+    },
+
+    {
+        _Domain = iphoneos;
+        Type = Architecture;
+        Identifier = PlatformStandardUniversal;
+        RealArchitectures = ( armv7, arm64 );
+        ArchitectureSetting = "ARCHS_UNIVERSAL_IPHONE_OS";
+    },
+
+    {
+        _Domain = iphoneos;
+        Type = Architecture;
+        Identifier = Standard_Including_64_bit;
+        RealArchitectures = ( "$(ARCHS_STANDARD)" );
+        ArchitectureSetting = "ARCHS_STANDARD_INCLUDING_64_BIT";
+    },
+
+    {
+        _Domain = iphoneos;
+        Type = BuildSettings;
+        Identifier = com.apple.build-settings.designed-for-iphone-ipad;
+        Name = "Designed for iPhone & iPad";
+        Properties = (
+            {
+                Name = "SUPPORTS_MAC_DESIGNED_FOR_IPHONE_IPAD";
+                Type = Boolean;
+                DefaultValue = YES;
+                Category = Deployment;
+                DisplayName = "Show Mac (Designed for iPhone & iPad) Destination";
+                Description = "Show the Mac (Designed for iPhone) and Mac (Designed for iPad) destinations.";
+            },
+            {
+                Name = "SUPPORTS_XR_DESIGNED_FOR_IPHONE_IPAD";
+                Type = Boolean;
+                DefaultValue = YES;
+                Category = Deployment;
+                DisplayName = "Show Apple Vision (Designed for iPhone & iPad) Destination";
+                Description = "Show the Apple Vision (Designed for iPhone) and Apple Vision (Designed for iPad) destinations.";
+            },
+        );
+    },
+
+    {
+        _Domain = iphoneos;
+        Type = BuildSettings;
+        Identifier = com.apple.build-settings.supports-maccatalyst;
+        Name = "Mac Catalyst";
+        Properties = (
+            {
+                Name = "SUPPORTS_MACCATALYST";
+                Type = Boolean;
+                DefaultValue = YES;
+                Category = Deployment;
+                DisplayName = "Supports Mac Catalyst";
+                Description = "Support building this target for Mac Catalyst.";
+            },
+            {
+                Name = "DERIVE_MACCATALYST_PRODUCT_BUNDLE_IDENTIFIER";
+                Type = Boolean;
+                DefaultValue = NO;
+                Category = Deployment;
+                DisplayName = "Derive Mac Catalyst Product Bundle Identifier";
+                Description = "When enabled, Xcode will automatically derive a bundle identifier for this target from its original bundle identifier when it's building for Mac Catalyst.";
+            },
+            {
+                // This setting is NOT shown in the UI.
+                Name = "IS_MACCATALYST";
+                Type = Boolean;
+                DisplayName = "Building for Mac Catalyst";
+                Description = "Indicates whether the target is building for Mac Catalyst. This build setting is intended for use in shell scripts and build setting composition and should be considered read-only.";
+            },
+        );
+    },
+
+)

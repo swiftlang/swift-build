@@ -1,0 +1,68 @@
+//===----------------------------------------------------------------------===//
+//
+// This source file is part of the Swift open source project
+//
+// Copyright (c) 2025 Apple Inc. and the Swift project authors
+// Licensed under Apache License v2.0 with Runtime Library Exception
+//
+// See http://swift.org/LICENSE.txt for license information
+// See http://swift.org/CONTRIBUTORS.txt for the list of Swift project authors
+//
+//===----------------------------------------------------------------------===//
+
+(
+    {
+        Identifier = "com.apple.build-tools.platform.validate";
+        Type = Tool;
+        Name = Validate;
+        Description = "Validate binary";
+        RuleName = "Validate $(InputPath)";
+        ExecDescription = "Validate $(InputFileName)";
+        ProgressDescription = "Validating product";
+        IsAbstract = Yes;
+        CommandLine = "builtin-validationUtility [input] [options]";
+        Options = (
+            {
+                Name = ValidateForStore;
+                Type = boolean;
+                DefaultValue = "$(VALIDATE_PRODUCT)";
+                CommandLineFlag = "-validate-for-store";
+            },
+            {
+                Name = __no_validate_extension__;
+                Type = boolean;
+                DefaultValue = YES;
+                Condition = "$(PLATFORM_NAME) == 'macosx'";
+                CommandLineFlag = "-no-validate-extension";
+            },
+            {
+                Name = __infoplist_subpath__;
+                Type = string;
+                DefaultValue = "$(__infoplist_absolute__:relativeto=$(TARGET_BUILD_DIR)/$(INFOPLIST_PATH))";
+                CommandLineFlag = "-infoplist-subpath";
+                InputInclusions = "$(TARGET_BUILD_DIR)/$(INFOPLIST_PATH)";
+            },
+            {
+                Name = __infoplist_absolute__;
+                Type = string;
+                DefaultValue = "$(TARGET_BUILD_DIR)/$(FULL_PRODUCT_NAME)";
+            }
+        );
+        Outputs = (
+            "$(TARGET_BUILD_DIR)/$(FULL_PRODUCT_NAME)",
+        );
+        EnvironmentVariables = {
+            "PRODUCT_TYPE" = "$(PRODUCT_TYPE)";
+        };
+        CommandOutputParser = (
+            (
+                "()()error:(.*$)",
+                "emit-error",
+            ),
+            (
+                "()()warning:(.*$)",
+                "emit-warning",
+            ),
+        );
+    }
+)

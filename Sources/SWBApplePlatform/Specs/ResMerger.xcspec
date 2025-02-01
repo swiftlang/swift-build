@@ -1,0 +1,41 @@
+//===----------------------------------------------------------------------===//
+//
+// This source file is part of the Swift open source project
+//
+// Copyright (c) 2025 Apple Inc. and the Swift project authors
+// Licensed under Apache License v2.0 with Runtime Library Exception
+//
+// See http://swift.org/LICENSE.txt for license information
+// See http://swift.org/CONTRIBUTORS.txt for the list of Swift project authors
+//
+//===----------------------------------------------------------------------===//
+
+(
+    {   Type = Linker;
+        Identifier = com.apple.pbx.linkers.resmerger;
+        Name = "ResMerger";
+        Description = "Create a Carbon resource file using Apple's Carbon Resource Merger";
+        IsAbstract = Yes;       // This is an internal tool, so we keep it out of the user interface
+        BinaryFormats = (rsrc);
+        CommandLine = "$(DEVELOPER_BIN_DIR)/ResMerger [inputs] [options] -o $(OutputPath)";
+        RuleName = "ResMergerCollector $(OutputPath:file) $(variant) $(arch)";
+        ExecDescription = "Merge resources into $(OutputFile:file)";
+        ProgressDescription = "Merging resources";
+        InputFileTypes = (
+            archive.rsrc
+        );
+        InputFileGroupings = (
+            region
+        );
+        SynthesizeBuildRule = YES;
+        IsArchitectureNeutral = YES;
+        Outputs = (
+        );
+        CommandOutputParser = (
+            ("file (.*)() ### /.*/Tools/ResMerger - Warning: (.*)$", emit-warning),
+            ("file (.*)() ### /.*/Tools/ResMerger - ERROR: (.*)$", emit-error)
+        );
+        Options = (
+        );
+    }
+)

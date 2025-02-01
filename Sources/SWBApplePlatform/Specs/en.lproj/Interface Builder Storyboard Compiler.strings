@@ -1,0 +1,49 @@
+//===----------------------------------------------------------------------===//
+//
+// This source file is part of the Swift open source project
+//
+// Copyright (c) 2025 Apple Inc. and the Swift project authors
+// Licensed under Apache License v2.0 with Runtime Library Exception
+//
+// See http://swift.org/LICENSE.txt for license information
+// See http://swift.org/CONTRIBUTORS.txt for the list of Swift project authors
+//
+//===----------------------------------------------------------------------===//
+
+// Localized strings for basic info
+"Name" = "Interface Builder Storyboard Compiler";
+"Description" = "Interface Builder Storyboard Compiler";
+"Version" = "Default";
+"Vendor" = "Apple";
+
+"[IBSC_COMPILER_OPTIONS]-category" = "Options";
+
+"[IBSC_FLATTEN_NIBS]-name" = "Flatten Compiled Storyboard Files";
+"[IBSC_FLATTEN_NIBS]-description" = "Compiles a Storyboard file into flattened (non-wrapper) Storyboard file. After flattening, the resulting Storyboard is more compact but no longer editable by Interface Builder. When this option is disabled, the resulting Storyboard file remains editable in Interface Builder.";
+
+"[IBSC_ERRORS]-name" = "Show Errors";
+"[IBSC_ERRORS]-description" = "Show errors encountered during the compilation of Storyboard files.";
+
+"[IBSC_WARNINGS]-name" = "Show Warnings";
+"[IBSC_WARNINGS]-description" = "Show warnings encountered during the compilation of Storyboard files.";
+
+"[IBSC_NOTICES]-name" = "Show Notices";
+"[IBSC_NOTICES]-description" = "Show notices encountered during the compilation of Storyboard files.";
+
+"[IBSC_OTHER_FLAGS]-name" = "Other Storyboard Compiler Flags";
+"[IBSC_OTHER_FLAGS]-description" = "A list of additional flags to pass to the Interface Builder Compiler. Use this setting if Xcode does not already provide UI for a particular Interface Builder Compiler flag.";
+
+"[IBSC_PLUGINS]-name" = "Plug-Ins";
+"[IBSC_PLUGINS]-description" = "A list of paths to Interface Builder plug-ins to load when compiling Storyboard files.";
+
+"[IBSC_PLUGIN_SEARCH_PATHS]-name" = "Plug-In Search Paths";
+"[IBSC_PLUGIN_SEARCH_PATHS]-description" = "A list of paths to be searched for Interface Builder plug-ins to load when compiling Storyboard files.";
+
+"[IBSC_OVERRIDING_PLUGINS_AND_FRAMEWORKS_DIR]-name" = "Overriding Plug-In and Framework Directory";
+"[IBSC_OVERRIDING_PLUGINS_AND_FRAMEWORKS_DIR]-description" = "Instructs Interface Builder to load frameworks and Interface Builder plug-ins from the specified directory. Setting this value to $(BUILD_DIR)/$(CONFIGURATION)$(EFFECTIVE_PLATFORM_NAME) will ensure that Interface Builder will load frameworks and plug-ins from the built products directory of the current build configuration.";
+
+"[IBSC_COMPILER_AUTO_ACTIVATE_CUSTOM_FONTS]-name" = "Auto-Activate Custom Fonts";
+"[IBSC_COMPILER_AUTO_ACTIVATE_CUSTOM_FONTS]-description" = "Instructs the Storyboard compiler to add custom fonts to the application's `Info.plist` that will cause the fonts to activate upon application launch.";
+
+"[IBSC_MODULE]-name" = "Default Module";
+"[IBSC_MODULE]-description" = "Defines the module name for Swift classes referenced without a specific module name.";
