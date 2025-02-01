@@ -209,19 +209,13 @@ let package = Package(
         .target(
             name: "SwiftBuildTestSupport",
             dependencies: ["SwiftBuild", "SWBTestSupport", "SWBUtil"],
-            swiftSettings: swiftSettings,
-            linkerSettings: [
-                .linkedFramework("Testing", .when(platforms: [.macOS]))
-            ]),
+            swiftSettings: swiftSettings),
         .target(
             name: "SWBTestSupport",
             dependencies: ["SwiftBuild", "SWBBuildSystem", "SWBCore", "SWBTaskConstruction", "SWBTaskExecution", "SWBUtil", "SWBLLBuild", "SWBMacro"],
             swiftSettings: swiftSettings + [
                 // Temporary until swift-testing introduces replacement for this SPI
                 .define("DONT_HAVE_CUSTOM_EXECUTION_TRAIT", .when(platforms: [.macOS, .macCatalyst, .iOS, .tvOS, .watchOS, .visionOS, .windows]))
-            ],
-            linkerSettings: [
-                .linkedFramework("Testing", .when(platforms: [.macOS]))
             ]),
 
         // Tests
