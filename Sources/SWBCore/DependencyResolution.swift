@@ -477,7 +477,7 @@ extension SpecializationParameters {
     let platformBuildParameters: [PlatformBuildParameters]
 
     /// Targets which should build dynamically according to the build request.
-    /// This is only used by  previews.
+    /// This is only used by Playgrounds and previews.
     let dynamicallyBuildingTargets: Set<Target>
 
     // TODO: Parameterize this.

@@ -111,6 +111,7 @@ import SWBMacro
         #expect(settings.tableForTesting.lookupMacro(BuiltinMacros.PROJECT_TEMP_DIR)?.expression.stringRep == "$(OBJROOT)/$(PROJECT_NAME).build")
         #expect(settings.tableForTesting.lookupMacro(BuiltinMacros.CONFIGURATION)?.expression.stringRep == "Config1")
         #expect(settings.tableForTesting.lookupMacro(BuiltinMacros.CONFIGURATION_BUILD_DIR)?.expression.stringRep == "$(BUILD_DIR)/$(CONFIGURATION)$(EFFECTIVE_PLATFORM_NAME)")
+#if !RC_PLAYGROUNDS
         func checkXcodeVersion(_ settingName: StringMacroDeclaration, expectedVersion: Version, sourceLocation: SourceLocation = #_sourceLocation) {
             if let value = settings.tableForTesting.lookupMacro(settingName)?.expression.stringRep {
                 if value.count >= 4, let uintValue = UInt(value) {
@@ -127,6 +128,7 @@ import SWBMacro
         checkXcodeVersion(BuiltinMacros.XCODE_VERSION_MINOR, expectedVersion: core.xcodeVersion.normalized(toNumberOfComponents: 2))
         checkXcodeVersion(BuiltinMacros.XCODE_VERSION_ACTUAL, expectedVersion: core.xcodeVersion)
         #expect(settings.tableForTesting.lookupMacro(BuiltinMacros.XCODE_PRODUCT_BUILD_VERSION)?.expression.stringRep == core.xcodeProductBuildVersionString)
+#endif
         #expect(settings.tableForTesting.lookupMacro(BuiltinMacros.USER)?.expression.stringRep == "exampleUser")
 
         // Verify that the settings from the xcconfig were added.

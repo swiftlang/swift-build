@@ -275,7 +275,7 @@ public struct SWBBuildRequest: Codable, Sendable {
     public var schemeCommand: SWBSchemeCommand? = .launch
 
     /// Path of the root container being built. This is typically a .xcworkspace or .xcodeproj,
-    /// but can also be the path to a directory containing a Package.swift file.
+    /// but can also be a .playground or the path to a directory containing a Package.swift file.
     public var containerPath: String? = nil
 
     /// Optional array of paths to files the build should be limited to.

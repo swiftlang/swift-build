@@ -262,7 +262,7 @@ public final class BuildRequest: CustomStringConvertible, Sendable {
     public let schemeCommand: SchemeCommand?
 
     /// Path of the root container being built. This is typically a .xcworkspace or .xcodeproj,
-    /// but can also be the path to a directory containing a Package.swift file.
+    /// but can also be a .playground or the path to a directory containing a Package.swift file.
     public let containerPath: Path?
 
     /// JSON representation of the `SWBBuildRequest` public API object from which this build request was constructed, if provided.

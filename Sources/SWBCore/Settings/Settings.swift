@@ -2863,6 +2863,7 @@ private class SettingsBuilder {
             table.push(BuiltinMacros.MAC_OS_X_PRODUCT_BUILD_VERSION, literal: systemInfo.productBuildVersion)
         }
 
+        #if !RC_PLAYGROUNDS
         // Xcode version settings.
         let xcodeMajorStr = (core.xcodeVersion[0] * 100).toString(format: "%04d")
         let xcodeMinorStr = (core.xcodeVersion[0] * 100 + core.xcodeVersion[1] * 10).toString(format: "%04d")
@@ -2871,6 +2872,7 @@ private class SettingsBuilder {
         table.push(BuiltinMacros.XCODE_VERSION_MINOR, literal: xcodeMinorStr)
         table.push(BuiltinMacros.XCODE_VERSION_ACTUAL, literal: xcodeActualStr)
         table.push(BuiltinMacros.XCODE_PRODUCT_BUILD_VERSION, literal: core.xcodeProductBuildVersionString)
+        #endif
 
         // Backward compatibility settings.
         table.push(BuiltinMacros.BUILD_STYLE, Static { BuiltinMacros.namespace.parseString("$(CONFIGURATION)") })

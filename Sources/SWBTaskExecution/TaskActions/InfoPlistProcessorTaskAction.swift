@@ -253,6 +253,8 @@ public final class InfoPlistProcessorTaskAction: TaskAction
 
             // These aren't harmful to the system if they're empty, but will cause App Store submission to fail, so elide them as well.
             "BuildMachineOSBuild",
+            "DTSwiftPlaygroundsBuild",
+            "DTSwiftPlaygroundsVersion",
             "DTXcode",
             "DTXcodeBuild",
         ]))
