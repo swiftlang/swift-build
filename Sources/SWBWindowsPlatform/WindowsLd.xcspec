@@ -1,0 +1,147 @@
+//===----------------------------------------------------------------------===//
+//
+// This source file is part of the Swift open source project
+//
+// Copyright (c) 2024 Apple Inc. and the Swift project authors
+// Licensed under Apache License v2.0 with Runtime Library Exception
+//
+// See http://swift.org/LICENSE.txt for license information
+// See http://swift.org/CONTRIBUTORS.txt for the list of Swift project authors
+//
+//===----------------------------------------------------------------------===//
+
+(
+    {
+        Domain = windows;
+        Identifier = "com.apple.pbx.linkers.ld";
+        Type = Linker;
+        BasedOn = "default:com.apple.pbx.linkers.ld";
+        Name = Ld;
+        Description = "Link executable using alternate linker";
+        IsAbstract = Yes;
+        SupportsInputFileList = No;
+        EnvironmentVariables = {
+            "TEMP" = "$(TEMP)";
+        };
+        Options = (
+            {
+                Name = "MACH_O_TYPE";
+                Type = Enumeration;
+                Values = (
+                    {
+                        Value = "mh_execute";
+                        CommandLineFlag = "";
+                    },
+                    {
+                        Value = "mh_dylib";
+                        CommandLineArgs = ("-Xlinker", "/DLL");
+                    },
+                    {
+                        Value = "mh_bundle";
+                        CommandLineFlag = "-bundle";
+                    },
+                    {
+                        Value = "mh_object";
+                        CommandLineFlag = "";
+                    },
+                );
+            },
+            {
+                Name = SDKROOT;
+                Type = Path;
+                CommandLineFlag = "--sysroot";
+                IsInputDependency = Yes;
+            },
+            {
+                // No such concept
+                Name = LD_DETERMINISTIC_MODE;
+                Type = Boolean;
+                Condition = NO;
+                CommandLineArgs = ();
+            },
+            {
+                // No such concept
+                Name = "LD_DYLIB_INSTALL_NAME";
+                Type = String;
+                Condition = "NO";
+                CommandLineArgs = ();
+            },
+            {
+                // No such concept
+                Name = "LD_RUNPATH_SEARCH_PATHS";
+                //Note: Cannot be of type 'PathList' as value is used with relative '../' paths
+                Type = StringList;
+                Condition = "NO";
+                CommandLineArgs = ();
+            },
+            {
+                Name = GOLD_BUILDID;
+                Type = Boolean;
+                DefaultValue = YES;
+                CommandLineArgs = {
+                    YES = (
+                        "-Xlinker",
+                        "--build-id",
+                    );
+                    NO = ();
+                };
+                Condition = "$(ALTERNATE_LINKER) == gold";
+            },
+            {
+                // Frameworks are Mac specific
+                Name = "SYSTEM_FRAMEWORK_SEARCH_PATHS";
+                Type = PathList;
+                Condition = "NO";
+            },
+            {
+                // Frameworks are Mac specific
+                Name = "FRAMEWORK_SEARCH_PATHS";
+                Type = PathList;
+                Condition = "NO";
+            },
+            {
+                // Frameworks are Mac specific
+                Name = "PRODUCT_TYPE_FRAMEWORK_SEARCH_PATHS";
+                Type = PathList;
+                Condition = "NO";
+            },
+            {
+                // Frameworks are Mac specific
+                Name = "TEST_FRAMEWORK_SEARCH_PATHS";
+                Type = PathList;
+                Condition = "NO";
+            },
+            {
+                // The LTO object file is Mach-O specific
+                Name = "LD_LTO_OBJECT_FILE";
+                Type = Path;
+                Condition = "NO";
+            },
+            {
+                // Don't deduplicate is broken in gold
+                Name = "LD_DONT_RUN_DEDUPLICATION";
+                Type = Boolean;
+                DefaultValue = YES;
+                Condition = "NO";
+            },
+            {
+                Name = "__INPUT_FILE_LIST_PATH__";
+                Type = Path;
+                DefaultValue = "$(LINK_FILE_LIST_$(variant)_$(arch))";
+                CommandLineArgs = (
+                    "@$(value)",
+                );
+                IsInputDependency = Yes;
+            },
+            {
+                Name = "LD_EXPORT_GLOBAL_SYMBOLS";
+                Type = Boolean;
+                DefaultValue = NO;
+                CommandLineArgs = {
+                    YES = ();
+                    NO = ();
+                };
+            },
+        );
+    },
+)

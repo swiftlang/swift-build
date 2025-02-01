@@ -1,0 +1,181 @@
+//===----------------------------------------------------------------------===//
+//
+// This source file is part of the Swift open source project
+//
+// Copyright (c) 2024 Apple Inc. and the Swift project authors
+// Licensed under Apache License v2.0 with Runtime Library Exception
+//
+// See http://swift.org/LICENSE.txt for license information
+// See http://swift.org/CONTRIBUTORS.txt for the list of Swift project authors
+//
+//===----------------------------------------------------------------------===//
+
+(
+
+// --- Product types
+
+    // WatchKit2 App
+    {
+        _Domain = watchos-shared;
+        Type = ProductType;
+        Identifier = com.apple.product-type.application.watchapp2;
+        BasedOn = com.apple.product-type.application;
+        Name = "WatchKit App";
+        Description = "WatchKit App";
+        DefaultTargetName = "Watch";
+        DefaultBuildProperties = {
+            PRODUCT_BINARY_SOURCE_PATH = "$(SDKROOT)/Library/Application Support/WatchKit/WK";
+            PRODUCT_TYPE_HAS_STUB_BINARY = YES;
+            RESOURCES_TARGETED_DEVICE_FAMILY = "watch";
+            ENABLE_ON_DEMAND_RESOURCES = NO;
+            THIN_PRODUCT_STUB_BINARY = YES;
+            ENABLE_DEBUG_DYLIB = NO;
+        };
+        AllowedBuildPhases = (
+            "com.apple.buildphase.resources",
+            "com.apple.buildphase.copy-files",
+            "com.apple.buildphase.shell-script",
+        );
+        WantsSimpleTargetEditing = YES;
+        IsEmbeddable = YES;
+        RequiredBuiltProductsDir = "WATCH_BUILT_PRODUCTS_DIR";
+        BuildPhaseInjectionsWhenEmbedding = (
+            {
+                BuildPhase = "CopyFiles";
+                Name = "Embed Watch Content";
+                RunOnlyForDeploymentPostprocessing = NO;
+                DstSubFolderSpec = 16;
+                DstPath = "$(CONTENTS_FOLDER_PATH)/Watch";
+            }
+        );
+        Platforms = (watchos, watchsimulator);
+        SupportsHostingTests = NO;
+        SupportsBeingUITestTarget = YES;
+    },
+
+    // WatchKit2 Extension
+    {
+        _Domain = watchos-shared;
+        Type = ProductType;
+        Identifier = "com.apple.product-type.watchkit2-extension";
+        BasedOn = "com.apple.product-type.app-extension";
+        Name = "WatchKit Extension";
+        Description = "WatchKit Extension";
+        DefaultTargetName = "WatchKit Extension";
+        "DefaultBuildProperties" = {
+            "CODE_SIGNING_ALLOWED" = YES;
+            "APPLICATION_EXTENSION_API_ONLY" = YES;
+            WRAPPER_EXTENSION = "appex";
+            "LD_ENTRY_POINT" = "_WKExtensionMain";
+            "PRODUCT_SPECIFIC_LDFLAGS" = "$(WATCHKIT_EXTENSION_MAIN_LDFLAGS) -framework WatchKit";
+            RESOURCES_TARGETED_DEVICE_FAMILY = "watch";
+            ENABLE_ON_DEMAND_RESOURCES = NO;
+            ASSETCATALOG_COMPILER_STANDALONE_ICON_BEHAVIOR = default; // Override value from com.apple.product-type.app-extension to preserve previous behavior. Watch extensions typically won't have an app icon anyway.
+            WATCHKIT_EXTENSION_MAIN_LDFLAGS = ("$(__WKEXTENSIONMAIN_LDFLAGS_$(__WKEXTENSIONMAIN_LEGACY_TARGET))");
+            WATCHKIT_EXTENSION_MAIN_LEGACY_SHIM_PATH = "$(SDKROOT)/usr/lib/libWKExtensionMainLegacy.a";
+
+            __WATCHOS_DEPLOYMENT_TARGET_PREFIXED = "_$(WATCHOS_DEPLOYMENT_TARGET)";
+            __WKEXTENSIONMAIN_LEGACY_ARCH = "$(__WKEXTENSIONMAIN_LEGACY_ARCH_$(CURRENT_ARCH))";
+            __WKEXTENSIONMAIN_LEGACY_ARCH_armv7k = legacy;
+            __WKEXTENSIONMAIN_LEGACY_ARCH_arm64_32 = legacy;
+            __WKEXTENSIONMAIN_LEGACY_TARGET_2_0 = "$(__WKEXTENSIONMAIN_LEGACY_ARCH)";
+            __WKEXTENSIONMAIN_LEGACY_TARGET_2_1 = "$(__WKEXTENSIONMAIN_LEGACY_ARCH)";
+            __WKEXTENSIONMAIN_LEGACY_TARGET_2_2 = "$(__WKEXTENSIONMAIN_LEGACY_ARCH)";
+            __WKEXTENSIONMAIN_LEGACY_TARGET_3_0 = "$(__WKEXTENSIONMAIN_LEGACY_ARCH)";
+            __WKEXTENSIONMAIN_LEGACY_TARGET_3_1 = "$(__WKEXTENSIONMAIN_LEGACY_ARCH)";
+            __WKEXTENSIONMAIN_LEGACY_TARGET_3_2 = "$(__WKEXTENSIONMAIN_LEGACY_ARCH)";
+            __WKEXTENSIONMAIN_LEGACY_TARGET_4_0 = "$(__WKEXTENSIONMAIN_LEGACY_ARCH)";
+            __WKEXTENSIONMAIN_LEGACY_TARGET_4_1 = "$(__WKEXTENSIONMAIN_LEGACY_ARCH)";
+            __WKEXTENSIONMAIN_LEGACY_TARGET_4_2 = "$(__WKEXTENSIONMAIN_LEGACY_ARCH)";
+            __WKEXTENSIONMAIN_LEGACY_TARGET_4_3 = "$(__WKEXTENSIONMAIN_LEGACY_ARCH)";
+            __WKEXTENSIONMAIN_LEGACY_TARGET_5_0 = "$(__WKEXTENSIONMAIN_LEGACY_ARCH)";
+            __WKEXTENSIONMAIN_LEGACY_TARGET_5_1 = "$(__WKEXTENSIONMAIN_LEGACY_ARCH)";
+            __WKEXTENSIONMAIN_LEGACY_TARGET_5_2 = "$(__WKEXTENSIONMAIN_LEGACY_ARCH)";
+            __WKEXTENSIONMAIN_LEGACY_TARGET_5_3 = "$(__WKEXTENSIONMAIN_LEGACY_ARCH)";
+            __WKEXTENSIONMAIN_LEGACY_TARGET = "$(__WKEXTENSIONMAIN_LEGACY_TARGET$(__WATCHOS_DEPLOYMENT_TARGET_PREFIXED:identifier))";
+            __WKEXTENSIONMAIN_LDFLAGS_legacy = (
+                -lWKExtensionMainLegacy,
+            );
+        };
+        PackageTypes = (
+            "com.apple.package-type.app-extension",
+        );
+        AllowEmbedding = YES;
+        //AddWatchCompanionRequirement = YES;
+        Platforms = (watchos, watchsimulator);
+        DisableSchemeAutocreation = YES;
+        SupportsHostingTests = YES;
+    },
+
+    // Watch Intent Extension
+    // Legacy product type -- use com.apple.product-type.app-extension instead
+    {
+        _Domain = watchos-shared;
+        Identifier = "com.apple.product-type.app-extension.intents-service";
+        Type = ProductType;
+        Name = "Watch Intent App Extension";
+        BasedOn = "com.apple.product-type.app-extension";
+    },
+
+    // --- LLVM Compiler
+    {
+        _Domain = watchos-shared;
+        Type = Compiler;
+        Identifier = "com.apple.compilers.llvm.clang.1_0.compiler";
+        BasedOn = "default:com.apple.compilers.llvm.clang.1_0.compiler";
+        InputFileTypes = (
+            "sourcecode.c.c",
+            "sourcecode.c.objc",
+            "sourcecode.cpp.cpp",
+            "sourcecode.cpp.objcpp",
+            {
+                "FileType" = "sourcecode.asm";
+                "Condition" = "! $(ENABLE_BITCODE)";
+                "ErrorMessage" = "$(InputFileName): Assembly files are not supported for the $(PLATFORM_DISPLAY_NAME) platform (arch $(CURRENT_ARCH)).";
+            },
+        );
+        Options = (
+            // Generate bitcode options - not visible in the build settings.
+            {
+                Name = "CLANG_BITCODE_GENERATION_MODE";
+                Type = Enumeration;
+                Values = (
+                    none,
+                    marker,
+                    bitcode,
+                );
+                DefaultValue = "$(BITCODE_GENERATION_MODE)";
+                Condition = "$(ENABLE_BITCODE)";
+                CommandLineArgs = {
+                    none = ();
+                    marker = (
+                        "-fembed-bitcode-marker",
+                        "-fno-gnu-inline-asm",
+                    );
+                    bitcode = (
+                        "-fembed-bitcode",
+                        "-fno-gnu-inline-asm",
+                    );
+                };
+            },
+        );
+    },
+
+    // Actool ATV specific bits
+    {
+        _Domain = watchos-shared;
+        Type = Compiler;
+        Identifier = "com.apple.compilers.assetcatalog";
+        BasedOn = "default:com.apple.compilers.assetcatalog";
+        Options = (
+            {
+                Name = "ASSETCATALOG_COMPILER_COMPLICATION_NAME";
+                DisplayName = "Watch Complication Name";
+                Description = "The name of a watch complication to use from the asset catalog.";
+                Type = String;
+                CommandLineFlag = "--complication";
+                Category = "ASSETCATALOG_COMPILER_OPTIONS";
+            },
+        );
+    },
+)

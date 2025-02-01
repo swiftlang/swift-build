@@ -1,0 +1,62 @@
+//===----------------------------------------------------------------------===//
+//
+// This source file is part of the Swift open source project
+//
+// Copyright (c) 2024 Apple Inc. and the Swift project authors
+// Licensed under Apache License v2.0 with Runtime Library Exception
+//
+// See http://swift.org/LICENSE.txt for license information
+// See http://swift.org/CONTRIBUTORS.txt for the list of Swift project authors
+//
+//===----------------------------------------------------------------------===//
+
+(
+    {
+        Domain = generic-unix;
+        Identifier = com.apple.pbx.linkers.libtool;
+        Type = Linker;
+        Name = "Libtool";
+        Description = "Create a static library using ar";
+        IsAbstract = Yes;
+        BinaryFormats = (mach-o); // TODO Use elf instead of mach-o
+        // 'special-args' includes the input files
+        CommandLine = "$(AR) rcs $(OutputPath) [options] [special-args]";
+        RuleName = "Libtool $(OutputPath) $(variant) $(arch)";
+        CommandIdentifier = "create:$(OutputPath)";
+        ExecDescription = "Create static library $(OutputFile:file)";
+        ProgressDescription = "Creating static library";
+        InputFileTypes = (
+            // TODO: elf files instead
+            compiled.mach-o.objfile
+        );
+        Outputs = (
+            // We're a linker-like task, so we expect to be given an output path in 'OutputPath'.
+            "$(OutputPath)"
+        );
+        CommandOutputParser = XCGccCommandOutputParser;
+        Options = (
+            // AR
+            {
+                Name = AR;
+                Type = Path;
+                DefaultValue = "$(__AR_VALUE__$(ALTERNATE_LINKER):default=ar-$(ALTERNATE_LINKER))";
+            },
+            {
+                Name = __AR_VALUE__;
+                Type = String;
+                DefaultValue = "ar";
+            },
+            // Input file lists
+            {
+                Name = __INPUT_FILE_LIST_PATH__;
+                Type = Path;
+                // this is set up for us as a read-only property
+                DefaultValue = "$(LINK_FILE_LIST_$(variant)_$(arch))";
+                CommandLineArgs = (
+                    "@$(value)",
+                );
+                IsInputDependency = Yes;
+            },
+        );
+    },
+)

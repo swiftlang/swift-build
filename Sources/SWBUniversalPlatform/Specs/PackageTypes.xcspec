@@ -1,0 +1,245 @@
+//===----------------------------------------------------------------------===//
+//
+// This source file is part of the Swift open source project
+//
+// Copyright (c) 2024 Apple Inc. and the Swift project authors
+// Licensed under Apache License v2.0 with Runtime Library Exception
+//
+// See http://swift.org/LICENSE.txt for license information
+// See http://swift.org/CONTRIBUTORS.txt for the list of Swift project authors
+//
+//===----------------------------------------------------------------------===//
+
+(
+    // Mach-O executable
+    {
+        Type = PackageType;
+        Identifier = com.apple.package-type.mach-o-executable;
+        Name = "Mach-O Executable";
+        Description = "Mach-O executable";
+        DefaultBuildSettings = {
+            EXECUTABLE_PREFIX = "";
+            EXECUTABLE_SUFFIX = "";
+            EXECUTABLE_NAME = "$(EXECUTABLE_PREFIX)$(PRODUCT_NAME)$(EXECUTABLE_VARIANT_SUFFIX)$(EXECUTABLE_SUFFIX)";
+            EXECUTABLE_PATH = "$(EXECUTABLE_NAME)";
+        };
+        ProductReference = {
+            FileType = compiled.mach-o.executable;
+            Name = "$(EXECUTABLE_NAME)";
+            IsLaunchable = YES;
+        };
+    },
+
+    // Mach-O dynamic library
+    {
+        Type = PackageType;
+        Identifier = com.apple.package-type.mach-o-dylib;
+        Name = "Mach-O Dynamic Library";
+        Description = "Mach-O dynamic library";
+        DefaultBuildSettings = {
+            EXECUTABLE_PREFIX = "";
+            EXECUTABLE_SUFFIX = "";
+            EXECUTABLE_NAME = "$(EXECUTABLE_PREFIX)$(PRODUCT_NAME)$(EXECUTABLE_VARIANT_SUFFIX)$(EXECUTABLE_SUFFIX)";
+            EXECUTABLE_PATH = "$(EXECUTABLE_NAME)";
+        };
+        ProductReference = {
+            FileType = compiled.mach-o.dylib;
+            Name = "$(EXECUTABLE_NAME)";
+            IsLaunchable = NO;
+        };
+    },
+
+    // Static library ('ar' archive containing .o files)
+    {
+        Type = PackageType;
+        Identifier = com.apple.package-type.static-library;
+        Name = "Mach-O Static Library";
+        Description = "Mach-O static library";
+        DefaultBuildSettings = {
+            EXECUTABLE_PREFIX = "lib";
+            EXECUTABLE_SUFFIX = ".a";
+            EXECUTABLE_NAME = "$(EXECUTABLE_PREFIX)$(PRODUCT_NAME)$(EXECUTABLE_VARIANT_SUFFIX)$(EXECUTABLE_SUFFIX)";
+            EXECUTABLE_PATH = "$(EXECUTABLE_NAME)";
+        };
+        ProductReference = {
+            FileType = archive.ar;
+            Name = "$(EXECUTABLE_NAME)";
+            IsLaunchable = NO;
+        };
+    },
+
+    // Mach-O object file
+    {
+        Type = PackageType;
+        Identifier = com.apple.package-type.mach-o-objfile;
+        Name = "Mach-O Object File";
+        Description = "Mach-O Object File";
+        DefaultBuildSettings = {
+            EXECUTABLE_PREFIX = "";
+            EXECUTABLE_SUFFIX = "";
+            EXECUTABLE_NAME = "$(EXECUTABLE_PREFIX)$(PRODUCT_NAME)$(EXECUTABLE_VARIANT_SUFFIX)$(EXECUTABLE_SUFFIX)";
+            EXECUTABLE_PATH = "$(EXECUTABLE_NAME)";
+        };
+        ProductReference = {
+            FileType = compiled.mach-o.objfile;
+            Name = "$(EXECUTABLE_NAME)";
+            IsLaunchable = NO;
+        };
+    },
+
+    // CFBundle wrapper
+    {
+        Type = PackageType;
+        Identifier = com.apple.package-type.wrapper;
+        Name = "Wrapper";
+        Description = "Wrapper";
+        DefaultBuildSettings = {
+            PRODUCT_BUNDLE_PACKAGE_TYPE = "BNDL";
+            WRAPPER_PREFIX = "";
+            WRAPPER_SUFFIX = ".bundle";
+            WRAPPER_NAME = "$(WRAPPER_PREFIX)$(PRODUCT_NAME)$(WRAPPER_SUFFIX)";
+            CONTENTS_FOLDER_PATH = "$(CONTENTS_FOLDER_PATH_SHALLOW_BUNDLE_$(SHALLOW_BUNDLE))";
+            EXECUTABLE_PREFIX = "";
+            EXECUTABLE_SUFFIX = "";
+            EXECUTABLE_NAME = "$(EXECUTABLE_PREFIX)$(PRODUCT_NAME)$(EXECUTABLE_VARIANT_SUFFIX)$(EXECUTABLE_SUFFIX)";
+            EXECUTABLE_FOLDER_PATH = "$(EXECUTABLE_FOLDER_PATH_SHALLOW_BUNDLE_$(SHALLOW_BUNDLE))";
+            EXECUTABLE_PATH = "$(EXECUTABLE_FOLDER_PATH)/$(EXECUTABLE_NAME)";
+            INFOPLIST_PATH = "$(CONTENTS_FOLDER_PATH)/Info.plist";
+            INFOSTRINGS_PATH = "$(LOCALIZED_RESOURCES_FOLDER_PATH)/InfoPlist.strings";
+            PKGINFO_PATH = "$(CONTENTS_FOLDER_PATH)/PkgInfo";
+            PBDEVELOPMENTPLIST_PATH = "$(CONTENTS_FOLDER_PATH)/pbdevelopment.plist";
+            VERSIONPLIST_PATH = "$(CONTENTS_FOLDER_PATH)/version.plist";
+            PUBLIC_HEADERS_FOLDER_PATH = "$(CONTENTS_FOLDER_PATH)/Headers";
+            PRIVATE_HEADERS_FOLDER_PATH = "$(CONTENTS_FOLDER_PATH)/PrivateHeaders";
+            EXECUTABLES_FOLDER_PATH = "$(CONTENTS_FOLDER_PATH)/Executables";               // Not the same as EXECUTABLE_FOLDER_PATH
+            FRAMEWORKS_FOLDER_PATH = "$(CONTENTS_FOLDER_PATH)/Frameworks";
+            SHARED_FRAMEWORKS_FOLDER_PATH = "$(CONTENTS_FOLDER_PATH)/SharedFrameworks";
+            SHARED_SUPPORT_FOLDER_PATH = "$(CONTENTS_FOLDER_PATH)/SharedSupport";
+            UNLOCALIZED_RESOURCES_FOLDER_PATH = "$(UNLOCALIZED_RESOURCES_FOLDER_PATH_SHALLOW_BUNDLE_$(SHALLOW_BUNDLE))";
+            LOCALIZED_RESOURCES_FOLDER_PATH = "$(UNLOCALIZED_RESOURCES_FOLDER_PATH)/$(DEVELOPMENT_LANGUAGE).lproj";
+            DOCUMENTATION_FOLDER_PATH = "$(LOCALIZED_RESOURCES_FOLDER_PATH)/Documentation";
+            EXTENSIONS_FOLDER_PATH = "$(CONTENTS_FOLDER_PATH)/Extensions";
+            MODULES_FOLDER_PATH = "$(CONTENTS_FOLDER_PATH)/Modules";
+            PLUGINS_FOLDER_PATH = "$(CONTENTS_FOLDER_PATH)/PlugIns";
+            SCRIPTS_FOLDER_PATH = "$(UNLOCALIZED_RESOURCES_FOLDER_PATH)/Scripts";
+            JAVA_FOLDER_PATH = "$(UNLOCALIZED_RESOURCES_FOLDER_PATH)/Java";
+            SYSTEM_EXTENSIONS_FOLDER_PATH = "$(SYSTEM_EXTENSIONS_FOLDER_PATH_SHALLOW_BUNDLE_$(SHALLOW_BUNDLE))";
+
+            // Settings specific to deep bundles (macOS)
+            CONTENTS_FOLDER_PATH_SHALLOW_BUNDLE_NO = "$(WRAPPER_NAME)/Contents";
+            EXECUTABLE_FOLDER_PATH_SHALLOW_BUNDLE_NO = "$(CONTENTS_FOLDER_PATH)/MacOS";
+            SYSTEM_EXTENSIONS_FOLDER_PATH_SHALLOW_BUNDLE_NO = "$(CONTENTS_FOLDER_PATH)/Library/SystemExtensions";
+            UNLOCALIZED_RESOURCES_FOLDER_PATH_SHALLOW_BUNDLE_NO = "$(CONTENTS_FOLDER_PATH)/Resources";
+
+            // Settings specific to shallow bundles (iOS, DriverKit on any OS)
+            CONTENTS_FOLDER_PATH_SHALLOW_BUNDLE_YES = "$(WRAPPER_NAME)";
+            EXECUTABLE_FOLDER_PATH_SHALLOW_BUNDLE_YES = "$(CONTENTS_FOLDER_PATH)";
+            SYSTEM_EXTENSIONS_FOLDER_PATH_SHALLOW_BUNDLE_YES = "$(CONTENTS_FOLDER_PATH)/SystemExtensions";
+            UNLOCALIZED_RESOURCES_FOLDER_PATH_SHALLOW_BUNDLE_YES = "$(CONTENTS_FOLDER_PATH)";
+
+            SHALLOW_BUNDLE_macos = NO;
+            SHALLOW_BUNDLE_ios_macabi = NO; // for macCatalyst
+
+            SHALLOW_BUNDLE_TRIPLE = "$(SWIFT_PLATFORM_TARGET_PREFIX)$(LLVM_TARGET_TRIPLE_SUFFIX)";
+            SHALLOW_BUNDLE_PLATFORM = "$(SHALLOW_BUNDLE_$(SHALLOW_BUNDLE_TRIPLE:identifier))";
+            SHALLOW_BUNDLE = "$(SHALLOW_BUNDLE_PLATFORM:default=YES)";
+
+            _WRAPPER_CONTENTS_DIR_SHALLOW_BUNDLE_NO = "/Contents";
+            _WRAPPER_PARENT_PATH_SHALLOW_BUNDLE_NO = "/..";
+            _WRAPPER_RESOURCES_DIR_SHALLOW_BUNDLE_NO = "/Resources";
+
+            _WRAPPER_CONTENTS_DIR = "$(_WRAPPER_CONTENTS_DIR_SHALLOW_BUNDLE_$(SHALLOW_BUNDLE))";
+            _WRAPPER_PARENT_PATH = "$(_WRAPPER_PARENT_PATH_SHALLOW_BUNDLE_$(SHALLOW_BUNDLE))";
+            _WRAPPER_RESOURCES_DIR = "$(_WRAPPER_RESOURCES_DIR_SHALLOW_BUNDLE_$(SHALLOW_BUNDLE))";
+        };
+        ProductReference = {
+            FileType = wrapper.cfbundle;
+            Name = "$(WRAPPER_NAME)";
+            IsLaunchable = NO;
+        };
+    },
+
+    // Framework wrapper
+    {
+        Type = PackageType;
+        Identifier = com.apple.package-type.wrapper.framework;
+        BasedOn = com.apple.package-type.wrapper;
+        Name = "Framework Wrapper";
+        Description = "Framework wrapper";
+        DefaultBuildSettings = {
+            PRODUCT_BUNDLE_PACKAGE_TYPE = "FMWK";
+            WRAPPER_SUFFIX = ".framework";
+            VERSIONS_FOLDER_PATH = "$(VERSIONS_FOLDER_PATH_SHALLOW_BUNDLE_$(SHALLOW_BUNDLE))";
+            CURRENT_VERSION = "Current";
+            INFOPLIST_PATH = "$(UNLOCALIZED_RESOURCES_FOLDER_PATH)/Info.plist";
+            PKGINFO_PATH = "$(WRAPPER_NAME)/PkgInfo";
+            VERSIONPLIST_PATH = "$(UNLOCALIZED_RESOURCES_FOLDER_PATH)/version.plist";
+            EXECUTABLES_FOLDER_PATH = "$(LOCALIZED_RESOURCES_FOLDER_PATH)";               // Not the same as EXECUTABLE_FOLDER_PATH
+            SHARED_SUPPORT_FOLDER_PATH = "$(UNLOCALIZED_RESOURCES_FOLDER_PATH)";
+            CODESIGNING_FOLDER_PATH = "$(TARGET_BUILD_DIR)/$(CONTENTS_FOLDER_PATH)";
+
+            // Settings specific to deep bundles (macOS)
+            VERSIONS_FOLDER_PATH_SHALLOW_BUNDLE_NO = "$(WRAPPER_NAME)/Versions";
+            CONTENTS_FOLDER_PATH_SHALLOW_BUNDLE_NO = "$(VERSIONS_FOLDER_PATH)/$(FRAMEWORK_VERSION)";
+            EXECUTABLE_FOLDER_PATH_SHALLOW_BUNDLE_NO = "$(CONTENTS_FOLDER_PATH)";
+
+            // Settings specific to shallow bundles (iOS, DriverKit on any OS)
+            VERSIONS_FOLDER_PATH_SHALLOW_BUNDLE_YES = "$(WRAPPER_NAME)";
+        };
+        ProductReference = {
+            FileType = wrapper.framework;
+            Name = "$(WRAPPER_NAME)";
+            IsLaunchable = NO;
+        };
+    },
+
+    // Static framework wrapper (like a framework, except that it contains a libX.a instead of a dylib)
+    {
+        Type = PackageType;
+        Identifier = com.apple.package-type.wrapper.framework.static;
+        Name = "Mach-O Static Framework";
+        Description = "Mach-O static framework";
+        BasedOn = com.apple.package-type.wrapper.framework;
+        DefaultBuildSettings = {
+        };
+        ProductReference = {
+            FileType = wrapper.framework.static;
+            Name = "$(WRAPPER_NAME)";
+            IsLaunchable = NO;
+        };
+    },
+
+    // Unit Test Bundle wrapper
+    {   Type = PackageType;
+        Identifier = com.apple.package-type.bundle.unit-test;
+        BasedOn = com.apple.package-type.wrapper;
+        Name = "Unit Test Bundle";
+        Description = "Unit Test Bundle";
+        DefaultBuildSettings = {
+            WRAPPER_SUFFIX = "xctest";
+            ENABLE_BITCODE = NO;
+        };
+        ProductReference = {
+            FileType = wrapper.cfbundle;
+            Name = "$(WRAPPER_NAME)";
+            IsLaunchable = NO;
+        };
+    },
+
+    // External Test Bundle wrapper
+    {   Type = PackageType;
+        Identifier = com.apple.package-type.bundle.external-test;
+        BasedOn = com.apple.package-type.wrapper;
+        Name = "External Test Bundle";
+        Description = "External Test Bundle";
+        DefaultBuildSettings = {
+            WRAPPER_SUFFIX = "externaltest";
+            ENABLE_BITCODE = NO;
+        };
+        ProductReference = {
+            FileType = wrapper.cfbundle;
+            Name = "$(WRAPPER_NAME)";
+            IsLaunchable = NO;
+        };
+    },
+)

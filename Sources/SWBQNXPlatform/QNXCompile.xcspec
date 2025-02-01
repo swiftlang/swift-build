@@ -1,0 +1,141 @@
+//===----------------------------------------------------------------------===//
+//
+// This source file is part of the Swift open source project
+//
+// Copyright (c) 2024 Apple Inc. and the Swift project authors
+// Licensed under Apache License v2.0 with Runtime Library Exception
+//
+// See http://swift.org/LICENSE.txt for license information
+// See http://swift.org/CONTRIBUTORS.txt for the list of Swift project authors
+//
+//===----------------------------------------------------------------------===//
+
+(
+    {
+        Domain = qnx;
+        Identifier = "com.apple.compilers.llvm.clang.1_0";
+        Type = Compiler;
+        BasedOn = "default:com.apple.compilers.llvm.clang.1_0";
+        Name = "QNX GCC";
+        Description = "GCC QNX compiler";
+        IsAbstract = Yes;
+        ShowInCompilerSelectionPopup = No;
+        OptionConditionFlavors = (
+            arch,
+            sdk,
+        );
+        // Don't know why these are necessary, but without it, errors aren't reported
+        CommandOutputParser = (
+            ("^([^:]*):([0-9]*):[0-9]*: [^:]*error: (.*)$", "emit-error"),
+            ("^([^:]*):([0-9]*):[0-9]*: [^:]*warning: (.*)$", "emit-warning"),
+            ("^()().* error: (.*)$", "emit-error"),
+            ("^()().* warning: (.*)$", "emit-warning"),
+        );
+        SupportsMacOSXDeploymentTarget = No;
+        SupportsMacOSXMinVersionFlag = No;
+        SupportsIsysroot = No;
+        Options = (
+            {
+                Name = CC;
+                Type = Path;
+                DefaultValue = "$(QNX_HOST)/usr/bin/$(QNX_QCC)";
+            },
+            {
+                Name = CPLUSPLUS;
+                Type = Path;
+                DefaultValue = "$(QNX_HOST)/usr/bin/$(QNX_QPLUSPLUS)";
+            },
+            // qcc/q++ accepts -target but doesn't work correctly in all cases; -V is preferred
+            {
+                Name = "CLANG_TARGET_TRIPLE_ARCHS";
+                Type = StringList;
+                DefaultValue = "$(CURRENT_ARCH)";
+                CommandLineArgs = ( "-V", "gcc_$(LLVM_TARGET_TRIPLE_OS_VERSION)$(ARCH_NAME_$(value))" );
+            },
+            {
+                Name = "CLANG_COLOR_DIAGNOSTICS";
+                Type = Boolean;
+                CommandLineArgs = ();
+            },
+            {
+                Name = "CLANG_MACRO_BACKTRACE_LIMIT";
+                Type = String;
+                CommandLineArgs = ();
+            },
+            {
+                Name = SDKROOT;
+                Type = Path;
+                CommandLineArgs = ();
+            },
+            {
+                Name = "GCC_DYNAMIC_NO_PIC";
+                Type = Boolean;
+                DefaultValue = NO;
+                CommandLineArgs = {
+                    YES = ();
+                    NO = ("-fPIC");
+                };
+                Category = CodeGeneration;
+            },
+            {
+                Name = "LD_NO_PIE";
+                Type = Boolean;
+                DefaultValue = NO;
+                CommandLineArgs = {
+                    YES = ();
+                    NO = ("-fPIE");
+                };
+                Condition = "$(MACH_O_TYPE) == mh_execute";
+                Category = Linking;
+            },
+            {
+                Name = "ENABLE_BLOCKS";
+                Type = Boolean;
+                DefaultValue = YES;
+                CommandLineArgs = {
+                    YES = ("-fblocks");
+                    NO = ();
+                };
+                Category = CodeGeneration;
+            },
+        );
+    },
+    {
+        Domain = qnx;
+        Identifier = "com.apple.compilers.llvm.clang.1_0.compiler";
+        Type = Compiler;
+        BasedOn = "com.apple.compilers.llvm.clang.1_0";
+        Name = "GCC (QNX)";
+        Description = "GCC compiler (QNX)";
+        IsAbstract = YES;
+        ShowInCompilerSelectionPopup = NO;
+    },
+    {
+        Domain = qnx;
+        Identifier = "com.apple.compilers.llvm.clang.1_0.astbuilder";
+        Type = Compiler;
+        BasedOn = "default:com.apple.compilers.llvm.clang.1_0.astbuilder";
+        Options = (
+            {
+                Name = SDKROOT;
+                Type = Path;
+                CommandLineArgs = ();
+            },
+        );
+        IsAbstract = YES;
+        ShowInCompilerSelectionPopup = NO;
+    },
+    {
+        Domain = qnx;
+        Identifier = "com.apple.compilers.llvm.clang.1_0.analyzer";
+        Type = Compiler;
+        BasedOn = "default:com.apple.compilers.llvm.clang.1_0.analyzer";
+        Options = (
+            {
+                Name = SDKROOT;
+                Type = Path;
+                CommandLineArgs = ();
+            },
+        );
+    },
+)

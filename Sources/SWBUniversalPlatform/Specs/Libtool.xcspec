@@ -1,0 +1,109 @@
+//===----------------------------------------------------------------------===//
+//
+// This source file is part of the Swift open source project
+//
+// Copyright (c) 2024 Apple Inc. and the Swift project authors
+// Licensed under Apache License v2.0 with Runtime Library Exception
+//
+// See http://swift.org/LICENSE.txt for license information
+// See http://swift.org/CONTRIBUTORS.txt for the list of Swift project authors
+//
+//===----------------------------------------------------------------------===//
+
+(
+    {   Identifier = com.apple.pbx.linkers.libtool;
+        Type = Linker;
+        Name = "Libtool";
+        Description = "Create a static library using Apple Mach-O Librarian (libtool)";
+        IsAbstract = Yes;       // This is an internal tool, so we keep it out of the user interface
+        BinaryFormats = (mach-o);
+        CommandLine = "$(LIBTOOL) -static -arch_only $(arch) [options] [special-args] -o $(OutputPath)";      // 'special-args' includes the input files
+        RuleName = "Libtool $(OutputPath) $(variant) $(arch)";
+        CommandIdentifier = "create:$(OutputPath)";
+        ExecDescription = "Create static library $(OutputFile:file)";
+        ProgressDescription = "Creating static library";
+        InputFileTypes = (
+            compiled.mach-o.objfile
+        );
+        Outputs = (
+            // We're a linker-like task, so we expect to be given an output path in 'OutputPath'.
+            "$(OutputPath)"
+        );
+        CommandOutputParser = XCGccCommandOutputParser;
+        Options = (
+            // LIBTOOL
+            {   Name = LIBTOOL;
+                Type = Path;
+                DefaultValue = "libtool";
+            },
+
+            {   Name = LIBTOOL_DETERMINISTIC_MODE;
+                Type = Boolean;
+                DefaultValue = YES;
+                CommandLineFlag = "-D";
+                SupportedVersionRanges = ( "927" );
+            },
+
+            // SDK
+            {   Name = SDKROOT;
+                Type = Path;
+                CommandLineFlag = "-syslibroot";
+                IsInputDependency = Yes;
+            },
+
+            // Search paths
+            {   Name = LIBRARY_SEARCH_PATHS;
+                Type = PathList;
+                FlattenRecursiveSearchPathsInValue = Yes;   // causes any paths that have a '/**' suffix to be replaced with matching paths
+                CommandLinePrefixFlag = "-L";
+            },
+
+            // Input file lists
+            {   Name = __INPUT_FILE_LIST_PATH__;
+                Type = Path;
+                DefaultValue = "$(LINK_FILE_LIST_$(variant)_$(arch))";      // this is set up for us as a read-only property
+                CommandLineFlag = "-filelist";
+                IsInputDependency = Yes;
+            },
+
+            // Various flags
+            {   Name = ALL_OTHER_LIBTOOLFLAGS;
+                Type = StringList;
+                DefaultValue = "$(OTHER_LIBTOOLFLAGS) $(OTHER_LIBTOOLFLAGS_$(variant)) $(OTHER_LIBTOOLFLAGS_$(arch)) $(OTHER_LIBTOOLFLAGS_$(variant)_$(arch)) $(PRODUCT_SPECIFIC_LIBTOOLFLAGS)";
+                CommandLinePrefixFlag = "";
+            },
+            {   Name = EXPORTED_SYMBOLS_FILE;
+                Type = Path;
+                Condition = "!$(SEPARATE_SYMBOL_EDIT)";
+                CommandLineFlag = "-exported_symbols_list";
+                IsInputDependency = Yes;
+                ConditionFlavors = ( "arch" );
+            },
+            {   Name = UNEXPORTED_SYMBOLS_FILE;
+                Type = Path;
+                Condition = "!$(SEPARATE_SYMBOL_EDIT)";
+                CommandLineFlag = "-unexported_symbols_list";
+                IsInputDependency = Yes;
+                ConditionFlavors = ( "arch" );
+            },
+            {   Name = AdditionalCommandLineArguments;
+                Type = StringList;
+                CommandLinePrefixFlag = "";
+            },
+
+            {   Name = LIBTOOL_DEPLOYMENT_TARGET;
+                Type = String;
+                DefaultValue = "$($(DEPLOYMENT_TARGET_SETTING_NAME))";
+                SetValueInEnvironmentVariable = "$(DEPLOYMENT_TARGET_CLANG_ENV_NAME)";
+            },
+
+            // Dependency info file
+            {
+                Name = "LIBTOOL_DEPENDENCY_INFO_FILE";
+                Type = Path;
+                DefaultValue = "$(OBJECT_FILE_DIR_$(CURRENT_VARIANT))/$(CURRENT_ARCH)/$(PRODUCT_NAME)_libtool_dependency_info.dat";
+            },
+
+        );
+    }
+)

@@ -1,0 +1,316 @@
+//===----------------------------------------------------------------------===//
+//
+// This source file is part of the Swift open source project
+//
+// Copyright (c) 2024 Apple Inc. and the Swift project authors
+// Licensed under Apache License v2.0 with Runtime Library Exception
+//
+// See http://swift.org/LICENSE.txt for license information
+// See http://swift.org/CONTRIBUTORS.txt for the list of Swift project authors
+//
+//===----------------------------------------------------------------------===//
+
+(
+    //
+    // Single-file product types
+    //
+
+    // Tool (normal Unix command-line executable)
+    {
+        Type = ProductType;
+        Identifier = com.apple.product-type.tool;
+        Class = PBXToolProductType;
+        Name = "Command-line Tool";
+        Description = "Standalone command-line tool";
+        IconNamePrefix = "TargetExecutable";
+        DefaultTargetName = "Command-line Tool";
+        DefaultBuildProperties = {
+            FULL_PRODUCT_NAME = "$(EXECUTABLE_NAME)";
+            MACH_O_TYPE = "mh_execute";
+            EXECUTABLE_PREFIX = "";
+            EXECUTABLE_SUFFIX = "";
+            REZ_EXECUTABLE = YES;
+            INSTALL_PATH = "/usr/local/bin";
+            FRAMEWORK_FLAG_PREFIX = "-framework";
+            LIBRARY_FLAG_PREFIX = "-l";
+            LIBRARY_FLAG_NOSPACE = YES;
+            GCC_SYMBOLS_PRIVATE_EXTERN = YES;
+            GCC_INLINES_ARE_PRIVATE_EXTERN = YES;
+            STRIP_STYLE = "all";
+            CODE_SIGNING_ALLOWED = YES;
+            ENTITLEMENTS_ALLOWED = YES;
+        };
+        PackageTypes = (
+            com.apple.package-type.mach-o-executable
+        );
+        WantsSigningEditing = YES;
+        WantsBundleIdentifierEditing = YES;
+    },
+
+    // Host Build Tool (normal Unix command-line executable, built for use on the host during the build)
+    {
+        Type = ProductType;
+        Identifier = com.apple.product-type.tool.host-build;
+        Class = PBXToolProductType;
+        BasedOn = com.apple.product-type.tool;
+        Name = "Host Build Tool";
+        Description = "Host build tool";
+        IconNamePrefix = "TargetExecutable";
+        DefaultTargetName = "Host Build Tool";
+        DefaultBuildProperties = {
+            VALID_ARCHS = "$(HOST_ARCH)";
+        };
+        OverridingBuildSettings = {
+            SUPPORTED_PLATFORMS = "$(HOST_PLATFORM)";
+            EAGER_COMPILATION_DISABLE = YES;
+        };
+        PackageTypes = (
+            com.apple.package-type.mach-o-executable
+        );
+    },
+
+    // Dynamic library
+    {
+        Type = ProductType;
+        Identifier = com.apple.product-type.library.dynamic;
+        Class = PBXDynamicLibraryProductType;
+        Name = "Dynamic Library";
+        Description = "Dynamic library";
+        IconNamePrefix = "TargetLibrary";
+        DefaultTargetName = "Dynamic Library";
+        DefaultBuildProperties = {
+            FULL_PRODUCT_NAME = "$(EXECUTABLE_NAME)";
+            MACH_O_TYPE = "mh_dylib";
+            REZ_EXECUTABLE = YES;
+            EXECUTABLE_SUFFIX = ".$(EXECUTABLE_EXTENSION)";
+            EXECUTABLE_EXTENSION = "$(DYNAMIC_LIBRARY_EXTENSION:default=dylib)";
+            PUBLIC_HEADERS_FOLDER_PATH = "/usr/local/include";
+            PRIVATE_HEADERS_FOLDER_PATH = "/usr/local/include";
+            INSTALL_PATH = "/usr/local/lib";
+            DYLIB_INSTALL_NAME_BASE = "$(DYLIB_INSTALL_NAME_BASE_$(LLVM_TARGET_TRIPLE_VENDOR))";
+            DYLIB_INSTALL_NAME_BASE_apple = "$(INSTALL_PATH)";
+            LD_DYLIB_INSTALL_NAME = "$(DYLIB_INSTALL_NAME_BASE:standardizepath)/$(EXECUTABLE_PATH)";
+            DYLIB_COMPATIBILITY_VERSION = "1";
+            DYLIB_CURRENT_VERSION = "1";
+            FRAMEWORK_FLAG_PREFIX = "-framework";
+            LIBRARY_FLAG_PREFIX = "-l";
+            LIBRARY_FLAG_NOSPACE = YES;
+            STRIP_STYLE = "debugging";
+            GCC_INLINES_ARE_PRIVATE_EXTERN = YES;
+            CODE_SIGNING_ALLOWED = YES;
+            CODE_SIGNING_REQUIRED = NO;
+        };
+        PackageTypes = (
+            com.apple.package-type.mach-o-dylib
+        );
+    },
+
+    // Static library
+    {
+        Type = ProductType;
+        Identifier = com.apple.product-type.library.static;
+        Class = PBXStaticLibraryProductType;
+        Name = "Static Library";
+        Description = "Static library";
+        IconNamePrefix = "TargetLibrary";
+        DefaultTargetName = "Static Library";
+        DefaultBuildProperties = {
+            FULL_PRODUCT_NAME = "$(EXECUTABLE_NAME)";
+            MACH_O_TYPE = "staticlib";
+            REZ_EXECUTABLE = YES;
+            EXECUTABLE_PREFIX = "lib";
+            EXECUTABLE_SUFFIX = ".$(EXECUTABLE_EXTENSION)";
+            EXECUTABLE_EXTENSION = "a";
+            PUBLIC_HEADERS_FOLDER_PATH = "/usr/local/include";
+            PRIVATE_HEADERS_FOLDER_PATH = "/usr/local/include";
+            INSTALL_PATH = "/usr/local/lib";
+            FRAMEWORK_FLAG_PREFIX = "-framework";
+            LIBRARY_FLAG_PREFIX = "-l";
+            LIBRARY_FLAG_NOSPACE = YES;
+            STRIP_STYLE = "debugging";
+            CLANG_ENABLE_MODULE_DEBUGGING = NO;
+            CODE_SIGNING_ALLOWED = NO;
+        };
+        AlwaysPerformSeparateStrip = YES;
+        PackageTypes = (
+            com.apple.package-type.static-library
+        );
+    },
+
+    // Object file
+    {
+        Type = ProductType;
+        Identifier = com.apple.product-type.objfile;
+        Class = XCStandaloneExecutableProductType;
+        Name = "Object File";
+        Description = "Object File";
+        IconNamePrefix = "TargetPlugin";
+        DefaultTargetName = "Object File";
+        DefaultBuildProperties = {
+            FULL_PRODUCT_NAME = "$(EXECUTABLE_NAME)";
+            MACH_O_TYPE = "mh_object";
+            LINK_WITH_STANDARD_LIBRARIES = NO;
+            REZ_EXECUTABLE = YES;
+            EXECUTABLE_SUFFIX = ".$(EXECUTABLE_EXTENSION)";
+            EXECUTABLE_EXTENSION = "o";
+            PUBLIC_HEADERS_FOLDER_PATH = "/usr/local/include";
+            PRIVATE_HEADERS_FOLDER_PATH = "/usr/local/include";
+            INSTALL_PATH = "$(HOME)/Objects";
+            FRAMEWORK_FLAG_PREFIX = "-framework";
+            LIBRARY_FLAG_PREFIX = "-l";
+            LIBRARY_FLAG_NOSPACE = YES;
+            SKIP_INSTALL = YES;
+            STRIP_STYLE = "debugging";
+            GCC_INLINES_ARE_PRIVATE_EXTERN = YES;
+            KEEP_PRIVATE_EXTERNS = YES;
+            DEAD_CODE_STRIPPING = NO;
+        };
+        PackageTypes = (
+            com.apple.package-type.mach-o-objfile
+        );
+    },
+
+    //
+    // Wrapper product types
+    //
+
+    // Bundle
+    {
+        Type = ProductType;
+        Identifier = com.apple.product-type.bundle;
+        Class = PBXBundleProductType;
+        Name = "Bundle";
+        Description = "Generic bundle";
+        IconNamePrefix = "TargetPlugin";
+        DefaultTargetName = "Bundle";
+        DefaultBuildProperties = {
+            FULL_PRODUCT_NAME = "$(WRAPPER_NAME)";
+            MACH_O_TYPE = "mh_bundle";
+            WRAPPER_PREFIX = "";
+            WRAPPER_SUFFIX = ".$(WRAPPER_EXTENSION)";
+            WRAPPER_EXTENSION = "bundle";
+            WRAPPER_NAME = "$(WRAPPER_PREFIX)$(PRODUCT_NAME)$(WRAPPER_SUFFIX)";
+            FRAMEWORK_FLAG_PREFIX = "-framework";
+            LIBRARY_FLAG_PREFIX = "-l";
+            LIBRARY_FLAG_NOSPACE = YES;
+            STRIP_STYLE = "non-global";
+            GCC_INLINES_ARE_PRIVATE_EXTERN = YES;
+            CODE_SIGNING_ALLOWED = YES;
+            ENTITLEMENTS_REQUIRED = NO;
+        };
+        PackageTypes = (
+            com.apple.package-type.wrapper
+        );
+        IsWrapper = YES;
+        HasInfoPlist = YES;
+        HasInfoPlistStrings = YES;
+        WantsBundleIdentifierEditing = YES;
+        WantsSigningEditing = YES;
+    },
+
+    // Framework
+    {
+        Type = ProductType;
+        Identifier = com.apple.product-type.framework;
+        BasedOn = com.apple.product-type.bundle;
+        Class = PBXFrameworkProductType;
+        Name = "Framework";
+        Description = "Framework";
+        IconNamePrefix = "TargetFramework";
+        DefaultTargetName = "Framework";
+        DefaultBuildProperties = {
+            MACH_O_TYPE = "mh_dylib";
+            FRAMEWORK_VERSION = "A";
+            WRAPPER_SUFFIX = ".$(WRAPPER_EXTENSION)";
+            WRAPPER_EXTENSION = "framework";
+            INSTALL_PATH = "$(LOCAL_LIBRARY_DIR)/Frameworks";
+            DYLIB_INSTALL_NAME_BASE = "$(INSTALL_PATH)";
+            LD_DYLIB_INSTALL_NAME = "$(DYLIB_INSTALL_NAME_BASE:standardizepath)/$(EXECUTABLE_PATH)";
+            STRIP_STYLE = "debugging";
+            CODE_SIGNING_ALLOWED = YES;
+            CODE_SIGNING_REQUIRED = NO;
+            ENTITLEMENTS_REQUIRED = NO;
+            CODE_SIGNING_REQUIRES_TEAM = YES;
+            SWIFT_INSTALL_MODULE_FOR_DEPLOYMENT = YES;
+        };
+        PackageTypes = (
+            com.apple.package-type.wrapper.framework
+        );
+        WantsBundleIdentifierEditing = YES;
+        WantsSigningEditing = YES;
+    },
+
+    // Static framework
+    {
+        Type = ProductType;
+        Identifier = com.apple.product-type.framework.static;
+        BasedOn = com.apple.product-type.framework;
+        Class = XCStaticFrameworkProductType;
+        Name = "Static Framework";
+        Description = "Static Framework";
+        IconNamePrefix = "TargetFramework";
+        DefaultTargetName = "Static Framework";
+        DefaultBuildProperties = {
+            MACH_O_TYPE = "staticlib";
+            DYLIB_INSTALL_NAME_BASE = "";
+            LD_DYLIB_INSTALL_NAME = "";
+            GCC_INLINES_ARE_PRIVATE_EXTERN = NO;
+        };
+        AlwaysPerformSeparateStrip = YES;
+        PackageTypes = (
+            com.apple.package-type.wrapper.framework.static
+        );
+    },
+
+    // External Test Bundle
+    {   Type = ProductType;
+        Identifier = com.apple.product-type.bundle.external-test;
+        BasedOn = com.apple.product-type.bundle;
+        Class = PBXBundleProductType;
+        Name = "External Test Bundle";
+        Description = "External Test Bundle";
+        DefaultBuildProperties = {
+            WRAPPER_EXTENSION = "externaltest";
+        };
+        PackageTypes = (
+            com.apple.package-type.bundle.external-test
+        );
+        CanEmbedCompilerSanitizerLibraries = YES;
+        IsExternalTest = YES;
+        WantsBundleIdentifierEditing = NO;
+    },
+
+    // Unit Test Bundle
+    {   Type = ProductType;
+        Identifier = com.apple.product-type.bundle.unit-test;
+        BasedOn = com.apple.product-type.bundle;
+        Class = PBXXCTestBundleProductType;
+        Name = "Unit Test Bundle";
+        Description = "Unit Test Bundle";
+        DefaultBuildProperties = {
+            WRAPPER_EXTENSION = "xctest";
+            ENABLE_TESTING_SEARCH_PATHS = YES;
+            PRODUCT_SPECIFIC_LDFLAGS = "-framework XCTest -lXCTestSwiftSupport";
+            PRODUCT_TYPE_SWIFT_STDLIB_TOOL_FLAGS = "--scan-executable \"$(PLATFORM_DIR)/Developer/usr/lib/libXCTestSwiftSupport.dylib\"";
+            XCTRUNNER_PATH = "$(XCTRUNNER_PATH$(TEST_BUILD_STYLE))";
+            LD_RUNPATH_SEARCH_PATHS = "$(inherited) $(LD_RUNPATH_SEARCH_PATHS_SHALLOW_BUNDLE_$(SHALLOW_BUNDLE))";
+            LD_RUNPATH_SEARCH_PATHS_SHALLOW_BUNDLE_YES = "@loader_path/Frameworks";
+            LD_RUNPATH_SEARCH_PATHS_SHALLOW_BUNDLE_NO = "@loader_path/../Frameworks";
+            INSTALL_PATH = "$(INSTALL_PATH_XCTRUNNER_$(USES_XCTRUNNER:default=NO))";
+            INSTALL_PATH_XCTRUNNER_YES = "$(DEFAULT_TEST_RUNNER_APP_INSTALL_PATH)";
+            INSTALL_PATH_XCTRUNNER_NO = "$(DEFAULT_TEST_BUNDLE_INSTALL_PATH)";
+
+            ENABLE_BITCODE = NO;
+            ENTITLEMENTS_REQUIRED = NO;
+
+            PROVISIONING_PROFILE_SUPPORTED = YES;
+            PROVISIONING_PROFILE_REQUIRED = NO;
+        };
+        PackageTypes = (
+            com.apple.package-type.bundle.unit-test
+        );
+        CanEmbedCompilerSanitizerLibraries = YES;
+        IsUnitTest = YES;
+        WantsBundleIdentifierEditing = NO;
+    },
+)

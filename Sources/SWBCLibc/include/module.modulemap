@@ -1,0 +1,4 @@
+module SWBCLibc {
+    header "SWBCLibc.h"
+    export *
+}

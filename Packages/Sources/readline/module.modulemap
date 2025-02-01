@@ -1,0 +1,5 @@
+module readline [system] {
+    header "sdk_readline.h"
+    link "readline"
+    export *
+}

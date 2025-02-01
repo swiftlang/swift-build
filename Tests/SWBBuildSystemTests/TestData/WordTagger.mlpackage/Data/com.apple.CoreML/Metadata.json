@@ -1,0 +1,8 @@
+{
+  "MLModelCreatorDefinedKey" : {
+    "com.apple.createml.version" : "10.15.4",
+    "com.apple.createml.app.tag" : "5",
+    "com.apple.createml.app.version" : "1.0"
+  },
+  "MLModelVersionStringKey" : "1.0"
+}

@@ -1,0 +1,465 @@
+//===----------------------------------------------------------------------===//
+//
+// This source file is part of the Swift open source project
+//
+// Copyright (c) 2024 Apple Inc. and the Swift project authors
+// Licensed under Apache License v2.0 with Runtime Library Exception
+//
+// See http://swift.org/LICENSE.txt for license information
+// See http://swift.org/CONTRIBUTORS.txt for the list of Swift project authors
+//
+//===----------------------------------------------------------------------===//
+
+(
+    // Application
+    {
+        _Domain = darwin;
+        Type = ProductType;
+        Identifier = com.apple.product-type.application;
+        BasedOn = com.apple.product-type.bundle;
+        Class = PBXApplicationProductType;
+        Name = "Application";
+        Description = "Application";
+        IconNamePrefix = "TargetApp";
+        DefaultTargetName = "Application";
+        DefaultBuildProperties = {
+            MACH_O_TYPE = "mh_execute";
+            GCC_DYNAMIC_NO_PIC = NO;
+            GCC_SYMBOLS_PRIVATE_EXTERN = YES;
+            GCC_INLINES_ARE_PRIVATE_EXTERN = YES;
+            WRAPPER_SUFFIX = ".$(WRAPPER_EXTENSION)";
+            WRAPPER_EXTENSION = "app";
+            INSTALL_PATH = "$(LOCAL_APPS_DIR)";
+            STRIP_STYLE = "all";
+            CODE_SIGNING_ALLOWED = YES;
+            LD_RUNPATH_SEARCH_PATHS = "$(LD_RUNPATH_SEARCH_PATHS_$(IS_MACCATALYST))";
+            LD_RUNPATH_SEARCH_PATHS_YES = ( "@loader_path/../Frameworks", );
+            ENABLE_ON_DEMAND_RESOURCES = "$(__IS_NOT_MACOS)";
+            SUPPORTS_MACCATALYST = NO;
+            SUPPORTS_ON_DEMAND_RESOURCES = "$(__IS_NOT_MACOS)";
+            ENABLE_DEBUG_DYLIB = YES;
+
+            // All app targets should attempt to aggregate the tracked domains from its dependencies.
+            AGGREGATE_TRACKED_DOMAINS = "YES";
+
+            // These two need opposite values for device and simulator.
+            ENTITLEMENTS_ALLOWED = "$(__IS_NOT_SIMULATOR)";
+            PROVISIONING_PROFILE_SUPPORTED = YES;
+            PROVISIONING_PROFILE_REQUIRED = "$(PROVISIONING_PROFILE_REQUIRED_$(__IS_NOT_SIMULATOR)_$(__IS_NOT_MACOS):default=NO)";
+            PROVISIONING_PROFILE_REQUIRED_YES_YES = YES;
+
+            __IS_NOT_SIMULATOR = "$(__IS_NOT_SIMULATOR$(LLVM_TARGET_TRIPLE_SUFFIX:identifier):default=YES)";
+            __IS_NOT_SIMULATOR_simulator = NO;
+
+            __IS_NOT_MACOS = "$(__IS_NOT_MACOS_$(PLATFORM_NAME):default=YES)";
+            __IS_NOT_MACOS_macosx = NO;
+        };
+        PackageTypes = (
+            com.apple.package-type.wrapper.application  // default
+        );
+
+        /** Product type validation hooks */
+        Validation = {
+
+            // Checks - a dictionary of checks that are perform just prior to building the product
+            // Each dictionary key is the macro expression to evaluate
+            // The dictionary value contains the error message to display if the condition evaluates to false.
+            Checks = {
+                // This is intentially empty as currently all of the checks are done in-code for this particular application type. However, we enable the plubmbing for the validation tool spec infrastructure to be called to avoid any further hacks in Swift Build. This is to enable rdar://problem/45590882.
+            };
+
+            // Determines if the legacy build system has support for this validation hook. This is a workaround for enabling additional validation in Swift Build (specifically for rdar://problem/45590882).
+            EnabledForLegacyBuildSystem = NO;
+
+            // ValidationToolSpec - the identifier of the tool (script) to run after a target is constructed.
+            ValidationToolSpec = "com.apple.build-tools.platform.validate";
+        };
+        AllowEmbedding = YES;
+        CanEmbedCompilerSanitizerLibraries = YES;
+        ValidateEmbeddedBinaries = YES;
+        WantsBundleIdentifierEditing = YES;
+        WantsSigningEditing = YES;
+        SupportsHostingTests = YES;
+        SupportsBeingUITestTarget = YES;
+    },
+
+    // System extension
+    {
+        _Domain = darwin;
+        Type = ProductType;
+        Identifier = com.apple.product-type.system-extension;
+        BasedOn = com.apple.product-type.bundle;
+        Name = "DriverKit Driver";
+        Description = "DriverKit driver";
+        DefaultTargetName = "DriverKit Driver";
+        DefaultBuildProperties = {
+            MACH_O_TYPE = "mh_execute";
+            WRAPPER_SUFFIX = ".$(WRAPPER_EXTENSION)";
+            WRAPPER_EXTENSION = "systemextension";
+
+            PRODUCT_NAME = "$(PRODUCT_BUNDLE_IDENTIFIER)";
+
+            PROVISIONING_PROFILE_SUPPORTED = YES;
+            PROVISIONING_PROFILE_REQUIRED = NO;
+        };
+        PackageTypes = (
+            com.apple.package-type.wrapper.system-extension,
+        );
+    },
+
+    // UI Testing Bundle
+    {
+        _Domain = darwin;
+        Type = ProductType;
+        Identifier = com.apple.product-type.bundle.ui-testing;
+        BasedOn = com.apple.product-type.bundle.unit-test;
+        Class = PBXXCTestBundleProductType;
+        Name = "UI Testing Bundle";
+        Description = "UI Testing Bundle";
+        DefaultBuildProperties = {
+            USES_XCTRUNNER = "YES";
+
+            PROVISIONING_PROFILE_SUPPORTED = YES;
+            PROVISIONING_PROFILE_REQUIRED = "$(__IS_NOT_MACOS)";
+
+            __IS_NOT_MACOS = "$(__IS_NOT_MACOS_$(PLATFORM_NAME):default=YES)";
+            __IS_NOT_MACOS_macosx = NO;
+
+            TESTING_FRAMEWORK_MODULE_ALIAS_FLAGS = (
+                "-module-alias",
+                "Testing=_Testing_Unavailable",
+            );
+            OTHER_SWIFT_FLAGS = (
+                "$(inherited)",
+                "$(TESTING_FRAMEWORK_MODULE_ALIAS_FLAGS)",
+            );
+        };
+        PackageTypes = (
+            com.apple.package-type.bundle.unit-test
+        );
+        IsUITest = YES;
+        InfoPlistAdditions = {
+            XCTContainsUITests = YES;
+        };
+        WantsBundleIdentifierEditing = NO;
+    },
+
+    // Legacy OCUnit Test Bundle
+    {
+        _Domain = darwin;
+        Type = ProductType;
+        Identifier = com.apple.product-type.bundle.ocunit-test;
+        BasedOn = com.apple.product-type.bundle;
+        Class = PBXBundleProductType;
+        Name = "OCUnit Test Bundle";
+        Description = "OCUnit Test Bundle";
+        DefaultBuildProperties = {
+            WRAPPER_EXTENSION = "octest";
+            ENABLE_BITCODE = NO;
+            ENTITLEMENTS_REQUIRED = NO;
+        };
+        PackageTypes = (
+            com.apple.package-type.bundle.ocunit-test
+        );
+        IsUnitTest = YES;
+    },
+
+    // In-App Purchase Content
+    {
+        _Domain = darwin;
+        Type = ProductType;
+        Identifier = com.apple.product-type.in-app-purchase-content;
+        Class = PBXBundleProductType;
+        Name = "In-App Purchase Content";
+        Description = "In-App Purchase Content";
+        DefaultBuildProperties = {
+            CODE_SIGNING_ALLOWED = NO;
+            FULL_PRODUCT_NAME = "$(WRAPPER_NAME)";
+        };
+        PackageTypes = (
+            com.apple.package-type.in-app-purchase-content,             // default
+        );
+        IsWrapper = YES;
+        HasInfoPlist = YES;
+        HasInfoPlistStrings = NO;
+        DeprecationReason = "Uploading non-consumable in-app purchase content for Apple to host is no longer supported. Existing content that's hosted by Apple isn't affected. To enable smaller app bundles, faster downloads, and richer app content, use on-demand resources to host your content on the App Store, separately from the app bundle. For details, see: https://developer.apple.com/library/archive/documentation/FileManagement/Conceptual/On_Demand_Resources_Guide/index.html";
+        DeprecationLevel = "error";
+    },
+
+    // XPC Service
+    {
+        _Domain = darwin;
+        Type = ProductType;
+        Identifier = "com.apple.product-type.xpc-service";
+        BasedOn = "com.apple.product-type.bundle";
+        Class = PBXBundleProductType;
+        Name = "XPC Service";
+        Description = "XPC Service";
+        IconNamePrefix = XPCService;
+        DefaultTargetName = "XPC Service";
+        CanEmbedCompilerSanitizerLibraries = YES;
+        "DefaultBuildProperties" = {
+            "MACH_O_TYPE" = "mh_execute";
+            WRAPPER_EXTENSION = "xpc";
+            LD_RUNPATH_SEARCH_PATHS = "$(LD_RUNPATH_SEARCH_PATHS_$(IS_MACCATALYST)_$(_BOOL_$(SKIP_INSTALL)))";
+            LD_RUNPATH_SEARCH_PATHS_YES_YES = (
+                "@loader_path/../Frameworks",
+                "@loader_path/../../../../Frameworks",
+            );
+            LD_RUNPATH_SEARCH_PATHS_YES_NO = ( "@loader_path/../Frameworks", );
+
+            PROVISIONING_PROFILE_SUPPORTED = YES;
+            PROVISIONING_PROFILE_REQUIRED = "$(__IS_NOT_MACOS)";
+
+            __IS_NOT_MACOS = "$(__IS_NOT_MACOS_$(PLATFORM_NAME):default=YES)";
+            __IS_NOT_MACOS_macosx = NO;
+        };
+        PackageTypes = (
+            "com.apple.package-type.xpc-service",
+        );
+        WantsBundleIdentifierEditing = YES;
+        WantsSigningEditing = YES;
+    },
+
+    // PlugIn-Kit PlugIn
+    {
+        _Domain = darwin;
+        Type = ProductType;
+        Identifier = "com.apple.product-type.pluginkit-plugin";
+        BasedOn = "com.apple.product-type.xpc-service";
+        Class = PBXBundleProductType;
+        Name = "PlugInKit PlugIn";
+        Description = "PlugInKit PlugIn";
+        IconNamePrefix = XPCService;
+        DefaultTargetName = "PlugInKit PlugIn";
+        "DefaultBuildProperties" = {
+            "PRODUCT_SPECIFIC_LDFLAGS" = "$(SDKROOT)/System/Library/PrivateFrameworks/PlugInKit.framework/PlugInKit.tbd";
+            WRAPPER_EXTENSION = "pluginkit";
+        };
+        PackageTypes = (
+            "com.apple.package-type.pluginkit-plugin",
+        );
+    },
+
+    // App Extension
+    {
+        _Domain = darwin;
+        Type = ProductType;
+        Identifier = "com.apple.product-type.app-extension";
+        BasedOn = "com.apple.product-type.pluginkit-plugin";
+        Class = PBXBundleProductType;
+        Name = "App Extension";
+        Description = "App Extension";
+        IconNamePrefix = AppExtension;
+        DefaultTargetName = "App Extension";
+        "DefaultBuildProperties" = {
+            "CODE_SIGNING_ALLOWED" = YES;
+            "APPLICATION_EXTENSION_API_ONLY" = YES;
+            "PRODUCT_SPECIFIC_LDFLAGS" = "";
+            "LD_ENTRY_POINT" = "_NSExtensionMain";
+            WRAPPER_EXTENSION = "appex";
+            ASSETCATALOG_COMPILER_STANDALONE_ICON_BEHAVIOR = all; // Include standalone files for all reps of extension icons <rdar://problem/32627780>
+            SUPPORTS_MACCATALYST = NO;
+            ENABLE_DEBUG_DYLIB = YES;
+        };
+        PackageTypes = (
+            "com.apple.package-type.app-extension",
+        );
+        WantsBundleIdentifierEditing = YES;
+        WantsSigningEditing = YES;
+    },
+
+    // App Extension (ExtensionKit)
+    {
+        _Domain = darwin;
+        Type = ProductType;
+        Identifier = "com.apple.product-type.extensionkit-extension";
+        BasedOn = "com.apple.product-type.app-extension";
+        PackageTypes = (
+            "com.apple.package-type.extensionkit-extension",
+        );
+    },
+
+    {
+        _Domain = darwin;
+        Type = ProductType;
+        Identifier = "com.apple.product-type.application.messages";
+        BasedOn = "com.apple.product-type.application";
+        Name = "iMessage Application";
+        DisableSchemeAutocreation = YES;
+        IsCapabilitiesUnsupported = YES;
+        WantsSimpleTargetEditing = YES;
+        DefaultBuildProperties = {
+            EXCLUDED_ARCHS = arm64e;
+            MESSAGES_APPLICATION_PRODUCT_BINARY_SOURCE_PATH = "$(PLATFORM_DIR)/Library/Application Support/MessagesApplicationStub/MessagesApplicationStub";
+            PRODUCT_TYPE_HAS_STUB_BINARY = YES;
+            ASSETCATALOG_COMPILER_TARGET_STICKERS_ICON_ROLE = "host-app";
+            THIN_PRODUCT_STUB_BINARY = YES;
+            SUPPORTS_MAC_DESIGNED_FOR_IPHONE_IPAD = NO;
+            SUPPORTS_XR_DESIGNED_FOR_IPHONE_IPAD = NO;
+            ENABLE_DEBUG_DYLIB = NO;
+        };
+        AllowedBuildPhases = (
+            "com.apple.buildphase.resources",
+            "com.apple.buildphase.copy-files",
+            "com.apple.buildphase.shell-script",
+        );
+        InfoPlistAdditions = {
+            LSApplicationLaunchProhibited = YES;
+        };
+        SupportsHostingTests = NO;
+        SupportsBeingUITestTarget = NO;
+        Platforms = (iphoneos, iphonesimulator);
+    },
+
+    {
+        _Domain = darwin;
+        Type = ProductType;
+        Identifier = "com.apple.product-type.app-extension.messages";
+        BasedOn = "com.apple.product-type.app-extension";
+        Name = "iMessage Extension";
+        DefaultBuildProperties = {
+            ASSETCATALOG_COMPILER_STANDALONE_ICON_BEHAVIOR = default; // IconServices reads icons from Assets.car for Messages
+            ASSETCATALOG_COMPILER_INCLUDE_STICKER_CONTENT = YES;
+            ASSETCATALOG_COMPILER_TARGET_STICKERS_ICON_ROLE = "extension";
+        };
+        Platforms = (macosx, iphoneos, iphonesimulator, xros, xrsimulator);
+    },
+
+    {
+        _Domain = darwin;
+        Type = ProductType;
+        Identifier = "com.apple.product-type.app-extension.messages-sticker-pack";
+        BasedOn = "com.apple.product-type.app-extension";
+        Name = "Sticker Pack Extension";
+        IsCapabilitiesUnsupported = YES;
+        WantsSimpleTargetEditing = YES;
+        DefaultBuildProperties = {
+            EXCLUDED_ARCHS = arm64e;
+            MESSAGES_APPLICATION_EXTENSION_PRODUCT_BINARY_SOURCE_PATH = "$(PLATFORM_DIR)/Library/Application Support/MessagesApplicationExtensionStub/MessagesApplicationExtensionStub";
+            PRODUCT_TYPE_HAS_STUB_BINARY = YES;
+            ASSETCATALOG_COMPILER_STANDALONE_ICON_BEHAVIOR = default; // IconServices reads icons from Assets.car for Messages
+            ASSETCATALOG_COMPILER_INCLUDE_STICKER_CONTENT = YES;
+            ASSETCATALOG_COMPILER_TARGET_STICKERS_ICON_ROLE = "extension";
+            ASSETCATALOG_COMPILER_STICKER_PACK_IDENTIFIER_PREFIX = "$(PRODUCT_BUNDLE_IDENTIFIER).sticker-pack.";
+            THIN_PRODUCT_STUB_BINARY = YES;
+            ENABLE_DEBUG_DYLIB = NO;
+        };
+        AllowedBuildPhases = (
+            "com.apple.buildphase.resources",
+            "com.apple.buildphase.shell-script",
+        );
+        InfoPlistAdditions = {
+            LSApplicationIsStickerProvider = YES;
+        };
+        Platforms = (macosx, iphoneos, iphonesimulator, xros, xrsimulator);
+    },
+
+    {
+        _Domain = darwin;
+        Type = ProductType;
+        Identifier = "com.apple.product-type.application.on-demand-install-capable";
+        BasedOn = "com.apple.product-type.application";
+        Name = "App Clip";
+        Description = "App Clip";
+        DefaultBuildProperties = {
+            ENABLE_ON_DEMAND_RESOURCES = NO;
+            ASSETCATALOG_COMPILER_STANDALONE_ICON_BEHAVIOR = none; // Don't include standalone icons to keep size down
+            PRODUCT_SPECIFIC_LDFLAGS = "$(inherited) -framework AppClip";
+            SKIP_INSTALL = YES;
+            SUPPORTS_ON_DEMAND_RESOURCES = NO;
+        };
+        DefaultEntitlements = {
+            "com.apple.developer.on-demand-install-capable" = YES;
+        };
+        IsEmbeddable = YES;
+        BuildPhaseInjectionsWhenEmbedding = (
+            {
+                BuildPhase = "CopyFiles";
+                Name = "Embed App Clips";
+                RunOnlyForDeploymentPostprocessing = NO;
+                DstSubFolderSpec = 16;
+                DstPath = "$(CONTENTS_FOLDER_PATH)/AppClips";
+            }
+        );
+        Platforms = (iphoneos, iphonesimulator, xros, xrsimulator);
+    },
+
+    {
+        _Domain = darwin;
+        Type = ProductType;
+        Identifier = "com.apple.product-type.application.watchapp2-container";
+        BasedOn = "com.apple.product-type.application";
+        Name = "Watch-Only Application Stub";
+        DisableSchemeAutocreation = YES;
+        IsCapabilitiesUnsupported = YES;
+        WantsSimpleTargetEditing = YES;
+        WantsInfoEditorHidden = YES;
+        BuildPhaseFileRefAdditions = {
+            "com.apple.buildphase.resources" = (
+                {
+                    Path = "$(PLATFORM_DIR)/Library/Application Support/MessagesApplicationStub/MessagesApplicationStub.xcassets";
+                }
+            );
+        };
+        DefaultBuildProperties = {
+            ASSETCATALOG_COMPILER_APPICON_NAME = MessagesApplicationStub;
+            BUILD_ACTIVE_RESOURCES_ONLY = NO;
+            EXCLUDED_ARCHS = arm64e;
+            GENERATE_INFOPLIST_FILE = YES;
+            IPHONEOS_DEPLOYMENT_TARGET = "13.0";
+            PRODUCT_BINARY_SOURCE_PATH = "$(PLATFORM_DIR)/Library/Application Support/MessagesApplicationStub/MessagesApplicationStub";
+            PRODUCT_TYPE_HAS_STUB_BINARY = YES;
+            THIN_PRODUCT_STUB_BINARY = YES;
+            SUPPORTS_MAC_DESIGNED_FOR_IPHONE_IPAD = NO;
+            SUPPORTS_XR_DESIGNED_FOR_IPHONE_IPAD = NO;
+            ENABLE_DEBUG_DYLIB = NO;
+        };
+        AllowedBuildPhases = (
+            "com.apple.buildphase.resources",
+            "com.apple.buildphase.copy-files",
+            "com.apple.buildphase.shell-script",
+        );
+        InfoPlistAdditions = {
+            LSApplicationLaunchProhibited = YES;
+            ITSWatchOnlyContainer = YES;
+        };
+        Platforms = (iphoneos, iphonesimulator);
+        SupportsHostingTests = NO;
+        SupportsBeingUITestTarget = NO;
+    },
+
+    // DriverKit driver
+    {
+        _Domain = darwin;
+        Type = ProductType;
+        Identifier = com.apple.product-type.driver-extension;
+        BasedOn = com.apple.product-type.system-extension;
+        Name = "DriverKit Driver";
+        Description = "DriverKit driver";
+        DefaultTargetName = "DriverKit Driver";
+        DefaultBuildProperties = {
+            PROVISIONING_PROFILE_REQUIRED = YES;
+
+            MACH_O_TYPE = "mh_execute";
+            WRAPPER_SUFFIX = ".$(WRAPPER_EXTENSION)";
+            WRAPPER_EXTENSION = "dext";
+            INSTALL_PATH = "$(DEFAULT_DEXT_INSTALL_PATH)";
+            STRIP_STYLE = "debugging";
+
+            DEXT_FRAMEWORK_NAME = "DriverKit";
+            DEXT_FRAMEWORK = "$(SYSTEM_LIBRARY_DIR)/Frameworks/$(DEXT_FRAMEWORK_NAME).framework";
+
+            GCC_SYMBOLS_PRIVATE_EXTERN = NO;
+
+            PRODUCT_NAME = "$(PRODUCT_BUNDLE_IDENTIFIER)";
+        };
+        DefaultEntitlements = {
+            "com.apple.developer.driverkit" = YES;
+        };
+        PackageTypes = (
+            com.apple.package-type.wrapper.driver-extension,
+        );
+        Platforms = (driverkit);
+    },
+)

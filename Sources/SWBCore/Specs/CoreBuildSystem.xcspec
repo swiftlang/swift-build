@@ -1,0 +1,4462 @@
+//===----------------------------------------------------------------------===//
+//
+// This source file is part of the Swift open source project
+//
+// Copyright (c) 2024 Apple Inc. and the Swift project authors
+// Licensed under Apache License v2.0 with Runtime Library Exception
+//
+// See http://swift.org/LICENSE.txt for license information
+// See http://swift.org/CONTRIBUTORS.txt for the list of Swift project authors
+//
+//===----------------------------------------------------------------------===//
+
+(
+    {
+        Type = BuildSystem;
+        Identifier = "com.apple.buildsettings.standard";
+        Name = "Standard Properties";
+        Options = (
+            {
+                Name = ACTION;
+                Type = string;
+                DefaultValue = "";
+                DisplayName = "Active Build Action";
+                Description = "A string identifying the build system action being performed.";
+            },
+            {
+                Name = BUILD_COMPONENTS;
+                Type = stringlist;
+                DefaultValue = "";
+                DisplayName = "Active Build Components";
+                Description = "A list of components being built during this action.";
+            },
+            {
+                Name = PROJECT_NAME;
+                Type = string;
+                DefaultValue = "";
+                DisplayName = "Project Name";
+                Description = "The name of the current project.";
+            },
+            {
+                Name = TARGET_NAME;
+                Type = string;
+                DefaultValue = "";
+                DisplayName = "Target Name";
+                Description = "The name of the current target.";
+            },
+            {
+                Name = SDKROOT;
+                Type = Path;
+                DefaultValue = "";
+                ConditionFlavors = (
+                    arch,
+                );
+            },
+            {
+                Name = "ADDITIONAL_SDKS";
+                Type = stringlist;
+                DefaultValue = "";
+                ConditionFlavors = (
+                    arch,
+                );
+            },
+            {
+                Name = "SUPPORTED_PLATFORMS";
+                Type = stringlist;
+                UIType = supportedplatforms;
+                DefaultValue = "";
+            },
+            {
+                Name = "IMPLICIT_DEPENDENCY_DOMAIN";
+                Type = string;
+                DefaultValue = "default";
+                Category = BuildOptions;
+                DisplayName = "Implicit Dependency Domain";
+                Description = "The domain in which the target will match or be matched for implicit dependencies. An implicit dependency will only be established between two targets if they are both in the same domain.";
+            },
+            {
+                Name = "SHARED_PRECOMPS_DIR";
+                Type = Path;
+                DefaultValue = "$(OBJROOT)/SharedPrecompiledHeaders";
+            },
+            {
+                Name = "TEMP_SANDBOX_DIR";
+                Type = Path;
+                DefaultValue = "$(OBJROOT)/TemporaryTaskSandboxes";
+            },
+            {
+                Name = "HEADER_SEARCH_PATHS";
+                Type = PathList;
+                DefaultValue = "";
+                ConditionFlavors = (
+                    arch,
+                );
+            },
+            {
+                Name = "USER_HEADER_SEARCH_PATHS";
+                Type = PathList;
+                DefaultValue = "";
+                ConditionFlavors = (
+                    arch,
+                );
+            },
+            {
+                Name = "LD_WARN_UNUSED_DYLIBS";
+                Type = Boolean;
+                DefaultValue = NO;
+                Category = "Linking - Warnings";
+            },
+            {
+                Name = "LD_WARN_DUPLICATE_LIBRARIES";
+                Type = Boolean;
+                DefaultValue = NO;
+                Category = "Linking - Warnings";
+            },
+            {
+                Name = "LIBRARY_SEARCH_PATHS";
+                Type = PathList;
+                DefaultValue = "";
+                ConditionFlavors = (
+                    arch,
+                    sdk,
+                );
+            },
+            {
+                Name = "FRAMEWORK_SEARCH_PATHS";
+                Type = PathList;
+                DefaultValue = "";
+                ConditionFlavors = (
+                    arch,
+                    sdk,
+                );
+            },
+            {
+                Name = "REZ_SEARCH_PATHS";
+                Type = PathList;
+                DefaultValue = "";
+            },
+            {
+                Name = "ALWAYS_SEARCH_USER_PATHS";
+                Type = bool;
+                DefaultValue = YES;
+                ConditionFlavors = (
+                    arch,
+                );
+            },
+            {
+                Name = "ENABLE_DEFAULT_SEARCH_PATHS";
+                Type = bool;
+                DefaultValue = "$(ENABLE_DEFAULT_HEADER_SEARCH_PATHS)";
+            },
+            {
+                Name = "ENABLE_DEFAULT_HEADER_SEARCH_PATHS";
+                Type = bool;
+                DefaultValue = YES;
+            },
+            {
+                Name = "INCLUDED_RECURSIVE_SEARCH_PATH_SUBDIRECTORIES";
+                Type = stringlist;
+                DefaultValue = "";
+            },
+            {
+                Name = "EXCLUDED_RECURSIVE_SEARCH_PATH_SUBDIRECTORIES";
+                Type = stringlist;
+                DefaultValue = "*.nib *.lproj *.framework *.gch *.xcode* *.xcassets (*) .DS_Store CVS .svn .git .hg *.pbproj *.pbxproj";
+            },
+            {
+                Name = "PRECOMP_DESTINATION_DIR";
+                Type = Path;
+                DefaultValue = "$(TEMP_DIR)/PrefixHeaders";
+            },
+            {
+                Name = "VERSIONING_SYSTEM";
+                Type = enum;
+                Values = (
+                    "",
+                    "apple-generic",
+                    "apple-generic-hidden",
+                );
+                DefaultValue = "";
+            },
+            {
+                Name = "MARKETING_VERSION";
+                Type = string;
+                DefaultValue = "";
+                ConditionFlavors = (
+                    sdk,
+                );
+            },
+            {
+                Name = "CURRENT_PROJECT_VERSION";
+                Type = string;
+                DefaultValue = "";
+                ConditionFlavors = (
+                    sdk,
+                );
+            },
+            {
+                Name = "VERSION_INFO_PREFIX";
+                Type = string;
+                DefaultValue = "";
+            },
+            {
+                Name = "VERSION_INFO_SUFFIX";
+                Type = string;
+                DefaultValue = "";
+            },
+            {
+                Name = "VERSION_INFO_BUILDER";
+                Type = string;
+                DefaultValue = "";
+            },
+            {
+                Name = "VERSION_INFO_EXPORT_DECL";
+                Type = string;
+                DefaultValue = "";
+            },
+            {
+                Name = "VERSION_INFO_FILE";
+                Type = string;
+                DefaultValue = "";
+            },
+            {
+                Name = "DEBUG_INFORMATION_FORMAT";
+                Type = enum;
+                Values = (
+                    dwarf,
+                    "dwarf-with-dsym",
+                );
+                DefaultValue = dwarf;
+            },
+            {
+                Name = "DEBUG_INFORMATION_VERSION";
+                Type = enum;
+                Values = (
+                    "compiler-default",
+                    dwarf4,
+                    dwarf5,
+                );
+                DefaultValue = "compiler-default";
+            },
+            {
+                Name = "DWARF_DSYM_FILE_NAME";
+                Type = string;
+                UIType = string;
+                DefaultValue = "$(FULL_PRODUCT_NAME).dSYM";
+            },
+            {
+                Name = "DWARF_DSYM_FOLDER_PATH";
+                Type = Path;
+                UIType = string;
+                DefaultValue = "$(CONFIGURATION_BUILD_DIR)";
+            },
+            {
+                Name = "DWARF_DSYM_FILE_SHOULD_ACCOMPANY_PRODUCT";
+                Type = bool;
+                DefaultValue = NO;
+            },
+            {
+                Name = "COLOR_DIAGNOSTICS";
+                Type = bool;
+                DefaultValue = NO;
+            },
+            {
+                Name = "_DISCOVER_COMMAND_LINE_LINKER_INPUTS";
+                Type = bool;
+                DefaultValue = YES;
+            },
+            {
+                Name = "_DISCOVER_COMMAND_LINE_LINKER_INPUTS_INCLUDE_WL";
+                Type = bool;
+                DefaultValue = YES;
+            },
+            {
+                Name = "SCAN_ALL_SOURCE_FILES_FOR_INCLUDES";
+                Type = bool;
+                DefaultValue = NO;
+            },
+            {
+                Name = "GENERATE_PROFILING_CODE";
+                Type = bool;
+                DefaultValue = NO;
+            },
+            {
+                Name = "ENABLE_BITCODE";
+                Type = bool;
+                DefaultValue = NO;
+            },
+            {
+                Name = "HIDE_BITCODE_SYMBOLS";
+                Type = bool;
+                DefaultValue = YES;
+            },
+            {
+                Name = "BITCODE_GENERATION_MODE";
+                Type = enum;
+                Values = (
+                    "marker",
+                    "bitcode",
+                );
+                DefaultValue = marker;
+            },
+            {
+                Name = "STRIP_BITCODE_FROM_COPIED_FILES";
+                Type = bool;
+                DefaultValue = NO;
+            },
+            {
+                Name = "PRECOMPS_INCLUDE_HEADERS_FROM_BUILT_PRODUCTS_DIR";
+                Type = bool;
+                DefaultValue = YES;
+            },
+            {
+                Name = "EXCLUDED_INSTALLSRC_SUBDIRECTORY_PATTERNS";
+                Type = stringlist;
+                DefaultValue = ".DS_Store .svn .git .hg CVS";
+            },
+            {
+                Name = "MACH_O_TYPE";
+                Type = enum;
+                Values = (
+                    "mh_execute",
+                    "mh_dylib",
+                    "mh_bundle",
+                    staticlib,
+                    "mh_object",
+                );
+                DefaultValue = "";
+            },
+            {
+                Name = "INIT_ROUTINE";
+                Type = string;
+                DefaultValue = "";
+            },
+            {
+                Name = "LINK_WITH_STANDARD_LIBRARIES";
+                Type = bool;
+                DefaultValue = YES;
+            },
+            {
+                Name = "KEEP_PRIVATE_EXTERNS";
+                Type = bool;
+                DefaultValue = NO;
+            },
+            {
+                Name = "LD_EXPORT_SYMBOLS";
+                Type = bool;
+                DefaultValue = YES;
+            },
+            {
+                Name = "EXPORTED_SYMBOLS_FILE";
+                Type = Path;
+                DefaultValue = "";
+                ConditionFlavors = (
+                    arch,
+                    sdk,
+                );
+            },
+            {
+                Name = "UNEXPORTED_SYMBOLS_FILE";
+                Type = Path;
+                DefaultValue = "";
+                ConditionFlavors = (
+                    arch,
+                    sdk,
+                );
+            },
+            {
+                Name = "SEPARATE_SYMBOL_EDIT";
+                Type = bool;
+                DefaultValue = NO;
+            },
+            {
+                Name = "DYLIB_CURRENT_VERSION";
+                Type = string;
+                DefaultValue = "";
+            },
+            {
+                Name = "DYLIB_COMPATIBILITY_VERSION";
+                Type = string;
+                DefaultValue = "";
+            },
+            {
+                //Note: Cannot be of type 'Path' as value is used with relative '../' paths
+                Name = "LD_DYLIB_INSTALL_NAME";
+                Type = String;
+                DefaultValue = "";
+            },
+            {
+                Name = "DYLIB_INSTALL_NAME_BASE";
+                Type = String;
+                DefaultValue = "";
+            },
+            {
+                Name = "SECTORDER_FLAGS";
+                Type = stringlist;
+                UIType = string;
+                DefaultValue = "";
+                ConditionFlavors = (
+                    arch,
+                );
+            },
+            {
+                Name = "ORDER_FILE";
+                Type = Path;
+                DefaultValue = "";
+            },
+            {
+                Name = "LD_RUNPATH_SEARCH_PATHS";
+                //Note: Cannot be of type 'PathList' as value is used with relative '../' paths
+                Type = StringList;
+                DefaultValue = "";
+            },
+            {
+                Name = "LD_GENERATE_MAP_FILE";
+                Type = bool;
+                DefaultValue = NO;
+            },
+            {
+                Name = "LD_MAP_FILE_PATH";
+                Type = Path;
+                DefaultValue = "$(TARGET_TEMP_DIR)/$(PRODUCT_NAME)-LinkMap-$(CURRENT_VARIANT)-$(CURRENT_ARCH).txt";
+            },
+            {
+                Name = "OTHER_LDFLAGS";
+                Type = stringlist;
+                UIType = string;
+                DefaultValue = "";
+                ConditionFlavors = (
+                    arch,
+                );
+            },
+            {
+                Name = "OTHER_LIBTOOLFLAGS";
+                Type = stringlist;
+                UIType = string;
+                DefaultValue = "";
+                ConditionFlavors = (
+                    arch,
+                );
+            },
+            {
+                Name = "DEAD_CODE_STRIPPING";
+                Type = bool;
+                DefaultValue = NO;
+            },
+            {
+                Name = "BUNDLE_LOADER";
+                Type = Path;
+                DefaultValue = "";
+            },
+            {
+                Name = "LINKER_DISPLAYS_MANGLED_NAMES";
+                Type = bool;
+                DefaultValue = NO;
+                CommandLineArgs = {
+                    YES = (
+                        "-Xlinker",
+                        "--no-demangle",
+                    );
+                    NO = ();
+                };
+            },
+            {
+                Name = "GENERATE_MASTER_OBJECT_FILE";
+                Type = bool;
+                DefaultValue = NO;
+            },
+            {
+                Name = "PRELINK_LIBS";
+                Type = stringlist;
+                DefaultValue = "";
+            },
+            {
+                Name = "PRELINK_FLAGS";
+                Type = stringlist;
+                DefaultValue = "";
+            },
+            {
+                Name = "LD_NO_PIE";
+                Type = bool;
+                DefaultValue = NO;
+                CommandLineArgs = {
+                    YES = (
+                        "-Xlinker",
+                        "-no_pie",
+                    );
+                    NO = ();
+                };
+                ConditionFlavors = (
+                    arch,
+                    sdk,
+                );
+            },
+            {
+                Name = "LD_QUOTE_LINKER_ARGUMENTS_FOR_COMPILER_DRIVER";
+                Type = Boolean;
+                DefaultValue = YES;
+            },
+            {
+                Name = "LD_DEPENDENCY_INFO_FILE";
+                Type = Path;
+                DefaultValue = "$(OBJECT_FILE_DIR_$(CURRENT_VARIANT))/$(CURRENT_ARCH)/$(PRODUCT_NAME)_dependency_info.dat";
+            },
+            {
+                Name = "LD_DYLIB_ALLOWABLE_CLIENTS";
+                Type = StringList;
+                DefaultValue = "";
+                ConditionFlavors = (
+                    arch,
+                    sdk,
+                );
+            },
+            {
+                Name = "LD_CLIENT_NAME";
+                Type = String;
+                DefaultValue = "";
+                ConditionFlavors = (
+                    arch,
+                    sdk,
+                );
+            },
+            {
+                Name = "LD_ENVIRONMENT";
+                Type = StringList;
+                DefaultValue = "";
+                ConditionFlavors = (
+                    arch,
+                    sdk,
+                );
+            },
+            {   Name = PRODUCT_BUNDLE_IDENTIFIER;
+                Type = String;
+                Category = Packaging;
+                DisplayName = "Product Bundle Identifier";
+                Description = "A string that uniquely identifies the bundle. The string should be in reverse DNS format using only alphanumeric characters (`A-Z`, `a-z`, `0-9`), the dot (`.`), and the hyphen (`-`).
+
+When `GENERATE_INFOPLIST_FILE` is enabled, sets the value of the [CFBundleIdentifier](https://developer.apple.com/documentation/bundleresources/information_property_list/cfbundleidentifier) key in the `Info.plist` file to the value of this build setting.";
+                DefaultValue = "";
+                ConditionFlavors = (
+                    sdk,
+                );
+            },
+
+            {
+                Name = "PRODUCT_NAME";
+                Type = string;
+                DefaultValue = "";
+            },
+            {
+                Name = "EXECUTABLE_PREFIX";
+                Type = string;
+                DefaultValue = "";
+            },
+            {
+                Name = "EXECUTABLE_EXTENSION";
+                Type = string;
+                DefaultValue = "";
+            },
+            {
+                Name = "WRAPPER_EXTENSION";
+                Type = string;
+                DefaultValue = "";
+            },
+            {
+                Name = "CURRENT_VERSION";
+                Type = string;
+                DefaultValue = "";
+            },
+            {
+                Name = "VERSIONS_FOLDER_PATH";
+                Type = Path;
+                DefaultValue = "";
+            },
+            {
+                Name = "PRIVATE_HEADERS_FOLDER_PATH";
+                Type = Path;
+                DefaultValue = "";
+            },
+            {
+                Name = "PUBLIC_HEADERS_FOLDER_PATH";
+                Type = Path;
+                DefaultValue = "";
+            },
+            {
+                Name = "GENERATE_PKGINFO_FILE";
+                Type = bool;
+                DefaultValue = NO;
+            },
+            {
+                Name = "DONT_GENERATE_INFOPLIST_FILE";
+                Type = bool;
+                DefaultValue = NO;
+            },
+            {
+                Name = "INFOPLIST_FILE";
+                Type = Path;
+                DefaultValue = "";
+                Basic = YES;
+            },
+            {
+                Name = "INFOPLIST_PREPROCESS";
+                Type = bool;
+                DefaultValue = NO;
+            },
+            {
+                Name = "INFOPLIST_ENABLE_CFBUNDLEICONS_MERGE";
+                Type = bool;
+                DefaultValue = YES;
+            },
+            {
+                Name = "INFOPLIST_EXPAND_BUILD_SETTINGS";
+                Type = bool;
+                DefaultValue = YES;
+            },
+            {
+                Name = "INFOPLIST_OUTPUT_FORMAT";
+                Type = Enumeration;
+                DefaultValue = "same-as-input";
+                Values = (
+                    "same-as-input",
+                    XML,
+                    binary,
+                );
+            },
+            {
+                Name = "CREATE_INFOPLIST_SECTION_IN_BINARY";
+                Type = bool;
+                DefaultValue = NO;
+            },
+            {
+                Name = "PLIST_FILE_OUTPUT_FORMAT";
+                Type = Enumeration;
+                DefaultValue = "same-as-input";
+                Values = (
+                    "same-as-input",
+                    XML,
+                    binary,
+                );
+            },
+            {
+                Name = "STRINGS_FILE_OUTPUT_ENCODING";
+                Type = Enumeration;
+                DefaultValue = "UTF-16";
+                Values = (
+                    "UTF-16",
+                    "UTF-8",
+                    binary,
+                );
+            },
+            {
+                Name = "STRINGS_FILE_INFOPLIST_RENAME";
+                Type = bool;
+                DefaultValue = YES;
+            },
+            {
+                Name = "APPLY_RULES_IN_COPY_FILES";
+                Type = bool;
+                DefaultValue = NO;
+            },
+            {
+                Name = "REMOVE_HEADERS_FROM_EMBEDDED_BUNDLES";
+                Type = bool;
+                DefaultValue = YES;
+            },
+            {
+                Name = "INFOPLIST_PREFIX_HEADER";
+                Type = string;
+                DefaultValue = "";
+            },
+            {
+                Name = "INFOPLIST_OTHER_PREPROCESSOR_FLAGS";
+                Type = StringList;
+                DefaultValue = "";
+            },
+            {
+                Name = "INFOPLIST_PREPROCESSOR_DEFINITIONS";
+                Type = stringlist;
+                DefaultValue = "";
+                CommandLineArgs = (
+                    "-D$(value)",
+                );
+            },
+            {
+                Name = "COPYING_PRESERVES_HFS_DATA";
+                Type = bool;
+                DefaultValue = NO;
+            },
+            {
+                Name = "DEPLOYMENT_LOCATION";
+                Type = bool;
+                DefaultValue = NO;
+            },
+            {
+                Name = "DEPLOYMENT_POSTPROCESSING";
+                Type = bool;
+                DefaultValue = NO;
+            },
+
+            {
+                Name = "INSTALL_PATH";
+                Type = Path;
+                DefaultValue = "";
+                Basic = YES;
+            },
+            {
+                Name = "SYSTEM_KEXT_INSTALL_PATH";
+                Type = string;
+                DefaultValue = "$(SYSTEM_LIBRARY_DIR)/Extensions";
+            },
+            {
+                Name = "SYSTEM_DEXT_INSTALL_PATH";
+                Type = string;
+                DefaultValue = "$(SYSTEM_LIBRARY_DIR)/DriverExtensions";
+            },
+            {
+                Name = "LIBRARY_KEXT_INSTALL_PATH";
+                Type = string;
+                DefaultValue = "$(LOCAL_LIBRARY_DIR)/Extensions";
+            },
+            {
+                Name = "LIBRARY_DEXT_INSTALL_PATH";
+                Type = string;
+                DefaultValue = "$(LOCAL_LIBRARY_DIR)/DriverExtensions";
+            },
+            {
+                Name = "DEFAULT_KEXT_INSTALL_PATH";
+                Type = string;
+                DefaultValue = "$(SYSTEM_KEXT_INSTALL_PATH)";
+            },
+            {
+                Name = "DEFAULT_DEXT_INSTALL_PATH";
+                Type = string;
+                DefaultValue = "$(SYSTEM_DEXT_INSTALL_PATH)";
+            },
+            {
+                Name = "SKIP_INSTALL";
+                Type = bool;
+                DefaultValue = NO;
+            },
+            {
+                Name = "SEPARATE_STRIP";
+                Type = bool;
+                DefaultValue = NO;
+            },
+            {
+                Name = "STRIP_STYLE";
+                Type = enum;
+                Values = (
+                    all,
+                    "non-global",
+                    debugging,
+                );
+                CommandLineArgs = {
+                    all = ();
+                    "non-global" = (
+                        "-x",
+                    );
+                    debugging = (
+                        "-S",
+                    );
+                };
+                DefaultValue = all;
+            },
+            {
+                Name = STRIPFLAGS;
+                Type = stringlist;
+                UIType = string;
+                DefaultValue = "";
+            },
+            {
+                Name = "ALTERNATE_PERMISSIONS_FILES";
+                Type = stringlist;
+                DefaultValue = "";
+            },
+            {
+                Name = "ALTERNATE_OWNER";
+                Type = string;
+                DefaultValue = "$(INSTALL_OWNER)";
+            },
+            {
+                Name = "ALTERNATE_GROUP";
+                Type = string;
+                DefaultValue = "$(INSTALL_GROUP)";
+            },
+            {
+                Name = "ALTERNATE_MODE";
+                Type = string;
+                DefaultValue = "$(INSTALL_MODE_FLAG)";
+            },
+            {
+                Name = "TEST_HOST";
+                Type = string;
+                DefaultValue = "";
+            },
+            {
+                Name = "TREAT_MISSING_BASELINES_AS_TEST_FAILURES";
+                Type = Boolean;
+                DefaultValue = NO;
+            },
+            {
+                Name = "EXCLUDED_SOURCE_FILE_NAMES";
+                Type = stringlist;
+                DefaultValue = "";
+            },
+            {
+                Name = "INCLUDED_SOURCE_FILE_NAMES";
+                Type = stringlist;
+                DefaultValue = "";
+            },
+            {
+                Name = "EXCLUDED_EXPLICIT_TARGET_DEPENDENCIES";
+                Type = stringlist;
+                DefaultValue = "";
+            },
+            {
+                Name = "INCLUDED_EXPLICIT_TARGET_DEPENDENCIES";
+                Type = stringlist;
+                DefaultValue = "";
+            },
+            {
+                Name = "MODULE_NAME";
+                Type = string;
+                DefaultValue = "";
+            },
+            {
+                Name = "MODULE_VERSION";
+                Type = string;
+                DefaultValue = "";
+            },
+            {
+                Name = "MODULE_START";
+                Type = string;
+                DefaultValue = "";
+            },
+            {
+                Name = "MODULE_STOP";
+                Type = string;
+                DefaultValue = "";
+            },
+            {
+                Name = HOME;
+                Type = Path;
+            },
+            {
+                Name = LOGNAME;
+                Type = string;
+            },
+            {
+                Name = PWD;
+                Type = Path;
+            },
+            {
+                Name = SHELL;
+                Type = Path;
+            },
+            {
+                Name = USER;
+                Type = string;
+            },
+            {
+                Name = "XCODE_DEVELOPER_DIR_PATH";
+                Type = Path;
+            },
+            {
+                Name = "METAL_LIBRARY_FILE_BASE";
+                Type = string;
+                DefaultValue = "default";
+            },
+            {
+                Name = "METAL_LIBRARY_OUTPUT_DIR";
+                Type = string;
+                DefaultValue = "$(TARGET_BUILD_DIR)/$(UNLOCALIZED_RESOURCES_FOLDER_PATH)";
+            },
+            {
+                Name = "ALLOW_BUILD_REQUEST_OVERRIDES";
+                Type = Boolean;
+                DefaultValue = NO;
+            },
+            {
+                Name = "ALLOW_TARGET_PLATFORM_SPECIALIZATION";
+                Type = Boolean;
+                Category = BuildOptions;
+                DefaultValue = NO;
+                DisplayName = "Allow Multi-Platform Builds";
+                Description = "If enabled, allows targets to build multiple times within a single build operation. Targets will build for the platform of the active run destination, as well as the platforms of any targets which depend on them.";
+            },
+            {
+                Name = "FUSE_BUILD_PHASES";
+                Type = Boolean;
+                DefaultValue = YES;
+            },
+            {
+                Name = "FUSE_BUILD_SCRIPT_PHASES";
+                Type = Boolean;
+                Category = BuildOptions;
+                DefaultValue = NO;
+                DisplayName = "Run Build Script Phases in Parallel";
+                Description = "If enabled, consecutive run script phases will be allowed to run in parallel if they fully specify their input and output dependencies.";
+            },
+            {
+                Name = "RESCHEDULE_INDEPENDENT_HEADERS_PHASES";
+                Type = Boolean;
+                DefaultValue = YES;
+            },
+            {
+                Name = "EAGER_LINKING";
+                Type = Boolean;
+                Category = BuildOptions;
+                DefaultValue = NO;
+                DisplayName = "Eager Linking";
+                Description = "If enabled, the build system will emit a TBD file for Swift-only framework and dynamic library targets to unblock linking of dependent targets before their dependency has finished linking.";
+            },
+            {
+                Name = "ENABLE_USER_SCRIPT_SANDBOXING";
+                Type = Boolean;
+                Category = BuildOptions;
+                DefaultValue = NO;
+                DisplayName = "User Script Sandboxing";
+                Description = "If enabled, the build system will sandbox user scripts to disallow undeclared input/output dependencies.";
+            },
+            {
+                Name = "EAGER_COMPILATION_ALLOW_SCRIPTS";
+                Type = Boolean;
+                DefaultValue = "$(ENABLE_USER_SCRIPT_SANDBOXING)";
+            },
+            {
+                Name = "TREAT_MISSING_SCRIPT_PHASE_OUTPUTS_AS_ERRORS";
+                Type = Boolean;
+                Category = BuildOptions;
+                DefaultValue = NO;
+                DisplayName = "Treat Missing Script Phase Outputs as Errors";
+                Description = "Enabling this option causes warnings about incremental build performance issues caused by script phases which are missing outputs, to be treated as errors.";
+            },
+            {
+                Name = "SDK_STAT_CACHE_ENABLE";
+                Type = Boolean;
+                DefaultValue = YES;
+            },
+            {
+                Name = "MERGED_BINARY_TYPE";
+                Type = Enumeration;
+                Values = (
+                    "none",
+                    "automatic",
+                    "manual",
+                );
+                DefaultValue = "none";
+            },
+            {
+                Name = "AUTOMATICALLY_MERGE_DEPENDENCIES";
+                Type = Boolean;
+                DefaultValue = NO;
+            },
+            {
+                Name = "MERGE_LINKED_LIBRARIES";
+                Type = Boolean;
+                DefaultValue = NO;
+            },
+            {
+                Name = "MERGEABLE_LIBRARY";
+                Type = Boolean;
+                DefaultValue = NO;
+            },
+            {
+                Name = "MAKE_MERGEABLE";
+                Type = Boolean;
+                DefaultValue = NO;
+            },
+            {
+                Name = "LD_SHARED_CACHE_ELIGIBLE";
+                Type = Enumeration;
+                Values = (
+                    Automatic,
+                    NO,
+                );
+                DefaultValue = "Automatic";
+            },
+        );
+    },
+    {
+        Type = BuildSystem;
+        Identifier = "com.apple.build-system.core";
+        Name = CoreBuildSystem;
+        BasedOn = "com.apple.buildsettings.standard";
+        IsGlobalDomainInUI = Yes;
+        Options = (
+            {
+                Name = ARCHS;
+                Type = StringList;
+                UIType = Architectures;
+                DefaultValue = "$(ARCHS_STANDARD)";
+                ConditionFlavors = (
+                    sdk,
+                );
+                Category = Architectures;
+                AvoidEmptyValue = YES;
+            },
+            {
+                Name = "ONLY_ACTIVE_ARCH";
+                Type = Boolean;
+                DefaultValue = NO;
+                Category = Architectures;
+            },
+            {
+                Name = "VALID_ARCHS";
+                Type = StringList;
+                ConditionFlavors = (
+                    sdk,
+                );
+            },
+            {
+                Name = "ENFORCE_VALID_ARCHS";
+                Type = Boolean;
+                DefaultValue = YES;
+            },
+            {
+                Name = "__DIAGNOSE_DEPRECATED_ARCHS";
+                Type = Boolean;
+                DefaultValue = YES;
+            },
+            {
+                Name = "EXCLUDED_ARCHS";
+                Type = StringList;
+                Category = Architectures;
+                ConditionFlavors = (
+                    sdk,
+                );
+            },
+            {
+                Name = "ARCHS_STANDARD_32_64_BIT";
+                Type = StringList;
+            },
+            {
+                Name = "ARCHS_STANDARD_32_BIT";
+                Type = StringList;
+            },
+            {
+                Name = "ARCHS_STANDARD_64_BIT";
+                Type = StringList;
+            },
+            {
+                Name = "ARCHS_STANDARD_INCLUDING_64_BIT";
+                Type = StringList;
+            },
+            {
+                Name = SDKROOT;
+                Type = Path;
+                UIType = SDKRoot;
+                DefaultValue = "";
+                ConditionFlavors = (
+                    arch,
+                );
+                Category = Architectures;
+            },
+            {
+                Name = "ADDITIONAL_SDKS";
+                Type = StringList;
+                DefaultValue = "";
+                ConditionFlavors = (
+                    arch,
+                );
+                Category = Architectures;
+            },
+            {
+                Name = SYMROOT;
+                Type = Path;
+                DefaultValue = build;
+                Category = "Build Locations";
+            },
+            {
+                Name = OBJROOT;
+                Type = Path;
+                DefaultValue = "$(SYMROOT)";
+                Category = "Build Locations";
+            },
+            {
+                Name = LOCROOT;
+                Type = Path;
+                DefaultValue = "";
+            },
+            {
+                Name = LOCSYMROOT;
+                Type = Path;
+                DefaultValue = "";
+            },
+            {
+                Name = "CONFIGURATION_BUILD_DIR";
+                Type = Path;
+                DefaultValue = "$(BUILD_DIR)";
+            },
+            {
+                Name = "CONFIGURATION_TEMP_DIR";
+                Type = Path;
+                DefaultValue = "$(PROJECT_TEMP_DIR)";
+            },
+            {
+                Name = "SHARED_PRECOMPS_DIR";
+                Type = Path;
+                Category = "Build Locations";
+                DefaultValue = "$(OBJROOT)/SharedPrecompiledHeaders";
+            },
+            {
+                Name = "MODULE_CACHE_DIR";
+                Type = Path;
+                Description = "Absolute path of folder in which compiler stores its cached modules—this cache is a performance improvement.";
+                DefaultValue = "$(DERIVED_DATA_DIR)/ModuleCache.noindex";
+            },
+            {
+                Name = "HEADER_SEARCH_PATHS";
+                Type = PathList;
+                Category = "Search Paths";
+                ConditionFlavors = (
+                    arch,
+                    sdk,
+                );
+                DefaultValue = "";
+            },
+            {
+                Name = "USER_HEADER_SEARCH_PATHS";
+                Type = PathList;
+                Category = "Search Paths";
+                ConditionFlavors = (
+                    arch,
+                );
+                DefaultValue = "";
+            },
+            {
+                Name = "SYSTEM_HEADER_SEARCH_PATHS";
+                Type = PathList;
+                Category = "Search Paths";
+                DisplayName = "System Header Search Paths";
+                Description = "This is a list of paths to folders to be searched by the compiler for included or imported system header files when compiling C, Objective-C, C++, or Objective-C++. The order is from highest to lowest precedence. Paths are delimited by whitespace, so any paths with spaces in them need to be properly quoted. This setting is very similar to \"Header Search Paths\", except that headers are passed to the compiler in a way that suppresses most warnings for headers found in system search paths. If the compiler doesn't support the concept of system header search paths, then the search paths are appended to any existing header search paths defined in \"Header Search Paths\".";
+                ConditionFlavors = (
+                    arch,
+                    sdk,
+                );
+                DefaultValue = "";
+            },
+            {
+                Name = "LD_WARN_UNUSED_DYLIBS";
+                Type = Boolean;
+                DefaultValue = NO;
+                Category = "Linking - Warnings";
+            },
+            {
+                Name = "LD_WARN_DUPLICATE_LIBRARIES";
+                Type = Boolean;
+                DefaultValue = NO;
+                Category = "Linking - Warnings";
+            },
+            {
+                Name = "LIBRARY_SEARCH_PATHS";
+                Type = PathList;
+                Category = "Search Paths";
+                ConditionFlavors = (
+                    arch,
+                    sdk,
+                );
+                DefaultValue = "";
+            },
+            {
+                Name = "FRAMEWORK_SEARCH_PATHS";
+                Type = PathList;
+                Category = "Search Paths";
+                ConditionFlavors = (
+                    arch,
+                    sdk,
+                );
+                DefaultValue = "";
+            },
+            {
+                Name = "SYSTEM_FRAMEWORK_SEARCH_PATHS";
+                Type = PathList;
+                Category = "Search Paths";
+                DisplayName = "System Framework Search Paths";
+                Description = "This is a list of paths to folders containing system frameworks to be searched by the compiler for both included or imported header files when compiling C, Objective-C, C++, or Objective-C++, and by the linker for frameworks used by the product. The order is from highest to lowest precedence. Paths are delimited by whitespace, so any paths with spaces in them need to be properly quoted. This setting is very similar to \"Framework Search Paths\", except that the search paths are passed to the compiler in a way that suppresses most warnings for headers found in system search paths. If the compiler doesn't support the concept of system framework search paths, then the search paths are appended to any existing framework search paths defined in \"Framework Search Paths\".";
+                ConditionFlavors = (
+                    arch,
+                    sdk,
+                );
+                DefaultValue = "";
+            },
+            {
+                Name = "REZ_SEARCH_PATHS";
+                Type = PathList;
+                Category = "Search Paths";
+                ConditionFlavors = (
+                    sdk,
+                );
+                DefaultValue = "";
+            },
+            {
+                Name = "ALWAYS_SEARCH_USER_PATHS";
+                Type = Boolean;
+                Category = "Search Paths";
+                ConditionFlavors = (
+                    arch,
+                );
+                DefaultValue = YES;
+            },
+            {
+                Name = "INCLUDED_RECURSIVE_SEARCH_PATH_SUBDIRECTORIES";
+                Type = StringList;
+                Category = "Search Paths";
+                DefaultValue = "";
+            },
+            {
+                Name = "EXCLUDED_RECURSIVE_SEARCH_PATH_SUBDIRECTORIES";
+                Type = StringList;
+                Category = "Search Paths";
+                DefaultValue = "*.nib *.lproj *.framework *.gch *.xcode* *.xcassets (*) .DS_Store CVS .svn .git .hg *.pbproj *.pbxproj";
+            },
+            {
+                Name = "VERSIONING_SYSTEM";
+                Type = Enumeration;
+                Category = Versioning;
+                Values = (
+                    {
+                        Value = "";
+                    },
+                    {
+                        Value = "apple-generic";
+                    },
+                    {
+                        Value = "apple-generic-hidden";
+                    },
+                );
+                DefaultValue = "";
+            },
+            {
+                Name = "MARKETING_VERSION";
+                Type = String;
+                Category = Versioning;
+                DefaultValue = "";
+                ConditionFlavors = (
+                    sdk,
+                );
+            },
+            {
+                Name = "CURRENT_PROJECT_VERSION";
+                Type = String;
+                Category = Versioning;
+                DefaultValue = "";
+                ConditionFlavors = (
+                    sdk,
+                );
+            },
+            {
+                Name = "VERSION_INFO_PREFIX";
+                Type = String;
+                Category = Versioning;
+                DefaultValue = "";
+            },
+            {
+                Name = "VERSION_INFO_SUFFIX";
+                Type = String;
+                Category = Versioning;
+                DefaultValue = "";
+            },
+            {
+                Name = "VERSION_INFO_BUILDER";
+                Type = String;
+                Category = Versioning;
+                DefaultValue = "";
+            },
+            {
+                Name = "VERSION_INFO_EXPORT_DECL";
+                Type = String;
+                Category = Versioning;
+                DefaultValue = "";
+            },
+            {
+                Name = "VERSION_INFO_FILE";
+                Type = String;
+                Category = Versioning;
+                DefaultValue = "";
+            },
+            {
+                Name = "BUILD_VARIANTS";
+                Type = StringList;
+                DefaultValue = normal;
+                AvoidEmptyValue = YES;
+                Category = BuildOptions;
+                ConditionFlavors = (
+                    sdk,
+                );
+            },
+            {
+                Name = "DEBUG_INFORMATION_FORMAT";
+                Type = Enumeration;
+                Category = BuildOptions;
+                Values = (
+                    {
+                        Value = dwarf;
+                    },
+                    {
+                        Value = "dwarf-with-dsym";
+                    },
+                );
+                ConditionFlavors = (
+                    sdk,
+                );
+                DefaultValue = "";
+            },
+            {
+                Name = "DEBUG_INFORMATION_VERSION";
+                Type = enum;
+                Category = BuildOptions;
+                Values = (
+                    {
+                        Value = "compiler-default";
+                    },
+                    {
+                        Value = dwarf4;
+                    },
+                    {
+                        Value = dwarf5;
+                    },
+                );
+                ConditionFlavors = (
+                    sdk,
+                );
+                DefaultValue = "compiler-default";
+            },
+            {
+                Name = "SCAN_ALL_SOURCE_FILES_FOR_INCLUDES";
+                Type = Boolean;
+                DefaultValue = NO;
+                Category = BuildOptions;
+            },
+            {
+                Name = "GENERATE_PROFILING_CODE";
+                Type = Boolean;
+                Category = BuildOptions;
+                DefaultValue = NO;
+            },
+            {
+                Name = "ENABLE_BITCODE";
+                Type = Boolean;
+                DefaultValue = NO;
+            },
+            {
+                Name = "BITCODE_GENERATION_MODE";
+                Type = Enumeration;
+                Values = (
+                    {
+                        Value = "marker";
+                    },
+                    {
+                        Value = "bitcode";
+                    },
+                );
+                DefaultValue = marker;
+            },
+            {
+                Name = "HIDE_BITCODE_SYMBOLS";
+                Type = Boolean;
+                DefaultValue = YES;
+            },
+            {
+                Name = "STRIP_BITCODE_FROM_COPIED_FILES";
+                Type = Boolean;
+                DefaultValue = NO;
+            },
+            {
+                Name = "PRECOMPS_INCLUDE_HEADERS_FROM_BUILT_PRODUCTS_DIR";
+                Type = Boolean;
+                Category = BuildOptions;
+                DefaultValue = YES;
+            },
+            {
+                Name = "MACH_O_TYPE";
+                Type = Enumeration;
+                Category = "Linking - General";
+                Values = (
+                    {
+                        Value = "mh_execute";
+                    },
+                    {
+                        Value = "mh_dylib";
+                    },
+                    {
+                        Value = "mh_bundle";
+                    },
+                    {
+                        Value = staticlib;
+                    },
+                    {
+                        Value = "mh_object";
+                    },
+                );
+                DefaultValue = "";
+                ConditionFlavors = (
+                    arch,
+                    sdk,
+                );
+            },
+            {
+                Name = "INIT_ROUTINE";
+                Type = String;
+                Category = "Linking - General";
+                DefaultValue = "";
+                ConditionFlavors = (
+                    arch,
+                    sdk,
+                );
+            },
+            {
+                Name = "LINK_WITH_STANDARD_LIBRARIES";
+                Type = Boolean;
+                Category = "Linking - General";
+                DefaultValue = YES;
+                ConditionFlavors = (
+                    arch,
+                    sdk,
+                );
+            },
+            {
+                Name = "KEEP_PRIVATE_EXTERNS";
+                Type = Boolean;
+                Category = "Linking - General";
+                DefaultValue = NO;
+                ConditionFlavors = (
+                    arch,
+                    sdk,
+                );
+            },
+            {
+                Name = "LD_EXPORT_SYMBOLS";
+                Type = Boolean;
+                Category = "Linking - General";
+                DefaultValue = YES;
+            },
+            {
+                Name = "EXPORTED_SYMBOLS_FILE";
+                Type = Path;
+                Category = "Linking - General";
+                DefaultValue = "";
+                ConditionFlavors = (
+                    arch,
+                    sdk,
+                );
+            },
+            {
+                Name = "UNEXPORTED_SYMBOLS_FILE";
+                Type = Path;
+                Category = "Linking - General";
+                DefaultValue = "";
+                ConditionFlavors = (
+                    arch,
+                    sdk,
+                );
+            },
+            {
+                Name = "SEPARATE_SYMBOL_EDIT";
+                Type = Boolean;
+                Category = "Linking - General";
+                DefaultValue = NO;
+                ConditionFlavors = (
+                    arch,
+                    sdk,
+                );
+            },
+            {
+                Name = "REEXPORTED_LIBRARY_NAMES";
+                Type = StringList;
+                Category = "Linking - General";
+                DisplayName = "Re-Exported Library Names";
+                Description = "List of library names that should have their symbols be reexported from the built library.";
+                ConditionFlavors = (
+                    arch,
+                    sdk,
+                );
+            },
+            {
+                Name = "REEXPORTED_LIBRARY_PATHS";
+                Type = PathList;
+                Category = "Linking - General";
+                DisplayName = "Re-Exported Library Paths";
+                Description = "List of library paths that should have their symbols be reexported from the built library.";
+                ConditionFlavors = (
+                    arch,
+                    sdk,
+                );
+            },
+            {
+                Name = "REEXPORTED_FRAMEWORK_NAMES";
+                Type = StringList;
+                Category = "Linking - General";
+                DisplayName = "Re-Exported Framework Names";
+                Description = "List of framework names that should have their symbols be reexported from the built library.";
+                ConditionFlavors = (
+                    arch,
+                    sdk,
+                );
+            },
+            {
+                Name = "REEXPORTED_LIBRARY_INSTALL_NAMES";
+                Type = PathList;
+            },
+            {
+                Name = "REEXPORTED_FRAMEWORK_INSTALL_NAMES";
+                Type = StringList;
+            },
+            {
+                Name = "BUNDLE_LOADER";
+                Type = Path;
+                Category = "Linking - General";
+                DefaultValue = "";
+                ConditionFlavors = (
+                    arch,
+                    sdk,
+                );
+            },
+            {
+                Name = "DYLIB_CURRENT_VERSION";
+                Type = String;
+                Category = "Linking - General";
+                DefaultValue = "";
+                ConditionFlavors = (
+                    arch,
+                    sdk,
+                );
+            },
+            {
+                Name = "DYLIB_COMPATIBILITY_VERSION";
+                Type = String;
+                Category = "Linking - General";
+                DefaultValue = "";
+                ConditionFlavors = (
+                    arch,
+                    sdk,
+                );
+            },
+            {
+                //Note: Cannot be of type 'Path' as value is used with relative '../' paths
+                Name = "LD_DYLIB_INSTALL_NAME";
+                Type = String;
+                Category = "Linking - General";
+                DefaultValue = "";
+                ConditionFlavors = (
+                    arch,
+                    sdk,
+                );
+            },
+            {
+                Name = "DYLIB_INSTALL_NAME_BASE";
+                Type = String;
+                DefaultValue = "";
+                Category = "Linking - General";
+                ConditionFlavors = (
+                    arch,
+                    sdk,
+                );
+            },
+            {
+                Name = "SECTORDER_FLAGS";
+                Type = StringList;
+                Category = "Linking - General";
+                ConditionFlavors = (
+                    arch,
+                    sdk,
+                );
+                DefaultValue = "";
+            },
+            {
+                Name = "ORDER_FILE";
+                Type = Path;
+                Category = "Linking - General";
+                DefaultValue = "";
+                ConditionFlavors = (
+                    arch,
+                    sdk,
+                );
+            },
+            {
+                Name = "LD_RUNPATH_SEARCH_PATHS";
+                //Note: Cannot be of type 'PathList' as value is used with relative '../' paths
+                Type = StringList;
+                Category = "Linking - General";
+                DefaultValue = "";
+                ConditionFlavors = (
+                    arch,
+                    sdk,
+                );
+            },
+            {
+                Name = "LD_GENERATE_MAP_FILE";
+                Type = Boolean;
+                Category = "Linking - General";
+                DefaultValue = NO;
+                ConditionFlavors = (
+                    arch,
+                    sdk,
+                );
+            },
+            {
+                Name = "LD_MAP_FILE_PATH";
+                Type = Path;
+                Category = "Linking - General";
+                DefaultValue = "$(TARGET_TEMP_DIR)/$(PRODUCT_NAME)-LinkMap-$(CURRENT_VARIANT)-$(CURRENT_ARCH).txt";
+                ConditionFlavors = (
+                    arch,
+                    sdk,
+                );
+            },
+            {
+                Name = "DEAD_CODE_STRIPPING";
+                Type = Boolean;
+                Category = "Linking - General";
+                DefaultValue = NO;
+                ConditionFlavors = (
+                    arch,
+                    sdk,
+                );
+            },
+            {
+                Name = "LINKER_DISPLAYS_MANGLED_NAMES";
+                Type = Boolean;
+                Category = "Linking - General";
+                DefaultValue = NO;
+                ConditionFlavors = (
+                    arch,
+                    sdk,
+                );
+            },
+            {
+                Name = "OTHER_LDFLAGS";
+                Type = StringList;
+                Category = "Linking - General";
+                DefaultValue = "";
+                ConditionFlavors = (
+                    arch,
+                    sdk,
+                );
+            },
+            {
+                Name = "GENERATE_MASTER_OBJECT_FILE";
+                Type = Boolean;
+                Category = "Linking - General";
+                DefaultValue = NO;
+                ConditionFlavors = (
+                    arch,
+                    sdk,
+                );
+            },
+            {
+                Name = "PRELINK_LIBS";
+                Type = StringList;
+                Category = "Linking - General";
+                DefaultValue = "";
+                ConditionFlavors = (
+                    arch,
+                    sdk,
+                );
+            },
+            {
+                Name = "PRELINK_FLAGS";
+                Type = StringList;
+                Category = "Linking - General";
+                DefaultValue = "";
+                ConditionFlavors = (
+                    arch,
+                    sdk,
+                );
+            },
+            {
+                Name = "LD_NO_PIE";
+                Type = bool;
+                Category = "Linking - General";
+                DefaultValue = NO;
+                CommandLineArgs = {
+                    YES = (
+                        "-Xlinker",
+                        "-no_pie",
+                    );
+                    NO = ();
+                };
+                ConditionFlavors = (
+                    arch,
+                    sdk,
+                );
+            },
+            {
+                Name = "LD_QUOTE_LINKER_ARGUMENTS_FOR_COMPILER_DRIVER";
+                Type = Boolean;
+                Category = "Linking - General";
+                DefaultValue = YES;
+                ConditionFlavors = (
+                    arch,
+                    sdk,
+                );
+            },
+            {
+                Name = "LD_DEPENDENCY_INFO_FILE";
+                Type = Path;
+                DefaultValue = "$(OBJECT_FILE_DIR_$(CURRENT_VARIANT))/$(CURRENT_ARCH)/$(PRODUCT_NAME)_dependency_info.dat";
+            },
+            {
+                Name = "LD_DYLIB_ALLOWABLE_CLIENTS";
+                Type = StringList;
+                Category = "Linking - General";
+                DefaultValue = "";
+                ConditionFlavors = (
+                    arch,
+                    sdk,
+                );
+            },
+            {
+                Name = "LD_CLIENT_NAME";
+                Type = String;
+                DefaultValue = "";
+                ConditionFlavors = (
+                    arch,
+                    sdk,
+                );
+            },
+            {
+                Name = "LD_ENVIRONMENT";
+                Type = StringList;
+                Category = "Linking - General";
+                DefaultValue = "";
+                ConditionFlavors = (
+                    arch,
+                    sdk,
+                );
+            },
+            {
+                Name = "LIBRARY_FLAG_NOSPACE";
+                Type = bool;
+                DefaultValue = YES;
+            },
+            {
+                Name = "LIBRARY_FLAG_PREFIX";
+                Type = String;
+                DefaultValue = "";
+            },
+            {
+                Name = "MERGED_BINARY_TYPE";
+                Type = Enumeration;
+                Values = (
+                    {   Value = "none";
+                        DisplayName = "No";
+                    },
+                    {   Value = "automatic";
+                        DisplayName = "Automatic";
+                    },
+                    {   Value = "manual";
+                        DisplayName = "Manual";
+                    },
+                );
+                DefaultValue = "none";
+                Category = "Linking - Mergeable Libraries";
+                DisplayName = "Create Merged Binary";
+                Description = "Use this setting to link the target's binary by combining it with mergeable libraries it links against to create a single binary. Only applies to executables, dynamic libraries and frameworks.
+
+* When set to Automatic, this target's immediate dependencies which build dynamic libraries or frameworks and are in its Link Binaries With Libraries will automatically be built as mergeable libraries and merged into this target's binary during release builds, or reexported during debug builds.
+* When set to Manual, only immediate dependencies which have Build Mergeable Library explicitly enabled will be merged or reexported.
+
+For more information on mergable libraries, see [Configuring your project to use mergeable libraries](https://developer.apple.com/documentation/xcode/configuring-your-project-to-use-mergeable-libraries).";
+            },
+            {
+                Name = "AUTOMATICALLY_MERGE_DEPENDENCIES";
+                Type = Boolean;
+                DefaultValue = NO;
+            },
+            {
+                Name = "MERGE_LINKED_LIBRARIES";
+                Type = Boolean;
+                DefaultValue = NO;
+            },
+            {
+                Name = "MERGEABLE_LIBRARY";
+                Type = Boolean;
+                DefaultValue = NO;
+                Category = "Linking - Mergeable Libraries";
+                DisplayName = "Build Mergeable Library";
+                Description = "For dynamic libraries and frameworks, links this target's binary as a mergeable library which can be merged into the product of a target which depends on it if that target is configured to do so. This target will be linked as a mergeable library in release builds so it can be merged, but will instead be linked as a normal dynamic library to be reexported in debug builds. For other binary types, this setting has no effect.
+
+For more information on mergable libraries, see [Configuring your project to use mergeable libraries](https://developer.apple.com/documentation/xcode/configuring-your-project-to-use-mergeable-libraries).";
+            },
+            {
+                Name = "MAKE_MERGEABLE";
+                Type = Boolean;
+                DefaultValue = NO;
+            },
+
+            // FIXME: The TAPI settings should not need to be here in order to have them appear in the project editor UI.
+            {
+                Name = "SUPPORTS_TEXT_BASED_API";
+                Type = Boolean;
+                Category  = "Text-Based API";
+                DefaultValue = NO;
+                DisplayName = "Supports Text-Based InstallAPI";
+                Description = "Enable to indicate that the target supports `Text-Based InstallAPI`, which will enable its generation during `install` builds.";
+                ConditionFlavors = (
+                    arch,
+                    sdk,
+                );
+            },
+            {
+                Name = "INSTALLAPI_IGNORE_SKIP_INSTALL";
+                Type = Boolean;
+                DefaultValue = YES;
+            },
+      {
+        Name = "TAPI_VERIFY_MODE";
+        Type = Enumeration;
+        Category  = "Text-Based API";
+        DefaultValue = "ErrorsOnly";
+        Values = (
+          { Value = "ErrorsOnly"; // Default
+            DisplayName = "Errors Only";
+          },
+          { Value = "ErrorsAndWarnings";
+            DisplayName = "Errors and Warnings";
+          },
+          { Value = "Pedantic";
+            DisplayName = "Pedantic";
+          },
+        );
+        DisplayName = "Text-Based InstallAPI Verification Mode";
+        Description = "Selects the level of warnings and errors to report when building `Text-Based InstallAPI`.";
+      },
+      {
+        Name = "TAPI_LANGUAGE";
+        Type = Enumeration;
+        Category = "Text-Based API";
+        DefaultValue = "objective-c";
+        Values = (
+          { Value = "objective-c"; // Default
+            DisplayName = "Objective-C";
+          },
+          { Value = "objective-c++";
+            DisplayName = "Objective-C++";
+          },
+          { Value = "c++";
+            DisplayName = "C++";
+          },
+          { Value = "c";
+            DisplayName = "C";
+          },
+        );
+        DisplayName = "Text-Based InstallAPI Language Mode";
+        Description = "Selects the language mode when building `Text-Based InstallAPI`.";
+        ConditionFlavors = (
+          arch,
+          sdk,
+        );
+      },
+      {
+        Name = "TAPI_LANGUAGE_STANDARD";
+        Type = Enumeration;
+        Category  = "Text-Based API";
+        Values = (
+          { Value = "c89";
+            DisplayName = "C89 [-std=c89]";
+          },
+          { Value = "gnu89";
+            DisplayName = "GNU89 [-std=gnu89]";
+          },
+          { Value = "c99";
+            DisplayName = "C99 [-std=c99]";
+          },
+          { Value = "gnu99";
+            DisplayName = "GNU99 [-std=gnu99]";
+          },
+          { Value = "c11";
+            DisplayName = "C11 [-std=c11]";
+          },
+          { Value = "gnu11";
+            DisplayName = "GNU11 [-std=gnu11]";
+          },
+          { Value = "c17";
+            DisplayName = "C17 [-std=c17]";
+          },
+          { Value = "gnu17";
+            DisplayName = "GNU17 [-std=gnu17]";
+          },
+          { Value = "c23";
+            DisplayName = "C23 [-std=c23]";
+          },
+          { Value = "gnu23";
+            DisplayName = "GNU23 [-std=gnu23]";
+          },
+          { Value = "c++98";
+            DisplayName = "C++98 [-std=c++98]";
+          },
+          { Value = "gnu++98";
+            DisplayName = "GNU++98 [-std=gnu++98]";
+          },
+          { Value = "c++0x";
+            DisplayName = "C++11 [-std=c++11]";
+          },
+          { Value = "gnu++0x";
+            DisplayName = "GNU++11 [-std=gnu++11]";
+          },
+          { Value = "c++14";
+            DisplayName = "C++14 [-std=c++14]";
+          },
+          { Value = "gnu++14";
+            DisplayName = "GNU++14 [-std=gnu++14]";
+          },
+          { Value = "c++17";
+            DisplayName = "C++17 [-std=c++17]";
+          },
+          { Value = "gnu++17";
+            DisplayName = "GNU++17 [-std=gnu++17]";
+          },
+          { Value = "c++20";
+            DisplayName = "C++20 [-std=c++20]";
+          },
+          { Value = "gnu++20";
+            DisplayName = "GNU++20 [-std=gnu++20]";
+          },
+          { Value = "c++23";
+            DisplayName = "C++23 [-std=c++23]";
+          },
+          { Value = "gnu++23";
+            DisplayName = "GNU++23 [-std=gnu++23]";
+          },
+          { Value = "compiler-default"; // Default
+            DisplayName = "Compiler Default";
+          },
+        );
+        DefaultValue = "compiler-default";
+        DisplayName = "Text-Based InstallAPI Language Dialect";
+        Description = "Selects the langauge dialect when building `Text-Based InstallAPI`.";
+        ConditionFlavors = (
+          arch,
+          sdk,
+        );
+      },
+      {
+        Name = "TAPI_DEMANGLE";
+        Type = Boolean;
+        Category  = "Text-Based API";
+        DefaultValue = "YES";
+        DisplayName = "Text-Based InstallAPI Demangle Symbols";
+        Description = "Display demangled symbols when building `Text-Based InstallAPI`.";
+      },
+      {
+        Name = "TAPI_EXTRA_PUBLIC_HEADERS";
+        Type = StringList;
+        Category  = "Text-Based API";
+        DefaultValue = "";
+        DisplayName = "Extra Public Header Paths";
+        Description = "Add public-level headers from other targets when building `Text-Based InstallAPI`.";
+        ConditionFlavors = (
+          arch,
+          sdk,
+        );
+      },
+      {
+        Name = "TAPI_EXTRA_PRIVATE_HEADERS";
+        Type = StringList;
+        Category  = "Text-Based API";
+        DefaultValue = "";
+        DisplayName = "Extra Private Header Paths";
+        Description = "Add private-level headers from other targets when building `Text-Based InstallAPI`.";
+        ConditionFlavors = (
+          arch,
+          sdk,
+        );
+      },
+      {
+        Name = "TAPI_EXTRA_PROJECT_HEADERS";
+        Type = StringList;
+        Category  = "Text-Based API";
+        DefaultValue = "";
+        DisplayName = "Extra Project Header Paths";
+        Description = "Add project-level headers from other targets when building `Text-Based InstallAPI`.";
+        ConditionFlavors = (
+          arch,
+          sdk,
+        );
+      },
+      {
+        Name = "TAPI_EXCLUDE_PUBLIC_HEADERS";
+        Type = StringList;
+        Category  = "Text-Based API";
+        DefaultValue = "";
+        DisplayName = "Exclude Public Header Paths";
+        Description = "Remove public-level headers from target when building `Text-Based InstallAPI`.";
+        ConditionFlavors = (
+          arch,
+          sdk,
+        );
+      },
+      {
+        Name = "TAPI_EXCLUDE_PRIVATE_HEADERS";
+        Type = StringList;
+        DefaultValue = "";
+        Category  = "Text-Based API";
+        DisplayName = "Exclude Private Header Paths";
+        Description = "Remove private-level headers from target when building `Text-Based InstallAPI`.";
+        ConditionFlavors = (
+          arch,
+          sdk,
+        );
+      },
+      {
+        Name = "TAPI_EXCLUDE_PROJECT_HEADERS";
+        Type = StringList;
+        DefaultValue = "";
+        Category  = "Text-Based API";
+        DisplayName = "Exclude Project Header Paths";
+        Description = "Remove project-level headers from target when building `Text-Based InstallAPI`.";
+        ConditionFlavors = (
+          arch,
+          sdk,
+        );
+      },
+      {
+        Name = "TAPI_ENABLE_PROJECT_HEADERS";
+        Type = bool;
+        Category  = "Text-Based API";
+        DefaultValue = NO;
+        DisplayName = "Enable Text-Based InstallAPI for Project Headers";
+        Description = "Include project-level headers when building `Text-Based InstallAPI`.";
+        ConditionFlavors = (
+          arch,
+          sdk,
+        );
+      },
+            {
+                Name = "OTHER_TAPI_FLAGS";
+                Type = StringList;
+                Category  = "Text-Based API";
+                DefaultValue = "";
+                DisplayName = "Other Text-Based InstallAPI Flags";
+                Description = "Options defined in this setting are passed to invocations of the `Text-Based InstallAPI` tool.";
+                ConditionFlavors = (
+                    arch,
+                    sdk,
+                );
+            },
+      {
+        Name = "GENERATE_TEXT_BASED_STUBS";
+        Type = bool;
+        Category  = "Text-Based API";
+        DefaultValue = NO;
+        DisplayName = "Enable Text-Based Stubs Generation";
+        Description = "Enables the generation of Text-Based stubs for dynamic libraries and frameworks.";
+        ConditionFlavors = (
+          arch,
+          sdk,
+        );
+      },
+      {
+        Name = "GENERATE_INTERMEDIATE_TEXT_BASED_STUBS";
+        Type = bool;
+        Category  = "Text-Based API";
+        DefaultValue = YES;
+        DisplayName = "Enable Intermediate Text-Based Stubs Generation";
+        Description = "Enables the generation of intermediate Text-Based stubs for dynamic libraries and frameworks to more precisely track linker dependencies in incremental builds.";
+        ConditionFlavors = (
+          sdk,
+        );
+      },
+      {
+        Name = "INLINE_PRIVATE_FRAMEWORKS";
+        Type = bool;
+        Category  = "Text-Based API";
+        DefaultValue = NO;
+        DisplayName = "Enable Text-Based Stubs Inlining";
+        Description = "Enables private framework inlining for Text-Based Stubs.";
+        ConditionFlavors = (
+          arch,
+          sdk,
+        );
+      },
+            {
+                Name = "CODE_SIGNING_ALLOWED";
+                Type = bool;
+                DefaultValue = NO;
+            },
+            {
+                Name = "CODE_SIGN_IDENTITY";
+                Type = CodeSignIdentity;
+                Category = "Code Signing";
+                ConditionFlavors = (
+                    sdk,
+                );
+                DefaultValue = "";
+            },
+            {   Name = "CODE_SIGN_STYLE";
+                DisplayName = "Code Sign Style";
+                Type = CodeSignStyle;
+                Category = "Code Signing";
+                ConditionFlavors = (
+                    sdk,
+                );
+                Values = (
+                    "",
+                    "Automatic",
+                    "Manual"
+                );
+                DefaultValue = "";
+            },
+            {
+                Name = "DEVELOPMENT_TEAM";
+                DisplayName = "Development Team";
+                Type = DevelopmentTeam;
+                Category = "Code Signing";
+                ConditionFlavors = (
+                    sdk,
+                );
+                DefaultValue = "";
+            },
+            {
+                Name = "PROVISIONING_PROFILE_SPECIFIER";
+                DisplayName = "Provisioning Profile";
+                Type = ProvisioningProfileSpecifier;
+                Category = "Code Signing";
+                ConditionFlavors = (
+                    sdk,
+                );
+                DefaultValue = "";
+            },
+            {
+                Name = "OTHER_CODE_SIGN_FLAGS";
+                Type = StringList;
+                Category = "Code Signing";
+                ConditionFlavors = (
+                    sdk,
+                );
+                DefaultValue = "";
+            },
+            {
+                Name = "CODE_SIGN_ENTITLEMENTS";
+                Type = Path;
+                ConditionFlavors = (
+                    sdk,
+                );
+                DefaultValue = "";
+                Category = "Code Signing";
+            },
+            {
+                Name = "CODE_SIGN_INJECT_BASE_ENTITLEMENTS";
+                Type = Boolean;
+                DefaultValue = YES;
+                Category = "Code Signing";
+            },
+            {
+                Name = "CODE_SIGN_LOCAL_EXECUTION_IDENTITY";
+                Type = Enumeration;
+                Values = (
+                    "",
+                    "Ad Hoc",
+                    "Local Certificate"
+                );
+                DefaultValue = "";
+            },
+            {
+                Name = "ENABLE_APP_SANDBOX";
+                Type = Boolean;
+                DefaultValue = NO;
+                Category = "App Sandbox";
+                ConditionFlavors = (
+                    sdk,
+                );
+            },
+            {   Name = "ENABLE_HARDENED_RUNTIME";
+                Type = Boolean;
+                DefaultValue = NO;
+                Category = "Code Signing";
+                Description = "Enable hardened runtime restrictions.";
+                ConditionFlavors = (
+                    sdk,
+                );
+            },
+            {
+                Name = "ENABLE_USER_SELECTED_FILES";
+                Type = Enumeration;
+                Values = (
+                    "",
+                    "readonly",
+                    "readwrite",
+                );
+                DefaultValue = "";
+                Category = "App Sandbox";
+                ConditionFlavors = (
+                    sdk,
+                );
+            },
+            {
+                Name = "ENABLE_FILE_ACCESS_DOWNLOADS_FOLDER";
+                Type = Enumeration;
+                Values = (
+                    "",
+                    "readonly",
+                    "readwrite",
+                );
+                DefaultValue = "";
+                Category = "App Sandbox";
+                ConditionFlavors = (
+                    sdk,
+                );
+            },
+            {
+                Name = "ENABLE_FILE_ACCESS_PICTURE_FOLDER";
+                Type = Enumeration;
+                Values = (
+                    "",
+                    "readonly",
+                    "readwrite",
+                );
+                DefaultValue = "";
+                Category = "App Sandbox";
+                ConditionFlavors = (
+                    sdk,
+                );
+            },
+            {
+                Name = "ENABLE_FILE_ACCESS_MUSIC_FOLDER";
+                Type = Enumeration;
+                Values = (
+                    "",
+                    "readonly",
+                    "readwrite",
+                );
+                DefaultValue = "";
+                Category = "App Sandbox";
+                ConditionFlavors = (
+                    sdk,
+                );
+            },
+            {
+                Name = "ENABLE_FILE_ACCESS_MOVIES_FOLDER";
+                Type = Enumeration;
+                Values = (
+                    "",
+                    "readonly",
+                    "readwrite",
+                );
+                DefaultValue = "";
+                Category = "App Sandbox";
+                ConditionFlavors = (
+                    sdk,
+                );
+            },
+            {   Name = "ENABLE_INCOMING_NETWORK_CONNECTIONS";
+                Type = Boolean;
+                DefaultValue = NO;
+                Category = "App Sandbox";
+                ConditionFlavors = (
+                    sdk,
+                );
+            },
+            {   Name = "ENABLE_OUTGOING_NETWORK_CONNECTIONS";
+                Type = Boolean;
+                DefaultValue = NO;
+                Category = "App Sandbox";
+                ConditionFlavors = (
+                    sdk,
+                );
+            },
+            {   Name = "ENABLE_RESOURCE_ACCESS_CAMERA";
+                Type = Boolean;
+                DefaultValue = NO;
+                Category = "App Sandbox";
+                ConditionFlavors = (
+                    sdk,
+                );
+            },
+            {   Name = "ENABLE_RESOURCE_ACCESS_AUDIO_INPUT";
+                Type = Boolean;
+                DefaultValue = NO;
+                Category = "App Sandbox";
+                ConditionFlavors = (
+                    sdk,
+                );
+            },
+            {   Name = "ENABLE_RESOURCE_ACCESS_USB";
+                Type = Boolean;
+                DefaultValue = NO;
+                Category = "App Sandbox";
+                ConditionFlavors = (
+                    sdk,
+                );
+            },
+            {   Name = "ENABLE_RESOURCE_ACCESS_PRINTING";
+                Type = Boolean;
+                DefaultValue = NO;
+                Category = "App Sandbox";
+                ConditionFlavors = (
+                    sdk,
+                );
+            },
+            {   Name = "ENABLE_RESOURCE_ACCESS_BLUETOOTH";
+                Type = Boolean;
+                DefaultValue = NO;
+                Category = "App Sandbox";
+                ConditionFlavors = (
+                    sdk,
+                );
+            },
+            {   Name = "ENABLE_RESOURCE_ACCESS_CONTACTS";
+                Type = Boolean;
+                DefaultValue = NO;
+                Category = "App Sandbox";
+                ConditionFlavors = (
+                    sdk,
+                );
+            },
+            {   Name = "ENABLE_RESOURCE_ACCESS_LOCATION";
+                Type = Boolean;
+                DefaultValue = NO;
+                Category = "App Sandbox";
+                ConditionFlavors = (
+                    sdk,
+                );
+            },
+            {   Name = "ENABLE_RESOURCE_ACCESS_CALENDARS";
+                Type = Boolean;
+                DefaultValue = NO;
+                Category = "App Sandbox";
+                ConditionFlavors = (
+                    sdk,
+                );
+            },
+            {
+                Name = "ENTITLEMENTS_DESTINATION";
+                Type = Enumeration;
+                Values = (
+                    "",
+                    "Signature",
+                    "__entitlements"
+                );
+                DefaultValue = "";
+            },
+            {
+                Name = "LAUNCH_CONSTRAINT_SELF";
+                Type = String;
+                ConditionFlavors = (
+                    sdk,
+                );
+                DefaultValue = "";
+                Category = "Code Signing";
+            },
+            {
+                Name = "LAUNCH_CONSTRAINT_PARENT";
+                Type = String;
+                ConditionFlavors = (
+                    sdk,
+                );
+                DefaultValue = "";
+                Category = "Code Signing";
+            },
+            {
+                Name = "LAUNCH_CONSTRAINT_RESPONSIBLE";
+                Type = String;
+                ConditionFlavors = (
+                    sdk,
+                );
+                DefaultValue = "";
+                Category = "Code Signing";
+            },
+            {
+                Name = "LIBRARY_LOAD_CONSTRAINT";
+                Type = String;
+                ConditionFlavors = (
+                    sdk,
+                );
+                DefaultValue = "";
+                Category = "Code Signing";
+            },
+            {
+                Name = "PRODUCT_NAME";
+                Type = String;
+                Category = Packaging;
+                DefaultValue = "";
+                Basic = YES;
+            },
+            {
+                Name = PRODUCT_MODULE_NAME;
+                Type = String;
+                DefaultValue = "$(PRODUCT_NAME:c99extidentifier)";
+                Category = Packaging;
+            },
+            {
+                Name = "FULL_PRODUCT_NAME";
+                Type = Path;
+                DefaultValue = "";
+            },
+            {
+                Name = "EXECUTABLE_PREFIX";
+                Type = String;
+                Category = Packaging;
+                DefaultValue = "";
+            },
+            {
+                Name = "EXECUTABLE_EXTENSION";
+                Type = String;
+                Category = Packaging;
+                DefaultValue = "";
+            },
+            {
+                Name = "WRAPPER_EXTENSION";
+                Type = String;
+                Category = Packaging;
+                DefaultValue = "";
+            },
+            {
+                Name = "PRIVATE_HEADERS_FOLDER_PATH";
+                Type = Path;
+                Category = Packaging;
+                ConditionFlavors = (
+                    sdk,
+                );
+                DefaultValue = "";
+            },
+            {
+                Name = "PUBLIC_HEADERS_FOLDER_PATH";
+                Type = Path;
+                Category = Packaging;
+                ConditionFlavors = (
+                    sdk,
+                );
+                DefaultValue = "";
+            },
+            {
+                Name = "GENERATE_PKGINFO_FILE";
+                Type = Boolean;
+                Category = Packaging;
+                ConditionFlavors = (
+                    sdk,
+                );
+                DefaultValue = NO;
+            },
+            {
+                Name = "DONT_GENERATE_INFOPLIST_FILE";
+                Type = Boolean;
+                Category = Packaging;
+                ConditionFlavors = (
+                    sdk,
+                );
+                DefaultValue = NO;
+            },
+            {
+                Name = "GENERATE_INFOPLIST_FILE";
+                Type = Boolean;
+                Category = Packaging;
+                ConditionFlavors = (
+                    sdk,
+                );
+                Description = "Automatically generate an Info.plist file.";
+                DefaultValue = NO;
+            },
+            {
+                Name = "INFOPLIST_FILE";
+                Type = Path;
+                Category = Packaging;
+                ConditionFlavors = (
+                    sdk,
+                );
+                DefaultValue = "";
+                Basic = YES;
+            },
+            {
+                Name = "INFOPLIST_PREPROCESS";
+                Type = Boolean;
+                Category = Packaging;
+                ConditionFlavors = (
+                    sdk,
+                );
+                DefaultValue = NO;
+            },
+            {
+                Name = "INFOPLIST_EXPAND_BUILD_SETTINGS";
+                Type = Boolean;
+                Category = Packaging;
+                ConditionFlavors = (
+                    sdk,
+                );
+                DefaultValue = YES;
+            },
+            {
+                Name = "INFOPLIST_OUTPUT_FORMAT";
+                Type = Enumeration;
+                Category = Packaging;
+                ConditionFlavors = (
+                    sdk,
+                );
+                Values = (
+                    "same-as-input",
+                    XML,
+                    binary,
+                );
+                DefaultValue = "same-as-input";
+            },
+            {
+                Name = "CREATE_INFOPLIST_SECTION_IN_BINARY";
+                Type = Boolean;
+                Category = Packaging;
+                DefaultValue = NO;
+            },
+            {
+                Name = "PLIST_FILE_OUTPUT_FORMAT";
+                Type = Enumeration;
+                Category = Packaging;
+                ConditionFlavors = (
+                    sdk,
+                );
+                Values = (
+                    "same-as-input",
+                    XML,
+                    binary,
+                );
+                DefaultValue = "same-as-input";
+            },
+            {
+                Name = "STRINGS_FILE_OUTPUT_ENCODING";
+                Type = Enumeration;
+                Category = Packaging;
+                ConditionFlavors = (
+                    sdk,
+                );
+                Values = (
+                    "UTF-16",
+                    "UTF-8",
+                    binary,
+                );
+                DefaultValue = "UTF-16";
+            },
+            {
+                Name = "STRINGS_FILE_INFOPLIST_RENAME";
+                Category = Packaging;
+                Type = Boolean;
+                ConditionFlavors = (
+                    sdk,
+                );
+                DefaultValue = YES;
+            },
+            {
+                Name = "APPLY_RULES_IN_COPY_FILES";
+                Category = Packaging;
+                Type = Boolean;
+                ConditionFlavors = (
+                    sdk,
+                );
+                DefaultValue = NO;
+            },
+            {
+                Name = "APPLY_RULES_IN_COPY_HEADERS";
+                Category = Packaging;
+                Type = Boolean;
+                ConditionFlavors = (
+                    sdk,
+                );
+                DefaultValue = NO;
+            },
+            {
+                Name = "REMOVE_HEADERS_FROM_EMBEDDED_BUNDLES";
+                Type = Boolean;
+                DefaultValue = YES;
+            },
+            {
+                Name = "INFOPLIST_PREFIX_HEADER";
+                Type = String;
+                Category = Packaging;
+                ConditionFlavors = (
+                    sdk,
+                );
+                DefaultValue = "";
+            },
+            {
+                Name = "INFOPLIST_PREPROCESSOR_DEFINITIONS";
+                Type = StringList;
+                Category = Packaging;
+                ConditionFlavors = (
+                    sdk,
+                );
+                DefaultValue = "";
+            },
+            {
+                Name = "INFOPLIST_OTHER_PREPROCESSOR_FLAGS";
+                Type = StringList;
+                Category = Packaging;
+                ConditionFlavors = (
+                    sdk,
+                );
+                DefaultValue = "";
+            },
+            {
+                Name = "COPYING_PRESERVES_HFS_DATA";
+                Type = Boolean;
+                Category = Packaging;
+                ConditionFlavors = (
+                    sdk,
+                );
+                DefaultValue = NO;
+            },
+
+
+            // User Defined Modules settings
+            {
+                Name = DEFINES_MODULE;
+                Type = Boolean;
+                DefaultValue = NO;
+                Category = Packaging;
+            },
+            {
+                Name = MODULEMAP_FILE;
+                Type = String;
+                ConditionFlavors = ( "sdk" );
+                DefaultValue = "";
+                Category = Packaging;
+            },
+            {
+                Name = MODULEMAP_PRIVATE_FILE;
+                Type = String;
+                ConditionFlavors = ( "sdk" );
+                DefaultValue = "";
+                Category = Packaging;
+            },
+
+            {
+                Name = "FRAMEWORK_VERSION";
+                Type = String;
+                ConditionFlavors = (
+                    sdk,
+                );
+                DefaultValue = A;
+                Category = Packaging;
+            },
+            {
+                Name = "DEPLOYMENT_LOCATION";
+                Type = Boolean;
+                Category = Deployment;
+                ConditionFlavors = (
+                    sdk,
+                );
+                DefaultValue = NO;
+            },
+            {
+                Name = "DEVELOPMENT_ASSET_PATHS";
+                Type = StringList;
+                Category = Deployment;
+                DefaultValue = "";
+                DisplayName = "Development Assets";
+                Description = "Files and directories used only for development. Archive and install builds will exclude this content.";
+            },
+            {
+                Name = "DEPLOYMENT_POSTPROCESSING";
+                Type = Boolean;
+                Category = Deployment;
+                ConditionFlavors = (
+                    sdk,
+                );
+                DefaultValue = NO;
+            },
+            {
+                Name = DSTROOT;
+                Type = Path;
+                DefaultValue = "/tmp/$(PROJECT_NAME).dst";
+                ConditionFlavors = (
+                    sdk,
+                );
+                Category = Deployment;
+            },
+            {
+                Name = "INSTALL_PATH";
+                Type = Path;
+                Category = Deployment;
+                ConditionFlavors = (
+                    sdk,
+                );
+                DefaultValue = "";
+                Basic = YES;
+            },
+            {
+                Name = "SKIP_INSTALL";
+                Type = Boolean;
+                Category = Deployment;
+                ConditionFlavors = (
+                    sdk,
+                );
+                DefaultValue = NO;
+            },
+            {
+                Name = "STRIP_INSTALLED_PRODUCT";
+                Type = Boolean;
+                DefaultValue = YES;
+                ConditionFlavors = (
+                    sdk,
+                );
+                Category = Deployment;
+                Basic = YES;
+            },
+            {
+                Name = "SEPARATE_STRIP";
+                Type = Boolean;
+                ConditionFlavors = (
+                    sdk,
+                );
+                DefaultValue = NO;
+            },
+            {
+                Name = "STRIP_STYLE";
+                Type = Enumeration;
+                Category = Deployment;
+                Values = (
+                    {
+                        Value = all;
+                    },
+                    {
+                        Value = "non-global";
+                    },
+                    {
+                        Value = debugging;
+                    },
+                );
+                ConditionFlavors = (
+                    sdk,
+                );
+                DefaultValue = all;
+            },
+            {
+                Name = STRIPFLAGS;
+                Type = StringList;
+                Category = Deployment;
+                ConditionFlavors = (
+                    sdk,
+                );
+                DefaultValue = "";
+            },
+            {
+                Name = "STRIP_SWIFT_SYMBOLS";
+                Type = Boolean;
+                DefaultValue = "YES";
+                Category = "Deployment";
+            },
+            {
+                Name = "COPY_PHASE_STRIP";
+                Type = Boolean;
+                DefaultValue = YES;
+                ConditionFlavors = (
+                    sdk,
+                );
+                Category = Deployment;
+            },
+            {
+                Name = "INSTALL_OWNER";
+                Type = String;
+                DefaultValue = "$(USER)";
+                ConditionFlavors = (
+                    sdk,
+                );
+                Category = Deployment;
+            },
+            {
+                Name = "INSTALL_GROUP";
+                Type = String;
+                DefaultValue = "$(GROUP)";
+                ConditionFlavors = (
+                    sdk,
+                );
+                Category = Deployment;
+            },
+            {
+                Name = "INSTALL_MODE_FLAG";
+                Type = String;
+                DefaultValue = "u+w,go-w,a+rX";
+                ConditionFlavors = (
+                    sdk,
+                );
+                Category = Deployment;
+            },
+            {
+                Name = "ALTERNATE_PERMISSIONS_FILES";
+                Type = StringList;
+                Category = Deployment;
+                ConditionFlavors = (
+                    sdk,
+                );
+                DefaultValue = "";
+            },
+            {
+                Name = "ALTERNATE_OWNER";
+                Type = String;
+                Category = Deployment;
+                ConditionFlavors = (
+                    sdk,
+                );
+                DefaultValue = "$(INSTALL_OWNER)";
+            },
+            {
+                Name = "ALTERNATE_GROUP";
+                Type = String;
+                Category = Deployment;
+                ConditionFlavors = (
+                    sdk,
+                );
+                DefaultValue = "$(INSTALL_GROUP)";
+            },
+            {
+                Name = "ALTERNATE_MODE";
+                Type = String;
+                Category = Deployment;
+                ConditionFlavors = (
+                    sdk,
+                );
+                DefaultValue = "$(INSTALL_MODE_FLAG)";
+            },
+            {
+                Name = "MARKETPLACES";
+                Type = StringList;
+                Category = Deployment;
+            },
+            {
+                Name = "ALTERNATIVE_DISTRIBUTION_WEB";
+                Type = Boolean;
+                Category = Deployment;
+                DefaultValue = NO;
+            },
+            {
+                Name = "RESOURCES_TARGETED_DEVICE_FAMILY";
+                Type = StringList;
+                Category = "Deployment";
+            },
+            {
+                Name = "TEST_HOST";
+                Type = String;
+                Category = UnitTesting;
+                ConditionFlavors = (
+                    sdk,
+                );
+                DefaultValue = "";
+            },
+            {
+                Name = "TREAT_MISSING_BASELINES_AS_TEST_FAILURES";
+                Type = Boolean;
+                Category = UnitTesting;
+                DefaultValue = NO;
+            },
+            {
+                Name = "MODULE_NAME";
+                Type = String;
+                Category = KernelModule;
+                DefaultValue = "";
+            },
+            {
+                Name = "MODULE_VERSION";
+                Type = String;
+                Category = KernelModule;
+                DefaultValue = "";
+            },
+            {
+                Name = "MODULE_START";
+                Type = String;
+                Category = KernelModule;
+                DefaultValue = "";
+            },
+            {
+                Name = "MODULE_STOP";
+                Type = String;
+                Category = KernelModule;
+                DefaultValue = "";
+            },
+            {
+                Name = "BUILD_STYLE";
+                Type = String;
+                DefaultValue = "";
+            },
+            {
+                Name = CONFIGURATION;
+                Type = String;
+                DefaultValue = "";
+                Description = "Identifies the build configuration, such as `Debug` or `Release`, that the target uses to generate the product.";
+            },
+            {
+                Name = SRCROOT;
+                Type = Path;
+                DefaultValue = ".";
+                Description = "Identifies the directory containing the target’s source files.";
+            },
+            {
+                Name = "SOURCE_ROOT";
+                Type = Path;
+                DefaultValue = "$(SRCROOT)";
+            },
+            {
+                Name = "TEMP_ROOT";
+                Type = Path;
+                DefaultValue = "$(OBJROOT)";
+            },
+            {
+                Name = "BUILD_ROOT";
+                Type = Path;
+                DefaultValue = "$(SYMROOT)";
+            },
+            {
+                Name = "INSTALL_ROOT";
+                Type = Path;
+                DefaultValue = "$(DSTROOT)";
+            },
+            {
+                Name = "PROJECT_DIR";
+                Type = Path;
+                DefaultValue = "$(SRCROOT)";
+            },
+            {
+                Name = "BUILD_DIR";
+                Type = Path;
+                DefaultValue = "$(SYMROOT)";
+            },
+            {
+                Name = "PROJECT_TEMP_ROOT";
+                Type = Path;
+                DefaultValue = "$(OBJROOT)";
+            },
+            {
+                Name = "PROJECT_TEMP_DIR";
+                Type = Path;
+                DefaultValue = "$(PROJECT_TEMP_ROOT)/$(PROJECT_NAME).build";
+                Description = "Identifies the directory in which the project’s intermediate build files are placed. This directory is shared between all the targets defined by the project. Run Script build phases should generate intermediate build files in the directory identified by `DERIVED_FILE_DIR`, not the location this build setting specifies.";
+            },
+            {
+                Name = "TARGET_TEMP_DIR";
+                Type = Path;
+                DefaultValue = "$(CONFIGURATION_TEMP_DIR)/$(TARGET_NAME).build";
+                Description = "Identifies the directory containing the target’s intermediate build files. Run Script build phases should place intermediate files at the location indicated by `DERIVED_FILE_DIR`, not the directory identified by this build setting.";
+            },
+            {
+                Name = "TEMP_DIR";
+                Type = Path;
+                DefaultValue = "$(TARGET_TEMP_DIR)";
+            },
+            {
+                Name = "OBJECT_FILE_DIR";
+                Type = Path;
+                DefaultValue = "$(TEMP_DIR)/Objects";
+                Description = "Partially identifies the directory into which variant object files are placed. The complete specification is computed using the variants of this build setting.";
+            },
+            {
+                Name = "CLASS_FILE_DIR";
+                Type = Path;
+                DefaultValue = "$(TEMP_DIR)/JavaClasses";
+            },
+            {
+                Name = "FILE_LIST";
+                Type = Path;
+                DefaultValue = "$(OBJECT_FILE_DIR)/LinkFileList";
+            },
+            {
+                Name = "DERIVED_FILE_DIR";
+                Type = Path;
+                DefaultValue = "$(TEMP_DIR)/DerivedSources";
+                Description = "Identifies the directory into which derived source files, such as those generated by `lex` and `yacc`, are placed.";
+            },
+            {
+                Name = "LOCALIZABLE_CONTENT_DIR";
+                Type = Path;
+                DefaultValue = "";
+            },
+            {
+                Name = "INSTALL_DIR";
+                Type = Path;
+                DefaultValue = "$(DSTROOT)$(INSTALL_PATH)";
+                Description = "Identifies the directory in the developer’s filesystem into which the *installed* product is placed.";
+            },
+            {
+                Name = "PROJECT_DERIVED_FILE_DIR";
+                Type = Path;
+                DefaultValue = "$(OBJROOT)/$(PROJECT_NAME).build/DerivedSources";
+            },
+            {
+                Name = "SHARED_DERIVED_FILE_DIR";
+                Type = Path;
+                DefaultValue = "$(BUILT_PRODUCTS_DIR)/DerivedSources";
+            },
+            {
+                Name = "GENERATED_MODULEMAP_DIR";
+                Type = string;
+                DefaultValue = "$(OBJROOT)/GeneratedModuleMaps$(EFFECTIVE_PLATFORM_NAME)";
+            },
+            {
+                Name = "TARGET_BUILD_DIR";
+                Type = Path;
+                DefaultValue = "$(CONFIGURATION_BUILD_DIR)$(TARGET_BUILD_SUBPATH)";
+                Description = "Identifies the root of the directory hierarchy that contains the product’s files (no intermediate build files). Run Script build phases that operate on product files of the target that defines them should use the value of this build setting, but Run Script build phases that operate on product files of other targets should use `BUILT_PRODUCTS_DIR` instead.";
+            },
+             /// The TARGET_BUILD_SUBPATH setting defines an additional macro which can be used to inject a subpath on the target products. This can be redefined in order to cause some part of dependency construction to build in a subpath from the normal build location, and is used by the XCTest product embedding machinery. We use a separate macro for it so that we can set this definition once, and have it impact all the places which might define or override TARGET_BUILD_DIR.
+            {
+                Name = "TARGET_BUILD_SUBPATH";
+                Type = Path;
+                DefaultValue = "";
+            },
+            {
+                Name = "BUILT_PRODUCTS_DIR";
+                Type = Path;
+                DefaultValue = "$(CONFIGURATION_BUILD_DIR)";
+                Description = "Identifies the directory under which all the product’s files can be found. This directory contains either product files or symbolic links to them. Run Script build phases can use the value of this build setting as a convenient way to refer to the product files built by one or more targets even when these files are scattered throughout a directory hierarchy (for example, when `DEPLOYMENT_LOCATION` is set to `YES`.";
+            },
+            {
+                Name = "UNINSTALLED_PRODUCTS_DIR";
+                Type = Path;
+                DefaultValue = "$(TEMP_ROOT)/UninstalledProducts";
+            },
+            {
+                Name = "ENABLE_HEADER_DEPENDENCIES";
+                Type = Boolean;
+                DefaultValue = YES;
+                Description = "Specifies whether to automatically track dependencies on included header files.";
+            },
+            {
+                Name = "PATH_PREFIXES_EXCLUDED_FROM_HEADER_DEPENDENCIES";
+                Type = PathList;
+                DefaultValue = "/usr/include /usr/local/include /System/Library/Frameworks /System/Library/PrivateFrameworks $(SYSTEM_DEVELOPER_DIR)/Headers $(SYSTEM_DEVELOPER_DIR)/SDKs $(SYSTEM_DEVELOPER_DIR)/Platforms";
+            },
+            {
+                Name = "TEMP_FILE_DIR";
+                Type = Path;
+                DefaultValue = "$(TEMP_DIR)";
+            },
+            // We duplicate the temp file directory setting, because historically Xcode would expose this value with this spelling to shell scripts, so it is natural to expect it to be present in build settings as well.
+            {
+                Name = "TEMP_FILES_DIR";
+                Type = Path;
+                DefaultValue = "$(TEMP_FILE_DIR)";
+            },
+            {
+                Name = "DERIVED_SOURCES_DIR";
+                Type = Path;
+                DefaultValue = "$(DERIVED_FILE_DIR)";
+            },
+            {
+                Name = "NATIVE_ARCH";
+                Type = String;
+                Description = "Identifies the architecture on which the build is being performed.";
+            },
+            {
+                Name = "NATIVE_ARCH_32_BIT";
+                Type = String;
+            },
+            {
+                Name = "NATIVE_ARCH_64_BIT";
+                Type = String;
+            },
+            {
+                Name = "NATIVE_ARCH_ACTUAL";
+                Type = String;
+            },
+            {
+                Name = "HOST_ARCH";
+                Type = String;
+                DefaultValue = "$(NATIVE_ARCH_ACTUAL)";
+            },
+            {
+                Name = "REMOVE_CVS_FROM_RESOURCES";
+                Type = Boolean;
+                DefaultValue = YES;
+                Description = "Specifies whether to remove `CVS` directories from bundle resources when they are copied.";
+            },
+            {
+                Name = "REMOVE_SVN_FROM_RESOURCES";
+                Type = Boolean;
+                DefaultValue = YES;
+                Description = "Specifies whether to remove `SVN` directories from bundle resources when they are copied.";
+            },
+            {
+                Name = "REMOVE_GIT_FROM_RESOURCES";
+                Type = Boolean;
+                DefaultValue = YES;
+                Description = "Specifies whether to remove `.git` directories from bundle resources when they are copied.";
+            },
+            {
+                Name = "REMOVE_HG_FROM_RESOURCES";
+                Type = Boolean;
+                DefaultValue = YES;
+                Description = "Specifies whether to remove `.hg` directories from bundle resources when they are copied.";
+            },
+            {
+                Name = "DEBUGGING_SYMBOLS";
+                Type = Boolean;
+                DefaultValue = YES;
+                ConditionFlavors = (
+                    arch,
+                    sdk,
+                );
+            },
+            {
+                Name = "PROFILING_CODE";
+                Type = Boolean;
+                DefaultValue = NO;
+                ConditionFlavors = (
+                    arch,
+                    sdk,
+                );
+            },
+            {
+                Name = "OTHER_CFLAGS";
+                Type = StringList;
+                ConditionFlavors = (
+                    arch,
+                    sdk,
+                );
+            },
+            {
+                Name = "OTHER_CPLUSPLUSFLAGS";
+                Type = StringList;
+                DefaultValue = "$(OTHER_CFLAGS)";
+                ConditionFlavors = (
+                    arch,
+                    sdk,
+                );
+            },
+            {
+                Name = "KEXT_CFLAGS";
+                Type = StringList;
+                DefaultValue = "";
+            },
+            {
+                Name = "KEXT_CPLUSPLUSFLAGS";
+                Type = StringList;
+                DefaultValue = "$(KEXT_CFLAGS)";
+            },
+            {
+                Name = CC;
+                Type = Path;
+                ConditionFlavors = (
+                    arch,
+                    sdk,
+                );
+            },
+            {
+                Name = "JAVA_COMPILER";
+                Type = Path;
+                DefaultValue = "/usr/bin/javac";
+            },
+            {
+                Name = "JAVA_ARCHIVE_CLASSES";
+                Type = Boolean;
+                DefaultValue = YES;
+            },
+            {
+                Name = "JAVA_ARCHIVE_TYPE";
+                Type = String;
+                DefaultValue = JAR;
+            },
+            {
+                Name = "JAVA_APP_STUB";
+                Type = Path;
+                DefaultValue = "$(SYSTEM_LIBRARY_DIR)/Frameworks/JavaVM.framework/Resources/MacOS/JavaApplicationStub";
+            },
+            {
+                Name = "JAVA_JAR_FLAGS";
+                Type = StringList;
+                DefaultValue = cv;
+            },
+            {
+                Name = "JAVA_SOURCE_SUBDIR";
+                Type = Path;
+                DefaultValue = ".";
+            },
+            {
+                Name = "JAVA_FRAMEWORK_RESOURCES_DIRS";
+                Type = PathList;
+                DefaultValue = Resources;
+            },
+            {
+                Name = "JAVA_FRAMEWORK_JARS";
+                Type = PathList;
+                DefaultValue = "";
+            },
+            {
+                Name = "JAVA_USE_DEPENDENCIES";
+                Type = Boolean;
+                DefaultValue = YES;
+            },
+            {
+                Name = "JAVA_ZIP_FLAGS";
+                Type = StringList;
+                DefaultValue = "-urg";
+            },
+            {
+                Name = "CLONE_HEADERS";
+                Type = Boolean;
+                DefaultValue = NO;
+            },
+            {
+                Name = "GCC_VERSION";
+                Type = CompilerVersion;
+                DefaultValue = "";
+                Category = BuildOptions;
+                ConditionFlavors = (
+                    arch,
+                    sdk,
+                );
+            },
+            {
+                Name = "GCC3_VERSION";
+                Type = String;
+                DefaultValue = "3.3";
+            },
+            {
+                Name = "DEFAULT_COMPILER";
+                Type = String;
+                DefaultValue = "";
+            },
+            {
+                Name = "MAC_OS_X_VERSION_MAX_ALLOWED";
+                Type = String;
+                ConditionFlavors = (
+                    arch,
+                );
+            },
+            {
+                Name = "MAC_OS_X_VERSION_MIN_REQUIRED";
+                Type = String;
+                ConditionFlavors = (
+                    arch,
+                );
+            },
+            {
+                Name = "USE_HEADERMAP";
+                Type = Boolean;
+                DefaultValue = YES;
+                Category = "Search Paths";
+            },
+            {
+                Name = "USE_HEADER_SYMLINKS";
+                Type = Boolean;
+                DefaultValue = "";
+            },
+            {
+                Name = "HEADERMAP_INCLUDES_NONPUBLIC_NONPRIVATE_HEADERS";
+                Type = Boolean;
+                DefaultValue = "$(HEADERMAP_INCLUDES_PROJECT_HEADERS)";
+            },
+            {
+                Name = "HEADERMAP_INCLUDES_FRAMEWORK_ENTRIES_FOR_ALL_PRODUCT_TYPES";
+                Type = Boolean;
+                DefaultValue = YES;
+                Description = "Specifies whether the header map contains a framework-name/path entry for every header in the target being built, including targets that do not build frameworks.";
+            },
+            {
+                Name = "HEADERMAP_INCLUDES_FRAMEWORK_ENTRIES_FOR_TARGETS_NOT_BEING_BUILT";
+                Type = Boolean;
+                DefaultValue = YES;
+            },
+            {
+                Name = "HEADERMAP_INCLUDES_FLAT_ENTRIES_FOR_TARGET_BEING_BUILT";
+                Type = Boolean;
+                DefaultValue = YES;
+                Description = "Specifies whether the header map contains a name/path entry for every header in the target being built.";
+            },
+            {
+                Name = "HEADERMAP_INCLUDES_PROJECT_HEADERS";
+                Type = Boolean;
+                DefaultValue = YES;
+                Description = "Specifies whether the header map contains a name/path entry for every header in the project, regardless of the headers’ target membership.";
+            },
+            {
+                Name = "HEADERMAP_USES_FRAMEWORK_PREFIX_ENTRIES";
+                Type = Boolean;
+                DefaultValue = YES;
+            },
+            {
+                Name = "HEADERMAP_USES_VFS";
+                Type = Boolean;
+                DefaultValue = "$(DEFINES_MODULE)";
+            },
+            {
+                Name = "EXCLUDED_SOURCE_FILE_NAMES";
+                Type = StringList;
+                ConditionFlavors = (
+                    arch,
+                    sdk,
+                );
+                DefaultValue = "";
+                Category = BuildOptions;
+                DisplayName = "Excluded Source File Names";
+                Description = "A list of patterns (as defined by `fnmatch(3)`) specifying the names of source files to explicitly *exclude* when processing the files in the target's build phases (see also `INCLUDED_SOURCE_FILE_NAMES`). This setting can be used to define complex filters for which files from the phase should be built in response to other build settings; for example, a value of `*.$(CURRENT_ARCH).c` could serve to exclude particular files based on the architecture being built.";
+            },
+            {
+                Name = "EXCLUDED_EXPLICIT_TARGET_DEPENDENCIES";
+                Type = StringList;
+                ConditionFlavors = (
+                    arch,
+                    sdk,
+                );
+                DefaultValue = "";
+                Category = BuildOptions;
+                DisplayName = "Excluded Explicit Target Dependencies";
+                Description = "A list of patterns (as defined by `fnmatch(3)`) specifying the names of explicit target dependencies to *exclude* when determining which targets to build (see also `INCLUDED_EXPLICIT_TARGET_DEPENDENCIES`). This setting can be used to define complex filters for which targets should be built in response to other build settings.";
+            },
+            {
+                Name = "DWARF_DSYM_FOLDER_PATH";
+                Type = Path;
+                DefaultValue = "$(CONFIGURATION_BUILD_DIR)";
+            },
+            {
+                Name = "DWARF_DSYM_FILE_NAME";
+                Type = String;
+                DefaultValue = "$(FULL_PRODUCT_NAME).dSYM";
+            },
+            {
+                Name = "DWARF_DSYM_FILE_SHOULD_ACCOMPANY_PRODUCT";
+                Type = bool;
+                DefaultValue = NO;
+            },
+            {
+                Name = "PRECOMP_DESTINATION_DIR";
+                Type = Path;
+                DefaultValue = "$(TEMP_DIR)/PrefixHeaders";
+            },
+            {
+                Name = "INCLUDED_SOURCE_FILE_NAMES";
+                Type = StringList;
+                ConditionFlavors = (
+                    arch,
+                    sdk,
+                );
+                DefaultValue = "";
+                Category = BuildOptions;
+                DisplayName = "Included Source File Names";
+                Description = "A list of patterns (as defined by `fnmatch(3)`) specifying the names of source files to explicitly *include* when processing the files in the target's build phases. This setting is only useful when combined with `EXCLUDED_SOURCE_FILE_NAMES`, and can be used to define complex filters for which files from the phase should be built in response to other build settings.";
+            },
+            {
+                Name = "INCLUDED_EXPLICIT_TARGET_DEPENDENCIES";
+                Type = StringList;
+                ConditionFlavors = (
+                    arch,
+                    sdk,
+                );
+                DefaultValue = "";
+                Category = BuildOptions;
+                DisplayName = "Included Explicit Target Dependencies";
+                Description = "A list of patterns (as defined by `fnmatch(3)`) specifying the names of explicit target dependencies to *include* when determining which targets to build. This setting is only useful when combined with `EXCLUDED_EXPLICIT_TARGET_DEPENDENCIES`, and can be used to define complex filters for which targets should be built in response to other build settings.";
+            },
+
+            // Default bundle layout settings.
+
+            // BUNDLE_FORMAT does not control the format of the bundle being built by a target, but is the default bundle format of the platform.
+            {
+                Name = "BUNDLE_FORMAT";
+                Type = Enumeration;
+                Values = (
+                    deep,
+                    shallow,
+                );
+                DefaultValue = "shallow";
+            },
+            {
+                Name = "BUNDLE_CONTENTS_FOLDER_PATH";
+                Type = String;
+                DefaultValue = "$(BUNDLE_CONTENTS_FOLDER_PATH_$(BUNDLE_FORMAT))";
+            },
+            {
+                Name = "BUNDLE_CONTENTS_FOLDER_PATH_deep";
+                Type = String;
+                DefaultValue = "Contents/";
+            },
+            {
+                Name = "BUNDLE_EXECUTABLE_FOLDER_PATH";
+                Type = String;
+                DefaultValue = "$(BUNDLE_CONTENTS_FOLDER_PATH)$(BUNDLE_EXECUTABLE_FOLDER_NAME_$(BUNDLE_FORMAT))";
+            },
+            {
+                Name = "BUNDLE_EXECUTABLE_FOLDER_NAME_deep";
+                Type = String;
+                DefaultValue = "MacOS";
+            },
+            {
+                Name = "BUNDLE_PUBLIC_HEADERS_FOLDER_PATH";
+                Type = String;
+                DefaultValue = "$(BUNDLE_CONTENTS_FOLDER_PATH)Headers";
+            },
+            {
+                Name = "BUNDLE_PRIVATE_HEADERS_FOLDER_PATH";
+                Type = String;
+                DefaultValue = "$(BUNDLE_CONTENTS_FOLDER_PATH)PrivateHeaders";
+            },
+            {
+                Name = "BUNDLE_FRAMEWORKS_FOLDER_PATH";
+                Type = String;
+                DefaultValue = "$(BUNDLE_CONTENTS_FOLDER_PATH)Frameworks";
+            },
+            {
+                Name = "BUNDLE_PLUGINS_FOLDER_PATH";
+                Type = String;
+                DefaultValue = "$(BUNDLE_CONTENTS_FOLDER_PATH)PlugIns";
+            },
+            {
+                Name = "BUNDLE_EXTENSIONS_FOLDER_PATH";
+                Type = String;
+                DefaultValue = "$(BUNDLE_CONTENTS_FOLDER_PATH)Extensions";
+            },
+
+            // Build tool target triple support.
+            {
+                Name = "LLVM_TARGET_TRIPLE_OS_VERSION";
+                Type = String;
+                DefaultValue = "$(SWIFT_PLATFORM_TARGET_PREFIX)$($(DEPLOYMENT_TARGET_SETTING_NAME))";
+            },
+            {
+                Name = "LLVM_TARGET_TRIPLE_VENDOR";
+                Type = String;
+                DefaultValue = "apple";
+            },
+            {
+                Name = "LLVM_TARGET_TRIPLE_SUFFIX";
+                Type = String;
+                DefaultValue = "";
+            },
+            {
+                Name = "SWIFT_PLATFORM_TARGET_PREFIX";
+                Type = String;
+                DefaultValue = "";
+            },
+            {
+                Name = "DEPLOYMENT_TARGET_SETTING_NAME";
+                Type = String;
+                DefaultValue = "";
+                DisplayName = "Deployment Target Build Setting Name";
+                Description = "The name of the build setting for the deployment target for the effective platform. This can be used to evaluate the build setting using build setting interpolation without hard-coding the name, e.g. `$($(DEPLOYMENT_TARGET_SETTING_NAME))`, or to compose the names of other settings which contain its name, such as the `RECOMMENDED_<platform>_DEPLOYMENT_TARGET` settings.";
+            },
+
+            // Index-while-building options
+            {
+                Name = "COMPILER_INDEX_STORE_ENABLE";
+                Type = Enumeration;
+                Values = (
+                    Default,
+                    YES,
+                    NO,
+                );
+                DefaultValue = Default;
+                Category = BuildOptions;
+                DisplayName = "Enable Index-While-Building Functionality";
+                Description = "Control whether the compiler should emit index data while building.";
+            },
+            {
+                Name = TOOLCHAINS;
+                Type = StringList;
+                DefaultValue = "";
+            },
+            {
+                Name = "REZ_EXECUTABLE";
+                Type = String;
+                DefaultValue = "";
+            },
+            {
+                Name = "APPLICATION_EXTENSION_API_ONLY";
+                Type = bool;
+                DefaultValue = NO;
+                Category = BuildOptions;
+            },
+            {   Name = COPY_HEADERS_RUN_UNIFDEF;
+                Type = Boolean;
+                DefaultValue = NO;
+                DisplayName = "Run unifdef on Product Headers";
+                Category = Headers;
+                Description = "If enabled, headers are run through the `unifdef(1)` tool when copied to the product.";
+            },
+            {   Name = COPY_HEADERS_UNIFDEF_FLAGS;
+                Type = StringList;
+                DefaultValue = "";
+                DisplayName = "Unifdef Flags for Product Headers";
+                Category = Headers;
+                ConditionFlavors = (
+                    sdk,
+                );
+                Description = "Specifies the flags to pass to `unifdef(1)` when invoking that tool to copy headers. This setting has no effect unless `COPY_HEADERS_RUN_UNIFDEF` is enabled.";
+            },
+            {   Name = INSTALLHDRS_COPY_PHASE;
+                Type = Boolean;
+                DefaultValue = NO;
+                DisplayName = "Perform Copy Files Phases During `installhdrs`";
+                Description = "Specifies whether the target’s Copy Files build phases are executed in `installhdr` builds.";
+            },
+            {   Name = INSTALLHDRS_SCRIPT_PHASE;
+                Type = Boolean;
+                DefaultValue = NO;
+                DisplayName = "Perform Shell Script Phases During `installhdrs`";
+                Description = "Specifies whether the target’s Run Script build phases are executed in `installhdr` builds. See `ACTION` for details on `installhdr` builds.";
+            },
+
+            {   Name = ENABLE_CODE_COVERAGE;
+                Type = Boolean;
+                DefaultValue = YES;
+                DisplayName = "Enable Code Coverage Support";
+                Category = BuildOptions;
+                Description = "Enables building with code coverage instrumentation. This is only used when the build has code coverage enabled, which is typically done via the Xcode scheme or test plan settings.";
+            },
+            {   Name = ENABLE_TESTABILITY;
+                Type = Boolean;
+                DefaultValue = NO;
+                DisplayName = "Enable Testability";
+                Category = BuildOptions;
+                Description = "Enabling this setting will build the target with options appropriate for running automated tests against its product.
+
+This setting can be enabled when building targets for debugging if their products will be tested. This may result in tests running slower than otherwise.
+
+When this setting is enabled:
+
+* `GCC_SYMBOLS_PRIVATE_EXTERN` is disabled (`-fvisibility=hidden` will not be passed to `clang`).
+* `-enable-testing` is passed to the Swift compiler.
+* `-export_dynamic` is passed to the linker.
+* `STRIP_INSTALLED_PRODUCT` is disabled (`strip` will not be run on the produced binary).";
+            },
+
+            {   Name = ENABLE_TESTING_SEARCH_PATHS;
+                Type = Boolean;
+                DefaultValue = NO;
+                DisplayName = "Enable Testing Search Paths";
+                Category = BuildOptions;
+                Description = "Specifies whether the build system should add the search paths necessary for compiling and linking against testing-related libraries or frameworks. This setting is enabled by default if the target is a test target or if the target explicitly links to the Testing, XCTest, or StoreKitTest frameworks.";
+            },
+            {   Name = CLANG_ENABLE_EXPLICIT_MODULES;
+                Type = Boolean;
+                DefaultValue = YES;
+            },
+            {   Name = BUILD_LIBRARY_FOR_DISTRIBUTION;
+                Type = Boolean;
+                DefaultValue = NO;
+                DisplayName = "Build Libraries for Distribution";
+                Category = BuildOptions;
+                Description = "Ensures that your libraries are built for distribution. For Swift, this enables support for library evolution and generation of a module interface file.";
+            },
+
+            {   Name = "SUPPRESS_WARNINGS";
+                Type = Boolean;
+                DefaultValue = "NO";
+            },
+
+            // Localization Settings
+            {   Name = LOCALIZED_STRING_MACRO_NAMES;
+                Type = StringList;
+                DefaultValue = "NSLocalizedString CFCopyLocalizedString";
+                DisplayName = "Localized String Macro Names";
+                Category = "Localization";
+                Description = "The base names for NSLocalizedString-like macros or functions used to produce localized strings in source code. The default base names of NSLocalizedString and CFCopyLocalizedString are always considered, even if this setting is empty.";
+            },
+            {   Name = LOCALIZED_STRING_SWIFTUI_SUPPORT;
+                Type = Boolean;
+                DefaultValue = YES;
+                DisplayName = "Localized String SwiftUI Support";
+                Category = "Localization";
+                Description = "When enabled, literal strings in SwiftUI will be extracted during localization export. This will only extract string literals in `Text()` initializers, unless `SWIFT_EMIT_LOC_STRINGS` is also enabled.";
+            },
+            {
+                Name = "STRINGSDATA_ROOT";
+                Type = Path;
+                DefaultValue = "$(TARGET_TEMP_DIR)";
+                Description = "The location to traverse and collect .stringsdata files from when exporting for localization.";
+            },
+            {
+                Name = "STRINGSDATA_DIR";
+                Type = Path;
+                DefaultValue = "$(OBJECT_FILE_DIR_$(CURRENT_VARIANT))/$(CURRENT_ARCH)";
+                Description = "The location to write .stringsdata files to when SWIFT_EMIT_LOC_STRINGS is enabled.";
+            },
+            {
+                Name = "SWIFT_EMIT_LOC_STRINGS";
+                Type = Boolean;
+                DefaultValue = NO;
+                Category = "Localization";
+                DisplayName = "Use Compiler to Extract Swift Strings";
+                Description = "When enabled, the Swift compiler will be used to extract Swift string literal and interpolation `LocalizedStringKey` and `LocalizationKey` types during localization export.";
+            },
+            {   Name = LOCALIZATION_EXPORT_SUPPORTED;
+                Type = Boolean;
+                DefaultValue = YES;
+                DisplayName = "Localization Export Supported";
+                Category = "Localization";
+                Description = "When enabled, localizable content in this target/project can be exported.";
+            },
+            {   Name = LOCALIZATION_PREFERS_STRING_CATALOGS;
+                Type = Boolean;
+                DefaultValue = NO;
+                DisplayName = "Localization Prefers String Catalogs";
+                Category = "Localization";
+                Description = "When enabled, string tables generated in a localization export will prefer the String Catalog format.";
+            },
+
+            // rdar://108915072 (Move Siri Category and relevant configs out of CoreBuildSystem)
+            // Siri Settings
+            {
+                Name = APP_SHORTCUTS_ENABLE_FLEXIBLE_MATCHING;
+                Type = Boolean;
+                DefaultValue = YES;
+                DisplayName = "Enable App Shortcuts Flexible Matching";
+                Category = "Siri";
+                Description = "When enabled, generates assets needed for App Shortcuts Flexible Matching.";
+            },
+
+            // On-Demand Resources Settings
+            {   Name = BUILD_ACTIVE_RESOURCES_ONLY;
+                Type = Boolean;
+                DefaultValue = NO;
+            },
+            {   Name = ENABLE_ON_DEMAND_RESOURCES;
+                Type = Boolean;
+                DefaultValue = NO;
+                DisplayName = "Enable On Demand Resources";
+                Category = Assets;
+                Description = "If enabled, tagged assets—files and asset catalog entries—are built into asset packs based on their combination of tags. Untagged resources are treated normally.";
+            },
+            {   Name = EMBED_ASSET_PACKS_IN_PRODUCT_BUNDLE;
+                Type = Boolean;
+                DefaultValue = NO;
+                DisplayName = "Embed Asset Packs In Product Bundle";
+                Category = Assets;
+                Description = "Embed all the built asset packs inside the product bundle. Since this negates the performance benefits of the On Demand Resources feature, it is only useful for testing purposes when it isn't practical to use an asset pack server.";
+            },
+            {   Name = ON_DEMAND_RESOURCES_INITIAL_INSTALL_TAGS;
+                Type = StringList;
+                DisplayName = "On Demand Resources Initial Install Tags";
+                Category = Assets;
+                Description = "Defined a set of initial On Demand Resources tags to be downloaded and installed with your application.";
+            },
+            {   Name = ON_DEMAND_RESOURCES_PREFETCH_ORDER;
+                Type = StringList;
+                DisplayName = "On Demand Resources Prefetch Order";
+                Description = "Once your app is installed, this defined a set of On Demand Resources tags that should be downloaded. These tags are downloaded after the initial installation of your application, and will be downloaded in the order the tags provided in the list from first to last.";
+                Category = Assets;
+            },
+            {   Name = ASSET_PACK_MANIFEST_URL_PREFIX;
+                Type = String;
+                DefaultValue = "";
+                DisplayName = "Asset Pack Manifest URL Prefix";
+                Description = "If set to anything other than the empty string, every URL in the `AssetPackManifest.plist` file will consist of this string with the name of the asset pack appended. If not set, the URLs in the `AssetPackManifest.plist` will be formed as appropriate for the build location of the asset packs. The prefix string is not escaped or quoted in any way, so any necessary escaping must be part of the URL string. This setting affects only URLs in the `AssetPackManifest.plist` file — it does not affect where asset packs are built in the local file system.";
+                Category = Assets;
+            },
+            {   Name = WRAP_ASSET_PACKS_IN_SEPARATE_DIRECTORIES;
+                Type = Boolean;
+                DefaultValue = NO;
+            },
+            {
+                Name = "ENABLE_PREVIEWS";
+                Type = Boolean;
+            },
+            {
+                Name = "ENABLE_DEBUG_DYLIB";
+                Type = Boolean;
+                Category = BuildOptions;
+                DisplayName = "Enable Debug Dylib Support";
+                Description = "If enabled, debug builds of app and app extension targets on supported platforms and SDKs will be built with the main binary code in a separate \"NAME.debug.dylib\". A stub executor that loads the dylib will be the main binary. Enabling this setting is required for the previews execution engine and other modern development features to work. You can disable this setting if your target is not compatible.";
+            },
+
+            // Info.plist Keys - General
+            {
+                Name = INFOPLIST_KEY_CFBundleDisplayName;
+                Type = String;
+                Category = "Info.plist Values";
+                ConditionFlavors = (
+                    sdk,
+                );
+                DisplayName = "Bundle Display Name";
+                Description = "When `GENERATE_INFOPLIST_FILE` is enabled, sets the value of the [CFBundleDisplayName](https://developer.apple.com/documentation/bundleresources/information_property_list/cfbundledisplayname) key in the `Info.plist` file to the value of this build setting.";
+            },
+            {
+                Name = INFOPLIST_KEY_LSApplicationCategoryType;
+                Type = Enumeration;
+                Values = (
+                    {   Value = "";
+                        DisplayName = "None"; },
+                    {   Value = "public.app-category.books";
+                        DisplayName = "Books"; },
+                    {   Value = "public.app-category.business";
+                        DisplayName = "Business"; },
+                    {   Value = "public.app-category.developer-tools";
+                        DisplayName = "Developer Tools"; },
+                    {   Value = "public.app-category.education";
+                        DisplayName = "Education"; },
+                    {   Value = "public.app-category.entertainment";
+                        DisplayName = "Entertainment"; },
+                    {   Value = "public.app-category.finance";
+                        DisplayName = "Finance"; },
+                    {   Value = "public.app-category.food-and-drink";
+                        DisplayName = "Food & Drink"; },
+                    {   Value = "public.app-category.games";
+                        DisplayName = "Games"; },
+                    {   Value = "public.app-category.action-games";
+                        DisplayName = "Games - Action Games"; },
+                    {   Value = "public.app-category.adventure-games";
+                        DisplayName = "Games - Adventure Games"; },
+                    {   Value = "public.app-category.arcade-games";
+                        DisplayName = "Games - Arcade Games"; },
+                    {   Value = "public.app-category.board-games";
+                        DisplayName = "Games - Board Games"; },
+                    {   Value = "public.app-category.card-games";
+                        DisplayName = "Games - Card Games"; },
+                    {   Value = "public.app-category.casino-games";
+                        DisplayName = "Games - Casino Games"; },
+                    {   Value = "public.app-category.dice-games";
+                        DisplayName = "Games - Dice Games"; },
+                    {   Value = "public.app-category.educational-games";
+                        DisplayName = "Games - Educational Games"; },
+                    {   Value = "public.app-category.family-games";
+                        DisplayName = "Games - Family Games"; },
+                    {   Value = "public.app-category.kids-games";
+                        DisplayName = "Games - Kids Games"; },
+                    {   Value = "public.app-category.music-games";
+                        DisplayName = "Games - Music Games"; },
+                    {   Value = "public.app-category.puzzle-games";
+                        DisplayName = "Games - Puzzle Games"; },
+                    {   Value = "public.app-category.racing-games";
+                        DisplayName = "Games - Racing Games"; },
+                    {   Value = "public.app-category.role-playing-games";
+                        DisplayName = "Games - Role Playing Games"; },
+                    {   Value = "public.app-category.simulation-games";
+                        DisplayName = "Games - Simulation Games"; },
+                    {   Value = "public.app-category.sports-games";
+                        DisplayName = "Games - Sports Games"; },
+                    {   Value = "public.app-category.strategy-games";
+                        DisplayName = "Games - Strategy Games"; },
+                    {   Value = "public.app-category.trivia-games";
+                        DisplayName = "Games - Trivia Games"; },
+                    {   Value = "public.app-category.word-games";
+                        DisplayName = "Games - Word Games"; },
+                    {   Value = "public.app-category.graphics-design";
+                        DisplayName = "Graphics & Design"; },
+                    {   Value = "public.app-category.healthcare-fitness";
+                        DisplayName = "Healthcare & Fitness"; },
+                    {   Value = "public.app-category.lifestyle";
+                        DisplayName = "Lifestyle"; },
+                    {   Value = "public.app-category.magazines-and-newspapers";
+                        DisplayName = "Magazines & Newspapers"; },
+                    {   Value = "public.app-category.medical";
+                        DisplayName = "Medical"; },
+                    {   Value = "public.app-category.music";
+                        DisplayName = "Music"; },
+                    {   Value = "public.app-category.navigation";
+                        DisplayName = "Navigation"; },
+                    {   Value = "public.app-category.news";
+                        DisplayName = "News"; },
+                    {   Value = "public.app-category.photography";
+                        DisplayName = "Photography"; },
+                    {   Value = "public.app-category.productivity";
+                        DisplayName = "Productivity"; },
+                    {   Value = "public.app-category.reference";
+                        DisplayName = "Reference"; },
+                    {   Value = "public.app-category.shopping";
+                        DisplayName = "Shopping"; },
+                    {   Value = "public.app-category.social-networking";
+                        DisplayName = "Social Networking"; },
+                    {   Value = "public.app-category.sports";
+                        DisplayName = "Sports"; },
+                    {   Value = "public.app-category.travel";
+                        DisplayName = "Travel"; },
+                    {   Value = "public.app-category.utilities";
+                        DisplayName = "Utilities"; },
+                    {   Value = "public.app-category.video";
+                        DisplayName = "Video"; },
+                    {   Value = "public.app-category.weather";
+                        DisplayName = "Weather"; },
+                );
+                Category = "Info.plist Values";
+                ConditionFlavors = (
+                    sdk,
+                );
+                DisplayName = "Application Category";
+                Description = "When `GENERATE_INFOPLIST_FILE` is enabled, sets the value of the [LSApplicationCategoryType](https://developer.apple.com/documentation/bundleresources/information_property_list/lsapplicationcategorytype) key in the `Info.plist` file to the value of this build setting.";
+            },
+            {
+                Name = INFOPLIST_KEY_LSBackgroundOnly;
+                Type = Boolean;
+                Category = "Info.plist Values";
+                ConditionFlavors = (
+                    sdk,
+                );
+                DisplayName = "Application is Background Only";
+                Description = "When `GENERATE_INFOPLIST_FILE` is enabled, sets the value of the [LSBackgroundOnly](https://developer.apple.com/documentation/bundleresources/information_property_list/lsbackgroundonly) key in the `Info.plist` file to the value of this build setting.";
+            },
+            {
+                Name = INFOPLIST_KEY_LSUIElement;
+                Type = Boolean;
+                Category = "Info.plist Values";
+                ConditionFlavors = (
+                    sdk,
+                );
+                DisplayName = "Application is Agent (UIElement)";
+                Description = "When `GENERATE_INFOPLIST_FILE` is enabled, sets the value of the [LSUIElement](https://developer.apple.com/documentation/bundleresources/information_property_list/lsuielement) key in the `Info.plist` file to the value of this build setting.";
+            },
+            {
+                Name = INFOPLIST_KEY_NSHumanReadableCopyright;
+                Type = String;
+                Category = "Info.plist Values";
+                ConditionFlavors = (
+                    sdk,
+                );
+                DisplayName = "Copyright (Human-Readable)";
+                Description = "When `GENERATE_INFOPLIST_FILE` is enabled, sets the value of the [NSHumanReadableCopyright](https://developer.apple.com/documentation/bundleresources/information_property_list/nshumanreadablecopyright) key in the `Info.plist` file to the value of this build setting.";
+            },
+            {
+                Name = INFOPLIST_KEY_NSPrincipalClass;
+                Type = String;
+                Category = "Info.plist Values";
+                ConditionFlavors = (
+                    sdk,
+                );
+                DisplayName = "Principal Class";
+                Description = "When `GENERATE_INFOPLIST_FILE` is enabled, sets the value of the [NSPrincipalClass](https://developer.apple.com/documentation/bundleresources/information_property_list/nsprincipalclass) key in the `Info.plist` file to the value of this build setting.";
+            },
+
+            // Info.plist Keys - Usage Descriptions
+            {
+                Name = INFOPLIST_KEY_NFCReaderUsageDescription;
+                Type = String;
+                Category = "Info.plist Values";
+                DisplayName = "Privacy - NFC Scan Usage Description";
+                Description = "When `GENERATE_INFOPLIST_FILE` is enabled, sets the value of the [NFCReaderUsageDescription](https://developer.apple.com/documentation/bundleresources/information_property_list/nfcreaderusagedescription) key in the `Info.plist` file to the value of this build setting.";
+            },
+            {
+                Name = INFOPLIST_KEY_NSAppleEventsUsageDescription;
+                Type = String;
+                Category = "Info.plist Values";
+                DisplayName = "Privacy - AppleEvents Sending Usage Description";
+                Description = "When `GENERATE_INFOPLIST_FILE` is enabled, sets the value of the [NSAppleEventsUsageDescription](https://developer.apple.com/documentation/bundleresources/information_property_list/nsappleeventsusagedescription) key in the `Info.plist` file to the value of this build setting.";
+            },
+            {
+                Name = INFOPLIST_KEY_NSAppleMusicUsageDescription;
+                Type = String;
+                Category = "Info.plist Values";
+                DisplayName = "Privacy - Media Library Usage Description";
+                Description = "When `GENERATE_INFOPLIST_FILE` is enabled, sets the value of the [NSAppleMusicUsageDescription](https://developer.apple.com/documentation/bundleresources/information_property_list/nsapplemusicusagedescription) key in the `Info.plist` file to the value of this build setting.";
+            },
+            {
+                Name = INFOPLIST_KEY_NSBluetoothAlwaysUsageDescription;
+                Type = String;
+                Category = "Info.plist Values";
+                DisplayName = "Privacy - Bluetooth Always Usage Description";
+                Description = "When `GENERATE_INFOPLIST_FILE` is enabled, sets the value of the [NSBluetoothAlwaysUsageDescription](https://developer.apple.com/documentation/bundleresources/information_property_list/nsbluetoothalwaysusagedescription) key in the `Info.plist` file to the value of this build setting.";
+            },
+            {
+                Name = INFOPLIST_KEY_NSBluetoothPeripheralUsageDescription;
+                Type = String;
+                Category = "Info.plist Values";
+                DisplayName = "Privacy - Bluetooth Peripheral Usage Description";
+                Description = "When `GENERATE_INFOPLIST_FILE` is enabled, sets the value of the [NSBluetoothPeripheralUsageDescription](https://developer.apple.com/documentation/bundleresources/information_property_list/nsbluetoothperipheralusagedescription) key in the `Info.plist` file to the value of this build setting.";
+            },
+            {
+                Name = INFOPLIST_KEY_NSBluetoothWhileInUseUsageDescription;
+                Type = String;
+                Category = "Info.plist Values";
+                DisplayName = "Privacy - Bluetooth While In Use Usage Description";
+                Description = "When `GENERATE_INFOPLIST_FILE` is enabled, sets the value of the NSBluetoothWhileInUseUsageDescription key in the `Info.plist` file to the value of this build setting.";
+            },
+            {
+                Name = INFOPLIST_KEY_NSCalendarsUsageDescription;
+                Type = String;
+                Category = "Info.plist Values";
+                DisplayName = "Privacy - Calendars Usage Description";
+                Description = "When `GENERATE_INFOPLIST_FILE` is enabled, sets the value of the [NSCalendarsUsageDescription](https://developer.apple.com/documentation/bundleresources/information_property_list/nscalendarsusagedescription) key in the `Info.plist` file to the value of this build setting.";
+            },
+            {
+                Name = INFOPLIST_KEY_NSCameraUsageDescription;
+                Type = String;
+                Category = "Info.plist Values";
+                DisplayName = "Privacy - Camera Usage Description";
+                Description = "When `GENERATE_INFOPLIST_FILE` is enabled, sets the value of the [NSCameraUsageDescription](https://developer.apple.com/documentation/bundleresources/information_property_list/nscamerausagedescription) key in the `Info.plist` file to the value of this build setting.";
+            },
+            {
+                Name = INFOPLIST_KEY_NSContactsUsageDescription;
+                Type = String;
+                Category = "Info.plist Values";
+                DisplayName = "Privacy - Contacts Usage Description";
+                Description = "When `GENERATE_INFOPLIST_FILE` is enabled, sets the value of the [NSContactsUsageDescription](https://developer.apple.com/documentation/bundleresources/information_property_list/nscontactsusagedescription) key in the `Info.plist` file to the value of this build setting.";
+            },
+            {
+                Name = INFOPLIST_KEY_NSDesktopFolderUsageDescription;
+                Type = String;
+                Category = "Info.plist Values";
+                DisplayName = "Privacy - Desktop Folder Usage Description";
+                Description = "When `GENERATE_INFOPLIST_FILE` is enabled, sets the value of the [NSDesktopFolderUsageDescription](https://developer.apple.com/documentation/bundleresources/information_property_list/nsdesktopfolderusagedescription) key in the `Info.plist` file to the value of this build setting.";
+            },
+            {
+                Name = INFOPLIST_KEY_NSDocumentsFolderUsageDescription;
+                Type = String;
+                Category = "Info.plist Values";
+                DisplayName = "Privacy - Documents Folder Usage Description";
+                Description = "When `GENERATE_INFOPLIST_FILE` is enabled, sets the value of the [NSDocumentsFolderUsageDescription](https://developer.apple.com/documentation/bundleresources/information_property_list/nsdocumentsfolderusagedescription) key in the `Info.plist` file to the value of this build setting.";
+            },
+            {
+                Name = INFOPLIST_KEY_NSDownloadsFolderUsageDescription;
+                Type = String;
+                Category = "Info.plist Values";
+                DisplayName = "Privacy - Downloads Folder Usage Description";
+                Description = "When `GENERATE_INFOPLIST_FILE` is enabled, sets the value of the [NSDownloadsFolderUsageDescription](https://developer.apple.com/documentation/bundleresources/information_property_list/nsdownloadsfolderusagedescription) key in the `Info.plist` file to the value of this build setting.";
+            },
+            {
+                Name = INFOPLIST_KEY_NSFaceIDUsageDescription;
+                Type = String;
+                Category = "Info.plist Values";
+                DisplayName = "Privacy - Face ID Usage Description";
+                Description = "When `GENERATE_INFOPLIST_FILE` is enabled, sets the value of the [NSFaceIDUsageDescription](https://developer.apple.com/documentation/bundleresources/information_property_list/nsfaceidusagedescription) key in the `Info.plist` file to the value of this build setting.";
+            },
+            {
+                Name = INFOPLIST_KEY_NSFallDetectionUsageDescription;
+                Type = String;
+                Category = "Info.plist Values";
+                DisplayName = "Privacy - Fall Detection Usage Description";
+                Description = "When `GENERATE_INFOPLIST_FILE` is enabled, sets the value of the [NSFallDetectionUsageDescription](https://developer.apple.com/documentation/bundleresources/information_property_list/nsfalldetectionusagedescription) key in the `Info.plist` file to the value of this build setting.";
+            },
+            {
+                Name = INFOPLIST_KEY_NSFileProviderDomainUsageDescription;
+                Type = String;
+                Category = "Info.plist Values";
+                DisplayName = "Privacy - Access to a File Provide Domain Usage Description";
+                Description = "When `GENERATE_INFOPLIST_FILE` is enabled, sets the value of the [NSFileProviderDomainUsageDescription](https://developer.apple.com/documentation/bundleresources/information_property_list/nsfileproviderdomainusagedescription) key in the `Info.plist` file to the value of this build setting.";
+            },
+            {
+                Name = INFOPLIST_KEY_NSFileProviderPresenceUsageDescription;
+                Type = String;
+                Category = "Info.plist Values";
+                DisplayName = "Privacy - File Provider Presence Usage Description";
+                Description = "When `GENERATE_INFOPLIST_FILE` is enabled, sets the value of the NSFileProviderPresenceUsageDescription key in the `Info.plist` file to the value of this build setting.";
+            },
+            {
+                Name = INFOPLIST_KEY_NSFocusStatusUsageDescription;
+                Type = String;
+                Category = "Info.plist Values";
+                DisplayName = "Privacy - Focus Status Usage Description";
+                Description = "When `GENERATE_INFOPLIST_FILE` is enabled, sets the value of the NSFocusStatusUsageDescription key in the `Info.plist` file to the value of this build setting.";
+            },
+            {
+                Name = INFOPLIST_KEY_NSGKFriendListUsageDescription;
+                Type = String;
+                Category = "Info.plist Values";
+                DisplayName = "Privacy - GameKit Friend List Usage Description";
+                Description = "When `GENERATE_INFOPLIST_FILE` is enabled, sets the value of the [NSGKFriendListUsageDescription](https://developer.apple.com/documentation/bundleresources/information_property_list/nsgkfriendlistusagedescription) key in the `Info.plist` file to the value of this build setting.";
+            },
+            {
+                Name = INFOPLIST_KEY_NSHealthClinicalHealthRecordsShareUsageDescription;
+                Type = String;
+                Category = "Info.plist Values";
+                DisplayName = "Privacy - Health Records Usage Description";
+                Description = "When `GENERATE_INFOPLIST_FILE` is enabled, sets the value of the [NSHealthClinicalHealthRecordsShareUsageDescription](https://developer.apple.com/documentation/bundleresources/information_property_list/nshealthclinicalhealthrecordsshareusagedescription) key in the `Info.plist` file to the value of this build setting.";
+            },
+            {
+                Name = INFOPLIST_KEY_NSHealthShareUsageDescription;
+                Type = String;
+                Category = "Info.plist Values";
+                DisplayName = "Privacy - Health Share Usage Description";
+                Description = "When `GENERATE_INFOPLIST_FILE` is enabled, sets the value of the [NSHealthShareUsageDescription](https://developer.apple.com/documentation/bundleresources/information_property_list/nshealthshareusagedescription) key in the `Info.plist` file to the value of this build setting.";
+            },
+            {
+                Name = INFOPLIST_KEY_NSHealthUpdateUsageDescription;
+                Type = String;
+                Category = "Info.plist Values";
+                DisplayName = "Privacy - Health Update Usage Description";
+                Description = "When `GENERATE_INFOPLIST_FILE` is enabled, sets the value of the [NSHealthUpdateUsageDescription](https://developer.apple.com/documentation/bundleresources/information_property_list/nshealthupdateusagedescription) key in the `Info.plist` file to the value of this build setting.";
+            },
+            {
+                Name = INFOPLIST_KEY_NSHomeKitUsageDescription;
+                Type = String;
+                Category = "Info.plist Values";
+                DisplayName = "Privacy - HomeKit Usage Description";
+                Description = "When `GENERATE_INFOPLIST_FILE` is enabled, sets the value of the [NSHomeKitUsageDescription](https://developer.apple.com/documentation/bundleresources/information_property_list/nshomekitusagedescription) key in the `Info.plist` file to the value of this build setting.";
+            },
+            {
+                Name = INFOPLIST_KEY_NSIdentityUsageDescription;
+                Type = String;
+                Category = "Info.plist Values";
+                DisplayName = "Privacy - Identity Usage Description";
+                Description = "When `GENERATE_INFOPLIST_FILE` is enabled, sets the value of the [NSIdentityUsageDescription](https://developer.apple.com/documentation/bundleresources/information_property_list/nsidentityusagedescription) key in the `Info.plist` file to the value of this build setting.";
+            },
+            {
+                Name = INFOPLIST_KEY_NSLocalNetworkUsageDescription;
+                Type = String;
+                Category = "Info.plist Values";
+                DisplayName = "Privacy - Local Network Usage Description";
+                Description = "When `GENERATE_INFOPLIST_FILE` is enabled, sets the value of the [NSLocalNetworkUsageDescription](https://developer.apple.com/documentation/bundleresources/information_property_list/nslocalnetworkusagedescription) key in the `Info.plist` file to the value of this build setting.";
+            },
+            {
+                Name = INFOPLIST_KEY_NSLocationAlwaysAndWhenInUseUsageDescription;
+                Type = String;
+                Category = "Info.plist Values";
+                DisplayName = "Privacy - Location Always and When In Use Usage Description";
+                Description = "When `GENERATE_INFOPLIST_FILE` is enabled, sets the value of the [NSLocationAlwaysAndWhenInUseUsageDescription](https://developer.apple.com/documentation/bundleresources/information_property_list/nslocationalwaysandwheninuseusagedescription) key in the `Info.plist` file to the value of this build setting.";
+            },
+            {
+                Name = INFOPLIST_KEY_NSLocationAlwaysUsageDescription;
+                Type = String;
+                Category = "Info.plist Values";
+                DisplayName = "Privacy - Location Always Usage Description";
+                Description = "When `GENERATE_INFOPLIST_FILE` is enabled, sets the value of the [NSLocationAlwaysUsageDescription](https://developer.apple.com/documentation/bundleresources/information_property_list/nslocationalwaysusagedescription) key in the `Info.plist` file to the value of this build setting.";
+            },
+            {
+                Name = INFOPLIST_KEY_NSLocationTemporaryUsageDescriptionDictionary;
+                Type = String;
+                Category = "Info.plist Values";
+                DisplayName = "Privacy - Location Temporary Usage Description Dictionary";
+                Description = "When `GENERATE_INFOPLIST_FILE` is enabled, sets the value of the [NSLocationTemporaryUsageDescriptionDictionary](https://developer.apple.com/documentation/bundleresources/information_property_list/nslocationtemporaryusagedescriptiondictionary) key in the `Info.plist` file to the value of this build setting.";
+            },
+            {
+                Name = INFOPLIST_KEY_NSLocationUsageDescription;
+                Type = String;
+                Category = "Info.plist Values";
+                DisplayName = "Privacy - Location Usage Description";
+                Description = "When `GENERATE_INFOPLIST_FILE` is enabled, sets the value of the [NSLocationUsageDescription](https://developer.apple.com/documentation/bundleresources/information_property_list/nslocationusagedescription) key in the `Info.plist` file to the value of this build setting.";
+            },
+            {
+                Name = INFOPLIST_KEY_NSLocationWhenInUseUsageDescription;
+                Type = String;
+                Category = "Info.plist Values";
+                DisplayName = "Privacy - Location When In Use Usage Description";
+                Description = "When `GENERATE_INFOPLIST_FILE` is enabled, sets the value of the [NSLocationWhenInUseUsageDescription](https://developer.apple.com/documentation/bundleresources/information_property_list/nslocationwheninuseusagedescription) key in the `Info.plist` file to the value of this build setting.";
+            },
+            {
+                Name = INFOPLIST_KEY_NSMicrophoneUsageDescription;
+                Type = String;
+                Category = "Info.plist Values";
+                DisplayName = "Privacy - Microphone Usage Description";
+                Description = "When `GENERATE_INFOPLIST_FILE` is enabled, sets the value of the [NSMicrophoneUsageDescription](https://developer.apple.com/documentation/bundleresources/information_property_list/nsmicrophoneusagedescription) key in the `Info.plist` file to the value of this build setting.";
+            },
+            {
+                Name = INFOPLIST_KEY_NSMotionUsageDescription;
+                Type = String;
+                Category = "Info.plist Values";
+                DisplayName = "Privacy - Motion Usage Description";
+                Description = "When `GENERATE_INFOPLIST_FILE` is enabled, sets the value of the [NSMotionUsageDescription](https://developer.apple.com/documentation/bundleresources/information_property_list/nsmotionusagedescription) key in the `Info.plist` file to the value of this build setting.";
+            },
+            {
+                Name = INFOPLIST_KEY_NSNearbyInteractionAllowOnceUsageDescription;
+                Type = String;
+                Category = "Info.plist Values";
+                DisplayName = "Privacy - Nearby Interaction Allow Once Usage Description";
+                Description = "When `GENERATE_INFOPLIST_FILE` is enabled, sets the value of the [NSNearbyInteractionAllowOnceUsageDescription](https://developer.apple.com/documentation/bundleresources/information_property_list/nsnearbyinteractionallowonceusagedescription) key in the `Info.plist` file to the value of this build setting.";
+            },
+            {
+                Name = INFOPLIST_KEY_NSNearbyInteractionUsageDescription;
+                Type = String;
+                Category = "Info.plist Values";
+                DisplayName = "Privacy - Nearby Interaction Usage Description";
+                Description = "When `GENERATE_INFOPLIST_FILE` is enabled, sets the value of the [NSNearbyInteractionUsageDescription](https://developer.apple.com/documentation/bundleresources/information_property_list/nsnearbyinteractionusagedescription) key in the `Info.plist` file to the value of this build setting.";
+            },
+            {
+                Name = INFOPLIST_KEY_NSNetworkVolumesUsageDescription;
+                Type = String;
+                Category = "Info.plist Values";
+                DisplayName = "Privacy - Network Volumes Usage Description";
+                Description = "When `GENERATE_INFOPLIST_FILE` is enabled, sets the value of the [NSNetworkVolumesUsageDescription](https://developer.apple.com/documentation/bundleresources/information_property_list/nsnetworkvolumesusagedescription) key in the `Info.plist` file to the value of this build setting.";
+            },
+            {
+                Name = INFOPLIST_KEY_NSPhotoLibraryAddUsageDescription;
+                Type = String;
+                Category = "Info.plist Values";
+                DisplayName = "Privacy - Photo Library Additions Usage Description";
+                Description = "When `GENERATE_INFOPLIST_FILE` is enabled, sets the value of the [NSPhotoLibraryAddUsageDescription](https://developer.apple.com/documentation/bundleresources/information_property_list/nsphotolibraryaddusagedescription) key in the `Info.plist` file to the value of this build setting.";
+            },
+            {
+                Name = INFOPLIST_KEY_NSPhotoLibraryUsageDescription;
+                Type = String;
+                Category = "Info.plist Values";
+                DisplayName = "Privacy - Photo Library Usage Description";
+                Description = "When `GENERATE_INFOPLIST_FILE` is enabled, sets the value of the [NSPhotoLibraryUsageDescription](https://developer.apple.com/documentation/bundleresources/information_property_list/nsphotolibraryusagedescription) key in the `Info.plist` file to the value of this build setting.";
+            },
+            {
+                Name = INFOPLIST_KEY_NSRemindersUsageDescription;
+                Type = String;
+                Category = "Info.plist Values";
+                DisplayName = "Privacy - Reminders Usage Description";
+                Description = "When `GENERATE_INFOPLIST_FILE` is enabled, sets the value of the [NSRemindersUsageDescription](https://developer.apple.com/documentation/bundleresources/information_property_list/nsremindersusagedescription) key in the `Info.plist` file to the value of this build setting.";
+            },
+            {
+                Name = INFOPLIST_KEY_NSRemovableVolumesUsageDescription;
+                Type = String;
+                Category = "Info.plist Values";
+                DisplayName = "Privacy - Removable Volumes Usage Description";
+                Description = "When `GENERATE_INFOPLIST_FILE` is enabled, sets the value of the [NSRemovableVolumesUsageDescription](https://developer.apple.com/documentation/bundleresources/information_property_list/nsremovablevolumesusagedescription) key in the `Info.plist` file to the value of this build setting.";
+            },
+            {
+                Name = INFOPLIST_KEY_NSSensorKitPrivacyPolicyURL;
+                Type = String;
+                Category = "Info.plist Values";
+                DisplayName = "Privacy - SensorKit Privacy Policy URL";
+                Description = "When `GENERATE_INFOPLIST_FILE` is enabled, sets the value of the [NSSensorKitPrivacyPolicyURL](https://developer.apple.com/documentation/bundleresources/information_property_list/nssensorkitprivacypolicyurl) key in the `Info.plist` file to the value of this build setting.";
+            },
+            {
+                Name = INFOPLIST_KEY_NSSensorKitUsageDescription;
+                Type = String;
+                Category = "Info.plist Values";
+                DisplayName = "Privacy - SensorKit Usage Description";
+                Description = "When `GENERATE_INFOPLIST_FILE` is enabled, sets the value of the [NSSensorKitUsageDescription](https://developer.apple.com/documentation/bundleresources/information_property_list/nssensorkitusagedescription) key in the `Info.plist` file to the value of this build setting.";
+            },
+            {
+                Name = INFOPLIST_KEY_NSSiriUsageDescription;
+                Type = String;
+                Category = "Info.plist Values";
+                DisplayName = "Privacy - Siri Usage Description";
+                Description = "When `GENERATE_INFOPLIST_FILE` is enabled, sets the value of the [NSSiriUsageDescription](https://developer.apple.com/documentation/bundleresources/information_property_list/nssiriusagedescription) key in the `Info.plist` file to the value of this build setting.";
+            },
+            {
+                Name = INFOPLIST_KEY_NSSpeechRecognitionUsageDescription;
+                Type = String;
+                Category = "Info.plist Values";
+                DisplayName = "Privacy - Speech Recognition Usage Description";
+                Description = "When `GENERATE_INFOPLIST_FILE` is enabled, sets the value of the [NSSpeechRecognitionUsageDescription](https://developer.apple.com/documentation/bundleresources/information_property_list/nsspeechrecognitionusagedescription) key in the `Info.plist` file to the value of this build setting.";
+            },
+            {
+                Name = INFOPLIST_KEY_NSSystemAdministrationUsageDescription;
+                Type = String;
+                Category = "Info.plist Values";
+                DisplayName = "Privacy - System Administration Usage Description";
+                Description = "When `GENERATE_INFOPLIST_FILE` is enabled, sets the value of the [NSSystemAdministrationUsageDescription](https://developer.apple.com/documentation/bundleresources/information_property_list/nssystemadministrationusagedescription) key in the `Info.plist` file to the value of this build setting.";
+            },
+            {
+                Name = INFOPLIST_KEY_NSSystemExtensionUsageDescription;
+                Type = String;
+                Category = "Info.plist Values";
+                DisplayName = "Privacy - System Extension Usage Description";
+                Description = "When `GENERATE_INFOPLIST_FILE` is enabled, sets the value of the NSSystemExtensionUsageDescription key in the `Info.plist` file to the value of this build setting.";
+            },
+            {
+                Name = INFOPLIST_KEY_NSUserTrackingUsageDescription;
+                Type = String;
+                Category = "Info.plist Values";
+                DisplayName = "Privacy - Tracking Usage Description";
+                Description = "When `GENERATE_INFOPLIST_FILE` is enabled, sets the value of the [NSUserTrackingUsageDescription](https://developer.apple.com/documentation/bundleresources/information_property_list/nsusertrackingusagedescription) key in the `Info.plist` file to the value of this build setting.";
+            },
+            {
+                Name = INFOPLIST_KEY_NSVideoSubscriberAccountUsageDescription;
+                Type = String;
+                Category = "Info.plist Values";
+                DisplayName = "Privacy - TV Provider Usage Description";
+                Description = "When `GENERATE_INFOPLIST_FILE` is enabled, sets the value of the [NSVideoSubscriberAccountUsageDescription](https://developer.apple.com/documentation/bundleresources/information_property_list/nsvideosubscriberaccountusagedescription) key in the `Info.plist` file to the value of this build setting.";
+            },
+            {
+                Name = INFOPLIST_KEY_NSVoIPUsageDescription;
+                Type = String;
+                Category = "Info.plist Values";
+                DisplayName = "Privacy - VoIP Usage Description";
+                Description = "When `GENERATE_INFOPLIST_FILE` is enabled, sets the value of the NSVoIPUsageDescription key in the `Info.plist` file to the value of this build setting.";
+            },
+            {
+                Name = INFOPLIST_KEY_OSBundleUsageDescription;
+                Type = String;
+                Category = "Info.plist Values";
+                DisplayName = "Privacy - Driver Extension Usage Description";
+                Description = "When `GENERATE_INFOPLIST_FILE` is enabled, sets the value of the OSBundleUsageDescription key in the `Info.plist` file to the value of this build setting.";
+            },
+
+            // Info.plist Keys - macOS
+            {
+                Name = INFOPLIST_KEY_NSMainNibFile;
+                Type = String;
+                Category = "Info.plist Values";
+                ConditionFlavors = (
+                    sdk,
+                );
+                DisplayName = "Main Nib File Base Name";
+                Description = "When `GENERATE_INFOPLIST_FILE` is enabled, sets the value of the [NSMainNibFile](https://developer.apple.com/documentation/bundleresources/information_property_list/nsmainnibfile) key in the `Info.plist` file to the value of this build setting.";
+            },
+            {
+                Name = INFOPLIST_KEY_NSMainStoryboardFile;
+                Type = String;
+                Category = "Info.plist Values";
+                ConditionFlavors = (
+                    sdk,
+                );
+                DisplayName = "AppKit Main Storyboard File Base Name";
+                Description = "When `GENERATE_INFOPLIST_FILE` is enabled, sets the value of the [NSMainStoryboardFile](https://developer.apple.com/documentation/bundleresources/information_property_list/nsmainstoryboardfile) key in the `Info.plist` file to the value of this build setting.";
+            },
+
+            // Info.plist Keys - iOS and Derived Platforms
+            {
+                Name = INFOPLIST_KEY_UILaunchScreen_Generation;
+                Type = Boolean;
+                Category = "Info.plist Values";
+                ConditionFlavors = (
+                    sdk,
+                );
+                DisplayName = "Launch Screen (Generation)";
+                Description = "When `GENERATE_INFOPLIST_FILE` is enabled, sets the value of the [UILaunchScreen](https://developer.apple.com/documentation/bundleresources/information_property_list/uilaunchscreen) key in the Info.plist file to an empty dictionary.";
+            },
+            {
+                Name = INFOPLIST_KEY_UILaunchStoryboardName;
+                Type = String;
+                Category = "Info.plist Values";
+                ConditionFlavors = (
+                    sdk,
+                );
+                DisplayName = "Launch Screen Interface File Base Name";
+                Description = "When `GENERATE_INFOPLIST_FILE` is enabled, sets the value of the [UILaunchStoryboardName](https://developer.apple.com/documentation/bundleresources/information_property_list/uilaunchstoryboardname) key in the `Info.plist` file to the value of this build setting.";
+            },
+            {
+                Name = INFOPLIST_KEY_UIMainStoryboardFile;
+                Type = String;
+                Category = "Info.plist Values";
+                ConditionFlavors = (
+                    sdk,
+                );
+                DisplayName = "UIKit Main Storyboard File Base Name";
+                Description = "When `GENERATE_INFOPLIST_FILE` is enabled, sets the value of the [UIMainStoryboardFile](https://developer.apple.com/documentation/bundleresources/information_property_list/uimainstoryboardfile) key in the `Info.plist` file to the value of this build setting.";
+            },
+            {
+                Name = INFOPLIST_KEY_UIRequiredDeviceCapabilities;
+                Type = StringList;
+                Category = "Info.plist Values";
+                ConditionFlavors = (
+                    sdk,
+                );
+                DisplayName = "Required Device Capabilities";
+                Description = "When `GENERATE_INFOPLIST_FILE` is enabled, sets the value of the [UIRequiredDeviceCapabilities](https://developer.apple.com/documentation/bundleresources/information_property_list/uirequireddevicecapabilities) key in the `Info.plist` file to the value of this build setting.";
+            },
+            {
+                Name = INFOPLIST_KEY_UISupportedInterfaceOrientations;
+                Type = StringList;
+                Category = "Info.plist Values";
+                ConditionFlavors = (
+                    sdk,
+                );
+                DisplayName = "Supported Interface Orientations";
+                Description = "When `GENERATE_INFOPLIST_FILE` is enabled, sets the value of the [UISupportedInterfaceOrientations](https://developer.apple.com/documentation/bundleresources/information_property_list/uisupportedinterfaceorientations) key in the `Info.plist` file to the value of this build setting.";
+            },
+            {
+                Name = INFOPLIST_KEY_UIUserInterfaceStyle;
+                Type = Enumeration;
+                Values = (
+                    Automatic,
+                    Light,
+                    Dark,
+                );
+                Category = "Info.plist Values";
+                ConditionFlavors = (
+                    sdk,
+                );
+                DisplayName = "User Interface Style";
+                Description = "When `GENERATE_INFOPLIST_FILE` is enabled, sets the value of the [UIUserInterfaceStyle](https://developer.apple.com/documentation/bundleresources/information_property_list/uiuserinterfacestyle) key in the `Info.plist` file to the value of this build setting.";
+            },
+
+            // Info.plist Keys - iOS
+            {
+                Name = INFOPLIST_KEY_LSSupportsOpeningDocumentsInPlace;
+                Type = Boolean;
+                Category = "Info.plist Values";
+                ConditionFlavors = (
+                    sdk,
+                );
+                DisplayName = "Supports Opening Documents in Place";
+                Description = "When `GENERATE_INFOPLIST_FILE` is enabled, sets the value of the [LSSupportsOpeningDocumentsInPlace](https://developer.apple.com/documentation/bundleresources/information_property_list/lssupportsopeningdocumentsinplace) key in the `Info.plist` file to the value of this build setting.";
+            },
+            {
+                Name = INFOPLIST_KEY_NSSupportsLiveActivities;
+                Type = Boolean;
+                Category = "Info.plist Values";
+                ConditionFlavors = (
+                    sdk,
+                );
+                DisplayName = "Supports Live Activities";
+                Description = "When `GENERATE_INFOPLIST_FILE` is enabled, sets the value of the [NSSupportsLiveActivities](https://developer.apple.com/documentation/bundleresources/information_property_list/nssupportsliveactivities) key in the `Info.plist` file to the value of this build setting.";
+            },
+            {
+                Name = INFOPLIST_KEY_NSSupportsLiveActivitiesFrequentUpdates;
+                Type = Boolean;
+                Category = "Info.plist Values";
+                ConditionFlavors = (
+                    sdk,
+                );
+                DisplayName = "Supports Frequent Updates of Live Activities";
+                Description = "When `GENERATE_INFOPLIST_FILE` is enabled, sets the value of the [NSSupportsLiveActivitiesFrequentUpdates](https://developer.apple.com/documentation/bundleresources/information_property_list/nssupportsliveactivitiesfrequentupdates) key in the `Info.plist` file to the value of this build setting.";
+            },
+            {
+                Name = INFOPLIST_KEY_UIApplicationSceneManifest_Generation;
+                Type = Boolean;
+                Category = "Info.plist Values";
+                ConditionFlavors = (
+                    sdk,
+                );
+                DisplayName = "Application Scene Manifest (Generation)";
+                Description = "When `GENERATE_INFOPLIST_FILE` is enabled, sets the value of the [UIApplicationSceneManifest](https://developer.apple.com/documentation/bundleresources/information_property_list/uiapplicationscenemanifest) key in the Info.plist file to an entry suitable for a multi-window application.";
+            },
+            {
+                Name = INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents;
+                Type = Boolean;
+                Category = "Info.plist Values";
+                ConditionFlavors = (
+                    sdk,
+                );
+                DisplayName = "Supports Indirect Events";
+                Description = "When `GENERATE_INFOPLIST_FILE` is enabled, sets the value of the [UIApplicationSupportsIndirectInputEvents](https://developer.apple.com/documentation/bundleresources/information_property_list/uiapplicationsupportsindirectinputevents) key in the `Info.plist` file to the value of this build setting.";
+            },
+            {
+                Name = INFOPLIST_KEY_UIRequiresFullScreen;
+                Type = Boolean;
+                Category = "Info.plist Values";
+                ConditionFlavors = (
+                    sdk,
+                );
+                DisplayName = "Requires Full Screen";
+                Description = "When `GENERATE_INFOPLIST_FILE` is enabled, sets the value of the [UIRequiresFullScreen](https://developer.apple.com/documentation/bundleresources/information_property_list/uirequiresfullscreen) key in the `Info.plist` file to the value of this build setting.";
+            },
+            {
+                Name = INFOPLIST_KEY_UIStatusBarHidden;
+                Type = Boolean;
+                Category = "Info.plist Values";
+                ConditionFlavors = (
+                    sdk,
+                );
+                DisplayName = "Status Bar Initially Hidden";
+                Description = "When `GENERATE_INFOPLIST_FILE` is enabled, sets the value of the [UIStatusBarHidden](https://developer.apple.com/documentation/bundleresources/information_property_list/uistatusbarhidden) key in the `Info.plist` file to the value of this build setting.";
+            },
+            {
+                Name = INFOPLIST_KEY_UIStatusBarStyle;
+                Type = Enumeration;
+                Values = (
+                    {   Value = "UIStatusBarStyleDefault";
+                        DisplayName = "Default"; },
+                    {   Value = "UIStatusBarStyleLightContent";
+                        DisplayName = "Light Content"; },
+                    {   Value = "UIStatusBarStyleDarkContent";
+                        DisplayName = "Dark Content"; },
+                    {   Value = "UIStatusBarStyleBlackTranslucent";
+                        DisplayName = "Black Translucent (Deprecated)"; },
+                    {   Value = "UIStatusBarStyleBlackOpaque";
+                        DisplayName = "Black Opaque (Deprecated)"; },
+                );
+                Category = "Info.plist Values";
+                ConditionFlavors = (
+                    sdk,
+                );
+                DisplayName = "Status Bar Style";
+                Description = "When `GENERATE_INFOPLIST_FILE` is enabled, sets the value of the [UIStatusBarStyle](https://developer.apple.com/documentation/bundleresources/information_property_list/uistatusbarstyle) key in the `Info.plist` file to the value of this build setting.";
+            },
+            {
+                Name = INFOPLIST_KEY_UISupportedInterfaceOrientations_iPad;
+                Type = StringList;
+                Category = "Info.plist Values";
+                ConditionFlavors = (
+                    sdk,
+                );
+                DisplayName = "Supported Interface Orientations (iPad)";
+                Description = "When `GENERATE_INFOPLIST_FILE` is enabled, sets the value of the [UISupportedInterfaceOrientations~iPad](https://developer.apple.com/documentation/bundleresources/information_property_list/uisupportedinterfaceorientations) key in the `Info.plist` file to the value of this build setting.";
+            },
+            {
+                Name = INFOPLIST_KEY_UISupportedInterfaceOrientations_iPhone;
+                Type = StringList;
+                Category = "Info.plist Values";
+                ConditionFlavors = (
+                    sdk,
+                );
+                DisplayName = "Supported Interface Orientations (iPhone)";
+                Description = "When `GENERATE_INFOPLIST_FILE` is enabled, sets the value of the [UISupportedInterfaceOrientations~iPhone](https://developer.apple.com/documentation/bundleresources/information_property_list/uisupportedinterfaceorientations) key in the `Info.plist` file to the value of this build setting.";
+            },
+            {
+                Name = INFOPLIST_KEY_UISupportsDocumentBrowser;
+                Type = Boolean;
+                Category = "Info.plist Values";
+                ConditionFlavors = (
+                    sdk,
+                );
+                DisplayName = "Supports Document Browser";
+                Description = "When `GENERATE_INFOPLIST_FILE` is enabled, sets the value of the [UISupportsDocumentBrowser](https://developer.apple.com/documentation/bundleresources/information_property_list/uisupportsdocumentbrowser) key in the `Info.plist` file to the value of this build setting.";
+            },
+
+            // Info.plist Keys - watchOS
+            {
+                Name = INFOPLIST_KEY_CLKComplicationPrincipalClass;
+                Type = String;
+                Category = "Info.plist Values";
+                ConditionFlavors = (
+                    sdk,
+                );
+                DisplayName = "Complication Principal Class";
+                Description = "When `GENERATE_INFOPLIST_FILE` is enabled, sets the value of the [CLKComplicationPrincipalClass](https://developer.apple.com/documentation/bundleresources/information_property_list/clkcomplicationprincipalclass) key in the `Info.plist` file to the value of this build setting.";
+            },
+            {
+                Name = INFOPLIST_KEY_WKCompanionAppBundleIdentifier;
+                Type = String;
+                Category = "Info.plist Values";
+                ConditionFlavors = (
+                    sdk,
+                );
+                DisplayName = "WatchKit Companion App Bundle Identifier";
+                Description = "When `GENERATE_INFOPLIST_FILE` is enabled, sets the value of the [WKCompanionAppBundleIdentifier](https://developer.apple.com/documentation/bundleresources/information_property_list/wkcompanionappbundleidentifier) key in the `Info.plist` file to the value of this build setting.";
+            },
+            {
+                Name = INFOPLIST_KEY_WKExtensionDelegateClassName;
+                Type = String;
+                Category = "Info.plist Values";
+                ConditionFlavors = (
+                    sdk,
+                );
+                DisplayName = "WatchKit Extension Delegate Class Name";
+                Description = "When `GENERATE_INFOPLIST_FILE` is enabled, sets the value of the [WKExtensionDelegateClassName](https://developer.apple.com/documentation/bundleresources/information_property_list/wkextensiondelegateclassname) key in the `Info.plist` file to the value of this build setting.";
+            },
+            {
+                Name = INFOPLIST_KEY_WKRunsIndependentlyOfCompanionApp;
+                Type = Boolean;
+                Category = "Info.plist Values";
+                ConditionFlavors = (
+                    sdk,
+                );
+                DisplayName = "App Can Run Independently of Companion iPhone App";
+                Description = "When `GENERATE_INFOPLIST_FILE` is enabled, sets the value of the [WKRunsIndependentlyOfCompanionApp](https://developer.apple.com/documentation/bundleresources/information_property_list/wkrunsindependentlyofcompanionapp) key in the `Info.plist` file to the value of this build setting.";
+            },
+            {
+                Name = INFOPLIST_KEY_WKWatchOnly;
+                Type = Boolean;
+                Category = "Info.plist Values";
+                ConditionFlavors = (
+                    sdk,
+                );
+                DisplayName = "App is Available Only on Apple Watch";
+                Description = "When `GENERATE_INFOPLIST_FILE` is enabled, sets the value of the [WKWatchOnly](https://developer.apple.com/documentation/bundleresources/information_property_list/wkwatchonly) key in the `Info.plist` file to the value of this build setting.";
+            },
+
+            {
+                Name = INFOPLIST_KEY_WKSupportsLiveActivityLaunchAttributeTypes;
+                Type = StringList;
+                Category = "Info.plist Values";
+                ConditionFlavors = (
+                    sdk,
+                );
+                DisplayName = "Supports Launch for Live Activity Attribute Types";
+                Description = "When `GENERATE_INFOPLIST_FILE` is enabled, sets the value of the WKSupportsLiveActivityLaunchAttributeTypes key in the `Info.plist` file to the value of this build setting.";
+            },
+
+            // Info.plist Keys - Metal
+            {
+                Name = INFOPLIST_KEY_MetalCaptureEnabled;
+                Type = Boolean;
+                Category = "Info.plist Values";
+                DisplayName = "Metal Capture Enabled";
+                Description = "When `GENERATE_INFOPLIST_FILE` is enabled, sets the value of the MetalCaptureEnabled key in the `Info.plist` file to the value of this build setting.";
+            },
+
+            // Info.plist Keys - Game Controller and Game Mode
+            {
+                Name = INFOPLIST_KEY_GCSupportsControllerUserInteraction;
+                Type = Boolean;
+                Category = "Info.plist Values";
+                DisplayName = "Supports Game Controller User Interaction";
+                Description = "When `GENERATE_INFOPLIST_FILE` is enabled, sets the value of the GCSupportsControllerUserInteraction key in the `Info.plist` file to the value of this build setting.";
+            },
+
+            {
+                Name = INFOPLIST_KEY_GCSupportsGameMode;
+                Type = Boolean;
+                Category = "Info.plist Values";
+                DisplayName = "Supports Game Mode";
+                Description = "When `GENERATE_INFOPLIST_FILE` is enabled, sets the value of the GCSupportsGameMode key in the `Info.plist` file to the value of this build setting.";
+            },
+
+            // Info.plist Keys - Sticker Packs
+            {
+                Name = INFOPLIST_KEY_NSStickerSharingLevel;
+                Type = Enumeration;
+                Values = (
+                    {   Value = "";
+                        DisplayName = "No Sharing"; },
+                    {   Value = "Messages";
+                        DisplayName = "Messages"; },
+                    {   Value = "OS";
+                        DisplayName = "OS"; },
+                );
+                Category = "Info.plist Values";
+                ConditionFlavors = (
+                    sdk,
+                );
+                DisplayName = "Sticker Sharing Level";
+                Description = "When `GENERATE_INFOPLIST_FILE` is enabled, sets the value of the NSStickerSharingLevel key in the `Info.plist` file to the value of this build setting.";
+            },
+        );
+    },
+)
