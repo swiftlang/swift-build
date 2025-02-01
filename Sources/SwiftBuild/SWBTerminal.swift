@@ -15,9 +15,6 @@ import SWBUtil
 
 import Foundation
 
-let kHistoryFilePath = "~/.swbuild_history"
-let kMaxHistoryLines = 100
-
 func swbuild_handle_command_result(result: SWBServiceConsoleResult)  {
     print(result.output, terminator: "")
 }
@@ -25,16 +22,11 @@ func swbuild_handle_command_result(result: SWBServiceConsoleResult)  {
 /// Process a command line.
 ///
 /// - returns: True if the console should continue handling commands, otherwise the console should quit.
-func swbuild_process_command(console: SWBBuildServiceConsole, command: String, historyPath: String) async -> (shouldContinue: Bool, success: Bool) {
+func swbuild_process_command(console: SWBBuildServiceConsole, command: String) async -> (shouldContinue: Bool, success: Bool) {
     // Ignore empty commands.
     if command.isEmpty {
         return (true, true)
     }
-
-    // Add the line to the history.
-    swb_add_history(command)
-    swb_write_history(historyPath)
-    swb_history_truncate_file(historyPath, kMaxHistoryLines)
 
     // Process the line.
     let (result, success) = await console.sendCommandString(command)
@@ -71,24 +63,20 @@ func swbuild_repl() async throws -> Bool {
     // Save the terminal attributes (and restore them and exit).
     return try await withTerminalAttributes { terminalAttributes in
         return try await withServiceConsole { console in
-            let historyPath = (kHistoryFilePath as NSString).expandingTildeInPath
-
-            // Read in the command history.
-            swb_read_history(historyPath)
-
             // Disable echo, after all readline initialization is done.
             terminalAttributes.disableEcho()
 
             var ok = true
             var shouldContinue = true
             while shouldContinue {
-                guard let line = swb_readline("swbuild> ") else {
+                print("swbuild> ", terminator: "")
+                guard let line = readLine() else {
                     // If we received the EOF then exit.
                     print()
                     break
                 }
 
-                (shouldContinue, ok) = await swbuild_process_command(console: console, command: line, historyPath: historyPath)
+                (shouldContinue, ok) = await swbuild_process_command(console: console, command: line)
             }
 
             return ok

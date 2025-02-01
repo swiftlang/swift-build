@@ -19,15 +19,6 @@
 #include <TargetConditionals.h>
 #endif
 
-#ifndef __APPLE__
-// Re-exported from readline
-char *readline(const char *);
-int add_history(const char *);
-int read_history(const char *);
-int write_history(const char *);
-int history_truncate_file(const char *, int);
-#endif
-
 #include "CLibclang.h"
 #include "CLibRemarksHelper.h"
 #include "PluginAPI.h"
