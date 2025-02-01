@@ -22,7 +22,6 @@ let appleOS = false
 
 let useLocalDependencies = Context.environment["SWIFTCI_USE_LOCAL_DEPS"] != nil
 let useLLBuildFramework = Context.environment["SWIFTBUILD_LLBUILD_FWK"] != nil
-let readlinePackage = !appleOS ? "readline" : nil
 
 let swiftSettings: [SwiftSetting] = [
     // Upcoming Swift 6.0 features
@@ -162,7 +161,6 @@ let package = Package(
             dependencies: [
                 "SWBCSupport",
                 "SWBLibc",
-                .target(name: "readline", condition: .when(platforms: [.linux])),
                 .product(name: "ArgumentParser", package: "swift-argument-parser"),
                 .product(name: "Crypto", package: "swift-crypto", condition: .when(platforms: [.linux, .android])),
                 .product(name: "SystemPackage", package: "swift-system", condition: .when(platforms: [.linux, .android, .windows])),
@@ -342,17 +340,6 @@ let package = Package(
             name: "SwiftBuildPerfTests",
             dependencies: ["SwiftBuild", "SWBTestSupport", "SwiftBuildTestSupport"],
             swiftSettings: swiftSettings),
-
-        // System libraries
-        .systemLibrary(
-            name: "readline",
-            path: "Packages/Sources/readline",
-            pkgConfig: readlinePackage,
-            providers: [
-                .apt(["libreadline-dev"]),
-                .yum(["readline-devel"]),
-            ]
-        ),
 
         // Commands
         .plugin(
