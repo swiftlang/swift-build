@@ -122,7 +122,7 @@ There are some some simple build description tests, but the more interesting tes
 
 **Framework:** SWBBuildSystem; this is the parent to SWBTaskConstruction and SWBTaskExecution
 
-This framework sits on top of SWBCore and SWBBuildSystem. It coordinates the construction and planning of build operations, defines the concrete tasks used to execute them, manages their execution, and handles dispatching status back to clients.
+This framework sits on top of SWBCore, SWBTaskConstruction, and SWBTaskExecution. It coordinates the construction and planning of build operations, defines the concrete tasks used to execute them, manages their execution, and handles dispatching status back to clients.
 
 The `BuildManager` class manages the build operations in the Swift Build process, while the `BuildOperation` class represents a single build operation.
 
