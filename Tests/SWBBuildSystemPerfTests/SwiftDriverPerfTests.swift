@@ -40,7 +40,6 @@ fileprivate struct SwiftDriverPerfTests: CoreBasedTests, PerfTests {
                 provisioningSourceData: [
                     SWBProtocol.ProvisioningSourceData(
                         configurationName: "Debug",
-                        appIDHasFeaturesEnabled: false,
                         provisioningStyle: .manual,
                         bundleIdentifierFromInfoPlist: "$(PRODUCT_BUNDLE_IDENTIFIER)")])
         }
