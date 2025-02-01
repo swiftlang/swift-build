@@ -415,7 +415,23 @@ public final class ActoolCompilerSpec : GenericCompilerSpec, SpecIdentifierType,
                 return
             }
 
-            delegate.createTask(type: self, dependencyData: .dependencyInfo(Path(dependencyInfoPath())), ruleInfo: ["LinkAssetCatalog"] + cbc.inputs.flatMap { [$0.absolutePath.str] }, commandLine: ["builtin-linkAssetCatalog"] + variants.flatMap { ["--\($0.variant.rawValue)", $0.node.path.str, "--\($0.variant.rawValue)-dependencies", dependencyInfoPath(variant: $0.variant), "--\($0.variant.rawValue)-info-plist-content", infoPlistContentPath(variant: $0.variant)] } + ["--output", cbc.scope.evaluate(BuiltinMacros.UnlocalizedProductResourcesDir, lookup: { self.lookup($0, cbc, delegate) }).str, "--plist-output", plistOutputPath.str], environment: environmentFromSpec(cbc, delegate), workingDirectory: cbc.producer.defaultWorkingDirectory, inputs: realInputs() + variants.map(\.node) + [delegate.createNode(signaturePath)], outputs: realOutputs, action: delegate.taskActionCreationDelegate.createLinkAssetCatalogTaskAction(), execDescription: "Link asset catalogs", preparesForIndexing: false, enableSandboxing: false, llbuildControlDisabled: true)
+            let commandLine: [String] = ["builtin-linkAssetCatalog"] + variants.flatMap { ["--\($0.variant.rawValue)", $0.node.path.str, "--\($0.variant.rawValue)-dependencies", dependencyInfoPath(variant: $0.variant), "--\($0.variant.rawValue)-info-plist-content", infoPlistContentPath(variant: $0.variant)] } + ["--output", cbc.scope.evaluate(BuiltinMacros.UnlocalizedProductResourcesDir, lookup: { self.lookup($0, cbc, delegate) }).str, "--plist-output", plistOutputPath.str]
+
+            delegate.createTask(
+                type: self,
+                dependencyData: .dependencyInfo(Path(dependencyInfoPath())),
+                ruleInfo: ["LinkAssetCatalog"] + cbc.inputs.flatMap { [$0.absolutePath.str] },
+                commandLine: commandLine,
+                environment: environmentFromSpec(cbc, delegate),
+                workingDirectory: cbc.producer.defaultWorkingDirectory,
+                inputs: realInputs() + variants.map(\.node) + [delegate.createNode(signaturePath)],
+                outputs: realOutputs,
+                action: delegate.taskActionCreationDelegate.createLinkAssetCatalogTaskAction(),
+                execDescription: "Link asset catalogs",
+                preparesForIndexing: false,
+                enableSandboxing: false,
+                llbuildControlDisabled: true
+            )
         }
     }
 
