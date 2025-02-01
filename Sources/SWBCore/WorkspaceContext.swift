@@ -109,7 +109,11 @@ public struct UserPreferences: Sendable {
     public let allowsExternalToolExecution: Bool
 
     public static var allowsExternalToolExecutionDefaultValue: Bool {
+        #if RC_PLAYGROUNDS
+        return true
+        #else
         return false
+        #endif
     }
 
     static let `default` = UserPreferences(

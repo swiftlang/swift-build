@@ -189,7 +189,7 @@ public final class Core: Sendable {
 
         let versionPath = self.developerPath.dirname.join("version.plist")
 
-        // Load the containing app (Xcode) version information, if available.
+        // Load the containing app (Xcode or Playgrounds) version information, if available.
         //
         // We make this optional so tests do not need to provide it.
         if let info = try XcodeVersionInfo.versionInfo(versionPath: versionPath) {

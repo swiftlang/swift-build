@@ -39,7 +39,7 @@ public struct XcodeVersionInfo: Sendable {
     public let shortVersion: Version
     public let productBuildVersion: ProductBuildVersion?
 
-    /// Extracts the version info from a version.plist in an Xcode  installation at `versionPath`.
+    /// Extracts the version info from a version.plist in an Xcode or Playgrounds installation at `versionPath`.
     ///
     /// - Returns: A tuple of the short version and ProductBuildVersion, or `nil` if the Xcode at `appPath` does not have a version.plist. Note that the ProductBuildVersion may also be `nil` even if the version.plist was present, as it can be missing in some cases.
     /// - Throws: If there was an error reading the version.plist file or parsing its contents.
