@@ -936,7 +936,7 @@ public class ClangCompilerSpec : CompilerSpec, SpecIdentifierType, GCCCompatible
                     }
                 }
 
-                // If an open-source Swift toolchain is in use, supress warnings about libclang mismatch.
+                // If an open-source Swift toolchain is in use, suppress warnings about libclang mismatch.
                 if !cbc.producer.toolchains.contains(where: { toolchain in
                     toolchain.identifier.hasPrefix("org.swift.")
                 }) {
