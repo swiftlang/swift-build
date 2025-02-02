@@ -60,9 +60,7 @@ The following types of specs are supported:
 
 * **"BuildPhase"**
 
-   ```eval_rst
-   .. note:: FIXME: Document, or eliminate. This is used by Swift but might not be necessary anymore.
-   ```
+   > Note: FIXME: Document, or eliminate. This is used by Swift but might not be necessary anymore.
 
 * **["FileType"](#specs-filetype)**
 
@@ -80,9 +78,7 @@ The following types of specs are supported:
 
     Each platform also contributes a spec definition properties of the platform.
 
-   ```eval_rst
-   .. note:: FIXME: We don't currently have these, and may not need them. Eliminate if never used.
-   ```
+    > Note: FIXME: We don't currently have these, and may not need them. Eliminate if never used.
 
 * **[*Property Domain Specs*](#specs-propertydomain)**
 
@@ -90,9 +86,7 @@ The following types of specs are supported:
 
 * **"BuildSettings"**
 
-   ```eval_rst
-   .. note:: FIXME: Document. This is used by Swift, but may no longer be necessary.
-   ```
+    > Note: FIXME: Document. This is used by Swift, but may no longer be necessary.
 
 * **["BuildSystem"](#specs-buildsystem)**
 
@@ -157,9 +151,7 @@ The following kinds of objects may be encoded in the spec files.
 
 ### Architecture Specs
 
-```eval_rst
-.. note:: FIXME: Document Architecture specs.
-```
+> Note: FIXME: Document Architecture specs.
 
 ```eval_rst
 .. list-table::
@@ -182,18 +174,13 @@ The following kinds of objects may be encoded in the spec files.
 
 ### FileType Specs
 
-```eval_rst
-.. note:: FIXME: Document FileType specs.
-```
-
+> Note: FIXME: Document FileType specs.
 
 <a name="specs-packagetype"></a>
 
 ### PackageType Specs
 
-```eval_rst
-.. note:: FIXME: Completely document PackageType specs.
-```
+> Note: FIXME: Completely document PackageType specs.
 
 ```eval_rst
 .. list-table::
@@ -216,9 +203,7 @@ The following kinds of objects may be encoded in the spec files.
 
 ### ProductType Specs
 
-```eval_rst
-.. note:: FIXME: Completely document ProductType specs.
-```
+> Note: FIXME: Completely document ProductType specs.
 
 ```eval_rst
 .. list-table::
@@ -468,10 +453,7 @@ Each build option value definition is a property dictionary defining information
 
 ### BuildSystem Specs
 
-```eval_rst
-.. note:: FIXME: Document BuildSystem specs.
-```
-
+> Note: FIXME: Document BuildSystem specs.
 
 <a name="specs-tool"></a>
 
@@ -626,6 +608,4 @@ Compiler specs support the following keys, in addition to those supported by its
 
 ### Linker Specs
 
-```eval_rst
-.. note:: FIXME: Document Linker specs.
-```
+> Note: FIXME: Document Linker specs.
