@@ -24,7 +24,7 @@ To view the documentation in browser, run the following command at the root of t
 docc preview SwiftBuild.docc
 ```
 
-in MacOS, use:
+On macOS, use:
 ```bash
 xcrun docc preview SwiftBuild.docc
 ```
