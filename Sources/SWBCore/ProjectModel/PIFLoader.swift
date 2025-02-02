@@ -562,7 +562,7 @@ public final class IncrementalPIFLoader {
             do {
                 try fs.setCreatedByBuildSystemAttribute(path)
             } catch {
-                print("Couldn't set atribute on intermediates directory: \(error.localizedDescription)")
+                print("Couldn't set attribute on intermediates directory: \(error.localizedDescription)")
             }
         }
 
