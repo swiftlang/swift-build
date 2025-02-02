@@ -44,7 +44,8 @@ open class StandardTaskProducer {
     }
 
     /// Create a standard task producer.
-    package init(_ context: TaskProducerContext) {
+    /// Should be marked package, but that causes the compiler to generate an unused, infinitely recursive thunk.
+    public init(_ context: TaskProducerContext) {
         self.context = context
     }
 
@@ -107,7 +108,8 @@ open class PhasedTaskProducer: StandardTaskProducer {
     ///
     /// - phaseStartNode: A virtual node which should be used as an input for all tasks produced by the phase.
     /// - phaseEndNode: A virtual node which should have as inputs all tasks produced by the phase.
-    package init(_ context: TargetTaskProducerContext, phaseStartNodes: [any PlannedNode], phaseEndNode: any PlannedNode, phaseEndTask: (any PlannedTask)? = nil) {
+    /// Should be package instead of public, but this causes the compiler to generate an unused infinitely recursive thunk.
+    public init(_ context: TargetTaskProducerContext, phaseStartNodes: [any PlannedNode], phaseEndNode: any PlannedNode, phaseEndTask: (any PlannedTask)? = nil) {
         self.phaseStartNodes = phaseStartNodes
         self.phaseEndNode = phaseEndNode
         self.phaseEndTask = phaseEndTask ?? context.createPhaseEndTask(inputs: phaseStartNodes, output: phaseEndNode, mustPrecede: [context.targetEndTask])

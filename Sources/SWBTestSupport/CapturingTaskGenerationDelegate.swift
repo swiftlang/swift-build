@@ -27,7 +27,7 @@ package class CapturingTaskGenerationDelegate: TaskGenerationDelegate, CoreClien
     package let userPreferences: UserPreferences
     let sharedIntermediateNodes = Registry<String, (any PlannedNode, any Sendable)>()
 
-    package init(producer: any CommandProducer, userPreferences: UserPreferences) throws {
+    public init(producer: any CommandProducer, userPreferences: UserPreferences) throws {
         self.producer = producer
         self.userPreferences = userPreferences
         self.diagnosticContext = DiagnosticContextData(target: nil)

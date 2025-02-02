@@ -10,11 +10,11 @@
 //
 //===----------------------------------------------------------------------===//
 
-package import SWBUtil
-package import SWBCore
+public import SWBUtil
+public import SWBCore
 import struct SWBProtocol.BuildOperationTaskEnded
-package import Foundation
-package import SWBMacro
+public import Foundation
+public import SWBMacro
 
 /// A `TaskProducer` has two distinct phases that are used to create the necessary planning work.
 enum TaskProducerPhase {
@@ -58,13 +58,13 @@ extension TaskProducer
 /// Context of immutable data available to a task producer.
 ///
 /// This class configures the provisional tasks used by the producers.
-package class TaskProducerContext: StaleFileRemovalContext, BuildFileResolution
+public class TaskProducerContext: StaleFileRemovalContext, BuildFileResolution
 {
     /// The workspace context.
-    package let workspaceContext: WorkspaceContext
+    public let workspaceContext: WorkspaceContext
 
     /// The configured target the task producer is creating tasks for.
-    package let configuredTarget: ConfiguredTarget?
+    public let configuredTarget: ConfiguredTarget?
 
     /// The current phase the task producer is in.
     var phase: TaskProducerPhase = .none
@@ -79,7 +79,7 @@ package class TaskProducerContext: StaleFileRemovalContext, BuildFileResolution
         return globalProductPlan.dynamicallyBuildingTargets
     }
 
-    package var globalTargetInfoProvider: any GlobalTargetInfoProvider {
+    public var globalTargetInfoProvider: any GlobalTargetInfoProvider {
         return globalProductPlan
     }
 
@@ -96,7 +96,7 @@ package class TaskProducerContext: StaleFileRemovalContext, BuildFileResolution
     let compilationRequirementOutputFileTypes: [FileTypeSpec]
 
     /// The build settings the task producer should use.
-    package let settings: Settings
+    public let settings: Settings
 
     /// Provisional tasks indexed by their identifying string.  This context is the owner of these provisional tasks.
     let provisionalTasks: [String: ProvisionalTask]
@@ -107,7 +107,7 @@ package class TaskProducerContext: StaleFileRemovalContext, BuildFileResolution
     /// The default working directory path to use.
     ///
     /// This is the directory containing the .xcodeproj of the project for the configured target.
-    package var defaultWorkingDirectory: Path
+    public var defaultWorkingDirectory: Path
 
     // On-Demand Resources
     let onDemandResourcesEnabled: Bool
@@ -117,7 +117,7 @@ package class TaskProducerContext: StaleFileRemovalContext, BuildFileResolution
     private var onDemandResourcesAssetPackSubPaths: [String: Set<String>] = [:]
 
     /// The registry used for spec data caches.
-    package var specDataCaches = Registry<Spec, any SpecDataCache>()
+    public var specDataCaches = Registry<Spec, any SpecDataCache>()
 
     /// The list of generated source files produced in this target.
     private var _generatedSourceFiles: [Path] = []
@@ -202,43 +202,43 @@ package class TaskProducerContext: StaleFileRemovalContext, BuildFileResolution
     let appShortcutStringsMetadataCompilerSpec: AppShortcutStringsMetadataCompilerSpec
     let appIntentsSsuTrainingCompilerSpec: AppIntentsSSUTrainingCompilerSpec
     let appleScriptCompilerSpec: CommandLineToolSpec
-    package let clangSpec: ClangCompilerSpec
-    package let clangAssemblerSpec: ClangCompilerSpec
-    package let clangPreprocessorSpec: ClangCompilerSpec
-    package let clangStaticAnalyzerSpec: ClangCompilerSpec
-    package let clangModuleVerifierSpec: ClangCompilerSpec
+    public let clangSpec: ClangCompilerSpec
+    public let clangAssemblerSpec: ClangCompilerSpec
+    public let clangPreprocessorSpec: ClangCompilerSpec
+    public let clangStaticAnalyzerSpec: ClangCompilerSpec
+    public let clangModuleVerifierSpec: ClangCompilerSpec
     private let _clangStatCacheSpec: Result<ClangStatCacheSpec, any Error>
     var clangStatCacheSpec: ClangStatCacheSpec? { return specForResult(_clangStatCacheSpec) }
-    package let codesignSpec: CodesignToolSpec
+    public let codesignSpec: CodesignToolSpec
     private let _concatenateSpec: Result<ConcatenateToolSpec, any Error>
     var concatenateSpec: ConcatenateToolSpec? { return specForResult(_concatenateSpec) }
-    package let copySpec: CopyToolSpec
+    public let copySpec: CopyToolSpec
     let copyPlistSpec: CommandLineToolSpec
-    package let copyPngSpec: CommandLineToolSpec
-    package let copyTiffSpec: CommandLineToolSpec
+    public let copyPngSpec: CommandLineToolSpec
+    public let copyTiffSpec: CommandLineToolSpec
     let cppSpec: CommandLineToolSpec
     let createAssetPackManifestSpec: CreateAssetPackManifestToolSpec
-    package let createBuildDirectorySpec: CreateBuildDirectorySpec
-    package let diffSpec: CommandLineToolSpec
+    public let createBuildDirectorySpec: CreateBuildDirectorySpec
+    public let diffSpec: CommandLineToolSpec
     let dsymutilSpec: DsymutilToolSpec
     let infoPlistSpec: InfoPlistToolSpec
     let mergeInfoPlistSpec: MergeInfoPlistSpec
     let launchServicesRegisterSpec: CommandLineToolSpec
-    package let ldLinkerSpec: LdLinkerSpec
-    package let libtoolLinkerSpec: LibtoolLinkerSpec
-    package let lipoSpec: LipoToolSpec
+    public let ldLinkerSpec: LdLinkerSpec
+    public let libtoolLinkerSpec: LibtoolLinkerSpec
+    public let lipoSpec: LipoToolSpec
     let masterObjectLinkSpec: CommandLineToolSpec
-    package let mkdirSpec: MkdirToolSpec
+    public let mkdirSpec: MkdirToolSpec
     let modulesVerifierSpec: ModulesVerifierToolSpec
     let clangModuleVerifierInputGeneratorSpec: ClangModuleVerifierInputGeneratorSpec
     let productPackagingSpec: ProductPackagingToolSpec
-    private let _registerExecutionPolicyExceptionSpec: Result<RegisterExecutionPolicyExceptionToolSpec, any Error>
+    public let _registerExecutionPolicyExceptionSpec: Result<RegisterExecutionPolicyExceptionToolSpec, any Error>
     var registerExecutionPolicyExceptionSpec: RegisterExecutionPolicyExceptionToolSpec? { return specForResult(_registerExecutionPolicyExceptionSpec) }
     let setAttributesSpec: SetAttributesSpec
     let shellScriptSpec: ShellScriptToolSpec
     let signatureCollectionSpec: SignatureCollectionSpec
-    package let stripSpec: StripToolSpec
-    package let swiftCompilerSpec: SwiftCompilerSpec
+    public let stripSpec: StripToolSpec
+    public let swiftCompilerSpec: SwiftCompilerSpec
     let swiftHeaderToolSpec: SwiftHeaderToolSpec
     let swiftStdlibToolSpec: SwiftStdLibToolSpec
     private let _swiftABICheckerToolSpec: Result<SwiftABICheckerToolSpec, any Error>
@@ -250,11 +250,11 @@ package class TaskProducerContext: StaleFileRemovalContext, BuildFileResolution
     let tapiMergeSpec: CommandLineToolSpec
     let tapiStubifySpec: CommandLineToolSpec
     let touchSpec: CommandLineToolSpec
-    package let unifdefSpec: UnifdefToolSpec
+    public let unifdefSpec: UnifdefToolSpec
     let validateEmbeddedBinarySpec: ValidateEmbeddedBinaryToolSpec
     let validateProductSpec: ValidateProductToolSpec
     let processXCFrameworkLibrarySpec: ProcessXCFrameworkLibrarySpec
-    package let writeFileSpec: WriteFileSpec
+    public let writeFileSpec: WriteFileSpec
     private let _documentationCompilerSpec: Result<CommandLineToolSpec, any Error>
     var documentationCompilerSpec: CommandLineToolSpec? { return specForResult(_documentationCompilerSpec) }
     private let _tapiSymbolExtractorSpec: Result<TAPISymbolExtractor, any Error>
@@ -262,11 +262,11 @@ package class TaskProducerContext: StaleFileRemovalContext, BuildFileResolution
     private let _swiftSymbolExtractorSpec: Result<CommandLineToolSpec, any Error>
     var swiftSymbolExtractor: CommandLineToolSpec? { return specForResult(_swiftSymbolExtractorSpec) }
     private let _developmentAssetsSpec: Result<CommandLineToolSpec, any Error>
-    package var developmentAssetsSpec: CommandLineToolSpec? { return specForResult(_developmentAssetsSpec) }
+    public var developmentAssetsSpec: CommandLineToolSpec? { return specForResult(_developmentAssetsSpec) }
     private let _generateAppPlaygroundAssetCatalogSpec: Result<CommandLineToolSpec, any Error>
     var generateAppPlaygroundAssetCatalogSpec: CommandLineToolSpec? { return specForResult(_generateAppPlaygroundAssetCatalogSpec) }
     private let _realityAssetsCompilerSpec: Result<CommandLineToolSpec, any Error>
-    package var realityAssetsCompilerSpec: CommandLineToolSpec? { return specForResult(_realityAssetsCompilerSpec) }
+    public var realityAssetsCompilerSpec: CommandLineToolSpec? { return specForResult(_realityAssetsCompilerSpec) }
 
     /// Create the context for producing tasks independent of any particular target.
     ///
@@ -416,7 +416,7 @@ package class TaskProducerContext: StaleFileRemovalContext, BuildFileResolution
         return defaultWorkingDirectory.join(path)
     }
 
-    package func lookupReference(for guid: String) -> Reference? {
+    public func lookupReference(for guid: String) -> Reference? {
         return workspaceContext.workspace.lookupReference(for: guid)
     }
 
@@ -652,15 +652,15 @@ package class TaskProducerContext: StaleFileRemovalContext, BuildFileResolution
         }
     }
 
-    package func discoveredCommandLineToolSpecInfo(_ delegate: any CoreClientTargetDiagnosticProducingDelegate, _ toolName: String, _ path: Path, _ process: @Sendable (_ contents: Data) async throws -> any DiscoveredCommandLineToolSpecInfo) async throws -> any DiscoveredCommandLineToolSpecInfo {
+    public func discoveredCommandLineToolSpecInfo(_ delegate: any CoreClientTargetDiagnosticProducingDelegate, _ toolName: String, _ path: Path, _ process: @Sendable (_ contents: Data) async throws -> any DiscoveredCommandLineToolSpecInfo) async throws -> any DiscoveredCommandLineToolSpecInfo {
         try await workspaceContext.discoveredCommandLineToolSpecInfoCache.run(delegate, toolName, path, process)
     }
 
-    package func discoveredCommandLineToolSpecInfo(_ delegate: any CoreClientTargetDiagnosticProducingDelegate, _ toolName: String?, _ commandLine: [String], _ process: @Sendable (_ processResult: Processes.ExecutionResult) async throws -> any DiscoveredCommandLineToolSpecInfo) async throws -> any DiscoveredCommandLineToolSpecInfo {
+    public func discoveredCommandLineToolSpecInfo(_ delegate: any CoreClientTargetDiagnosticProducingDelegate, _ toolName: String?, _ commandLine: [String], _ process: @Sendable (_ processResult: Processes.ExecutionResult) async throws -> any DiscoveredCommandLineToolSpecInfo) async throws -> any DiscoveredCommandLineToolSpecInfo {
         try await workspaceContext.discoveredCommandLineToolSpecInfoCache.run(delegate, toolName, commandLine, process)
     }
 
-    package func shouldUseSDKStatCache() async -> Bool {
+    public func shouldUseSDKStatCache() async -> Bool {
         guard UserDefaults.enableSDKStatCaching else { return false }
         if settings.globalScope.evaluate(BuiltinMacros.INDEX_ENABLE_BUILD_ARENA) {
             return false
@@ -846,7 +846,7 @@ package class TaskProducerContext: StaleFileRemovalContext, BuildFileResolution
     }
 
     /// Report an error from task construction.
-    package func error(_ message: String, location: Diagnostic.Location = .unknown, component: Component = .default) {
+    public func error(_ message: String, location: Diagnostic.Location = .unknown, component: Component = .default) {
         if let configuredTarget {
             delegate.error(.overrideTarget(configuredTarget), message, location: location, component: component)
         } else {
@@ -923,7 +923,7 @@ package class TaskProducerContext: StaleFileRemovalContext, BuildFileResolution
         return queue.blocking_sync { Array(onDemandResourcesAssetPacks.values) }
     }
 
-    package func onDemandResourcesAssetPack(for tags: ODRTagSet) -> ODRAssetPackInfo? {
+    public func onDemandResourcesAssetPack(for tags: ODRTagSet) -> ODRAssetPackInfo? {
         guard onDemandResourcesEnabled else { return nil }
         if let r = (queue.blocking_sync { onDemandResourcesAssetPacks[tags] }) { return r }
         let maxPriority = tags.lazy.compactMap { self.onDemandResourcesAssetTagPriority(tag: $0) }.max()
@@ -939,7 +939,7 @@ package class TaskProducerContext: StaleFileRemovalContext, BuildFileResolution
         return info
     }
 
-    package func onDemandResourcesAssetPack(for group: FileToBuildGroup) -> ODRAssetPackInfo? {
+    public func onDemandResourcesAssetPack(for group: FileToBuildGroup) -> ODRAssetPackInfo? {
         guard onDemandResourcesEnabled else { return nil }
         let tags = Set(group.files.flatMap { $0.buildFile?.assetTags ?? Set() })
         guard !tags.isEmpty else { return nil }
@@ -972,7 +972,7 @@ package class TaskProducerContext: StaleFileRemovalContext, BuildFileResolution
     }
 }
 
-package final class TargetTaskProducerContext: TaskProducerContext {
+public final class TargetTaskProducerContext: TaskProducerContext {
     private let targetTaskInfo: TargetTaskInfo
 
     /// A path node representing the tasks necessary to 'prepare-for-index' a target, before any compilation can occur.
@@ -1146,65 +1146,65 @@ package final class TargetTaskProducerContext: TaskProducerContext {
 
 /// `TaskProducerContext` uses reference hashing and equality semantics.
 extension TaskProducerContext: Hashable {
-    package func hash(into hasher: inout Hasher) {
+    public func hash(into hasher: inout Hasher) {
         hasher.combine(ObjectIdentifier(self))
     }
 
-    package static func ==(lhs: TaskProducerContext, rhs: TaskProducerContext) -> Bool {
+    public static func ==(lhs: TaskProducerContext, rhs: TaskProducerContext) -> Bool {
         return lhs === rhs
     }
 }
 
 extension TaskProducerContext: CommandProducer {
-    package var preferredArch: String? {
+    public var preferredArch: String? {
         return settings.preferredArch
     }
 
-    package var productType: ProductTypeSpec? {
+    public var productType: ProductTypeSpec? {
         return settings.productType
     }
 
-    package var sdk: SDK? {
+    public var sdk: SDK? {
         return settings.sdk
     }
 
-    package var sdkVariant: SDKVariant? {
+    public var sdkVariant: SDKVariant? {
         return settings.sdkVariant
     }
 
-    package var platform: SWBCore.Platform? {
+    public var platform: SWBCore.Platform? {
         return settings.platform
     }
 
-    package var toolchains: [Toolchain] {
+    public var toolchains: [Toolchain] {
         return settings.toolchains
     }
 
-    package var sparseSDKs: [SDK] {
+    public var sparseSDKs: [SDK] {
         return settings.sparseSDKs
     }
 
-    package var executableSearchPaths: StackedSearchPath {
+    public var executableSearchPaths: StackedSearchPath {
         return settings.executableSearchPaths
     }
 
-    package var moduleInfo: ModuleInfo? {
+    public var moduleInfo: ModuleInfo? {
         return globalProductPlan.getModuleInfo(configuredTarget!)
     }
 
-    package var userPreferences: UserPreferences {
+    public var userPreferences: UserPreferences {
         workspaceContext.userPreferences
     }
 
-    package var hostOperatingSystem: OperatingSystem {
+    public var hostOperatingSystem: OperatingSystem {
         workspaceContext.core.hostOperatingSystem
     }
 
-    package var needsVFS: Bool {
+    public var needsVFS: Bool {
         return globalProductPlan.needsVFS
     }
 
-    package var generateAssemblyCommands: Bool {
+    public var generateAssemblyCommands: Bool {
         if case .generateAssemblyCode = globalProductPlan.planRequest.buildRequest.buildCommand {
             return true
         } else {
@@ -1212,7 +1212,7 @@ extension TaskProducerContext: CommandProducer {
         }
     }
 
-    package var generatePreprocessCommands: Bool {
+    public var generatePreprocessCommands: Bool {
         if case .generatePreprocessedFile = globalProductPlan.planRequest.buildRequest.buildCommand {
             return true
         } else {
@@ -1220,27 +1220,27 @@ extension TaskProducerContext: CommandProducer {
         }
     }
 
-    package var filePathResolver: FilePathResolver {
+    public var filePathResolver: FilePathResolver {
         return settings.filePathResolver
     }
 
-    package var specRegistry: SpecRegistry {
+    public var specRegistry: SpecRegistry {
         return platform?.specRegistryProvider.specRegistry ?? globalProductPlan.planRequest.workspaceContext.core.specRegistry
     }
 
-    package var signingSettings: Settings.SigningSettings? {
+    public var signingSettings: Settings.SigningSettings? {
         return settings.signingSettings
     }
 
-    package var xcodeProductBuildVersion: ProductBuildVersion? {
+    public var xcodeProductBuildVersion: ProductBuildVersion? {
         return workspaceContext.core.xcodeProductBuildVersion
     }
 
-    package func expandedSearchPaths(for items: [String], scope: MacroEvaluationScope) -> [String] {
+    public func expandedSearchPaths(for items: [String], scope: MacroEvaluationScope) -> [String] {
         return globalProductPlan.expandedSearchPaths(for: items, relativeTo: defaultWorkingDirectory, scope: scope)
     }
 
-    package func targetSwiftDependencyScopes(for target: ConfiguredTarget, arch: String, variant: String) -> [MacroEvaluationScope] {
+    public func targetSwiftDependencyScopes(for target: ConfiguredTarget, arch: String, variant: String) -> [MacroEvaluationScope] {
         let initialDeps = globalProductPlan.dependencies(of: target)
         var (allDeps, _) = transitiveClosure(initialDeps) {
             globalProductPlan.dependencies(of: $0)
@@ -1290,12 +1290,12 @@ extension TaskProducerContext: CommandProducer {
         }
     }
 
-    package var swiftMacroImplementationDescriptors: Set<SWBCore.SwiftMacroImplementationDescriptor>? {
+    public var swiftMacroImplementationDescriptors: Set<SWBCore.SwiftMacroImplementationDescriptor>? {
         configuredTarget.flatMap { globalProductPlan.swiftMacroImplementationDescriptorsByTarget[$0] }
     }
 
     /// Returns true if eager linking is supported in this context and scope. The eager linking optimization is only permitted if certain criteria are met.
-    package func supportsEagerLinking(scope: MacroEvaluationScope) -> Bool {
+    public func supportsEagerLinking(scope: MacroEvaluationScope) -> Bool {
         let buildComponents = scope.evaluate(BuiltinMacros.BUILD_COMPONENTS)
         // Currently, eager linking (using TBDs to unblock linking early within a build invocation) and building with installapi (using TBDs to unblock linking between build invocations) are mutually exclusive.
         return buildComponents.contains("build") &&
@@ -1309,11 +1309,11 @@ extension TaskProducerContext: CommandProducer {
             !linkedLibrariesMayIntroduceExportedSymbols(scope: scope) // We must not be linking anything that introduces exported symbols
     }
 
-    package func projectHeaderInfo(for target: Target) async -> ProjectHeaderInfo? {
+    public func projectHeaderInfo(for target: Target) async -> ProjectHeaderInfo? {
         return await workspaceContext.headerIndex.projectHeaderInfo[workspaceContext.workspace.project(for: target)]
     }
 
-    package var canConstructAppIntentsMetadataTask: Bool {
+    public var canConstructAppIntentsMetadataTask: Bool {
         let scope = settings.globalScope
         let buildComponents = scope.evaluate(BuiltinMacros.BUILD_COMPONENTS)
         let isBuild = buildComponents.contains("build")
@@ -1331,7 +1331,7 @@ extension TaskProducerContext: CommandProducer {
         return result
     }
 
-    package var canConstructAppIntentsSSUTask: Bool {
+    public var canConstructAppIntentsSSUTask: Bool {
         let scope = settings.globalScope
         let buildComponents = scope.evaluate(BuiltinMacros.BUILD_COMPONENTS)
         let isBuild = buildComponents.contains("build")
@@ -1346,25 +1346,25 @@ extension TaskProducerContext: CommandProducer {
                 isBundleProductType)
     }
 
-    package var targetRequiredToBuildForIndexing: Bool {
+    public var targetRequiredToBuildForIndexing: Bool {
         guard let configuredTarget else { return false }
         return globalProductPlan.targetsRequiredToBuildForIndexing.contains(configuredTarget)
     }
 
-    package var targetShouldBuildModuleForInstallAPI: Bool {
+    public var targetShouldBuildModuleForInstallAPI: Bool {
         guard let configuredTarget else { return false }
         return globalProductPlan.targetsWhichShouldBuildModulesDuringInstallAPI?.contains(configuredTarget) ?? false
     }
 
-    package var supportsCompilationCaching: Bool {
+    public var supportsCompilationCaching: Bool {
         return Settings.supportsCompilationCaching(workspaceContext.core)
     }
 
-    package var systemInfo: SystemInfo? {
+    public var systemInfo: SystemInfo? {
         return workspaceContext.systemInfo
     }
 
-    package func lookupLibclang(path: SWBUtil.Path) -> (libclang: SWBCore.Libclang?, version: Version?) {
+    public func lookupLibclang(path: SWBUtil.Path) -> (libclang: SWBCore.Libclang?, version: Version?) {
         workspaceContext.core.lookupLibclang(path: path)
     }
 }
