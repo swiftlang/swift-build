@@ -21,6 +21,7 @@ private import SWBApplePlatform
 private import SWBGenericUnixPlatform
 private import SWBQNXPlatform
 private import SWBUniversalPlatform
+private import SWBWebAssemblyPlatform
 private import SWBWindowsPlatform
 #endif
 
@@ -95,6 +96,9 @@ extension Core {
             }
             if !skipLoadingPluginsNamed.contains("com.apple.dt.SWBUniversalPlatformPlugin") {
                 SWBUniversalPlatform.initializePlugin(pluginManager)
+            }
+            if !skipLoadingPluginsNamed.contains("com.apple.dt.SWBWebAssemblyPlatformPlugin") {
+                SWBWebAssemblyPlatform.initializePlugin(pluginManager)
             }
             if !skipLoadingPluginsNamed.contains("com.apple.dt.SWBWindowsPlatformPlugin") {
                 SWBWindowsPlatform.initializePlugin(pluginManager)
