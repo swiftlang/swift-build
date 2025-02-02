@@ -128,8 +128,10 @@ fileprivate struct SerializationPerfTests: CoreBasedTests, PerfTests {
                 for _ in 0..<1000 {
                     let dsz = MsgPackDeserializer(sz.byteString, delegate: delegate)
                     let dszScope: MacroEvaluationScope = try dsz.deserialize()
+                    let name = scope.evaluateAsString(try #require(scope.namespace.lookupMacroDeclaration("PROJECT_NAME")))
+                    let dszName = dszScope.evaluateAsString(try #require(dszScope.namespace.lookupMacroDeclaration("PROJECT_NAME")))
 
-                    #expect(try scope.evaluateAsString(try #require(scope.namespace.lookupMacroDeclaration("PROJECT_NAME"))) == dszScope.evaluateAsString(try #require(dszScope.namespace.lookupMacroDeclaration("PROJECT_NAME"))))
+                    #expect(name == dszName)
                 }
             }
         }
