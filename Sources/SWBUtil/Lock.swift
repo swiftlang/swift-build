@@ -10,7 +10,7 @@
 //
 //===----------------------------------------------------------------------===//
 
-public import SWBLibc
+private import SWBLibc
 
 // FIXME: Replace the contents of this file with the Swift standard library's Mutex type once it's available everywhere we deploy.
 

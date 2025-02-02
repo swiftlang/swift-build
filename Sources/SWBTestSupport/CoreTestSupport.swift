@@ -10,7 +10,7 @@
 //
 //===----------------------------------------------------------------------===//
 
-package import Foundation
+private import Foundation
 @_spi(Testing) package import SWBCore
 package import SWBUtil
 import SWBTaskConstruction

@@ -11,7 +11,11 @@
 //===----------------------------------------------------------------------===//
 
 public import SWBUtil
+#if os(Windows)
+private import SWBLibc
+#else
 public import SWBLibc
+#endif
 
 // Re-export all APIs from llbuild bindings.
 @_exported public import llbuild

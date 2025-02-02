@@ -16,8 +16,8 @@ public import SWBUtil
 public import SWBCore
 import SWBCAS
 public import SWBMacro
-public import typealias SWBLLBuild.llbuild_pid_t
-public import protocol SWBLLBuild.ProcessDelegate
+package import typealias SWBLLBuild.llbuild_pid_t
+package import protocol SWBLLBuild.ProcessDelegate
 
 public import struct SWBProtocol.BuildOperationMetrics
 
