@@ -10,7 +10,11 @@
 //
 //===----------------------------------------------------------------------===//
 
+#if os(Windows)
+private import Foundation
+#else
 public import Foundation
+#endif
 
 import SwiftDriver
 import TSCBasic

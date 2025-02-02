@@ -10,7 +10,7 @@
 //
 //===----------------------------------------------------------------------===//
 
-public import SWBUtil
+package import SWBUtil
 package import Testing
 
 package indirect enum StringPattern: Sendable {
