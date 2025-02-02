@@ -319,7 +319,7 @@ public final class CodesignToolSpec : CommandLineToolSpec, SpecIdentifierType {
     }
 
 
-    /// Computes the enviornment for invoking the code signing tool.
+    /// Computes the environment for invoking the code signing tool.
     ///
     /// - Parameters:
     ///   - cbc: The command build context.
