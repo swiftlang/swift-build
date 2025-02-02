@@ -10,9 +10,9 @@
 //
 //===----------------------------------------------------------------------===//
 
-package import SWBCore
+public import SWBCore
 import SWBLibc
-package import SWBUtil
+public import SWBUtil
 package import SWBMacro
 
 /// Convenience initializers for FileToBuild.
@@ -27,7 +27,7 @@ extension FileToBuild {
 
 
 extension TaskProducerContext: InputFileGroupingStrategyContext {
-    package var fs: any FSProxy {
+    public var fs: any FSProxy {
         return workspaceContext.fs
     }
 }
