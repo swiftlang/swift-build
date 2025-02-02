@@ -316,7 +316,7 @@ public final class Workspace: ProjectModelItem, PIFObject, ReferenceLookupContex
 
     /// Resolve the reference for the given GUID.
     //
-    // FIXME: This is fairly unfortunate, from a performance perspective, we could have pre-bound these things at load time; except that we reuse loaded objects during incremental PIF loading, so we need to guarantee that they are self-contained and don't contain external references. For now, we manage this by defering the lookup until runtime. See:
+    // FIXME: This is fairly unfortunate, from a performance perspective, we could have pre-bound these things at load time; except that we reuse loaded objects during incremental PIF loading, so we need to guarantee that they are self-contained and don't contain external references. For now, we manage this by deferring the lookup until runtime. See:
     public func lookupReference(for guid: String ) -> Reference? {
         return referencesByGUID[guid]
     }
