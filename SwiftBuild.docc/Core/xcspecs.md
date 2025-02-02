@@ -613,7 +613,7 @@ Compiler specs support the following keys, in addition to those supported by its
      - *Custom*
      - **Optional**
 
-     - A specifier for the architectures the compiler supports. If omitted, the compiler is expected to support any archicture.
+     - A specifier for the architectures the compiler supports. If omitted, the compiler is expected to support any architecture.
 
        If present, the value must be either a string list containing the exact names of real architectures which are supported, or it can be the sentinel value `$(VALID_ARCHS)` indicating that the compiler supports all current valid architectures.
 
