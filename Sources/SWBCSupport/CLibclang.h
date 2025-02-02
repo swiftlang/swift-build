@@ -205,7 +205,7 @@ bool libclang_scanner_scan_dependencies(
 /// \param argc - The number of environment bindings.
 /// \param envp - A null terminated array of KEY=VALUE pairs (`envp`-style).
 /// \returns True on success, false on failure (including if the libclang cannot
-/// suport).
+/// support).
 bool libclang_driver_get_actions(libclang_t wrapped_lib,
                                  int argc,
                                  char* const* argv,
