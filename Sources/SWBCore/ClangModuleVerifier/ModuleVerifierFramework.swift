@@ -62,7 +62,7 @@ public struct ModuleVerifierFramework {
         var privateModuleMap: ModuleVerifierModuleMap? = nil
 
         /*
-         *  There are several possible module map senarios this is trying to sort out
+         *  There are several possible module map scenarios this is trying to sort out
          *    - public and private headers and module maps
          *    - public headers and module maps only
          *    - private headers and module maps only
