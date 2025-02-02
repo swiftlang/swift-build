@@ -87,7 +87,7 @@ public final class ProductPackagingToolSpec : GenericCommandLineToolSpec, SpecId
                 let isHardenedRuntimeEnabled = cbc.scope.evaluate(BuiltinMacros.ENABLE_HARDENED_RUNTIME)
 
                 // rdar://142845111 (Turn on `AppSandboxConflictingValuesEmitsWarning` by default)
-                if SWBFeatureFlag.enableAppSandboxConflictingValuesEmitsWarning {
+                if SWBFeatureFlag.enableAppSandboxConflictingValuesEmitsWarning.value {
                     EntitlementConflictDiagnosticEmitter.checkForConflicts(cbc, delegate, entitlementsDictionary: entitlementsDictionary)
                 }
 

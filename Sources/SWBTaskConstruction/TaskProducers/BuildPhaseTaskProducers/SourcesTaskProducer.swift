@@ -835,7 +835,7 @@ final class SourcesTaskProducer: FilesBasedBuildPhaseTaskProducerBase, FilesBase
                 let objectsInFrameworkPhase = librariesToLink.filter{ $0.kind == .object }
                 linkerInputNodes.append(contentsOf: objectsInFrameworkPhase.map{ $0.path }.map(context.createNode))
 
-                if !SWBFeatureFlag.enableLinkerInputsFromLibrarySpecifiers {
+                if !SWBFeatureFlag.enableLinkerInputsFromLibrarySpecifiers.value {
                     // If this flag isn't enabled we still want the dylib to be a dependency for this task.
                     // This is a fallback to add the dependency because if the feature flag is false we
                     // still want this to be a dependency. If the feature flag is turned on by default

@@ -607,7 +607,7 @@ fileprivate struct UnitTestBuildOperationTests: CoreBasedTests {
             // Validate a null build.
             try await tester.checkBuild(parameters: params, schemeCommand: .test, persistent: true, signableTargets: signableTargets) { results in
                 // Check that no tasks ran.
-                if SWBFeatureFlag.performOwnershipAnalysis {
+                if SWBFeatureFlag.performOwnershipAnalysis.value {
                     results.consumeTasksMatchingRuleTypes(["ClangStatCache"])
                     results.checkNoTask()
                 } else {

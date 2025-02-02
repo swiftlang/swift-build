@@ -229,7 +229,7 @@ fileprivate struct MissingSDKFrameworksDiagnosticsTests: CoreBasedTests {
 
                     results.checkError(.prefix("Command SwiftEmitModule failed."))
                     results.checkError(.prefix("Command SwiftCompile failed."))
-                    if !SWBFeatureFlag.performOwnershipAnalysis {
+                    if !SWBFeatureFlag.performOwnershipAnalysis.value {
                         for _ in 0..<4 { results.checkError(.contains("No such file or directory (2) (for task: [\"Copy\"")) }
                     }
                 case "WatchKit":
@@ -239,7 +239,7 @@ fileprivate struct MissingSDKFrameworksDiagnosticsTests: CoreBasedTests {
                     results.checkError(.equal("\(tmpDirPath.str)/Test/aProject/Source.swift:1:8: [Swift Compiler Error] WatchKit is not available when building for Mac Catalyst. Consider using `#if canImport(WatchKit)` to conditionally import this framework. (for task: [\"SwiftEmitModule\", \"normal\", \"x86_64\", \"Emitting module for Foo\"])"))
                     results.checkError(.prefix("Command SwiftEmitModule failed."))
                     results.checkError(.prefix("Command SwiftCompile failed."))
-                    if !SWBFeatureFlag.performOwnershipAnalysis {
+                    if !SWBFeatureFlag.performOwnershipAnalysis.value {
                         for _ in 0..<4 { results.checkError(.contains("No such file or directory (2) (for task: [\"Copy\"")) }
                     }
                 case "OpenGLES":
@@ -249,7 +249,7 @@ fileprivate struct MissingSDKFrameworksDiagnosticsTests: CoreBasedTests {
                     results.checkError(.equal("\(tmpDirPath.str)/Test/aProject/Source.swift:1:8: [Swift Compiler Error] OpenGLES is deprecated and is not available when building for Mac Catalyst. Consider migrating to Metal instead, or use `#if canImport(OpenGLES)` to conditionally import this framework. (for task: [\"SwiftEmitModule\", \"normal\", \"x86_64\", \"Emitting module for Foo\"])"))
                     results.checkError(.prefix("Command SwiftEmitModule failed."))
                     results.checkError(.prefix("Command SwiftCompile failed."))
-                    if !SWBFeatureFlag.performOwnershipAnalysis {
+                    if !SWBFeatureFlag.performOwnershipAnalysis.value {
                         for _ in 0..<4 { results.checkError(.contains("No such file or directory (2) (for task: [\"Copy\"")) }
                     }
                 case "UIKit":
@@ -259,7 +259,7 @@ fileprivate struct MissingSDKFrameworksDiagnosticsTests: CoreBasedTests {
                     results.checkError(.equal("\(tmpDirPath.str)/Test/aProject/Source.swift:1:8: [Swift Compiler Error] UIKit is not available when building for macOS. Consider using `#if canImport(UIKit)` to conditionally import this framework. (for task: [\"SwiftEmitModule\", \"normal\", \"x86_64\", \"Emitting module for Foo\"])"))
                     results.checkError(.prefix("Command SwiftEmitModule failed."))
                     results.checkError(.prefix("Command SwiftCompile failed."))
-                    if !SWBFeatureFlag.performOwnershipAnalysis {
+                    if !SWBFeatureFlag.performOwnershipAnalysis.value {
                         for _ in 0..<4 { results.checkError(.contains("No such file or directory (2) (for task: [\"Copy\"")) }
                     }
                 default:

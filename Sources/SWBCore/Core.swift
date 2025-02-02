@@ -28,7 +28,7 @@ public protocol CoreDelegate: DiagnosticProducingDelegate, Sendable {
 }
 
 public extension CoreDelegate {
-    var enableOptimizationRemarksParsing: Bool { return SWBFeatureFlag.enableOptimizationRemarksParsing }
+    var enableOptimizationRemarksParsing: Bool { return SWBFeatureFlag.enableOptimizationRemarksParsing.value }
 }
 
 /// This object wraps access to all of the core objects which are loaded as part of Xcode, such as the build system specifications.

@@ -285,8 +285,8 @@ public final class BuildRequest: CustomStringConvertible, Sendable {
         self.useDryRun = useDryRun
         self.enableStaleFileRemoval = enableStaleFileRemoval ?? UserDefaults.enableBuildSystemStaleFileRemoval
         self.showNonLoggedProgress = showNonLoggedProgress
-        self.recordBuildBacktraces = recordBuildBacktraces ?? SWBFeatureFlag.enableBuildBacktraceRecording
-        self.generatePrecompiledModulesReport = generatePrecompiledModulesReport ?? SWBFeatureFlag.generatePrecompiledModulesReport
+        self.recordBuildBacktraces = recordBuildBacktraces ?? SWBFeatureFlag.enableBuildBacktraceRecording.value
+        self.generatePrecompiledModulesReport = generatePrecompiledModulesReport ?? SWBFeatureFlag.generatePrecompiledModulesReport.value
         self.buildDescriptionID = buildDescriptionID
         self.qos = qos ?? UserDefaults.defaultRequestQoS
         self.buildPlanDiagnosticsDirPath = buildPlanDiagnosticsDirPath

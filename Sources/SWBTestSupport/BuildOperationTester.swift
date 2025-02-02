@@ -1315,7 +1315,7 @@ package final class BuildOperationTester {
         }
 
         // Initial code to enable the proper setting overrides for when specialization is enabled. This is only a partial implementation for early testing.
-        let specializationEnabled = SWBFeatureFlag.allowTargetPlatformSpecialization
+        let specializationEnabled = SWBFeatureFlag.allowTargetPlatformSpecialization.value
         if let destination = runDestination, specializationEnabled {
             overrides["SDKROOT"] = destination.sdk
             if let variant = destination.sdkVariant {

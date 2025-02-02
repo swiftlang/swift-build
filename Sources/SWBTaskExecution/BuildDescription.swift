@@ -625,7 +625,7 @@ package final class BuildDescriptionBuilder {
             "name": encodeIfNeeded("basic"),
             "version": ByteString(encodingAsUTF8: String(BuildDescription.manifestClientVersion)),
             "file-system": encodeIfNeeded(ByteString(encodingAsUTF8: fs.fileSystemMode.manifestLabel)),
-            "perform-ownership-analysis": SWBFeatureFlag.performOwnershipAnalysis ? encodeIfNeeded("yes") : encodeIfNeeded("no")
+            "perform-ownership-analysis": SWBFeatureFlag.performOwnershipAnalysis.value ? encodeIfNeeded("yes") : encodeIfNeeded("no")
         ]
 
         let sections = [
@@ -1205,7 +1205,7 @@ extension BuildDescription {
             }
         }
 
-        if SWBFeatureFlag.performOwnershipAnalysis == false {
+        if SWBFeatureFlag.performOwnershipAnalysis.value == false {
             struct DirectoryOutputs {
                 private var paths = [Path: [any PlannedTask]]()
                 private(set) var diagnostics: [ConfiguredTarget?: [Diagnostic]] = [:]

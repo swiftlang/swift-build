@@ -656,7 +656,7 @@ package final class BuildOperation: BuildSystemOperation {
             }
         }
 
-        if SWBFeatureFlag.enableCacheMetricsLogs {
+        if SWBFeatureFlag.enableCacheMetricsLogs.value {
             adaptor.withActivity(ruleInfo: "CacheMetrics", executionDescription: "Report cache metrics", signature: "cache_metrics", target: nil, parentActivity: nil) { activity in
                 struct AllCounters: Encodable {
                     var global: [String: Double] = [:]
@@ -2047,7 +2047,7 @@ internal final class OperationSystemAdaptor: SWBLLBuild.BuildSystemDelegate, Act
 
             missingoutputs: do {
                 // NOTE: We shouldn't enable this by default because some critical tasks declare outputs which they don't always produce (specifically CompileAssetCatalog and Assets.car, and CodeSign and _CodeSignature).
-                if !SWBFeatureFlag.enableValidateDependenciesOutputs {
+                if !SWBFeatureFlag.enableValidateDependenciesOutputs.value {
                     break missingoutputs
                 }
 

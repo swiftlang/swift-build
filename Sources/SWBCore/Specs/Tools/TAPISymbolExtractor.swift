@@ -34,7 +34,7 @@ final public class TAPISymbolExtractor: GenericCompilerSpec, GCCCompatibleCompil
     // - This build is using clang and not TAPI (check the IDEDocumentationEnableClangExtractAPI feature flag)
     // - The installed version of clang actually supports it
     static private func supportsPlusPlus(cbc: CommandBuildContext, clangCompilerInfo: (any DiscoveredCommandLineToolSpecInfo)?) -> Bool {
-        guard SWBFeatureFlag.enableClangExtractAPI, let clangCompilerInfo else {
+        guard SWBFeatureFlag.enableClangExtractAPI.value, let clangCompilerInfo else {
             return false
         }
         return clangCompilerInfo.hasFeature(DiscoveredClangToolSpecInfo.FeatureFlag.extractAPISupportsCPlusPlus.rawValue)

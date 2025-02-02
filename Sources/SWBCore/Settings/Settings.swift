@@ -543,7 +543,7 @@ final class WorkspaceSettings {
         // Enable the integrated driver
         table.push(BuiltinMacros.SWIFT_USE_INTEGRATED_DRIVER, literal: true)
 
-        if SWBFeatureFlag.enableEagerLinkingByDefault {
+        if SWBFeatureFlag.enableEagerLinkingByDefault.value {
             table.push(BuiltinMacros.EAGER_LINKING, literal: true)
         }
 
@@ -558,23 +558,23 @@ final class WorkspaceSettings {
         table.push(BuiltinMacros.ENABLE_ADDITIONAL_CODESIGN_INPUT_TRACKING_FOR_SCRIPT_OUTPUTS, literal: true)
 
         /// <rdar://problem/59862065> Remove EnableInstallHeadersFiltering after validation
-        if SWBFeatureFlag.enableInstallHeadersFiltering {
+        if SWBFeatureFlag.enableInstallHeadersFiltering.value {
             table.push(BuiltinMacros.EXPERIMENTAL_ALLOW_INSTALL_HEADERS_FILTERING, literal: true)
         }
 
-        if SWBFeatureFlag.enableClangExplicitModulesByDefault {
+        if SWBFeatureFlag.enableClangExplicitModulesByDefault.value {
             table.push(BuiltinMacros._EXPERIMENTAL_CLANG_EXPLICIT_MODULES, literal: true)
         }
 
-        if SWBFeatureFlag.enableSwiftExplicitModulesByDefault {
+        if SWBFeatureFlag.enableSwiftExplicitModulesByDefault.value {
             table.push(BuiltinMacros._EXPERIMENTAL_SWIFT_EXPLICIT_MODULES, literal: .enabled)
         }
 
-        if SWBFeatureFlag.enableClangCachingByDefault {
+        if SWBFeatureFlag.enableClangCachingByDefault.value {
             table.push(BuiltinMacros.CLANG_ENABLE_COMPILE_CACHE, literal: .enabled)
         }
 
-        if SWBFeatureFlag.enableSwiftCachingByDefault {
+        if SWBFeatureFlag.enableSwiftCachingByDefault.value {
             table.push(BuiltinMacros.SWIFT_ENABLE_COMPILE_CACHE, literal: .enabled)
         }
 
@@ -769,7 +769,7 @@ public final class Settings: PlatformBuildContext, Sendable {
 
     public static func targetPlatformSpecializationEnabled(scope: MacroEvaluationScope) -> Bool {
         return scope.evaluate(BuiltinMacros.ALLOW_TARGET_PLATFORM_SPECIALIZATION) ||
-            SWBFeatureFlag.allowTargetPlatformSpecialization
+            SWBFeatureFlag.allowTargetPlatformSpecialization.value
     }
 
     public var enableBuildRequestOverrides: Bool {
@@ -3880,7 +3880,7 @@ private class SettingsBuilder {
 
         table.push(BuiltinMacros.ACTION, literal: parameters.action.actionName)
         table.push(BuiltinMacros.BUILD_COMPONENTS, literal: parameters.action.buildComponents)
-        if parameters.action.isInstallAction || SWBFeatureFlag.useHierarchicalBuiltProductsDir {
+        if parameters.action.isInstallAction || SWBFeatureFlag.useHierarchicalBuiltProductsDir.value {
             table.push(BuiltinMacros.DEPLOYMENT_LOCATION, literal: true)
         }
         if parameters.action.isInstallAction {
