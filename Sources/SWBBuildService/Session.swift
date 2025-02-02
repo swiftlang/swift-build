@@ -73,7 +73,7 @@ package final class Session {
             session.currentPIFTransferOperation = nil
         }
 
-        /// Continue the operation, either completing it if all data is transfered, or reporting on the remaining objects to transfer.
+        /// Continue the operation, either completing it if all data is transferred, or reporting on the remaining objects to transfer.
         func continueOperation() -> Status {
             let missingObjects = Array(loadingSession.missingObjects)
             if missingObjects.isEmpty {
