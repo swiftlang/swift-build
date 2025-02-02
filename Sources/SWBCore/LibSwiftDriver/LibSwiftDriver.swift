@@ -639,7 +639,7 @@ public final class SwiftCachedCompilation {
     }
 }
 
-/// SwiftCachedOuput wraps CachedOutput from SwiftDriver
+/// SwiftCachedOutput wraps CachedOutput from SwiftDriver
 public final class SwiftCachedOutput {
     let cachedOutput: CachedOutput
 
