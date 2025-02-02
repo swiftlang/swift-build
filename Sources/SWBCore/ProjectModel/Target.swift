@@ -78,7 +78,7 @@ public final class CustomTask: ProjectModelItem {
 }
 
 
-// MARK: Target Depedency Info
+// MARK: Target Dependency Info
 
 public final class TargetDependency: ProjectModelItem, Encodable
 {
