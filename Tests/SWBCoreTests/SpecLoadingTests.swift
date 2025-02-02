@@ -884,6 +884,13 @@ import SWBMacro
         XCTAssertMatch(errors[0], .prefix("unexpected item: \"arm64e\" while parsing key Architectures"))
     }
 
+    @Test
+    func environmentVariableConsistentOrdering() async throws {
+        let core = try await getCore()
+        let migSpec: CompilerSpec = try core.specRegistry.getSpec("com.apple.compilers.mig") as CompilerSpec
+        #expect(migSpec.environmentVariables?.map({ $0.0 }) == ["DEVELOPER_DIR", "SDKROOT", "TOOLCHAINS"])
+    }
+
     /// Test that loading concrete compiler specs in our Xcode install work as expected.
     @Test
     func concreteCompilerSpecLoading() async throws {

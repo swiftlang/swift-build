@@ -327,7 +327,7 @@ open class CommandLineToolSpec : PropertyDomainSpec, SpecType, TaskTypeDescripti
     @_spi(Testing) public let outputs: [MacroStringExpression]?
 
     /// The additional environment variables to provide to instances of the tool.
-    let environmentVariables: [(String, MacroStringExpression)]?
+    @_spi(Testing) public let environmentVariables: [(String, MacroStringExpression)]?
 
     /// The path of the additional "generated Info.plist" content, if used.
     let generatedInfoPlistContent: MacroStringExpression?
@@ -547,7 +547,7 @@ open class CommandLineToolSpec : PropertyDomainSpec, SpecType, TaskTypeDescripti
         if let envVariables = parser.parseObject("EnvironmentVariables", inherited: false) {
             if case .plDict(let items) = envVariables {
                 var variables: [(String, MacroStringExpression)] = []
-                for (key,valueData) in items {
+                for (key,valueData) in items.sorted(by: \.0) {
                     guard case .plString(let value) = valueData else {
                         parser.error("invalid value for '\(key)' key in 'EnvironmentVariables' (expected string)")
                         continue
