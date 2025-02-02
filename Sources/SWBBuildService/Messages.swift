@@ -1256,7 +1256,7 @@ final package class BuildDependencyInfoOperation: InfoOperation, TargetDependenc
 ///
 /// Presently this involves getting the target build phase for the request, and then for each target extracting configuration info as well as relevant inputs and outputs that target declares.
 ///
-/// In the future this could perform a full task construction and examine the individual tasks to get a more complete set of information, but that apporach is hypothetical at this time.
+/// In the future this could perform a full task construction and examine the individual tasks to get a more complete set of information, but that approach is hypothetical at this time.
 private struct DumpBuildDependencyInfoMsg: MessageHandler {
     fileprivate static let serializationQueue = ActorLock()
 
