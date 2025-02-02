@@ -65,7 +65,7 @@
             // Each dictionary key is the macro expression to evaluate
             // The dictionary value contains the error message to display if the condition evaluates to false.
             Checks = {
-                // This is intentially empty as currently all of the checks are done in-code for this particular application type. However, we enable the plubmbing for the validation tool spec infrastructure to be called to avoid any further hacks in Swift Build. This is to enable rdar://problem/45590882.
+                // This is intentionally empty as currently all of the checks are done in-code for this particular application type. However, we enable the plumbing for the validation tool spec infrastructure to be called to avoid any further hacks in Swift Build. This is to enable rdar://problem/45590882.
             };
 
             // Determines if the legacy build system has support for this validation hook. This is a workaround for enabling additional validation in Swift Build (specifically for rdar://problem/45590882).

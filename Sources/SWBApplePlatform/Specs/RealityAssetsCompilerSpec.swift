@@ -199,7 +199,7 @@ package final class RealityAssetsCompilerSpec: GenericCompilerSpec, SpecIdentifi
     }
 
     public func constructTasks(_ cbc: CommandBuildContext, _ delegate: any TaskGenerationDelegate, moduleWithDependencies: ModuleWithDependencies) async {
-        // Construct the realitool 'create-schema' preproces swift -> schema .usda task.
+        // Construct the realitool 'create-schema' preprocess swift -> schema .usda task.
         await constructRealityAssetsCreateSchemaTasks(cbc, delegate, moduleWithDependencies: moduleWithDependencies)
     }
 
