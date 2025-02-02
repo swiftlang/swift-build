@@ -1095,7 +1095,7 @@ final class OperationDelegate: BuildOperationDelegate {
         // We also send back a snapshot of the information on the target we have, since we are in a better position to retrieve it (rather than force the client to have an immutable cache).
         //
         // FIXME: Compute configurationIsDefault correctly.
-        // FIXME (rdar://53726633): It's really not safe to be using the `target` property off of the `configuredTarget` due to the fact that this can hold old references to project model items if the PIF/build descriptions are re-used, but the project model instances are re-created. This is a targetted fix for rdar://50962080, which should be address more correctly later.
+        // FIXME (rdar://53726633): It's really not safe to be using the `target` property off of the `configuredTarget` due to the fact that this can hold old references to project model items if the PIF/build descriptions are re-used, but the project model instances are re-created. This is a targeted fix for rdar://50962080, which should be address more correctly later.
         guard let target = workspaceContext.workspace.target(for: configuredTarget.target.guid) else {
             preconditionFailure("Unable to find target '\(configuredTarget.target.name)' in workspace '\(workspaceContext.workspace.name)'.")
         }
