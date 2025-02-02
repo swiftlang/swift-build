@@ -118,8 +118,8 @@ extension ModuleVerifierTargetSet {
         let partitionedTargets = ModuleVerifierTargetSet.partition(targets: targets)
         let partitionedTargetVariants = ModuleVerifierTargetSet.partition(targets: targetVariants)
 
-        diagnostics += ModuleVerifierTargetSet.verifyDupicateArchitecture(partitionedTargets: partitionedTargets)
-        diagnostics += ModuleVerifierTargetSet.verifyDupicateArchitecture(partitionedTargets: partitionedTargetVariants)
+        diagnostics += ModuleVerifierTargetSet.verifyDuplicateArchitecture(partitionedTargets: partitionedTargets)
+        diagnostics += ModuleVerifierTargetSet.verifyDuplicateArchitecture(partitionedTargets: partitionedTargetVariants)
 
         diagnostics += ModuleVerifierTargetSet.verifyMatchingTargetForVariant(partitionedTargets: partitionedTargets, partitionedTargetVariants: partitionedTargetVariants)
 
@@ -136,7 +136,7 @@ extension ModuleVerifierTargetSet {
         return partitionedTargets
     }
 
-    private static func verifyDupicateArchitecture(partitionedTargets: [String: [ModuleVerifierTarget]]) -> [Diagnostic] {
+    private static func verifyDuplicateArchitecture(partitionedTargets: [String: [ModuleVerifierTarget]]) -> [Diagnostic] {
         var diagnostics: [Diagnostic] = []
 
         for (_, targets) in partitionedTargets {
