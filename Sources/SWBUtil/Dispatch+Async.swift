@@ -13,7 +13,7 @@
 // This file contains helpers used to bridge GCD and Swift Concurrency.
 // In the long term, these ideally all go away.
 
-public import Foundation
+import Foundation
 
 /// Runs an async function and synchronously waits for the response.
 /// - warning: This function is extremely dangerous because it blocks the calling thread and may lead to deadlock, and should only be used as a temporary transitional aid.

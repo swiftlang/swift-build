@@ -14,7 +14,7 @@ package import SWBCore
 package import SWBUtil
 import struct SWBProtocol.BuildOperationTaskEnded
 import Foundation
-public import SWBMacro
+package import SWBMacro
 
 // Some things that should probably live in this task producer that might not be immediately obvious:
 //      Emitting an error if PGO is turned on for a target containing Swift files.

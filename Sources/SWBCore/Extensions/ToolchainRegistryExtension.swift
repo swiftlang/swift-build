@@ -11,7 +11,6 @@
 //===----------------------------------------------------------------------===//
 
 public import SWBUtil
-public import SWBMacro
 
 public struct ToolchainRegistryExtensionPoint: ExtensionPoint, Sendable {
     public typealias ExtensionProtocol = ToolchainRegistryExtension
