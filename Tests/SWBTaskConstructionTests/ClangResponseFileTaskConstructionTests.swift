@@ -84,7 +84,7 @@ fileprivate struct ClangResponseFileTaskConstructionTests: CoreBasedTests {
         let runDestination: RunDestinationInfo = .host
         let libtoolPath = try await runDestination == .windows ? self.llvmlibPath : self.libtoolPath
         try await withTemporaryDirectory { tmpDir in
-            let testProject = try await TestProject(
+            let testProject = TestProject(
                 "aProject",
                 sourceRoot: tmpDir,
                 groupTree: TestGroup(

@@ -878,8 +878,8 @@ fileprivate struct SwiftDriverTests: CoreBasedTests {
             tester = try await BuildOperationTester(getCore(), testWorkspace, simulated: false)
             do {
                 // Add project name to the `KnownFailures` and ensure explicit modules are disabled despite the build setting enable
-                let buildParameters = try await BuildParameters(configuration: "Debug",
-                                                                commandLineOverrides: ["SWIFT_ENABLE_EXPLICIT_MODULES":"YES"])
+                let buildParameters = BuildParameters(configuration: "Debug",
+                                                      commandLineOverrides: ["SWIFT_ENABLE_EXPLICIT_MODULES":"YES"])
                 try await tester.fs.writeFileContents(blockListFilePath) { file in
                     file <<<
                             """
