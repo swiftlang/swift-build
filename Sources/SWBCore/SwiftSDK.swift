@@ -10,27 +10,26 @@
 //
 //===----------------------------------------------------------------------===//
 
-import SWBUtil
+public import SWBUtil
 import Foundation
 
 /// Represents a Swift SDK
 ///
 /// See https://github.com/swiftlang/swift-evolution/blob/main/proposals/0387-cross-compilation-destinations.md
-struct SwiftSDK: Sendable {
+public struct SwiftSDK: Sendable {
     struct SchemaVersionInfo: Codable {
         let schemaVersion: String
     }
 
+    public struct TripleProperties: Codable, Sendable {
+        public var sdkRootPath: String
+        public var swiftResourcesPath: String?
+        public var swiftStaticResourcesPath: String?
+        public var includeSearchPaths: [String]?
+        public var librarySearchPaths: [String]?
+        public var toolsetPaths: [String]?
+    }
     struct MetadataV4: Codable {
-        struct TripleProperties: Codable {
-            var sdkRootPath: String
-            var swiftResourcesPath: String?
-            var swiftStaticResourcesPath: String?
-            var includeSearchPaths: [String]?
-            var librarySearchPaths: [String]?
-            var toolsetPaths: [String]?
-        }
-
         let targetTriples: [String: TripleProperties]
     }
 
@@ -45,13 +44,13 @@ struct SwiftSDK: Sendable {
     }
 
     /// The identifier of the artifact bundle containing this SDK.
-    let identifier: String
+    public let identifier: String
     /// The version of the artifact bundle containing this SDK.
-    let version: String
+    public let version: String
     /// The path to the SDK.
-    let path: Path
+    public let path: Path
     /// Target-specific properties for this SDK.
-    let targetTriples: [String: MetadataV4.TripleProperties]
+    public let targetTriples: [String: TripleProperties]
 
     init?(identifier: String, version: String, path: Path, fs: any FSProxy) throws {
         self.identifier = identifier
@@ -82,7 +81,7 @@ struct SwiftSDK: Sendable {
     }
 
     /// Find Swift SDKs installed by SwiftPM.
-    static func findSDKs(targetTriples: [String], fs: any FSProxy) throws -> [SwiftSDK] {
+    public static func findSDKs(targetTriples: [String], fs: any FSProxy) throws -> [SwiftSDK] {
         return try findSDKs(swiftSDKsDirectory: defaultSwiftSDKsDirectory, targetTriples: targetTriples, fs: fs)
     }
 
