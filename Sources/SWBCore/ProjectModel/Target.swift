@@ -323,45 +323,54 @@ public class BuildPhaseTarget: Target
     public let buildPhases: [BuildPhase]
 
     /// The canonical sources build phase in the target, if there is one.  There should only be one in a target; if there is more than one, then a warning will be emitted and the project might not build as expected.
-    public private(set) var sourcesBuildPhase: SourcesBuildPhase? = nil
+    public let sourcesBuildPhase: SourcesBuildPhase?
     /// The canonical frameworks build phase in the target, if there is one.  There should only be one in a target; if there is more than one, then a warning will be emitted and the project might not build as expected.
-    public private(set) var frameworksBuildPhase: FrameworksBuildPhase? = nil
+    public let frameworksBuildPhase: FrameworksBuildPhase?
     /// The canonical headers build phase in the target, if there is one.  There should only be one in a target; if there is more than one, then a warning will be emitted and the project might not build as expected.
-    public private(set) var headersBuildPhase: HeadersBuildPhase? = nil
+    public let headersBuildPhase: HeadersBuildPhase?
     /// The canonical resources build phase in the target, if there is one.  There should only be one in a target; if there is more than one, then a warning will be emitted and the project might not build as expected.
-    public private(set) var resourcesBuildPhase: ResourcesBuildPhase? = nil
+    public let resourcesBuildPhase: ResourcesBuildPhase?
 
     init(_ model: SWBProtocol.BuildPhaseTarget, _ pifLoader: PIFLoader, signature: String) {
         buildPhases = model.buildPhases.map{ BuildPhase.create($0, pifLoader) }
-        super.init(model, pifLoader, signature: signature)
-
         // Populate the convenience build phase properties.
+        var warnings: [String] = []
+        var sourcesBuildPhase: SourcesBuildPhase? = nil
+        var frameworksBuildPhase: FrameworksBuildPhase? = nil
+        var headersBuildPhase: HeadersBuildPhase? = nil
+        var resourcesBuildPhase: ResourcesBuildPhase? = nil
         for buildPhase in self.buildPhases {
             switch buildPhase {
-                case let sourcesBuildPhase as SourcesBuildPhase:
-                    if self.sourcesBuildPhase != nil {
+                case let sourcesPhase as SourcesBuildPhase:
+                    if sourcesBuildPhase != nil {
                         warnings.append("target has multiple \(buildPhase.name) build phases, which may cause it to build incorrectly - all but one should be deleted")
                     }
-                    self.sourcesBuildPhase = sourcesBuildPhase
-                case let frameworksBuildPhase as FrameworksBuildPhase:
-                    if self.frameworksBuildPhase != nil {
+                    sourcesBuildPhase = sourcesPhase
+                case let frameworksPhase as FrameworksBuildPhase:
+                    if frameworksBuildPhase != nil {
                         warnings.append("target has multiple \(buildPhase.name) build phases, which may cause it to build incorrectly - all but one should be deleted")
                     }
-                    self.frameworksBuildPhase = frameworksBuildPhase
-                case let headersBuildPhase as HeadersBuildPhase:
-                    if self.headersBuildPhase != nil {
+                    frameworksBuildPhase = frameworksPhase
+                case let headersPhase as HeadersBuildPhase:
+                    if headersBuildPhase != nil {
                         warnings.append("target has multiple \(buildPhase.name) build phases, which may cause it to build incorrectly - all but one should be deleted")
                     }
-                    self.headersBuildPhase = headersBuildPhase
-                case let resourcesBuildPhase as ResourcesBuildPhase:
-                    if self.resourcesBuildPhase != nil {
+                    headersBuildPhase = headersPhase
+                case let resourcesPhase as ResourcesBuildPhase:
+                    if resourcesBuildPhase != nil {
                         warnings.append("target has multiple \(buildPhase.name) build phases, which may cause it to build incorrectly - all but one should be deleted")
                     }
-                    self.resourcesBuildPhase = resourcesBuildPhase
+                    resourcesBuildPhase = resourcesPhase
                 default:
                     break
             }
         }
+        self.sourcesBuildPhase = sourcesBuildPhase
+        self.frameworksBuildPhase = frameworksBuildPhase
+        self.headersBuildPhase = headersBuildPhase
+        self.resourcesBuildPhase = resourcesBuildPhase
+        super.init(model, pifLoader, signature: signature)
+        self.warnings.append(contentsOf: warnings)
     }
 
     @_spi(Testing) public override init( fromDictionary pifDict: ProjectModelItemPIF, signature: String, withPIFLoader pifLoader: PIFLoader ) throws
@@ -382,37 +391,47 @@ public class BuildPhaseTarget: Target
             }
         }
 
-        try super.init(fromDictionary: pifDict, signature: signature, withPIFLoader: pifLoader)
-
         // Populate the convenience build phase properties.
+        var warnings: [String] = []
+        var sourcesBuildPhase: SourcesBuildPhase? = nil
+        var frameworksBuildPhase: FrameworksBuildPhase? = nil
+        var headersBuildPhase: HeadersBuildPhase? = nil
+        var resourcesBuildPhase: ResourcesBuildPhase? = nil
         for buildPhase in self.buildPhases
         {
             switch buildPhase
             {
-                case let sourcesBuildPhase as SourcesBuildPhase:
-                    if self.sourcesBuildPhase != nil {
+                case let sourcesPhase as SourcesBuildPhase:
+                    if sourcesBuildPhase != nil {
                         warnings.append("target has multiple \(buildPhase.name) build phases, which may cause it to build incorrectly - all but one should be deleted")
                     }
-                    self.sourcesBuildPhase = sourcesBuildPhase
-                case let frameworksBuildPhase as FrameworksBuildPhase:
-                    if self.frameworksBuildPhase != nil {
+                    sourcesBuildPhase = sourcesPhase
+                case let frameworksPhase as FrameworksBuildPhase:
+                    if frameworksBuildPhase != nil {
                         warnings.append("target has multiple \(buildPhase.name) build phases, which may cause it to build incorrectly - all but one should be deleted")
                     }
-                    self.frameworksBuildPhase = frameworksBuildPhase
-                case let headersBuildPhase as HeadersBuildPhase:
-                    if self.headersBuildPhase != nil {
+                    frameworksBuildPhase = frameworksPhase
+                case let headersPhase as HeadersBuildPhase:
+                    if headersBuildPhase != nil {
                         warnings.append("target has multiple \(buildPhase.name) build phases, which may cause it to build incorrectly - all but one should be deleted")
                     }
-                    self.headersBuildPhase = headersBuildPhase
-                case let resourcesBuildPhase as ResourcesBuildPhase:
-                    if self.resourcesBuildPhase != nil {
+                    headersBuildPhase = headersPhase
+                case let resourcesPhase as ResourcesBuildPhase:
+                    if resourcesBuildPhase != nil {
                         warnings.append("target has multiple \(buildPhase.name) build phases, which may cause it to build incorrectly - all but one should be deleted")
                     }
-                    self.resourcesBuildPhase = resourcesBuildPhase
+                    resourcesBuildPhase = resourcesPhase
                 default:
                     break
             }
         }
+        self.sourcesBuildPhase = sourcesBuildPhase
+        self.frameworksBuildPhase = frameworksBuildPhase
+        self.headersBuildPhase = headersBuildPhase
+        self.resourcesBuildPhase = resourcesBuildPhase
+
+        try super.init(fromDictionary: pifDict, signature: signature, withPIFLoader: pifLoader)
+        self.warnings.append(contentsOf: warnings)
     }
 }
 
@@ -484,7 +503,10 @@ public final class StandardTarget: BuildPhaseTarget
     /// The class prefix used in this target
     public let classPrefix: String
 
-    private(set) var provisioningSourceData: [ProvisioningSourceData]
+    private let _provisioningSourceData: UnsafeDelayedInitializationSendableWrapper<[ProvisioningSourceData]> = .init()
+    var provisioningSourceData: [ProvisioningSourceData] {
+        _provisioningSourceData.value
+    }
 
     init(_ model: SWBProtocol.StandardTarget, _ pifLoader: PIFLoader, signature: String) throws {
         buildRules = model.buildRules.map{ BuildRule($0, pifLoader) }
@@ -493,14 +515,15 @@ public final class StandardTarget: BuildPhaseTarget
         isPackageTarget = model.isPackageTarget
         performanceTestsBaselinesPath = model.performanceTestsBaselinesPath != nil ? Path(model.performanceTestsBaselinesPath!) : nil
         predominantSourceCodeLanguage = SourceCodeLanguage.from(string: model.predominantSourceCodeLanguage)
-        provisioningSourceData = model.provisioningSourceData
+        var provisioningSourceData = model.provisioningSourceData
         classPrefix = model.classPrefix ?? ""
         super.init(model, pifLoader, signature: signature)
 
         // Set our product reference's backpointer to ourself.
         productReference.target = self
 
-        try fixupProvisioningSourceData()
+        try StandardTarget.fixupProvisioningSourceData(&provisioningSourceData, name: name, buildConfigurations: buildConfigurations)
+        _provisioningSourceData.initialize(to: provisioningSourceData)
     }
 
     @_spi(Testing) public override init(fromDictionary pifDict: ProjectModelItemPIF, signature: String, withPIFLoader pifLoader: PIFLoader) throws
@@ -525,7 +548,7 @@ public final class StandardTarget: BuildPhaseTarget
         classPrefix = try Self.parseOptionalValueForKeyAsString(PIFKey_Project_classPrefix, pifDict: pifDict) ?? ""
 
         // The list of provisioning source data dictionaries is optional.  For any configurations for which we were not given a provisioning source data object we will create a default one.
-        provisioningSourceData = [ProvisioningSourceData]()
+        var provisioningSourceData = [ProvisioningSourceData]()
 
         if let sourceDataDicts = try Self.parseOptionalValueForKeyAsArrayOfPropertyListItems(PIFKey_Target_provisioningSourceData, pifDict: pifDict) {
             provisioningSourceData = try sourceDataDicts.map { try PropertyList.decode(ProvisioningSourceData.self, from: $0) }
@@ -536,10 +559,11 @@ public final class StandardTarget: BuildPhaseTarget
         // Set our product reference's backpointer to ourself.
         productReference.target = self
 
-        try fixupProvisioningSourceData()
+        try StandardTarget.fixupProvisioningSourceData(&provisioningSourceData, name: name, buildConfigurations: buildConfigurations)
+        _provisioningSourceData.initialize(to: provisioningSourceData)
     }
 
-    private func fixupProvisioningSourceData() throws {
+    private static func fixupProvisioningSourceData(_ provisioningSourceData: inout [ProvisioningSourceData], name: String, buildConfigurations: [BuildConfiguration]) throws {
         // Make sure all of our provisioning source data objects match existing configurations, and that there are no duplicate source data structs for a configuration.
         var configurationNames = Set<String>(buildConfigurations.map({ $0.name }))
         var foundConfigurationNames = Set<String>()

@@ -133,10 +133,11 @@ public final class Core: Sendable {
     /// The configured delegate.
     @_spi(Testing) public let delegate: any CoreDelegate
 
-    // registryDelegate is an implicitly-unwrapped optional var because the delegate refers to the core which creates it, and making it a let property would violate the initialization constraints.
-    //
+    let _registryDelegate: UnsafeDelayedInitializationSendableWrapper<CoreRegistryDelegate> = .init()
     /// The self-referencing delegate to convey information about the core to registry subsystems.
-    private(set) var registryDelegate: CoreRegistryDelegate! = nil
+    var registryDelegate: CoreRegistryDelegate {
+        _registryDelegate.value
+    }
 
     /// The host operating system.
     public let hostOperatingSystem: OperatingSystem
@@ -233,7 +234,7 @@ public final class Core: Sendable {
             return toolchainPaths
         }()
 
-        self.registryDelegate = CoreRegistryDelegate(core: self)
+        _registryDelegate.initialize(to: CoreRegistryDelegate(core: self))
     }
 
     /// The shared core settings object.
