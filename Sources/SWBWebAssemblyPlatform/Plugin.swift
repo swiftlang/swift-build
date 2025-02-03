@@ -32,10 +32,6 @@ struct WebAssemblyPlatformSpecsExtension: SpecificationsExtension {
 }
 
 struct WebAssemblyPlatformExtension: PlatformInfoExtension {
-    func knownDeploymentTargetMacroNames() -> Set<String> {
-        ["WEBASSEMBLY_DEPLOYMENT_TARGET"]
-    }
-
     func additionalPlatforms() -> [(path: Path, data: [String: PropertyListItem])] {
         [
             (.root, [
@@ -127,7 +123,6 @@ struct WebAssemblySDKRegistryExtension: SDKRegistryExtension {
                     "SupportedTargets": .plDict([
                         "webassembly": .plDict([
                             "Archs": .plArray([.plString(arch)]),
-                            "DeploymentTargetSettingName": .plString("WEBASSEMBLY_DEPLOYMENT_TARGET"),
                             "LLVMTargetTripleEnvironment": .plString(env ?? ""),
                             "LLVMTargetTripleSys": .plString(os),
                             "LLVMTargetTripleVendor": .plString("unknown"),
