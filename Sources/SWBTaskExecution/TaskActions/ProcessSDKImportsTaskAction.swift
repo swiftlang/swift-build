@@ -22,7 +22,7 @@ public final class ProcessSDKImportsTaskAction: TaskAction {
     public override func performTaskAction(_ task: any ExecutableTask, dynamicExecutionDelegate: any DynamicTaskExecutionDelegate, executionDelegate: any TaskExecutionDelegate, clientDelegate: any TaskExecutionClientDelegate, outputDelegate: any TaskOutputDelegate) async -> CommandResult {
         let commandLine = Array(task.commandLineAsStrings.suffix(3))
         if commandLine.count != 3, commandLine[0] != "builtin-process-sdk-imports" {
-            outputDelegate.emitError("unexpcetd arguments: \(commandLine)")
+            outputDelegate.emitError("unexpected arguments: \(commandLine)")
             return .failed
         }
         let input = commandLine[1]
