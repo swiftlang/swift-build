@@ -116,11 +116,19 @@ fileprivate struct ServiceConsoleTests {
     }
 }
 
+#if os(Windows)
+private var SYNCHRONIZE: DWORD {
+    DWORD(WinSDK.SYNCHRONIZE)
+}
+
+extension HANDLE: @retroactive @unchecked Sendable {}
+#endif
+
 extension Processes {
     fileprivate static func exitPromise(pid: pid_t) throws -> Promise<Void, any Error> {
         let promise = Promise<Void, any Error>()
         #if os(Windows)
-        guard let proc = OpenProcess(DWORD(SYNCHRONIZE), false, DWORD(pid)) else {
+        guard let proc: HANDLE = OpenProcess(SYNCHRONIZE, false, DWORD(pid)) else {
             throw StubError.error("OpenProcess failed with error \(GetLastError())")
         }
         defer { CloseHandle(proc) }
