@@ -35,7 +35,7 @@ class AbstractCCompilerSpec : CompilerSpec, SpecIdentifierType, GCCCompatibleCom
     }
 }
 
-public struct ClangPrefixInfo: Serializable, Hashable, Encodable {
+public struct ClangPrefixInfo: Serializable, Hashable, Encodable, Sendable {
     let input: Path
     let pch: PCHInfo?
 
