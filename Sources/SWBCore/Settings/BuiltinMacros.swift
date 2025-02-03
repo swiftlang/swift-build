@@ -901,6 +901,7 @@ public final class BuiltinMacros {
     public static let PER_ARCH_CFLAGS = BuiltinMacros.declareStringListMacro("PER_ARCH_CFLAGS")
     public static let PER_ARCH_LD = BuiltinMacros.declareStringMacro("PER_ARCH_LD")
     public static let PER_ARCH_LDPLUSPLUS = BuiltinMacros.declareStringMacro("PER_ARCH_LDPLUSPLUS")
+    public static let PER_ARCH_MODULE_FILE_DIR = BuiltinMacros.declarePathMacro("PER_ARCH_MODULE_FILE_DIR")
     public static let PER_ARCH_OBJECT_FILE_DIR = BuiltinMacros.declarePathMacro("PER_ARCH_OBJECT_FILE_DIR")
     public static let PER_VARIANT_CFLAGS = BuiltinMacros.declareStringListMacro("PER_VARIANT_CFLAGS")
     public static let PER_VARIANT_OBJECT_FILE_DIR = BuiltinMacros.declareStringMacro("PER_VARIANT_OBJECT_FILE_DIR")
@@ -1978,6 +1979,7 @@ public final class BuiltinMacros {
         PER_ARCH_CFLAGS,
         PER_ARCH_LD,
         PER_ARCH_LDPLUSPLUS,
+        PER_ARCH_MODULE_FILE_DIR,
         PER_ARCH_OBJECT_FILE_DIR,
         PER_VARIANT_CFLAGS,
         PER_VARIANT_OBJECT_FILE_DIR,

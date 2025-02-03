@@ -399,10 +399,10 @@ final class SourcesTaskProducer: FilesBasedBuildPhaseTaskProducerBase, FilesBase
                         for arch in scope.evaluate(BuiltinMacros.ARCHS) {
                             let scope = settings.globalScope.subscope(binding: BuiltinMacros.archCondition, to: arch)
                             let moduleName = scope.evaluate(BuiltinMacros.SWIFT_MODULE_NAME)
-                            let objectFileDir = scope.evaluate(BuiltinMacros.PER_ARCH_OBJECT_FILE_DIR)
-                            swiftModulePaths[arch] = objectFileDir.join(moduleName + ".swiftmodule")
+                            let moduleFileDir = scope.evaluate(BuiltinMacros.PER_ARCH_MODULE_FILE_DIR)
+                            swiftModulePaths[arch] = moduleFileDir.join(moduleName + ".swiftmodule")
                             if scope.evaluate(BuiltinMacros.SWIFT_GENERATE_ADDITIONAL_LINKER_ARGS) {
-                                swiftModuleAdditionalLinkerArgResponseFilePaths[arch] = objectFileDir.join("\(moduleName)-linker-args.resp")
+                                swiftModuleAdditionalLinkerArgResponseFilePaths[arch] = moduleFileDir.join("\(moduleName)-linker-args.resp")
                             }
                         }
                     }
