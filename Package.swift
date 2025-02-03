@@ -83,18 +83,21 @@ let package = Package(
                 "SwiftBuild",
                 "SWBBuildServiceBundle", // the CLI needs to launch the service bundle
             ],
+            exclude: ["CMakeLists.txt"],
             swiftSettings: swiftSettings(languageMode: .v6)),
         .executableTarget(
             name: "SWBBuildServiceBundle",
             dependencies: [
                 "SWBBuildService", "SWBBuildSystem", "SWBServiceCore", "SWBUtil", "SWBCore",
             ],
+            exclude: ["CMakeLists.txt"],
             swiftSettings: swiftSettings(languageMode: .v6)),
 
         // Libraries
         .target(
             name: "SwiftBuild",
             dependencies: ["SWBCSupport", "SWBCore", "SWBProtocol", "SWBUtil", "SWBProjectModel"],
+            exclude: ["CMakeLists.txt"],
             swiftSettings: swiftSettings(languageMode: .v5)),
         .target(
             name: "SWBBuildService",
@@ -104,10 +107,12 @@ let package = Package(
                 "SWBTaskExecution",
                 .product(name: "SystemPackage", package: "swift-system", condition: .when(platforms: [.linux, .android, .windows])),
             ],
+            exclude: ["CMakeLists.txt"],
             swiftSettings: swiftSettings(languageMode: .v5)),
         .target(
             name: "SWBBuildSystem",
             dependencies: ["SWBCore", "SWBTaskConstruction", "SWBTaskExecution"],
+            exclude: ["CMakeLists.txt"],
             swiftSettings: swiftSettings(languageMode: .v5)),
         .target(
             name: "SWBCore",
@@ -120,6 +125,7 @@ let package = Package(
                 .product(name: "SwiftDriver", package: "swift-driver"),
                 "SWBLLBuild",
             ],
+            exclude: ["CMakeLists.txt"],
             swiftSettings: swiftSettings(languageMode: .v5),
             plugins: [
                 .plugin(name: "SWBSpecificationsPlugin")
@@ -134,12 +140,13 @@ let package = Package(
             swiftSettings: swiftSettings(languageMode: .v6)),
         .target(
             name: "SWBCLibc",
-            exclude: ["README.md"],
+            exclude: ["CMakeLists.txt", "README.md"],
             publicHeadersPath: ".",
             swiftSettings: swiftSettings(languageMode: .v6)),
         .target(
             name: "SWBLibc",
             dependencies: ["SWBCLibc"],
+            exclude: ["CMakeLists.txt"],
             swiftSettings: swiftSettings(languageMode: .v6)),
         .target(
             name: "SWBLLBuild",
@@ -149,6 +156,7 @@ let package = Package(
                 .product(name: "libllbuild", package: useLocalDependencies ? "llbuild" : "swift-llbuild"),
                 .product(name: "llbuildSwift", package: useLocalDependencies ? "llbuild" : "swift-llbuild"),
             ]),
+            exclude: ["CMakeLists.txt"],
             swiftSettings: swiftSettings(languageMode: .v6)),
         .target(
             name: "SWBMacro",
@@ -156,26 +164,32 @@ let package = Package(
                 "SWBUtil",
                 .product(name: "SwiftDriver", package: "swift-driver"),
             ],
+            exclude: ["CMakeLists.txt"],
             swiftSettings: swiftSettings(languageMode: .v6)),
         .target(
             name: "SWBProjectModel",
             dependencies: ["SWBProtocol"],
+            exclude: ["CMakeLists.txt"],
             swiftSettings: swiftSettings(languageMode: .v6)),
         .target(
             name: "SWBProtocol",
             dependencies: ["SWBUtil"],
+            exclude: ["CMakeLists.txt"],
             swiftSettings: swiftSettings(languageMode: .v6)),
         .target(
             name: "SWBServiceCore",
             dependencies: ["SWBProtocol"],
+            exclude: ["CMakeLists.txt"],
             swiftSettings: swiftSettings(languageMode: .v6)),
         .target(
             name: "SWBTaskConstruction",
             dependencies: ["SWBCore", "SWBUtil"],
+            exclude: ["CMakeLists.txt"],
             swiftSettings: swiftSettings(languageMode: .v5)),
         .target(
             name: "SWBTaskExecution",
             dependencies: ["SWBCore", "SWBUtil", "SWBCAS", "SWBLLBuild", "SWBTaskConstruction"],
+            exclude: ["CMakeLists.txt"],
             swiftSettings: swiftSettings(languageMode: .v5)),
         .target(
             name: "SWBUtil",
@@ -186,39 +200,48 @@ let package = Package(
                 .product(name: "Crypto", package: "swift-crypto", condition: .when(platforms: [.linux, .android])),
                 .product(name: "SystemPackage", package: "swift-system", condition: .when(platforms: [.linux, .android, .windows])),
             ],
+            exclude: ["CMakeLists.txt"],
             swiftSettings: swiftSettings(languageMode: .v5)),
         .target(
             name: "SWBCAS",
             dependencies: ["SWBUtil", "SWBCSupport"],
+            exclude: ["CMakeLists.txt"],
             swiftSettings: swiftSettings(languageMode: .v6)),
 
         .target(
             name: "SWBAndroidPlatform",
             dependencies: ["SWBCore", "SWBMacro", "SWBUtil"],
+            exclude: ["CMakeLists.txt"],
             swiftSettings: swiftSettings(languageMode: .v6)),
         .target(
             name: "SWBApplePlatform",
             dependencies: ["SWBCore", "SWBMacro", "SWBUtil", "SWBTaskConstruction"],
+            exclude: ["CMakeLists.txt"],
             swiftSettings: swiftSettings(languageMode: .v6)),
         .target(
             name: "SWBGenericUnixPlatform",
             dependencies: ["SWBCore", "SWBUtil"],
+            exclude: ["CMakeLists.txt"],
             swiftSettings: swiftSettings(languageMode: .v6)),
         .target(
             name: "SWBQNXPlatform",
             dependencies: ["SWBCore", "SWBMacro", "SWBUtil"],
+            exclude: ["CMakeLists.txt"],
             swiftSettings: swiftSettings(languageMode: .v6)),
         .target(
             name: "SWBUniversalPlatform",
             dependencies: ["SWBCore", "SWBMacro", "SWBUtil"],
+            exclude: ["CMakeLists.txt"],
             swiftSettings: swiftSettings(languageMode: .v6)),
         .target(
             name: "SWBWebAssemblyPlatform",
             dependencies: ["SWBCore", "SWBMacro", "SWBUtil"],
+            exclude: ["CMakeLists.txt"],
             swiftSettings: swiftSettings(languageMode: .v6)),
         .target(
             name: "SWBWindowsPlatform",
             dependencies: ["SWBCore", "SWBMacro", "SWBUtil"],
+            exclude: ["CMakeLists.txt"],
             swiftSettings: swiftSettings(languageMode: .v6)),
 
         // Helper targets for SwiftPM
