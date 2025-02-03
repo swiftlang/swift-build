@@ -2070,7 +2070,7 @@ fileprivate struct InfoPlistProcessorTaskTests: CoreBasedTests {
                 return
             }
 
-            if SWBFeatureFlag.enableDefaultInfoPlistTemplateKeys {
+            if SWBFeatureFlag.enableDefaultInfoPlistTemplateKeys.value {
                 #expect(dict["CFBundleExecutable"]?.stringValue == "TestApp")
                 #expect(dict["CFBundleIdentifier"]?.stringValue == "com.apple.TestApp")
                 #expect(dict["CFBundleInfoDictionaryVersion"]?.stringValue == "6.0")

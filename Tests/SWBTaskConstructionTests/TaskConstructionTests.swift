@@ -763,7 +763,7 @@ fileprivate struct TaskConstructionTests: CoreBasedTests {
                         sortedTasks[1].checkRuleInfo([.equal("MkDir"), .equal("\(SRCROOT)/build/Debug/AppCore.framework/Versions")])
                         sortedTasks[2].checkRuleInfo([.equal("MkDir"), .equal("\(SRCROOT)/build/Debug/AppCore.framework/Versions/A")])
                         sortedTasks[3].checkRuleInfo([.equal("MkDir"), .equal("\(SRCROOT)/build/Debug/AppCore.framework/Versions/A/Headers")])
-                        if SWBFeatureFlag.enableDefaultInfoPlistTemplateKeys {
+                        if SWBFeatureFlag.enableDefaultInfoPlistTemplateKeys.value {
                             sortedTasks[4].checkRuleInfo([.equal("MkDir"), .equal("\(SRCROOT)/build/Debug/AppCore.framework/Versions/A/Resources")])
                         }
 
@@ -772,7 +772,7 @@ fileprivate struct TaskConstructionTests: CoreBasedTests {
                         sortedTasks[1].checkCommandLine(["/bin/mkdir", "-p", "\(SRCROOT)/build/Debug/AppCore.framework/Versions"])
                         sortedTasks[2].checkCommandLine(["/bin/mkdir", "-p", "\(SRCROOT)/build/Debug/AppCore.framework/Versions/A"])
                         sortedTasks[3].checkCommandLine(["/bin/mkdir", "-p", "\(SRCROOT)/build/Debug/AppCore.framework/Versions/A/Headers"])
-                        if SWBFeatureFlag.enableDefaultInfoPlistTemplateKeys {
+                        if SWBFeatureFlag.enableDefaultInfoPlistTemplateKeys.value {
                             sortedTasks[4].checkCommandLine(["/bin/mkdir", "-p", "\(SRCROOT)/build/Debug/AppCore.framework/Versions/A/Resources"])
                         }
                     })

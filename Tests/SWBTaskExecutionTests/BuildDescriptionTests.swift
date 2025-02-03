@@ -38,7 +38,7 @@ fileprivate struct BuildDescriptionTests: CoreBasedTests {
         signature = "aca37e3650838b65a98c26816eed1031"
         #endif
         return """
-            {"client":{"name":"basic","version":0,"file-system":"\(fileSystem)","perform-ownership-analysis":"\(SWBFeatureFlag.performOwnershipAnalysis ? "yes" : "no")"},"targets":{"":["<all>"]},"nodes":{"\(tmp)/filtered/":{"content-exclusion-patterns":["_CodeSignature","*.gitignore"]}},"commands":{"<all>":{"tool":"phony","inputs":[],"outputs":["<all>"]},"P0:::Foo":{"tool":"shell","description":"Foo","inputs":["\(tmp)/all/","\(tmp)/filtered/"],"outputs":[],"args":["true"],"env":{},"working-directory":"\(Path.pathSeparatorString.escapedForJSON)","deps":["\(deps.str.escapedForJSON)"],"deps-style":"makefile","signature":"\(signature)"}}}
+            {"client":{"name":"basic","version":0,"file-system":"\(fileSystem)","perform-ownership-analysis":"\(SWBFeatureFlag.performOwnershipAnalysis.value ? "yes" : "no")"},"targets":{"":["<all>"]},"nodes":{"\(tmp)/filtered/":{"content-exclusion-patterns":["_CodeSignature","*.gitignore"]}},"commands":{"<all>":{"tool":"phony","inputs":[],"outputs":["<all>"]},"P0:::Foo":{"tool":"shell","description":"Foo","inputs":["\(tmp)/all/","\(tmp)/filtered/"],"outputs":[],"args":["true"],"env":{},"working-directory":"\(Path.pathSeparatorString.escapedForJSON)","deps":["\(deps.str.escapedForJSON)"],"deps-style":"makefile","signature":"\(signature)"}}}
             """
     }
 

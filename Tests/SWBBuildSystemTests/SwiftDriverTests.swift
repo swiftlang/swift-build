@@ -2367,7 +2367,7 @@ fileprivate struct SwiftDriverTests: CoreBasedTests {
                 results.checkError(.and(.prefix("\(SRCROOT.join("Sources/file2.swift").str):1:18:"), .contains("DoesAlsoNotExist")), failIfNotFound: false)
                 results.checkError(.prefix("Command SwiftEmitModule failed."), failIfNotFound: false)
 
-                if !SWBFeatureFlag.performOwnershipAnalysis {
+                if !SWBFeatureFlag.performOwnershipAnalysis.value {
                     results.checkErrors([
                         .contains("No such file or directory"),
                         .contains("No such file or directory"),
@@ -2463,7 +2463,7 @@ fileprivate struct SwiftDriverTests: CoreBasedTests {
                 results.checkError(.and(.prefix("\(SRCROOT.join("Sources/file2.swift").str):1:18:"), .contains("DoesAlsoNotExist")))
                 results.checkError(.prefix("Command SwiftCompile failed."))
 
-                if !SWBFeatureFlag.performOwnershipAnalysis {
+                if !SWBFeatureFlag.performOwnershipAnalysis.value {
                     results.checkErrors([
                         .contains("No such file or directory"),
                         .contains("No such file or directory"),

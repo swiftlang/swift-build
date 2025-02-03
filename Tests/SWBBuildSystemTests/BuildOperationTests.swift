@@ -592,7 +592,7 @@ That command depends on command in Target 'agg2' (project \'aProject\'): script 
             let tester = try await BuildOperationTester(getCore(), testWorkspace, simulated: true)
 
             try await tester.checkBuild(runDestination: .host) { results in
-                if SWBFeatureFlag.disableShellScriptAllowsMissingInputs {
+                if SWBFeatureFlag.disableShellScriptAllowsMissingInputs.value {
                     results.checkError("Build input file cannot be found: \'\(testWorkspace.sourceRoot.str)/aProject/missing-input-file.txt\' (for task: [\"PhaseScriptExecution\", \"Script\", \"\(testWorkspace.sourceRoot.str)/aProject/build/aProject.build/Debug/Target.build/Script-X.sh\"])")
 
                     // Check that the delegate was passed build started and build ended events in the right place.
@@ -4464,7 +4464,7 @@ That command depends on command in Target 'agg2' (project \'aProject\'): script 
             // Build the project and verify that it fails. Record the highest maximum task count reported during the build.
             var build1HighestMaxTaskCount: Int?
             try await tester.checkBuild(persistent: true) { results in
-                if !SWBFeatureFlag.performOwnershipAnalysis {
+                if !SWBFeatureFlag.performOwnershipAnalysis.value {
                     for _ in 0..<4 {
                         results.checkError(.contains("No such file or directory (2) (for task: [\"Copy\""))
                     }
@@ -4758,7 +4758,7 @@ That command depends on command in Target 'agg2' (project \'aProject\'): script 
                 for ruleType in ["SwiftDriver Compilation Requirements", "SwiftDriver Compilation"] {
                     results.checkError("Build input file cannot be found: \'\(tmpDirPath.str)/Test/aProject/File.swift\'. Did you forget to declare this file as an output of a script phase or custom build rule which produces it? (for task: [\"\(ruleType)\", \"aFramework\", \"normal\", \"x86_64\", \"com.apple.xcode.tools.swift.compiler\"])")
                 }
-                if !SWBFeatureFlag.performOwnershipAnalysis {
+                if !SWBFeatureFlag.performOwnershipAnalysis.value {
                     for fname in ["aFramework.swiftmodule", "aFramework.swiftdoc", "aFramework.swiftsourceinfo", "aFramework.abi.json"] {
                         results.checkError(.contains("\(tmpDirPath.str)/Test/aProject/build/aProject.build/Debug/aFramework.build/Objects-normal/x86_64/\(fname)): No such file or directory (2)"))
                     }

@@ -199,7 +199,7 @@ public final class InfoPlistProcessorTaskAction: TaskAction
 
         // Expand build settings in the property list if requested.  We only expand the values, not the keys.
         if expandBuildSettings {
-            if SWBFeatureFlag.enableDefaultInfoPlistTemplateKeys || scope.evaluate(BuiltinMacros.GENERATE_INFOPLIST_FILE) {
+            if SWBFeatureFlag.enableDefaultInfoPlistTemplateKeys.value || scope.evaluate(BuiltinMacros.GENERATE_INFOPLIST_FILE) {
                 let plistDefaults = defaultInfoPlistContent(scope: scope, platform: platform, productType: productType)
                 do {
                     let result = try withTemporaryDirectory(fs: executionDelegate.fs) { plistDefaultsDir -> CommandResult in

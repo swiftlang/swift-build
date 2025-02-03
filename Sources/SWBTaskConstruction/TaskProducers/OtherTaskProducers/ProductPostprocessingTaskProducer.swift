@@ -242,7 +242,7 @@ final class ProductPostprocessingTaskProducer: PhasedTaskProducer, TaskProducer 
 
             // <rdar://problem/45465505> Enable hierarchical layout in SYMROOT of copied-aside products by default
             let output: Path
-            if SWBFeatureFlag.useHierarchicalBuiltProductsDir || SWBFeatureFlag.useHierarchicalLayoutForCopiedAsideProducts || scope.evaluate(BuiltinMacros.USE_HIERARCHICAL_LAYOUT_FOR_COPIED_ASIDE_PRODUCTS) {
+            if SWBFeatureFlag.useHierarchicalBuiltProductsDir.value || SWBFeatureFlag.useHierarchicalLayoutForCopiedAsideProducts.value || scope.evaluate(BuiltinMacros.USE_HIERARCHICAL_LAYOUT_FOR_COPIED_ASIDE_PRODUCTS) {
                 // Since a build might have multiple targets which generate the same product name, we want to avoid collisions when computing the destination here.  So for installed products we place them at their INSTALL_PATH relative to the SYMROOT, and for uninstalled products we place them at $(SYMROOT)/UninstalledProducts/$(PROJECT_NAME)/$(TARGET_NAME).
                 if scope.evaluate(BuiltinMacros.SKIP_INSTALL) || scope.evaluate(BuiltinMacros.INSTALL_PATH).isEmpty {
                     output = buildDir.join("UninstalledProducts").join(context.settings.project?.name).join(context.settings.target?.name).join(fullProductName)

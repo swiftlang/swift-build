@@ -1280,7 +1280,7 @@ import SWBMacro
             "-framework", "Foo_normal_search", "-Xlinker", "-reexport_framework", "-Xlinker", "Foo_reexport_search", "-Xlinker", "-merge_framework", "-Xlinker", "Foo_merge_search", "-Xlinker", "-no_merge_framework", "-Xlinker", "Foo_reexport_merge_search", "-weak_framework", "Foo_weak_search", Path.root.join("tmp/Foo_normal_abs.framework/Foo_normal_abs").str, "-Xlinker", "-reexport_library", "-Xlinker", Path.root.join("tmp/Foo_reexport_abs.framework/Foo_reexport_abs").str, "-Xlinker", "-merge_library", "-Xlinker", Path.root.join("tmp/Foo_merge_abs.framework/Foo_merge_abs").str, "-Xlinker", "-no_merge_library", "-Xlinker", Path.root.join("tmp/Foo_reexport_merge_abs.framework/Foo_reexport_merge_abs").str, "-weak_library", Path.root.join("tmp/Foo_weak_abs.framework/Foo_weak_abs").str,
             "-o", Path.root.join("tmp/obj/normal/x86_64/output").str])
         // FIXME: The input here should really be the link file list.
-        if SWBFeatureFlag.enableLinkerInputsFromLibrarySpecifiers {
+        if SWBFeatureFlag.enableLinkerInputsFromLibrarySpecifiers.value {
             task.checkInputs([
                 .path(Path.root.join("tmp/obj/normal/x86_64/file1.o").str),
                 .path(Path.root.join("usr/lib/libfoo_normal_abs.a").str),

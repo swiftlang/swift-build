@@ -29,7 +29,6 @@ import SWBUtil
 /// "on" or "off" by default. For features whose configurability should be
 /// toggleable indefinitely, do not use a feature flag, and consider an
 /// alternative such as a build setting.
-@propertyWrapper
 public struct SWBFeatureFlagProperty {
     private let key: String
     private let defaultValue: Bool
@@ -40,7 +39,7 @@ public struct SWBFeatureFlagProperty {
     }
 
     /// Indicates whether the feature flag is currently active in the calling environment.
-    public var wrappedValue: Bool {
+    public var value: Bool {
         if !hasValue {
             return defaultValue
         }
@@ -53,14 +52,13 @@ public struct SWBFeatureFlagProperty {
     }
 }
 
-@propertyWrapper
 public struct SWBOptionalFeatureFlagProperty {
     private let key: String
 
     /// Indicates whether the feature flag is currently active in the calling environment.
     /// Returns nil if neither environment variable nor User Default are set.  An implementation can then pick a default behavior.
     /// If both the environment variable and User Default are set, the two values are logically AND'd together; this allows the set false value of either to force the feature flag off.
-    public var wrappedValue: Bool? {
+    public var value: Bool? {
         let envValue = getEnvironmentVariable(key)
         let envHasValue = envValue != nil
         let defHasValue = SWBUtil.UserDefaults.hasValue(forKey: key)
@@ -83,108 +81,81 @@ public struct SWBOptionalFeatureFlagProperty {
 
 public enum SWBFeatureFlag {
     /// Enables the addition of default Info.plist keys as we prepare to shift these from the templates to the build system.
-    @SWBFeatureFlagProperty("EnableDefaultInfoPlistTemplateKeys")
-    public static var enableDefaultInfoPlistTemplateKeys: Bool
+    public static let enableDefaultInfoPlistTemplateKeys = SWBFeatureFlagProperty("EnableDefaultInfoPlistTemplateKeys")
 
     /// <rdar://46913378> Disables indiscriminately setting the "allows missing inputs" flag for all shell scripts.
     /// Longer term we may consider allowing individual inputs to be marked as required or optional in the UI, providing control over this to developers.
-    @SWBFeatureFlagProperty("DisableShellScriptAllowsMissingInputs")
-    public static var disableShellScriptAllowsMissingInputs: Bool
+    public static let disableShellScriptAllowsMissingInputs = SWBFeatureFlagProperty("DisableShellScriptAllowsMissingInputs")
 
     /// Force `DEPLOYMENT_LOCATION` to always be enabled.
-    @SWBFeatureFlagProperty("UseHierarchicalBuiltProductsDir")
-    public static var useHierarchicalBuiltProductsDir: Bool
+    public static let useHierarchicalBuiltProductsDir = SWBFeatureFlagProperty("UseHierarchicalBuiltProductsDir")
 
     /// Use the new layout in the `SYMROOT` for copying aside products when `RETAIN_RAW_BINARIES` is enabled.  See <rdar://problem/44850736> for details on how this works.
     /// This can be used for testing before we make this layout the default.
-    @SWBFeatureFlagProperty("UseHierarchicalLayoutForCopiedAsideProducts")
-    public static var useHierarchicalLayoutForCopiedAsideProducts: Bool
+    public static let useHierarchicalLayoutForCopiedAsideProducts = SWBFeatureFlagProperty("UseHierarchicalLayoutForCopiedAsideProducts")
 
     /// Emergency opt-out of the execution policy exception registration changes. Should be removed before GM.
-    @SWBFeatureFlagProperty("DisableExecutionPolicyExceptionRegistration")
-    public static var disableExecutionPolicyExceptionRegistration: Bool
+    public static let disableExecutionPolicyExceptionRegistration = SWBFeatureFlagProperty("DisableExecutionPolicyExceptionRegistration")
 
     /// Provide a mechanism to create all script inputs as directory nodes.
     /// This is an experimental flag while testing out options for rdar://problem/41126633.
-    @SWBFeatureFlagProperty("TreatScriptInputsAsDirectories")
-    public static var treatScriptInputsAsDirectoryNodes: Bool
+    public static let treatScriptInputsAsDirectoryNodes = SWBFeatureFlagProperty("TreatScriptInputsAsDirectories")
 
     /// Enables filtering sources task generation to those build actions that support install headers.
     /// <rdar://problem/59862065> Remove EnableInstallHeadersFiltering after validation
-    @SWBFeatureFlagProperty("EnableInstallHeadersFiltering")
-    public static var enableInstallHeadersFiltering: Bool
+    public static let enableInstallHeadersFiltering = SWBFeatureFlagProperty("EnableInstallHeadersFiltering")
 
     /// Temporary hack to phase in support for running InstallAPI even for targets skipped for installing.
     /// <rdar://problem/70499898> Remove INSTALLAPI_IGNORE_SKIP_INSTALL and enable by default
-    @SWBOptionalFeatureFlagProperty("EnableInstallAPIIgnoreSkipInstall")
-    public static var enableInstallAPIIgnoreSkipInstall: Bool?
+    public static let enableInstallAPIIgnoreSkipInstall = SWBOptionalFeatureFlagProperty("EnableInstallAPIIgnoreSkipInstall")
 
     /// Enables tracking files from from library specifiers as linker dependency inputs.
-    @SWBFeatureFlagProperty("EnableLinkerInputsFromLibrarySpecifiers")
-    public static var enableLinkerInputsFromLibrarySpecifiers: Bool
+    public static let enableLinkerInputsFromLibrarySpecifiers = SWBFeatureFlagProperty("EnableLinkerInputsFromLibrarySpecifiers")
 
     /// Enables the use of different arguments to the tapi installapi tool.
-    @SWBOptionalFeatureFlagProperty("EnableModuleVerifierTool")
-    public static var enableModuleVerifierTool: Bool?
+    public static let enableModuleVerifierTool = SWBOptionalFeatureFlagProperty("EnableModuleVerifierTool")
 
     /// Allows for enabling target specialization for all targets on a global level. See rdar://45951215.
-    @SWBFeatureFlagProperty("AllowTargetPlatformSpecialization")
-    public static var allowTargetPlatformSpecialization: Bool
+    public static let allowTargetPlatformSpecialization = SWBFeatureFlagProperty("AllowTargetPlatformSpecialization")
 
     /// Enable parsing optimization remarks in Swift Build.
-    @SWBFeatureFlagProperty("DTEnableOptRemarks")
-    public static var enableOptimizationRemarksParsing: Bool
+    public static let enableOptimizationRemarksParsing = SWBFeatureFlagProperty("DTEnableOptRemarks")
 
-    @SWBFeatureFlagProperty("IDEDocumentationEnableClangExtractAPI", defaultValue: true)
-    public static var enableClangExtractAPI: Bool
+    public static let enableClangExtractAPI = SWBFeatureFlagProperty("IDEDocumentationEnableClangExtractAPI", defaultValue: true)
 
-    @SWBFeatureFlagProperty("EnableValidateDependenciesOutputs")
-    public static var enableValidateDependenciesOutputs: Bool
+    public static let enableValidateDependenciesOutputs = SWBFeatureFlagProperty("EnableValidateDependenciesOutputs")
 
     /// Allow build phase fusion in targets with custom shell script build rules.
-    @SWBFeatureFlagProperty("AllowBuildPhaseFusionWithCustomShellScriptBuildRules")
-    public static var allowBuildPhaseFusionWithCustomShellScriptBuildRules: Bool
+    public static let allowBuildPhaseFusionWithCustomShellScriptBuildRules = SWBFeatureFlagProperty("AllowBuildPhaseFusionWithCustomShellScriptBuildRules")
 
     /// Allow build phase fusion of copy files phases.
-    @SWBFeatureFlagProperty("AllowCopyFilesBuildPhaseFusion")
-    public static var allowCopyFilesBuildPhaseFusion: Bool
+    public static let allowCopyFilesBuildPhaseFusion = SWBFeatureFlagProperty("AllowCopyFilesBuildPhaseFusion")
 
-    @SWBFeatureFlagProperty("EnableEagerLinkingByDefault")
-    public static var enableEagerLinkingByDefault: Bool
+    public static let enableEagerLinkingByDefault = SWBFeatureFlagProperty("EnableEagerLinkingByDefault")
 
-    @SWBFeatureFlagProperty("EnableBuildBacktraceRecording", defaultValue: false)
-    public static var enableBuildBacktraceRecording: Bool
+    public static let enableBuildBacktraceRecording = SWBFeatureFlagProperty("EnableBuildBacktraceRecording", defaultValue: false)
 
-    @SWBFeatureFlagProperty("GeneratePrecompiledModulesReport", defaultValue: false)
-    public static var generatePrecompiledModulesReport: Bool
+    public static let generatePrecompiledModulesReport = SWBFeatureFlagProperty("GeneratePrecompiledModulesReport", defaultValue: false)
 
     /// Turn on llbuild's ownership analyis.
     /// Remove this feature flag after landing rdar://104894978 (Write "perform-ownership-analysis" = "yes" to build manifest by default)
-    @SWBFeatureFlagProperty("PerformOwnershipAnalysis", defaultValue: false)
-    public static var performOwnershipAnalysis: Bool
+    public static let performOwnershipAnalysis = SWBFeatureFlagProperty("PerformOwnershipAnalysis", defaultValue: false)
 
     /// Enable clang explicit modules by default.
-    @SWBFeatureFlagProperty("EnableClangExplicitModulesByDefault", defaultValue: false)
-    public static var enableClangExplicitModulesByDefault: Bool
+    public static let enableClangExplicitModulesByDefault = SWBFeatureFlagProperty("EnableClangExplicitModulesByDefault", defaultValue: false)
 
     /// Enable Swift explicit modules by default.
-    @SWBFeatureFlagProperty("EnableSwiftExplicitModulesByDefault", defaultValue: false)
-    public static var enableSwiftExplicitModulesByDefault: Bool
+    public static let enableSwiftExplicitModulesByDefault = SWBFeatureFlagProperty("EnableSwiftExplicitModulesByDefault", defaultValue: false)
 
     /// Enable Clang caching by default.
-    @SWBFeatureFlagProperty("EnableClangCachingByDefault", defaultValue: false)
-    public static var enableClangCachingByDefault: Bool
+    public static let enableClangCachingByDefault = SWBFeatureFlagProperty("EnableClangCachingByDefault", defaultValue: false)
 
     /// Enable Swift caching by default.
-    @SWBFeatureFlagProperty("EnableSwiftCachingByDefault", defaultValue: false)
-    public static var enableSwiftCachingByDefault: Bool
+    public static let enableSwiftCachingByDefault = SWBFeatureFlagProperty("EnableSwiftCachingByDefault", defaultValue: false)
 
-    @SWBFeatureFlagProperty("UseStrictLdEnvironmentBuildSetting", defaultValue: false)
-    public static var useStrictLdEnvironmentBuildSetting: Bool
+    public static let useStrictLdEnvironmentBuildSetting = SWBFeatureFlagProperty("UseStrictLdEnvironmentBuildSetting", defaultValue: false)
 
-    @SWBFeatureFlagProperty("EnableCacheMetricsLogs", defaultValue: false)
-    public static var enableCacheMetricsLogs: Bool
+    public static let enableCacheMetricsLogs = SWBFeatureFlagProperty("EnableCacheMetricsLogs", defaultValue: false)
 
-    @SWBFeatureFlagProperty("AppSandboxConflictingValuesEmitsWarning", defaultValue: false)
-    public static var enableAppSandboxConflictingValuesEmitsWarning: Bool
+    public static let enableAppSandboxConflictingValuesEmitsWarning = SWBFeatureFlagProperty("AppSandboxConflictingValuesEmitsWarning", defaultValue: false)
 }

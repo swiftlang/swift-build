@@ -459,7 +459,7 @@ fileprivate struct SwiftTaskConstructionTests: CoreBasedTests {
                 results.checkTask(.matchTarget(target), .matchRuleType("WriteAuxiliaryFile"), .matchRuleItemBasename("FwkTarget-OutputFileMap.json")) { _ in }
                 results.checkTask(.matchTarget(target), .matchRuleType("WriteAuxiliaryFile"), .matchRuleItemBasename("FwkTarget.SwiftFileList")) { _ in }
                 results.checkTask(.matchTarget(target), .matchRuleType("WriteAuxiliaryFile"), .matchRuleItemBasename("FwkTarget.LinkFileList")) { _ in }
-                if SWBFeatureFlag.enableEagerLinkingByDefault {
+                if SWBFeatureFlag.enableEagerLinkingByDefault.value {
                     results.checkTask(.matchTarget(target), .matchRuleType("WriteAuxiliaryFile"), .matchRuleItemBasename("FwkTarget-normal.json")) { _ in }
                 }
 
@@ -480,7 +480,7 @@ fileprivate struct SwiftTaskConstructionTests: CoreBasedTests {
             // Verify there is a task to create the mock Info.plist
             results.checkTasks(.matchRuleType("WriteAuxiliaryFile"), .matchRuleItemBasename("empty.plist")) { tasks in
                 let sortedTasks = tasks.sorted { $0.ruleInfo.lexicographicallyPrecedes($1.ruleInfo) }
-                if SWBFeatureFlag.enableDefaultInfoPlistTemplateKeys {
+                if SWBFeatureFlag.enableDefaultInfoPlistTemplateKeys.value {
                     sortedTasks[0].checkRuleInfo(["WriteAuxiliaryFile", "/tmp/Test/aProject/build/aProject.build/Debug/AppTarget.build/empty.plist"])
                     sortedTasks[1].checkRuleInfo(["WriteAuxiliaryFile", "/tmp/Test/aProject/build/aProject.build/Debug/FwkTarget.build/empty.plist"])
                 }

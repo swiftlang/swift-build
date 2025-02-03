@@ -304,7 +304,7 @@ public final class LdLinkerSpec : GenericLinkerSpec, SpecIdentifierType {
 
     override public func constructLinkerTasks(_ cbc: CommandBuildContext, _ delegate: any TaskGenerationDelegate, libraries: [LibrarySpecifier], usedTools: [CommandLineToolSpec: Set<FileTypeSpec>]) async {
         // Validate that OTHER_LDFLAGS doesn't contain flags for constructs which we have dedicated settings for. This should be expanded over time.
-        let dyldEnvDiagnosticBehavior: Diagnostic.Behavior = SWBFeatureFlag.useStrictLdEnvironmentBuildSetting ? .error : .warning
+        let dyldEnvDiagnosticBehavior: Diagnostic.Behavior = SWBFeatureFlag.useStrictLdEnvironmentBuildSetting.value ? .error : .warning
         let originalLdFlags = cbc.scope.evaluate(BuiltinMacros.OTHER_LDFLAGS)
         enumerateLinkerCommandLine(arguments: originalLdFlags) { arg, value in
             switch arg {
@@ -365,7 +365,7 @@ public final class LdLinkerSpec : GenericLinkerSpec, SpecIdentifierType {
         // Add the library arguments.
         let libraryArgs = LdLinkerSpec.computeLibraryArgs(libraries, scope: cbc.scope)
         specialArgs += libraryArgs.args
-        if SWBFeatureFlag.enableLinkerInputsFromLibrarySpecifiers {
+        if SWBFeatureFlag.enableLinkerInputsFromLibrarySpecifiers.value {
             inputPaths += libraryArgs.inputs
         }
 
@@ -738,7 +738,7 @@ public final class LdLinkerSpec : GenericLinkerSpec, SpecIdentifierType {
         // Add the library arguments.
         let libraryArgs = LdLinkerSpec.computeLibraryArgs(libraries, scope: cbc.scope)
         specialArgs += libraryArgs.args
-        if SWBFeatureFlag.enableLinkerInputsFromLibrarySpecifiers {
+        if SWBFeatureFlag.enableLinkerInputsFromLibrarySpecifiers.value {
             inputPaths += libraryArgs.inputs
         }
 

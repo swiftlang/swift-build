@@ -47,7 +47,7 @@ extension ShellBasedTaskProducer where Self: StandardTaskProducer {
     func parseFileList(_ scope: MacroEvaluationScope, _ path: Path, isInputList: Bool, lookup: @escaping ((MacroDeclaration) -> MacroExpression?)) -> [any PlannedNode] {
         do {
             return try parseXCFileList(path, scope: scope, lookup: lookup) { path -> (any PlannedNode) in
-                if isInputList && (SWBFeatureFlag.treatScriptInputsAsDirectoryNodes || scope.evaluate(BuiltinMacros.USE_RECURSIVE_SCRIPT_INPUTS_IN_SCRIPT_PHASES)) {
+                if isInputList && (SWBFeatureFlag.treatScriptInputsAsDirectoryNodes.value || scope.evaluate(BuiltinMacros.USE_RECURSIVE_SCRIPT_INPUTS_IN_SCRIPT_PHASES)) {
                     return context.createDirectoryTreeNode(context.makeAbsolute(path).normalize(), excluding: [])
                 }
                 else {

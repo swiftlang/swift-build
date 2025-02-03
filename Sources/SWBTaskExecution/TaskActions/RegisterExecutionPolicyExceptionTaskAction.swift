@@ -83,7 +83,7 @@ public final class RegisterExecutionPolicyExceptionTaskAction: TaskAction {
             return .failed
         }
 
-        if SWBFeatureFlag.disableExecutionPolicyExceptionRegistration {
+        if SWBFeatureFlag.disableExecutionPolicyExceptionRegistration.value {
             outputDelegate.note("Execution policy exception registration was skipped because the DisableExecutionPolicyExceptionRegistration feature flag is set")
             return .succeeded
         }

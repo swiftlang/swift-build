@@ -464,7 +464,7 @@ extension GateTask {
 extension ConstructedTask {
     /// Add the task to the given build description builder.
     func addToDescription(_ builder: BuildDescriptionBuilder) throws {
-        let allowMissingInputs = (ruleInfo.first == "PhaseScriptExecution" ? !SWBFeatureFlag.disableShellScriptAllowsMissingInputs : false)
+        let allowMissingInputs = (ruleInfo.first == "PhaseScriptExecution" ? !SWBFeatureFlag.disableShellScriptAllowsMissingInputs.value : false)
             || ruleInfo.first == "ValidateDevelopmentAssets"
 
         // Handle custom tasks.

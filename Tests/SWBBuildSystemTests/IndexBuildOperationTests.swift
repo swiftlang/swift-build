@@ -402,7 +402,7 @@ fileprivate struct IndexBuildOperationTests: CoreBasedTests {
                     results.checkTaskExists(.matchRule(["MkDir", "\(productsRoot)/Debug/FwkTarget.framework/Versions/A"]))
                     results.checkTaskExists(.matchRule(["MkDir", "\(productsRoot)/Debug/FwkTarget.framework/Versions/A/Headers"]))
                     results.checkTaskExists(.matchRule(["MkDir", "\(productsRoot)/Debug/FwkTarget.framework/Versions/A/PrivateHeaders"]))
-                    if SWBFeatureFlag.enableDefaultInfoPlistTemplateKeys {
+                    if SWBFeatureFlag.enableDefaultInfoPlistTemplateKeys.value {
                         results.checkTaskExists(.matchRule(["MkDir", "\(productsRoot)/Debug/FwkTarget.framework/Versions/A/Resources"]))
                     }
 
@@ -417,7 +417,7 @@ fileprivate struct IndexBuildOperationTests: CoreBasedTests {
                     results.checkTaskExists(.matchRule(["SymLink", "\(productsRoot)/Debug/FwkTarget.framework/Headers", "Versions/Current/Headers"]))
                     results.checkTaskExists(.matchRule(["SymLink", "\(productsRoot)/Debug/FwkTarget.framework/PrivateHeaders", "Versions/Current/PrivateHeaders"]))
                     results.checkTaskExists(.matchRule(["SymLink", "\(productsRoot)/Debug/FwkTarget.framework/Modules", "Versions/Current/Modules"]))
-                    if SWBFeatureFlag.enableDefaultInfoPlistTemplateKeys {
+                    if SWBFeatureFlag.enableDefaultInfoPlistTemplateKeys.value {
                         results.checkTaskExists(.matchRule(["SymLink", "\(productsRoot)/Debug/FwkTarget.framework/Resources", "Versions/Current/Resources"]))
                     }
                     results.checkTaskExists(.matchRule(["SymLink", "\(productsRoot)/Debug/FwkTarget.framework/Versions/Current", "A"]))

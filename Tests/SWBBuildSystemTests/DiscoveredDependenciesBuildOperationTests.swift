@@ -149,7 +149,7 @@ fileprivate struct DiscoveredDependenciesBuildOperationTests: CoreBasedTests {
                     #expect(tasks.count == 2)
                 }
 
-                if SWBFeatureFlag.enableEagerLinkingByDefault {
+                if SWBFeatureFlag.enableEagerLinkingByDefault.value {
                     results.checkTasks(.matchRuleType("GenerateTAPI")) { tasks in
                         #expect(tasks.count == 2)
                     }
@@ -194,7 +194,7 @@ fileprivate struct DiscoveredDependenciesBuildOperationTests: CoreBasedTests {
                 results.checkTaskExists(.matchTargetName("Dep"), .matchRuleType("SwiftDriver Compilation Requirements"))
                 results.checkTaskExists(.matchTargetName("Dep"), .matchRuleType("SwiftDriver"))
 
-                if SWBFeatureFlag.enableEagerLinkingByDefault {
+                if SWBFeatureFlag.enableEagerLinkingByDefault.value {
                     results.checkTasks(.matchRuleType("GenerateTAPI")) { tasks in
                         #expect(tasks.count == 1)
                     }
@@ -244,7 +244,7 @@ fileprivate struct DiscoveredDependenciesBuildOperationTests: CoreBasedTests {
                     #expect(tasks.count == 2)
                 }
 
-                if SWBFeatureFlag.enableEagerLinkingByDefault {
+                if SWBFeatureFlag.enableEagerLinkingByDefault.value {
                     results.checkTasks(.matchRuleType("GenerateTAPI")) { tasks in
                         #expect(tasks.count == 1)
                     }

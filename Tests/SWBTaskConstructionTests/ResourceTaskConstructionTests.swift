@@ -885,7 +885,7 @@ fileprivate struct ResourcesTaskConstructionTests: CoreBasedTests {
                     ])
                 }
 
-                if SWBFeatureFlag.enableDefaultInfoPlistTemplateKeys {
+                if SWBFeatureFlag.enableDefaultInfoPlistTemplateKeys.value {
                     // There should be a process Info.plist task.
                     results.checkTask(.matchTarget(target), .matchRuleType("ProcessInfoPlistFile")) { _ in }
                 }

@@ -100,7 +100,7 @@ final class TAPISymbolExtractorTaskProducer: PhasedTaskProducer, TaskProducer {
 
         commandOrderingInputs += inputNodes
 
-        if SWBFeatureFlag.enableClangExtractAPI {
+        if SWBFeatureFlag.enableClangExtractAPI.value {
             await appendGeneratedTasks(&tasks) { delegate in
                 for scope in archSpecificSubScopes {
                     // The spec will compute the task's outputs, even if they're not listed in the context.

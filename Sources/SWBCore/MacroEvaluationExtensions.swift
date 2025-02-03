@@ -88,7 +88,7 @@ extension MacroEvaluationScope {
     public func effectiveInputInfoPlistPath() -> Path {
         let scope = self
         let inputFile = scope.evaluate(BuiltinMacros.INFOPLIST_FILE)
-        if !(SWBFeatureFlag.enableDefaultInfoPlistTemplateKeys || scope.evaluate(BuiltinMacros.GENERATE_INFOPLIST_FILE)) {
+        if !(SWBFeatureFlag.enableDefaultInfoPlistTemplateKeys.value || scope.evaluate(BuiltinMacros.GENERATE_INFOPLIST_FILE)) {
             // Always use INFOPLIST_FILE verbatim if the default Info.plist feature flag is not enabled
             return inputFile
         }
