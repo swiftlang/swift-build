@@ -25,10 +25,6 @@ struct WebAssemblyPlatformSpecsExtension: SpecificationsExtension {
     func specificationFiles() -> Bundle? {
         .module
     }
-
-    func specificationDomains() -> [String : [String]] {
-        ["webassembly": ["generic-unix"]]
-    }
 }
 
 struct WebAssemblyPlatformExtension: PlatformInfoExtension {
@@ -62,15 +58,6 @@ struct WebAssemblySDKRegistryExtension: SDKRegistryExtension {
 
             // Workaround to avoid `-add_ast_path` on WebAssembly, apparently this needs to perform some "swift modulewrap" step instead.
             "GCC_GENERATE_DEBUGGING_SYMBOLS": .plString("NO"),
-
-            // Workaround to avoid `-dependency_info` on WebAssembly.
-            "LD_DEPENDENCY_INFO_FILE": .plString(""),
-
-            // WebAssembly uses wasm-ld, not the Apple linker
-            "LD_DETERMINISTIC_MODE": "NO",
-            // HACK: The following setting does not work. Need to set `ENABLE_TESTABILITY` to `NO`
-            // // Workaround to avoid `-export-dynamic` on WebAssembly.
-            // "LD_EXPORT_GLOBAL_SYMBOLS": "NO",
 
             "GENERATE_TEXT_BASED_STUBS": "NO",
             "GENERATE_INTERMEDIATE_TEXT_BASED_STUBS": "NO",

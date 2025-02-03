@@ -18,8 +18,12 @@ import SWBUtil
 
 @Suite
 fileprivate struct SWBWebAssemblyPlatformTests: CoreBasedTests {
-    @Test(.requireThreadSafeWorkingDirectory, .enabled(if: getEnvironmentVariable("WASM_SDKROOT") != nil), arguments: ["wasm32"])
-    func wasiCommandWithSwift(arch: String) async throws {
+    @Test(
+        .requireThreadSafeWorkingDirectory,
+        .enabled(if: getEnvironmentVariable("WASM_SDKROOT") != nil),
+        arguments: ["wasm32"], [true, false]
+    )
+    func wasiCommandWithSwift(arch: String, enableTestability: Bool) async throws {
         guard let sdkroot = getEnvironmentVariable("WASM_SDKROOT") else { return }
         guard let toolchain = getEnvironmentVariable("WASM_TOOLCHAINS") else { return }
 
@@ -43,6 +47,7 @@ fileprivate struct SWBWebAssemblyPlatformTests: CoreBasedTests {
                         "SWIFT_VERSION": "6.0",
                         "SUPPORTED_PLATFORMS": "webassembly",
                         "TOOLCHAINS": toolchain,
+                        "ENABLE_TESTABILITY": enableTestability ? "YES" : "NO"
                     ])
                 ],
                 targets: [
