@@ -76,6 +76,7 @@ func swbuild_repl() async throws -> Bool {
                     break
                 }
 
+                print(line)
                 (shouldContinue, ok) = await swbuild_process_command(console: console, command: line)
             }
 

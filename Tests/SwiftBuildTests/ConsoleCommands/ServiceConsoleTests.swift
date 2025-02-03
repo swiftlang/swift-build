@@ -37,12 +37,7 @@ fileprivate struct ServiceConsoleTests {
             let output = String(decoding: data, as: UTF8.self)
 
             // Verify there were no errors.
-            #if os(Linux)
-            // something with terminal echo is different on macOS vs Linux
             #expect(output == "swbuild> \n")
-            #else
-            #expect(output == String.newline)
-            #endif
 
             // Assert the tool exited successfully.
             await #expect(try promise.value == .exit(0))
