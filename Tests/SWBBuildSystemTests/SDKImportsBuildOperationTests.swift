@@ -19,7 +19,7 @@ import Testing
 
 @Suite
 fileprivate struct SDKImportsBuildOperationTests: CoreBasedTests {
-    @Test(.requireSDKs(.macOS))
+    @Test(.requireSDKs(.macOS), .requireSDKImports())
     func basic() async throws {
         try await withTemporaryDirectory { (tmpDir: Path) in
             let testProject = try await TestProject(

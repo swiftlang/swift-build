@@ -35,6 +35,6 @@ public final class ProcessSDKImportsSpec: CommandLineToolSpec, SpecImplementatio
     public func createTasks(_ cbc: CommandBuildContext, _ delegate: any TaskGenerationDelegate, ldSDKImportsPath: Path) async {
         let unlocalizedProductResourcesDir = cbc.scope.evaluate(BuiltinMacros.TARGET_BUILD_DIR).join(cbc.scope.evaluate(BuiltinMacros.UNLOCALIZED_RESOURCES_FOLDER_PATH)).normalize()
         let outputPath = unlocalizedProductResourcesDir.join(ldSDKImportsPath.basename)
-        delegate.createTask(type: self, ruleInfo: ["ProcessSDKImports", ldSDKImportsPath.str], commandLine: ["builtin-process-sdk-imports", ldSDKImportsPath.str, outputPath.str], environment: EnvironmentBindings(), workingDirectory: cbc.producer.defaultWorkingDirectory, inputs: [MakePlannedPathNode(ldSDKImportsPath)] + cbc.commandOrderingInputs, outputs: [MakePlannedPathNode(outputPath)], action: delegate.taskActionCreationDelegate.createProcessSDKImportsTaskAction(), preparesForIndexing: false, enableSandboxing: true)
+        delegate.createTask(type: self, ruleInfo: ["ProcessSDKImports", ldSDKImportsPath.str], commandLine: ["builtin-process-sdk-imports", ldSDKImportsPath.str, outputPath.str], environment: EnvironmentBindings(), workingDirectory: cbc.producer.defaultWorkingDirectory, inputs: [MakePlannedPathNode(ldSDKImportsPath)] + cbc.commandOrderingInputs, outputs: [MakePlannedPathNode(outputPath)], action: delegate.taskActionCreationDelegate.createProcessSDKImportsTaskAction(), preparesForIndexing: false, enableSandboxing: false)
     }
 }

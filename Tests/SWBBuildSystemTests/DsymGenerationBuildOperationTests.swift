@@ -78,7 +78,9 @@ fileprivate struct DsymGenerationBuildOperationTests: CoreBasedTests {
                 results.checkTask(.matchRuleType("GenerateTAPI")) { _ in }
                 results.checkTask(.matchRuleType("GenerateDSYMFile")) { _ in }
                 results.checkTask(.matchRuleType("Strip")) { _ in }
-                results.checkTask(.matchRuleType("ProcessSDKImports")) { _ in }
+                if try await supportsSDKImports {
+                    results.checkTask(.matchRuleType("ProcessSDKImports")) { _ in }
+                }
                 results.checkNoTask()
             }
 
