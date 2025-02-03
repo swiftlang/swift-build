@@ -43,6 +43,11 @@ struct WebAssemblyPlatformExtension: PlatformInfoExtension {
     }
 }
 
+// TODO: We currently hardcode WebAssembly-specific information here but
+// ideally we should be able to generalize this to any Swift SDK. Some of
+// issues including https://github.com/swiftlang/swift-build/issues/3 prevent
+// us from doing this today but we should revisit this later and consider
+// renaming this plugin to something like `SWBSwiftSDKPlatform`.
 struct WebAssemblySDKRegistryExtension: SDKRegistryExtension {
     func additionalSDKs(platformRegistry: PlatformRegistry) async -> [(path: Path, platform: SWBCore.Platform?, data: [String: PropertyListItem])] {
         guard let host = try? ProcessInfo.processInfo.hostOperatingSystem() else {
