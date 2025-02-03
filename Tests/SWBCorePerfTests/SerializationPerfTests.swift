@@ -54,7 +54,6 @@ fileprivate struct SerializationPerfTests: CoreBasedTests, PerfTests {
 
                 for _ in 0..<numberOfTargets {
                     let sz = self.serializeMacroEvaluationScope(scope)
-                    #expect(sz != nil)
                     accumulatedBytes += Float64(sz.byteString.count)
                 }
 
