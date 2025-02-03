@@ -211,7 +211,7 @@ let package = Package(
         .target(
             name: "SWBWebAssemblyPlatform",
             dependencies: ["SWBCore"],
-            swiftSettings: swiftSettings),
+            swiftSettings: swiftSettings(languageMode: .v6)),
         .target(
             name: "SWBWindowsPlatform",
             dependencies: ["SWBCore"],
@@ -263,7 +263,7 @@ let package = Package(
         .testTarget(
             name: "SWBWebAssemblyPlatformTests",
             dependencies: ["SWBWebAssemblyPlatform", "SWBTestSupport"],
-            swiftSettings: swiftSettings),
+            swiftSettings: swiftSettings(languageMode: .v6)),
         .testTarget(
             name: "SWBWindowsPlatformTests",
             dependencies: ["SWBWindowsPlatform", "SWBTestSupport"],
