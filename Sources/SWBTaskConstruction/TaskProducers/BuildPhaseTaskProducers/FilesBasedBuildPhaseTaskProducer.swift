@@ -593,7 +593,7 @@ class FilesBasedBuildPhaseTaskProducerBase: PhasedTaskProducer {
         }
 
         var seenPaths = Set<Path>()
-        for (buildFile, buildableReference, path, base, fileType, shouldUsePrefixHeader) in resolvedBuildFiles {
+        for (buildFile, _, path, base, fileType, shouldUsePrefixHeader) in resolvedBuildFiles {
             guard !seenPaths.contains(path) else {
                 // If this path has already been seen, then we emit a warning and don't include it again.
                 context.warning("Skipping duplicate build file in \(buildPhase.name) build phase: \(path.str)")

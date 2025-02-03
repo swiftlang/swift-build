@@ -810,23 +810,6 @@ public final class SwiftCommandOutputParser: TaskOutputParser {
                     return error("invalid pid \(pid) (already in use)")
             }
 
-            // Harvest the task information.
-            // The "command_executable" and "command_arguments" keys are preferred going forward,
-            // though we still parse the "command" key for backwards comaptibility.
-            let command: [String]
-            if case let .plString(exec)? = contents["command_executable"],
-                case let .plArray(rawArgs)? = contents["command_arguments"],
-                case let args = rawArgs.compactMap({ $0.stringValue }),
-                args.count == rawArgs.count {
-                command = [exec] + args
-            } else if case let .plString(value)? = contents["command"],
-                let commandArgs = try? commandDecoder.decode(value) {
-                command = commandArgs
-            } else {
-                error("missing or invalid command")
-                command = []
-            }
-
             // Compute the title.
             let title = computeSubtaskTitle(name, onlyInput, inputCount)
 

@@ -4370,7 +4370,6 @@ fileprivate struct SwiftDriverTests: CoreBasedTests {
                         ])
                 ])
 
-            let compilerPath = try await swiftCompilerPath
             var tester = try await BuildOperationTester(getCore(), testWorkspace, simulated: false)
             let cleanParameters = BuildParameters(action: .clean, configuration: "Debug")
             let cleanRequest = BuildRequest(parameters: cleanParameters, buildTargets: tester.workspace.projects[0].targets.map({ BuildRequest.BuildTargetInfo(parameters: cleanParameters, target: $0) }), continueBuildingAfterErrors: true, useParallelTargets: true, useImplicitDependencies: false, useDryRun: false)

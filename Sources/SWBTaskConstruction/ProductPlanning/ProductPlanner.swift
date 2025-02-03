@@ -413,7 +413,6 @@ extension StandardTarget
         let copyHeadersCompletionTasks = buildPhaseTaskProducers.compactMap({ ($0 as? SourcesTaskProducer)?.copyHeadersCompletionTask })
         createNewPhaseNode("ModuleMapTaskProducer")
         taskProducers.append(ModuleMapTaskProducer(taskProducerContext, phaseStartNodes: [setupEndPhaseNode], phaseEndNode: endPhaseNode, copyHeadersCompletionTasks: copyHeadersCompletionTasks))
-        let moduleMapProducerEndPhaseNode = endPhaseNode
         postprocessingTaskProducerInputNodes.append(endPhaseNode)
 
         createNewPhaseNode("SwiftPackageCopyFilesTaskProducer")
