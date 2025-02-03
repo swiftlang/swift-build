@@ -40,7 +40,7 @@ func swiftSettings(languageMode: SwiftLanguageMode) -> [SwiftSetting] {
             //.enableUpcomingFeature("RegionBasedIsolation"), // rdar://137809703
 
             // Future Swift features
-                .enableUpcomingFeature("ExistentialAny"),
+            .enableUpcomingFeature("ExistentialAny"),
             .enableUpcomingFeature("InternalImportsByDefault"),
 
             .swiftLanguageMode(.v5)
