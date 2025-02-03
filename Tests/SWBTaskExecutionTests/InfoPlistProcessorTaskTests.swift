@@ -377,7 +377,7 @@ fileprivate struct InfoPlistProcessorTaskTests: CoreBasedTests {
             let platformName = "macosx"
             let executionDelegate = MockExecutionDelegate(core: try await getCore())
 
-            let action = InfoPlistProcessorTaskAction(try prepareContext(InfoPlistProcessorTaskActionContext(scope: scope, productType: nil, platform: try #require(core.platformRegistry.lookup(name: platformName)), sdk: try #require(core.sdkRegistry.lookup(platformName)), sdkVariant: nil, cleanupRequiredArchitectures: []), fs: executionDelegate.fs))
+            let action = InfoPlistProcessorTaskAction(try prepareContext(InfoPlistProcessorTaskActionContext(scope: scope, productType: nil, platform: core.platformRegistry.lookup(name: platformName), sdk: core.sdkRegistry.lookup(platformName), sdkVariant: nil, cleanupRequiredArchitectures: []), fs: executionDelegate.fs))
             let task = Task(forTarget: nil, ruleInfo: [], commandLine: ["builtin-infoPlistUtility", "-enforceminimumos", "-genpkginfo", "/tmp/PkgInfo", "-expandbuildsettings", "-platform", platformName, "/tmp/input.plist", "-o", "/tmp/output.plist"], workingDirectory: Path.root.join("tmp"), outputs: [], action: action, execDescription: "Copy Info.plist")
 
             // Write the test files.
@@ -1161,7 +1161,7 @@ fileprivate struct InfoPlistProcessorTaskTests: CoreBasedTests {
             let platform = try #require(core.platformRegistry.lookup(name: platformName), "invalid platform name '\(platformName)'")
             let executionDelegate = MockExecutionDelegate(core: try await getCore())
 
-            let action = InfoPlistProcessorTaskAction(try prepareContext(InfoPlistProcessorTaskActionContext(scope: scope, productType: productTypeSpec, platform: platform, sdk: try #require(core.sdkRegistry.lookup(platformName)), sdkVariant: nil, cleanupRequiredArchitectures: []), fs: executionDelegate.fs))
+            let action = InfoPlistProcessorTaskAction(try prepareContext(InfoPlistProcessorTaskActionContext(scope: scope, productType: productTypeSpec, platform: platform, sdk: core.sdkRegistry.lookup(platformName), sdkVariant: nil, cleanupRequiredArchitectures: []), fs: executionDelegate.fs))
             let task = Task(forTarget: nil, ruleInfo: [], commandLine: ["builtin-infoPlistUtility", "-expandbuildsettings", "-platform", platformName, "/tmp/input.plist", "-o", "/tmp/output.plist"], workingDirectory: Path.root.join("tmp"), outputs: [], action: action, execDescription: "Copy Info.plist")
 
             // Write the test files.
@@ -1210,7 +1210,7 @@ fileprivate struct InfoPlistProcessorTaskTests: CoreBasedTests {
         let platform = try #require(core.platformRegistry.lookup(name: platformName), "invalid platform name '\(platformName)'")
         let executionDelegate = MockExecutionDelegate(core: core)
 
-        let action = InfoPlistProcessorTaskAction(try prepareContext(InfoPlistProcessorTaskActionContext(scope: scope, productType: nil, platform: platform, sdk: try #require(core.sdkRegistry.lookup(platformName)), sdkVariant: nil, cleanupRequiredArchitectures: []), fs: executionDelegate.fs))
+        let action = InfoPlistProcessorTaskAction(try prepareContext(InfoPlistProcessorTaskActionContext(scope: scope, productType: nil, platform: platform, sdk: core.sdkRegistry.lookup(platformName), sdkVariant: nil, cleanupRequiredArchitectures: []), fs: executionDelegate.fs))
         let task = Task(forTarget: nil, ruleInfo: [], commandLine: ["builtin-infoPlistUtility", "-expandbuildsettings", "-platform", platformName, "-requiredArchitecture", "arm64", "/tmp/input.plist", "-o", "/tmp/output.plist"], workingDirectory: Path.root.join("tmp"), outputs: [], action: action, execDescription: "Copy Info.plist")
 
         // Write the test files.
@@ -1257,7 +1257,7 @@ fileprivate struct InfoPlistProcessorTaskTests: CoreBasedTests {
         let platform = try #require(core.platformRegistry.lookup(name: platformName), "invalid platform name '\(platformName)'")
         let executionDelegate = MockExecutionDelegate(core: try await getCore())
 
-        let action = InfoPlistProcessorTaskAction(try prepareContext(InfoPlistProcessorTaskActionContext(scope: scope, productType: nil, platform: platform, sdk: try #require(core.sdkRegistry.lookup(platformName)), sdkVariant: nil, cleanupRequiredArchitectures: []), fs: executionDelegate.fs))
+        let action = InfoPlistProcessorTaskAction(try prepareContext(InfoPlistProcessorTaskActionContext(scope: scope, productType: nil, platform: platform, sdk: core.sdkRegistry.lookup(platformName), sdkVariant: nil, cleanupRequiredArchitectures: []), fs: executionDelegate.fs))
         let task = Task(forTarget: nil, ruleInfo: [], commandLine: ["builtin-infoPlistUtility", "-expandbuildsettings", "-platform", platformName, "-requiredArchitecture", "arm64", "/tmp/input.plist", "-o", "/tmp/output.plist"], workingDirectory: Path.root.join("tmp"), outputs: [], action: action, execDescription: "Copy Info.plist")
 
         // Write the test files.
@@ -1301,7 +1301,7 @@ fileprivate struct InfoPlistProcessorTaskTests: CoreBasedTests {
         let platform = try #require(core.platformRegistry.lookup(name: platformName), "invalid platform name '\(platformName)'")
         let executionDelegate = MockExecutionDelegate(core: try await getCore())
 
-        let action = InfoPlistProcessorTaskAction(try prepareContext(InfoPlistProcessorTaskActionContext(scope: scope, productType: nil, platform: platform, sdk: try #require(core.sdkRegistry.lookup(platformName)), sdkVariant: nil, cleanupRequiredArchitectures: []), fs: executionDelegate.fs))
+        let action = InfoPlistProcessorTaskAction(try prepareContext(InfoPlistProcessorTaskActionContext(scope: scope, productType: nil, platform: platform, sdk: core.sdkRegistry.lookup(platformName), sdkVariant: nil, cleanupRequiredArchitectures: []), fs: executionDelegate.fs))
         let task = Task(forTarget: nil, ruleInfo: [], commandLine: ["builtin-infoPlistUtility", "-expandbuildsettings", "-platform", platformName, "-requiredArchitecture", "arm64", "/tmp/input.plist", "-o", "/tmp/output.plist"], workingDirectory: Path.root.join("tmp"), outputs: [], action: action, execDescription: "Copy Info.plist")
 
         // Write the test files.
@@ -1347,7 +1347,7 @@ fileprivate struct InfoPlistProcessorTaskTests: CoreBasedTests {
         let platform = try #require(core.platformRegistry.lookup(name: platformName), "invalid platform name '\(platformName)'")
         let executionDelegate = MockExecutionDelegate(core: try await getCore())
 
-        let action = InfoPlistProcessorTaskAction(try prepareContext(InfoPlistProcessorTaskActionContext(scope: scope, productType: nil, platform: platform, sdk: try #require(core.sdkRegistry.lookup(platformName)), sdkVariant: nil, cleanupRequiredArchitectures: ["armv6", "armv7", "armv64"]), fs: executionDelegate.fs))
+        let action = InfoPlistProcessorTaskAction(try prepareContext(InfoPlistProcessorTaskActionContext(scope: scope, productType: nil, platform: platform, sdk: core.sdkRegistry.lookup(platformName), sdkVariant: nil, cleanupRequiredArchitectures: ["armv6", "armv7", "armv64"]), fs: executionDelegate.fs))
         let task = Task(forTarget: nil, ruleInfo: [], commandLine: ["builtin-infoPlistUtility", "-expandbuildsettings", "-platform", platformName, "-requiredArchitecture", "arm64", "/tmp/input.plist", "-o", "/tmp/output.plist"], workingDirectory: Path.root.join("tmp"), outputs: [], action: action, execDescription: "Copy Info.plist")
 
         // Write the test files.
@@ -1398,7 +1398,7 @@ fileprivate struct InfoPlistProcessorTaskTests: CoreBasedTests {
         let platform = try #require(core.platformRegistry.lookup(name: platformName), "invalid platform name '\(platformName)'")
         let executionDelegate = MockExecutionDelegate(core: try await getCore())
 
-        let action = InfoPlistProcessorTaskAction(try prepareContext(InfoPlistProcessorTaskActionContext(scope: scope, productType: nil, platform: platform, sdk: try #require(core.sdkRegistry.lookup(platformName)), sdkVariant: nil, cleanupRequiredArchitectures: []), fs: executionDelegate.fs))
+        let action = InfoPlistProcessorTaskAction(try prepareContext(InfoPlistProcessorTaskActionContext(scope: scope, productType: nil, platform: platform, sdk: core.sdkRegistry.lookup(platformName), sdkVariant: nil, cleanupRequiredArchitectures: []), fs: executionDelegate.fs))
         let task = Task(forTarget: nil, ruleInfo: [], commandLine: ["builtin-infoPlistUtility", "-expandbuildsettings", "-platform", platformName, "/tmp/input.plist", "-o", "/tmp/output.plist"], workingDirectory: Path.root.join("tmp"), outputs: [], action: action, execDescription: "Copy Info.plist")
 
         // Write the test files.
@@ -1445,7 +1445,7 @@ fileprivate struct InfoPlistProcessorTaskTests: CoreBasedTests {
         let platform = try #require(core.platformRegistry.lookup(name: platformName), "invalid platform name '\(platformName)'")
         let executionDelegate = MockExecutionDelegate(core: try await getCore())
 
-        let action = InfoPlistProcessorTaskAction(try prepareContext(InfoPlistProcessorTaskActionContext(scope: scope, productType: nil, platform: platform, sdk: try #require(core.sdkRegistry.lookup(platformName)), sdkVariant: nil, cleanupRequiredArchitectures: []), fs: executionDelegate.fs))
+        let action = InfoPlistProcessorTaskAction(try prepareContext(InfoPlistProcessorTaskActionContext(scope: scope, productType: nil, platform: platform, sdk: core.sdkRegistry.lookup(platformName), sdkVariant: nil, cleanupRequiredArchitectures: []), fs: executionDelegate.fs))
         let task = Task(forTarget: nil, ruleInfo: [], commandLine: ["builtin-infoPlistUtility", "-platform", platformName, "/tmp/input.plist", "-o", "/tmp/output.plist"], workingDirectory: Path.root.join("tmp"), outputs: [], action: action, execDescription: "Copy Info.plist")
         try executionDelegate.fs.createDirectory(Path.root.join("tmp"))
         try await executionDelegate.fs.writePlist(Path("/tmp/input.plist"), [
@@ -1475,7 +1475,7 @@ fileprivate struct InfoPlistProcessorTaskTests: CoreBasedTests {
         let platform = try #require(core.platformRegistry.lookup(name: platformName), "invalid platform name '\(platformName)'")
         let executionDelegate = MockExecutionDelegate(core: try await getCore())
 
-        let action = InfoPlistProcessorTaskAction(try prepareContext(InfoPlistProcessorTaskActionContext(scope: scope, productType: nil, platform: platform, sdk: try #require(core.sdkRegistry.lookup(platformName)), sdkVariant: nil, cleanupRequiredArchitectures: []), fs: executionDelegate.fs))
+        let action = InfoPlistProcessorTaskAction(try prepareContext(InfoPlistProcessorTaskActionContext(scope: scope, productType: nil, platform: platform, sdk: core.sdkRegistry.lookup(platformName), sdkVariant: nil, cleanupRequiredArchitectures: []), fs: executionDelegate.fs))
         let task = Task(forTarget: nil, ruleInfo: [], commandLine: ["builtin-infoPlistUtility", "-platform", platformName, "/tmp/input.plist", "-o", "/tmp/output.plist"], workingDirectory: Path.root.join("tmp"), outputs: [], action: action, execDescription: "Copy Info.plist")
         try executionDelegate.fs.createDirectory(Path.root.join("tmp"))
         try await executionDelegate.fs.writePlist(Path("/tmp/input.plist"), [
@@ -1505,7 +1505,7 @@ fileprivate struct InfoPlistProcessorTaskTests: CoreBasedTests {
             let platform = try #require(core.platformRegistry.lookup(name: platformName), "invalid platform name '\(platformName)'")
             let executionDelegate = MockExecutionDelegate(core: try await getCore())
 
-            let action = InfoPlistProcessorTaskAction(try prepareContext(InfoPlistProcessorTaskActionContext(scope: scope, productType: nil, platform: platform, sdk: try #require(core.sdkRegistry.lookup(platformName)), sdkVariant: nil, cleanupRequiredArchitectures: []), fs: executionDelegate.fs))
+            let action = InfoPlistProcessorTaskAction(try prepareContext(InfoPlistProcessorTaskActionContext(scope: scope, productType: nil, platform: platform, sdk: core.sdkRegistry.lookup(platformName), sdkVariant: nil, cleanupRequiredArchitectures: []), fs: executionDelegate.fs))
             let task = Task(forTarget: nil, ruleInfo: [], commandLine: ["builtin-infoPlistUtility", "-platform", platformName, "/tmp/input.plist", "-o", "/tmp/output.plist"], workingDirectory: Path.root.join("tmp"), outputs: [], action: action, execDescription: "Copy Info.plist")
             try executionDelegate.fs.createDirectory(Path.root.join("tmp"))
             try await executionDelegate.fs.writePlist(Path("/tmp/input.plist"), ["CFBundleIdentifier": bundleIdentifier])
@@ -1543,7 +1543,7 @@ fileprivate struct InfoPlistProcessorTaskTests: CoreBasedTests {
         let platform = try #require(core.platformRegistry.lookup(name: platformName), "invalid platform name '\(platformName)'")
         let executionDelegate = MockExecutionDelegate(core: try await getCore())
 
-        let action = InfoPlistProcessorTaskAction(try prepareContext(InfoPlistProcessorTaskActionContext(scope: scope, productType: nil, platform: platform, sdk: try #require(core.sdkRegistry.lookup(platformName)), sdkVariant: nil, cleanupRequiredArchitectures: []), fs: executionDelegate.fs))
+        let action = InfoPlistProcessorTaskAction(try prepareContext(InfoPlistProcessorTaskActionContext(scope: scope, productType: nil, platform: platform, sdk: core.sdkRegistry.lookup(platformName), sdkVariant: nil, cleanupRequiredArchitectures: []), fs: executionDelegate.fs))
         let task = Task(forTarget: nil, ruleInfo: [], commandLine: ["builtin-infoPlistUtility", "-expandbuildsettings", "-platform", platformName, "/tmp/input.plist", "-o", "/tmp/output.plist", "-genpkginfo", "/tmp/PkgInfo"], workingDirectory: Path.root.join("tmp"), outputs: [], action: action, execDescription: "Copy Info.plist")
         try executionDelegate.fs.createDirectory(Path.root.join("tmp"))
         try await executionDelegate.fs.writePlist(Path("/tmp/input.plist"), [
@@ -1582,7 +1582,7 @@ fileprivate struct InfoPlistProcessorTaskTests: CoreBasedTests {
         let platform = try #require(core.platformRegistry.lookup(name: platformName), "invalid platform name '\(platformName)'")
         let executionDelegate = MockExecutionDelegate(core: try await getCore())
 
-        let action = InfoPlistProcessorTaskAction(try prepareContext(InfoPlistProcessorTaskActionContext(scope: scope, productType: nil, platform: platform, sdk: try #require(core.sdkRegistry.lookup(platformName)), sdkVariant: nil, cleanupRequiredArchitectures: []), fs: executionDelegate.fs))
+        let action = InfoPlistProcessorTaskAction(try prepareContext(InfoPlistProcessorTaskActionContext(scope: scope, productType: nil, platform: platform, sdk: core.sdkRegistry.lookup(platformName), sdkVariant: nil, cleanupRequiredArchitectures: []), fs: executionDelegate.fs))
         let task = Task(forTarget: nil, ruleInfo: [], commandLine: ["builtin-infoPlistUtility", "-platform", platformName, "/tmp/input.plist", "-o", "/tmp/output.plist", "-genpkginfo", "/tmp/PkgInfo"], workingDirectory: Path.root.join("tmp"), outputs: [], action: action, execDescription: "Copy Info.plist")
 
         // Write the test files.
@@ -1621,7 +1621,7 @@ fileprivate struct InfoPlistProcessorTaskTests: CoreBasedTests {
         let platform = try #require(core.platformRegistry.lookup(name: platformName), "invalid platform name '\(platformName)'")
         let executionDelegate = MockExecutionDelegate(core: try await getCore())
 
-        let action = InfoPlistProcessorTaskAction(try prepareContext(InfoPlistProcessorTaskActionContext(scope: scope, productType: nil, platform: platform, sdk: try #require(core.sdkRegistry.lookup(platformName)), sdkVariant: nil, cleanupRequiredArchitectures: []), fs: executionDelegate.fs))
+        let action = InfoPlistProcessorTaskAction(try prepareContext(InfoPlistProcessorTaskActionContext(scope: scope, productType: nil, platform: platform, sdk: core.sdkRegistry.lookup(platformName), sdkVariant: nil, cleanupRequiredArchitectures: []), fs: executionDelegate.fs))
         let task = Task(forTarget: nil, ruleInfo: [], commandLine: ["builtin-infoPlistUtility", "-platform", platformName, "/tmp/input.plist", "-o", "/tmp/output.plist"], workingDirectory: Path.root.join("tmp"), outputs: [], action: action, execDescription: "Copy Info.plist")
         try executionDelegate.fs.createDirectory(Path.root.join("tmp"))
         try await executionDelegate.fs.writePlist(Path("/tmp/input.plist"), ["CFBundleIdentifier": [1, 2, 3]])
@@ -1649,7 +1649,7 @@ fileprivate struct InfoPlistProcessorTaskTests: CoreBasedTests {
         let platform = try #require(core.platformRegistry.lookup(name: platformName), "invalid platform name '\(platformName)'")
         let executionDelegate = MockExecutionDelegate(core: try await getCore())
 
-        let action = InfoPlistProcessorTaskAction(try prepareContext(InfoPlistProcessorTaskActionContext(scope: scope, productType: nil, platform: platform, sdk: try #require(core.sdkRegistry.lookup(platformName)), sdkVariant: nil, cleanupRequiredArchitectures: []), fs: executionDelegate.fs))
+        let action = InfoPlistProcessorTaskAction(try prepareContext(InfoPlistProcessorTaskActionContext(scope: scope, productType: nil, platform: platform, sdk: core.sdkRegistry.lookup(platformName), sdkVariant: nil, cleanupRequiredArchitectures: []), fs: executionDelegate.fs))
         let task = Task(forTarget: nil, ruleInfo: [], commandLine: ["builtin-infoPlistUtility", "-platform", platformName, "/tmp/input.plist", "-o", "/tmp/output.plist"], workingDirectory: Path.root.join("tmp"), outputs: [], action: action, execDescription: "Copy Info.plist")
         try executionDelegate.fs.createDirectory(Path.root.join("tmp"))
         try await executionDelegate.fs.writePlist(Path("/tmp/input.plist"), ["CFBundleIdentifier": "bar"])
@@ -1827,7 +1827,7 @@ fileprivate struct InfoPlistProcessorTaskTests: CoreBasedTests {
             let platform = try #require(core.platformRegistry.lookup(name: platformName), "invalid platform name '\(platformName)'")
             let executionDelegate = MockExecutionDelegate(core: try await getCore())
 
-            let action = InfoPlistProcessorTaskAction(try prepareContext(InfoPlistProcessorTaskActionContext(scope: scope, productType: nil, platform: platform, sdk: try #require(core.sdkRegistry.lookup(platformName)), sdkVariant: nil, cleanupRequiredArchitectures: []), fs: executionDelegate.fs))
+            let action = InfoPlistProcessorTaskAction(try prepareContext(InfoPlistProcessorTaskActionContext(scope: scope, productType: nil, platform: platform, sdk: core.sdkRegistry.lookup(platformName), sdkVariant: nil, cleanupRequiredArchitectures: []), fs: executionDelegate.fs))
             let task = Task(forTarget: nil, ruleInfo: [], commandLine: ["builtin-infoPlistUtility", "-platform", platformName, "/tmp/input.plist", "-o", "/tmp/output.plist"], workingDirectory: Path.root.join("tmp"), outputs: [], action: action, execDescription: "Copy Info.plist")
             try executionDelegate.fs.createDirectory(Path.root.join("tmp"))
             try await executionDelegate.fs.writePlist(Path("/tmp/input.plist"), [
@@ -1852,7 +1852,7 @@ fileprivate struct InfoPlistProcessorTaskTests: CoreBasedTests {
             let platform = try #require(core.platformRegistry.lookup(name: platformName), "invalid platform name '\(platformName)'")
             let executionDelegate = MockExecutionDelegate(core: try await getCore())
 
-            let action = InfoPlistProcessorTaskAction(try prepareContext(InfoPlistProcessorTaskActionContext(scope: scope, productType: nil, platform: platform, sdk: try #require(core.sdkRegistry.lookup(platformName)), sdkVariant: nil, cleanupRequiredArchitectures: []), fs: executionDelegate.fs))
+            let action = InfoPlistProcessorTaskAction(try prepareContext(InfoPlistProcessorTaskActionContext(scope: scope, productType: nil, platform: platform, sdk: core.sdkRegistry.lookup(platformName), sdkVariant: nil, cleanupRequiredArchitectures: []), fs: executionDelegate.fs))
             let task = Task(forTarget: nil, ruleInfo: [], commandLine: ["builtin-infoPlistUtility", "-platform", platformName, "/tmp/input.plist", "-o", "/tmp/output.plist"], workingDirectory: Path.root.join("tmp"), outputs: [], action: action, execDescription: "Copy Info.plist")
             try executionDelegate.fs.createDirectory(Path.root.join("tmp"))
             try await executionDelegate.fs.writePlist(Path("/tmp/input.plist"), [
@@ -1881,7 +1881,7 @@ fileprivate struct InfoPlistProcessorTaskTests: CoreBasedTests {
             let platform = try #require(core.platformRegistry.lookup(name: platformName), "invalid platform name '\(platformName)'")
             let executionDelegate = MockExecutionDelegate(core: try await getCore())
 
-            let action = InfoPlistProcessorTaskAction(try prepareContext(InfoPlistProcessorTaskActionContext(scope: scope, productType: nil, platform: platform, sdk: try #require(core.sdkRegistry.lookup(platformName)), sdkVariant: nil, cleanupRequiredArchitectures: []), fs: executionDelegate.fs))
+            let action = InfoPlistProcessorTaskAction(try prepareContext(InfoPlistProcessorTaskActionContext(scope: scope, productType: nil, platform: platform, sdk: core.sdkRegistry.lookup(platformName), sdkVariant: nil, cleanupRequiredArchitectures: []), fs: executionDelegate.fs))
             let task = Task(forTarget: nil, ruleInfo: [], commandLine: ["builtin-infoPlistUtility", "-platform", platformName, "/tmp/input.plist", "-o", "/tmp/output.plist"], workingDirectory: Path.root.join("tmp"), outputs: [], action: action, execDescription: "Copy Info.plist")
             try executionDelegate.fs.createDirectory(Path.root.join("tmp"))
             try await executionDelegate.fs.writePlist(Path("/tmp/input.plist"), [
@@ -1911,7 +1911,7 @@ fileprivate struct InfoPlistProcessorTaskTests: CoreBasedTests {
             let platform = try #require(core.platformRegistry.lookup(name: platformName), "invalid platform name '\(platformName)'")
             let executionDelegate = MockExecutionDelegate(core: try await getCore())
 
-            let action = InfoPlistProcessorTaskAction(try prepareContext(InfoPlistProcessorTaskActionContext(scope: scope, productType: nil, platform: platform, sdk: try #require(core.sdkRegistry.lookup(platformName)), sdkVariant: nil, cleanupRequiredArchitectures: []), fs: executionDelegate.fs))
+            let action = InfoPlistProcessorTaskAction(try prepareContext(InfoPlistProcessorTaskActionContext(scope: scope, productType: nil, platform: platform, sdk: core.sdkRegistry.lookup(platformName), sdkVariant: nil, cleanupRequiredArchitectures: []), fs: executionDelegate.fs))
             let task = Task(forTarget: nil, ruleInfo: [], commandLine: ["builtin-infoPlistUtility", "-platform", platformName, "/tmp/input.plist", "-o", "/tmp/output.plist"], workingDirectory: Path.root.join("tmp"), outputs: [], action: action, execDescription: "Copy Info.plist")
             try executionDelegate.fs.createDirectory(Path.root.join("tmp"))
             try await executionDelegate.fs.writePlist(Path("/tmp/input.plist"), [
@@ -1941,7 +1941,7 @@ fileprivate struct InfoPlistProcessorTaskTests: CoreBasedTests {
             let platform = try #require(core.platformRegistry.lookup(name: platformName), "invalid platform name '\(platformName)'")
             let executionDelegate = MockExecutionDelegate(core: try await getCore())
 
-            let action = InfoPlistProcessorTaskAction(try prepareContext(InfoPlistProcessorTaskActionContext(scope: scope, productType: nil, platform: platform, sdk: try #require(core.sdkRegistry.lookup(platformName)), sdkVariant: nil, cleanupRequiredArchitectures: []), fs: executionDelegate.fs))
+            let action = InfoPlistProcessorTaskAction(try prepareContext(InfoPlistProcessorTaskActionContext(scope: scope, productType: nil, platform: platform, sdk: core.sdkRegistry.lookup(platformName), sdkVariant: nil, cleanupRequiredArchitectures: []), fs: executionDelegate.fs))
             let task = Task(forTarget: nil, ruleInfo: [], commandLine: ["builtin-infoPlistUtility", "-platform", platformName, "/tmp/input.plist", "-o", "/tmp/output.plist"], workingDirectory: Path.root.join("tmp"), outputs: [], action: action, execDescription: "Copy Info.plist")
             try executionDelegate.fs.createDirectory(Path.root.join("tmp"))
             try await executionDelegate.fs.writePlist(Path("/tmp/input.plist"), [
@@ -2040,7 +2040,7 @@ fileprivate struct InfoPlistProcessorTaskTests: CoreBasedTests {
         let productType = try #require(core.specRegistry.getSpec(productTypeName, domain: platformName) as? ProductTypeSpec)
         let executionDelegate = MockExecutionDelegate(core: try await getCore())
 
-        let action = InfoPlistProcessorTaskAction(try prepareContext(InfoPlistProcessorTaskActionContext(scope: scope, productType: productType, platform: platform, sdk: try #require(core.sdkRegistry.lookup(platformName)), sdkVariant: nil, cleanupRequiredArchitectures: []), fs: executionDelegate.fs))
+        let action = InfoPlistProcessorTaskAction(try prepareContext(InfoPlistProcessorTaskActionContext(scope: scope, productType: productType, platform: platform, sdk: core.sdkRegistry.lookup(platformName), sdkVariant: nil, cleanupRequiredArchitectures: []), fs: executionDelegate.fs))
         let task = Task(forTarget: nil, ruleInfo: [], commandLine: ["builtin-infoPlistUtility", "-expandbuildsettings", "-producttype", productTypeName, "-platform", platformName, "/tmp/input.plist", "-o", "/tmp/output.plist"], workingDirectory: Path.root.join("tmp"), outputs: [], action: action, execDescription: "Copy Info.plist")
 
         // Write the test files.
@@ -2121,7 +2121,7 @@ fileprivate struct InfoPlistProcessorTaskTests: CoreBasedTests {
             let platformName = "macosx"
             let executionDelegate = MockExecutionDelegate(core: try await getCore())
 
-            let action = InfoPlistProcessorTaskAction(try prepareContext(InfoPlistProcessorTaskActionContext(scope: scope, productType: nil, platform: try #require(core.platformRegistry.lookup(name: platformName)), sdk: try #require(core.sdkRegistry.lookup(platformName)), sdkVariant: nil, cleanupRequiredArchitectures: []), fs: executionDelegate.fs))
+            let action = InfoPlistProcessorTaskAction(try prepareContext(InfoPlistProcessorTaskActionContext(scope: scope, productType: nil, platform: core.platformRegistry.lookup(name: platformName), sdk: core.sdkRegistry.lookup(platformName), sdkVariant: nil, cleanupRequiredArchitectures: []), fs: executionDelegate.fs))
             let task = Task(forTarget: nil, ruleInfo: [], commandLine: ["builtin-infoPlistUtility", "-enforceminimumos", "-genpkginfo", "/tmp/PkgInfo", "-expandbuildsettings", "-platform", platformName, "/tmp/input.plist", "-scanforprivacyfile", "/tmp/frameworkA.framework", "-scanforprivacyfile", "/tmp/frameworkB.framework", "-scanforprivacyfile", "/tmp/frameworkC.framework", "-o", "/tmp/output.plist"], workingDirectory: Path.root.join("tmp"), outputs: [], action: action, execDescription: "Copy Info.plist")
 
             var appPlist: PropertyListItem = .plDict([

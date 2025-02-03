@@ -54,8 +54,7 @@ import SWBMacro
         let scope = MacroEvaluationScope(table: table)
 
         // Match the rules against the rule set.
-        let hAction = ruleSet.match(hFile, scope)
-        #expect(hAction != nil)
+        let _ = ruleSet.match(hFile, scope)
         let cAction = ruleSet.match(cFile, scope)
         #expect(cAction.action != nil)
         #expect(cAction.diagnostics.isEmpty)

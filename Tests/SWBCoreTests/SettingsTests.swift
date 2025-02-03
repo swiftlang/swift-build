@@ -4236,7 +4236,7 @@ import SWBMacro
 
         let parameters = BuildParameters(action: .build, configuration: "Debug")
         for (target, version) in expectations {
-            let settings = Settings(workspaceContext: context, buildRequestContext: buildRequestContext, parameters: parameters, project: testProject, target: try #require(testWorkspace.target(for: target.guid)))
+            let settings = Settings(workspaceContext: context, buildRequestContext: buildRequestContext, parameters: parameters, project: testProject, target: testWorkspace.target(for: target.guid))
             let effectiveSwiftVersion = settings.globalScope.evaluate(BuiltinMacros.EFFECTIVE_SWIFT_VERSION)
             #expect(effectiveSwiftVersion == version)
         }

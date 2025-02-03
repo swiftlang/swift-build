@@ -1365,10 +1365,10 @@ private final class ProjectModelItemClass: ProjectModelItem {
 
         // Check that the build files and the target dependency resolved.
         #expect(appTarget!.dependencies.map { $0.guid } == [frameworkTarget!.guid])
-        #expect(((appTarget!.buildPhases[0] as! SourcesBuildPhase).buildFiles[0] === classOneFileRef!) != nil)
-        #expect(((appTarget!.buildPhases[1] as! FrameworksBuildPhase).buildFiles[0] === cocoaFwkFileRef!) != nil)
-        #expect(((frameworkTarget!.buildPhases[0] as! SourcesBuildPhase).buildFiles[0] === classTwoFileRef!) != nil)
-        #expect(((frameworkTarget!.buildPhases[1] as! FrameworksBuildPhase).buildFiles[0] === classTwoFileRef!) != nil)
+        #expect((appTarget!.buildPhases[0] as! SourcesBuildPhase).buildFiles[0] === classOneFileRef!)
+        #expect((appTarget!.buildPhases[1] as! FrameworksBuildPhase).buildFiles[0] === cocoaFwkFileRef!)
+        #expect((frameworkTarget!.buildPhases[0] as! SourcesBuildPhase).buildFiles[0] === classTwoFileRef!)
+        #expect((frameworkTarget!.buildPhases[1] as! FrameworksBuildPhase).buildFiles[0] === classTwoFileRef!)
         #expect(appTarget?.productReference.target == appTarget)
         #expect(frameworkTarget?.productReference.target == frameworkTarget)
     }
