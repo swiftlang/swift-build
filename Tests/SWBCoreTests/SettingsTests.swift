@@ -4588,8 +4588,6 @@ import SWBMacro
 
     @Test(.requireSDKs(.macOS))
     func activeRunDestination_ONLY_ACTIVE_ARCH_interaction() async throws {
-        let core = try await getCore()
-
         // Prefer the run destination's targetArchitecture
         try await testActiveRunDestination(
             extraBuildSettings: [
