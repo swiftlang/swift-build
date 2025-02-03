@@ -107,7 +107,7 @@ fileprivate struct SwiftBuildOperationTests: CoreBasedTests {
 
             try await tester.checkBuild(runDestination: .anywatchOSDevice) { results in
                 results.consumeTasksMatchingRuleTypes()
-                results.consumeTasksMatchingRuleTypes(["CopySwiftLibs", "GenerateDSYMFile", "ProcessInfoPlistFile", "RegisterExecutionPolicyException", "Touch", "Validate", "ExtractAppIntentsMetadata", "AppIntentsSSUTraining", "SwiftExplicitDependencyCompileModuleFromInterface", "SwiftExplicitDependencyGeneratePcm"])
+                results.consumeTasksMatchingRuleTypes(["CopySwiftLibs", "GenerateDSYMFile", "ProcessInfoPlistFile", "RegisterExecutionPolicyException", "Touch", "Validate", "ExtractAppIntentsMetadata", "AppIntentsSSUTraining", "SwiftExplicitDependencyCompileModuleFromInterface", "SwiftExplicitDependencyGeneratePcm", "ProcessSDKImports"])
 
                 for (arch, isModuleOnly) in [("armv7k", true), ("arm64_32", false)] {
                     let moduleBaseNameSuffix = isModuleOnly ? "-watchos" : ""

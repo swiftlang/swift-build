@@ -46,6 +46,8 @@ fileprivate struct DeferredExecutionTests: CoreBasedTests {
 
                         // TAPI can't read the "world's smallest dylib", so don't run that
                         "GENERATE_INTERMEDIATE_TEXT_BASED_STUBS": "NO",
+                        // Since we don't get the linker's SDK imports output here, skip it.
+                        "ENABLE_SDK_IMPORTS": "NO",
                     ])
                 ],
                 targets: [

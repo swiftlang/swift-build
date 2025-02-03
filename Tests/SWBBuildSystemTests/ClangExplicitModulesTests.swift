@@ -1764,7 +1764,7 @@ fileprivate struct ClangExplicitModulesTests: CoreBasedTests {
                 // The module for Framework will be rebuilt.
                 results.checkTask(.matchRuleType("PrecompileModule"), .matchRuleItemPattern(.contains("Framework"))) { _ in }
 
-                results.consumeTasksMatchingRuleTypes(["Gate", "ClangStatCache", "CpHeader", "Ld", "Libtool", "GenerateTAPI"])
+                results.consumeTasksMatchingRuleTypes(["Gate", "ClangStatCache", "CpHeader", "Ld", "Libtool", "GenerateTAPI", "ProcessSDKImports"])
 
                 results.checkNoTask()
 
@@ -1797,7 +1797,7 @@ fileprivate struct ClangExplicitModulesTests: CoreBasedTests {
                     #expect(compileTasks.count == 2)
                 }
 
-                results.consumeTasksMatchingRuleTypes(["Gate", "ClangStatCache", "CpHeader", "Ld", "Libtool", "GenerateTAPI", "PrecompileModule"])
+                results.consumeTasksMatchingRuleTypes(["Gate", "ClangStatCache", "CpHeader", "Ld", "Libtool", "GenerateTAPI", "PrecompileModule", "ProcessSDKImports"])
 
                 results.checkNoTask()
 
@@ -2309,7 +2309,7 @@ fileprivate struct ClangExplicitModulesTests: CoreBasedTests {
                 results.checkTaskExists(.matchRuleType("ScanDependencies"), .matchRuleItemBasename("Shared.m"))
                 results.checkTaskExists(.matchRuleType("CompileC"), .matchRuleItemBasename("file.o"))
                 results.checkTaskExists(.matchRuleType("CompileC"), .matchRuleItemBasename("Shared.o"))
-                results.consumeTasksMatchingRuleTypes(["Gate", "ClangStatCache", "CpHeader", "GenerateTAPI", "Ld", "Libtool"])
+                results.consumeTasksMatchingRuleTypes(["Gate", "ClangStatCache", "CpHeader", "GenerateTAPI", "Ld", "Libtool", "ProcessSDKImports"])
                 results.checkNoTask()
                 results.checkNoDiagnostics()
             }

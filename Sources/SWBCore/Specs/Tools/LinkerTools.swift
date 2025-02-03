@@ -556,6 +556,17 @@ public final class LdLinkerSpec : GenericLinkerSpec, SpecIdentifierType {
         // Generate the command line.
         var commandLine = commandLineFromTemplate(cbc, delegate, optionContext: optionContext, specialArgs: specialArgs, lookup: lookup).map(\.asString)
 
+        // Add flags to emit SDK imports info.
+        let sdkImportsInfoFile = cbc.scope.evaluate(BuiltinMacros.LD_SDK_IMPORTS_FILE)
+        let supportsSDKImportsFeature = (try? optionContext?.toolVersion >= .init("1164")) == true
+        let usesLDClassic = commandLine.contains("-r") || commandLine.contains("-ld_classic") || cbc.scope.evaluate(BuiltinMacros.CURRENT_ARCH) == "armv7k"
+        if !usesLDClassic, supportsSDKImportsFeature, !sdkImportsInfoFile.isEmpty, cbc.scope.evaluate(BuiltinMacros.ENABLE_SDK_IMPORTS), cbc.producer.isApplePlatform {
+            commandLine.insert(contentsOf: ["-Xlinker", "-sdk_imports", "-Xlinker", sdkImportsInfoFile.str, "-Xlinker", "-sdk_imports_each_object"], at: commandLine.count - 2) // This preserves the assumption that the last argument is the linker output which a few tests make.
+            outputs.append(delegate.createNode(sdkImportsInfoFile))
+
+            await cbc.producer.processSDKImportsSpec.createTasks(CommandBuildContext(producer: cbc.producer, scope: cbc.scope, inputs: []), delegate, ldSDKImportsPath: sdkImportsInfoFile)
+        }
+
         // Select the driver to use based on the input file types, replacing the value computed by commandLineFromTemplate().
         let usedCXX = usedTools.values.contains(where: { $0.contains(where: { $0.languageDialect?.isPlusPlus ?? false }) })
         commandLine[0] = resolveExecutablePath(cbc, computeLinkerPath(cbc, usedCXX: usedCXX)).str
@@ -957,7 +968,7 @@ public final class LdLinkerSpec : GenericLinkerSpec, SpecIdentifierType {
         }
 
         // Args without parameters (-Xlinker-prefixed, e.g. -Xlinker)
-        for arg in ["-bitcode_verify", "-export_dynamic"] {
+        for arg in ["-bitcode_verify", "-export_dynamic", "-sdk_imports_each_object"] {
             while let index = commandLine.firstIndex(of: arg) {
                 guard index > 0, commandLine[index - 1] == argPrefix else { break }
                 commandLine.removeSubrange(index - 1 ... index)
@@ -976,7 +987,7 @@ public final class LdLinkerSpec : GenericLinkerSpec, SpecIdentifierType {
         }
 
         // Args with a parameter (-Xlinker-prefixed, e.g. -Xlinker arg -Xlinker param)
-        for arg in ["-object_path_lto", "-add_ast_path", "-dependency_info", "-map", "-order_file", "-bitcode_symbol_map", "-final_output", "-allowable_client"] {
+        for arg in ["-object_path_lto", "-add_ast_path", "-dependency_info", "-map", "-order_file", "-bitcode_symbol_map", "-final_output", "-allowable_client", "-sdk_imports"] {
             while let index = commandLine.firstIndex(of: arg) {
                 guard index > 0,
                     index + 2 < commandLine.count,

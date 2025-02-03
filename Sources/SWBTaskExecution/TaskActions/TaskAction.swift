@@ -164,7 +164,8 @@ open class TaskAction: PlannedTaskAction, PolymorphicSerializable
         35: ClangModuleVerifierInputGeneratorTaskAction.self,
         36: ConstructStubExecutorInputFileListTaskAction.self,
         37: ConcatenateTaskAction.self,
-        38: GenericCachingTaskAction.self
+        38: GenericCachingTaskAction.self,
+        39: ProcessSDKImportsTaskAction.self
     ]
 }
 

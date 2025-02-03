@@ -180,7 +180,7 @@ fileprivate struct MergeableLibrariesBuildOperationTests: CoreBasedTests {
                 "ClangStatCache", "ExtractAppIntentsMetadata", "AppIntentsSSUTraining",
                 "SwiftDriver", "SwiftEmitModule", "SwiftDriver Compilation", "SwiftDriver Compilation Requirements", "SwiftMergeGeneratedHeaders",
                 "CopySwiftLibs","RegisterExecutionPolicyException", "RegisterWithLaunchServices", "Validate", "Touch",
-                "SwiftExplicitDependencyCompileModuleFromInterface", "SwiftExplicitDependencyGeneratePcm"
+                "SwiftExplicitDependencyCompileModuleFromInterface", "SwiftExplicitDependencyGeneratePcm", "ProcessSDKImports",
             ])
 
             // Perform a debug build, to check that reexport was properly done, and merging was not.
@@ -661,7 +661,7 @@ fileprivate struct MergeableLibrariesBuildOperationTests: CoreBasedTests {
                 "ClangStatCache", "ExtractAppIntentsMetadata", "AppIntentsSSUTraining",
                 "SwiftDriver", "SwiftEmitModule", "SwiftDriver Compilation", "SwiftDriver Compilation Requirements", "SwiftMergeGeneratedHeaders",
                 "CopySwiftLibs","RegisterExecutionPolicyException", "RegisterWithLaunchServices", "Validate", "Touch",
-                "SwiftExplicitDependencyCompileModuleFromInterface", "SwiftExplicitDependencyGeneratePcm"
+                "SwiftExplicitDependencyCompileModuleFromInterface", "SwiftExplicitDependencyGeneratePcm", "ProcessSDKImports",
             ])
 
             // Perform a debug build, to check that reexport was properly done, and merging was not.
@@ -1069,7 +1069,7 @@ fileprivate struct MergeableLibrariesBuildOperationTests: CoreBasedTests {
                 "ClangStatCache", "ExtractAppIntentsMetadata", "AppIntentsSSUTraining",
                 "SwiftDriver", "SwiftEmitModule", "SwiftDriver Compilation", "SwiftDriver Compilation Requirements", "SwiftMergeGeneratedHeaders",
                 "CopySwiftLibs","RegisterExecutionPolicyException", "RegisterWithLaunchServices", "Validate", "Touch",
-                "SwiftExplicitDependencyCompileModuleFromInterface", "SwiftExplicitDependencyGeneratePcm"
+                "SwiftExplicitDependencyCompileModuleFromInterface", "SwiftExplicitDependencyGeneratePcm", "ProcessSDKImports",
             ])
 
             // Perform a release build where we merge the framework and library.
@@ -1459,7 +1459,7 @@ fileprivate struct MergeableLibrariesBuildOperationTests: CoreBasedTests {
                 "ClangStatCache", "ExtractAppIntentsMetadata", "AppIntentsSSUTraining",
                 "SwiftDriver", "SwiftEmitModule", "SwiftDriver Compilation", "SwiftDriver Compilation Requirements", "SwiftMergeGeneratedHeaders",
                 "CopySwiftLibs","RegisterExecutionPolicyException", "RegisterWithLaunchServices", "Validate", "Touch",
-                "SwiftExplicitDependencyCompileModuleFromInterface", "SwiftExplicitDependencyGeneratePcm"
+                "SwiftExplicitDependencyCompileModuleFromInterface", "SwiftExplicitDependencyGeneratePcm", "ProcessSDKImports",
             ])
 
             // Perform a release build where we merge the XCFramework.

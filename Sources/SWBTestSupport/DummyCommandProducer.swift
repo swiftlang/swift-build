@@ -93,6 +93,7 @@ package struct MockCommandProducer: CommandProducer, Sendable {
         self.unifdefSpec = try getSpec("public.build-task.unifdef") as UnifdefToolSpec
         self.mkdirSpec = try getSpec("com.apple.tools.mkdir") as MkdirToolSpec
         self.swiftCompilerSpec = try getSpec() as SwiftCompilerSpec
+        self.processSDKImportsSpec = try getSpec(ProcessSDKImportsSpec.identifier) as ProcessSDKImportsSpec
     }
 
     package let specDataCaches = Registry<Spec, any SpecDataCache>()
@@ -128,6 +129,7 @@ package struct MockCommandProducer: CommandProducer, Sendable {
     package let unifdefSpec: UnifdefToolSpec
     package let mkdirSpec: MkdirToolSpec
     package let swiftCompilerSpec: SwiftCompilerSpec
+    package let processSDKImportsSpec: ProcessSDKImportsSpec
 
     package var defaultWorkingDirectory: Path {
         return Path("/tmp")

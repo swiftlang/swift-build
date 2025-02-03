@@ -123,6 +123,7 @@ public struct BuiltinSpecsExtension: SpecificationsExtension {
             CreateAssetPackManifestToolSpec.self,
             CreateBuildDirectorySpec.self,
             MergeInfoPlistSpec.self,
+            ProcessSDKImportsSpec.self,
             ProcessXCFrameworkLibrarySpec.self,
             RegisterExecutionPolicyExceptionToolSpec.self,
             SwiftHeaderToolSpec.self,

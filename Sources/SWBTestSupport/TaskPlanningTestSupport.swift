@@ -461,6 +461,10 @@ extension TestTaskPlanningDelegate: TaskActionCreationDelegate {
     package func createClangModuleVerifierInputGeneratorTaskAction() -> any PlannedTaskAction {
         return ClangModuleVerifierInputGeneratorTaskAction()
     }
+
+    package func createProcessSDKImportsTaskAction() -> any PlannedTaskAction {
+        return ProcessSDKImportsTaskAction()
+    }
 }
 
 package final class CancellingTaskPlanningDelegate: TestTaskPlanningDelegate, @unchecked Sendable {

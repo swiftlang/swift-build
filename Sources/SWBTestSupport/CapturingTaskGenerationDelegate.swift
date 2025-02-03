@@ -235,4 +235,8 @@ extension CapturingTaskGenerationDelegate: TaskActionCreationDelegate {
     package func createClangModuleVerifierInputGeneratorTaskAction() -> any PlannedTaskAction {
         return ClangModuleVerifierInputGeneratorTaskAction()
     }
+
+    package func createProcessSDKImportsTaskAction() -> any PlannedTaskAction {
+        return ProcessSDKImportsTaskAction()
+    }
 }

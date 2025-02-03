@@ -216,7 +216,7 @@ private extension BundleProductTypeSpec
                         await context.mergeInfoPlistSpec.constructTasks(CommandBuildContext(producer: context, scope: scope, inputs: intermediatePlistPaths.sorted().map { FileToBuild(context: context, absolutePath: $0) }, output: inputPlistPath), delegate)
                     }
 
-                    await context.infoPlistSpec.constructInfoPlistTasks(CommandBuildContext(producer: context, scope: scope, inputs: [FileToBuild(context: context, absolutePath: inputPlistPath)], output: output), delegate, generatedPkgInfoFile: targetBuildDirPkginfoPath, additionalContentFilePaths: additionalContentFilePaths, requiredArch: requiredArch, appPrivacyContentFiles: privacyContentFilePaths)
+                    await context.infoPlistSpec.constructInfoPlistTasks(CommandBuildContext(producer: context, scope: scope, inputs: [FileToBuild(context: context, absolutePath: inputPlistPath)], output: output), delegate, generatedPkgInfoFile: targetBuildDirPkginfoPath, additionalContentFilePaths: additionalContentFilePaths, requiredArch: requiredArch, appPrivacyContentFiles: privacyContentFilePaths, clientLibrariesForCodelessBundle: producer.context.clientLibrariesForCodelessBundle.map { $0.basename })
                 }
 
                 return tasks
@@ -266,6 +266,42 @@ private extension ToolProductTypeSpec
                     }
                 }
             }
+        }
+    }
+}
+
+extension TaskProducerContext {
+    /// Compute a list of client libraries for a particular codeless bundle.
+    fileprivate var clientLibrariesForCodelessBundle: [Path] {
+        guard let configuredTarget = configuredTarget else {
+            return []
+        }
+
+        let scope = self.settings.globalScope
+        // If we're skipping App Store deployment work, we also want to skip this.
+        if scope.evaluate(BuiltinMacros.ASSETCATALOG_COMPILER_SKIP_APP_STORE_DEPLOYMENT) {
+            return []
+        }
+
+        // Determine whether this target is actually codeless.
+        var willEverProduceBinary = false
+        for variant in scope.evaluate(BuiltinMacros.BUILD_VARIANTS) {
+            let scope = scope.subscope(binding: BuiltinMacros.variantCondition, to: variant)
+            willEverProduceBinary = willEverProduceBinary || self.willProduceBinary(scope)
+        }
+        guard !willEverProduceBinary, let clients = self.globalProductPlan.clientsOfBundlesByTarget[configuredTarget] else {
+            return []
+        }
+
+        return clients.compactMap {
+            let scope = self.globalProductPlan.planRequest.buildRequestContext.getCachedSettings($0.parameters, target: $0.target).globalScope
+            // Filter non-library clients.
+            let machOType = scope.evaluate(BuiltinMacros.MACH_O_TYPE)
+            guard ["mh_bundle", "mh_dylib", "mh_object", "staticlib"].contains(machOType) else {
+                return nil
+            }
+            // Seems a bit odd to manually piece this together here, but I don't know of a better option.
+            return Path(scope.evaluate(BuiltinMacros.namespace.parseString("$(EXECUTABLE_FOLDER_PATH)/$(EXECUTABLE_PREFIX)$(PRODUCT_NAME)$(EXECUTABLE_SUFFIX)")))
         }
     }
 }

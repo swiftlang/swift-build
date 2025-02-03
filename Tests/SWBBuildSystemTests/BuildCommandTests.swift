@@ -63,7 +63,7 @@ fileprivate struct BuildCommandTests: CoreBasedTests {
             let buildRequestContext = BuildRequestContext(workspaceContext: tester.workspaceContext)
 
             // Construct the output paths.
-            let excludedTypes: Set<String> = ["Copy", "Gate", "MkDir", "SymLink", "WriteAuxiliaryFile", "CreateBuildDirectory", "SwiftDriver", "SwiftDriver Compilation Requirements", "SwiftDriver Compilation", "SwiftMergeGeneratedHeaders", "ClangStatCache", "SwiftExplicitDependencyCompileModuleFromInterface", "SwiftExplicitDependencyGeneratePcm"]
+            let excludedTypes: Set<String> = ["Copy", "Gate", "MkDir", "SymLink", "WriteAuxiliaryFile", "CreateBuildDirectory", "SwiftDriver", "SwiftDriver Compilation Requirements", "SwiftDriver Compilation", "SwiftMergeGeneratedHeaders", "ClangStatCache", "SwiftExplicitDependencyCompileModuleFromInterface", "SwiftExplicitDependencyGeneratePcm", "ProcessSDKImports"]
             let runDestination = RunDestinationInfo.macOS
             let parameters = BuildParameters(configuration: "Debug", activeRunDestination: runDestination)
             let target = tester.workspace.allTargets.first(where: { _ in true })!
@@ -265,7 +265,7 @@ fileprivate struct BuildCommandTests: CoreBasedTests {
                 let parameters = BuildParameters(configuration: "Debug", activeRunDestination: runDestination)
 
                 try await tester.checkBuild(parameters: parameters, runDestination: runDestination, buildCommand: .build(style: .buildOnly, skipDependencies: skipDependencies), persistent: true) { results in
-                    results.consumeTasksMatchingRuleTypes(["Gate", "MkDir", "CreateBuildDirectory", "RegisterExecutionPolicyException", "SymLink", "Touch", "WriteAuxiliaryFile", "GenerateTAPI", "ClangStatCache"])
+                    results.consumeTasksMatchingRuleTypes(["Gate", "MkDir", "CreateBuildDirectory", "RegisterExecutionPolicyException", "SymLink", "Touch", "WriteAuxiliaryFile", "GenerateTAPI", "ClangStatCache", "ProcessSDKImports"])
 
                     results.consumeTasksMatchingRuleTypes(["CompileC", "Ld"], targetName: "aFramework")
 

@@ -198,6 +198,11 @@ extension ExecutableTask {
                 command = "has process command with output '\(ruleInfo[1])'"
             }
 
+        case "ProcessSDKImports":
+            if ruleInfo.count >= 2 {
+                command = "has process command with output '\(ruleInfo[1])'"
+            }
+
         case "ProcessPCH++", "ProcessPCH":
             if ruleInfo.count >= 3 {
                 command = "has process command with input '\(ruleInfo[2])'"

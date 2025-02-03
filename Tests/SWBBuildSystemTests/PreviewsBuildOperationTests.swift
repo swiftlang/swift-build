@@ -85,6 +85,7 @@ fileprivate struct PreviewsBuildOperationTests: CoreBasedTests {
                 "ASSETCATALOG_FILTER_FOR_DEVICE_OS_VERSION": core.loadSDK(.iOSSimulator).defaultDeploymentTarget,
                 "ASSETCATALOG_FILTER_FOR_THINNING_DEVICE_CONFIGURATION": "iPhone15,2",
                 "BUILD_ACTIVE_RESOURCES_ONLY": "YES",
+                "ENABLE_SDK_IMPORTS": "NO",
                 "TARGET_DEVICE_IDENTIFIER": "DB9FA063-8DA7-41C1-835E-EC616E6AF448",
                 "TARGET_DEVICE_MODEL": "iPhone15,2",
                 "TARGET_DEVICE_OS_VERSION": core.loadSDK(.iOSSimulator).defaultDeploymentTarget,
@@ -370,6 +371,7 @@ fileprivate struct PreviewsBuildOperationTests: CoreBasedTests {
                 "ASSETCATALOG_FILTER_FOR_DEVICE_OS_VERSION": core.loadSDK(.iOSSimulator).defaultDeploymentTarget,
                 "ASSETCATALOG_FILTER_FOR_THINNING_DEVICE_CONFIGURATION": "iPhone15,2",
                 "BUILD_ACTIVE_RESOURCES_ONLY": "YES",
+                "ENABLE_SDK_IMPORTS": "NO",
                 "TARGET_DEVICE_IDENTIFIER": "DB9FA063-8DA7-41C1-835E-EC616E6AF448",
                 "TARGET_DEVICE_MODEL": "iPhone15,2",
                 "TARGET_DEVICE_OS_VERSION": core.loadSDK(.iOSSimulator).defaultDeploymentTarget,
@@ -500,7 +502,7 @@ fileprivate struct PreviewsBuildOperationTests: CoreBasedTests {
             try await tester.checkBuild(parameters: buildParameters, buildCommand: .build(style: .buildOnly, skipDependencies: false)) { results in
                 results.checkNoDiagnostics()
 
-                results.consumeTasksMatchingRuleTypes(["Copy", "CopySwiftLibs", "ExtractAppIntentsMetadata", "Gate", "GenerateDSYMFile", "MkDir", "CreateBuildDirectory", "WriteAuxiliaryFile", "ClangStatCache", "RegisterExecutionPolicyException", "AppIntentsSSUTraining", "ProcessInfoPlistFile", "Touch", "Validate", "LinkAssetCatalogSignature", "SwiftExplicitDependencyCompileModuleFromInterface", "SwiftExplicitDependencyGeneratePcm", "ConstructStubExecutorLinkFileList"])
+                results.consumeTasksMatchingRuleTypes(["Copy", "CopySwiftLibs", "ExtractAppIntentsMetadata", "Gate", "GenerateDSYMFile", "MkDir", "CreateBuildDirectory", "WriteAuxiliaryFile", "ClangStatCache", "RegisterExecutionPolicyException", "AppIntentsSSUTraining", "ProcessInfoPlistFile", "Touch", "Validate", "LinkAssetCatalogSignature", "SwiftExplicitDependencyCompileModuleFromInterface", "SwiftExplicitDependencyGeneratePcm", "ConstructStubExecutorLinkFileList", "ProcessSDKImports"])
                 results.consumeTasksMatchingRuleTypes(["SwiftCompile", "SwiftDriver", "SwiftDriver Compilation", "SwiftDriver Compilation Requirements", "SwiftEmitModule", "SwiftMergeGeneratedHeaders"])
                 results.consumeTasksMatchingRuleTypes(["GenerateDSYMFile"])
 
@@ -584,7 +586,7 @@ fileprivate struct PreviewsBuildOperationTests: CoreBasedTests {
                     #expect(entryPoint == ByteString(encodingAsUTF8: "_NSExtensionMain"))
                 }
 
-                results.consumeTasksMatchingRuleTypes(["Copy", "CopySwiftLibs", "ExtractAppIntentsMetadata", "Gate", "GenerateDSYMFile", "MkDir", "CreateBuildDirectory", "WriteAuxiliaryFile", "ClangStatCache", "RegisterExecutionPolicyException", "AppIntentsSSUTraining", "ProcessInfoPlistFile", "Touch", "Validate", "LinkAssetCatalogSignature", "ConstructStubExecutorLinkFileList"])
+                results.consumeTasksMatchingRuleTypes(["Copy", "CopySwiftLibs", "ExtractAppIntentsMetadata", "Gate", "GenerateDSYMFile", "MkDir", "CreateBuildDirectory", "WriteAuxiliaryFile", "ClangStatCache", "RegisterExecutionPolicyException", "AppIntentsSSUTraining", "ProcessInfoPlistFile", "Touch", "Validate", "LinkAssetCatalogSignature", "ConstructStubExecutorLinkFileList", "ProcessSDKImports"])
                 results.consumeTasksMatchingRuleTypes(["GenerateDSYMFile"])
                 results.consumeTasksMatchingRuleTypes(["SwiftCompile", "SwiftDriver", "SwiftDriver Compilation", "SwiftDriver Compilation Requirements", "SwiftEmitModule", "SwiftMergeGeneratedHeaders", "SwiftExplicitDependencyCompileModuleFromInterface", "SwiftExplicitDependencyGeneratePcm"])
 
