@@ -236,7 +236,7 @@ let package = Package(
             dependencies: ["SwiftBuild", "SWBBuildSystem", "SWBCore", "SWBTaskConstruction", "SWBTaskExecution", "SWBUtil", "SWBLLBuild", "SWBMacro"],
             swiftSettings: swiftSettings(languageMode: .v5) + [
                 // Temporary until swift-testing introduces replacement for this SPI
-                .define("DONT_HAVE_CUSTOM_EXECUTION_TRAIT", .when(platforms: [.macOS, .macCatalyst, .iOS, .tvOS, .watchOS, .visionOS, .windows]))
+                .define("DONT_HAVE_CUSTOM_EXECUTION_TRAIT")
             ]),
 
         // Tests
