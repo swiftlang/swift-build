@@ -450,7 +450,7 @@ public final class MacroNamespace: CustomDebugStringConvertible, Encodable, Send
     }
 
     // FIXME: We should eliminate this if possible, as it is rather inefficient, but it is widely used in Settings construction.
-    // This was orignally part of Settings but was moved here to be available elsewhere.
+    // This was originally part of Settings but was moved here to be available elsewhere.
     //
     /// Parse a table of settings in a manner consistent with their definitions.
     ///
