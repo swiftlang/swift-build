@@ -100,7 +100,7 @@ final class SwiftStandardLibrariesTaskProducer: PhasedTaskProducer, TaskProducer
             let input = FileToBuild(absolutePath: inputPath, inferringTypeUsing: context)
             let filterForSwiftOS = context.platform?.supportsSwiftInTheOS(scope) == true
 
-            // For Xcode's that do not yet know about Swift Concurrency, this will return `nil`. In those cases, we also do not pass teh flag.
+            // For Xcode's that do not yet know about Swift Concurrency, this will return `nil`. In those cases, we also do not pass the flag.
             let supportsConcurrencyNatively = context.platform?.supportsSwiftConcurrencyNatively(scope)
             let backDeploySwiftConcurrency = supportsConcurrencyNatively != nil && supportsConcurrencyNatively != true
 
