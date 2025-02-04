@@ -216,7 +216,7 @@ public class MacroConditionExpression: CustomStringConvertible
     {
         let expr = parseUnaryExpression(parser, diagnosticsHandler)
 
-        // TODO: Relational expressions were not implemented in the native build system support for macro conditon expressions, so they're not implemented here yet either.
+        // TODO: Relational expressions were not implemented in the native build system support for macro condition expressions, so they're not implemented here yet either.
 
         return expr
     }
