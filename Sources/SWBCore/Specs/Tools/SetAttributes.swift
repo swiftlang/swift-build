@@ -72,7 +72,7 @@ public final class SetAttributesSpec: CommandLineToolSpec, SpecImplementationTyp
             let args = [cbc.scope.evaluate(BuiltinMacros.CHMOD).str, flags, mode, input.absolutePath.str]
             let outputs: [any PlannedNode] = [delegate.createNode(input.absolutePath), delegate.createVirtualNode("SetMode \(input.absolutePath.str)")]
 
-            // Artifically enforce an ordering between chown and chmod, if both are used.
+            // Artificially enforce an ordering between chown and chmod, if both are used.
             var inputs: [any PlannedNode] = [delegate.createNode(input.absolutePath)]
             if let chownOutput = chownOutput {
                 inputs.append(chownOutput)

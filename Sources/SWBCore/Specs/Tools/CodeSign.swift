@@ -223,7 +223,7 @@ public final class CodesignToolSpec : CommandLineToolSpec, SpecIdentifierType {
             if isReSignTask {
                 // We have to infer the binary path, which is something of a hack.  It also assumes the bundle we're signing *has* a binary.
                 //
-                // Note that the difference between use of `productToSign` and `outputPath` here is intentional, and is designed to accomodate the handling of macOS `Versions/A/<name>`.
+                // Note that the difference between use of `productToSign` and `outputPath` here is intentional, and is designed to accommodate the handling of macOS `Versions/A/<name>`.
                 let bundleName = productToSign.basenameWithoutSuffix
 
                 let format: BundleFormat
@@ -319,7 +319,7 @@ public final class CodesignToolSpec : CommandLineToolSpec, SpecIdentifierType {
     }
 
 
-    /// Computes the enviornment for invoking the code signing tool.
+    /// Computes the environment for invoking the code signing tool.
     ///
     /// - Parameters:
     ///   - cbc: The command build context.

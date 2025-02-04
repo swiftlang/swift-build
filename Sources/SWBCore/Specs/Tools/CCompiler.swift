@@ -550,7 +550,7 @@ public class ClangCompilerSpec : CompilerSpec, SpecIdentifierType, GCCCompatible
             /// The compilation inputs implied by these flags.
             let inputs: [Path]
 
-            /// Maps response files in `flags` to the correspoding recorded attachment in the build description.
+            /// Maps response files in `flags` to the corresponding recorded attachment in the build description.
             let responseFileMapping: [Path: Path]
 
         }
@@ -936,7 +936,7 @@ public class ClangCompilerSpec : CompilerSpec, SpecIdentifierType, GCCCompatible
                     }
                 }
 
-                // If an open-source Swift toolchain is in use, supress warnings about libclang mismatch.
+                // If an open-source Swift toolchain is in use, suppress warnings about libclang mismatch.
                 if !cbc.producer.toolchains.contains(where: { toolchain in
                     toolchain.identifier.hasPrefix("org.swift.")
                 }) {

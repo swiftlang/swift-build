@@ -54,7 +54,7 @@ final public class TAPISymbolExtractor: GenericCompilerSpec, GCCCompatibleCompil
         return await hasPlusPlusHeaders(cbc)
     }
 
-    // Which -x option should this task pass along to clang for the extract-api commnand?
+    // Which -x option should this task pass along to clang for the extract-api command?
     static private func clangHeaderOption(cbc: CommandBuildContext) async -> String {
         return await shouldBuildInCXXMode(cbc: cbc) ? "objective-c++-header" : "objective-c-header"
     }
