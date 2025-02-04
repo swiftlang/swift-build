@@ -637,7 +637,7 @@ final class ProductPostprocessingTaskProducer: PhasedTaskProducer, TaskProducer 
         }
     }
 
-    // The entry point for adding in the product registration tasks for 'buid' commands.
+    // The entry point for adding in the product registration tasks for 'build' commands.
     private func addProductRegistrationTasks(_ scope: MacroEvaluationScope, _ tasks: inout [any PlannedTask]) async {
         guard scope.evaluate(BuiltinMacros.BUILD_COMPONENTS).contains("build") else {
             return
