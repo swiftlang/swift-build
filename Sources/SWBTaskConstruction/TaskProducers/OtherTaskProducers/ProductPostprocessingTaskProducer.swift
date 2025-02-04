@@ -488,7 +488,7 @@ final class ProductPostprocessingTaskProducer: PhasedTaskProducer, TaskProducer 
             // FIXME: This is very gross, we currently only have access to the scope here, so we can't use the actual product type object. However, we will hopefully replace all of this logic by eliminating the
             let productType = ProductTypeIdentifier(subscope.evaluate(BuiltinMacros.PRODUCT_TYPE))
 
-            // TAPI will only be run when the output is a dylib. Swift static library may schdule installAPI phase to generate a swiftmodule.
+            // TAPI will only be run when the output is a dylib. Swift static library may schedule installAPI phase to generate a swiftmodule.
             if productType.supportsInstallAPI && (shouldUseInstallAPI(subscope, settings) || stubAPIDestination(subscope, settings) == .builtProduct) {
                 let tapiOutputPath = Path(subscope.evaluate(BuiltinMacros.TAPI_OUTPUT_PATH))
                 paths.append((tapiOutputPath, subscope, false, false, false))
