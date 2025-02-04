@@ -92,7 +92,7 @@ final class SanitizerTaskProducer: PhasedTaskProducer, TaskProducer {
     private func embedCompilerSanitizerLibrary(sanitizer: Sanitizer, delegate: any TaskGenerationDelegate, scope: MacroEvaluationScope) async {
         let sanitizerName = sanitizer.name
 
-        // Sanitizers 2.0 do not require dylibs to be embeded in the the target path.
+        // Sanitizers 2.0 do not require dylibs to be embedded in the the target path.
         if sanitizerName == "Address" && scope.evaluate(BuiltinMacros.ENABLE_SYSTEM_SANITIZERS) {
             return
         }
