@@ -17,7 +17,7 @@ import Testing
 
 import Testing
 
-@Suite
+@Suite(.requireXcode16())
 fileprivate struct InstrumentsPackageBuildOperationTests: CoreBasedTests {
     /// An Instruments package target.
     @Test(.requireSDKs(.macOS))

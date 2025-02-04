@@ -1779,7 +1779,7 @@ fileprivate struct InstallLocTaskConstructionTests: CoreBasedTests {
         }
     }
 
-    @Test(.requireSDKs(.iOS))
+    @Test(.requireSDKs(.iOS), .requireXcode16())
     func installLocSSUAppIntents() async throws {
         let testProject = TestProject(
             "aProject",

@@ -19,7 +19,7 @@ import SWBProtocol
 import SWBCore
 @_spi(Testing) import SWBBuildService
 
-@Suite
+@Suite(.requireXcode16())
 fileprivate struct PreviewsBuildOperationTests: CoreBasedTests {
     @Test(.requireSDKs(.iOS))
     func previewXOJITBuilds() async throws {

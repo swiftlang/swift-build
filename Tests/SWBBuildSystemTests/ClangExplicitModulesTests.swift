@@ -20,7 +20,7 @@ import SWBTestSupport
 import SWBUtil
 import SWBProtocol
 
-@Suite(.requireDependencyScanner)
+@Suite(.requireDependencyScanner, .requireXcode16())
 fileprivate struct ClangExplicitModulesTests: CoreBasedTests {
     @Test(.requireSDKs(.macOS))
     func explicitModulesBasic() async throws {

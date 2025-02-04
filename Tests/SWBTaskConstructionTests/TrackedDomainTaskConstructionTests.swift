@@ -19,7 +19,7 @@ import SWBUtil
 
 import SWBTaskConstruction
 
-@Suite
+@Suite(.requireXcode16())
 fileprivate struct TrackedDomainTaskConstructionTests: CoreBasedTests {
     @Test(.requireSDKs(.macOS, .iOS))
     func basicDomainAggregation() async throws {

@@ -140,7 +140,7 @@ fileprivate struct BuildOperationDescriptionTests: CoreBasedTests {
     }
 
     /// Generate a `BuildDescription` from our test workspace, build it, and check results.  Then try doing it again to make sure we can use the results loaded from the on-disk cache.
-    @Test(.requireSDKs(.macOS))
+    @Test(.requireSDKs(.macOS), .requireXcode16())
     func onDiskBuildDescriptionCache() async throws {
         try await withTemporaryDirectory { tmpDirPath in
             let testWorkspace = try await getTestWorkspace(in: tmpDirPath)
@@ -358,7 +358,7 @@ fileprivate struct BuildOperationDescriptionTests: CoreBasedTests {
     }
 
     /// Generate a `BuildDescription` from our test workspace, build it, and check results.  Then try doing it again to make sure we can use the results loaded from the on-disk cache.
-    @Test(.requireSDKs(.macOS))
+    @Test(.requireSDKs(.macOS), .requireXcode16())
     func inMemoryBuildDescriptionCache() async throws {
         try await withTemporaryDirectory { tmpDirPath in
             let testWorkspace = try await getTestWorkspace(in: tmpDirPath)
@@ -499,7 +499,7 @@ fileprivate struct BuildOperationDescriptionTests: CoreBasedTests {
     }
 
     /// Generate a `BuildDescription` from our test workspace, build it, and check results.  Then try doing it again to make sure we can use the cached build system object
-    @Test(.requireSDKs(.macOS))
+    @Test(.requireSDKs(.macOS), .requireXcode16())
     func buildDescriptionUseInBuildSystemCaching() async throws {
         try await withTemporaryDirectory { tmpDirPath in
             let testWorkspace = try await getTestWorkspace(in: tmpDirPath)

@@ -20,7 +20,7 @@ import SWBCore
 
 @Suite(.requireHostOS(.macOS))
 fileprivate struct DeferredExecutionTests: CoreBasedTests {
-    @Test(.requireSDKs(.macOS), arguments: [true, false])
+    @Test(.requireSDKs(.macOS), .requireXcode16(), arguments: [true, false])
     func testDeferredExecution(isOn: Bool) async throws {
         try await withTemporaryDirectory { tmpDir in
             let fs: any FSProxy = localFS

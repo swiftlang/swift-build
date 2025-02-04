@@ -19,7 +19,7 @@ import struct SWBProtocol.RunDestinationInfo
 import SWBCore
 import class SwiftBuild.SWBBuildService
 
-@Suite
+@Suite(.requireXcode16())
 fileprivate struct MergeableLibrariesBuildOperationTests: CoreBasedTests {
     @Test(.requireSDKs(.iOS))
     func automaticMergedFrameworkCreation() async throws {

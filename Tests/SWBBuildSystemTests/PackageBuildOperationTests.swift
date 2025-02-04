@@ -290,7 +290,7 @@ fileprivate struct PackageBuildOperationTests: CoreBasedTests {
     }
 
     /// Check that an .rkassets bundle produces a reasonable error when building for an unsupported platform.
-    @Test(.requireSDKs(.watchOS))
+    @Test(.requireSDKs(.watchOS), .requireXcode16())
     func RKAssetsWrongPlatform() async throws {
         try await withTemporaryDirectory { tmpDirPath async throws -> Void in
             let packageResourceTarget = try await TestStandardTarget(

@@ -28,7 +28,7 @@ import SWBTaskExecution
 @_spi(Testing) import SWBUtil
 import SWBTestSupport
 
-@Suite
+@Suite(.requireXcode16())
 fileprivate struct BuildOperationTests: CoreBasedTests {
     @Test(.requireSDKs(.host), .requireThreadSafeWorkingDirectory)
     func commandLineTool() async throws {
@@ -4612,57 +4612,57 @@ That command depends on command in Target 'agg2' (project \'aProject\'): script 
         }
     }
 
-    @Test(.requireSDKs(.macOS))
+    @Test(.requireSDKs(.macOS), .requireXcode16())
     func frameworkInstallAPITBDSigning() async throws {
         try await checkTBDSigning(useStubify: false, productType: .framework)
     }
-    @Test(.requireSDKs(.macOS))
+    @Test(.requireSDKs(.macOS), .requireXcode16())
     func frameworkInstallAPITBDSigningWithBuildVariants() async throws {
         // FIXME: <rdar://problem/42261905> We should do this at the task construction tests layer, once we have good automatic cycle detection there.
         try await checkTBDSigning(useStubify: false, productType: .framework, buildVariants: ["normal", "profile"])
     }
-    @Test(.requireSDKs(.macOS))
+    @Test(.requireSDKs(.macOS), .requireXcode16())
     func frameworkStubifyTBDSigning() async throws {
         try await checkTBDSigning(useStubify: true, productType: .framework)
     }
-    @Test(.requireSDKs(.macOS))
+    @Test(.requireSDKs(.macOS), .requireXcode16())
     func staticFrameworkInstallAPITBDSigning() async throws {
         try await checkTBDSigning(useStubify: false, productType: .staticFramework)
     }
-    @Test(.requireSDKs(.macOS))
+    @Test(.requireSDKs(.macOS), .requireXcode16())
     func staticFrameworkInstallAPITBDSigningWithBuildVariants() async throws {
         try await checkTBDSigning(useStubify: false, productType: .staticFramework, buildVariants: ["normal", "profile"])
     }
-    @Test(.requireSDKs(.macOS))
+    @Test(.requireSDKs(.macOS), .requireXcode16())
     func staticFrameworkStubifyTBDSigning() async throws {
         try await checkTBDSigning(useStubify: true, productType: .staticFramework)
     }
-    @Test(.requireSDKs(.macOS))
+    @Test(.requireSDKs(.macOS), .requireXcode16())
     func dylibInstallAPITBDSigning() async throws {
         try await checkTBDSigning(useStubify: false, productType: .dynamicLibrary)
     }
-    @Test(.requireSDKs(.macOS))
+    @Test(.requireSDKs(.macOS), .requireXcode16())
     func dylibInstallAPITBDSigningWithBuildVariants() async throws {
         try await checkTBDSigning(useStubify: false, productType: .dynamicLibrary, buildVariants: ["normal", "profile"])
     }
-    @Test(.requireSDKs(.macOS))
+    @Test(.requireSDKs(.macOS), .requireXcode16())
     func dylibStubifyTBDSigning() async throws {
         try await checkTBDSigning(useStubify: true, productType: .dynamicLibrary)
     }
-    @Test(.requireSDKs(.macOS))
+    @Test(.requireSDKs(.macOS), .requireXcode16())
     func staticlibInstallAPITBDSigning() async throws {
         try await checkTBDSigning(useStubify: false, productType: .staticLibrary)
     }
-    @Test(.requireSDKs(.macOS))
+    @Test(.requireSDKs(.macOS), .requireXcode16())
     func staticlibInstallAPITBDSigningWithBuildVariants() async throws {
         try await checkTBDSigning(useStubify: false, productType: .staticLibrary, buildVariants: ["normal", "profile"])
     }
-    @Test(.requireSDKs(.macOS))
+    @Test(.requireSDKs(.macOS), .requireXcode16())
     func staticlibStubifyTBDSigning() async throws {
         try await checkTBDSigning(useStubify: true, productType: .staticLibrary)
     }
 
-    @Test(.requireSDKs(.macOS))
+    @Test(.requireSDKs(.macOS), .requireXcode16())
     func incrementalFwkTAPI() async throws {
         try await withTemporaryDirectory { tmpDirPath async throws -> Void in
             let target = TestStandardTarget(

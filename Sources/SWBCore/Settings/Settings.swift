@@ -141,6 +141,11 @@ fileprivate struct PreOverridesSettings {
 
         table.push(BuiltinMacros.DIAGNOSE_MISSING_TARGET_DEPENDENCIES, literal: .yes)
 
+        // This is a hack to allow more tests to run in Swift CI when using older Xcode versions.
+        if core.xcodeProductBuildVersion < (try! ProductBuildVersion("16A242d")) {
+            table.push(BuiltinMacros.LM_SKIP_METADATA_EXTRACTION, BuiltinMacros.namespace.parseString("YES"))
+        }
+
         // Add the "calculated" settings.
         addCalculatedUniversalDefaults(&table)
 
