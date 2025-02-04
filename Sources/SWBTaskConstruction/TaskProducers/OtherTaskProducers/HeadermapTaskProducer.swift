@@ -157,7 +157,7 @@ final class HeadermapTaskProducer: PhasedTaskProducer, TaskProducer {
             } else {
                 // Otherwise, map to the absolute path.
                 //
-                // The first entry in the project always wins here, unless later overriden by an installed definition.
+                // The first entry in the project always wins here, unless later overridden by an installed definition.
                 hmap.insert(Path(basename), value: path, replace: false)
             }
         }
@@ -297,7 +297,7 @@ final class HeadermapTaskProducer: PhasedTaskProducer, TaskProducer {
                 } else {
                     // Otherwise, add it to the non-framework mappings.
                     //
-                    // The first entry in the project always wins here, unless later overriden by an installed definition.
+                    // The first entry in the project always wins here, unless later overridden by an installed definition.
                     if !nonFrameworkMappings.contains(key) {
                         nonFrameworkMappings[key] = path
                     }
