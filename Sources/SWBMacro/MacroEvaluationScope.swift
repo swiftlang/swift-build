@@ -45,7 +45,7 @@ public final class MacroEvaluationScope: Serializable, Sendable {
     /// Convenience accessor to get the namespace for the scope's table, so clients can perform parsing of things they want to evaluate.
     public var namespace: MacroNamespace { return table.namespace }
 
-    /// Mapping of condition parameters to values (affects lookup of conditional macro value assignments in `table`).  The values are an array to accomodate fallback conditional values spplied by base SDKs.
+    /// Mapping of condition parameters to values (affects lookup of conditional macro value assignments in `table`).  The values are an array to accommodate fallback conditional values spplied by base SDKs.
     public let conditionParameterValues: [MacroConditionParameter: [String]]
 
     /// Cache of evaluated string values.
