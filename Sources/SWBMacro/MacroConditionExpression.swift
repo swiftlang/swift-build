@@ -495,7 +495,7 @@ private class MacroConditionLogicalANDExpression: MacroConditionBinaryBooleanExp
 {
     override func evaluateAsBoolean(_ scope: MacroEvaluationScope, lookup: ((MacroDeclaration) -> MacroExpression?)? = nil) -> Bool
     {
-        // We implicitly treat any subexpressions that are actually strings as boolean evaluations, e.g. "'NO' ^ ( 'X' == 'X')" evalutes to false ('NO' is treated as boolean false).
+        // We implicitly treat any subexpressions that are actually strings as boolean evaluations, e.g. "'NO' ^ ( 'X' == 'X')" evaluates to false ('NO' is treated as boolean false).
         let leftBoolValue = leftExpr != nil ? leftExpr!.evaluateAsBoolean(scope, lookup: lookup) : false
         let rightBoolValue = rightExpr != nil ? rightExpr!.evaluateAsBoolean(scope, lookup: lookup) : false
         return leftBoolValue && rightBoolValue
@@ -511,7 +511,7 @@ private class MacroConditionLogicalORExpression: MacroConditionBinaryBooleanExpr
 {
     override func evaluateAsBoolean(_ scope: MacroEvaluationScope, lookup: ((MacroDeclaration) -> MacroExpression?)? = nil) -> Bool
     {
-        // We implicitly treat any subexpressions that are actually strings as boolean evaluations, e.g. "'YES' || ( 'X' == 'X')" evalutes to true ('YES' is treated as boolean true).
+        // We implicitly treat any subexpressions that are actually strings as boolean evaluations, e.g. "'YES' || ( 'X' == 'X')" evaluates to true ('YES' is treated as boolean true).
         let leftBoolValue = leftExpr != nil ? leftExpr!.evaluateAsBoolean(scope, lookup: lookup) : false
         let rightBoolValue = rightExpr != nil ? rightExpr!.evaluateAsBoolean(scope, lookup: lookup) : false
         return leftBoolValue || rightBoolValue
@@ -529,7 +529,7 @@ private class MacroConditionLogicalXORExpression: MacroConditionBinaryBooleanExp
 {
     override func evaluateAsBoolean(_ scope: MacroEvaluationScope, lookup: ((MacroDeclaration) -> MacroExpression?)? = nil) -> Bool
     {
-        // We implicitly treat any subexpressions that are actually strings as boolean evaluations, e.g. "'NO' ^ ( 'X' == 'X')" evalutes to false ('NO' is treated as boolean false).
+        // We implicitly treat any subexpressions that are actually strings as boolean evaluations, e.g. "'NO' ^ ( 'X' == 'X')" evaluates to false ('NO' is treated as boolean false).
         let leftBoolValue = leftExpr != nil ? leftExpr!.evaluateAsBoolean(scope, lookup: lookup) : false
         let rightBoolValue = rightExpr != nil ? rightExpr!.evaluateAsBoolean(scope, lookup: lookup) : false
         return leftBoolValue == rightBoolValue
