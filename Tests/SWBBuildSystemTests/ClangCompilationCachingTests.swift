@@ -18,9 +18,8 @@ import SWBTaskExecution
 import SWBTestSupport
 import SWBUtil
 
-@Suite(.skipHostOS(.windows), .requireCompilationCaching,
-    .requireDependencyScannerPlusCaching, // Windows: CAS creation failed: fatal error: CAS cannot be initialized from the specified '-fcas-*' options: OnDiskCache is disabled
-       .flaky("A handful of Swift Build CAS tests fail when running the entire test suite"), .bug("rdar://137717929"))
+@Suite(.skipHostOS(.windows, "Windows platform has no CAS support yet"),
+       .requireCompilationCaching, .requireDependencyScannerPlusCaching)
 fileprivate struct ClangCompilationCachingTests: CoreBasedTests {
     let canUseCASPlugin: Bool
     let canUseCASPruning: Bool
@@ -338,6 +337,7 @@ fileprivate struct ClangCompilationCachingTests: CoreBasedTests {
                                 "CCHROOT": cchrootPath.str,
                                 "CLANG_ENABLE_MODULES": "NO",
                                 "CLANG_ENABLE_EXPLICIT_MODULES": "NO",
+                                "EMIT_FRONTEND_COMMAND_LINES": "YES",
                             ])],
                         targets: [
                             TestStandardTarget(
@@ -388,6 +388,7 @@ fileprivate struct ClangCompilationCachingTests: CoreBasedTests {
             "CLANG_ENABLE_COMPILE_CACHE": "YES",
             "CLANG_CACHE_FINE_GRAINED_OUTPUTS": "NO",
             "CLANG_CACHE_FINE_GRAINED_OUTPUTS_VERIFICATION": "NO",
+            "EMIT_FRONTEND_COMMAND_LINES": "YES",
         ]
 
         try await testCachingFineGrainedOutputsBasicNoMatch(buildSettings: buildSettings)
@@ -400,6 +401,7 @@ fileprivate struct ClangCompilationCachingTests: CoreBasedTests {
             "CLANG_ENABLE_COMPILE_CACHE": "NO",
             "CLANG_CACHE_FINE_GRAINED_OUTPUTS": "YES",
             "CLANG_CACHE_FINE_GRAINED_OUTPUTS_VERIFICATION": "YES",
+            "EMIT_FRONTEND_COMMAND_LINES": "YES",
         ]
 
         try await testCachingFineGrainedOutputsBasicNoMatch(buildSettings: buildSettings)
@@ -475,6 +477,7 @@ fileprivate struct ClangCompilationCachingTests: CoreBasedTests {
         let buildSettings = [
             "PRODUCT_NAME": "$(TARGET_NAME)",
             "CLANG_ENABLE_COMPILE_CACHE": "YES",
+            "EMIT_FRONTEND_COMMAND_LINES": "YES",
         ]
 
         try await testCachingFineGrainedOutputsBasicMatch(buildSettings: buildSettings, checkVerification: false)
@@ -486,6 +489,7 @@ fileprivate struct ClangCompilationCachingTests: CoreBasedTests {
             "PRODUCT_NAME": "$(TARGET_NAME)",
             "CLANG_ENABLE_COMPILE_CACHE": "YES",
             "CLANG_CACHE_FINE_GRAINED_OUTPUTS": "YES",
+            "EMIT_FRONTEND_COMMAND_LINES": "YES",
         ]
 
         try await testCachingFineGrainedOutputsBasicMatch(buildSettings: buildSettings, checkVerification: false)
@@ -498,6 +502,7 @@ fileprivate struct ClangCompilationCachingTests: CoreBasedTests {
             "CLANG_ENABLE_COMPILE_CACHE": "YES",
             "CLANG_CACHE_FINE_GRAINED_OUTPUTS": "YES",
             "CLANG_CACHE_FINE_GRAINED_OUTPUTS_VERIFICATION": "YES",
+            "EMIT_FRONTEND_COMMAND_LINES": "YES",
         ]
 
         try await testCachingFineGrainedOutputsBasicMatch(buildSettings: buildSettings, checkVerification: true)
@@ -597,6 +602,7 @@ fileprivate struct ClangCompilationCachingTests: CoreBasedTests {
                                 "BLOCKLISTS_PATH": tmpDirPath.str,
                                 "CLANG_ENABLE_MODULES": "NO",
                                 "CLANG_ENABLE_EXPLICIT_MODULES": "NO",
+                                "EMIT_FRONTEND_COMMAND_LINES": "YES",
                             ])],
                         targets: [
                             TestStandardTarget(
@@ -1525,6 +1531,7 @@ fileprivate struct ClangCompilationCachingTests: CoreBasedTests {
                                     "CLANG_ENABLE_PREFIX_MAPPING": "YES",
                                     "CLANG_OTHER_PREFIX_MAPPINGS": "\(moduleDir.str)=/^mod",
                                     "DSTROOT": tmpDirPath.join("dstroot").str,
+                                    "EMIT_FRONTEND_COMMAND_LINES": "YES",
                                 ])],
                             targets: [
                                 TestStandardTarget(

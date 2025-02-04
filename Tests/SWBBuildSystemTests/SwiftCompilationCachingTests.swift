@@ -18,7 +18,7 @@ import SWBUtil
 
 import SWBTaskExecution
 
-@Suite(.requireSwiftFeatures(.compilationCaching), .requireCompilationCaching, .flaky("A handful of Swift Build CAS tests fail when running the entire test suite"), .bug("rdar://137717929"))
+@Suite(.requireSwiftFeatures(.compilationCaching), .requireCompilationCaching)
 fileprivate struct SwiftCompilationCachingTests: CoreBasedTests {
     @Test(.requireSDKs(.iOS))
     func swiftCachingSimple() async throws {
@@ -81,7 +81,7 @@ fileprivate struct SwiftCompilationCachingTests: CoreBasedTests {
             var numCompile = 0
             try await tester.checkBuild(runDestination: .anyiOSDevice, persistent: true) { results in
                 results.consumeTasksMatchingRuleTypes()
-                results.consumeTasksMatchingRuleTypes(["CopySwiftLibs", "GenerateDSYMFile", "ProcessInfoPlistFile", "RegisterExecutionPolicyException", "Touch", "Validate", "ExtractAppIntentsMetadata", "AppIntentsSSUTraining", "SwiftDriver Compilation Requirements", "Copy", "Ld", "CompileC", "SwiftMergeGeneratedHeaders"])
+                results.consumeTasksMatchingRuleTypes(["CopySwiftLibs", "GenerateDSYMFile", "ProcessInfoPlistFile", "RegisterExecutionPolicyException", "Touch", "Validate", "ExtractAppIntentsMetadata", "AppIntentsSSUTraining", "SwiftDriver Compilation Requirements", "Copy", "Ld", "CompileC", "SwiftMergeGeneratedHeaders", "ProcessSDKImports"])
 
                 results.checkTask(.matchTargetName("Application"), .matchRule(["SwiftDriver", "Application", "normal", "arm64", "com.apple.xcode.tools.swift.compiler"])) { task in
                     task.checkCommandLineMatches([.suffix("swiftc"), .anySequence, "-cache-compile-job", .anySequence])
@@ -110,7 +110,7 @@ fileprivate struct SwiftCompilationCachingTests: CoreBasedTests {
 
                 results.checkNoTask()
             }
-            #expect(try readMetrics("one") == "{\"clangCacheHits\":0,\"clangCacheMisses\":0,\"swiftCacheHits\":0,\"swiftCacheMisses\":\(numCompile)}")
+            #expect(try readMetrics("one").contains("\"swiftCacheHits\":0,\"swiftCacheMisses\":\(numCompile)"))
 
             // touch a file, clean build folder, and rebuild.
             try await tester.fs.updateTimestamp(testWorkspace.sourceRoot.join("aProject/App.swift"))
@@ -118,7 +118,7 @@ fileprivate struct SwiftCompilationCachingTests: CoreBasedTests {
 
             tester.userInfo = rawUserInfo.withAdditionalEnvironment(environment: metricsEnv("two"))
             try await tester.checkBuild(runDestination: .anyiOSDevice, persistent: true) { _ in }
-            #expect(try readMetrics("two") == "{\"clangCacheHits\":0,\"clangCacheMisses\":0,\"swiftCacheHits\":\(numCompile),\"swiftCacheMisses\":0}")
+            #expect(try readMetrics("two").contains("\"swiftCacheHits\":\(numCompile),\"swiftCacheMisses\":0"))
         }
     }
 }
