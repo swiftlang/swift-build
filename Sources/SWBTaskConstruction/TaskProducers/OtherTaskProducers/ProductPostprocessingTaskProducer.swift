@@ -873,7 +873,7 @@ func addCommonInstallAPITasks(_ producer: PhasedTaskProducer, _ scope: MacroEval
                               phaseEndTask: any PlannedTask, jsonPath: Path?, destination: InstallAPIDestination) async -> [any PlannedTask] {
     let buildComponents = scope.evaluate(BuiltinMacros.BUILD_COMPONENTS)
     var dependencyInputs = headerDependencyInputs
-    // Only add dSYM depenedency iff this the task is installAPI verification.
+    // Only add dSYM dependency iff this the task is installAPI verification.
     let tapiReadDSYM = scope.evaluate(BuiltinMacros.TAPI_READ_DSYM) && scope.evaluate(BuiltinMacros.DEBUG_INFORMATION_FORMAT) == "dwarf-with-dsym"
     if buildComponents.contains("build") && !(destination == .eagerLinkingTBDDir) && tapiReadDSYM {
         let dsymBundle = scope.evaluate(BuiltinMacros.DWARF_DSYM_FOLDER_PATH)
