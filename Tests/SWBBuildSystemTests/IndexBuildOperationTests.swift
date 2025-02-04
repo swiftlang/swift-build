@@ -27,7 +27,7 @@ import SWBUtil
 fileprivate struct IndexBuildOperationTests: CoreBasedTests {
     static let excludedStartTaskTypes = Set(["Gate", "CreateBuildDirectory", ProductPlan.preparedForIndexPreCompilationRuleName, ProductPlan.preparedForIndexModuleContentRuleName, "ClangStatCache", "SwiftExplicitDependencyCompileModuleFromInterface", "SwiftExplicitDependencyGeneratePcm"])
 
-    @Test(.requireSDKs(.macOS))
+    @Test(.requireSDKs(.macOS), .requireXcode16())
     func legacyPrebuild() async throws {
         try await withTemporaryDirectory { tmpDirPath in
             let testWorkspace = try await TestWorkspace(

@@ -15,7 +15,7 @@ import SWBCAS
 import SWBUtil
 import SWBTestSupport
 
-@Suite(.requireHostOS(.macOS, when: getEnvironmentVariable("TOOLCHAIN_CAS_PLUGIN_PATH") == nil))
+@Suite(.requireHostOS(.macOS, when: getEnvironmentVariable("TOOLCHAIN_CAS_PLUGIN_PATH") == nil), .requireXcode16())
 fileprivate struct CASFSNodeTests {
     private func pluginPath() async throws -> Path {
         if let pathString = getEnvironmentVariable("TOOLCHAIN_CAS_PLUGIN_PATH") {

@@ -18,7 +18,7 @@ import SWBTestSupport
 import SWBTaskExecution
 import SWBUtil
 
-@Suite
+@Suite(.requireXcode16())
 fileprivate struct AppShortcutsStringsValidationTests: CoreBasedTests {
     let appShortcutsStringsFileName = "AppShortcuts.strings"
 

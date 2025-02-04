@@ -1211,7 +1211,7 @@ fileprivate struct ShellScriptSandboxingTests: CoreBasedTests {
         }
     }
 
-    @Test(.requireSDKs(.macOS))
+    @Test(.requireSDKs(.macOS), .requireXcode16())
     func legacyBlockUndeclaredInputOutputFromDiskWhenRecursiveScriptInputIsOn() async throws {
         try await withTemporaryDirectory { tmpDirPath async throws -> Void in
             let testWorkspace = TestWorkspace(

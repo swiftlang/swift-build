@@ -163,7 +163,7 @@ import SWBMacro
         }
     }
 
-    @Test(.requireHostOS(.macOS))
+    @Test(.requireHostOS(.macOS), .requireXcode16())
     func swiftTaskConstruction() async throws {
         let core = try await getCore()
         let swiftSpec = try core.specRegistry.getSpec() as SwiftCompilerSpec
@@ -319,7 +319,7 @@ import SWBMacro
         }
     }
 
-    @Test(.requireHostOS(.macOS), .requireLLBuild(apiVersion: 12))
+    @Test(.requireHostOS(.macOS), .requireLLBuild(apiVersion: 12), .requireXcode16())
     func swiftTaskConstruction_integratedDriver() async throws {
         let core = try await getCore()
         let swiftSpec = try core.specRegistry.getSpec() as SwiftCompilerSpec
@@ -502,7 +502,7 @@ import SWBMacro
     }
 
     // remove in rdar://53000820
-    @Test(.requireSDKs(.macOS))
+    @Test(.requireSDKs(.macOS), .requireXcode16())
     func swiftTaskConstructionWithoutResponseFile() async throws {
         let core = try await getCore()
         let swiftSpec = try core.specRegistry.getSpec() as SwiftCompilerSpec

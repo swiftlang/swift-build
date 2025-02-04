@@ -303,7 +303,7 @@ import Foundation
         }
     }
 
-    @Test
+    @Test(.skipIfEnvironmentVariableSet(key: "EXTERNAL_TOOLCHAINS_DIR"))
     func externalToolchainsDir() async throws {
         try await withTemporaryDirectory { tmpDir in
             let originalToolchain = try await toolchainPathsCount()

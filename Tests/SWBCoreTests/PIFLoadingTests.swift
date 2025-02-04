@@ -1147,7 +1147,7 @@ private final class ProjectModelItemClass: ProjectModelItem {
         }
     }
 
-    @Test
+    @Test(.requireXcode16())
     func loadingStandardTarget() throws {
         let classOneFileRef: FileReference? = try
         {

@@ -73,7 +73,7 @@ fileprivate struct ValidationTests: CoreBasedTests {
     }
 
     /// Tests that `xcodebuild` pointed at the built build service is still able to build projects. This can find incompatibilities introduced in the protocol between the older client framework and build service process.
-    @Test(.requireSDKs(.macOS), .requireHostOS(.macOS))
+    @Test(.requireSDKs(.macOS), .requireHostOS(.macOS), .requireXcode16())
     func selfBuild() async throws {
         let bundleResourceURL = try #require(Bundle.module.resourceURL)
         let projectPath = Path(bundleResourceURL.appendingPathComponent("TestData").appendingPathComponent("CommandLineTool").absoluteURL.path)

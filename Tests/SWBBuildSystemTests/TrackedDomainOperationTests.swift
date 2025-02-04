@@ -25,7 +25,7 @@ import SWBTaskExecution
 import SWBUtil
 import SWBTestSupport
 
-@Suite
+@Suite(.requireXcode16())
 fileprivate struct TrackedDomainOperationTests: CoreBasedTests {
     @Test(.requireSDKs(.macOS))
     func basicTrackedDomainAggregation() async throws {

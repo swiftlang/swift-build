@@ -1113,7 +1113,7 @@ import SWBMacro
     }
 
     /// Tests that the recommended deployment target build settings have been properly set.
-    @Test
+    @Test(.requireXcode16())
     func recommendedDeploymentTargets() async throws {
         let core = try await getCore()
         let workspace = try TestWorkspace(

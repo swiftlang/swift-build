@@ -21,7 +21,7 @@ import SWBUtil
 
 import SWBTaskConstruction
 
-@Suite
+@Suite(.requireXcode16())
 fileprivate struct PreviewsTaskConstructionTests: CoreBasedTests {
     @Test(.requireSDKs(.macOS))
     func app() async throws {

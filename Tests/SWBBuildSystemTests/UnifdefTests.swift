@@ -17,7 +17,7 @@ import SWBCore
 import SWBUtil
 import SWBTestSupport
 
-@Suite
+@Suite(.requireXcode16())
 fileprivate struct UnifdefTests: CoreBasedTests {
     @Test(.requireSDKs(.macOS))
     func unifdefActionSignatureChange() async throws {

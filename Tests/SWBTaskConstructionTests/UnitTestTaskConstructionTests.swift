@@ -16,7 +16,7 @@ import SWBProtocol
 import SWBTestSupport
 import SWBUtil
 
-@Suite
+@Suite(.requireXcode16())
 fileprivate struct UnitTestTaskConstructionTests: CoreBasedTests {
 
     // MARK: Framework test target

@@ -214,6 +214,12 @@ extension Trait where Self == Testing.ConditionTrait {
             getEnvironmentVariable(key) == value
         }
     }
+
+    package static func skipIfEnvironmentVariableSet(key: String) -> Self {
+        disabled("environment sets '\(key)'") {
+            getEnvironmentVariable(key) != nil
+        }
+    }
 }
 
 // MARK: Condition traits for Xcode and SDK version requirements
@@ -241,6 +247,15 @@ extension Trait where Self == Testing.ConditionTrait {
     /// Constructs a condition trait that causes a test to be disabled if not running against at least the given version of Xcode.
     package static func requireMinimumXcodeBuildVersion(_ version: String, sourceLocation: SourceLocation = #_sourceLocation) -> Self {
         requireXcodeBuildVersions(in: try ProductBuildVersion(version)..., sourceLocation: sourceLocation)
+    }
+
+    package static func requireXcode16(sourceLocation: SourceLocation = #_sourceLocation) -> Self {
+        enabled("Xcode version is not suitable", sourceLocation: sourceLocation, {
+            guard let installedVersion =  try? await InstalledXcode.currentlySelected().productBuildVersion() else {
+                return true
+            }
+            return installedVersion > (try ProductBuildVersion("16A242d"))
+        })
     }
 
     /// Constructs a condition trait that causes a test to be disabled if not running against at least the given version of Xcode.

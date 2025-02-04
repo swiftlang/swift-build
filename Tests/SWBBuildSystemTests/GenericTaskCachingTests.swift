@@ -18,7 +18,7 @@ import SWBBuildSystem
 import SWBCore
 import SWBTestSupport
 
-@Suite(.disabled(if: getEnvironmentVariable("CI")?.isEmpty == false, "tests run too slowly in CI"))
+@Suite(.disabled(if: getEnvironmentVariable("CI")?.isEmpty == false, "tests run too slowly in CI"), .requireXcode16())
 fileprivate struct GenericTaskCachingTests: CoreBasedTests {
     @Test(.requireSDKs(.macOS), .requireHostOS(.macOS))
     func realityToolCachingBasics() async throws {

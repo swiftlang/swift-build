@@ -20,7 +20,7 @@ import Testing
 @Suite
 fileprivate struct BuildCommandTests: CoreBasedTests {
     /// Check compilation of a single file in C, ObjC and Swift, including the `uniquingSuffix` behaviour.
-    @Test(.requireSDKs(.macOS))
+    @Test(.requireSDKs(.macOS), .requireXcode16())
     func singleFileCompile() async throws {
         try await withTemporaryDirectory { tmpDirPath async throws -> Void in
             let testWorkspace = try await TestWorkspace(

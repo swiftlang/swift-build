@@ -51,6 +51,11 @@ extension Core {
         // This is a "well known" launch parameter set in Xcode's schemes.
         let developerPath = getEnvironmentVariable("XCODE_DEVELOPER_DIR_PATH").map(Path.init)
 
+        // Unset variables which may interfere with testing in Swift CI
+        for variable in ["SWIFT_EXEC", "SWIFT_DRIVER_SWIFT_FRONTEND_EXEC", "SWIFT_DRIVER_SWIFT_EXEC"] {
+            try POSIX.unsetenv(variable)
+        }
+
         // When this code is being loaded directly via unit tests *and* we detect the products directory we are running in is for Xcode, then we should run using inferior search paths.
         let inferiorProductsPath: Path? = self.inferiorProductsPath()
 

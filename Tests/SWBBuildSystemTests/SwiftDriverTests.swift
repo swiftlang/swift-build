@@ -20,7 +20,7 @@ import SWBLLBuild
 
 import SWBCore
 
-@Suite(.requireLLBuild(apiVersion: 12))
+@Suite(.requireLLBuild(apiVersion: 12), .requireXcode16())
 fileprivate struct SwiftDriverTests: CoreBasedTests {
     @Test(.requireSDKs(.macOS))
     func swiftDriverPlanning() async throws {
