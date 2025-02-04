@@ -322,7 +322,7 @@ final class MacroEvaluationContext {
     /// Macro declaration to which this context refers, if any; the outermost evaluation context of a macro expression evaluation won’t have one, for example.
     let macro: MacroDeclaration?
 
-    /// Value whose expression is being evaluted in this context, if any; this is to support recursive macro references, of which `$(inherited)` is a special case.
+    /// Value whose expression is being evaluated in this context, if any; this is to support recursive macro references, of which `$(inherited)` is a special case.
     let value: MacroValueAssignment?
 
     /// If provided, a closure used to resolve macro declarations to overriding expressions, which implicitly take precedence over all values in the scope.
