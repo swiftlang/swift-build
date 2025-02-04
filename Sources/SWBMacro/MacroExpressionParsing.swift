@@ -531,7 +531,7 @@ private func isValidOperatorNameChar(_ chOpt: UInt8?) -> Bool {
 }
 
 
-/// Encapsulates the callbacks that a macro expression parser invokes during a parse.  All methods are optional.  Separating the actions into a protocol allows the macro expression parser to be used for a variety of tasks, and makes it easier to test and profie.  The parser is passed to each of the delegate methods, and its `position` property can be used to access the current index in the original string.  The parser is as lenient as possible, and tries to recover from errors as well as possible in order to preserve the Xcode semantics.  The delegate is guaranteed to see the entire contents of the input string, regardless of how many errors are discovered (some of that contents might be misparsed as literals after errors have been found, however).
+/// Encapsulates the callbacks that a macro expression parser invokes during a parse.  All methods are optional.  Separating the actions into a protocol allows the macro expression parser to be used for a variety of tasks, and makes it easier to test and profile.  The parser is passed to each of the delegate methods, and its `position` property can be used to access the current index in the original string.  The parser is as lenient as possible, and tries to recover from errors as well as possible in order to preserve the Xcode semantics.  The delegate is guaranteed to see the entire contents of the input string, regardless of how many errors are discovered (some of that contents might be misparsed as literals after errors have been found, however).
 public protocol MacroExpressionParserDelegate {
     typealias Input = MacroExpressionParser.Input
 
