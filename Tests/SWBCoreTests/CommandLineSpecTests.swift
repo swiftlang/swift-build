@@ -163,7 +163,7 @@ import SWBMacro
         }
     }
 
-    @Test(.requireHostOS(.macOS), .requireXcode16())
+    @Test(.requireHostOS(.macOS))
     func swiftTaskConstruction() async throws {
         let core = try await getCore()
         let swiftSpec = try core.specRegistry.getSpec() as SwiftCompilerSpec
@@ -190,6 +190,7 @@ import SWBMacro
         table.push(BuiltinMacros.SWIFT_TARGET_TRIPLE, core.specRegistry.internalMacroNamespace.parseString("$(CURRENT_ARCH)-apple-$(SWIFT_PLATFORM_TARGET_PREFIX)$(SWIFT_DEPLOYMENT_TARGET)$(LLVM_TARGET_TRIPLE_SUFFIX)"))
         table.push(BuiltinMacros.OBJECT_FILE_DIR, literal: Path.root.join("tmp/output/obj").str)
         table.push(BuiltinMacros.PER_ARCH_OBJECT_FILE_DIR, BuiltinMacros.namespace.parseString(Path.root.join("tmp/output/obj-normal/x86_64").str))
+        table.push(BuiltinMacros.PER_ARCH_MODULE_FILE_DIR, BuiltinMacros.namespace.parseString(Path.root.join("tmp/output/obj-normal/x86_64").str))
         table.push(BuiltinMacros.ENABLE_DEFAULT_SEARCH_PATHS, literal: true)
         table.push(BuiltinMacros.BUILT_PRODUCTS_DIR, literal: Path.root.join("tmp/output/sym").str)
         let builtProductsDirList = core.specRegistry.internalMacroNamespace.parseStringList("$(BUILT_PRODUCTS_DIR)")
@@ -319,7 +320,7 @@ import SWBMacro
         }
     }
 
-    @Test(.requireHostOS(.macOS), .requireLLBuild(apiVersion: 12), .requireXcode16())
+    @Test(.requireHostOS(.macOS), .requireLLBuild(apiVersion: 12))
     func swiftTaskConstruction_integratedDriver() async throws {
         let core = try await getCore()
         let swiftSpec = try core.specRegistry.getSpec() as SwiftCompilerSpec
@@ -347,6 +348,7 @@ import SWBMacro
         table.push(BuiltinMacros.SWIFT_TARGET_TRIPLE, core.specRegistry.internalMacroNamespace.parseString("$(CURRENT_ARCH)-apple-$(SWIFT_PLATFORM_TARGET_PREFIX)$(SWIFT_DEPLOYMENT_TARGET)$(LLVM_TARGET_TRIPLE_SUFFIX)"))
         table.push(BuiltinMacros.OBJECT_FILE_DIR, literal: "/tmp/output/obj")
         table.push(BuiltinMacros.PER_ARCH_OBJECT_FILE_DIR, BuiltinMacros.namespace.parseString("/tmp/output/obj-normal/x86_64"))
+        table.push(BuiltinMacros.PER_ARCH_MODULE_FILE_DIR, BuiltinMacros.namespace.parseString("/tmp/output/obj-normal/x86_64"))
         table.push(BuiltinMacros.ENABLE_DEFAULT_SEARCH_PATHS, literal: true)
         table.push(BuiltinMacros.BUILT_PRODUCTS_DIR, literal: "/tmp/output/sym")
         let builtProductsDirList = core.specRegistry.internalMacroNamespace.parseStringList("$(BUILT_PRODUCTS_DIR)")
@@ -502,7 +504,7 @@ import SWBMacro
     }
 
     // remove in rdar://53000820
-    @Test(.requireSDKs(.macOS), .requireXcode16())
+    @Test(.requireSDKs(.macOS))
     func swiftTaskConstructionWithoutResponseFile() async throws {
         let core = try await getCore()
         let swiftSpec = try core.specRegistry.getSpec() as SwiftCompilerSpec
@@ -529,6 +531,7 @@ import SWBMacro
         table.push(BuiltinMacros.SWIFT_TARGET_TRIPLE, core.specRegistry.internalMacroNamespace.parseString("$(CURRENT_ARCH)-apple-$(SWIFT_PLATFORM_TARGET_PREFIX)$(SWIFT_DEPLOYMENT_TARGET)$(LLVM_TARGET_TRIPLE_SUFFIX)"))
         table.push(BuiltinMacros.OBJECT_FILE_DIR, literal: "/tmp/output/obj")
         table.push(BuiltinMacros.PER_ARCH_OBJECT_FILE_DIR, BuiltinMacros.namespace.parseString("/tmp/output/obj-normal/x86_64"))
+        table.push(BuiltinMacros.PER_ARCH_MODULE_FILE_DIR, BuiltinMacros.namespace.parseString("/tmp/output/obj-normal/x86_64"))
         table.push(BuiltinMacros.ENABLE_DEFAULT_SEARCH_PATHS, literal: true)
         table.push(BuiltinMacros.BUILT_PRODUCTS_DIR, literal: "/tmp/output/sym")
         let builtProductsDirList = core.specRegistry.internalMacroNamespace.parseStringList("$(BUILT_PRODUCTS_DIR)")
