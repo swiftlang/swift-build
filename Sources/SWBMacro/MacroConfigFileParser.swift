@@ -343,7 +343,7 @@ public final class MacroConfigFileParser {
             assert(currChar == /* ']' */ 93)
             advance()
 
-            // Appned a tuple representing the condition, consisting of parameter name and of pattern (a string).
+            // Append a tuple representing the condition, consisting of parameter name and of pattern (a string).
             conditions.append((param, pattern))
 
             // Now that we’re back outside the condition, whitespace is no longer significant.
