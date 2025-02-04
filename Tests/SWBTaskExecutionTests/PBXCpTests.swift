@@ -426,7 +426,7 @@ fileprivate struct PBXCpTests: CoreBasedTests {
                 ))
                 let srcPerm = try fs.getFilePermissions(srcfile)
                 let dstPerm = try fs.getFilePermissions(dst.join(fwkName).join(fName))
-                #expect(srcPerm == dstPerm)
+                #expect(dstPerm == 0o755) // files are created with u+rw, g+wr, o+rw (and +x if src is executable) permissions and umask will adjust
             }
         }
     }
@@ -452,7 +452,7 @@ fileprivate struct PBXCpTests: CoreBasedTests {
                     size += try fd.writeAll(buffer1)
                 }
             }
-            try fs.setFilePermissions(sName, permissions: 0o777)
+            try fs.setFilePermissions(sName, permissions: 0o600)
 
             do {
                 let result = await pbxcp(["builtin-copy", "-V", src.str + Path.pathSeparatorString, dst.str], cwd: Path("/"))
@@ -463,7 +463,7 @@ fileprivate struct PBXCpTests: CoreBasedTests {
                 // Check permssions
                 let srcPerm = try fs.getFilePermissions(sName)
                 let dstPerm = try fs.getFilePermissions(dName)
-                #expect(srcPerm == dstPerm)
+                #expect(dstPerm == 0o644) // files are created with u+rw, g+wr, o+rw (and +x if src is executable) permissions and umask will adjust
                 #expect(FileManager.default.contentsEqual(atPath: sName.str, andPath: dName.str))
             }
         }
