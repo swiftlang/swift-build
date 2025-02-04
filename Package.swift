@@ -209,6 +209,10 @@ let package = Package(
             dependencies: ["SWBCore"],
             swiftSettings: swiftSettings(languageMode: .v6)),
         .target(
+            name: "SWBWebAssemblyPlatform",
+            dependencies: ["SWBCore"],
+            swiftSettings: swiftSettings(languageMode: .v6)),
+        .target(
             name: "SWBWindowsPlatform",
             dependencies: ["SWBCore"],
             swiftSettings: swiftSettings(languageMode: .v6)),
@@ -255,6 +259,10 @@ let package = Package(
         .testTarget(
             name: "SWBUniversalPlatformTests",
             dependencies: ["SWBUniversalPlatform", "SWBTestSupport"],
+            swiftSettings: swiftSettings(languageMode: .v6)),
+        .testTarget(
+            name: "SWBWebAssemblyPlatformTests",
+            dependencies: ["SWBWebAssemblyPlatform", "SWBTestSupport"],
             swiftSettings: swiftSettings(languageMode: .v6)),
         .testTarget(
             name: "SWBWindowsPlatformTests",
@@ -371,6 +379,7 @@ let pluginTargetNames = [
     "SWBGenericUnixPlatform",
     "SWBQNXPlatform",
     "SWBUniversalPlatform",
+    "SWBWebAssemblyPlatform",
     "SWBWindowsPlatform",
 ]
 

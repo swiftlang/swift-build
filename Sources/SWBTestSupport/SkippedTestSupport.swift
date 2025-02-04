@@ -70,6 +70,7 @@ extension KnownSDK {
     package static let linux: Self = "linux"
     package static let android: Self = "android"
     package static let qnx: Self = "qnx"
+    package static let wasi: Self = "wasi"
 }
 
 package final class ConditionTraitContext: CoreBasedTests, Sendable {

@@ -32,6 +32,7 @@ private import SWBApplePlatform
 private import SWBGenericUnixPlatform
 private import SWBQNXPlatform
 private import SWBUniversalPlatform
+private import SWBWebAssemblyPlatform
 private import SWBWindowsPlatform
 #endif
 
@@ -128,6 +129,7 @@ extension BuildService {
             SWBGenericUnixPlatform.initializePlugin(pluginManager)
             SWBQNXPlatform.initializePlugin(pluginManager)
             SWBUniversalPlatform.initializePlugin(pluginManager)
+            SWBWebAssemblyPlatform.initializePlugin(pluginManager)
             SWBWindowsPlatform.initializePlugin(pluginManager)
             #else
             // Otherwise, load the normal plugins.
