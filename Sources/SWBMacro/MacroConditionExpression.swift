@@ -463,7 +463,7 @@ private class MacroConditionEqualityExpression: MacroConditionBinaryBooleanExpre
 {
     override func evaluateAsBoolean(_ scope: MacroEvaluationScope, lookup: ((MacroDeclaration) -> MacroExpression?)? = nil) -> Bool
     {
-        // We don't know if the left and right expressions are booleans or strings (in fact, each could be different), but string comparison encompases everything boolean comparison does and also lets us do things like "$(X) == 'YES'", so we go with that here.  Any subexpression that is boolean will be converted to a string for the purposes of the comparison.
+        // We don't know if the left and right expressions are booleans or strings (in fact, each could be different), but string comparison encompasses everything boolean comparison does and also lets us do things like "$(X) == 'YES'", so we go with that here.  Any subexpression that is boolean will be converted to a string for the purposes of the comparison.
         let leftString = leftExpr != nil ? leftExpr!.evaluateAsString(scope, lookup: lookup) : ""
         let rightString = rightExpr != nil ? rightExpr!.evaluateAsString(scope, lookup: lookup) : ""
         return (leftString == rightString)
@@ -479,7 +479,7 @@ private class MacroConditionInequalityExpression: MacroConditionBinaryBooleanExp
 {
     override func evaluateAsBoolean(_ scope: MacroEvaluationScope, lookup: ((MacroDeclaration) -> MacroExpression?)? = nil) -> Bool
     {
-        // We don't know if the left and right expressions are booleans or strings (in fact, each could be different), but string comparison encompases everything boolean comparison does and also lets us do things like "$(X) == 'YES'", so we go with that here.  Any subexpression that is boolean will be converted to a string for the purposes of the comparison.
+        // We don't know if the left and right expressions are booleans or strings (in fact, each could be different), but string comparison encompasses everything boolean comparison does and also lets us do things like "$(X) == 'YES'", so we go with that here.  Any subexpression that is boolean will be converted to a string for the purposes of the comparison.
         let leftString = leftExpr != nil ? leftExpr!.evaluateAsString(scope, lookup: lookup) : ""
         let rightString = rightExpr != nil ? rightExpr!.evaluateAsString(scope, lookup: lookup) : ""
         return (leftString != rightString)
