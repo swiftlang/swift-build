@@ -39,7 +39,7 @@ final class TargetTaskInfo {
 
     /// A virtual node representing the start of scanning the target.
     ///
-    /// Any tasks involving scaning depend on this node having been built.
+    /// Any tasks involving scanning depend on this node having been built.
     let startScanningNode: any PlannedNode
 
     /// A virtual node representing the end of preparing modules or headers for dependent targets.
