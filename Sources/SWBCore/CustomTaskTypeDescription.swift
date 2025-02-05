@@ -52,7 +52,7 @@ public final class CustomTaskTypeDescription: TaskTypeDescription {
     }
     
     public func customOutputParserType(for task: any ExecutableTask) -> (any TaskOutputParser.Type)? {
-        nil
+        ShellScriptOutputParser.self
     }
     
     public func interestingPath(for task: any ExecutableTask) -> Path? {
