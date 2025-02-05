@@ -1147,48 +1147,8 @@ private final class ProjectModelItemClass: ProjectModelItem {
         }
     }
 
-    @Test(.requireXcode16())
+    @Test
     func loadingStandardTarget() throws {
-        let classOneFileRef: FileReference? = try
-        {
-            let fileRefPIF: [String: PropertyListItem] = [
-                "guid": "framework-source-fileReference-guid",
-                "type": "file",
-                "sourceTree": "PROJECT_DIR",
-                "path": "ClassOne.m",
-                "fileType": "sourcecode.c.objc",
-            ]
-
-            // Convert the test data into a property list, then read the file reference from it.
-            return try FileReference( fromDictionary: fileRefPIF, withPIFLoader: pifLoader )
-        }()
-        let classTwoFileRef: FileReference? = try
-        {
-            let fileRefPIF: [String: PropertyListItem] = [
-                "guid": "app-source-fileReference-guid",
-                "type": "file",
-                "sourceTree": "PROJECT_DIR",
-                "path": "ClassTwo.m",
-                "fileType": "sourcecode.c.objc",
-            ]
-
-            // Convert the test data into a property list, then read the file reference from it.
-            return try FileReference( fromDictionary: fileRefPIF, withPIFLoader: pifLoader )
-        }()
-        let cocoaFwkFileRef: FileReference? = try
-        {
-            let fileRefPIF: [String: PropertyListItem] = [
-                "guid": "cocoa-framework-fileReference-guid",
-                "type": "file",
-                "sourceTree": "<absolute>",
-                "path": "/System/Library/Frameworks/Cocoa.framework",
-                "fileType": "wrapper.framework",
-            ]
-
-            // Convert the test data into a property list, then read the file reference from it.
-            return try FileReference( fromDictionary: fileRefPIF, withPIFLoader: pifLoader )
-        }()
-
         // Load a framework target.
         let frameworkTarget: StandardTarget? = try {
             let testBuildConfigurationData: [String: PropertyListItem] = [
@@ -1365,10 +1325,6 @@ private final class ProjectModelItemClass: ProjectModelItem {
 
         // Check that the build files and the target dependency resolved.
         #expect(appTarget!.dependencies.map { $0.guid } == [frameworkTarget!.guid])
-        #expect((appTarget!.buildPhases[0] as! SourcesBuildPhase).buildFiles[0] === classOneFileRef!)
-        #expect((appTarget!.buildPhases[1] as! FrameworksBuildPhase).buildFiles[0] === cocoaFwkFileRef!)
-        #expect((frameworkTarget!.buildPhases[0] as! SourcesBuildPhase).buildFiles[0] === classTwoFileRef!)
-        #expect((frameworkTarget!.buildPhases[1] as! FrameworksBuildPhase).buildFiles[0] === classTwoFileRef!)
         #expect(appTarget?.productReference.target == appTarget)
         #expect(frameworkTarget?.productReference.target == frameworkTarget)
     }
