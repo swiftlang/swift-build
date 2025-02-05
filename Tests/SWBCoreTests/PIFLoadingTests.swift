@@ -630,7 +630,7 @@ private final class ProjectModelItemClass: ProjectModelItem {
             Issue.record("property list is not a dictionary")
             return
         }
-        let fileRef = try GroupTreeReference.parsePIFDictAsReference( fileRefPIF, pifLoader: pifLoader ) as! FileReference
+        let fileRef = try #require(GroupTreeReference.parsePIFDictAsReference(fileRefPIF, pifLoader: pifLoader) as? FileReference)
 
         // Examine the file reference.
         #expect(fileRef.guid == "some-fileReference-guid")
@@ -673,7 +673,7 @@ private final class ProjectModelItemClass: ProjectModelItem {
             Issue.record("property list is not a dictionary")
             return
         }
-        let fileGroup = try GroupTreeReference.parsePIFDictAsReference( fileGroupPIF, pifLoader: pifLoader ) as! FileGroup
+        let fileGroup = try #require(GroupTreeReference.parsePIFDictAsReference(fileGroupPIF, pifLoader: pifLoader) as? FileGroup)
 
         // Examine the file group.
         #expect(fileGroup.guid == "some-fileGroup-guid")
@@ -683,18 +683,14 @@ private final class ProjectModelItemClass: ProjectModelItem {
         #expect(fileGroup.children.count == 2)
 
         // Examine its children
-        do
-        {
-            let fileRef = fileGroup.children[0] as! FileReference
+        if let fileRef = try? #require(fileGroup.children.first as? FileReference) {
             #expect(fileRef.guid == "first-fileReference-guid")
             #expect(fileRef.sourceTree == SourceTree.groupRelative)
             #expect(fileRef.path.stringRep == "ClassOne.m")
             #expect(fileRef.fileTypeIdentifier == "sourcecode.c.objc")
             #expect(fileRef.regionVariantName == nil)
         }
-        do
-        {
-            let fileRef = fileGroup.children[1] as! FileReference
+        if let fileRef = try? #require(fileGroup.children[1] as? FileReference) {
             #expect(fileRef.guid == "second-fileReference-guid")
             #expect(fileRef.sourceTree == SourceTree.groupRelative)
             #expect(fileRef.path.stringRep == "ClassOne.h")
@@ -735,7 +731,7 @@ private final class ProjectModelItemClass: ProjectModelItem {
             Issue.record("property list is not a dictionary")
             return
         }
-        let versionGroup = try GroupTreeReference.parsePIFDictAsReference( versionGroupPIF, pifLoader: pifLoader ) as! VersionGroup
+        let versionGroup = try #require(try GroupTreeReference.parsePIFDictAsReference(versionGroupPIF, pifLoader: pifLoader) as? VersionGroup)
 
         // Examine the file group.
         #expect(versionGroup.guid == "some-versionGroup-guid")
@@ -744,18 +740,14 @@ private final class ProjectModelItemClass: ProjectModelItem {
         #expect(versionGroup.children.count == 2)
 
         // Examine its children
-        do
-        {
-            let fileRef = versionGroup.children[0] as! FileReference
+        if let fileRef = try? #require(versionGroup.children[0] as? FileReference) {
             #expect(fileRef.guid == "first-versionedFile-guid")
             #expect(fileRef.sourceTree == SourceTree.groupRelative)
             #expect(fileRef.path.stringRep == "CoreData-1.xcdatamodel")
             #expect(fileRef.fileTypeIdentifier == "wrapper.xcdatamodel")
             #expect(fileRef.regionVariantName == nil)
         }
-        do
-        {
-            let fileRef = versionGroup.children[1] as! FileReference
+        if let fileRef = try? #require(versionGroup.children[1] as? FileReference) {
             #expect(fileRef.guid == "second-versionedFile-guid")
             #expect(fileRef.sourceTree == SourceTree.groupRelative)
             #expect(fileRef.path.stringRep == "CoreData-2.xcdatamodel")
@@ -822,34 +814,28 @@ private final class ProjectModelItemClass: ProjectModelItem {
         ]
 
         // Convert the test data into a property list, then read the variant group from it.
-        let variantGroup = try GroupTreeReference.parsePIFDictAsReference( variantGroupPIF, pifLoader: pifLoader ) as! VariantGroup
+        let variantGroup = try #require(GroupTreeReference.parsePIFDictAsReference( variantGroupPIF, pifLoader: pifLoader ) as? VariantGroup)
 
         // Examine the variant group.
         #expect(variantGroup.guid == "some-variantGroup-guid")
         #expect(variantGroup.name == "Thingy.xib")
 
         // Examine its children, the xib and its localized strings files
-        do
-        {
-            let fileRef = variantGroup.children[0] as! FileReference
+        if let fileRef = try? #require(variantGroup.children[0] as? FileReference) {
             #expect(fileRef.guid == "xib-fileReference-guid")
             #expect(fileRef.sourceTree == SourceTree.groupRelative)
             #expect(fileRef.path.stringRep == "Thingy.xib")
             #expect(fileRef.fileTypeIdentifier == "file.xib")
             #expect(fileRef.regionVariantName == nil)
         }
-        do
-        {
-            let fileRef = variantGroup.children[1] as! FileReference
+        if let fileRef = try? #require(variantGroup.children[1] as? FileReference) {
             #expect(fileRef.guid == "fr-strings-fileReference-guid")
             #expect(fileRef.sourceTree == SourceTree.groupRelative)
             #expect(fileRef.path.stringRep == "Thingy.strings")
             #expect(fileRef.fileTypeIdentifier == "text.plist.strings")
             #expect(fileRef.regionVariantName == "fr")
         }
-        do
-        {
-            let fileRef = variantGroup.children[2] as! FileReference
+        if let fileRef = try? #require(variantGroup.children[2] as? FileReference) {
             #expect(fileRef.guid == "de-strings-fileReference-guid")
             #expect(fileRef.sourceTree == SourceTree.groupRelative)
             #expect(fileRef.path.stringRep == "Thingy.strings")
@@ -941,8 +927,7 @@ private final class ProjectModelItemClass: ProjectModelItem {
 
     @Test
     func loadingBuildPhase() throws {
-        do
-        {
+        do {
             let buildPhasePIF: [String: PropertyListItem] = [
                 "guid": "some-sourcesBuildPhase-guid",
                 "type": "com.apple.buildphase.sources",
@@ -956,15 +941,14 @@ private final class ProjectModelItemClass: ProjectModelItem {
             ]
 
             // Convert the test data into a property list, then read the build phase from it.
-            let buildPhase = try BuildPhase.parsePIFDictAsBuildPhase( buildPhasePIF, pifLoader: pifLoader ) as! SourcesBuildPhase
-
-            // Examine the build phase.
-            #expect(buildPhase.buildFiles.count == 1)
+            if let buildPhase = try? #require(BuildPhase.parsePIFDictAsBuildPhase(buildPhasePIF, pifLoader: pifLoader) as? SourcesBuildPhase) {
+                // Examine the build phase.
+                #expect(buildPhase.buildFiles.count == 1)
+            }
         }
 
         // A headers build phase
-        do
-        {
+        do {
             let buildPhasePIF: [String: PropertyListItem] = [
                 "guid": "some-headersBuildPhase-guid",
                 "type": "com.apple.buildphase.headers",
@@ -978,15 +962,14 @@ private final class ProjectModelItemClass: ProjectModelItem {
             ]
 
             // Convert the test data into a property list, then read the build phase from it.
-            let buildPhase = try BuildPhase.parsePIFDictAsBuildPhase( buildPhasePIF, pifLoader: pifLoader ) as! HeadersBuildPhase
-
-            // Examine the build phase.
-            #expect(buildPhase.buildFiles.count == 1)
+            if let buildPhase = try? #require(BuildPhase.parsePIFDictAsBuildPhase(buildPhasePIF, pifLoader: pifLoader) as? HeadersBuildPhase) {
+                // Examine the build phase.
+                #expect(buildPhase.buildFiles.count == 1)
+            }
         }
 
         // A resources build phase
-        do
-        {
+        do {
             let buildPhasePIF: [String: PropertyListItem] = [
                 "guid": "some-resourcesBuildPhase-guid",
                 "type": "com.apple.buildphase.resources",
@@ -1000,15 +983,14 @@ private final class ProjectModelItemClass: ProjectModelItem {
             ]
 
             // Convert the test data into a property list, then read the build phase from it.
-            let buildPhase = try BuildPhase.parsePIFDictAsBuildPhase( buildPhasePIF, pifLoader: pifLoader ) as! ResourcesBuildPhase
-
-            // Examine the build phase.
-            #expect(buildPhase.buildFiles.count == 1)
+            if let buildPhase = try? #require(BuildPhase.parsePIFDictAsBuildPhase(buildPhasePIF, pifLoader: pifLoader) as? ResourcesBuildPhase) {
+                // Examine the build phase.
+                #expect(buildPhase.buildFiles.count == 1)
+            }
         }
 
         // A copy files build phase
-        do
-        {
+        do {
             let buildPhasePIF: [String: PropertyListItem] = [
                 "guid": "some-copyFilesBuildPhase-guid",
                 "type": "com.apple.buildphase.copy-files",
@@ -1025,18 +1007,17 @@ private final class ProjectModelItemClass: ProjectModelItem {
             ]
 
             // Convert the test data into a property list, then read the build phase from it.
-            let buildPhase = try BuildPhase.parsePIFDictAsBuildPhase( buildPhasePIF, pifLoader: pifLoader ) as! CopyFilesBuildPhase
-
-            // Examine the build phase.
-            #expect(buildPhase.destinationSubfolder.stringRep == "Resources")
-            #expect(buildPhase.destinationSubpath.stringRep == "Subpath")
-            #expect(buildPhase.buildFiles.count == 1)
-            #expect(buildPhase.runOnlyForDeploymentPostprocessing);
+            if let buildPhase = try? #require(BuildPhase.parsePIFDictAsBuildPhase( buildPhasePIF, pifLoader: pifLoader ) as? CopyFilesBuildPhase) {
+                // Examine the build phase.
+                #expect(buildPhase.destinationSubfolder.stringRep == "Resources")
+                #expect(buildPhase.destinationSubpath.stringRep == "Subpath")
+                #expect(buildPhase.buildFiles.count == 1)
+                #expect(buildPhase.runOnlyForDeploymentPostprocessing);
+            }
         }
 
         // A shell script build phase
-        do
-        {
+        do {
             let buildPhasePIF: [String: PropertyListItem] = [
                 "guid": "some-shellScriptBuildPhase-guid",
                 "type": "com.apple.buildphase.shell-script",
@@ -1055,27 +1036,26 @@ private final class ProjectModelItemClass: ProjectModelItem {
             ]
 
             // Convert the test data into a property list, then read the build phase from it.
-            let buildPhase = try BuildPhase.parsePIFDictAsBuildPhase( buildPhasePIF, pifLoader: pifLoader ) as! ShellScriptBuildPhase
-
-            // Examine the build phase.
-            #expect(buildPhase.guid == "some-shellScriptBuildPhase-guid")
-            #expect(buildPhase.name == "A Shell Script Phase")
-            #expect(buildPhase.shellPath.stringRep == "/bin/sh")
-            #expect(buildPhase.scriptContents == "echo \"Nothing to do.\"\nexit 0")
-            #expect(buildPhase.originalObjectID == "1234512345")
-            #expect(buildPhase.inputFilePaths.count == 1)
-            #expect(buildPhase.inputFilePaths.first?.stringRep == "/tmp/foo.in")
-            #expect(buildPhase.outputFilePaths.count == 1)
-            #expect(buildPhase.outputFilePaths.first?.stringRep == "/tmp/foo.out")
-            #expect(buildPhase.emitEnvironment);
-            #expect(buildPhase.runOnlyForDeploymentPostprocessing);
+            if let buildPhase = try? #require(BuildPhase.parsePIFDictAsBuildPhase(buildPhasePIF, pifLoader: pifLoader) as? ShellScriptBuildPhase) {
+                // Examine the build phase.
+                #expect(buildPhase.guid == "some-shellScriptBuildPhase-guid")
+                #expect(buildPhase.name == "A Shell Script Phase")
+                #expect(buildPhase.shellPath.stringRep == "/bin/sh")
+                #expect(buildPhase.scriptContents == "echo \"Nothing to do.\"\nexit 0")
+                #expect(buildPhase.originalObjectID == "1234512345")
+                #expect(buildPhase.inputFilePaths.count == 1)
+                #expect(buildPhase.inputFilePaths.first?.stringRep == "/tmp/foo.in")
+                #expect(buildPhase.outputFilePaths.count == 1)
+                #expect(buildPhase.outputFilePaths.first?.stringRep == "/tmp/foo.out")
+                #expect(buildPhase.emitEnvironment);
+                #expect(buildPhase.runOnlyForDeploymentPostprocessing);
+            }
         }
     }
 
     @Test
     func loadingBuildRule() throws {
-        do
-        {
+        do {
             let buildRulePIF: [String: PropertyListItem] = [
                 "guid": "some-typicalBuildRule-guid",
                 "name": "Objective-C Files",
@@ -1108,8 +1088,7 @@ private final class ProjectModelItemClass: ProjectModelItem {
         }
 
         // A build rule using file patterns and a shell script.
-        do
-        {
+        do {
             let buildRulePIF: [String: PropertyListItem] = [
                 "guid": "some-scriptBuildRule-guid",
                 "name": "Foo Files",
@@ -1147,10 +1126,9 @@ private final class ProjectModelItemClass: ProjectModelItem {
         }
     }
 
-    @Test(.requireXcode16())
     func loadingStandardTarget() throws {
-        let classOneFileRef: FileReference? = try
-        {
+        // These file ref classes are only used for their GUIDs in this test, but the other data may be useful if the model changes in the future.
+        let classOneFileRef: FileReference = try {
             let fileRefPIF: [String: PropertyListItem] = [
                 "guid": "framework-source-fileReference-guid",
                 "type": "file",
@@ -1160,10 +1138,9 @@ private final class ProjectModelItemClass: ProjectModelItem {
             ]
 
             // Convert the test data into a property list, then read the file reference from it.
-            return try FileReference( fromDictionary: fileRefPIF, withPIFLoader: pifLoader )
+            return try FileReference(fromDictionary: fileRefPIF, withPIFLoader: pifLoader)
         }()
-        let classTwoFileRef: FileReference? = try
-        {
+        let classTwoFileRef: FileReference = try {
             let fileRefPIF: [String: PropertyListItem] = [
                 "guid": "app-source-fileReference-guid",
                 "type": "file",
@@ -1173,10 +1150,9 @@ private final class ProjectModelItemClass: ProjectModelItem {
             ]
 
             // Convert the test data into a property list, then read the file reference from it.
-            return try FileReference( fromDictionary: fileRefPIF, withPIFLoader: pifLoader )
+            return try FileReference(fromDictionary: fileRefPIF, withPIFLoader: pifLoader)
         }()
-        let cocoaFwkFileRef: FileReference? = try
-        {
+        let cocoaFwkFileRef: FileReference = try {
             let fileRefPIF: [String: PropertyListItem] = [
                 "guid": "cocoa-framework-fileReference-guid",
                 "type": "file",
@@ -1186,11 +1162,11 @@ private final class ProjectModelItemClass: ProjectModelItem {
             ]
 
             // Convert the test data into a property list, then read the file reference from it.
-            return try FileReference( fromDictionary: fileRefPIF, withPIFLoader: pifLoader )
+            return try FileReference(fromDictionary: fileRefPIF, withPIFLoader: pifLoader)
         }()
 
         // Load a framework target.
-        let frameworkTarget: StandardTarget? = try {
+        let frameworkTarget: StandardTarget = try {
             let testBuildConfigurationData: [String: PropertyListItem] = [
                 "guid": "framework-buildConfiguration-guid",
                 "name": "Debug",
@@ -1206,7 +1182,7 @@ private final class ProjectModelItemClass: ProjectModelItem {
                     [
                         "guid": "framework-source-buildFile-guid",
                         "name": "FrameworkClass.m",
-                        "fileReference": "framework-source-fileReference-guid",
+                        "fileReference": classOneFileRef.guid,
                     ],
                 ],
             ]
@@ -1217,7 +1193,7 @@ private final class ProjectModelItemClass: ProjectModelItem {
                     [
                         "guid": "cocoa-framework-buildFile-guid",
                         "name": "Cocoa.framework",
-                        "fileReference": "cocoa-framework-fileReference-guid",
+                        "fileReference": cocoaFwkFileRef.guid,
                     ],
                 ],
             ]
@@ -1247,16 +1223,15 @@ private final class ProjectModelItemClass: ProjectModelItem {
         }()
 
         // Examine the framework target.
-        #expect(frameworkTarget != nil)
-        #expect(frameworkTarget?.guid == "framework-target-guid")
-        #expect(frameworkTarget?.name == "Target Uno")
-        #expect(frameworkTarget?.buildConfigurations.count == 1)
-        #expect(frameworkTarget?.buildPhases.count == 2)
-        #expect(frameworkTarget?.buildRules.isEmpty == true)
-        #expect(frameworkTarget?.productReference.guid == "framework-productReference-guid")
-        #expect(frameworkTarget?.productTypeIdentifier == "com.apple.product-type.framework")
+        #expect(frameworkTarget.guid == "framework-target-guid")
+        #expect(frameworkTarget.name == "Target Uno")
+        #expect(frameworkTarget.buildConfigurations.count == 1)
+        #expect(frameworkTarget.buildPhases.count == 2)
+        #expect(frameworkTarget.buildRules.isEmpty == true)
+        #expect(frameworkTarget.productReference.guid == "framework-productReference-guid")
+        #expect(frameworkTarget.productTypeIdentifier == "com.apple.product-type.framework")
 
-        if let provisioningSourceData = frameworkTarget?.provisioningSourceData(for: "Debug")
+        if let provisioningSourceData = frameworkTarget.provisioningSourceData(for: "Debug")
         {
             #expect(provisioningSourceData.configurationName == "Debug")
             #expect(!provisioningSourceData.appIDHasFeaturesEnabled)
@@ -1268,8 +1243,8 @@ private final class ProjectModelItemClass: ProjectModelItem {
             Issue.record("frameworkTarget does not have provisioning source data")
         }
 
-        // Load an app target which depends on the first target.
-        let appTarget: StandardTarget? = try {
+        // Load an app target which depends on the framework target.
+        let appTarget: StandardTarget = try {
             let testBuildConfigurationData: [String: PropertyListItem] = [
                 "guid": "app-buildConfiguration-guid",
                 "name": "Debug",
@@ -1279,10 +1254,10 @@ private final class ProjectModelItemClass: ProjectModelItem {
                 ],
             ]
             let testProvisioningSourceData: [String: PropertyListItem] = [
-                "configurationName":                "Debug",
-                "appIDHasFeaturesEnabled":          "true",
-                "provisioningStyle":                1,
-                "bundleIdentifierFromInfoPlist":    "CocoaApp",
+                "configurationName": "Debug",
+                "appIDHasFeaturesEnabled": "true",
+                "provisioningStyle": 1,
+                "bundleIdentifierFromInfoPlist": "CocoaApp",
             ]
             let testSourcesBuildPhaseData: [String: PropertyListItem] = [
                 "guid": "app-sourcesBuildPhase-guid",
@@ -1291,7 +1266,7 @@ private final class ProjectModelItemClass: ProjectModelItem {
                     [
                         "guid": "app-source-buildFile-guid",
                         "name": "ClassTwo.m",
-                        "fileReference": "app-source-fileReference-guid",
+                        "fileReference": classTwoFileRef.guid,
                     ],
                     [
                         "guid": "app-source-missing-buildFile-guid",
@@ -1307,7 +1282,7 @@ private final class ProjectModelItemClass: ProjectModelItem {
                     [
                         "guid": "cocoa-framework-buildFile-guid",
                         "name": "Cocoa.framework",
-                        "fileReference": "cocoa-framework-fileReference-guid",
+                        "fileReference": cocoaFwkFileRef.guid,
                     ],
                 ],
             ]
@@ -1342,16 +1317,15 @@ private final class ProjectModelItemClass: ProjectModelItem {
         }()
 
         // Examine the app target.
-        #expect(appTarget != nil)
-        #expect(appTarget?.guid == "app-target-guid")
-        #expect(appTarget?.name == "Target Dos")
-        #expect(appTarget?.buildConfigurations.count == 1)
-        #expect(appTarget?.buildPhases.count == 2)
-        #expect(appTarget?.buildRules.isEmpty == true)
-        #expect(appTarget?.productReference.guid == "app-productReference-guid")
-        #expect(appTarget?.productTypeIdentifier == "com.apple.product-type.application")
+        #expect(appTarget.guid == "app-target-guid")
+        #expect(appTarget.name == "Target Dos")
+        #expect(appTarget.buildConfigurations.count == 1)
+        #expect(appTarget.buildPhases.count == 2)
+        #expect(appTarget.buildRules.isEmpty == true)
+        #expect(appTarget.productReference.guid == "app-productReference-guid")
+        #expect(appTarget.productTypeIdentifier == "com.apple.product-type.application")
 
-        if let provisioningSourceData = appTarget?.provisioningSourceData(for: "Debug")
+        if let provisioningSourceData = appTarget.provisioningSourceData(for: "Debug")
         {
             #expect(provisioningSourceData.configurationName == "Debug")
             #expect(provisioningSourceData.appIDHasFeaturesEnabled)
@@ -1363,19 +1337,46 @@ private final class ProjectModelItemClass: ProjectModelItem {
             Issue.record("appTarget does not have provisioning source data")
         }
 
-        // Check that the build files and the target dependency resolved.
-        #expect(appTarget!.dependencies.map { $0.guid } == [frameworkTarget!.guid])
-        #expect((appTarget!.buildPhases[0] as! SourcesBuildPhase).buildFiles[0] === classOneFileRef!)
-        #expect((appTarget!.buildPhases[1] as! FrameworksBuildPhase).buildFiles[0] === cocoaFwkFileRef!)
-        #expect((frameworkTarget!.buildPhases[0] as! SourcesBuildPhase).buildFiles[0] === classTwoFileRef!)
-        #expect((frameworkTarget!.buildPhases[1] as! FrameworksBuildPhase).buildFiles[0] === classTwoFileRef!)
-        #expect(appTarget?.productReference.target == appTarget)
-        #expect(frameworkTarget?.productReference.target == frameworkTarget)
+        // Check that the resolved dependency was loaded as expected.
+        #expect(appTarget.dependencies.map { $0.guid } == [frameworkTarget.guid])
+
+        // Check that the build phases and build files were loaded as expected.
+        do {
+            try #require(appTarget.buildPhases.count == 2)
+            try #require(frameworkTarget.buildPhases.count == 2)
+
+            let appSourcesBuildPhase = try #require(appTarget.buildPhases[0] as? FrameworksBuildPhase)
+            let appFrameworksBuildPhase = try #require(appTarget.buildPhases[1] as? FrameworksBuildPhase)
+            let frameworkSourcesBuildPhase = try #require(frameworkTarget.buildPhases[0] as? SourcesBuildPhase)
+            let frameworkFrameworksBuildPhase = try #require(frameworkTarget.buildPhases[1] as? FrameworksBuildPhase)
+
+            // Because of the way reference resolution of a BuildFile.BuildableItem works, we don't have a context to resolve the build file's references to real references, so all we can do is check that the GUID is what we expect.
+            func checkBuildFileRef(of buildPhase: BuildPhaseWithBuildFiles, fileRef: FileReference) throws {
+                guard let buildFileRef = try? #require(buildPhase.buildFiles.first) else {
+                    return
+                }
+                guard case let .reference(buildFileRefGuid) = buildFileRef.buildableItem else {
+                    throw StubError.error("buildFileRef.buildableItem expected to be a .reference type but is not")
+                }
+                #expect(buildFileRefGuid == fileRef.guid)
+            }
+            try checkBuildFileRef(of: appSourcesBuildPhase, fileRef: classTwoFileRef)
+            try checkBuildFileRef(of: appFrameworksBuildPhase, fileRef: cocoaFwkFileRef)
+            try checkBuildFileRef(of: frameworkSourcesBuildPhase, fileRef: classOneFileRef)
+            try checkBuildFileRef(of: frameworkFrameworksBuildPhase, fileRef: cocoaFwkFileRef)
+        }
+        catch {
+            // Any #require failures which caused the block above to abort will have been reported by the test macro.
+        }
+
+        // Check that the product references have the expected back-references to their producing targets.
+        #expect(appTarget.productReference.target == appTarget)
+        #expect(frameworkTarget.productReference.target == frameworkTarget)
     }
 
     @Test
     func loadingAggregateTarget() throws {
-        let target: AggregateTarget? = try {
+        let target: AggregateTarget = try {
             let testBuildConfigurationData: [String: PropertyListItem] = [
                 "guid": "aggregate-target-guid",
                 "name": "Debug",
@@ -1395,19 +1396,18 @@ private final class ProjectModelItemClass: ProjectModelItem {
             ]
 
             // Convert the test data into a property list, then read the target from it.
-            return try AggregateTarget( fromDictionary: targetPIF, signature: "mock", withPIFLoader: pifLoader )
+            return try AggregateTarget(fromDictionary: targetPIF, signature: "mock", withPIFLoader: pifLoader)
         }()
 
         // Examine the target.
-        #expect(target != nil)
-        #expect(target?.guid == "aggregate-target-guid")
-        #expect(target?.name == "Aggregate")
-        #expect(target?.buildConfigurations.count == 1)
+        #expect(target.guid == "aggregate-target-guid")
+        #expect(target.name == "Aggregate")
+        #expect(target.buildConfigurations.count == 1)
     }
 
     @Test
     func loadingExternalTarget() throws {
-        let target: ExternalTarget? = try {
+        let target: ExternalTarget = try {
             let testBuildConfigurationData: [String: PropertyListItem] = [
                 "guid": "external-buildConfiguration-guid",
                 "name": "Debug",
@@ -1429,18 +1429,17 @@ private final class ProjectModelItemClass: ProjectModelItem {
             ]
 
             // Convert the test data into a property list, then read the target from it.
-            return try ExternalTarget( fromDictionary: targetPIF, signature: "mock", withPIFLoader: pifLoader )
+            return try ExternalTarget(fromDictionary: targetPIF, signature: "mock", withPIFLoader: pifLoader)
         }()
 
         // Examine the target.
-        #expect(target != nil)
-        #expect(target?.guid == "external-target-guid")
-        #expect(target?.name == "External")
-        #expect(target?.buildConfigurations.count == 1)
-        #expect(target?.toolPath.stringRep == "/usr/bin/make")
-        #expect(target?.arguments.stringRep == "$(ACTION)")
-        #expect(target?.workingDirectory.stringRep == "$(HOME)")
-        #expect(target?.passBuildSettingsInEnvironment == true)
+        #expect(target.guid == "external-target-guid")
+        #expect(target.name == "External")
+        #expect(target.buildConfigurations.count == 1)
+        #expect(target.toolPath.stringRep == "/usr/bin/make")
+        #expect(target.arguments.stringRep == "$(ACTION)")
+        #expect(target.workingDirectory.stringRep == "$(HOME)")
+        #expect(target.passBuildSettingsInEnvironment == true)
     }
 }
 
