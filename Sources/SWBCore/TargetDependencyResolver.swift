@@ -72,6 +72,12 @@ extension ResolvedTargetDependency {
 
 /// A completely resolved graph of configured targets for use in a build.
 public struct TargetBuildGraph: TargetGraph, Sendable {
+    /// The reason for constructing a build graph. Relevant for whether to stop early or continue.
+    public enum Purpose: Sendable {
+        case build
+        case dependencyGraph
+    }
+
     /// The workspace context this graph is for.
     public let workspaceContext: WorkspaceContext
 
@@ -102,8 +108,8 @@ public struct TargetBuildGraph: TargetGraph, Sendable {
     ///
     ///
     /// The result closure guarantees that all targets a target depends on appear in the returned array before that target.  Any detected dependency cycles will be broken.
-    public init(workspaceContext: WorkspaceContext, buildRequest: BuildRequest, buildRequestContext: BuildRequestContext, delegate: any TargetDependencyResolverDelegate) async {
-        let resolver = TargetDependencyResolver(workspaceContext: workspaceContext, buildRequest: buildRequest, buildRequestContext: buildRequestContext, delegate: delegate)
+    public init(workspaceContext: WorkspaceContext, buildRequest: BuildRequest, buildRequestContext: BuildRequestContext, delegate: any TargetDependencyResolverDelegate, purpose: Purpose = .build) async {
+        let resolver = TargetDependencyResolver(workspaceContext: workspaceContext, buildRequest: buildRequest, buildRequestContext: buildRequestContext, delegate: delegate, purpose: purpose)
         let (allTargets, targetDependencies, targetsToLinkedReferencesToProducingTargets, dynamicallyBuildingTargets) =
         await MacroNamespace.withExpressionInterningEnabled {
             await buildRequestContext.keepAliveSettingsCache {
@@ -291,7 +297,9 @@ fileprivate extension TargetDependencyResolver {
 
     @_spi(Testing) public let resolver: DependencyResolver
 
-    public init(workspaceContext: WorkspaceContext, buildRequest: BuildRequest, buildRequestContext: BuildRequestContext, delegate: any TargetDependencyResolverDelegate) {
+    private let purpose: TargetBuildGraph.Purpose
+
+    public init(workspaceContext: WorkspaceContext, buildRequest: BuildRequest, buildRequestContext: BuildRequestContext, delegate: any TargetDependencyResolverDelegate, purpose: TargetBuildGraph.Purpose = .build) {
         // Go through all targets in the workspace and build the indexes we need to look up implicit dependencies.
         // At this point the only parameters we have are the ones from the build request, so if the values we put in the indices could differ for other parameters (e.g., for different platforms) then we won't account for that here.  However, I believe Xcode will have the same problem.
         if buildRequest.useImplicitDependencies {
@@ -301,6 +309,7 @@ fileprivate extension TargetDependencyResolver {
         }
 
         self.resolver = DependencyResolver(workspaceContext: workspaceContext, buildRequest: buildRequest, buildRequestContext: buildRequestContext, delegate: delegate)
+        self.purpose = purpose
     }
 
     /// Computes the dependency closure of configured targets for the resolver's build request.
@@ -342,7 +351,8 @@ fileprivate extension TargetDependencyResolver {
         }
 
         for target in allTargets {
-            if !target.target.approvedByUser {
+            // we don't want to stop too early (when we are computing the dependency graph) because this prevents us from getting better diagnostics later on, when it matters.
+            if !target.target.approvedByUser, purpose != .dependencyGraph {
                 // FIXME: This should be a target-level diagnostic once rdar://108290784 (Target-level diagnostics are possibly not working for failures during planning) has been fixed.
                 // Downgrade this to a warning when indexing to support functionality that doesn't require expanding macros. Execution-time checks will ensure the macro is not built until approved by the user.
                 let behavior = buildRequest.enableIndexBuildArena ? Diagnostic.Behavior.warning : .error
