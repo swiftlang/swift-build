@@ -205,6 +205,9 @@ If your prefix file never includes files from the build directory you may set th
 "[REGISTER_APP_GROUPS]-name" = "Register App Groups";
 "[REGISTER_APP_GROUPS]-description" = "When set, the app groups capability will require a provisioning profile. All app group identifiers prefixed with 'group.' will need to be registered on the developer website and set in the profile. This is only applicable to platforms supporting unregistered app groups.";
 
+"[REGISTER_APP_GROUPS]-name" = "Register App Groups";
+"[REGISTER_APP_GROUPS]-description" = "When set, the app groups capability will require a provisioning profile. All app group identifiers prefixed with 'group.' will need to be registered on the developer website and set in the profile. This is only applicable to platforms supporting unregistered app groups.";
+
 "[LAUNCH_CONSTRAINT_SELF]-name" = "Launch Constraint Process Plist";
 "[LAUNCH_CONSTRAINT_SELF]-description" = "A path to a plist representation of a Requirements Dictionary indicating the desired constraint on this binary.";
 "[LAUNCH_CONSTRAINT_PARENT]-name" = "Launch Constraint Parent Process Plist";
