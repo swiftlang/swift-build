@@ -190,31 +190,31 @@ let package = Package(
 
         .target(
             name: "SWBAndroidPlatform",
-            dependencies: ["SWBCore"],
+            dependencies: ["SWBCore", "SWBMacro", "SWBUtil"],
             swiftSettings: swiftSettings(languageMode: .v6)),
         .target(
             name: "SWBApplePlatform",
-            dependencies: ["SWBCore", "SWBTaskConstruction"],
+            dependencies: ["SWBCore", "SWBMacro", "SWBUtil", "SWBTaskConstruction"],
             swiftSettings: swiftSettings(languageMode: .v5)),
         .target(
             name: "SWBGenericUnixPlatform",
-            dependencies: ["SWBCore"],
+            dependencies: ["SWBCore", "SWBUtil"],
             swiftSettings: swiftSettings(languageMode: .v6)),
         .target(
             name: "SWBQNXPlatform",
-            dependencies: ["SWBCore"],
+            dependencies: ["SWBCore", "SWBMacro", "SWBUtil"],
             swiftSettings: swiftSettings(languageMode: .v6)),
         .target(
             name: "SWBUniversalPlatform",
-            dependencies: ["SWBCore"],
+            dependencies: ["SWBCore", "SWBMacro", "SWBUtil"],
             swiftSettings: swiftSettings(languageMode: .v6)),
         .target(
             name: "SWBWebAssemblyPlatform",
-            dependencies: ["SWBCore"],
+            dependencies: ["SWBCore", "SWBMacro", "SWBUtil"],
             swiftSettings: swiftSettings(languageMode: .v6)),
         .target(
             name: "SWBWindowsPlatform",
-            dependencies: ["SWBCore"],
+            dependencies: ["SWBCore", "SWBMacro", "SWBUtil"],
             swiftSettings: swiftSettings(languageMode: .v6)),
 
         // Helper targets for SwiftPM
