@@ -123,7 +123,7 @@ public final class AuxiliaryFileTaskAction: TaskAction {
     }
 }
 
-extension AuxiliaryFileTaskActionContext.Diagnostic: @retroactive Serializable {
+extension AuxiliaryFileTaskActionContext.Diagnostic: Serializable {
     public func serialize<T: Serializer>(to serializer: T) {
         serializer.beginAggregate(2)
         switch kind {
