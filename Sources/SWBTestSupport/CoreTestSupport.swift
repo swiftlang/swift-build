@@ -15,7 +15,7 @@ package import Foundation
 package import SWBUtil
 import SWBTaskConstruction
 
-#if SWIFT_PACKAGE
+#if USE_STATIC_PLUGIN_INITIALIZATION
 private import SWBAndroidPlatform
 private import SWBApplePlatform
 private import SWBGenericUnixPlatform
@@ -86,7 +86,7 @@ extension Core {
                 pluginManager.load(at: path)
             }
 
-            #if SWIFT_PACKAGE
+            #if USE_STATIC_PLUGIN_INITIALIZATION
             if !skipLoadingPluginsNamed.contains("com.apple.dt.SWBAndroidPlatformPlugin") {
                 SWBAndroidPlatform.initializePlugin(pluginManager)
             }

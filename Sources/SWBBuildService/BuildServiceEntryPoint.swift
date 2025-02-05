@@ -26,7 +26,7 @@ import System
 import SystemPackage
 #endif
 
-#if SWIFT_PACKAGE
+#if USE_STATIC_PLUGIN_INITIALIZATION
 private import SWBAndroidPlatform
 private import SWBApplePlatform
 private import SWBGenericUnixPlatform
@@ -122,7 +122,7 @@ extension BuildService {
 
             pluginManager.register(BuiltinSpecsExtension(), type: SpecificationsExtensionPoint.self)
 
-            #if SWIFT_PACKAGE
+            #if USE_STATIC_PLUGIN_INITIALIZATION
             // Statically initialize the plugins.
             SWBAndroidPlatform.initializePlugin(pluginManager)
             SWBApplePlatform.initializePlugin(pluginManager)
