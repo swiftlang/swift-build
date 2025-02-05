@@ -31,7 +31,7 @@ public enum POSIX: Sendable {
                 if GetLastError() == ERROR_ENVVAR_NOT_FOUND {
                     return nil
                 }
-                throw POSIXError(errno, context: "GetEnvironmentVariableW", String(cString: name))
+                throw POSIXError(errno, context: "GetEnvironmentVariableW", name)
             }
             return try withUnsafeTemporaryAllocation(of: WCHAR.self, capacity: Int(dwLength)) {
                 switch GetEnvironmentVariableW(wName, $0.baseAddress!, DWORD($0.count)) {
@@ -40,7 +40,7 @@ public enum POSIX: Sendable {
                 case 0 where GetLastError() == ERROR_ENVVAR_NOT_FOUND:
                     return nil
                 default:
-                    throw POSIXError(errno, context: "GetEnvironmentVariableW", String(cString: name))
+                    throw POSIXError(errno, context: "GetEnvironmentVariableW", name)
                 }
             }
         }

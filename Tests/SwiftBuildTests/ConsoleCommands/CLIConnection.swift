@@ -313,7 +313,7 @@ fileprivate func swiftRuntimePath() throws -> Path? {
     let name = "swiftCore.dll"
     return try name.withCString(encodedAs: CInterop.PlatformUnicodeEncoding.self) { wName in
         guard let handle = GetModuleHandleW(wName) else {
-            throw POSIXError(errno, context: "GetModuleHandleW", String(cString: name))
+            throw POSIXError(errno, context: "GetModuleHandleW", name)
         }
 
         var capacity = MAX_PATH

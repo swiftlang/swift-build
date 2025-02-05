@@ -471,7 +471,7 @@ public final class LibSwiftDriver {
         if let scanOracle = oracle, let scanLib = try driver.getSwiftScanLibPath() {
             // Errors instantiating the scanner are potentially recoverable, so suppress them here. Truly fatal errors
             // will be diagnosed later.
-            try? scanOracle.verifyOrCreateScannerInstance(fileSystem: fileSystem, swiftScanLibPath: scanLib)
+            try? scanOracle.verifyOrCreateScannerInstance(swiftScanLibPath: scanLib)
         }
 #endif
     }
