@@ -60,21 +60,6 @@ extension BuildRequest {
     }
 }
 
-extension TaskResult: @retroactive Equatable {
-    package static func == (lhs: TaskResult, rhs: TaskResult) -> Bool {
-        switch (lhs, rhs) {
-        case let (.exit(exitStatus1, metrics1), .exit(exitStatus2, metrics2)):
-            return exitStatus1 == exitStatus2 && metrics1 == metrics2
-        case (.failedSetup, .failedSetup):
-            return true
-        case (.skipped, .skipped):
-            return true
-        default:
-            return false
-        }
-    }
-}
-
 package protocol BuildRequestCheckingResult {
     var buildRequest: BuildRequest { get }
     var core: Core { get }
@@ -2191,7 +2176,7 @@ extension BuildKey {
     }
 }
 
-extension Registry: @retroactive BuildSystemCache where Key == Path, Value == SystemCacheEntry {
+extension Registry: BuildSystemCache where Key == Path, Value == SystemCacheEntry {
     package func clearCachedBuildSystem(for key: Path) {
         _ = removeValue(forKey: key)
     }

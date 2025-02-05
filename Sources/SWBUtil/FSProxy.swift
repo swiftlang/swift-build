@@ -1542,7 +1542,7 @@ fileprivate extension stat {
     }
 }
 
-extension timespec: @retroactive Equatable {
+extension timespec: Equatable {
     public static func ==(lhs: timespec, rhs: timespec) -> Bool {
         return lhs.tv_sec == rhs.tv_sec && lhs.tv_nsec == rhs.tv_nsec
     }
