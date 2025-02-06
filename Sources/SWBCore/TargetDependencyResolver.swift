@@ -334,6 +334,7 @@ fileprivate extension TargetDependencyResolver {
         }
         if !topLevelTargetsToDiscover.isEmpty {
             await resolver.concurrentPerform(iterations: topLevelTargetsToDiscover.count, maximumParallelism: 100) { [self] i in
+                if Task.isCancelled { return }
                 let configuredTarget = topLevelTargetsToDiscover[i]
                 let imposedParameters = resolver.specializationParameters(configuredTarget, workspaceContext: workspaceContext, buildRequest: buildRequest, buildRequestContext: buildRequestContext)
                 await discoverInfo(for: configuredTarget, imposedParameters: imposedParameters)
@@ -366,6 +367,7 @@ fileprivate extension TargetDependencyResolver {
         var configuredTargetsToReplace = [ConfiguredTarget: ConfiguredTarget]()
         // First build up a new dependency closure in allTargets.  Since this is a set, this will deduplicate any ConfiguredTargets which end up identical after the global overrides are applied..
         for configuredTarget in allTargets {
+            if Task.isCancelled { break }
             if let allSuperimposedSpecializations = await resolver.superimposedSpecializations[configuredTarget.target] {
                 var overridesToApply = [String: String]()
                 let settings = buildRequestContext.getCachedSettings(configuredTarget.parameters, target: configuredTarget.target)
@@ -426,6 +428,7 @@ fileprivate extension TargetDependencyResolver {
 
         // FIXME: This is a bit gross, but we have to reduce the number of specializations in case there are both internal and public specializations for the same platform, because they would both be building in the same arena. Unfortunately, we cannot do this while creating specializations because that step is running in parallel. In the future, we will likely have to generalize this a bit more for other cases where we need to narrow down the number of specializations based on some criteria.
         for (_, configuredTargets) in await resolver.configuredTargetsByTarget {
+            if Task.isCancelled { break }
             if configuredTargets.count == 1 { continue }
 
             // Order all configured targets per platform.
@@ -493,6 +496,7 @@ fileprivate extension TargetDependencyResolver {
         // For other items, we need to match them against the product of the target's explicit dependencies.  This is the nasty part which sort of replicates logic in the LinkageDependencyResolver, but we can't just piggy-back on that logic because not all targets have implicit dependencies enabled.
         var targetsToLinkedReferencesToProducingTargets = [ConfiguredTarget: [BuildFile.BuildableItem: ResolvedTargetDependency]]()
         for configuredTarget in allTargets {
+            if Task.isCancelled { break }
             guard let target = configuredTarget.target as? BuildPhaseTarget else {
                 continue
             }

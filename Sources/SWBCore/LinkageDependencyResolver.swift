@@ -108,6 +108,7 @@ actor LinkageDependencyResolver {
         let topLevelTargetsToDiscover = await resolver.concurrentMap(maximumParallelism: 100, buildRequest.buildTargets) { [self] targetInfo async in await resolver.lookupTopLevelConfiguredTarget(targetInfo) }.compactMap { $0 }
         if !topLevelTargetsToDiscover.isEmpty {
             await resolver.concurrentPerform(iterations: topLevelTargetsToDiscover.count, maximumParallelism: 100) { [self] i in
+                if Task.isCancelled { return }
                 let configuredTarget = topLevelTargetsToDiscover[i]
                 let imposedParameters = resolver.specializationParameters(configuredTarget, workspaceContext: workspaceContext, buildRequest: buildRequest, buildRequestContext: buildRequestContext)
                 await linkageDependencies(for: configuredTarget, imposedParameters: imposedParameters)

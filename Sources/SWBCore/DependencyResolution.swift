@@ -562,6 +562,7 @@ extension SpecializationParameters {
 
     /// Return the configured version(s) of a top-level target. For a normal build it will return only one version but for the index-build it may return multiple, one for each of the target's supported platforms.
     func lookupTopLevelConfiguredTarget(_ targetInfo: BuildRequest.BuildTargetInfo) -> [ConfiguredTarget] {
+        guard !Task.isCancelled else { return [] }
         let (target, parameters) = (targetInfo.target, targetInfo.parameters)
         if !buildRequest.enableIndexBuildArena {
             // Top-level targets get defaults imposed, in case that they are themselves using "auto" anywhere.
