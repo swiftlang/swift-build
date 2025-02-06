@@ -1137,7 +1137,7 @@ fileprivate struct BuildOperationTests: CoreBasedTests {
     }
 
     /// Check some cancellation related semantics.
-    @Test
+    @Test(.skipHostOS(.windows, "requires /usr/bin/yes"))
     func cancellationBeforeStarting() async throws {
         try await withTemporaryDirectory { (temporaryDirectory: NamedTemporaryDirectory) in
             try await withAsyncDeferrable { deferrable in
@@ -1208,7 +1208,7 @@ fileprivate struct BuildOperationTests: CoreBasedTests {
     }
 
     /// Check some cancellation related semantics.
-    @Test
+    @Test(.skipHostOS(.windows, "requires /usr/bin/yes"))
     func cancellationImmediatelyAfterStart() async throws {
         try await withTemporaryDirectory { (temporaryDirectory: NamedTemporaryDirectory) in
             try await withAsyncDeferrable { deferrable in
@@ -1280,7 +1280,7 @@ fileprivate struct BuildOperationTests: CoreBasedTests {
     }
 
     /// Check some cancellation related semantics.
-    @Test(.requireSDKs(.macOS))
+    @Test(.skipHostOS(.windows, "requires /usr/bin/yes"))
     func cancellationAfterStart() async throws {
         try await withTemporaryDirectory { (temporaryDirectory: NamedTemporaryDirectory) in
             try await withAsyncDeferrable { deferrable in
@@ -1362,7 +1362,7 @@ fileprivate struct BuildOperationTests: CoreBasedTests {
     }
 
     /// Check some cancellation related semantics.
-    @Test
+    @Test(.skipHostOS(.windows, "requires /usr/bin/yes"))
     func cancellationAfterTaskStart() async throws {
         try await withTemporaryDirectory { (temporaryDirectory: NamedTemporaryDirectory) in
             try await withAsyncDeferrable { deferrable in
@@ -1442,7 +1442,7 @@ fileprivate struct BuildOperationTests: CoreBasedTests {
     }
 
     /// Check some cancellation related semantics.
-    @Test
+    @Test(.skipHostOS(.windows, "requires /usr/bin/yes"))
     func repeatedCancellation() async throws {
         try await withTemporaryDirectory { (temporaryDirectory: NamedTemporaryDirectory) in
             try await withAsyncDeferrable { deferrable in
@@ -1591,7 +1591,7 @@ fileprivate struct BuildOperationTests: CoreBasedTests {
     }
 
     /// Test session destruction
-    @Test
+    @Test(.skipHostOS(.windows, "requires /usr/bin/yes"))
     func sessionDestructionCancellation() async throws {
         try await withTemporaryDirectory { (temporaryDirectory: NamedTemporaryDirectory) in
             try await withAsyncDeferrable { deferrable in

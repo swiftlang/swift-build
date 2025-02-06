@@ -17,6 +17,7 @@ import Testing
 import SWBCore
 import SWBProtocol
 import SWBTestSupport
+import SwiftBuild
 @_spi(Testing) import SWBUtil
 
 import SWBTaskExecution
@@ -177,7 +178,7 @@ fileprivate struct BuildDescriptionConstructionTests: CoreBasedTests {
         }
     }
 
-    @Test(.requireSDKs(.macOS))
+    @Test(.requireSDKs(.host))
     func copiedPathMapDuplicates() async throws {
         try await withTemporaryDirectory { tmpDir in
             let testProject = try await TestProject(
@@ -197,6 +198,7 @@ fileprivate struct BuildDescriptionConstructionTests: CoreBasedTests {
                             "CODE_SIGNING_ALLOWED": "NO",
                             "PRODUCT_NAME": "$(TARGET_NAME)",
                             "SWIFT_VERSION": swiftVersion,
+                            "PUBLIC_HEADERS_FOLDER_PATH": "foo/bar",
                         ]
                     )],
                 targets: [
@@ -233,10 +235,13 @@ fileprivate struct BuildDescriptionConstructionTests: CoreBasedTests {
                 ])
             let tester = try await BuildOperationTester(getCore(), testProject, simulated: true)
 
-            try await tester.checkBuildDescription { results in
-                results.checkWarning(.equal("duplicate output file '\(tmpDir.str)/build/Debug/usr/local/include/Fwk.h' on task: CpHeader \(tmpDir.str)/build/Debug/usr/local/include/Fwk.h \(tmpDir.str)/Subdir/Fwk.h (in target 'lib1' from project 'aProject')"))
-                results.checkWarning(.equal("duplicate output file '\(tmpDir.str)/build/Debug/usr/local/include/Fwk.h' on task: CpHeader \(tmpDir.str)/build/Debug/usr/local/include/Fwk.h \(tmpDir.str)/Fwk.h (in target 'lib2' from project 'aProject')"))
-                results.checkWarning(.equal("duplicate output file '\(tmpDir.str)/build/Debug/usr/local/include/Fwk.h' on task: CpHeader \(tmpDir.str)/build/Debug/usr/local/include/Fwk.h \(tmpDir.str)/Subdir/Fwk.h (in target 'lib2' from project 'aProject')"))
+            try await tester.checkBuildDescription(runDestination: .host) { results in
+                let buildProductsDirSuffix = SWBRunDestinationInfo.host.builtProductsDirSuffix
+                results.checkWarning(.equal("duplicate output file '\(tmpDir.join("build/Debug\(buildProductsDirSuffix)/foo/bar/Fwk.h", normalize: true).str)' on task: CpHeader \(tmpDir.join("build/Debug\(buildProductsDirSuffix)/foo/bar/Fwk.h", normalize: true).str) \(tmpDir.join("Subdir/Fwk.h", normalize: true).str) (in target 'lib1' from project 'aProject')"))
+                results.checkWarning(.equal("duplicate output file '\(tmpDir.join("build/Debug\(buildProductsDirSuffix)/foo/bar/Fwk.h", normalize: true).str)' on task: CpHeader \(tmpDir.join("build/Debug\(buildProductsDirSuffix)/foo/bar/Fwk.h", normalize: true).str) \(tmpDir.join("Fwk.h", normalize: true).str) (in target 'lib2' from project 'aProject')"))
+                results.checkWarning(.equal("duplicate output file '\(tmpDir.join("build/Debug\(buildProductsDirSuffix)/foo/bar/Fwk.h", normalize: true).str)' on task: CpHeader \(tmpDir.join("build/Debug\(buildProductsDirSuffix)/foo/bar/Fwk.h", normalize: true).str) \(tmpDir.join("Subdir/Fwk.h", normalize: true).str) (in target 'lib2' from project 'aProject')"))
+                results.checkWarning(.equal("duplicate output file '\(tmpDir.join("build/Debug\(buildProductsDirSuffix)/foo/bar", normalize: true).str)' on task: MkDir \(tmpDir.join("build/Debug\(buildProductsDirSuffix)/foo/bar", normalize: true).str) (in target 'lib2' from project 'aProject')"))
+                results.checkWarning(.equal("duplicate output file '' on task: MkDir \(tmpDir.join("build/Debug\(buildProductsDirSuffix)/foo/bar", normalize: true).str) (in target 'lib2' from project 'aProject')"))
                 results.checkNoDiagnostics()
 
                 // Nothing in the map because there are multiple sources for the same destination path.
