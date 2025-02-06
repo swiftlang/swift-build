@@ -101,8 +101,8 @@ public struct Architecture: Sendable {
                     return String(decoding: data[0...(data.lastIndex(where: { $0 != 0 }) ?? 0)], as: UTF8.self)
                 }
             }
-            #endif
             return nil
+            #endif
         }()
     }
 

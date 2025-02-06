@@ -221,8 +221,10 @@ extension ProcessInfo {
                 return p[0] == 1
             }
         }
-        #endif
         return false
+        #else
+        return false
+        #endif
     }
 
     // Get memory usage of current process in bytes
