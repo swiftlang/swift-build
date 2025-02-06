@@ -726,12 +726,14 @@ fileprivate struct HostBuildToolBuildOperationTests: CoreBasedTests {
                 """
             }
 
-            try await tester.checkIndexBuild(prepareTargets: testProject.targets.map(\.guid), runDestination: .host, persistent: true) { results in
+            try await tester.checkIndexBuild(prepareTargets: tester.workspace.targets(named: "Framework").map(\.guid), runDestination: .host, persistent: true) { results in
                 results.checkNoDiagnostics()
 
                 // The tool itself should compile and link.
                 results.checkTaskExists(.matchTargetName("Tool"), .matchRuleType("SwiftDriver Compilation"))
-                results.checkTask(.matchTargetName("Tool"), .matchRuleType("Ld")) { _ in }
+                results.checkTask(.matchTargetName("Tool"), .matchRuleType("Ld")) { task in
+                    task.checkCommandLineMatches(["-target", .contains("-apple-macos")])
+                }
 
                 try results.checkTask(.matchTargetName("Framework"), .matchRuleType(ProductPlan.preparedForIndexPreCompilationRuleName)) { task in
                     try results.checkTaskFollows(task, .matchTargetName("Tool"), .matchRuleType("Ld"))
@@ -809,12 +811,14 @@ fileprivate struct HostBuildToolBuildOperationTests: CoreBasedTests {
                 """
             }
 
-            try await tester.checkIndexBuild(prepareTargets: testProject.targets.map(\.guid), runDestination: .host, persistent: true) { results in
+            try await tester.checkIndexBuild(prepareTargets: tester.workspace.targets(named: "Framework").map(\.guid), runDestination: .host, persistent: true) { results in
                 results.checkNoDiagnostics()
 
                 // The tool itself should compile and link.
                 results.checkTaskExists(.matchTargetName("Tool"), .matchRuleType("SwiftDriver Compilation"))
-                results.checkTask(.matchTargetName("Tool"), .matchRuleType("Ld")) { _ in }
+                results.checkTask(.matchTargetName("Tool"), .matchRuleType("Ld")) { task in
+                    task.checkCommandLineMatches(["-target", .contains("-apple-macos")])
+                }
 
                 try results.checkTask(.matchTargetName("Framework"), .matchRuleType(ProductPlan.preparedForIndexPreCompilationRuleName)) { task in
                     try results.checkTaskFollows(task, .matchTargetName("Tool"), .matchRuleType("Ld"))
