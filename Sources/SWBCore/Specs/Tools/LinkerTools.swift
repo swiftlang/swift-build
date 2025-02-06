@@ -957,7 +957,7 @@ public final class LdLinkerSpec : GenericLinkerSpec, SpecIdentifierType {
         }
 
         // Args without parameters (-Xlinker-prefixed, e.g. -Xlinker)
-        for arg in ["-bitcode_verify"] {
+        for arg in ["-bitcode_verify", "-export_dynamic"] {
             while let index = commandLine.firstIndex(of: arg) {
                 guard index > 0, commandLine[index - 1] == argPrefix else { break }
                 commandLine.removeSubrange(index - 1 ... index)
