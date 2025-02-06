@@ -759,7 +759,7 @@ fileprivate struct BuildTaskBehaviorTests: CoreBasedTests {
             try fs.write(tmpDir.path.join("foo"), contents: "Hello, world!")
 
             do {
-                let action = AuxiliaryFileTaskAction(AuxiliaryFileTaskActionContext(output: outputPath, input: tmpDir.path.join("foo"), permissions: nil, diagnostics: [], logContents: false))
+                let action = AuxiliaryFileTaskAction(AuxiliaryFileTaskActionContext(output: outputPath, input: tmpDir.path.join("foo"), permissions: nil, forceWrite: false, diagnostics: [], logContents: false))
                 let (task, execTask) = createTask(ruleInfo: ["MOCK"], commandLine: ["builtin-mock"], inputs: [], outputs: [outputNode], mustPrecede: [], action: action)
 
                 // Execute a test build against the task set.
@@ -773,7 +773,7 @@ fileprivate struct BuildTaskBehaviorTests: CoreBasedTests {
 
             // Perform a build with a new, identical task set, and check for a null build.
             do {
-                let action = AuxiliaryFileTaskAction(AuxiliaryFileTaskActionContext(output: outputPath, input: tmpDir.path.join("foo"), permissions: nil, diagnostics: [], logContents: false))
+                let action = AuxiliaryFileTaskAction(AuxiliaryFileTaskActionContext(output: outputPath, input: tmpDir.path.join("foo"), permissions: nil, forceWrite: false, diagnostics: [], logContents: false))
                 let (task, _) = createTask(ruleInfo: ["MOCK"], commandLine: ["builtin-mock"], inputs: [], outputs: [outputNode], mustPrecede: [], action: action)
 
                 // Execute a test build against the task set.
@@ -784,7 +784,7 @@ fileprivate struct BuildTaskBehaviorTests: CoreBasedTests {
             // Perform a build with a changed task.
             do {
                 try fs.write(tmpDir.path.join("bar"), contents: "Hello, alternate world!")
-                let action = AuxiliaryFileTaskAction(AuxiliaryFileTaskActionContext(output: outputPath, input: tmpDir.path.join("bar"), permissions: nil, diagnostics: [], logContents: false))
+                let action = AuxiliaryFileTaskAction(AuxiliaryFileTaskActionContext(output: outputPath, input: tmpDir.path.join("bar"), permissions: nil, forceWrite: false, diagnostics: [], logContents: false))
                 let (task, execTask) = createTask(ruleInfo: ["MOCK"], commandLine: ["builtin-mock"], inputs: [], outputs: [outputNode], mustPrecede: [], action: action)
 
                 // Execute a test build against the task set.
@@ -808,7 +808,7 @@ fileprivate struct BuildTaskBehaviorTests: CoreBasedTests {
             try fs.write(tmpDir.path.join("foo"), contents: "Hello, world!")
 
             do {
-                let context = AuxiliaryFileTaskActionContext(output: outputPath, input: tmpDir.path.join("foo"), permissions: nil, diagnostics: [.init(kind: .error, message: "Couldn't deal with this for some reason")], logContents: false)
+                let context = AuxiliaryFileTaskActionContext(output: outputPath, input: tmpDir.path.join("foo"), permissions: nil, forceWrite: false, diagnostics: [.init(kind: .error, message: "Couldn't deal with this for some reason")], logContents: false)
                 let action = AuxiliaryFileTaskAction(context)
                 let (task, execTask) = createTask(ruleInfo: ["MOCK"], commandLine: ["builtin-mock"], inputs: [], outputs: [outputNode], mustPrecede: [], action: action)
 

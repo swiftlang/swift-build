@@ -26,7 +26,7 @@ fileprivate struct AuxiliaryFileTaskTests {
         let output = Path.root.join("output.txt")
         let input = Path.root.join("input")
         try executionDelegate.fs.write(input, contents: ByteString(encodingAsUTF8: "Hello, world!"))
-        let action = AuxiliaryFileTaskAction(AuxiliaryFileTaskActionContext(output: output, input: input, permissions: 0o755, diagnostics: [], logContents: false))
+        let action = AuxiliaryFileTaskAction(AuxiliaryFileTaskActionContext(output: output, input: input, permissions: 0o755, forceWrite: false, diagnostics: [], logContents: false))
         let task = Task(forTarget: nil, ruleInfo: [], commandLine: ["WriteAuxiliaryFile", output.basename], workingDirectory: .root, outputs: [MakePlannedPathNode(output)], action: action, execDescription: "")
 
         let result = await action.performTaskAction(
@@ -47,7 +47,7 @@ fileprivate struct AuxiliaryFileTaskTests {
         let output = Path.root.join("output.txt")
         let input = Path.root.join("input")
         try executionDelegate.fs.write(input, contents: ByteString(encodingAsUTF8: "Hello, world!"))
-        let action = AuxiliaryFileTaskAction(AuxiliaryFileTaskActionContext(output: output, input: input, permissions: 0o755, diagnostics: [], logContents: true))
+        let action = AuxiliaryFileTaskAction(AuxiliaryFileTaskActionContext(output: output, input: input, permissions: 0o755, forceWrite: false, diagnostics: [], logContents: true))
         let task = Task(forTarget: nil, ruleInfo: [], commandLine: ["WriteAuxiliaryFile", output.basename], workingDirectory: .root, outputs: [MakePlannedPathNode(output)], action: action, execDescription: "")
 
         let outputDelegate = MockTaskOutputDelegate()
@@ -65,17 +65,17 @@ fileprivate struct AuxiliaryFileTaskTests {
     @Test
     func signature() {
         let output = Path.root.join("output.txt")
-        let taskA = AuxiliaryFileTaskAction(AuxiliaryFileTaskActionContext(output: output, input: Path("ContentsA"), permissions: nil, diagnostics: [], logContents: false))
+        let taskA = AuxiliaryFileTaskAction(AuxiliaryFileTaskActionContext(output: output, input: Path("ContentsA"), permissions: nil, forceWrite: false, diagnostics: [], logContents: false))
         do {
-            let taskB = AuxiliaryFileTaskAction(AuxiliaryFileTaskActionContext(output: output, input: Path("ContentsB"), permissions: nil, diagnostics: [], logContents: false))
+            let taskB = AuxiliaryFileTaskAction(AuxiliaryFileTaskActionContext(output: output, input: Path("ContentsB"), permissions: nil, forceWrite: false, diagnostics: [], logContents: false))
             #expect(taskA.computeInitialSignature() != taskB.computeInitialSignature())
         }
         do {
-            let taskB = AuxiliaryFileTaskAction(AuxiliaryFileTaskActionContext(output: Path("/output2.txt"), input: Path("ContentsA"), permissions: nil, diagnostics: [], logContents: false))
+            let taskB = AuxiliaryFileTaskAction(AuxiliaryFileTaskActionContext(output: Path("/output2.txt"), input: Path("ContentsA"), permissions: nil, forceWrite: false, diagnostics: [], logContents: false))
             #expect(taskA.computeInitialSignature() != taskB.computeInitialSignature())
         }
         do {
-            let taskB = AuxiliaryFileTaskAction(AuxiliaryFileTaskActionContext(output: output, input: Path("ContentsA"), permissions: 0o755, diagnostics: [], logContents: false))
+            let taskB = AuxiliaryFileTaskAction(AuxiliaryFileTaskActionContext(output: output, input: Path("ContentsA"), permissions: 0o755, forceWrite: false, diagnostics: [], logContents: false))
             #expect(taskA.computeInitialSignature() != taskB.computeInitialSignature())
         }
     }

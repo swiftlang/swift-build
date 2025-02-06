@@ -1265,7 +1265,7 @@ final class SourcesTaskProducer: FilesBasedBuildPhaseTaskProducerBase, FilesBase
             }
             await appendGeneratedTasks(&tasks, usePhasedOrdering: false) { delegate in
                 let cbc = CommandBuildContext(producer: context, scope: scope, inputs: [], outputs: [preparedForIndexNode.path], commandOrderingInputs: prepareTargetForIndexInputs + moduleInputs)
-                context.writeFileSpec.constructFileTasks(cbc, delegate, ruleName: ProductPlan.preparedForIndexPreCompilationRuleName, contents: [], permissions: nil, preparesForIndexing: true, additionalTaskOrderingOptions: [])
+                context.writeFileSpec.constructFileTasks(cbc, delegate, ruleName: ProductPlan.preparedForIndexPreCompilationRuleName, contents: [], permissions: nil, forceWrite: true, preparesForIndexing: true, additionalTaskOrderingOptions: [])
             }
         }
 
