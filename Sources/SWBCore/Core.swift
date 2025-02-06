@@ -244,7 +244,7 @@ public final class Core: Sendable {
 
     /// The list of plugin search paths.
     @_spi(Testing) public lazy var pluginPaths: [Path] = {
-        #if SWIFT_PACKAGE
+        #if USE_STATIC_PLUGIN_INITIALIZATION
         // In a package context, plugins are statically linked into the build system.
         return []
         #else

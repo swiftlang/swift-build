@@ -43,7 +43,9 @@ func swiftSettings(languageMode: SwiftLanguageMode) -> [SwiftSetting] {
             .enableUpcomingFeature("ExistentialAny"),
             .enableUpcomingFeature("InternalImportsByDefault"),
 
-            .swiftLanguageMode(.v5)
+            .swiftLanguageMode(.v5),
+
+            .define("USE_STATIC_PLUGIN_INITIALIZATION")
         ]
     case .v6:
         return [
@@ -51,7 +53,9 @@ func swiftSettings(languageMode: SwiftLanguageMode) -> [SwiftSetting] {
             .enableUpcomingFeature("ExistentialAny"),
             .enableUpcomingFeature("InternalImportsByDefault"),
 
-            .swiftLanguageMode(.v6)
+            .swiftLanguageMode(.v6),
+
+            .define("USE_STATIC_PLUGIN_INITIALIZATION")
         ]
     default:
         fatalError("unexpected language mode")
