@@ -528,7 +528,7 @@ public enum FlagPattern: Sendable {
 public class ClangCompilerSpec : CompilerSpec, SpecIdentifierType, GCCCompatibleCompilerCommandLineBuilder {
     /// Clang compiler data cache, used to cache constant flags.
     fileprivate final class DataCache: SpecDataCache {
-        fileprivate struct ConstantFlagsKey: Hashable {
+        fileprivate struct ConstantFlagsKey: Hashable, Sendable {
             /// The scope in use.
             let scope: MacroEvaluationScope
 
@@ -545,7 +545,7 @@ public class ClangCompilerSpec : CompilerSpec, SpecIdentifierType, GCCCompatible
             let flags: [String]
 
             /// The header search path arguments used to compute these flags.
-            let headerSearchPaths: SearchPathBuilder
+            let headerSearchPaths: SearchPaths
 
             /// The compilation inputs implied by these flags.
             let inputs: [Path]

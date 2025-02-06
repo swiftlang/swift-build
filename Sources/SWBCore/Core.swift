@@ -522,7 +522,7 @@ public final class Core: Sendable {
             return allSpecs.map { spec in
                 SpecDump(
                     spec: spec.identifier,
-                    path: spec.proxy?.path.str,
+                    path: spec.proxyPath.str,
                     options: spec.flattenedBuildOptions.values.sorted(by: \.name).map { option in
                         .init(name: option.name, displayName: option.localizedName != option.name ? option.localizedName : nil, categoryName: option.localizedCategoryName, description: option.localizedDescription)
                 })

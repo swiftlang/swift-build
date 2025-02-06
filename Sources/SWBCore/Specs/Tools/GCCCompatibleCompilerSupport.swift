@@ -150,9 +150,41 @@ package final class SearchPathBuilder
         self.inputPaths.append(contentsOf: inputPaths.map({ $0.normalize() }).filter({ !$0.isEmpty }))
     }
 
+    var searchPaths: SearchPaths {
+        SearchPaths(searchPathEntries: searchPathEntries, inputPaths: inputPaths, headerSearchPaths: headerSearchPaths, systemHeaderSearchPaths: systemHeaderSearchPaths, frameworkSearchPaths: frameworkSearchPaths, systemFrameworkSearchPaths: systemFrameworkSearchPaths)
+    }
+}
+
+package struct SearchPaths: Sendable {
+    init(searchPathEntries: [SearchPathEntry], inputPaths: OrderedSet<Path>, headerSearchPaths: Set<Path>, systemHeaderSearchPaths: Set<Path> = Set<Path>(), frameworkSearchPaths: Set<Path>, systemFrameworkSearchPaths: Set<Path> = Set<Path>()) {
+        self.searchPathEntries = searchPathEntries
+        self.inputPaths = inputPaths
+        self.headerSearchPaths = headerSearchPaths
+        self.systemHeaderSearchPaths = systemHeaderSearchPaths
+        self.frameworkSearchPaths = frameworkSearchPaths
+        self.systemFrameworkSearchPaths = systemFrameworkSearchPaths
+    }
+
+    /// The list of search path entries.
+    package let searchPathEntries: [SearchPathEntry]
+
+    /// A set of paths the tool should treat as input paths to the command.  We preserve the order in which they were added for convenience of testing.
+    package let inputPaths: OrderedSet<Path>
+
+    /// The set of ordinary header search paths already added.
+    package let headerSearchPaths: Set<Path>
+
+    /// The set of system header search paths already added.
+    package let systemHeaderSearchPaths: Set<Path>
+
+    /// The set of ordinary framework search paths already added.
+    package let frameworkSearchPaths: Set<Path>
+
+    /// The set of system framework search paths already added.
+    package let systemFrameworkSearchPaths: Set<Path>
+
     /// Generate the command line arguments for search path entries for the given command line builder.
-    package func searchPathArguments(for builder: any SearchPathCommandLineBuilder, scope: MacroEvaluationScope) -> [String]
-    {
+    package func searchPathArguments(for builder: any SearchPathCommandLineBuilder, scope: MacroEvaluationScope) -> [String] {
         return builder.searchPathArguments(searchPathEntries, scope)
     }
 }
@@ -178,7 +210,7 @@ extension SearchPathCommandLineBuilder
 package struct GCCCompatibleCompilerSpecSupport
 {
     /// Constructs and returns common header search path entries for LLVM-based compiler specs.  Also returns any input paths (to headermap or VFS files) which users of these search paths should depend on.
-    package static func headerSearchPathArguments(_ producer: any CommandProducer, _ scope: MacroEvaluationScope, usesModules: Bool) -> SearchPathBuilder
+    package static func headerSearchPathArguments(_ producer: any CommandProducer, _ scope: MacroEvaluationScope, usesModules: Bool) -> SearchPaths
     {
         let searchPathBuilder = SearchPathBuilder()
 
@@ -294,16 +326,16 @@ package struct GCCCompatibleCompilerSpecSupport
             }
         }
 
-        return searchPathBuilder
+        return searchPathBuilder.searchPaths
     }
 
     /// Constructs and returns common framework search path arguments for LLVM-based compiler specs.
-    package static func frameworkSearchPathArguments(_ producer: any CommandProducer, _ scope: MacroEvaluationScope, asSeparateArguments: Bool = false) -> SearchPathBuilder
+    package static func frameworkSearchPathArguments(_ producer: any CommandProducer, _ scope: MacroEvaluationScope, asSeparateArguments: Bool = false) -> SearchPaths
     {
         let searchPathBuilder = SearchPathBuilder()
 
         guard producer.isApplePlatform else {
-            return searchPathBuilder
+            return searchPathBuilder.searchPaths
         }
 
         // Add ordinary framework search paths for FRAMEWORK_SEARCH_PATHS.
@@ -324,10 +356,10 @@ package struct GCCCompatibleCompilerSpecSupport
             searchPathBuilder.addSystemFrameworkSearchPath(Path(searchPath))
         }
 
-        return searchPathBuilder
+        return searchPathBuilder.searchPaths
     }
 
-    private static func sparseSDKSearchPathArguments(_ sparseSDKs: [SDK], _ existingHeaderSearchPaths: Set<Path>, _ existingFrameworkSearchPaths: Set<Path>, asSeparateArguments: Bool = false, skipHeaderSearchPaths: Bool = false) -> SearchPathBuilder
+    private static func sparseSDKSearchPathArguments(_ sparseSDKs: [SDK], _ existingHeaderSearchPaths: Set<Path>, _ existingFrameworkSearchPaths: Set<Path>, asSeparateArguments: Bool = false, skipHeaderSearchPaths: Bool = false) -> SearchPaths
     {
         // Create a search path build with the search paths which are already in the arguments as -I and -F options, so we don't add SDK search paths to the same paths.
         let searchPathBuilder = SearchPathBuilder(headerSearchPaths: existingHeaderSearchPaths, frameworkSearchPaths: existingFrameworkSearchPaths)
@@ -361,19 +393,19 @@ package struct GCCCompatibleCompilerSpecSupport
             }
         }
 
-        return searchPathBuilder
+        return searchPathBuilder.searchPaths
     }
 
     /// Constructs and returns common search path arguments for sparse SDKs for LLVM-based compiler specs.
     /// - parameter existingHeaderSearchPaths: Header search paths which are already present in the command being constructed.
     /// - parameter existingFrameworkSearchPaths: Framework search paths which are already present in the command being constructed.
-    static func sparseSDKSearchPathArguments(_ sparseSDKs: [SDK], _ existingHeaderSearchPaths: Set<Path>, _ existingFrameworkSearchPaths: Set<Path>, asSeparateArguments: Bool = false) -> SearchPathBuilder {
+    static func sparseSDKSearchPathArguments(_ sparseSDKs: [SDK], _ existingHeaderSearchPaths: Set<Path>, _ existingFrameworkSearchPaths: Set<Path>, asSeparateArguments: Bool = false) -> SearchPaths {
         return sparseSDKSearchPathArguments(sparseSDKs, existingHeaderSearchPaths, existingFrameworkSearchPaths, asSeparateArguments: asSeparateArguments, skipHeaderSearchPaths: false)
     }
 
     /// Constructs and returns common search path arguments for sparse SDKs for LLVM-based compiler specs.
     /// - parameter existingFrameworkSearchPaths: Framework search paths which are already present in the command being constructed.
-    static func sparseSDKFrameworkSearchPathArguments(_ sparseSDKs: [SDK], _ existingSearchPaths: Set<Path>, asSeparateArguments: Bool = false) -> SearchPathBuilder {
+    static func sparseSDKFrameworkSearchPathArguments(_ sparseSDKs: [SDK], _ existingSearchPaths: Set<Path>, asSeparateArguments: Bool = false) -> SearchPaths {
         return sparseSDKSearchPathArguments(sparseSDKs, Set(), existingSearchPaths, asSeparateArguments: asSeparateArguments, skipHeaderSearchPaths: true)
     }
 }

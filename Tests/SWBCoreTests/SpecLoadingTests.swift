@@ -72,6 +72,7 @@ import SWBMacro
     }
 
     private func parseTestSpec<T : SpecType>(_ type: T.Type, _ specData: [String: PropertyListItem], _ baseSpec: Spec? = nil, namespace: MacroNamespace? = nil) async throws -> (T, [String], [String]) {
+        let core = try await getCore()
         // Create a mock proxy for the data.
         var identifier = "test"
         if let value = specData["Identifier"] {
@@ -79,8 +80,10 @@ import SWBMacro
                 identifier = ident
             }
         }
-        let proxy = SpecProxy(identifier: identifier, domain: "", path: Path("test.xcspec"), type: type, classType: nil, basedOn: baseSpec?.proxy?.specifierString, data: specData, localizedStrings: nil)
-        proxy.basedOnProxy = baseSpec?.proxy
+        let proxy = SpecProxy(identifier: identifier, domain: "", path: Path("test.xcspec"), type: type, classType: nil, basedOn: baseSpec.map { "'\($0.proxyDomain):\($0.proxyIdentifier)'" }, data: specData, localizedStrings: nil)
+        if let baseSpec {
+            proxy.basedOnProxy = core.specRegistry.lookupProxy(baseSpec.proxyIdentifier, domain: baseSpec.proxyDomain)
+        }
 
         let delegate = await TestDataDelegate(namespace: namespace)
         let specResult = type.parseSpec(delegate, proxy, baseSpec)
@@ -109,7 +112,8 @@ import SWBMacro
 
         // Validate use of default proxy as fallback for based on references.
         let staticFramework = core.specRegistry.getSpec("com.apple.product-type.framework.static", domain: "macosx")!
-        #expect(staticFramework.proxy?.basedOn == "com.apple.product-type.framework")
+        let staticFrameworkProxy = core.specRegistry.lookupProxy(staticFramework.proxyIdentifier, domain: staticFramework.proxyDomain)
+        #expect(staticFrameworkProxy?.basedOn == "com.apple.product-type.framework")
         #expect(staticFramework.basedOnSpec! === core.specRegistry.getSpec("com.apple.product-type.framework", domain: "macosx")!)
 
         // Validate that we respect domain composition.
