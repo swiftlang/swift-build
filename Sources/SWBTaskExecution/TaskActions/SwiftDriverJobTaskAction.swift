@@ -500,12 +500,12 @@ public final class SwiftDriverJobTaskAction: TaskAction, BuildValueValidatingTas
 
             if let db = cas,
                let casOpts = payload.casOptions,
-               try Self.replayCachedCommand(cas: db,
-                                            plannedJob: driverJob,
-                                            commandLine: options.commandLine,
-                                            dynamicExecutionDelegate: dynamicExecutionDelegate,
-                                            outputDelegate: outputDelegate,
-                                            enableDiagnosticRemarks: casOpts.enableDiagnosticRemarks) {
+               try await Self.replayCachedCommand(cas: db,
+                                                  plannedJob: driverJob,
+                                                  commandLine: options.commandLine,
+                                                  dynamicExecutionDelegate: dynamicExecutionDelegate,
+                                                  outputDelegate: outputDelegate,
+                                                  enableDiagnosticRemarks: casOpts.enableDiagnosticRemarks) {
                     return .succeeded
             }
 
@@ -580,11 +580,11 @@ public final class SwiftDriverJobTaskAction: TaskAction, BuildValueValidatingTas
                                     dynamicExecutionDelegate: any DynamicTaskExecutionDelegate,
                                     outputDelegate: any TaskOutputDelegate,
                                     enableDiagnosticRemarks: Bool
-    ) throws -> Bool {
+    ) async throws -> Bool {
         let cacheKeys = plannedJob.driverJob.cacheKeys
         guard !cacheKeys.isEmpty else { return false }
 
-        func replayCachedCommandImpl() throws -> Bool {
+        func replayCachedCommandImpl() async throws -> Bool {
             // Query cache key.
             var comps: [SwiftCachedCompilation] = []
             for cacheKey in cacheKeys {
@@ -616,16 +616,15 @@ public final class SwiftDriverJobTaskAction: TaskAction, BuildValueValidatingTas
 
             // Replay after all checks are done.
             let instance = try cas.createReplayInstance(cmd: Array(commandLine.dropFirst(1))) // drop executable name
-            var replayResults = [Result<SwiftCacheReplayResult, any Error>?](repeating: nil, count: comps.count)
-            SWBQueue.concurrentPerform(iterations: comps.count) { i in
+            let replayResults: [Result<SwiftCacheReplayResult, any Error>] = await comps.concurrentMap(maximumParallelism: 10) { comp in
                 do {
-                    replayResults[i] = .success(try cas.replayCompilation(instance: instance, compilation: comps[i]))
+                    return .success(try cas.replayCompilation(instance: instance, compilation: comp))
                 } catch {
-                    replayResults[i] = .failure(error)
+                    return .failure(error)
                 }
             }
             for replayResult in replayResults {
-                let result = try replayResult!.get()
+                let result = try replayResult.get()
                 // emit stdout/stderr
                 outputDelegate.emitOutput(ByteString(encodingAsUTF8: try result.getStdOut()))
                 outputDelegate.emitOutput(ByteString(encodingAsUTF8: try result.getStdErr()))
@@ -633,7 +632,7 @@ public final class SwiftDriverJobTaskAction: TaskAction, BuildValueValidatingTas
             return true
         }
 
-        let result = try replayCachedCommandImpl()
+        let result = try await replayCachedCommandImpl()
         if enableDiagnosticRemarks {
             outputDelegate.remark("replay cache \(result ? "hit" : "miss")")
         }
