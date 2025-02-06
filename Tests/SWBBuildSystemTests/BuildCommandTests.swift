@@ -13,6 +13,8 @@
 import SWBCore
 import SWBProtocol
 import SWBTestSupport
+import SwiftBuildTestSupport
+import SwiftBuild
 import SWBUtil
 import Testing
 
@@ -20,8 +22,18 @@ import Testing
 @Suite
 fileprivate struct BuildCommandTests: CoreBasedTests {
     /// Check compilation of a single file in C, ObjC and Swift, including the `uniquingSuffix` behaviour.
-    @Test(.requireSDKs(.macOS), .requireXcode16())
+    @Test(.requireSDKs(.host))
     func singleFileCompile() async throws {
+        let runDestination: RunDestinationInfo = .host
+        let testGroup: TestGroup
+        let buildPhases: TestSourcesBuildPhase
+        if runDestination == .macOS {
+            testGroup = TestGroup("Sources", children: [TestFile("CFile.c"), TestFile("SwiftFile.swift"), TestFile("ObjCFile.m"), TestFile("Metal.metal")])
+            buildPhases = TestSourcesBuildPhase(["CFile.c", "SwiftFile.swift", "ObjCFile.m", "Metal.metal"])
+        } else {
+            testGroup = TestGroup("Sources", children: [TestFile("CFile.c"), TestFile("SwiftFile.swift"), TestFile("ObjCFile.m")])
+            buildPhases = TestSourcesBuildPhase(["CFile.c", "SwiftFile.swift", "ObjCFile.m"])
+        }
         try await withTemporaryDirectory { tmpDirPath async throws -> Void in
             let testWorkspace = try await TestWorkspace(
                 "Test",
@@ -29,12 +41,7 @@ fileprivate struct BuildCommandTests: CoreBasedTests {
                 projects: [
                     TestProject(
                         "aProject",
-                        groupTree: TestGroup("Sources", children: [
-                            TestFile("CFile.c"),
-                            TestFile("SwiftFile.swift"),
-                            TestFile("ObjCFile.m"),
-                            TestFile("Metal.metal"),
-                        ]),
+                        groupTree: testGroup,
                         buildConfigurations: [TestBuildConfiguration(
                             "Debug",
                             buildSettings: ["PRODUCT_NAME": "$(TARGET_NAME)",
@@ -42,11 +49,14 @@ fileprivate struct BuildCommandTests: CoreBasedTests {
                                             "SWIFT_VERSION": swiftVersion])],
                         targets: [
                             TestStandardTarget(
-                                "aFramework", type: .framework,
+                                "aLibrary", type: .staticLibrary,
                                 buildConfigurations: [TestBuildConfiguration("Debug")],
-                                buildPhases: [
-                                    TestSourcesBuildPhase(["CFile.c", "SwiftFile.swift", "ObjCFile.m", "Metal.metal"]),
-                                ])])])
+                                buildPhases: [buildPhases]
+                            )
+                        ]
+                    )
+                ]
+            )
             let tester = try await BuildOperationTester(getCore(), testWorkspace, simulated: false)
 
             // Create the input files.
@@ -76,32 +86,34 @@ fileprivate struct BuildCommandTests: CoreBasedTests {
             try await tester.checkBuild(parameters: parameters, runDestination: runDestination, persistent: true, buildOutputMap: [swiftOutputPath: swiftFile.str]) { results in
                 results.consumeTasksMatchingRuleTypes(excludedTypes)
                 results.checkTaskExists(.matchRule(["SwiftCompile", "normal", results.runDestinationTargetArchitecture, "Compiling \(swiftFile.basename)", swiftFile.str]))
-                results.checkTaskExists(.matchRule(["SwiftEmitModule", "normal", results.runDestinationTargetArchitecture, "Emitting module for aFramework"]))
+                results.checkTaskExists(.matchRule(["SwiftEmitModule", "normal", results.runDestinationTargetArchitecture, "Emitting module for aLibrary"]))
                 results.checkNoTask()
             }
 
             // Check building just the C file.
             try await tester.checkBuild(parameters: parameters, runDestination: runDestination, persistent: true, buildOutputMap: [cOutputPath: cFile.str]) { results in
                 results.consumeTasksMatchingRuleTypes(excludedTypes)
-                results.checkTaskExists(.matchRule(["CompileC", "\(tmpDirPath.str)/Test/aProject/build/aProject.build/Debug/aFramework.build/Objects-normal/\(results.runDestinationTargetArchitecture)/CFile.o", cFile.str, "normal", results.runDestinationTargetArchitecture, "c", "com.apple.compilers.llvm.clang.1_0.compiler"]))
+                results.checkTaskExists(.matchRule(["CompileC", tmpDirPath.join("Test/aProject/build/aProject.build/Debug\(SWBRunDestinationInfo.host.builtProductsDirSuffix)/aLibrary.build/Objects-normal/\(results.runDestinationTargetArchitecture)/CFile.o").str, cFile.str, "normal", results.runDestinationTargetArchitecture, "c", "com.apple.compilers.llvm.clang.1_0.compiler"]))
                 results.checkNoTask()
             }
 
             // Check building just the ObjC file.
             try await tester.checkBuild(parameters: parameters, runDestination: runDestination, persistent: true, buildOutputMap: [objcOutputPath: objcFile.str]) { results in
                 results.consumeTasksMatchingRuleTypes(excludedTypes)
-                results.checkTaskExists(.matchRule(["CompileC", "\(tmpDirPath.str)/Test/aProject/build/aProject.build/Debug/aFramework.build/Objects-normal/\(results.runDestinationTargetArchitecture)/ObjCFile.o", objcFile.str, "normal", results.runDestinationTargetArchitecture, "objective-c", "com.apple.compilers.llvm.clang.1_0.compiler"]))
+                results.checkTaskExists(.matchRule(["CompileC", tmpDirPath.join("Test/aProject/build/aProject.build/Debug\(SWBRunDestinationInfo.host.builtProductsDirSuffix)/aLibrary.build/Objects-normal/\(results.runDestinationTargetArchitecture)/ObjCFile.o").str, objcFile.str, "normal", results.runDestinationTargetArchitecture, "objective-c", "com.apple.compilers.llvm.clang.1_0.compiler"]))
                 results.checkNoTask()
             }
 
-            // Check building just the Metal file.
-            try await tester.checkBuild(parameters: parameters, runDestination: runDestination, persistent: true, buildOutputMap: [metalOutputPath: metalFile.str]) { results in
-                results.consumeTasksMatchingRuleTypes(excludedTypes)
-                results.checkTask(.matchRule(["CompileMetalFile", metalFile.str])) { _ in }
-                results.checkNoTask()
+            if runDestination == .macOS {
+                // Check build ing just the Metal file.
+                try await tester.checkBuild(parameters: parameters, runDestination: runDestination, persistent: true, buildOutputMap: [metalOutputPath: metalFile.str]) { results in
+                    results.consumeTasksMatchingRuleTypes(excludedTypes)
+                    results.checkTask(.matchRule(["CompileMetalFile", metalFile.str])) { _ in }
+                    results.checkNoTask()
+                }
             }
 
-            try await tester.checkBuild(persistent: true) { results in
+            try await tester.checkBuild(runDestination: runDestination, persistent: true) { results in
                 results.checkNoDiagnostics()
             }
         }
@@ -153,9 +165,9 @@ fileprivate struct BuildCommandTests: CoreBasedTests {
     }
 
     /// Check analyze of a single file.
-    @Test(.requireSDKs(.macOS))
+    @Test(.requireSDKs(.host))
     func singleFileAnalyze() async throws {
-        try await runSingleFileTask(BuildParameters(configuration: "Debug", activeRunDestination: .macOS, overrides: ["RUN_CLANG_STATIC_ANALYZER": "YES"]), buildCommand: .singleFileBuild(buildOnlyTheseFiles: [Path("")]), fileName: "File.m") { results, excludedTypes, _, _ in
+        try await runSingleFileTask(BuildParameters(configuration: "Debug", activeRunDestination: .host, overrides: ["RUN_CLANG_STATIC_ANALYZER": "YES"]), buildCommand: .singleFileBuild(buildOnlyTheseFiles: [Path("")]), fileName: "File.m") { results, excludedTypes, _, _ in
             results.consumeTasksMatchingRuleTypes(excludedTypes)
             results.checkTask(.matchRuleType("AnalyzeShallow"), .matchRuleItemBasename("File.m"), .matchRuleItem("normal"), .matchRuleItem(results.runDestinationTargetArchitecture)) { _ in }
             results.checkNoTask()
@@ -163,9 +175,9 @@ fileprivate struct BuildCommandTests: CoreBasedTests {
     }
 
     /// Check preprocessing of a single file.
-    @Test(.requireSDKs(.macOS))
+    @Test(.requireSDKs(.host))
     func preprocessSingleFile() async throws {
-        try await runSingleFileTask(BuildParameters(configuration: "Debug", activeRunDestination: .macOS), buildCommand: .generatePreprocessedFile(buildOnlyTheseFiles: [Path("")]), fileName: "File.m") { results, excludedTypes, inputs, outputs in
+        try await runSingleFileTask(BuildParameters(configuration: "Debug", activeRunDestination: .host), buildCommand: .generatePreprocessedFile(buildOnlyTheseFiles: [Path("")]), fileName: "File.m") { results, excludedTypes, inputs, outputs in
             results.consumeTasksMatchingRuleTypes(excludedTypes)
             try results.checkTask(.matchRuleType("Preprocess"), .matchRuleItemBasename("File.m"), .matchRuleItem("normal"), .matchRuleItem(results.runDestinationTargetArchitecture)) { task in
                 task.checkCommandLineContainsUninterrupted(["-x", "objective-c"])
@@ -175,7 +187,7 @@ fileprivate struct BuildCommandTests: CoreBasedTests {
         }
 
         // Ensure that files with a non-default type work too
-        try await runSingleFileTask(BuildParameters(configuration: "Debug", activeRunDestination: .macOS), buildCommand: .generatePreprocessedFile(buildOnlyTheseFiles: [Path("")]), fileName: "File.cpp", fileType: "sourcecode.cpp.objcpp") { results, excludedTypes, inputs, outputs in
+        try await runSingleFileTask(BuildParameters(configuration: "Debug", activeRunDestination: .host), buildCommand: .generatePreprocessedFile(buildOnlyTheseFiles: [Path("")]), fileName: "File.cpp", fileType: "sourcecode.cpp.objcpp") { results, excludedTypes, inputs, outputs in
             results.consumeTasksMatchingRuleTypes(excludedTypes)
             try results.checkTask(.matchRuleType("Preprocess"), .matchRuleItemBasename("File.cpp"), .matchRuleItem("normal"), .matchRuleItem(results.runDestinationTargetArchitecture)) { task in
                 task.checkCommandLineContainsUninterrupted(["-x", "objective-c++"])
@@ -185,7 +197,7 @@ fileprivate struct BuildCommandTests: CoreBasedTests {
         }
 
         // Ensure that RUN_CLANG_STATIC_ANALYZER=YES doesn't interfere with the preprocess build command
-        try await runSingleFileTask(BuildParameters(configuration: "Debug", activeRunDestination: .macOS, overrides: ["RUN_CLANG_STATIC_ANALYZER": "YES"]), buildCommand: .generatePreprocessedFile(buildOnlyTheseFiles: [Path("")]), fileName: "File.m") { results, excludedTypes, inputs, outputs in
+        try await runSingleFileTask(BuildParameters(configuration: "Debug", activeRunDestination: .host, overrides: ["RUN_CLANG_STATIC_ANALYZER": "YES"]), buildCommand: .generatePreprocessedFile(buildOnlyTheseFiles: [Path("")]), fileName: "File.m") { results, excludedTypes, inputs, outputs in
             results.consumeTasksMatchingRuleTypes(excludedTypes)
             try results.checkTask(.matchRuleType("Preprocess"), .matchRuleItemBasename("File.m"), .matchRuleItem("normal"), .matchRuleItem(results.runDestinationTargetArchitecture)) { task in
                 task.checkCommandLineContainsUninterrupted(["-x", "objective-c"])
@@ -198,7 +210,7 @@ fileprivate struct BuildCommandTests: CoreBasedTests {
     /// Check assembling of a single file.
     @Test(.requireSDKs(.macOS))
     func assembleSingleFile() async throws {
-        try await runSingleFileTask(BuildParameters(configuration: "Debug", activeRunDestination: .macOS), buildCommand: .generateAssemblyCode(buildOnlyTheseFiles: [Path("")]), fileName: "File.m") { results, excludedTypes, inputs, outputs in
+        try await runSingleFileTask(BuildParameters(configuration: "Debug", activeRunDestination: .host), buildCommand: .generateAssemblyCode(buildOnlyTheseFiles: [Path("")]), fileName: "File.m") { results, excludedTypes, inputs, outputs in
             results.consumeTasksMatchingRuleTypes(excludedTypes)
             try results.checkTask(.matchRuleType("Assemble"), .matchRuleItemBasename("File.m"), .matchRuleItem("normal"), .matchRuleItem(results.runDestinationTargetArchitecture)) { task in
                 task.checkCommandLineContainsUninterrupted(["-x", "objective-c"])
@@ -210,7 +222,7 @@ fileprivate struct BuildCommandTests: CoreBasedTests {
         }
 
         // Ensure that RUN_CLANG_STATIC_ANALYZER=YES doesn't interfere with the assemble build command
-        try await runSingleFileTask(BuildParameters(configuration: "Debug", activeRunDestination: .macOS, overrides: ["RUN_CLANG_STATIC_ANALYZER": "YES"]), buildCommand: .generateAssemblyCode(buildOnlyTheseFiles: [Path("")]), fileName: "File.m") { results, excludedTypes, inputs, outputs in
+        try await runSingleFileTask(BuildParameters(configuration: "Debug", activeRunDestination: .host, overrides: ["RUN_CLANG_STATIC_ANALYZER": "YES"]), buildCommand: .generateAssemblyCode(buildOnlyTheseFiles: [Path("")]), fileName: "File.m") { results, excludedTypes, inputs, outputs in
             results.consumeTasksMatchingRuleTypes(excludedTypes)
             try results.checkTask(.matchRuleType("Assemble"), .matchRuleItemBasename("File.m"), .matchRuleItem("normal"), .matchRuleItem(results.runDestinationTargetArchitecture)) { task in
                 task.checkCommandLineContainsUninterrupted(["-x", "objective-c"])
@@ -223,7 +235,7 @@ fileprivate struct BuildCommandTests: CoreBasedTests {
     }
 
     /// Check behavior of the skip dependencies flag.
-    @Test(.requireSDKs(.macOS))
+    @Test(.requireSDKs(.host))
     func skipDependenciesFlag() async throws {
         func runTest(skipDependencies: Bool, checkAuxiliaryTarget: (_ results: BuildOperationTester.BuildResults) throws -> Void) async throws {
             try await withTemporaryDirectory { tmpDirPath async throws -> Void in
@@ -241,14 +253,14 @@ fileprivate struct BuildCommandTests: CoreBasedTests {
                                 buildSettings: ["PRODUCT_NAME": "$(TARGET_NAME)"])],
                             targets: [
                                 TestStandardTarget(
-                                    "aFramework", type: .framework,
+                                    "aLibrary", type: .staticLibrary,
                                     buildConfigurations: [TestBuildConfiguration("Debug")],
                                     buildPhases: [
                                         TestSourcesBuildPhase(["CFile.c"]),
                                     ],
-                                    dependencies: ["aFrameworkDep"]),
+                                    dependencies: ["aLibraryDep"]),
                                 TestStandardTarget(
-                                    "aFrameworkDep", type: .framework,
+                                    "aLibraryDep", type: .staticLibrary,
                                     buildConfigurations: [TestBuildConfiguration("Debug")],
                                     buildPhases: [
                                         TestSourcesBuildPhase(["CFile.c"]),
@@ -261,13 +273,13 @@ fileprivate struct BuildCommandTests: CoreBasedTests {
                 let cFile = testWorkspace.sourceRoot.join("aProject/CFile.c")
                 try await tester.fs.writeFileContents(cFile) { stream in }
 
-                let runDestination = RunDestinationInfo.macOS
+                let runDestination = RunDestinationInfo.host
                 let parameters = BuildParameters(configuration: "Debug", activeRunDestination: runDestination)
 
                 try await tester.checkBuild(parameters: parameters, runDestination: runDestination, buildCommand: .build(style: .buildOnly, skipDependencies: skipDependencies), persistent: true) { results in
                     results.consumeTasksMatchingRuleTypes(["Gate", "MkDir", "CreateBuildDirectory", "RegisterExecutionPolicyException", "SymLink", "Touch", "WriteAuxiliaryFile", "GenerateTAPI", "ClangStatCache", "ProcessSDKImports"])
 
-                    results.consumeTasksMatchingRuleTypes(["CompileC", "Ld"], targetName: "aFramework")
+                    results.consumeTasksMatchingRuleTypes(["CompileC", "Ld"], targetName: "aLibrary")
 
                     try checkAuxiliaryTarget(results)
 
@@ -278,11 +290,11 @@ fileprivate struct BuildCommandTests: CoreBasedTests {
         }
 
         try await runTest(skipDependencies: true) { results in
-            results.checkNoTask(.matchTargetName("aFrameworkDep"))
+            results.checkNoTask(.matchTargetName("aLibraryDep"))
         }
 
         try await runTest(skipDependencies: false) { results in
-            results.consumeTasksMatchingRuleTypes(["CompileC", "Ld"], targetName: "aFrameworkDep")
+            results.consumeTasksMatchingRuleTypes(["CompileC", "Ld"], targetName: "aLibraryDep")
         }
     }
 }

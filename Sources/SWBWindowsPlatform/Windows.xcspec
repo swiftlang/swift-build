@@ -49,6 +49,21 @@
         BasedOn = default:com.apple.product-type.library.static;
         DefaultBuildProperties = {
             EXECUTABLE_EXTENSION = "lib";
+            PUBLIC_HEADERS_FOLDER_PATH = "";
+            PRIVATE_HEADERS_FOLDER_PATH = "";
+        };
+    },
+
+    {
+        Domain = windows;
+        Type = ProductType;
+        Identifier = com.apple.product-type.library.dynamic;
+        BasedOn = default:com.apple.product-type.library.dynamic;
+        HasInfoPlist = NO;
+        DefaultBuildProperties = {
+            EXECUTABLE_EXTENSION = "$(DYNAMIC_LIBRARY_EXTENSION:default=dll)";
+            PUBLIC_HEADERS_FOLDER_PATH = "";
+            PRIVATE_HEADERS_FOLDER_PATH = "";
         };
     },
 
