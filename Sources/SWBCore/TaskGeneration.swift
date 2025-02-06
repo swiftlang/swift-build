@@ -18,7 +18,7 @@ public import SWBMacro
 /// Base class for spec cache types.
 ///
 /// This protocol is only used for making it explicit which types serve as spec data caches.
-public protocol SpecDataCache {
+public protocol SpecDataCache: Sendable {
     init()
 }
 

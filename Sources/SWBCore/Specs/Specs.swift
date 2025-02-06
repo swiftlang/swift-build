@@ -55,8 +55,10 @@ open class Spec {
         return result
     }
 
-    /// The spec proxy.
-    @_spi(Testing) public weak var proxy: SpecProxy?
+    /// The spec proxy informaton.
+    @_spi(Testing) public let proxyPath: Path
+    @_spi(Testing) public let proxyDomain: String
+    @_spi(Testing) public let proxyIdentifier: String
 
     /// The domain of the spec.
     public let domain: String
@@ -71,7 +73,9 @@ open class Spec {
     public let name: String
 
     init(_ registry: SpecRegistry, _ proxy: SpecProxy) {
-        self.proxy = proxy
+        self.proxyPath = proxy.path
+        self.proxyDomain = proxy.domain
+        self.proxyIdentifier = proxy.identifier
         self.basedOnSpec = nil
         self.name = proxy.identifier
         self.domain = proxy.domain
@@ -79,7 +83,9 @@ open class Spec {
     }
 
     required public init(_ parser: SpecParser, _ basedOnSpec: Spec?) {
-        self.proxy = parser.proxy
+        self.proxyPath = parser.proxy.path
+        self.proxyDomain = parser.proxy.domain
+        self.proxyIdentifier = parser.proxy.identifier
         self.basedOnSpec = basedOnSpec
         self.name = parser.parseString("Name") ?? parser.proxy.identifier
         self.domain = parser.proxy.domain
@@ -264,7 +270,7 @@ public class ProjectOverridesSpec : Spec, SpecType {
     }
 }
 
-public class FileTypeSpec : Spec, SpecType {
+public class FileTypeSpec : Spec, SpecType, @unchecked Sendable {
     class public override var typeName: String {
         return "FileType"
     }
