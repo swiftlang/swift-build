@@ -1457,7 +1457,7 @@ fileprivate struct ShellScriptSandboxingTests: CoreBasedTests {
     ///
     /// Expected: We want sandbox-exec to warn/fail that “A.txt” is accessed but not declared in the input file list.
 
-    @Test(.requireSDKs(.macOS))
+    @Test(.requireSDKs(.macOS), .flaky("test periodically fails in Swift CI"))
     func blockUndeclaredInputOrOutputFromDisk() async throws {
         try await withTemporaryDirectory { tmpDirPath async throws -> Void in
             let testWorkspace = TestWorkspace(
