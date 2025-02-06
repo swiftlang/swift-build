@@ -1083,11 +1083,7 @@ private class InProcessCommand: SWBLLBuild.ExternalCommand, SWBLLBuild.ExternalD
         case .makefile?, .makefiles?:
             return .makefile
         case .makefileIgnoringSubsequentOutputs:
-            #if canImport(llbuild, _version: 23000.0.6)
             return .makefileIgnoringSubsequentOutputs
-            #else
-            return .makefile
-            #endif
         case .dependencyInfo?:
             return .dependencyinfo
         case .none:
