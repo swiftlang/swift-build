@@ -32,10 +32,10 @@ public struct TargetLinkageGraph: TargetGraph {
     ///
     /// The result closure guarantees that all targets a target depends on appear in the returned array before that target.  Any detected dependency cycles will be broken.
     public init(workspaceContext: WorkspaceContext, buildRequest: BuildRequest, buildRequestContext: BuildRequestContext, delegate: any TargetDependencyResolverDelegate) async {
-        let resolver = LinkageDependencyResolver(workspaceContext: workspaceContext, buildRequest: buildRequest, buildRequestContext: buildRequestContext, delegate: delegate)
         let (allTargets, targetDependencies) = await MacroNamespace.withExpressionInterningEnabled {
             await buildRequestContext.keepAliveSettingsCache {
-                await resolver.computeGraph()
+                let resolver = LinkageDependencyResolver(workspaceContext: workspaceContext, buildRequest: buildRequest, buildRequestContext: buildRequestContext, delegate: delegate)
+                return await resolver.computeGraph()
             }
         }
         self.init(workspaceContext: workspaceContext, buildRequest: buildRequest, allTargets: allTargets, targetDependencies: targetDependencies)
