@@ -186,12 +186,8 @@ public final class SwiftModuleDependencyGraph: SwiftGlobalExplicitDependencyGrap
 
     /// Get the CASDatabases from the casOptions
     public func getCASDatabases(casOptions: CASOptions?, compilerLocation: LibSwiftDriver.CompilerLocation) throws -> SwiftCASDatabases? {
-        #if canImport(SwiftDriver, _version: "1.103.1")
         guard let casOpts = casOptions else { return nil }
         return try createCASDatabases(casOptions: casOpts, compilerLocation: compilerLocation)
-        #else
-        return nil
-        #endif
     }
 
     private func register(key: String, driver: LibSwiftDriver) {
@@ -467,13 +463,11 @@ public final class LibSwiftDriver {
         let key = SwiftModuleDependencyGraph.OracleRegistryKey(compilerLocation: compilerLocation, casOpts: casOptions)
         let oracle = graph?.oracleRegistry.getOrInsert(key, { InterModuleDependencyOracle() })
         self.driver = try Driver(args: commandLine, env: env, diagnosticsOutput: .engine(diagnosticsEngine), executor: executor, compilerExecutableDir: compilerExecutableDir, interModuleDependencyOracle: oracle)
-#if canImport(SwiftDriver, _version: "1.103.1")
         if let scanOracle = oracle, let scanLib = try driver.getSwiftScanLibPath() {
             // Errors instantiating the scanner are potentially recoverable, so suppress them here. Truly fatal errors
             // will be diagnosed later.
             try? scanOracle.verifyOrCreateScannerInstance(swiftScanLibPath: scanLib)
         }
-#endif
     }
 
     private func run(dryRun: Bool = false) -> (success: Bool, diagnostics: [SWBUtil.Diagnostic], jobs: [Job]) {
@@ -585,7 +579,6 @@ extension LibSwiftDriver {
 
 // MARK: Wrappers for SwiftDriver CAS types
 
-#if canImport(SwiftDriver, _version: "1.103.1")
 extension SwiftModuleDependencyGraph {
     /// Create the CASDatabases from CASOptions
     private func createCASDatabases(casOptions: CASOptions, compilerLocation: LibSwiftDriver.CompilerLocation) throws -> SwiftCASDatabases {
@@ -713,62 +706,15 @@ public final class SwiftCASDatabases {
         return try await cas.download(with: id)
     }
 }
-#else
-public final class SwiftCachedCompilation {
-    public func getOutputs() throws -> [SwiftCachedOutput] {
-        return []
-    }
-    public func makeGlobal() async throws {}
-
-    public func makeGlobal(_ callback: @escaping (Swift.Error?) -> Void) {}
-}
-public final class SwiftCachedOutput {
-    public let casID: String = ""
-    public let kindName: String = ""
-    public let isMaterialized: Bool = false
-}
-public final class SwiftCacheReplayInstance {}
-public final class SwiftCacheReplayResult {
-    public func getStdOut() throws -> String {
-        return ""
-    }
-    public func getStdErr() throws -> String {
-        return ""
-    }
-}
-public final class SwiftCASDatabases {
-    public func queryCacheKey(_ key: String, globally: Bool) async throws -> SwiftCachedCompilation? {
-        return nil
-    }
-    public func queryLocalCacheKey(_ key: String) throws -> SwiftCachedCompilation? {
-        return nil
-    }
-
-    public func createReplayInstance(cmd: [String]) throws -> SwiftCacheReplayInstance {
-        return SwiftCacheReplayInstance()
-    }
-
-    public func replayCompilation(instance: SwiftCacheReplayInstance, compilation: SwiftCachedCompilation) throws -> SwiftCacheReplayResult {
-        return SwiftCacheReplayResult()
-    }
-    public func download(with id: String) async throws -> Bool {
-        return true
-    }
-}
-#endif
 
 extension SWBUtil.Diagnostic {
     fileprivate static func build(from other: TSCBasic.Diagnostic) -> Self {
         let location: SWBUtil.Diagnostic.Location
-        #if canImport(SwiftDriver, _version: 1.111)
         if let scannerLocation = other.location as? ScannerDiagnosticSourceLocation {
             location = .path(Path(scannerLocation.bufferIdentifier), line: scannerLocation.lineNumber, column: scannerLocation.columnNumber)
         } else {
             location = .unknown
         }
-        #else
-        location = .unknown
-        #endif
         return SWBUtil.Diagnostic(behavior: .build(from: other.behavior), location: location, data: DiagnosticData(other.message.text, component: .swiftCompilerError))
     }
 }
