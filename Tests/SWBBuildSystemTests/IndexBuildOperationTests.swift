@@ -1100,6 +1100,12 @@ fileprivate struct IndexBuildOperationTests: CoreBasedTests {
                 results.checkError(.contains("PhaseScriptExecution failed"))
                 results.checkTask(.matchRuleType("SwiftDriver GenerateModule"), .matchTargetName(frameTarget.name)) { _ in }
                 let (_, resultInfo) = try #require(results.getPreparedForIndexResultInfo().only)
+                if tester.fs.fileSystemMode != .checksumOnly {
+                    // Make sure the timestamp has been updated. This is important
+                    // since clients rely on the timestamp changing when
+                    // preparation has changed.
+                    #expect(currPrepareResult.timestamp < resultInfo.timestamp)
+                }
                 currPrepareResult = resultInfo
             }
 
@@ -1113,6 +1119,9 @@ fileprivate struct IndexBuildOperationTests: CoreBasedTests {
                 results.checkTask(.matchRuleType("SwiftDriver GenerateModule"), .matchTargetName(frameTarget.name)) { _ in }
 
                 let (_, resultInfo) = try #require(results.getPreparedForIndexResultInfo().only)
+                if tester.fs.fileSystemMode != .checksumOnly {
+                    #expect(currPrepareResult.timestamp < resultInfo.timestamp)
+                }
                 currPrepareResult = resultInfo
             }
 
@@ -1125,6 +1134,9 @@ fileprivate struct IndexBuildOperationTests: CoreBasedTests {
                 results.checkError(.contains("PhaseScriptExecution failed"))
                 results.checkTask(.matchRuleType("SwiftDriver GenerateModule"), .matchTargetName(superframeTarget.name)) { _ in }
                 let (_, resultInfo) = try #require(results.getPreparedForIndexResultInfo().only)
+                if tester.fs.fileSystemMode != .checksumOnly {
+                    #expect(currPrepareResult.timestamp == resultInfo.timestamp)
+                }
                 #expect(currPrepareResult == resultInfo)
             }
 
@@ -1137,6 +1149,9 @@ fileprivate struct IndexBuildOperationTests: CoreBasedTests {
                 results.checkError(.contains("PhaseScriptExecution failed"))
 
                 let (_, resultInfo) = try #require(results.getPreparedForIndexResultInfo().only)
+                if tester.fs.fileSystemMode != .checksumOnly {
+                    #expect(currPrepareResult.timestamp < resultInfo.timestamp)
+                }
                 currPrepareResult = resultInfo
             }
         }

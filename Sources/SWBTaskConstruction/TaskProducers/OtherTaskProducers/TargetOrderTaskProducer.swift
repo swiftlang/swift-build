@@ -115,7 +115,7 @@ final class TargetOrderTaskProducer: StandardTaskProducer, TaskProducer {
             await appendGeneratedTasks(&context.preparedForIndexModuleContentTasks) { delegate in
                 let outputPath = preparedForIndexModuleNode.path
                 let cbc = CommandBuildContext(producer: context, scope: context.settings.globalScope, inputs: [], outputs: [outputPath])
-                context.writeFileSpec.constructFileTasks(cbc, delegate, ruleName: ProductPlan.preparedForIndexModuleContentRuleName, contents: [], permissions: nil, preparesForIndexing: true, additionalTaskOrderingOptions: [])
+                context.writeFileSpec.constructFileTasks(cbc, delegate, ruleName: ProductPlan.preparedForIndexModuleContentRuleName, contents: [], permissions: nil, forceWrite: true, preparesForIndexing: true, additionalTaskOrderingOptions: [])
             }
         }
     }

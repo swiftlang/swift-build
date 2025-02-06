@@ -42,13 +42,15 @@ public struct AuxiliaryFileTaskActionContext {
     public let output: Path
     public let input: Path
     public let permissions: Int?
+    public let forceWrite: Bool
     public let diagnostics: [Diagnostic]
     public let logContents: Bool
 
-    public init(output: Path, input: Path, permissions: Int?, diagnostics: [Diagnostic], logContents: Bool) {
+    public init(output: Path, input: Path, permissions: Int?, forceWrite: Bool, diagnostics: [Diagnostic], logContents: Bool) {
         self.output = output
         self.input = input
         self.permissions = permissions
+        self.forceWrite = forceWrite
         self.diagnostics = diagnostics
         self.logContents = logContents
     }
