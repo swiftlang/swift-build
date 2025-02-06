@@ -23,7 +23,7 @@ import SWBTestSupport
 
 import RegexBuilder
 
-@Suite(.serialized, .bug("rdar://137357063", "fails when run concurrently"))
+@Suite(.serialized, .bug("rdar://137357063", "fails when run concurrently"), .flaky("test periodically fails in Swift CI"))
 fileprivate struct ShellScriptSandboxingTests: CoreBasedTests {
     // Note:
     // TaskConstructionTester is not suitable for run script phases.
@@ -1457,7 +1457,7 @@ fileprivate struct ShellScriptSandboxingTests: CoreBasedTests {
     ///
     /// Expected: We want sandbox-exec to warn/fail that “A.txt” is accessed but not declared in the input file list.
 
-    @Test(.requireSDKs(.macOS), .flaky("test periodically fails in Swift CI"))
+    @Test(.requireSDKs(.macOS))
     func blockUndeclaredInputOrOutputFromDisk() async throws {
         try await withTemporaryDirectory { tmpDirPath async throws -> Void in
             let testWorkspace = TestWorkspace(
