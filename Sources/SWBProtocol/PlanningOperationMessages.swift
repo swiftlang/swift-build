@@ -74,7 +74,6 @@ public struct PlanningOperationDidFinish: SessionMessage, Equatable {
 /// The source data to send to the client for it to generate the provisioning task inputs for the service.
 public struct ProvisioningTaskInputsSourceData: Serializable, Equatable, Sendable {
     public let configurationName: String
-    public let appIDHasFeaturesEnabled: Bool
     public let provisioningProfileSupport: ProvisioningProfileSupport
     public let provisioningProfileSpecifier: String
     public let provisioningProfileUUID: String
@@ -95,9 +94,8 @@ public struct ProvisioningTaskInputsSourceData: Serializable, Equatable, Sendabl
     public let localSigningStyle: String
     public let enableCloudSigning: Bool
 
-    public init(configurationName: String, appIDHasFeaturesEnabled: Bool, provisioningProfileSupport: ProvisioningProfileSupport, provisioningProfileSpecifier: String, provisioningProfileUUID: String, provisioningStyle: ProvisioningStyle, teamID: String?, bundleIdentifier: String, productTypeEntitlements: PropertyListItem, productTypeIdentifier: String, projectEntitlementsFile: String?, projectEntitlements: PropertyListItem?, signingCertificateIdentifier: String, signingRequiresTeam: Bool, sdkRoot: String, sdkVariant: String?, supportsEntitlements: Bool, wantsBaseEntitlementInjection: Bool, entitlementsDestination: String, localSigningStyle: String, enableCloudSigning: Bool) {
+    public init(configurationName: String, provisioningProfileSupport: ProvisioningProfileSupport, provisioningProfileSpecifier: String, provisioningProfileUUID: String, provisioningStyle: ProvisioningStyle, teamID: String?, bundleIdentifier: String, productTypeEntitlements: PropertyListItem, productTypeIdentifier: String, projectEntitlementsFile: String?, projectEntitlements: PropertyListItem?, signingCertificateIdentifier: String, signingRequiresTeam: Bool, sdkRoot: String, sdkVariant: String?, supportsEntitlements: Bool, wantsBaseEntitlementInjection: Bool, entitlementsDestination: String, localSigningStyle: String, enableCloudSigning: Bool) {
         self.configurationName = configurationName
-        self.appIDHasFeaturesEnabled = appIDHasFeaturesEnabled
         self.provisioningProfileSupport = provisioningProfileSupport
         self.provisioningProfileSpecifier = provisioningProfileSpecifier
         self.provisioningProfileUUID = provisioningProfileUUID
@@ -120,16 +118,15 @@ public struct ProvisioningTaskInputsSourceData: Serializable, Equatable, Sendabl
     }
 
     /*!
-     *  @deprecated Use init(configurationName:appIDHasFeaturesEnabled:provisioningProfileSupport:provisioningProfileSpecifier:provisioningProfileUUID:provisioningStyle:teamID:bundleIdentifier:productTypeEntitlements:productTypeIdentifier:projectEntitlementsFile:projectEntitlements:signingCertificateIdentifier:signingRequiresTeam:sdkRoot:sdkVariant:supportsEntitlements:wantsBaseEntitlementInjection:entitlementsDestination:localSigningStyle:enableCloudSigning:)
+     *  @deprecated Use init(configurationName:provisioningProfileSupport:provisioningProfileSpecifier:provisioningProfileUUID:provisioningStyle:teamID:bundleIdentifier:productTypeEntitlements:productTypeIdentifier:projectEntitlementsFile:projectEntitlements:signingCertificateIdentifier:signingRequiresTeam:sdkRoot:sdkVariant:supportsEntitlements:wantsBaseEntitlementInjection:entitlementsDestination:localSigningStyle:enableCloudSigning:)
      */
-    public init(configurationName: String, appIDHasFeaturesEnabled: Bool, provisioningProfileSupport: ProvisioningProfileSupport, provisioningProfileSpecifier: String, provisioningProfileUUID: String, provisioningStyle: ProvisioningStyle, teamID: String?, bundleIdentifier: String, productTypeEntitlements: PropertyListItem, productTypeIdentifier: String, projectEntitlementsFile: String?, projectEntitlements: PropertyListItem?, signingCertificateIdentifier: String, signingRequiresTeam: Bool, sdkRoot: String, sdkVariant: String?, supportsEntitlements: Bool, wantsBaseEntitlementInjection: Bool, entitlementsDestination: String, localSigningStyle: String) {
-        self.init(configurationName: configurationName, appIDHasFeaturesEnabled: appIDHasFeaturesEnabled, provisioningProfileSupport: provisioningProfileSupport, provisioningProfileSpecifier: provisioningProfileSpecifier, provisioningProfileUUID: provisioningProfileUUID, provisioningStyle: provisioningStyle, teamID: teamID, bundleIdentifier: bundleIdentifier, productTypeEntitlements: productTypeEntitlements, productTypeIdentifier: productTypeIdentifier, projectEntitlementsFile: projectEntitlementsFile, projectEntitlements: projectEntitlements, signingCertificateIdentifier: signingCertificateIdentifier, signingRequiresTeam: signingRequiresTeam, sdkRoot: sdkRoot, sdkVariant: sdkVariant, supportsEntitlements: supportsEntitlements, wantsBaseEntitlementInjection: wantsBaseEntitlementInjection, entitlementsDestination: entitlementsDestination, localSigningStyle: localSigningStyle, enableCloudSigning: false)
+    public init(configurationName: String, provisioningProfileSupport: ProvisioningProfileSupport, provisioningProfileSpecifier: String, provisioningProfileUUID: String, provisioningStyle: ProvisioningStyle, teamID: String?, bundleIdentifier: String, productTypeEntitlements: PropertyListItem, productTypeIdentifier: String, projectEntitlementsFile: String?, projectEntitlements: PropertyListItem?, signingCertificateIdentifier: String, signingRequiresTeam: Bool, sdkRoot: String, sdkVariant: String?, supportsEntitlements: Bool, wantsBaseEntitlementInjection: Bool, entitlementsDestination: String, localSigningStyle: String) {
+        self.init(configurationName: configurationName, provisioningProfileSupport: provisioningProfileSupport, provisioningProfileSpecifier: provisioningProfileSpecifier, provisioningProfileUUID: provisioningProfileUUID, provisioningStyle: provisioningStyle, teamID: teamID, bundleIdentifier: bundleIdentifier, productTypeEntitlements: productTypeEntitlements, productTypeIdentifier: productTypeIdentifier, projectEntitlementsFile: projectEntitlementsFile, projectEntitlements: projectEntitlements, signingCertificateIdentifier: signingCertificateIdentifier, signingRequiresTeam: signingRequiresTeam, sdkRoot: sdkRoot, sdkVariant: sdkVariant, supportsEntitlements: supportsEntitlements, wantsBaseEntitlementInjection: wantsBaseEntitlementInjection, entitlementsDestination: entitlementsDestination, localSigningStyle: localSigningStyle, enableCloudSigning: false)
     }
 
     public init(from deserializer: any Deserializer) throws {
         let count = try deserializer.beginAggregate(20...22)
         self.configurationName = try deserializer.deserialize()
-        self.appIDHasFeaturesEnabled = try deserializer.deserialize()
         self.provisioningProfileSupport = count >= 21 ? try deserializer.deserialize() : .unsupported
         self.provisioningProfileSpecifier = try deserializer.deserialize()
         self.provisioningProfileUUID = try deserializer.deserialize()
@@ -157,7 +154,6 @@ public struct ProvisioningTaskInputsSourceData: Serializable, Equatable, Sendabl
     public func serialize<T: Serializer>(to serializer: T) {
         serializer.serializeAggregate(21) {
             serializer.serialize(configurationName)
-            serializer.serialize(appIDHasFeaturesEnabled)
             serializer.serialize(provisioningProfileSupport)
             serializer.serialize(provisioningProfileSpecifier)
             serializer.serialize(provisioningProfileUUID)

@@ -52,7 +52,6 @@ fileprivate struct BuildOperationPerfTests: PerfTests {
                         provisioningSourceData: [
                             SWBProtocol.ProvisioningSourceData(
                                 configurationName: "Debug",
-                                appIDHasFeaturesEnabled: false,
                                 provisioningStyle: .manual,
                                 bundleIdentifierFromInfoPlist: "$(PRODUCT_BUNDLE_IDENTIFIER)")])
                 }

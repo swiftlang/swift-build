@@ -1259,7 +1259,6 @@ private final class ProjectModelItemClass: ProjectModelItem {
         if let provisioningSourceData = frameworkTarget?.provisioningSourceData(for: "Debug")
         {
             #expect(provisioningSourceData.configurationName == "Debug")
-            #expect(!provisioningSourceData.appIDHasFeaturesEnabled)
             #expect(provisioningSourceData.provisioningStyle == .automatic)
             #expect(provisioningSourceData.bundleIdentifierFromInfoPlist == "")
         }
@@ -1280,7 +1279,6 @@ private final class ProjectModelItemClass: ProjectModelItem {
             ]
             let testProvisioningSourceData: [String: PropertyListItem] = [
                 "configurationName":                "Debug",
-                "appIDHasFeaturesEnabled":          "true",
                 "provisioningStyle":                1,
                 "bundleIdentifierFromInfoPlist":    "CocoaApp",
             ]
@@ -1354,7 +1352,6 @@ private final class ProjectModelItemClass: ProjectModelItem {
         if let provisioningSourceData = appTarget?.provisioningSourceData(for: "Debug")
         {
             #expect(provisioningSourceData.configurationName == "Debug")
-            #expect(provisioningSourceData.appIDHasFeaturesEnabled)
             #expect(provisioningSourceData.provisioningStyle == .manual)
             #expect(provisioningSourceData.bundleIdentifierFromInfoPlist == "CocoaApp")
         }
