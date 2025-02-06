@@ -1678,10 +1678,10 @@ fileprivate struct IndexBuildOperationTests: CoreBasedTests {
 
             try await tester.fs.writeFileContents(SRCROOT.join("test.swift")) { $0 <<< "// test.swift" }
 
-            let arena = ArenaInfo.indexBuildArena(derivedDataRoot: tester.workspace.path.dirname)
-
-            try await tester.checkIndexBuild(prepareTargets: [app.guid], persistent: true) { results in
+            let arena = try await tester.checkIndexBuild(prepareTargets: [app.guid], persistent: true) { results in
+                let arena = try #require(results.buildRequest.parameters.arena)
                 #expect(tester.fs.exists(arena.buildProductsPath))
+                return arena
             }
 
             let buildRequest = BuildRequest(parameters: BuildParameters(action: .indexBuild, configuration: nil, arena: arena), buildTargets: [], continueBuildingAfterErrors: true, useParallelTargets: true, useImplicitDependencies: true, useDryRun: false, buildCommand: .cleanBuildFolder(style: .regular))

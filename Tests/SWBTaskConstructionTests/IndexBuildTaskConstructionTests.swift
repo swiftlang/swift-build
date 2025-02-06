@@ -145,7 +145,7 @@ fileprivate struct IndexBuildTaskConstructionTests: CoreBasedTests {
     }
 
     @Test(.requireSDKs(.macOS, .iOS))
-    func vFSAndHeaderMapContents() async throws {
+    func vfsAndHeaderMapContents() async throws {
 
         let fwkTarget1 = TestStandardTarget(
             "FrameworkTarget1",
@@ -1309,7 +1309,7 @@ fileprivate struct IndexBuildTaskConstructionTests: CoreBasedTests {
             ])
         let tester = try await TaskConstructionTester(getCore(), testProject)
 
-        try await tester.checkIndexBuild { results in
+        try await tester.checkIndexBuild(workspaceOperation: false) { results in
             results.checkNoDiagnostics()
             results.checkTarget("tool") { target in
                 results.checkWriteAuxiliaryFileTask(.matchTarget(target), .matchRuleType("WriteAuxiliaryFile"), .matchRuleItemBasename("resource_bundle_accessor.swift")) { task, contents in

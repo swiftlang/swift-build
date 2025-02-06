@@ -989,39 +989,23 @@ extension TaskConstructionTester: Sendable { }
 extension TaskConstructionTester.PlanningResults: Sendable { }
 
 extension TaskConstructionTester {
-    package func buildParametersForIndexOperation(
-        runDestination: RunDestinationInfo? = nil,
-        arena: ArenaInfo? = nil
-    ) -> BuildParameters {
-        let arena = arena ?? ArenaInfo.indexBuildArena(derivedDataRoot: workspace.path.dirname.join("DerivedData"))
-        let overrides: [String: String] = ["ONLY_ACTIVE_ARCH": "YES", "ALWAYS_SEARCH_USER_PATHS": "NO"]
-        let runDestination = runDestination ?? RunDestinationInfo.macOS
-        let buildParameters = BuildParameters(action: .indexBuild, configuration: "Debug", activeRunDestination: runDestination, overrides: overrides, arena: arena)
-        return buildParameters
-    }
-
     /// Construct the tasks for an index build operation, and test the result.
     package func checkIndexBuild(
         targets: [any TestTarget]? = nil,
+        workspaceOperation: Bool? = nil,
         runDestination: RunDestinationInfo? = nil,
-        arena: ArenaInfo? = nil,
         systemInfo: SystemInfo? = nil,
         sourceLocation: SourceLocation = #_sourceLocation,
         body: (PlanningResults) throws -> Void
     ) async throws {
-        let buildParameters = buildParametersForIndexOperation(
-            runDestination: runDestination
+        let workspaceOperation = workspaceOperation ?? (targets == nil)
+        let buildRequest = try BuildOperationTester.buildRequestForIndexOperation(
+            workspace: workspace,
+            buildTargets: targets,
+            workspaceOperation: workspaceOperation,
+            runDestination: runDestination,
+            sourceLocation: sourceLocation
         )
-
-        let buildTargets: [BuildRequest.BuildTargetInfo]
-        if let targets {
-            buildTargets = try targets.map { BuildRequest.BuildTargetInfo(parameters: buildParameters, target: try #require(self.workspace.target(for: $0.guid), sourceLocation: sourceLocation)) }
-        } else {
-            buildTargets = workspace.allTargets.compactMap{ $0.type == .aggregate ? nil : BuildRequest.BuildTargetInfo(parameters: buildParameters, target: $0) }
-        }
-
-        let buildRequest = BuildRequest(parameters: buildParameters, buildTargets: buildTargets, dependencyScope: .workspace, continueBuildingAfterErrors: true, useParallelTargets: true, useImplicitDependencies: true, useDryRun: false, buildCommand: .prepareForIndexing(buildOnlyTheseTargets: nil, enableIndexBuildArena: true))
-
         return try await checkBuild(buildRequest: buildRequest, systemInfo: systemInfo, sourceLocation: sourceLocation, body: body)
     }
 }
