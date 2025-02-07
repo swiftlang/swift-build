@@ -116,8 +116,8 @@ fileprivate struct LinkerTests: CoreBasedTests {
                 stream <<< "int main() { return 0; }"
             }
             try await tester.checkBuild() { results in
-                results.checkTasks(.matchRuleType("Ld")) { tasks in
-                    let task = tasks.first(where: {  $0.outputPaths[0].ends(with: "testTarget") })!
+                try results.checkTasks(.matchRuleType("Ld")) { tasks in
+                    let task = try #require(tasks.first(where: {  $0.outputPaths[0].ends(with: "testTarget") }))
                     task.checkCommandLineMatches([StringPattern.and(StringPattern.prefix("-L"), StringPattern.suffix("usr/lib/swift/macosx"))])
                     task.checkCommandLineContains(["-L/usr/lib/swift", "-lswiftCore"])
                     task.checkCommandLineMatches([StringPattern.suffix("testTarget.app/Contents/MacOS/testTarget")])
