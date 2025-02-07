@@ -240,6 +240,20 @@ extension CoreBasedTests {
             return Settings.supportsCompilationCaching(core)
         }
     }
+
+    package var supportsSDKImports: Bool {
+        get async throws {
+            #if os(macOS)
+            let (core, defaultToolchain) = try await coreAndToolchain()
+            let toolPath = try #require(defaultToolchain.executableSearchPaths.findExecutable(operatingSystem: core.hostOperatingSystem, basename: "ld"), "couldn't find ld in default toolchain")
+            let mockProducer = try await MockCommandProducer(core: getCore(), productTypeIdentifier: "com.apple.product-type.framework", platform: nil, useStandardExecutableSearchPaths: true, toolchain: nil, fs: PseudoFS())
+            let toolsInfo = await SWBCore.discoveredLinkerToolsInfo(mockProducer, AlwaysDeferredCoreClientDelegate(), at: toolPath)
+            return (try? toolsInfo?.toolVersion >= .init("1164")) == true
+            #else
+            return false
+            #endif
+        }
+    }
 }
 
 /// Process-wide registry of inferior products paths to Core instances.

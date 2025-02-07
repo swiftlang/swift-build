@@ -254,6 +254,7 @@ public class TaskProducerContext: StaleFileRemovalContext, BuildFileResolution
     let validateEmbeddedBinarySpec: ValidateEmbeddedBinaryToolSpec
     let validateProductSpec: ValidateProductToolSpec
     let processXCFrameworkLibrarySpec: ProcessXCFrameworkLibrarySpec
+    public let processSDKImportsSpec: ProcessSDKImportsSpec
     public let writeFileSpec: WriteFileSpec
     private let _documentationCompilerSpec: Result<CommandLineToolSpec, any Error>
     var documentationCompilerSpec: CommandLineToolSpec? { return specForResult(_documentationCompilerSpec) }
@@ -378,6 +379,7 @@ public class TaskProducerContext: StaleFileRemovalContext, BuildFileResolution
         self.validateEmbeddedBinarySpec = workspaceContext.core.specRegistry.getSpec("com.apple.tools.validate-embedded-binary-utility", domain: domain) as! ValidateEmbeddedBinaryToolSpec
         self.validateProductSpec = workspaceContext.core.specRegistry.getSpec("com.apple.build-tools.platform.validate", domain: domain) as! ValidateProductToolSpec
         self.processXCFrameworkLibrarySpec = workspaceContext.core.specRegistry.getSpec(ProcessXCFrameworkLibrarySpec.identifier, domain: domain) as! ProcessXCFrameworkLibrarySpec
+        self.processSDKImportsSpec = workspaceContext.core.specRegistry.getSpec(ProcessSDKImportsSpec.identifier, domain: domain) as! ProcessSDKImportsSpec
         self.writeFileSpec = workspaceContext.core.specRegistry.getSpec("com.apple.build-tools.write-file", domain: domain) as! WriteFileSpec
         self._documentationCompilerSpec = Result { try workspaceContext.core.specRegistry.getSpec("com.apple.compilers.documentation", domain: domain) as CommandLineToolSpec }
         self._tapiSymbolExtractorSpec = Result { try workspaceContext.core.specRegistry.getSpec("com.apple.compilers.documentation.objc-symbol-extract", domain: domain) as TAPISymbolExtractor }

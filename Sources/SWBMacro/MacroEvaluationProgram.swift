@@ -184,6 +184,7 @@ final class MacroEvaluationProgram: Serializable, Sendable {
         case base
         case suffix
         case standardizepath
+        case not
 
         /// Creates and returns a new retrieval operator with the given `name`.  Returns nil if the `name` is not a supported operator.
         init?(_ name: String) {
@@ -201,6 +202,7 @@ final class MacroEvaluationProgram: Serializable, Sendable {
             case "base": self = .base
             case "suffix": self = .suffix
             case "standardizepath": self = .standardizepath
+            case "not": self = .not
             default:
                 return nil
             }
@@ -241,6 +243,8 @@ final class MacroEvaluationProgram: Serializable, Sendable {
                 return Path(string).fileSuffix
             case .standardizepath:
                 return Path(string).normalize(removeDotDotFromRelativePath: false).str
+            case .not:
+                return string != "YES" ? "YES" : "NO"
             }
         }
     }

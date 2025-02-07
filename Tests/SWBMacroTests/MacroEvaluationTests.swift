@@ -310,6 +310,7 @@ import SWBTestSupport
         let nonStandardAbsPath = try namespace.declareStringMacro("NON_STANDARD_ABS_PATH")
         let nonStandardRelPath = try namespace.declareStringMacro("NON_STANDARD_REL_PATH")
         let quoteString = try namespace.declareStringMacro("QUOTE_STRING")
+        let bestBool = try namespace.declareBooleanMacro("BEST")
 
         // Push down some value assignments.
         table.push(simpleString, literal: "This")
@@ -319,6 +320,7 @@ import SWBTestSupport
         table.push(nonStandardAbsPath, literal: "//foo/./bar/")
         table.push(nonStandardRelPath, literal: "foo/../bar/./baz/")
         table.push(quoteString, literal: "foo bar \" ' \\")
+        table.push(bestBool, literal: false)
 
         // Create a macro evaluation scope for testing.
         let scope = MacroEvaluationScope(table: table)
@@ -338,6 +340,7 @@ import SWBTestSupport
         #expect(scope.evaluate(namespace.parseString("$(SIMPLE_STRING:upper)")) == "THIS")
         #expect(scope.evaluate(namespace.parseString("$(SIMPLE_STRING:lower)")) == "this")
         #expect(scope.evaluate(namespace.parseString("$(QUOTE_STRING:quote)")) == "foo\\ bar\\ \\\"\\ \\'\\ \\\\")
+        #expect(scope.evaluate(namespace.parseString("$(BEST:not)")) == "YES")
     }
 
     @Test

@@ -4462,6 +4462,13 @@ When this setting is enabled:
                 DisplayName = "Sticker Sharing Level";
                 Description = "When `GENERATE_INFOPLIST_FILE` is enabled, sets the value of the NSStickerSharingLevel key in the `Info.plist` file to the value of this build setting.";
             },
+
+            // Support for producing SDK imports metadata
+            {
+                Name = "ENABLE_SDK_IMPORTS";
+                Type = Boolean;
+                DefaultValue = "$(ASSETCATALOG_COMPILER_SKIP_APP_STORE_DEPLOYMENT:not)";
+            },
         );
     },
 )

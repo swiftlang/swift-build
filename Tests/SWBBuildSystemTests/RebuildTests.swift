@@ -88,7 +88,7 @@ fileprivate struct RebuildTests: CoreBasedTests {
             // Check the initial build for arm64.
             var arch = "arm64"
             try await tester.checkBuild(parameters: BuildParameters(action: .build, configuration: "Debug", activeRunDestination: .iOS, overrides: ["ARCHS": arch]), persistent: true, serial: true, signableTargets: Set(provisioningInputs.keys), signableTargetInputs: provisioningInputs) { results in
-                results.consumeTasksMatchingRuleTypes(["CreateBuildDirectory", "Copy", "Gate", "MkDir", "RegisterExecutionPolicyException", "WriteAuxiliaryFile", "Touch", "SwiftDriver", "SwiftDriver Compilation", "SwiftDriver Compilation Requirements", "SwiftMergeGeneratedHeaders", "ExtractAppIntentsMetadata", "AppIntentsSSUTraining", "ClangStatCache", "SwiftExplicitDependencyCompileModuleFromInterface", "SwiftExplicitDependencyGeneratePcm"])
+                results.consumeTasksMatchingRuleTypes(["CreateBuildDirectory", "Copy", "Gate", "MkDir", "RegisterExecutionPolicyException", "WriteAuxiliaryFile", "Touch", "SwiftDriver", "SwiftDriver Compilation", "SwiftDriver Compilation Requirements", "SwiftMergeGeneratedHeaders", "ExtractAppIntentsMetadata", "AppIntentsSSUTraining", "ClangStatCache", "SwiftExplicitDependencyCompileModuleFromInterface", "SwiftExplicitDependencyGeneratePcm", "ProcessSDKImports"])
                 results.checkTask(.matchRuleItem("ProcessInfoPlistFile")) { _ in }
                 results.checkTasks(.matchRuleItem("SwiftCompile")) { #expect($0.count == 2) }
                 results.checkTask(.matchRuleItem("SwiftEmitModule")) { _ in }
@@ -105,7 +105,7 @@ fileprivate struct RebuildTests: CoreBasedTests {
             // Check the rebuild for arm64e.
             arch = "arm64e"
             try await tester.checkBuild(parameters: BuildParameters(action: .build, configuration: "Debug", activeRunDestination: .iOS, overrides: ["ARCHS": arch]), persistent: true, serial: true, signableTargets: Set(provisioningInputs.keys), signableTargetInputs: provisioningInputs) { results in
-                results.consumeTasksMatchingRuleTypes(["CreateBuildDirectory", "Copy", "Gate", "MkDir", "RegisterExecutionPolicyException", "WriteAuxiliaryFile", "Touch", "SwiftDriver", "SwiftDriver Compilation", "SwiftDriver Compilation Requirements", "SwiftMergeGeneratedHeaders", "ExtractAppIntentsMetadata", "AppIntentsSSUTraining", "ClangStatCache", "SwiftExplicitDependencyCompileModuleFromInterface", "SwiftExplicitDependencyGeneratePcm"])
+                results.consumeTasksMatchingRuleTypes(["CreateBuildDirectory", "Copy", "Gate", "MkDir", "RegisterExecutionPolicyException", "WriteAuxiliaryFile", "Touch", "SwiftDriver", "SwiftDriver Compilation", "SwiftDriver Compilation Requirements", "SwiftMergeGeneratedHeaders", "ExtractAppIntentsMetadata", "AppIntentsSSUTraining", "ClangStatCache", "SwiftExplicitDependencyCompileModuleFromInterface", "SwiftExplicitDependencyGeneratePcm", "ProcessSDKImports"])
                 // I think the Info.plist gets reprocessed because we force it to re-run when certain build settings change to facilitate build setting expansion even if the source file doesn't change.
                 results.checkTask(.matchRuleItem("ProcessInfoPlistFile")) { _ in }
                 results.checkTasks(.matchRuleItem("SwiftCompile")) { #expect($0.count == 2) }
@@ -123,7 +123,7 @@ fileprivate struct RebuildTests: CoreBasedTests {
             // Now rebuild again for arm64 and make sure we re-link.
             arch = "arm64"
             try await tester.checkBuild(parameters: BuildParameters(action: .build, configuration: "Debug", activeRunDestination: .iOS, overrides: ["ARCHS": arch]), persistent: true, serial: true, signableTargets: Set(provisioningInputs.keys), signableTargetInputs: provisioningInputs) { results in
-                results.consumeTasksMatchingRuleTypes(["CreateBuildDirectory", "Copy", "Gate", "MkDir", "RegisterExecutionPolicyException", "WriteAuxiliaryFile", "Touch", "SwiftDriver", "SwiftDriver Compilation", "SwiftDriver Compilation Requirements", "SwiftMergeGeneratedHeaders", "ExtractAppIntentsMetadata", "AppIntentsSSUTraining", "ClangStatCache"])
+                results.consumeTasksMatchingRuleTypes(["CreateBuildDirectory", "Copy", "Gate", "MkDir", "RegisterExecutionPolicyException", "WriteAuxiliaryFile", "Touch", "SwiftDriver", "SwiftDriver Compilation", "SwiftDriver Compilation Requirements", "SwiftMergeGeneratedHeaders", "ExtractAppIntentsMetadata", "AppIntentsSSUTraining", "ClangStatCache", "ProcessSDKImports"])
                 results.checkTask(.matchRuleItem("ProcessInfoPlistFile")) { _ in }
                 results.checkTask(.matchRuleItem("Ld"), .matchRuleItem("\(tmpDirPath.str)/Test/aProject/build/Debug-iphoneos/Framework.framework/Framework")) { _ in }
                 results.checkTask(.matchRuleItem("GenerateTAPI")) { _ in }
@@ -136,7 +136,7 @@ fileprivate struct RebuildTests: CoreBasedTests {
             // Now back to arm64e once more.
             arch = "arm64e"
             try await tester.checkBuild(parameters: BuildParameters(action: .build, configuration: "Debug", activeRunDestination: .iOS, overrides: ["ARCHS": arch]), persistent: true, serial: true, signableTargets: Set(provisioningInputs.keys), signableTargetInputs: provisioningInputs) { results in
-                results.consumeTasksMatchingRuleTypes(["CreateBuildDirectory", "Copy", "Gate", "MkDir", "RegisterExecutionPolicyException", "WriteAuxiliaryFile", "Touch", "SwiftDriver", "SwiftDriver Compilation", "SwiftDriver Compilation Requirements", "SwiftMergeGeneratedHeaders", "ExtractAppIntentsMetadata", "AppIntentsSSUTraining", "ClangStatCache"])
+                results.consumeTasksMatchingRuleTypes(["CreateBuildDirectory", "Copy", "Gate", "MkDir", "RegisterExecutionPolicyException", "WriteAuxiliaryFile", "Touch", "SwiftDriver", "SwiftDriver Compilation", "SwiftDriver Compilation Requirements", "SwiftMergeGeneratedHeaders", "ExtractAppIntentsMetadata", "AppIntentsSSUTraining", "ClangStatCache", "ProcessSDKImports"])
                 results.checkTask(.matchRuleItem("ProcessInfoPlistFile")) { _ in }
                 results.checkTask(.matchRuleItem("Ld"), .matchRuleItem("\(tmpDirPath.str)/Test/aProject/build/Debug-iphoneos/Framework.framework/Framework")) { _ in }
                 results.checkTask(.matchRuleItem("GenerateTAPI")) { _ in }
@@ -152,7 +152,7 @@ fileprivate struct RebuildTests: CoreBasedTests {
 
             // Finally, for good measure, do a multi-arch build.
             try await tester.checkBuild(parameters: BuildParameters(action: .build, configuration: "Debug", activeRunDestination: .anyiOSDevice, overrides: ["ARCHS": "arm64 arm64e"]), persistent: true, serial: true, signableTargets: Set(provisioningInputs.keys), signableTargetInputs: provisioningInputs) { results in
-                results.consumeTasksMatchingRuleTypes(["CreateBuildDirectory", "Copy", "Gate", "MkDir", "RegisterExecutionPolicyException", "SwiftMergeGeneratedHeaders", "WriteAuxiliaryFile", "Touch", "SwiftDriver", "SwiftDriver Compilation", "SwiftDriver Compilation Requirements", "ExtractAppIntentsMetadata", "AppIntentsSSUTraining", "ClangStatCache"])
+                results.consumeTasksMatchingRuleTypes(["CreateBuildDirectory", "Copy", "Gate", "MkDir", "RegisterExecutionPolicyException", "SwiftMergeGeneratedHeaders", "WriteAuxiliaryFile", "Touch", "SwiftDriver", "SwiftDriver Compilation", "SwiftDriver Compilation Requirements", "ExtractAppIntentsMetadata", "AppIntentsSSUTraining", "ClangStatCache", "ProcessSDKImports"])
                 results.checkTask(.matchRuleItem("ProcessInfoPlistFile")) { _ in }
                 results.checkTask(.matchRuleItem("Ld"), .matchRuleItem("\(tmpDirPath.str)/Test/aProject/build/aProject.build/Debug-iphoneos/Framework.build/Objects-normal/arm64/Binary/Framework"), .matchRuleItem("arm64")) { _ in }
                 results.checkTask(.matchRuleItem("Ld"), .matchRuleItem("\(tmpDirPath.str)/Test/aProject/build/aProject.build/Debug-iphoneos/Framework.build/Objects-normal/arm64e/Binary/Framework"), .matchRuleItem("arm64e")) { _ in }

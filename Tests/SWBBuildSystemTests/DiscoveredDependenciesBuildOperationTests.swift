@@ -133,7 +133,7 @@ fileprivate struct DiscoveredDependenciesBuildOperationTests: CoreBasedTests {
 
             // Check the initial build.
             try await tester.checkBuild(persistent: true, serial: true) { results in
-                results.consumeTasksMatchingRuleTypes(["Gate", "MkDir", "WriteAuxiliaryFile", "SymLink", "CreateBuildDirectory", "ProcessInfoPlistFile", "RegisterExecutionPolicyException", "ClangStatCache", "SwiftExplicitDependencyCompileModuleFromInterface", "SwiftExplicitDependencyGeneratePcm"])
+                results.consumeTasksMatchingRuleTypes(["Gate", "MkDir", "WriteAuxiliaryFile", "SymLink", "CreateBuildDirectory", "ProcessInfoPlistFile", "RegisterExecutionPolicyException", "ClangStatCache", "SwiftExplicitDependencyCompileModuleFromInterface", "SwiftExplicitDependencyGeneratePcm", "ProcessSDKImports"])
 
                 checkDriverContainerTasks(results)
 
@@ -214,6 +214,7 @@ fileprivate struct DiscoveredDependenciesBuildOperationTests: CoreBasedTests {
 
                 results.checkTasks(.matchRuleType("ExtractAppIntentsMetadata")) { _ in }
                 results.checkTasks(.matchRuleType("ClangStatCache")) { _ in }
+                results.checkTasks(.matchRuleType("ProcessSDKImports")) { _ in }
                 results.checkNoTask()
             }
 
@@ -266,6 +267,7 @@ fileprivate struct DiscoveredDependenciesBuildOperationTests: CoreBasedTests {
 
                 results.checkTasks(.matchRuleType("ExtractAppIntentsMetadata")) { _ in }
                 results.checkTasks(.matchRuleType("ClangStatCache")) { _ in }
+                results.checkTasks(.matchRuleType("ProcessSDKImports")) { _ in }
 
                 results.checkNoTask()
             }

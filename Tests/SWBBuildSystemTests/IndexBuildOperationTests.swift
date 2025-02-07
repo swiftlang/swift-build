@@ -164,6 +164,12 @@ fileprivate struct IndexBuildOperationTests: CoreBasedTests {
                 results.checkTask(.matchRule(["WriteAuxiliaryFile", "\(tmpDirPath.str)/Test/aProject/build/aProject.build/Debug/AppTarget.build/AppTarget.DependencyStaticMetadataFileList"])) { _ in }
                 results.checkTask(.matchRule(["WriteAuxiliaryFile", "\(tmpDirPath.str)/Test/aProject/build/aProject.build/Debug/FwkTarget.build/FwkTarget.DependencyStaticMetadataFileList"])) { _ in }
 
+                if try await supportsSDKImports {
+                    // SDK imports create a resource file, but since we don't actually link here, we're not producing it.
+                    results.checkTask(.matchRule(["MkDir", "\(tmpDirPath.str)/Test/aProject/build/Debug/FwkTarget.framework/Versions/A/Resources"])) { _ in }
+                    results.checkTask(.matchRule(["SymLink", "\(tmpDirPath.str)/Test/aProject/build/Debug/FwkTarget.framework/Resources", "Versions/Current/Resources"])) { _ in }
+                }
+
                 results.checkNoTask()
             }
         }

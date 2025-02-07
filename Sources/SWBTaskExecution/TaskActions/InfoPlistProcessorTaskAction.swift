@@ -308,6 +308,12 @@ public final class InfoPlistProcessorTaskAction: TaskAction
             }
         }
 
+        // Codeless bundles specify a list of their statically known clients as `DTBundleClientLibraries`.
+        if !context.clientLibrariesForCodelessBundle.isEmpty, scope.evaluate(BuiltinMacros.ENABLE_SDK_IMPORTS) {
+            plistDict["DTBundleClientLibraries"] = .plArray(context.clientLibrariesForCodelessBundle.map { .plString($0) })
+            plist = .plDict(plistDict)
+        }
+
         // LSSupportsOpeningDocumentsInPlace has some special checks:
         // - When building for iOS, warn if it doesn't seclare whether it supports either open-in-place or document browsing (see <rdar://problem/41161290>).
         // - When building for macOS, error if it sets 'LSSupportsOpeningDocumentsInPlace = NO', as that mode is not supported on macOS (see <rdar://problem/46390792>.

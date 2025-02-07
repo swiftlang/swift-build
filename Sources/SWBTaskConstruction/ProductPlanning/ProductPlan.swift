@@ -162,6 +162,9 @@ package final class GlobalProductPlan: GlobalTargetInfoProvider
     /// A map from targets to the the target which produces the nearest enclosing product.
     let targetToProducingTargetForNearestEnclosingProduct: [ConfiguredTarget: ConfiguredTarget]
 
+    /// A map of `MH_BUNDLE` targets to any clients of that target.
+    let clientsOfBundlesByTarget: [ConfiguredTarget:[ConfiguredTarget]]
+
     private static let dynamicMachOTypes = ["mh_execute", "mh_dylib", "mh_bundle"]
 
     // Checks that we have either been passed a configuration override for packages or we are building Debug/Release.
@@ -196,6 +199,18 @@ package final class GlobalProductPlan: GlobalTargetInfoProvider
         self.recursiveSearchPathResolver = RecursiveSearchPathResolver(fs: planRequest.workspaceContext.fs)
         self.xcframeworkContext = XCFrameworkContext(workspaceContext: planRequest.workspaceContext, buildRequestContext: planRequest.buildRequestContext)
         self.buildDirectories = BuildDirectoryContext()
+
+        var clientsOfBundlesByTarget = [ConfiguredTarget:[ConfiguredTarget]]()
+        let bundleTargets = Set(planRequest.buildGraph.allTargets.filter {
+            let settings = planRequest.buildRequestContext.getCachedSettings($0.parameters, target: $0.target)
+            return settings.globalScope.evaluate(BuiltinMacros.MACH_O_TYPE) == "mh_bundle"
+        })
+        for configuredTarget in planRequest.buildGraph.allTargets {
+            for match in bundleTargets.intersection(planRequest.buildGraph.dependencies(of: configuredTarget)) {
+                clientsOfBundlesByTarget[match, default: []].append(configuredTarget)
+            }
+        }
+        self.clientsOfBundlesByTarget = clientsOfBundlesByTarget
 
         var directlyLinkedDependenciesByTarget = [ConfiguredTarget:OrderedSet<LinkedDependency>]()
         var impartedBuildPropertiesByTarget = [ConfiguredTarget:[ImpartedBuildProperties]]()

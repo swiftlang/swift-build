@@ -187,6 +187,8 @@ public protocol CommandProducer: PlatformBuildContext, SpecLookupContext, Refere
     /// The create-build-directory spec to use.
     var createBuildDirectorySpec: CreateBuildDirectorySpec { get }
 
+    var processSDKImportsSpec: ProcessSDKImportsSpec { get }
+
     /// The default working directory to use for a task, if it doesn't have a stronger preference.
     var defaultWorkingDirectory: Path { get }
 

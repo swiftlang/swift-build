@@ -91,6 +91,7 @@ fileprivate struct BuildOperationDescriptionTests: CoreBasedTests {
                             "PRODUCT_NAME": "$(TARGET_NAME)",
                             "VERSIONING_SYSTEM": "apple-generic",
                             "CURRENT_PROJECT_VERSION": "3.1",
+                            "ENABLE_SDK_IMPORTS": "NO",
                         ]
                     )],
                     targets: [

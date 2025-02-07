@@ -556,6 +556,17 @@ public final class LdLinkerSpec : GenericLinkerSpec, SpecIdentifierType {
         // Generate the command line.
         var commandLine = commandLineFromTemplate(cbc, delegate, optionContext: optionContext, specialArgs: specialArgs, lookup: lookup).map(\.asString)
 
+        // Add flags to emit SDK imports info.
+        let sdkImportsInfoFile = cbc.scope.evaluate(BuiltinMacros.LD_SDK_IMPORTS_FILE)
+        let supportsSDKImportsFeature = (try? optionContext?.toolVersion >= .init("1164")) == true
+        let usesLDClassic = commandLine.contains("-r") || commandLine.contains("-ld_classic") || cbc.scope.evaluate(BuiltinMacros.CURRENT_ARCH) == "armv7k"
+        if !usesLDClassic, supportsSDKImportsFeature, !sdkImportsInfoFile.isEmpty, cbc.scope.evaluate(BuiltinMacros.ENABLE_SDK_IMPORTS), cbc.producer.isApplePlatform {
+            commandLine.insert(contentsOf: ["-Xlinker", "-sdk_imports", "-Xlinker", sdkImportsInfoFile.str, "-Xlinker", "-sdk_imports_each_object"], at: commandLine.count - 2) // This preserves the assumption that the last argument is the linker output which a few tests make.
+            outputs.append(delegate.createNode(sdkImportsInfoFile))
+
+            await cbc.producer.processSDKImportsSpec.createTasks(CommandBuildContext(producer: cbc.producer, scope: cbc.scope, inputs: []), delegate, ldSDKImportsPath: sdkImportsInfoFile)
+        }
+
         // Select the driver to use based on the input file types, replacing the value computed by commandLineFromTemplate().
         let usedCXX = usedTools.values.contains(where: { $0.contains(where: { $0.languageDialect?.isPlusPlus ?? false }) })
         commandLine[0] = resolveExecutablePath(cbc, computeLinkerPath(cbc, usedCXX: usedCXX)).str
@@ -957,7 +968,7 @@ public final class LdLinkerSpec : GenericLinkerSpec, SpecIdentifierType {
         }
 
         // Args without parameters (-Xlinker-prefixed, e.g. -Xlinker)
-        for arg in ["-bitcode_verify", "-export_dynamic"] {
+        for arg in ["-bitcode_verify", "-export_dynamic", "-sdk_imports_each_object"] {
             while let index = commandLine.firstIndex(of: arg) {
                 guard index > 0, commandLine[index - 1] == argPrefix else { break }
                 commandLine.removeSubrange(index - 1 ... index)
@@ -976,7 +987,7 @@ public final class LdLinkerSpec : GenericLinkerSpec, SpecIdentifierType {
         }
 
         // Args with a parameter (-Xlinker-prefixed, e.g. -Xlinker arg -Xlinker param)
-        for arg in ["-object_path_lto", "-add_ast_path", "-dependency_info", "-map", "-order_file", "-bitcode_symbol_map", "-final_output", "-allowable_client"] {
+        for arg in ["-object_path_lto", "-add_ast_path", "-dependency_info", "-map", "-order_file", "-bitcode_symbol_map", "-final_output", "-allowable_client", "-sdk_imports"] {
             while let index = commandLine.firstIndex(of: arg) {
                 guard index > 0,
                     index + 2 < commandLine.count,
@@ -1228,67 +1239,7 @@ public final class LdLinkerSpec : GenericLinkerSpec, SpecIdentifierType {
             return nil
         }
 
-        do {
-            do {
-                let commandLine = [toolPath.str, "-version_details"]
-                return try await producer.discoveredCommandLineToolSpecInfo(delegate, nil, commandLine, { executionResult in
-                    let gnuLD = [
-                        #/GNU ld version (?<version>[\d.]+)-.*/#,
-                        #/GNU ld \(GNU Binutils.*\) (?<version>[\d.]+)/#,
-                    ]
-                    if let match = try gnuLD.compactMap({ try $0.firstMatch(in: String(decoding: executionResult.stdout, as: UTF8.self)) }).first {
-                        return DiscoveredLdLinkerToolSpecInfo(linker: .gnuld, toolPath: toolPath, toolVersion: try Version(String(match.output.version)), architectures: Set())
-                    }
-
-                    let goLD = [
-                        #/GNU gold version (?<version>[\d.]+)-.*/#,
-                        #/GNU gold \(GNU Binutils.*\) (?<version>[\d.]+)/#,
-                    ]
-                    if let match = try goLD.compactMap({ try $0.firstMatch(in: String(decoding: executionResult.stdout, as: UTF8.self)) }).first {
-                        return DiscoveredLdLinkerToolSpecInfo(linker: .gold, toolPath: toolPath, toolVersion: try Version(String(match.output.version)), architectures: Set())
-                    }
-                    
-                    struct LDVersionDetails: Decodable {
-                        let version: Version
-                        let architectures: Set<String>
-                    }
-
-                    let details: LDVersionDetails
-                    do {
-                        details = try JSONDecoder().decode(LDVersionDetails.self, from: executionResult.stdout)
-                    } catch {
-                        throw CommandLineOutputJSONParsingError(commandLine: commandLine, data: executionResult.stdout)
-                    }
-                    
-                    return DiscoveredLdLinkerToolSpecInfo(linker: .ld64, toolPath: toolPath, toolVersion: details.version, architectures: details.architectures)
-                })
-            } catch let e as CommandLineOutputJSONParsingError {
-                let vCommandLine = [toolPath.str, "-v"]
-                return try await producer.discoveredCommandLineToolSpecInfo(delegate, nil, vCommandLine, { executionResult in
-                    let lld = [
-                        #/LLD (?<version>[\d.]+) .*/#,
-                    ]
-                    if let match = try lld.compactMap({ try $0.firstMatch(in: String(decoding: executionResult.stdout, as: UTF8.self)) }).first {
-                        return DiscoveredLdLinkerToolSpecInfo(linker: .lld, toolPath: toolPath, toolVersion: try Version(String(match.output.version)), architectures: Set())
-                    }
-
-                    let versionCommandLine = [toolPath.str, "--version"]
-                    return try await producer.discoveredCommandLineToolSpecInfo(delegate, nil, versionCommandLine, { executionResult in
-                        let lld = [
-                            #/LLD (?<version>[\d.]+) .*/#,
-                        ]
-                        if let match = try lld.compactMap({ try $0.firstMatch(in: String(decoding: executionResult.stdout, as: UTF8.self)) }).first {
-                            return DiscoveredLdLinkerToolSpecInfo(linker: .lld, toolPath: toolPath, toolVersion: try Version(String(match.output.version)), architectures: Set())
-                        }
-                    
-                        throw e
-                    })
-                })
-            }
-        } catch {
-            delegate.error(error)
-            return nil
-        }
+        return await discoveredLinkerToolsInfo(producer, delegate, at: toolPath)
     }
 }
 
@@ -1579,6 +1530,73 @@ public final class LibtoolLinkerSpec : GenericLinkerSpec, SpecIdentifierType {
                 type: .Ld
             )
         ]
+    }
+}
+
+/// Consults the global cache of discovered info for the linker at `toolPath` and returns it, creating it if necessary.
+///
+/// This is global and public because it is used by `SWBTaskExecution` and `CoreBasedTests`, which is the basis of many of our tests (so caching this info across tests is desirable).
+public func discoveredLinkerToolsInfo(_ producer: any CommandProducer, _ delegate: any CoreClientTargetDiagnosticProducingDelegate, at toolPath: Path) async -> (any DiscoveredCommandLineToolSpecInfo)? {
+    do {
+        do {
+            let commandLine = [toolPath.str, "-version_details"]
+            return try await producer.discoveredCommandLineToolSpecInfo(delegate, nil, commandLine, { executionResult in
+                let gnuLD = [
+                    #/GNU ld version (?<version>[\d.]+)-.*/#,
+                    #/GNU ld \(GNU Binutils.*\) (?<version>[\d.]+)/#,
+                ]
+                if let match = try gnuLD.compactMap({ try $0.firstMatch(in: String(decoding: executionResult.stdout, as: UTF8.self)) }).first {
+                    return DiscoveredLdLinkerToolSpecInfo(linker: .gnuld, toolPath: toolPath, toolVersion: try Version(String(match.output.version)), architectures: Set())
+                }
+
+                let goLD = [
+                    #/GNU gold version (?<version>[\d.]+)-.*/#,
+                    #/GNU gold \(GNU Binutils.*\) (?<version>[\d.]+)/#,
+                ]
+                if let match = try goLD.compactMap({ try $0.firstMatch(in: String(decoding: executionResult.stdout, as: UTF8.self)) }).first {
+                    return DiscoveredLdLinkerToolSpecInfo(linker: .gold, toolPath: toolPath, toolVersion: try Version(String(match.output.version)), architectures: Set())
+                }
+
+                struct LDVersionDetails: Decodable {
+                    let version: Version
+                    let architectures: Set<String>
+                }
+
+                let details: LDVersionDetails
+                do {
+                    details = try JSONDecoder().decode(LDVersionDetails.self, from: executionResult.stdout)
+                } catch {
+                    throw CommandLineOutputJSONParsingError(commandLine: commandLine, data: executionResult.stdout)
+                }
+
+                return DiscoveredLdLinkerToolSpecInfo(linker: .ld64, toolPath: toolPath, toolVersion: details.version, architectures: details.architectures)
+            })
+        } catch let e as CommandLineOutputJSONParsingError {
+            let vCommandLine = [toolPath.str, "-v"]
+            return try await producer.discoveredCommandLineToolSpecInfo(delegate, nil, vCommandLine, { executionResult in
+                let lld = [
+                    #/LLD (?<version>[\d.]+) .*/#,
+                ]
+                if let match = try lld.compactMap({ try $0.firstMatch(in: String(decoding: executionResult.stdout, as: UTF8.self)) }).first {
+                    return DiscoveredLdLinkerToolSpecInfo(linker: .lld, toolPath: toolPath, toolVersion: try Version(String(match.output.version)), architectures: Set())
+                }
+
+                let versionCommandLine = [toolPath.str, "--version"]
+                return try await producer.discoveredCommandLineToolSpecInfo(delegate, nil, versionCommandLine, { executionResult in
+                    let lld = [
+                        #/LLD (?<version>[\d.]+) .*/#,
+                    ]
+                    if let match = try lld.compactMap({ try $0.firstMatch(in: String(decoding: executionResult.stdout, as: UTF8.self)) }).first {
+                        return DiscoveredLdLinkerToolSpecInfo(linker: .lld, toolPath: toolPath, toolVersion: try Version(String(match.output.version)), architectures: Set())
+                    }
+
+                    throw e
+                })
+            })
+        }
+    } catch {
+        delegate.error(error)
+        return nil
     }
 }
 

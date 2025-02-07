@@ -648,6 +648,7 @@ public final class BuiltinMacros {
     /// be migrated. This is merely a stop-gap measure until we can turn on the debug
     /// dylib for macOS completely.
     public static let ENABLE_PREVIEWS_DYLIB_OVERRIDE = BuiltinMacros.declareBooleanMacro("ENABLE_PREVIEWS_DYLIB_OVERRIDE")
+    public static let ENABLE_SDK_IMPORTS = BuiltinMacros.declareBooleanMacro("ENABLE_SDK_IMPORTS")
     public static let ENABLE_SIGNATURE_AGGREGATION = BuiltinMacros.declareBooleanMacro("ENABLE_SIGNATURE_AGGREGATION")
     public static let DISABLE_TASK_SANDBOXING = BuiltinMacros.declareBooleanMacro("DISABLE_TASK_SANDBOXING")
     public static let ENABLE_USER_SCRIPT_SANDBOXING = BuiltinMacros.declareBooleanMacro("ENABLE_USER_SCRIPT_SANDBOXING")
@@ -798,6 +799,7 @@ public final class BuiltinMacros {
     public static let LD_LTO_OBJECT_FILE = BuiltinMacros.declarePathMacro("LD_LTO_OBJECT_FILE")
     public static let LD_NO_PIE = BuiltinMacros.declareBooleanMacro("LD_NO_PIE")
     public static let LD_RUNPATH_SEARCH_PATHS = BuiltinMacros.declareStringListMacro("LD_RUNPATH_SEARCH_PATHS")
+    public static let LD_SDK_IMPORTS_FILE = BuiltinMacros.declarePathMacro("LD_SDK_IMPORTS_FILE")
     public static let LD_WARN_UNUSED_DYLIBS = BuiltinMacros.declareBooleanMacro("LD_WARN_UNUSED_DYLIBS")
     public static let LEX = BuiltinMacros.declarePathMacro("LEX")
     public static let LEXFLAGS = BuiltinMacros.declareStringListMacro("LEXFLAGS")
@@ -1656,6 +1658,7 @@ public final class BuiltinMacros {
         ENABLE_DEBUG_DYLIB_OVERRIDE,
         ENFORCE_VALID_ARCHS,
         ENABLE_PREVIEWS_DYLIB_OVERRIDE,
+        ENABLE_SDK_IMPORTS,
         ENABLE_SIGNATURE_AGGREGATION,
         ENABLE_TESTABILITY,
         ENABLE_TESTING_SEARCH_PATHS,
@@ -1843,6 +1846,7 @@ public final class BuiltinMacros {
         LD_LTO_OBJECT_FILE,
         LD_NO_PIE,
         LD_RUNPATH_SEARCH_PATHS,
+        LD_SDK_IMPORTS_FILE,
         LD_WARN_UNUSED_DYLIBS,
         LEGACY_DEVELOPER_DIR,
         LEX,

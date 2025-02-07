@@ -1010,6 +1010,7 @@ That command depends on command in Target 'agg2' (project \'aProject\'): script 
                 }
 
                 results.checkTasks(.matchRuleType("ExtractAppIntentsMetadata")) { _ in }
+                results.checkTasks(.matchRuleType("ProcessSDKImports")) { _ in }
                 results.consumeTasksMatchingRuleTypes()
                 results.checkNoTask()
             }
@@ -1033,6 +1034,7 @@ That command depends on command in Target 'agg2' (project \'aProject\'): script 
                 }
 
                 results.checkTasks(.matchRuleType("ExtractAppIntentsMetadata")) { _ in }
+                results.checkTasks(.matchRuleType("ProcessSDKImports")) { _ in }
                 results.consumeTasksMatchingRuleTypes(["ClangStatCache", "Gate"])
                 results.checkNoTask()
             }
@@ -1046,7 +1048,7 @@ That command depends on command in Target 'agg2' (project \'aProject\'): script 
             // We should rebuild the Swift sources (they have an implicit import) and recopy the header.
             try await tester.checkBuild(parameters: parameters, persistent: true) { results in
                 // Check that the expected tasks ran.
-                results.consumeTasksMatchingRuleTypes(["Gate", "Copy", "ExtractAppIntentsMetadata", "ClangStatCache", "SwiftExplicitDependencyGeneratePcm"])
+                results.consumeTasksMatchingRuleTypes(["Gate", "Copy", "ExtractAppIntentsMetadata", "ClangStatCache", "SwiftExplicitDependencyGeneratePcm", "ProcessSDKImports"])
 
                 let driverPlanning = try #require(results.checkTask(.matchRuleType("SwiftDriver")) { $0 })
                 let driverCompilationRequirements = try #require(results.checkTask(.matchRuleType("SwiftDriver Compilation Requirements")) { $0 })
@@ -1076,6 +1078,7 @@ That command depends on command in Target 'agg2' (project \'aProject\'): script 
                 results.checkTask(.matchRuleType("Strip")) { _ in }
                 results.checkTask(.matchRuleType("GenerateTAPI")) { _ in }
                 results.checkTasks(.matchRuleType("ExtractAppIntentsMetadata")) { _ in }
+                results.checkTasks(.matchRuleType("ProcessSDKImports")) { _ in }
                 results.consumeTasksMatchingRuleTypes()
                 results.checkNoTask()
             }
@@ -2297,7 +2300,7 @@ That command depends on command in Target 'agg2' (project \'aProject\'): script 
                 "STRIP_INSTALLED_PRODUCT": "NO",
             ])
             try await tester.checkBuild(parameters: parameters, runDestination: .host, persistent: true) { results in
-                results.consumeTasksMatchingRuleTypes(["Gate", "Copy", "WriteAuxiliaryFile", "SymLink", "CreateBuildDirectory", "RegisterExecutionPolicyException", "ClangStatCache"])
+                results.consumeTasksMatchingRuleTypes(["Gate", "Copy", "WriteAuxiliaryFile", "SymLink", "CreateBuildDirectory", "RegisterExecutionPolicyException", "ClangStatCache", "ProcessSDKImports"])
                 results.checkTask(.matchRuleType("CompileC")) { _ in }
                 results.checkTask(.matchRuleType("Ld")) { _ in }
                 results.checkTask(.matchRuleType("SetGroup"), .matchRuleItemPattern(.any), .matchRuleItemPattern(.suffix("bin/Tool"))) { _ in }
@@ -2359,9 +2362,9 @@ That command depends on command in Target 'agg2' (project \'aProject\'): script 
                 let signableTargetInputs: [String: ProvisioningTaskInputs] = enableSigning ? [targetName: ProvisioningTaskInputs(identityHash: "-", identityName: "-", signedEntitlements: .plDict(["com.apple.security.get-task-allow": .plBool(true)]))] : [:]
                 let taskTypesToExclude: Set<String>
                 if targetType == .framework {
-                    taskTypesToExclude = ["ProcessProductPackaging", "ProcessProductPackagingDER", "RegisterExecutionPolicyException", "Gate", "WriteAuxiliaryFile", "ProcessInfoPlistFile", "SymLink", "MkDir", "Touch", "CreateBuildDirectory", "ClangStatCache"]
+                    taskTypesToExclude = ["ProcessProductPackaging", "ProcessProductPackagingDER", "RegisterExecutionPolicyException", "Gate", "WriteAuxiliaryFile", "ProcessInfoPlistFile", "SymLink", "MkDir", "Touch", "CreateBuildDirectory", "ClangStatCache", "ProcessSDKImports"]
                 } else {
-                    taskTypesToExclude = ["ProcessProductPackaging", "ProcessProductPackagingDER", "RegisterExecutionPolicyException", "Gate", "WriteAuxiliaryFile", "SymLink", "CreateBuildDirectory", "ClangStatCache"]
+                    taskTypesToExclude = ["ProcessProductPackaging", "ProcessProductPackagingDER", "RegisterExecutionPolicyException", "Gate", "WriteAuxiliaryFile", "SymLink", "CreateBuildDirectory", "ClangStatCache", "ProcessSDKImports"]
                 }
 
                 if targetType == .framework {
@@ -3104,7 +3107,7 @@ That command depends on command in Target 'agg2' (project \'aProject\'): script 
             ])
 
             // Check the initial build.
-            let taskTypesToExclude = Set(["Gate", "MkDir", "ProcessInfoPlistFile", "RegisterExecutionPolicyException", "RegisterWithLaunchServices", "SymLink", "Touch", "WriteAuxiliaryFile", "CreateBuildDirectory", "ClangStatCache"])
+            let taskTypesToExclude = Set(["Gate", "MkDir", "ProcessInfoPlistFile", "RegisterExecutionPolicyException", "RegisterWithLaunchServices", "SymLink", "Touch", "WriteAuxiliaryFile", "CreateBuildDirectory", "ClangStatCache", "ProcessSDKImports"])
             try await tester.checkBuild(parameters: parameters, persistent: true, signableTargets: signableTargets) { results in
                 results.consumeTasksMatchingRuleTypes(taskTypesToExclude)
 
@@ -4071,7 +4074,7 @@ That command depends on command in Target 'agg2' (project \'aProject\'): script 
             try await tester.fs.writeFileContents(testWorkspace.sourceRoot.join("aProject/OtherTarget.h")) { _ in }
 
             // Build the main target by itself.
-            let excludedTypes = Set(["Gate", "WriteAuxiliaryFile", "SymLink", "MkDir", "Touch", "Copy", "CpHeader", "CreateBuildDirectory", "ProcessInfoPlistFile", "RegisterExecutionPolicyException", "ClangStatCache"])
+            let excludedTypes = Set(["Gate", "WriteAuxiliaryFile", "SymLink", "MkDir", "Touch", "Copy", "CpHeader", "CreateBuildDirectory", "ProcessInfoPlistFile", "RegisterExecutionPolicyException", "ClangStatCache", "ProcessSDKImports"])
             do {
                 let parameters = BuildParameters(action: .build, configuration: "Debug")
                 let buildTargets = [BuildRequest.BuildTargetInfo(parameters: parameters, target: tester.workspace.target(for: mainTarget.guid)!)]
@@ -4550,7 +4553,7 @@ That command depends on command in Target 'agg2' (project \'aProject\'): script 
                 "com.apple.security.files.user-selected.read-only": 1,
             ]
             let provisioningInputs = ["Core": ProvisioningTaskInputs(identityHash: "-", signedEntitlements: entitlements, simulatedEntitlements: [:])]
-            let excludedTypes = Set(["Gate", "WriteAuxiliaryFile", "SymLink", "MkDir", "Touch", "Copy", "CreateBuildDirectory", "ProcessInfoPlistFile", "ClangStatCache"])
+            let excludedTypes = Set(["Gate", "WriteAuxiliaryFile", "SymLink", "MkDir", "Touch", "Copy", "CreateBuildDirectory", "ProcessInfoPlistFile", "ClangStatCache", "ProcessSDKImports"])
             try await tester.checkBuild(persistent: true, signableTargets: Set(provisioningInputs.keys), signableTargetInputs: provisioningInputs) { results in
                 results.consumeTasksMatchingRuleTypes(excludedTypes)
 
@@ -5190,7 +5193,7 @@ That command depends on command in Target 'agg2' (project \'aProject\'): script 
                 stream <<< "int dalib1() { return 11; }\n"
             }
             try await tester.checkBuild(persistent: true) { results in
-                results.consumeTasksMatchingRuleTypes(["RegisterExecutionPolicyException", "Gate", "ClangStatCache"])
+                results.consumeTasksMatchingRuleTypes(["RegisterExecutionPolicyException", "Gate", "ClangStatCache", "ProcessSDKImports"])
                 results.checkTask(.matchRule(["CompileC", "\(buildDirectory)/aProject.build/Debug/Lib.build/Objects-normal/x86_64/lib.o", "\(SRCROOT)/aProject/lib.c", "normal", "x86_64", "c", "com.apple.compilers.llvm.clang.1_0.compiler"])) { _ in }
                 results.checkTask(.matchRule(["Libtool", "\(buildDirectory)/Debug/libLib.a", "normal"])) { _ in }
                 results.checkTask(.matchRule(["Ld", "\(buildDirectory)/Debug/Tool", "normal"])) { _ in }
@@ -5202,7 +5205,7 @@ That command depends on command in Target 'agg2' (project \'aProject\'): script 
                 stream <<< "int dadeeplib1() { return 22; }\n"
             }
             try await tester.checkBuild(persistent: true) { results in
-                results.consumeTasksMatchingRuleTypes(["RegisterExecutionPolicyException", "Gate", "ClangStatCache"])
+                results.consumeTasksMatchingRuleTypes(["RegisterExecutionPolicyException", "Gate", "ClangStatCache", "ProcessSDKImports"])
                 results.checkTask(.matchRule(["CompileC", "\(buildDirectory)/aProject.build/Debug/DeepLib.build/Objects-normal/x86_64/deeplib.o", "\(SRCROOT)/aProject/deeplib.c", "normal", "x86_64", "c", "com.apple.compilers.llvm.clang.1_0.compiler"])) { _ in }
                 results.checkTask(.matchRule(["Libtool", "\(buildDirectory)/Debug/libDeepLib.a", "normal"])) { _ in }
                 results.checkTask(.matchRule(["Libtool", "\(buildDirectory)/Debug/libLib.a", "normal"])) { _ in }
@@ -5279,7 +5282,7 @@ That command depends on command in Target 'agg2' (project \'aProject\'): script 
                 stream <<< "int dadeeplib() { return 2; }\n"
             }
 
-            let excludingTypes: Set<String> = ["SetGroup", "SetMode", "Strip", "RegisterExecutionPolicyException", "Gate", "ClangStatCache"]
+            let excludingTypes: Set<String> = ["SetGroup", "SetMode", "Strip", "RegisterExecutionPolicyException", "Gate", "ClangStatCache", "ProcessSDKImports"]
 
             let parameters = BuildParameters(action: .install, configuration: "Debug")
             try await tester.checkBuild(parameters: parameters, persistent: true) { results in
@@ -5671,7 +5674,7 @@ That command depends on command in Target 'agg2' (project \'aProject\'): script 
             try await tester.fs.writePlist(testWorkspace.sourceRoot.join("aProject/Info.plist"), .plDict(["key": .plString("value")]))
 
             let signableTargets: Set<String> = ["Tool", "Other"]
-            let excludedTasks: Set<String> = ["CreateBuildDirectory", "MkDir", "WriteAuxiliaryFile", "ProcessInfoPlistFile", "SymLink", "Validate", "RegisterWithLaunchServices", "Touch", "Gate", "RegisterExecutionPolicyException", "ClangStatCache"]
+            let excludedTasks: Set<String> = ["CreateBuildDirectory", "MkDir", "WriteAuxiliaryFile", "ProcessInfoPlistFile", "SymLink", "Validate", "RegisterWithLaunchServices", "Touch", "Gate", "RegisterExecutionPolicyException", "ClangStatCache", "ProcessSDKImports"]
 
             try await tester.checkBuild(persistent: true, signableTargets: signableTargets) { results in
                 results.consumeTasksMatchingRuleTypes(excludedTasks)
@@ -5903,7 +5906,7 @@ That command depends on command in Target 'agg2' (project \'aProject\'): script 
 
             try await tester.fs.writePlist(testWorkspace.sourceRoot.join("aProject/Entitlements.plist"), .plDict([:]))
 
-            let excludedTasks: Set<String> = ["CreateBuildDirectory", "MkDir", "WriteAuxiliaryFile", "ProcessInfoPlistFile", "Validate", "RegisterWithLaunchServices", "Touch", "Gate", "RegisterExecutionPolicyException", "ClangStatCache"]
+            let excludedTasks: Set<String> = ["CreateBuildDirectory", "MkDir", "WriteAuxiliaryFile", "ProcessInfoPlistFile", "Validate", "RegisterWithLaunchServices", "Touch", "Gate", "RegisterExecutionPolicyException", "ClangStatCache", "ProcessSDKImports"]
 
             let provisioningInputs = [
                 "Tool": ProvisioningTaskInputs(identityHash: "Apple Development", identityName: "Dev Signing"),
@@ -6131,7 +6134,7 @@ That command depends on command in Target 'agg2' (project \'aProject\'): script 
 
             try await tester.fs.writePlist(testWorkspace.sourceRoot.join("aProject/Info.plist"), .plDict(["key": .plString("value")]))
 
-            let excludedTasks: Set<String> = ["CreateBuildDirectory", "MkDir", "WriteAuxiliaryFile", "ProcessInfoPlistFile", "Validate", "RegisterWithLaunchServices", "Touch", "Gate", "RegisterExecutionPolicyException", "ClangStatCache"]
+            let excludedTasks: Set<String> = ["CreateBuildDirectory", "MkDir", "WriteAuxiliaryFile", "ProcessInfoPlistFile", "Validate", "RegisterWithLaunchServices", "Touch", "Gate", "RegisterExecutionPolicyException", "ClangStatCache", "ProcessSDKImports"]
 
             let signableTargets: Set<String> = ["Tool", "NoTool"]
 
