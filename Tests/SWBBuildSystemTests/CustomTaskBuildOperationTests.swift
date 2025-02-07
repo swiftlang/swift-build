@@ -14,6 +14,7 @@ import Testing
 
 import SWBBuildSystem
 import SWBCore
+import SWBProtocol
 import SWBTestSupport
 import SWBTaskExecution
 import SWBUtil
@@ -86,7 +87,7 @@ fileprivate struct CustomTaskBuildOperationTests: CoreBasedTests {
                 ])
             let tester = try await BuildOperationTester(core, testProject, simulated: false)
 
-            let parameters = BuildParameters(action: .build, configuration: "Debug")
+            let parameters = BuildParameters(action: .build, configuration: "Debug", activeRunDestination: .host)
 
             try await tester.fs.writeFileContents(tmpDir.join("Sources").join("tool.swift")) { stream in
                 stream <<<
