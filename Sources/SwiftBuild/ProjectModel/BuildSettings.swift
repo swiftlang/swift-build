@@ -124,6 +124,8 @@ extension ProjectModel {
             case SWIFT_ACTIVE_COMPILATION_CONDITIONS
             case SWIFT_IMPLEMENTS_MACROS_FOR_MODULE_NAMES
             case SWIFT_MODULE_ALIASES
+            case SWIFT_WARNINGS_AS_WARNINGS_GROUPS
+            case SWIFT_WARNINGS_AS_ERRORS_GROUPS
         }
 
         public enum Declaration: String, Hashable, CaseIterable, Sendable {

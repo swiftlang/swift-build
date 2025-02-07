@@ -203,6 +203,24 @@
                 CommandLineFlag = "-module-alias";
             },
             {
+                Name = "SWIFT_WARNINGS_AS_WARNINGS_GROUPS";
+                Type = StringList;
+                DefaultValue = "";
+                Category = BuildOptions;
+                DisplayName = "Diagnostic Groups Remain Warnings";
+                Description = "Specify diagnostic groups that should remain warnings (format: '<group>')";
+                CommandLineFlag = "-Wwarning";
+            },
+            {
+                Name = "SWIFT_WARNINGS_AS_ERRORS_GROUPS";
+                Type = StringList;
+                DefaultValue = "";
+                Category = BuildOptions;
+                DisplayName = "Diagnostic Groups Treated as Errors";
+                Description = "Specify diagnostic groups that should be treated as errors (format: '<group>')";
+                CommandLineFlag = "-Werror";
+            },
+            {
                 Name = "SWIFT_OBJC_BRIDGING_HEADER";
                 Type = String;
                 DefaultValue = "";

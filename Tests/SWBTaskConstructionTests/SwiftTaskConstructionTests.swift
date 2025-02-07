@@ -3917,6 +3917,94 @@ fileprivate struct SwiftTaskConstructionTests: CoreBasedTests {
             results.checkNoDiagnostics()
         }
     }
+
+    @Test(.requireSDKs(.host))
+    func warningAsWarningsGroups() async throws {
+        try await withTemporaryDirectory { tmpDir in
+            let testProject = try await TestProject(
+                "ProjectName",
+                sourceRoot: tmpDir.join("srcroot"),
+                groupTree: TestGroup(
+                    "SomeFiles",
+                    children: [
+                        TestFile("File1.swift"),
+                    ]),
+                targets: [
+                    TestStandardTarget(
+                        "TargetName",
+                        type: .framework,
+                        buildConfigurations: [
+                            TestBuildConfiguration("Debug", buildSettings: [
+                                "SWIFT_WARNINGS_AS_WARNINGS_GROUPS": "Unsafe DeprecatedDeclaration",
+                                "SWIFT_EXEC": swiftCompilerPath.str,
+                                "CODE_SIGN_IDENTITY": ""
+                            ]),
+                        ],
+                        buildPhases: [
+                            TestSourcesBuildPhase([
+                                TestBuildFile("File1.swift"),
+                            ]),
+                        ])
+                ])
+
+            let tester = try await TaskConstructionTester(getCore(), testProject)
+
+            try await tester.checkBuild(BuildParameters(configuration: "Debug", overrides: ["SWIFT_VERSION": swiftVersion])) { results in
+                results.checkTarget("TargetName") { target in
+                    results.checkTask(.matchTarget(target), .matchRuleType("SwiftDriver Compilation")) { task in
+                        task.checkCommandLineContains([
+                            "-Wwarning", "Unsafe",
+                            "-Wwarning", "DeprecatedDeclaration"
+                        ])
+                    }
+                }
+            }
+        }
+    }
+
+    @Test(.requireSDKs(.host))
+    func warningAsErrorsGroups() async throws {
+        try await withTemporaryDirectory { tmpDir in
+            let testProject = try await TestProject(
+                "ProjectName",
+                sourceRoot: tmpDir.join("srcroot"),
+                groupTree: TestGroup(
+                    "SomeFiles",
+                    children: [
+                        TestFile("File1.swift"),
+                    ]),
+                targets: [
+                    TestStandardTarget(
+                        "TargetName",
+                        type: .framework,
+                        buildConfigurations: [
+                            TestBuildConfiguration("Debug", buildSettings: [
+                                "SWIFT_WARNINGS_AS_ERRORS_GROUPS": "UnknownWarningGroup PreconcurrencyImport",
+                                "SWIFT_EXEC": swiftCompilerPath.str,
+                                "CODE_SIGN_IDENTITY": ""
+                            ]),
+                        ],
+                        buildPhases: [
+                            TestSourcesBuildPhase([
+                                TestBuildFile("File1.swift"),
+                            ]),
+                        ])
+                ])
+
+            let tester = try await TaskConstructionTester(getCore(), testProject)
+
+            try await tester.checkBuild(BuildParameters(configuration: "Debug", overrides: ["SWIFT_VERSION": swiftVersion])) { results in
+                results.checkTarget("TargetName") { target in
+                    results.checkTask(.matchTarget(target), .matchRuleType("SwiftDriver Compilation")) { task in
+                        task.checkCommandLineContains([
+                            "-Werror", "UnknownWarningGroup",
+                            "-Werror","PreconcurrencyImport"
+                        ])
+                    }
+                }
+            }
+        }
+    }
 }
 
 private func XCTAssertEqual(_ lhs: EnvironmentBindings, _ rhs: [String: String], file: StaticString = #filePath, line: UInt = #line) {
