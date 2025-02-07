@@ -14,10 +14,10 @@ import PackagePlugin
 import Foundation
 
 @main
-struct LaunchXcode: CommandPlugin {
+struct RunXcodebuild: CommandPlugin {
     func performCommand(context: PluginContext, arguments: [String]) async throws {
         #if !os(macOS)
-        throw LaunchXcodeError.unsupportedPlatform
+        throw RunXcodebuildError.unsupportedPlatform
         #else
         var args = ArgumentExtractor(arguments)
         var configuration: PackageManager.BuildConfiguration = .debug
@@ -35,27 +35,25 @@ struct LaunchXcode: CommandPlugin {
         let buildResult = try packageManager.build(.all(includingTests: false), parameters: .init(configuration: configuration, echoLogs: true))
         guard buildResult.succeeded else { return }
         guard let buildServiceURL = buildResult.builtArtifacts.map({ $0.url }).filter({ $0.lastPathComponent == "SWBBuildServiceBundle" }).first else {
-            throw LaunchXcodeError.buildServiceURLNotFound
+            throw RunXcodebuildError.buildServiceURLNotFound
         }
 
-        print("Launching Xcode...")
         let process = Process()
-        process.executableURL = URL(fileURLWithPath: "/usr/bin/open")
-        process.arguments = ["-n", "-F", "-W", "--env", "XCBBUILDSERVICE_PATH=\(buildServiceURL.path())", "-b", "com.apple.dt.Xcode"]
-        process.standardOutput = nil
-        process.standardError = nil
+        process.executableURL = URL(fileURLWithPath: "/usr/bin/xcrun")
+        process.arguments = ["xcodebuild"] + args.remainingArguments
+        process.environment = ProcessInfo.processInfo.environment.merging(["XCBBUILDSERVICE_PATH": buildServiceURL.path()]) { _, new in new }
         try await process.run()
         if process.terminationStatus != 0 {
-            throw LaunchXcodeError.launchFailed
+            throw RunXcodebuildError.xcodebuildError(terminationReason: process.terminationReason, terminationStatus: process.terminationStatus)
         }
         #endif
     }
 }
 
-enum LaunchXcodeError: Error, CustomStringConvertible {
+enum RunXcodebuildError: Error, CustomStringConvertible {
     case unsupportedPlatform
     case buildServiceURLNotFound
-    case launchFailed
+    case xcodebuildError(terminationReason: Process.TerminationReason, terminationStatus: Int32)
 
     var description: String {
         switch self {
@@ -63,8 +61,16 @@ enum LaunchXcodeError: Error, CustomStringConvertible {
             return "This command is only supported on macOS"
         case .buildServiceURLNotFound:
             return "Failed to determine path to built SWBBuildServiceBundle"
-        case .launchFailed:
-            return "Launching Xcode failed, did you remember to pass `--disable-sandbox`?"
+        case let .xcodebuildError(terminationReason, terminationStatus):
+            let reason = switch terminationReason {
+            case .exit:
+                "status code"
+            case .uncaughtSignal:
+                "uncaught signal"
+            @unknown default:
+                preconditionFailure()
+            }
+            return "xcodebuild exited with \(reason) \(terminationStatus), did you remember to pass `--disable-sandbox`?"
         }
     }
 }
