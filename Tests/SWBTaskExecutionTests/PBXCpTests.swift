@@ -424,7 +424,6 @@ fileprivate struct PBXCpTests: CoreBasedTests {
                 #expect(result.output == (
                     "copying \(fwkName)/...\n"
                 ))
-                let srcPerm = try fs.getFilePermissions(srcfile)
                 let dstPerm = try fs.getFilePermissions(dst.join(fwkName).join(fName))
                 #expect(dstPerm == 0o755) // files are created with u+rw, g+wr, o+rw (and +x if src is executable) permissions and umask will adjust
             }
@@ -461,7 +460,6 @@ fileprivate struct PBXCpTests: CoreBasedTests {
                     "copying src/...\n   copying file...\n    \(size) bytes\n"
                 ))
                 // Check permssions
-                let srcPerm = try fs.getFilePermissions(sName)
                 let dstPerm = try fs.getFilePermissions(dName)
                 #expect(dstPerm == 0o644) // files are created with u+rw, g+wr, o+rw (and +x if src is executable) permissions and umask will adjust
                 #expect(FileManager.default.contentsEqual(atPath: sName.str, andPath: dName.str))
