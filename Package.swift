@@ -371,6 +371,13 @@ let package = Package(
                 verb: "launch-xcode",
                 description: "Launch the currently selected Xcode configured to use the just-built build service"
             ))
+        ),
+        .plugin(
+            name: "run-xcodebuild",
+            capability: .command(intent: .custom(
+                verb: "run-xcodebuild",
+                description: "Run xcodebuild from the currently selected Xcode configured to use the just-built build service"
+            ))
         )
     ],
     swiftLanguageModes: [.v6],
