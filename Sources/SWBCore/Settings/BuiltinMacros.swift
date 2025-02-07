@@ -1015,6 +1015,8 @@ public final class BuiltinMacros {
     public static let SWIFT_LTO = BuiltinMacros.declareEnumMacro("SWIFT_LTO") as EnumMacroDeclaration<LTOSetting>
     public static let SWIFT_MODULE_NAME = BuiltinMacros.declareStringMacro("SWIFT_MODULE_NAME")
     public static let SWIFT_MODULE_ALIASES = BuiltinMacros.declareStringListMacro("SWIFT_MODULE_ALIASES")
+    public static let SWIFT_WARNINGS_AS_WARNINGS_GROUPS = BuiltinMacros.declareStringListMacro("SWIFT_WARNINGS_AS_WARNINGS_GROUPS")
+    public static let SWIFT_WARNINGS_AS_ERRORS_GROUPS = BuiltinMacros.declareStringListMacro("SWIFT_WARNINGS_AS_ERRORS_GROUPS")
     public static let SWIFT_OBJC_BRIDGING_HEADER = BuiltinMacros.declareStringMacro("SWIFT_OBJC_BRIDGING_HEADER")
     public static let SWIFT_OBJC_INTERFACE_HEADER_NAME = BuiltinMacros.declareStringMacro("SWIFT_OBJC_INTERFACE_HEADER_NAME")
     public static let SWIFT_OBJC_INTERFACE_HEADER_DIR = BuiltinMacros.declareStringMacro("SWIFT_OBJC_INTERFACE_HEADER_DIR")
@@ -2160,6 +2162,8 @@ public final class BuiltinMacros {
         SWIFT_LIBRARY_PATH,
         SWIFT_LTO,
         SWIFT_MODULE_ALIASES,
+        SWIFT_WARNINGS_AS_WARNINGS_GROUPS,
+        SWIFT_WARNINGS_AS_ERRORS_GROUPS,
         SWIFT_MODULE_NAME,
         SWIFT_MODULE_ONLY_ARCHS,
         SWIFT_MODULE_ONLY_MACOSX_DEPLOYMENT_TARGET,
