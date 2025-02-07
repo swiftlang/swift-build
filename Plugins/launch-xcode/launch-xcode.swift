@@ -20,7 +20,20 @@ struct LaunchXcode: CommandPlugin {
         print("This command is only supported on macOS")
         return
         #else
-        let buildResult = try packageManager.build(.all(includingTests: false), parameters: .init(echoLogs: true))
+        var args = ArgumentExtractor(arguments)
+        var configuration: PackageManager.BuildConfiguration = .debug
+        // --release
+        if args.extractFlag(named: "release") > 0 {
+            configuration = .release
+        } else {
+            // --configuration release
+            let configurationOptions = args.extractOption(named: "configuration")
+            if configurationOptions.contains("release") {
+                configuration = .release
+            }
+        }
+
+        let buildResult = try packageManager.build(.all(includingTests: false), parameters: .init(configuration: configuration, echoLogs: true))
         guard buildResult.succeeded else { return }
         guard let buildServiceURL = buildResult.builtArtifacts.map({ $0.url }).filter({ $0.lastPathComponent == "SWBBuildServiceBundle" }).first else {
             print("Failed to determine path to built SWBBuildServiceBundle")
