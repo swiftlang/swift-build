@@ -1027,47 +1027,15 @@ extension MessageHandler {
             do {
                 var responses: [PreviewInfoMessagePayload] = []
 
-                for targetID in message.targetIDs {
-                    do {
-                        let output = try await session.buildDescriptionManager.generatePreviewInfo(
-                            workspaceContext: workspaceContext,
-                            buildRequest: buildRequest,
-                            buildRequestContext: buildRequestContext,
-                            delegate: operation,
-                            targetID: targetID,
-                            input: message.generatePreviewInfoInput
-                        )
-                        responses.append(contentsOf: output.map{ $0.asMessagePayload() })
-                    }
-                    catch let e as PreviewInfoErrors {
-                        switch e {
-                        case .noBuildDescription, .failedToGetTargetBuildGraph, .cancelled:
-                            // Always propagate these errors.
-                            throw e
-                        case .unableToFindTarget:
-                            if message.targetIDs.count == 1 {
-                                // Only propagate this error if this isn't a batch call. Batch requests for target
-                                // descriptions are made from a set of buildables, and some may not be filtered out
-                                // by platform. So we don't want the inability to find targets to fail the entire
-                                // batched request.
-                                //
-                                // Xcode Previews already handles noticing when buildables don't receive any target
-                                // descriptions and notes this in its diagnostics in case something goes wrong.
-                                //
-                                // This restores the original behavior Xcode Previews had where it would ignore single
-                                // failures for single description requests. This is also an improvement because it
-                                // only ignores failure to find target errors in a batch call, letting other errors
-                                // abort the entire request since something fundamentally unrecoverable happened in
-                                // those cases.
-                                //
-                                // Ideally, we'd emit a "result-like" enum of success or failure for each preview
-                                // info, but that would require a much larger rethink of the call stack across
-                                // multiple component boundaries.
-                                throw e
-                            }
-                        }
-                    }
-                }
+                let output = try await session.buildDescriptionManager.generatePreviewInfo(
+                    workspaceContext: workspaceContext,
+                    buildRequest: buildRequest,
+                    buildRequestContext: buildRequestContext,
+                    delegate: operation,
+                    targetIDs: message.targetIDs,
+                    input: message.generatePreviewInfoInput
+                )
+                responses.append(contentsOf: output.map{ $0.asMessagePayload() })
 
                 return PreviewInfoResponse(
                     targetIDs: message.targetIDs,
