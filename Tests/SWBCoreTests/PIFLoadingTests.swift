@@ -1126,6 +1126,7 @@ private final class ProjectModelItemClass: ProjectModelItem {
         }
     }
 
+    @Test
     func loadingStandardTarget() throws {
         // These file ref classes are only used for their GUIDs in this test, but the other data may be useful if the model changes in the future.
         let classOneFileRef: FileReference = try {
@@ -1345,7 +1346,7 @@ private final class ProjectModelItemClass: ProjectModelItem {
             try #require(appTarget.buildPhases.count == 2)
             try #require(frameworkTarget.buildPhases.count == 2)
 
-            let appSourcesBuildPhase = try #require(appTarget.buildPhases[0] as? FrameworksBuildPhase)
+            let appSourcesBuildPhase = try #require(appTarget.buildPhases[0] as? SourcesBuildPhase)
             let appFrameworksBuildPhase = try #require(appTarget.buildPhases[1] as? FrameworksBuildPhase)
             let frameworkSourcesBuildPhase = try #require(frameworkTarget.buildPhases[0] as? SourcesBuildPhase)
             let frameworkFrameworksBuildPhase = try #require(frameworkTarget.buildPhases[1] as? FrameworksBuildPhase)
