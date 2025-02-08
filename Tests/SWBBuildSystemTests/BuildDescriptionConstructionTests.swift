@@ -1035,15 +1035,15 @@ fileprivate struct BuildDescriptionConstructionTests: CoreBasedTests {
             }
 
             let ctx = try await WorkspaceContext(core: getCore(), workspace: tester.workspace, fs: tester.fs, processExecutionCache: .sharedForTesting)
-            ctx.userInfo = UserInfo(user: "exampleUser", group: "exampleGroup", uid: 1234, gid: 12345, home: Path("/Users/exampleUser"),
+            ctx.updateUserInfo(UserInfo(user: "exampleUser", group: "exampleGroup", uid: 1234, gid: 12345, home: Path("/Users/exampleUser"),
                                     environment: [
                                         "PATH" : "/usr/local/bin:/usr/bin:/bin:/usr/sbin:/sbin",
                                         "CAPTURED_BUILD_INFO_DIR" : tmpDir.join("captured-build-info").str
                                     ].addingContents(of: ProcessInfo.processInfo.environment.filter(keys: [
                                         "__XCODE_BUILT_PRODUCTS_DIR_PATHS", "XCODE_DEVELOPER_DIR_PATH"
-                                    ])))
-            ctx.systemInfo = tester.systemInfo
-            ctx.userPreferences = tester.userPreferences
+                                    ]))))
+            ctx.updateSystemInfo(tester.systemInfo)
+            ctx.updateUserPreferences(tester.userPreferences)
             try await tester.checkBuildDescription(BuildParameters(action: .build, configuration: "Debug"), workspaceContext: ctx) { results in
                 #expect(results.buildDescription.capturedBuildInfo != nil)
             }

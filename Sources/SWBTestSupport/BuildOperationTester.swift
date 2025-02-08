@@ -1258,9 +1258,9 @@ package final class BuildOperationTester {
         let workspaceContext = WorkspaceContext(core: core, workspace: workspace, fs: self.fs, processExecutionCache: .sharedForTesting)
 
         // Configure fake user and system info.
-        workspaceContext.userInfo = self.userInfo
-        workspaceContext.systemInfo = self.systemInfo
-        workspaceContext.userPreferences = self.userPreferences
+        workspaceContext.updateUserInfo(self.userInfo)
+        workspaceContext.updateSystemInfo(self.systemInfo)
+        workspaceContext.updateUserPreferences(self.userPreferences)
 
         return workspaceContext
     }()

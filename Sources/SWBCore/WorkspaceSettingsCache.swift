@@ -13,7 +13,7 @@
 import SWBUtil
 import SWBMacro
 
-final class WorkspaceSettingsCache {
+final class WorkspaceSettingsCache: Sendable {
     unowned private let workspaceContext: WorkspaceContext
     private let macroConfigFileLoader: MacroConfigFileLoader
 

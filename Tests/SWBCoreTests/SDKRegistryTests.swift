@@ -20,8 +20,8 @@ import SWBMacro
 @Suite fileprivate struct SDKRegistryTests: CoreBasedTests {
 
     /// Delegate for testing loading SDKs in a registry.
-    class TestDataDelegate : SDKRegistryDelegate {
-        var namespace = MacroNamespace()
+    final class TestDataDelegate : SDKRegistryDelegate {
+        let namespace = MacroNamespace()
         let pluginManager: PluginManager
         private let _diagnosticsEngine = DiagnosticsEngine()
 
@@ -726,9 +726,9 @@ import SWBMacro
             try localFS.symlink(sym2Path, target: Path(dirPath.basename))
 
             let registry: SDKRegistry = try await {
-                class TestDataDelegate : SDKRegistryDelegate {
-                    var namespace = MacroNamespace()
-                    var pluginManager: PluginManager
+                final class TestDataDelegate : SDKRegistryDelegate {
+                    let namespace = MacroNamespace()
+                    let pluginManager: PluginManager
 
                     init(pluginManager: PluginManager) {
                         self.pluginManager = pluginManager

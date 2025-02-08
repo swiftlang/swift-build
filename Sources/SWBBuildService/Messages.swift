@@ -249,7 +249,7 @@ private struct SetSessionSystemInfoMsg: MessageHandler {
         }
 
         // Update the workspace context.
-        workspaceContext.systemInfo = SystemInfo(operatingSystemVersion: message.operatingSystemVersion, productBuildVersion: message.productBuildVersion, nativeArchitecture: message.nativeArchitecture)
+        workspaceContext.updateSystemInfo(SystemInfo(operatingSystemVersion: message.operatingSystemVersion, productBuildVersion: message.productBuildVersion, nativeArchitecture: message.nativeArchitecture))
 
         return VoidResponse()
     }
@@ -264,7 +264,7 @@ private struct SetSessionUserInfoMsg: MessageHandler {
 
         // Update the workspace context.
         let env = try await EnvironmentExtensionPoint.additionalEnvironmentVariables(pluginManager: workspaceContext.core.pluginManager, fs: workspaceContext.fs)
-        workspaceContext.userInfo = try await UserInfo(user: message.user, group: message.group, uid: message.uid, gid: message.gid, home: Path(message.home), processEnvironment: message.processEnvironment, buildSystemEnvironment: message.buildSystemEnvironment).addingPlatformDefaults(from: env)
+        workspaceContext.updateUserInfo(try await UserInfo(user: message.user, group: message.group, uid: message.uid, gid: message.gid, home: Path(message.home), processEnvironment: message.processEnvironment, buildSystemEnvironment: message.buildSystemEnvironment).addingPlatformDefaults(from: env))
 
         return VoidResponse()
     }
@@ -277,13 +277,13 @@ private struct SetSessionUserPreferencesMsg: MessageHandler {
             throw MsgParserError.missingWorkspaceContext
         }
 
-        workspaceContext.userPreferences = UserPreferences(
+        workspaceContext.updateUserPreferences(UserPreferences(
             enableDebugActivityLogs: message.enableDebugActivityLogs,
             enableBuildDebugging: message.enableBuildDebugging,
             enableBuildSystemCaching: message.enableBuildSystemCaching,
             activityTextShorteningLevel: message.activityTextShorteningLevel,
             usePerConfigurationBuildLocations: message.usePerConfigurationBuildLocations,
-            allowsExternalToolExecution: message.allowsExternalToolExecution ?? UserPreferences.allowsExternalToolExecutionDefaultValue
+            allowsExternalToolExecution: message.allowsExternalToolExecution ?? UserPreferences.allowsExternalToolExecutionDefaultValue)
         )
 
         return VoidResponse()
