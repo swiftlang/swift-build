@@ -13,7 +13,7 @@
 import SWBUtil
 public import SWBMacro
 
-public final class ValidateEmbeddedBinaryToolSpec: GenericCommandLineToolSpec, SpecIdentifierType {
+public final class ValidateEmbeddedBinaryToolSpec: GenericCommandLineToolSpec, SpecIdentifierType, @unchecked Sendable {
     public static let identifier = "com.apple.tools.validate-embedded-binary-utility"
 
     public func constructValidateEmbeddedBinaryTask(_ cbc: CommandBuildContext, _ delegate: any TaskGenerationDelegate, lookup: ((MacroDeclaration) -> MacroExpression?)? = nil) async {

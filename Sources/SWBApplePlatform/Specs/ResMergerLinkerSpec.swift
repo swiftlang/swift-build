@@ -13,7 +13,7 @@
 import SWBUtil
 public import SWBCore
 
-public final class ResMergerLinkerSpec : GenericLinkerSpec, SpecIdentifierType {
+public final class ResMergerLinkerSpec : GenericLinkerSpec, SpecIdentifierType, @unchecked Sendable {
     public static let identifier = "com.apple.pbx.linkers.resmerger"
 
     public override func constructTasks(_ cbc: CommandBuildContext, _ delegate: any TaskGenerationDelegate) async {

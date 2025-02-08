@@ -12,7 +12,7 @@
 
 public import SWBUtil
 
-public final class InfoPlistToolSpec : GenericCommandLineToolSpec, SpecIdentifierType {
+public final class InfoPlistToolSpec : GenericCommandLineToolSpec, SpecIdentifierType, @unchecked Sendable {
     public static let identifier = "com.apple.tools.info-plist-utility"
 
     public override func constructTasks(_ cbc: CommandBuildContext, _ delegate: any TaskGenerationDelegate) async {

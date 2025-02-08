@@ -12,7 +12,7 @@
 
 public import SWBUtil
 
-public final class UnifdefToolSpec : CommandLineToolSpec, SpecIdentifierType {
+public final class UnifdefToolSpec : CommandLineToolSpec, SpecIdentifierType, @unchecked Sendable {
     public static let identifier = "public.build-task.unifdef"
 
     public override func evaluatedOutputs(_ cbc: CommandBuildContext, _ delegate: any DiagnosticProducingDelegate) -> [(path: Path, isDirectory: Bool)]? {

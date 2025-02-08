@@ -1983,7 +1983,7 @@ import SWBMacro
         }
     }
 
-    final class ThingToolSpec: GenericCommandLineToolSpec, SpecIdentifierType {
+    final class ThingToolSpec: GenericCommandLineToolSpec, SpecIdentifierType, @unchecked Sendable {
         static let identifier = "com.apple.compilers.thing_processor"
 
         override public func discoveredCommandLineToolSpecInfo(_ producer: any CommandProducer, _ scope: MacroEvaluationScope, _ delegate: any CoreClientTargetDiagnosticProducingDelegate) async -> (any DiscoveredCommandLineToolSpecInfo)? {

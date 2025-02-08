@@ -14,7 +14,7 @@ public import SWBUtil
 import Foundation
 import SWBMacro
 
-final public class AppShortcutStringsMetadataCompilerSpec: GenericCommandLineToolSpec, SpecIdentifierType {
+final public class AppShortcutStringsMetadataCompilerSpec: GenericCommandLineToolSpec, SpecIdentifierType, @unchecked Sendable {
     public static let identifier = "com.apple.compilers.appshortcutstringsmetadata"
 
     override public func constructTasks(_ cbc: CommandBuildContext, _ delegate: any TaskGenerationDelegate) async {

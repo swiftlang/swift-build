@@ -12,7 +12,7 @@
 
 public import SWBUtil
 
-public final class SignatureCollectionSpec: CommandLineToolSpec, SpecImplementationType {
+public final class SignatureCollectionSpec: CommandLineToolSpec, SpecImplementationType, @unchecked Sendable {
     public static let identifier = "com.apple.build-tools.signature-collection"
 
     public class func construct(registry: SpecRegistry, proxy: SpecProxy) -> Spec {

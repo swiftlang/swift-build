@@ -13,7 +13,7 @@
 import SWBUtil
 public import SWBCore
 
-public final class InstrumentsPackageBuilderSpec: GenericCompilerSpec, SpecIdentifierType {
+public final class InstrumentsPackageBuilderSpec: GenericCompilerSpec, SpecIdentifierType, @unchecked Sendable {
     public static let identifier = "com.apple.compilers.instruments-package-builder"
 
     public override func constructTasks(_ cbc: CommandBuildContext, _ delegate: any TaskGenerationDelegate) async {

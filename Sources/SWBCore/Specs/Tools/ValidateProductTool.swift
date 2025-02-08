@@ -10,7 +10,7 @@
 //
 //===----------------------------------------------------------------------===//
 
-public final class ValidateProductToolSpec: GenericCommandLineToolSpec, SpecIdentifierType {
+public final class ValidateProductToolSpec: GenericCommandLineToolSpec, SpecIdentifierType, @unchecked Sendable {
     public static let identifier = "com.apple.build-tools.platform.validate"
 
     public override func createTaskAction(_ cbc: CommandBuildContext, _ delegate: any TaskGenerationDelegate) -> (any PlannedTaskAction)? {

@@ -13,7 +13,7 @@
 import SWBMacro
 import SWBCore
 
-final class CopyPlistFileSpec: GenericCommandLineToolSpec, SpecIdentifierType {
+final class CopyPlistFileSpec: GenericCommandLineToolSpec, SpecIdentifierType, @unchecked Sendable {
     static let identifier = "com.apple.build-tasks.copy-plist-file"
 
     override func createTaskAction(_ cbc: CommandBuildContext, _ delegate: any TaskGenerationDelegate) -> (any PlannedTaskAction)? {

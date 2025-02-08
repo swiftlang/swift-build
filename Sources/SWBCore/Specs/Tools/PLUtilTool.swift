@@ -10,6 +10,6 @@
 //
 //===----------------------------------------------------------------------===//
 
-final class PLUtilToolSpec : CommandLineToolSpec, SpecIdentifierType {
+final class PLUtilToolSpec : CommandLineToolSpec, SpecIdentifierType, @unchecked Sendable {
     static let identifier = "com.apple.tools.plutil"
 }

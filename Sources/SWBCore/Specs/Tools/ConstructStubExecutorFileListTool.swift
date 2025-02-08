@@ -12,7 +12,7 @@
 
 public import SWBUtil
 
-public final class ConstructStubExecutorFileListToolSpec: CommandLineToolSpec, SpecImplementationType {
+public final class ConstructStubExecutorFileListToolSpec: CommandLineToolSpec, SpecImplementationType, @unchecked Sendable {
     public static let identifier = "com.apple.build-tools.construct-stub-executor-link-file-list"
 
     public static func construct(registry: SpecRegistry, proxy: SpecProxy) -> Spec {

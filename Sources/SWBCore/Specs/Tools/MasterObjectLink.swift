@@ -13,7 +13,7 @@
 import SWBUtil
 
 /// Spec to use the linker to run `ld -r` to create a prelinked object file (a.k.a. "master object file").
-final class MasterObjectLinkSpec: CommandLineToolSpec, SpecImplementationType {
+final class MasterObjectLinkSpec: CommandLineToolSpec, SpecImplementationType, @unchecked Sendable {
     static let identifier = "com.apple.build-tools.master-object-link"
 
     class func construct(registry: SpecRegistry, proxy: SpecProxy) -> Spec {

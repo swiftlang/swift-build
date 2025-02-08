@@ -14,7 +14,7 @@ import Foundation
 import SWBUtil
 import SWBMacro
 
-final class SwiftSymbolExtractor: GenericCompilerSpec, GCCCompatibleCompilerCommandLineBuilder, SpecIdentifierType {
+final class SwiftSymbolExtractor: GenericCompilerSpec, GCCCompatibleCompilerCommandLineBuilder, SpecIdentifierType, @unchecked Sendable {
     static let identifier = "com.apple.compilers.documentation.swift-symbol-extract"
 
     static public func shouldConstructSymbolExtractionTask(_ cbc: CommandBuildContext) -> Bool {

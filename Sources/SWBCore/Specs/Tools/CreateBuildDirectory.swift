@@ -12,7 +12,7 @@
 
 import SWBUtil
 
-public final class CreateBuildDirectorySpec: CommandLineToolSpec, SpecImplementationType {
+public final class CreateBuildDirectorySpec: CommandLineToolSpec, SpecImplementationType, @unchecked Sendable {
     public static let identifier = "com.apple.tools.create-build-directory"
 
     public static func construct(registry: SpecRegistry, proxy: SpecProxy) -> Spec {

@@ -16,7 +16,7 @@ public import SWBCore
 import SWBTaskConstruction
 public import SWBMacro
 
-public final class ActoolCompilerSpec : GenericCompilerSpec, SpecIdentifierType, IbtoolCompilerSupport {
+public final class ActoolCompilerSpec : GenericCompilerSpec, SpecIdentifierType, IbtoolCompilerSupport, @unchecked Sendable {
     public static let identifier = "com.apple.compilers.assetcatalog"
 
     private func constructAssetPackOutputSpecificationsTask(catalogInputs inputs: [FileToBuild], _ cbc: CommandBuildContext, _ delegate: any TaskGenerationDelegate) async -> Path? {

@@ -13,7 +13,7 @@
 import SWBUtil
 import SWBCore
 
-final class LexCompilerSpec : CompilerSpec, SpecIdentifierType {
+final class LexCompilerSpec : CompilerSpec, SpecIdentifierType, @unchecked Sendable {
     static let identifier = "com.apple.compilers.lex"
 
     static let extensionMappings = [

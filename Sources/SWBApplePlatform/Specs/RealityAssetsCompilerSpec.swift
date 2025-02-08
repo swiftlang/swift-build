@@ -41,7 +41,7 @@ public struct ModuleWithDependencies: Codable, Equatable {
 //
 //---------------------
 
-package final class RealityAssetsCompilerSpec: GenericCompilerSpec, SpecIdentifierType {
+package final class RealityAssetsCompilerSpec: GenericCompilerSpec, SpecIdentifierType, @unchecked Sendable {
     public static let identifier = "com.apple.build-tasks.compile-rk-assets.xcplugin"
 
     private func environmentBindings(_ cbc: CommandBuildContext, _ delegate: any TaskGenerationDelegate) -> EnvironmentBindings {

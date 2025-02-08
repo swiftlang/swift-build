@@ -13,7 +13,7 @@
 public import SWBUtil
 import SWBMacro
 
-public final class CopyToolSpec : CompilerSpec, SpecIdentifierType {
+public final class CopyToolSpec : CompilerSpec, SpecIdentifierType, @unchecked Sendable {
     public static let identifier = "com.apple.compilers.pbxcp"
 
     /// Construct a `Copy` task to copy a source file to a destination with default behaviors.

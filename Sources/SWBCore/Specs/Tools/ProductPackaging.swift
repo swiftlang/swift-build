@@ -13,7 +13,7 @@
 public import SWBUtil
 import SWBMacro
 
-public final class ProductPackagingToolSpec : GenericCommandLineToolSpec, SpecIdentifierType {
+public final class ProductPackagingToolSpec : GenericCommandLineToolSpec, SpecIdentifierType, @unchecked Sendable {
     public static let identifier = "com.apple.tools.product-pkg-utility"
 
     public override func constructTasks(_ cbc: CommandBuildContext, _ delegate: any TaskGenerationDelegate) async {

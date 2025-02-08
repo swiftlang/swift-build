@@ -12,7 +12,7 @@
 
 public import SWBUtil
 
-public final class WriteFileSpec: CommandLineToolSpec, SpecImplementationType {
+public final class WriteFileSpec: CommandLineToolSpec, SpecImplementationType, @unchecked Sendable {
     public static let identifier = "com.apple.build-tools.write-file"
 
     public class func construct(registry: SpecRegistry, proxy: SpecProxy) -> Spec {

@@ -13,7 +13,7 @@
 import SWBProtocol
 import SWBUtil
 
-public final class LipoToolSpec: GenericCommandLineToolSpec, SpecIdentifierType {
+public final class LipoToolSpec: GenericCommandLineToolSpec, SpecIdentifierType, @unchecked Sendable {
 
     // Custom override to erase the "linker" nature as specified in Xcode's xcspecs, which doesn't fit with how we model things.
 

@@ -14,7 +14,7 @@ import SWBUtil
 import SWBMacro
 import SWBCore
 
-final class CopyStringsFileSpec: GenericCommandLineToolSpec, SpecIdentifierType {
+final class CopyStringsFileSpec: GenericCommandLineToolSpec, SpecIdentifierType, @unchecked Sendable {
     static let identifier = "com.apple.build-tasks.copy-strings-file"
 
     override func lookup(_ macro: MacroDeclaration, _ cbc: CommandBuildContext, _ delegate: any DiagnosticProducingDelegate, _ lookup: ((MacroDeclaration) -> MacroExpression?)? = nil) -> MacroExpression? {

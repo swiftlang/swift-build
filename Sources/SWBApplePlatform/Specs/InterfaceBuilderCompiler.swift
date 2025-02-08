@@ -14,7 +14,7 @@ import SWBUtil
 public import SWBCore
 public import SWBMacro
 
-public class IbtoolCompilerSpec : GenericCompilerSpec, IbtoolCompilerSupport {
+public class IbtoolCompilerSpec : GenericCompilerSpec, IbtoolCompilerSupport, @unchecked Sendable {
     /// The info object collects information across the build phase so that an ibtool task doesn't try to produce a ~device output which is already being explicitly produced from another input.
     private final class BuildPhaseInfo: BuildPhaseInfoForToolSpec {
         var allInputFilenames = Set<String>()
@@ -140,11 +140,11 @@ public class IbtoolCompilerSpec : GenericCompilerSpec, IbtoolCompilerSupport {
     }
 }
 
-public final class IbtoolCompilerSpecNIB: IbtoolCompilerSpec, SpecIdentifierType {
+public final class IbtoolCompilerSpecNIB: IbtoolCompilerSpec, SpecIdentifierType, @unchecked Sendable {
     public static let identifier = "com.apple.xcode.tools.ibtool.compiler"
 }
 
-public final class IbtoolCompilerSpecStoryboard: IbtoolCompilerSpec, SpecIdentifierType {
+public final class IbtoolCompilerSpecStoryboard: IbtoolCompilerSpec, SpecIdentifierType, @unchecked Sendable {
     public static let identifier = "com.apple.xcode.tools.ibtool.storyboard.compiler"
 
     override public func environmentFromSpec(_ cbc: CommandBuildContext, _ delegate: any DiagnosticProducingDelegate, lookup: ((MacroDeclaration) -> MacroExpression?)? = nil) -> [(String, String)] {

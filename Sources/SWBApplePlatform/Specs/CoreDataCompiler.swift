@@ -13,7 +13,7 @@
 import SWBUtil
 public import SWBCore
 
-public final class CoreDataModelCompilerSpec : GenericCompilerSpec, SpecIdentifierType {
+public final class CoreDataModelCompilerSpec : GenericCompilerSpec, SpecIdentifierType, @unchecked Sendable {
     public static let identifier = "com.apple.compilers.model.coredata"
 
     public override var supportsInstallHeaders: Bool {

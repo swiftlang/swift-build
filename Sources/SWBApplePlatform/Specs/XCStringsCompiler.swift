@@ -13,7 +13,7 @@
 import SWBUtil
 public import SWBCore
 
-public final class XCStringsCompilerSpec: GenericCompilerSpec, SpecIdentifierType {
+public final class XCStringsCompilerSpec: GenericCompilerSpec, SpecIdentifierType, @unchecked Sendable {
     public static let identifier = "com.apple.compilers.xcstrings"
 
     public override func constructTasks(_ cbc: CommandBuildContext, _ delegate: any TaskGenerationDelegate) async {

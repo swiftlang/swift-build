@@ -15,7 +15,7 @@ public import SWBMacro
 
 
 /// Abstract C Compiler.  This is not a concrete implementation, but rather it uses various information in the command build context to choose a specific compiler and to call `constructTasks()` on that compiler.  This provides a level of indirection for projects that just want their source files compiled using the default C compiler.  Depending on the context, the default C compiler for any particular combination of platform, architecture, and other factors may be Clang, ICC, GCC, or some other compiler.
-class AbstractCCompilerSpec : CompilerSpec, SpecIdentifierType, GCCCompatibleCompilerCommandLineBuilder {
+class AbstractCCompilerSpec : CompilerSpec, SpecIdentifierType, GCCCompatibleCompilerCommandLineBuilder, @unchecked Sendable {
     static let identifier = "com.apple.compilers.gcc"
 
     override func resolveConcreteSpec(_ cbc: CommandBuildContext) -> CommandLineToolSpec {
@@ -525,7 +525,7 @@ public enum FlagPattern: Sendable {
 }
 
 
-public class ClangCompilerSpec : CompilerSpec, SpecIdentifierType, GCCCompatibleCompilerCommandLineBuilder {
+public class ClangCompilerSpec : CompilerSpec, SpecIdentifierType, GCCCompatibleCompilerCommandLineBuilder, @unchecked Sendable {
     /// Clang compiler data cache, used to cache constant flags.
     fileprivate final class DataCache: SpecDataCache {
         fileprivate struct ConstantFlagsKey: Hashable, Sendable {
@@ -1874,7 +1874,7 @@ extension ClangCompilerSpec {
     }
 }
 
-public final class ClangStaticAnalyzerSpec : ClangCompilerSpec {
+public final class ClangStaticAnalyzerSpec : ClangCompilerSpec, @unchecked Sendable {
     public class override var identifier: String {
         "com.apple.compilers.llvm.clang.1_0.analyzer"
     }
@@ -1944,7 +1944,7 @@ func createSpecParser(for proxy: SpecProxy, registry: SpecRegistry) -> SpecParse
     return SpecParser(delegate, proxy)
 }
 
-public final class ClangPreprocessorSpec : ClangCompilerSpec, SpecImplementationType {
+public final class ClangPreprocessorSpec : ClangCompilerSpec, SpecImplementationType, @unchecked Sendable {
     public class override var identifier: String {
         "com.apple.compilers.llvm.clang.1_0.preprocessor"
     }
@@ -1980,7 +1980,7 @@ public final class ClangPreprocessorSpec : ClangCompilerSpec, SpecImplementation
     }
 }
 
-public final class ClangAssemblerSpec : ClangCompilerSpec, SpecImplementationType {
+public final class ClangAssemblerSpec : ClangCompilerSpec, SpecImplementationType, @unchecked Sendable {
     public class override var identifier: String {
         "com.apple.compilers.llvm.clang.1_0.assembler"
     }
@@ -2016,7 +2016,7 @@ public final class ClangAssemblerSpec : ClangCompilerSpec, SpecImplementationTyp
     }
 }
 
-public final class ClangModuleVerifierSpec: ClangCompilerSpec, SpecImplementationType {
+public final class ClangModuleVerifierSpec: ClangCompilerSpec, SpecImplementationType, @unchecked Sendable {
     public class override var identifier: String {
         "com.apple.compilers.llvm.clang.1_0.verify_module"
     }

@@ -12,7 +12,7 @@
 
 public import SWBUtil
 
-public final class ProcessSDKImportsSpec: CommandLineToolSpec, SpecImplementationType {
+public final class ProcessSDKImportsSpec: CommandLineToolSpec, SpecImplementationType, @unchecked Sendable {
     public static let identifier = "com.apple.tools.process-sdk-imports"
 
     public static func construct(registry: SpecRegistry, proxy: SpecProxy) -> Spec {
