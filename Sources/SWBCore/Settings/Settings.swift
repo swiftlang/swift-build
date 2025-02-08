@@ -364,7 +364,7 @@ fileprivate struct PreOverridesSettings {
 }
 
 /// This class stores settings tables which are cached by the WorkspaceContext.
-final class WorkspaceSettings {
+final class WorkspaceSettings: Sendable {
     unowned let workspaceContext: WorkspaceContext
 
     var core: Core {
@@ -378,11 +378,11 @@ final class WorkspaceSettings {
         self.workspaceContext = workspaceContext
     }
 
-    struct BuiltinSettingsInfoKey: Hashable {
+    struct BuiltinSettingsInfoKey: Hashable, Sendable {
         let targetType: TargetType?
         let domain: String
     }
-    struct BuiltinSettingsInfo {
+    struct BuiltinSettingsInfo: Sendable {
         /// The actual settings.
         let table: MacroValueAssignmentTable
 
@@ -393,7 +393,7 @@ final class WorkspaceSettings {
         let errors: [String]
     }
 
-    private var builtinSettingsInfoCache = Registry<BuiltinSettingsInfoKey, BuiltinSettingsInfo>()
+    private let builtinSettingsInfoCache = Registry<BuiltinSettingsInfoKey, BuiltinSettingsInfo>()
 
     func builtinSettingsInfo(forTargetType targetType: TargetType?, domain: String) -> BuiltinSettingsInfo {
         return builtinSettingsInfoCache.getOrInsert(BuiltinSettingsInfoKey(targetType: targetType, domain: domain)) {

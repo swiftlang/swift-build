@@ -49,11 +49,11 @@ extension CoreBasedTests {
         // Create a workspace context.
         let workspaceContext = try await WorkspaceContext(core: getCore(), workspace: workspace, fs: fs, processExecutionCache: .sharedForTesting)
 
-        workspaceContext.userPreferences = .defaultForTesting
+        workspaceContext.updateUserPreferences(.defaultForTesting)
 
         // Configure fake user and system info.
-        workspaceContext.userInfo = UserInfo(user: "exampleUser", group: "exampleGroup", uid: 1234, gid:12345, home: Path("/Users/exampleUser"), environment: [:])
-        workspaceContext.systemInfo = SystemInfo(operatingSystemVersion: Version(99, 98, 97), productBuildVersion: "99A98", nativeArchitecture: "x86_64")
+        workspaceContext.updateUserInfo(UserInfo(user: "exampleUser", group: "exampleGroup", uid: 1234, gid:12345, home: Path("/Users/exampleUser"), environment: [:]))
+        workspaceContext.updateSystemInfo(SystemInfo(operatingSystemVersion: Version(99, 98, 97), productBuildVersion: "99A98", nativeArchitecture: "x86_64"))
 
         let buildRequestContext = BuildRequestContext(workspaceContext: workspaceContext)
 

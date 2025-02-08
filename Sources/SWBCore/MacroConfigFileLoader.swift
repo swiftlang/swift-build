@@ -38,7 +38,7 @@ public import SWBMacro
 }
 
 /// Loads macro config files (.xcconfig) in the context of a particular workspace.
-final class MacroConfigFileLoader {
+final class MacroConfigFileLoader: Sendable {
     private let core: Core
     private let fs: any FSProxy
 

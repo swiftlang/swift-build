@@ -16,7 +16,7 @@ public import SWBMacro
 
 public typealias ProvisioningStyle = SWBProtocol.ProvisioningStyle
 
-public enum TargetType {
+public enum TargetType: Sendable {
     /// Native targets are ones the build system actually knows how to construct.
     case standard
     /// Aggregate targets generally behave like the most-generic kind of target.

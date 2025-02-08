@@ -16,7 +16,7 @@ import class Foundation.ProcessInfo
 public import SWBMacro
 
 /// Delegate protocol used to report diagnostics.
-@_spi(Testing) public protocol SDKRegistryDelegate: DiagnosticProducingDelegate {
+@_spi(Testing) public protocol SDKRegistryDelegate: DiagnosticProducingDelegate, Sendable {
     /// The namespace to parse macros into.
     var namespace: MacroNamespace { get }
 
@@ -567,7 +567,7 @@ extension SDKVariant: CustomStringConvertible {
     }
 }
 
-public protocol SDKRegistryLookup {
+public protocol SDKRegistryLookup: Sendable {
     /// Look up the SDK with the given name.
     /// - parameter name: Canonical name, alias, or short name of the SDK to look up.
     /// - parameter activeRunDestination: Active run destination for the build. Used to disambiguate between multiple matches for the same alias by comparing the run destination's platform with the matched SDK's cohort platforms.
@@ -615,7 +615,7 @@ public enum FrameworkReplacementKind: Sendable {
 }
 
 /// This object manages the set of SDKs.
-public final class SDKRegistry: SDKRegistryLookup, CustomStringConvertible {
+public final class SDKRegistry: SDKRegistryLookup, CustomStringConvertible, Sendable {
     /// The type of an SDK registry.
     @_spi(Testing) public enum SDKRegistryType: String, Sendable {
         /// A registry for built-in SDKs.
@@ -640,13 +640,13 @@ public final class SDKRegistry: SDKRegistryLookup, CustomStringConvertible {
     private let delegate: any SDKRegistryDelegate
 
     /// The map of SDKs by identifier.
-    private var sdksByCanonicalName = Registry<String, SDK>()
+    private let sdksByCanonicalName = Registry<String, SDK>()
 
     /// The map of SDKs by alias.
-    private var sdksByAlias = Registry<String, [SDK]>()
+    private let sdksByAlias = Registry<String, [SDK]>()
 
     /// The map of SDKs by path.
-    private var sdksByPath = Registry<Path, SDK>()
+    private let sdksByPath = Registry<Path, SDK>()
 
     /// The map of canonical name strings parsed to semantic understandings of an SDK name.
     private let parsedSDKNames = Registry<String, Result<SDK.CanonicalNameComponents, any Error>>()

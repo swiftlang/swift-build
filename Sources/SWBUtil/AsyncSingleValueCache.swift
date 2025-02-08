@@ -10,7 +10,7 @@
 //
 //===----------------------------------------------------------------------===//
 
-public struct AsyncSingleValueCache<Value: Sendable, E: Error>: ~Copyable {
+public struct AsyncSingleValueCache<Value: Sendable, E: Error>: ~Copyable, Sendable {
     private let value = AsyncLockedValue<Value?>(nil)
 
     public init() { }

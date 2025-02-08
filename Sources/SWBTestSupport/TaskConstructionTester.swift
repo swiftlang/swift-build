@@ -824,9 +824,9 @@ package final class TaskConstructionTester {
         let workspaceContext = WorkspaceContext(core: core, workspace: workspace, fs: fs, processExecutionCache: .sharedForTesting)
 
         // Configure fake user and system info.
-        workspaceContext.userInfo = UserInfo(user: "exampleUser", group: "exampleGroup", uid: 1234, gid:12345, home: Path("/Users/whoever"), environment: processEnvironment)
-        workspaceContext.systemInfo = systemInfo ?? SystemInfo(operatingSystemVersion: Version(99, 98, 97), productBuildVersion: "99A98", nativeArchitecture: "x86_64")
-        workspaceContext.userPreferences = userPreferences ?? UserPreferences.defaultForTesting
+        workspaceContext.updateUserInfo(UserInfo(user: "exampleUser", group: "exampleGroup", uid: 1234, gid:12345, home: Path("/Users/whoever"), environment: processEnvironment))
+        workspaceContext.updateSystemInfo(systemInfo ?? SystemInfo(operatingSystemVersion: Version(99, 98, 97), productBuildVersion: "99A98", nativeArchitecture: "x86_64"))
+        workspaceContext.updateUserPreferences(userPreferences ?? UserPreferences.defaultForTesting)
 
         // Create a build request.
         let buildRequest: BuildRequest
