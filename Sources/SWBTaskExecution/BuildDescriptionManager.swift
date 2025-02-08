@@ -90,17 +90,17 @@ package final class BuildDescriptionManager: Sendable {
     private let inMemoryCachedBuildDescriptions: HeavyCache<BuildDescriptionSignature, BuildDescription>
 
     /// The last build plan request. Used to generate a diff of the current plan for debugging purposes.
-    private var lastBuildPlanRequest: BuildPlanRequest?
+    private let lastBuildPlanRequest: SWBMutex<BuildPlanRequest?> = .init(nil)
 
     /// The last build plan request for the workspace build description. Used to generate a diff of the current plan
     /// for debugging purposes.
-    private var lastIndexBuildPlanRequest: BuildPlanRequest?
+    private let lastIndexBuildPlanRequest: SWBMutex<BuildPlanRequest?> = .init(nil)
 
     /// The last workspace build description generated for the index arena.
     ///
     /// Separated from the regular cache as the index assumes that requests for build settings are fast once this is
     /// loaded, so it shouldn't ever be removed.
-    private var lastIndexWorkspaceDescription: BuildDescription?
+    private let lastIndexWorkspaceDescription: SWBMutex<BuildDescription?> = .init(nil)
 
     package init(fs: any FSProxy, buildDescriptionMemoryCacheEvictionPolicy: BuildDescriptionMemoryCacheEvictionPolicy, maxCacheSize: (inMemory: Int, onDisk: Int) = (4, 4)) {
         self.fs = fs
@@ -291,8 +291,8 @@ package final class BuildDescriptionManager: Sendable {
 
     private func getCachedBuildDescription(request: BuildDescriptionRequest, signature: BuildDescriptionSignature, constructionDelegate: any BuildDescriptionConstructionDelegate) -> BuildDescription? {
         var description: BuildDescription?
-        if lastIndexWorkspaceDescription?.signature == signature {
-            description = lastIndexWorkspaceDescription
+        if let lastDescription = lastIndexWorkspaceDescription.withLock({ $0 }), lastDescription.signature == signature {
+            description = lastDescription
         } else if let inMemoryDescription = inMemoryCachedBuildDescriptions[signature] {
             description = inMemoryDescription
         } else {
@@ -350,7 +350,9 @@ package final class BuildDescriptionManager: Sendable {
             // Do this at elevated priority to ensure any cache evictions that insertion will perform are done promptly and don't delay other work.
             await _Concurrency.Task(priority: .userInitiated) {
                 if request.isIndexWorkspaceDescription {
-                    lastIndexWorkspaceDescription = buildDescription
+                    lastIndexWorkspaceDescription.withLock {
+                        $0 = buildDescription
+                    }
                 } else {
                     inMemoryCachedBuildDescriptions[signature] = buildDescription
                 }
@@ -464,7 +466,7 @@ package final class BuildDescriptionManager: Sendable {
         if request.workspaceContext.userPreferences.enableDebugActivityLogs,
            !request.isForIndex || request.isIndexWorkspaceDescription {
             let lastBuildPlanRequest = request.isForIndex ? lastIndexBuildPlanRequest : lastBuildPlanRequest
-            if let planRequest = request.planRequest, let lastBuildPlanRequest {
+            if let planRequest = request.planRequest, let lastBuildPlanRequest = lastBuildPlanRequest.withLock({ $0 }) {
                 do {
                     if let diff = try BuildDescriptionSignature.compareBuildDescriptionSignatures(planRequest, lastBuildPlanRequest, onDiskPath) {
                         constructionDelegate.emit(Diagnostic(behavior: .note, location: .unknown, data: DiagnosticData("New build description required because the signature changed"), childDiagnostics: [
@@ -478,9 +480,13 @@ package final class BuildDescriptionManager: Sendable {
             }
 
             if request.isForIndex {
-                self.lastIndexBuildPlanRequest = request.planRequest
+                self.lastIndexBuildPlanRequest.withLock {
+                    $0 = request.planRequest
+                }
             } else {
-                self.lastBuildPlanRequest = request.planRequest
+                self.lastBuildPlanRequest.withLock {
+                    $0 = request.planRequest
+                }
             }
         }
 
