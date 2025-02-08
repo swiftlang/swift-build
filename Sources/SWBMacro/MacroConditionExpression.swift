@@ -16,7 +16,7 @@ import SWBUtil
 
 
 /// A parsed condition which can be evaluated in the context of a scope to return a boolean or string result.  This is used in build options to define conditions under which the option should contribute arguments to a command line.
-public class MacroConditionExpression: CustomStringConvertible
+public class MacroConditionExpression: CustomStringConvertible, @unchecked Sendable
 {
     /// Parse a ``MacroConditionExpression`` object from ``string``.
     ///
@@ -333,7 +333,7 @@ public class MacroConditionExpression: CustomStringConvertible
 
 
 /// Abstract base class for expressions that whose natural return type is a string.  These can still be converted to booleans using evaluateAsBoolean()
-private class MacroConditionStringExpression: MacroConditionExpression
+private class MacroConditionStringExpression: MacroConditionExpression, @unchecked Sendable
 {
     override func evaluateAsString(_ scope: MacroEvaluationScope, lookup: ((MacroDeclaration) -> MacroExpression?)? = nil) -> String
     {
@@ -347,7 +347,7 @@ private class MacroConditionStringExpression: MacroConditionExpression
 }
 
 /// A constant string condition expression.
-private class MacroConditionStringConstantExpression: MacroConditionStringExpression
+private final class MacroConditionStringConstantExpression: MacroConditionStringExpression, @unchecked Sendable
 {
     let macroExpr: MacroStringExpression
 
@@ -368,7 +368,7 @@ private class MacroConditionStringConstantExpression: MacroConditionStringExpres
 }
 
 /// Abstract base class for expressions that whose natural return type is a boolean.  These can still be converted to strings using evaluateAsString().
-private class MacroConditionBooleanExpression: MacroConditionExpression
+private class MacroConditionBooleanExpression: MacroConditionExpression, @unchecked Sendable
 {
     override func evaluateAsString(_ scope: MacroEvaluationScope, lookup: ((MacroDeclaration) -> MacroExpression?)? = nil) -> String
     {
@@ -383,7 +383,7 @@ private class MacroConditionBooleanExpression: MacroConditionExpression
 
 // True and False constant expressions are not presently used.
 @available(*, unavailable)
-private class MacroConditionTrueConstantExpression: MacroConditionBooleanExpression
+private final class MacroConditionTrueConstantExpression: MacroConditionBooleanExpression, @unchecked Sendable
 {
     override func evaluateAsBoolean(_ scope: MacroEvaluationScope, lookup: ((MacroDeclaration) -> MacroExpression?)? = nil) -> Bool
     {
@@ -398,7 +398,7 @@ private class MacroConditionTrueConstantExpression: MacroConditionBooleanExpress
 
 // True and False constant expressions are not presently used.
 @available(*, unavailable)
-private class MacroConditionFalseConstantExpression: MacroConditionBooleanExpression
+private final class MacroConditionFalseConstantExpression: MacroConditionBooleanExpression, @unchecked Sendable
 {
     override func evaluateAsBoolean(_ scope: MacroEvaluationScope, lookup: ((MacroDeclaration) -> MacroExpression?)? = nil) -> Bool
     {
@@ -412,7 +412,7 @@ private class MacroConditionFalseConstantExpression: MacroConditionBooleanExpres
 }
 
 /// Abstract base class for boolean expressions that operate on a single operand (either boolean or string).
-private class MacroConditionUnaryBooleanExpression: MacroConditionExpression
+private class MacroConditionUnaryBooleanExpression: MacroConditionExpression, @unchecked Sendable
 {
     let expr: MacroConditionExpression?
 
@@ -427,7 +427,7 @@ private class MacroConditionUnaryBooleanExpression: MacroConditionExpression
     }
 }
 
-private class MacroConditionLogicalNOTExpression: MacroConditionUnaryBooleanExpression
+private final class MacroConditionLogicalNOTExpression: MacroConditionUnaryBooleanExpression, @unchecked Sendable
 {
     override func evaluateAsBoolean(_ scope: MacroEvaluationScope, lookup: ((MacroDeclaration) -> MacroExpression?)? = nil) -> Bool
     {
@@ -442,7 +442,7 @@ private class MacroConditionLogicalNOTExpression: MacroConditionUnaryBooleanExpr
 }
 
 /// Abstract base class for boolean expressions that operate on two operands (either booleans or strings).
-private class MacroConditionBinaryBooleanExpression: MacroConditionBooleanExpression
+private class MacroConditionBinaryBooleanExpression: MacroConditionBooleanExpression, @unchecked Sendable
 {
     let leftExpr: MacroConditionExpression?
     let rightExpr: MacroConditionExpression?
@@ -459,7 +459,7 @@ private class MacroConditionBinaryBooleanExpression: MacroConditionBooleanExpres
     }
 }
 
-private class MacroConditionEqualityExpression: MacroConditionBinaryBooleanExpression
+private final class MacroConditionEqualityExpression: MacroConditionBinaryBooleanExpression, @unchecked Sendable
 {
     override func evaluateAsBoolean(_ scope: MacroEvaluationScope, lookup: ((MacroDeclaration) -> MacroExpression?)? = nil) -> Bool
     {
@@ -475,7 +475,7 @@ private class MacroConditionEqualityExpression: MacroConditionBinaryBooleanExpre
     }
 }
 
-private class MacroConditionInequalityExpression: MacroConditionBinaryBooleanExpression
+private final class MacroConditionInequalityExpression: MacroConditionBinaryBooleanExpression, @unchecked Sendable
 {
     override func evaluateAsBoolean(_ scope: MacroEvaluationScope, lookup: ((MacroDeclaration) -> MacroExpression?)? = nil) -> Bool
     {
@@ -491,7 +491,7 @@ private class MacroConditionInequalityExpression: MacroConditionBinaryBooleanExp
     }
 }
 
-private class MacroConditionLogicalANDExpression: MacroConditionBinaryBooleanExpression
+private final class MacroConditionLogicalANDExpression: MacroConditionBinaryBooleanExpression, @unchecked Sendable
 {
     override func evaluateAsBoolean(_ scope: MacroEvaluationScope, lookup: ((MacroDeclaration) -> MacroExpression?)? = nil) -> Bool
     {
@@ -507,7 +507,7 @@ private class MacroConditionLogicalANDExpression: MacroConditionBinaryBooleanExp
     }
 }
 
-private class MacroConditionLogicalORExpression: MacroConditionBinaryBooleanExpression
+private final class MacroConditionLogicalORExpression: MacroConditionBinaryBooleanExpression, @unchecked Sendable
 {
     override func evaluateAsBoolean(_ scope: MacroEvaluationScope, lookup: ((MacroDeclaration) -> MacroExpression?)? = nil) -> Bool
     {
@@ -525,7 +525,7 @@ private class MacroConditionLogicalORExpression: MacroConditionBinaryBooleanExpr
 
 // XOR is not presently used.
 @available(*, unavailable)
-private class MacroConditionLogicalXORExpression: MacroConditionBinaryBooleanExpression
+private final class MacroConditionLogicalXORExpression: MacroConditionBinaryBooleanExpression, @unchecked Sendable
 {
     override func evaluateAsBoolean(_ scope: MacroEvaluationScope, lookup: ((MacroDeclaration) -> MacroExpression?)? = nil) -> Bool
     {
@@ -541,7 +541,7 @@ private class MacroConditionLogicalXORExpression: MacroConditionBinaryBooleanExp
     }
 }
 
-private class MacroConditionContainsExpression: MacroConditionBinaryBooleanExpression
+private final class MacroConditionContainsExpression: MacroConditionBinaryBooleanExpression, @unchecked Sendable
 {
     override func evaluateAsBoolean(_ scope: MacroEvaluationScope, lookup: ((MacroDeclaration) -> MacroExpression?)? = nil) -> Bool
     {
@@ -558,7 +558,7 @@ private class MacroConditionContainsExpression: MacroConditionBinaryBooleanExpre
 }
 
 /// A ternary conditional expression.
-private class MacroConditionTernaryConditionalExpression: MacroConditionExpression
+private final class MacroConditionTernaryConditionalExpression: MacroConditionExpression, @unchecked Sendable
 {
     let condExpr: MacroConditionExpression?
     let thenExpr: MacroConditionExpression?

@@ -13,7 +13,7 @@
 import SWBUtil
 import SWBMacro
 
-final class TouchToolSpec : CommandLineToolSpec, SpecIdentifierType {
+final class TouchToolSpec : CommandLineToolSpec, SpecIdentifierType, @unchecked Sendable {
     static let identifier = "com.apple.tools.touch"
 
     override func constructTasks(_ cbc: CommandBuildContext, _ delegate: any TaskGenerationDelegate) async {

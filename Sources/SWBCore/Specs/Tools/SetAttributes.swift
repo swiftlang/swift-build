@@ -10,7 +10,7 @@
 //
 //===----------------------------------------------------------------------===//
 
-public final class SetAttributesSpec: CommandLineToolSpec, SpecImplementationType {
+public final class SetAttributesSpec: CommandLineToolSpec, SpecImplementationType, @unchecked Sendable {
     public static let identifier = "com.apple.build-tools.set-attributes"
 
     public class func construct(registry: SpecRegistry, proxy: SpecProxy) -> Spec {

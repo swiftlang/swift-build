@@ -13,7 +13,7 @@
 import SWBProtocol
 import SWBUtil
 
-public final class ValidateDevelopmentAssets: CommandLineToolSpec, SpecImplementationType {
+public final class ValidateDevelopmentAssets: CommandLineToolSpec, SpecImplementationType, @unchecked Sendable {
     public static let identifier = "com.apple.tools.validate-development-assets"
 
     public static func construct(registry: SpecRegistry, proxy: SpecProxy) -> Spec {

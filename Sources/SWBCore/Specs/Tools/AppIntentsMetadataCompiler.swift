@@ -64,7 +64,7 @@ private struct AppIntentsLocalizationPayload: TaskPayload {
     }
 }
 
-final public class AppIntentsMetadataCompilerSpec: GenericCommandLineToolSpec, SpecIdentifierType {
+final public class AppIntentsMetadataCompilerSpec: GenericCommandLineToolSpec, SpecIdentifierType, @unchecked Sendable {
     public static let identifier = "com.apple.compilers.appintentsmetadata"
     public func shouldConstructAppIntentsMetadataTask(_ cbc: CommandBuildContext) -> Bool {
         return cbc.scope.evaluate(BuiltinMacros.CURRENT_VARIANT) == "normal" &&

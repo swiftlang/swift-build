@@ -12,7 +12,7 @@
 
 public import SWBUtil
 
-public final class MergeInfoPlistSpec: CommandLineToolSpec, SpecImplementationType {
+public final class MergeInfoPlistSpec: CommandLineToolSpec, SpecImplementationType, @unchecked Sendable {
     public static func construct(registry: SpecRegistry, proxy: SpecProxy) -> Spec {
         MergeInfoPlistSpec(registry, proxy, execDescription: registry.internalMacroNamespace.parseString("Merge preprocessed Info.plist variants"), ruleInfoTemplate: ["MergeInfoPlistFile", .output, .input], commandLineTemplate: [.execPath, .options, .output, .inputs])
     }

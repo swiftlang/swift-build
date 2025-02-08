@@ -12,7 +12,7 @@
 
 public import SWBUtil
 
-public final class ConcatenateToolSpec : CommandLineToolSpec, SpecImplementationType {
+public final class ConcatenateToolSpec : CommandLineToolSpec, SpecImplementationType, @unchecked Sendable {
     public static let identifier = "com.apple.build-tools.concatenate"
 
     public static func construct(registry: SpecRegistry, proxy: SpecProxy) -> Spec {

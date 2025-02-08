@@ -14,7 +14,7 @@ import SWBUtil
 import SWBMacro
 import SWBCore
 
-final class OpenCLCompilerSpec : CompilerSpec, SpecIdentifierType, GCCCompatibleCompilerCommandLineBuilder {
+final class OpenCLCompilerSpec : CompilerSpec, SpecIdentifierType, GCCCompatibleCompilerCommandLineBuilder, @unchecked Sendable {
     static let identifier = "com.apple.compilers.opencl"
 
     private let openCLOutputs: [MacroStringExpression]?

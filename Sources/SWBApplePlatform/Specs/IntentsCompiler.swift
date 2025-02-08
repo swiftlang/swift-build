@@ -86,7 +86,7 @@ fileprivate enum IntentsIndexingInfo: Serializable, SourceFileIndexingInfo, Enco
     }
 }
 
-public final class IntentsCompilerSpec : GenericCompilerSpec, SpecIdentifierType {
+public final class IntentsCompilerSpec : GenericCompilerSpec, SpecIdentifierType, @unchecked Sendable {
     public static let identifier = "com.apple.compilers.intents"
 
     public override var supportsInstallAPI: Bool {

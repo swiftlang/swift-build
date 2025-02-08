@@ -235,7 +235,7 @@ public struct DiscoveredLdLinkerToolSpecInfo: DiscoveredCommandLineToolSpecInfo 
     }
 }
 
-public final class LdLinkerSpec : GenericLinkerSpec, SpecIdentifierType {
+public final class LdLinkerSpec : GenericLinkerSpec, SpecIdentifierType, @unchecked Sendable {
     public static let identifier = "com.apple.pbx.linkers.ld"
 
     public override func computeExecutablePath(_ cbc: CommandBuildContext) -> String {
@@ -1322,7 +1322,7 @@ public struct DiscoveredLibtoolLinkerToolSpecInfo: DiscoveredCommandLineToolSpec
     public let toolVersion: Version?
 }
 
-public final class LibtoolLinkerSpec : GenericLinkerSpec, SpecIdentifierType {
+public final class LibtoolLinkerSpec : GenericLinkerSpec, SpecIdentifierType, @unchecked Sendable {
     public static let identifier = "com.apple.pbx.linkers.libtool"
 
     override public var payloadType: (any TaskPayload.Type)? { return LibtoolLinkerTaskPayload.self }

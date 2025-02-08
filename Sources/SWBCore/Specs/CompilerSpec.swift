@@ -14,7 +14,7 @@ import Foundation
 public import SWBUtil
 import SWBMacro
 
-open class CompilerSpec : CommandLineToolSpec {
+open class CompilerSpec : CommandLineToolSpec, @unchecked Sendable {
     class public override var typeName: String {
         return "Compiler"
     }
@@ -123,7 +123,7 @@ extension ProjectFailuresBlockList {
     }
 }
 
-open class GenericCompilerSpec : CompilerSpec {
+open class GenericCompilerSpec : CompilerSpec, @unchecked Sendable {
     required public init(_ parser: SpecParser, _ basedOnSpec: Spec?) {
         super.init(parser, basedOnSpec, isGeneric: true)
     }

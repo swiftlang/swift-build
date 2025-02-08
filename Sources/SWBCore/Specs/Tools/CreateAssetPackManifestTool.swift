@@ -13,7 +13,7 @@
 import SWBUtil
 public import SWBMacro
 
-public final class CreateAssetPackManifestToolSpec : CommandLineToolSpec, SpecImplementationType {
+public final class CreateAssetPackManifestToolSpec : CommandLineToolSpec, SpecImplementationType, @unchecked Sendable {
     public static let identifier = "com.apple.build-tools.odr.create-asset-pack-manifest"
 
     public class func construct(registry: SpecRegistry, proxy: SpecProxy) -> Spec {

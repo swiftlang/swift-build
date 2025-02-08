@@ -452,13 +452,13 @@ public class PlatformSpec : Spec, SpecType {
     }
 }
 
-public class BuildSettingsSpec : PropertyDomainSpec, SpecType {
+public final class BuildSettingsSpec : PropertyDomainSpec, SpecType, @unchecked Sendable {
     class public override var typeName: String {
         return "BuildSettings"
     }
 }
 
-public class BuildSystemSpec : PropertyDomainSpec, SpecType {
+public final class BuildSystemSpec : PropertyDomainSpec, SpecType, @unchecked Sendable {
     class public override var typeName: String {
         return "BuildSystem"
     }

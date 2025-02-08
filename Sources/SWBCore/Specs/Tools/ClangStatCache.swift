@@ -10,7 +10,7 @@
 //
 //===----------------------------------------------------------------------===//
 
-final public class ClangStatCacheSpec: GenericCommandLineToolSpec, SpecIdentifierType {
+final public class ClangStatCacheSpec: GenericCommandLineToolSpec, SpecIdentifierType, @unchecked Sendable {
     public static let identifier = "com.apple.compilers.clang-stat-cache"
 
     override public var enableSandboxing: Bool {

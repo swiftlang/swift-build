@@ -14,7 +14,7 @@ import SWBProtocol
 import SWBUtil
 public import SWBMacro
 
-public final class RegisterExecutionPolicyExceptionToolSpec: CommandLineToolSpec, SpecImplementationType {
+public final class RegisterExecutionPolicyExceptionToolSpec: CommandLineToolSpec, SpecImplementationType, @unchecked Sendable {
     public static let identifier = "com.apple.build-tasks.register-execution-policy-exception"
 
     public static func construct(registry: SpecRegistry, proxy: SpecProxy) -> Spec {

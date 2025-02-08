@@ -12,7 +12,7 @@
 
 import SWBMacro
 
-public final class StripToolSpec : GenericCommandLineToolSpec, SpecIdentifierType {
+public final class StripToolSpec : GenericCommandLineToolSpec, SpecIdentifierType, @unchecked Sendable {
     public static let identifier = "com.apple.build-tools.strip"
 
     /// Custom override to inject an appropriate output path.

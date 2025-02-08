@@ -13,7 +13,7 @@
 // This is a stub spec type, used for gate tasks.
 //
 // FIXME: We shouldn't need this, but there are some hard coded assumptions about being able to serialize task types currently.
-public final class GateSpec: CommandLineToolSpec, SpecImplementationType {
+public final class GateSpec: CommandLineToolSpec, SpecImplementationType, @unchecked Sendable {
     public static let identifier = "com.apple.build-tools.gate"
 
     public class func construct(registry: SpecRegistry, proxy: SpecProxy) -> Spec {

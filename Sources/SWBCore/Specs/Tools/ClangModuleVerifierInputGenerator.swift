@@ -12,7 +12,7 @@
 
 public import SWBUtil
 
-public final class ClangModuleVerifierInputGeneratorSpec : GenericCommandLineToolSpec, SpecIdentifierType {
+public final class ClangModuleVerifierInputGeneratorSpec : GenericCommandLineToolSpec, SpecIdentifierType, @unchecked Sendable {
     public static let identifier = "com.apple.build-tools.module-verifier-input-generator"
 
     override public func constructTasks(_ cbc: CommandBuildContext, _ delegate: any TaskGenerationDelegate) async {

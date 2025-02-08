@@ -15,7 +15,7 @@ public import SWBUtil
 public import SWBProtocol
 public import SWBMacro
 
-final public class DocumentationCompilerSpec: GenericCompilerSpec, SpecIdentifierType {
+final public class DocumentationCompilerSpec: GenericCompilerSpec, SpecIdentifierType, @unchecked Sendable {
     public static let identifier = "com.apple.compilers.documentation"
 
     static public func shouldConstructSymbolGenerationTask(_ cbc: CommandBuildContext) -> Bool {

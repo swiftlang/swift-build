@@ -12,7 +12,7 @@
 
 import SWBCore
 
-final class CopyTiffFileSpec: GenericCommandLineToolSpec, SpecIdentifierType {
+final class CopyTiffFileSpec: GenericCommandLineToolSpec, SpecIdentifierType, @unchecked Sendable {
     static let identifier = "com.apple.build-tasks.copy-tiff-file"
 
     override func createTaskAction(_ cbc: CommandBuildContext, _ delegate: any TaskGenerationDelegate) -> (any PlannedTaskAction)? {

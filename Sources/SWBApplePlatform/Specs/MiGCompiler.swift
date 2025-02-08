@@ -19,7 +19,7 @@ public struct DiscoveredMiGToolSpecInfo: DiscoveredCommandLineToolSpecInfo {
     public var toolVersion: Version?
 }
 
-public final class MigCompilerSpec : CompilerSpec, SpecIdentifierType {
+public final class MigCompilerSpec : CompilerSpec, SpecIdentifierType, @unchecked Sendable {
     public static let identifier = "com.apple.compilers.mig"
 
     required override init(_ parser: SpecParser, _ basedOnSpec: Spec?, isGeneric: Bool) {

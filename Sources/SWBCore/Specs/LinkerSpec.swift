@@ -15,7 +15,7 @@ public import SWBMacro
 
 public let reexportedBinariesDirectoryName = "ReexportedBinaries"
 
-open class LinkerSpec : CommandLineToolSpec {
+open class LinkerSpec : CommandLineToolSpec, @unchecked Sendable {
     /// Specifier for an individual library to be linked.
     public struct LibrarySpecifier {
         public enum Kind: CaseIterable, CustomStringConvertible {
@@ -148,7 +148,7 @@ open class LinkerSpec : CommandLineToolSpec {
     }
 }
 
-open class GenericLinkerSpec : LinkerSpec {
+open class GenericLinkerSpec : LinkerSpec, @unchecked Sendable {
     required public init(_ parser: SpecParser, _ basedOnSpec: Spec?) {
         super.init(parser, basedOnSpec, isGeneric: true)
     }

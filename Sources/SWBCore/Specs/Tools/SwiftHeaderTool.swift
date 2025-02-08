@@ -13,7 +13,7 @@
 public import SWBUtil
 public import SWBMacro
 
-public final class SwiftHeaderToolSpec : CommandLineToolSpec, SpecImplementationType {
+public final class SwiftHeaderToolSpec : CommandLineToolSpec, SpecImplementationType, @unchecked Sendable {
     public static let identifier = "com.apple.build-tools.swift-header-tool"
 
     public override func resolveExecutionDescription(_ cbc: CommandBuildContext, _ delegate: any DiagnosticProducingDelegate, lookup: ((MacroDeclaration) -> MacroExpression?)? = nil) -> String {

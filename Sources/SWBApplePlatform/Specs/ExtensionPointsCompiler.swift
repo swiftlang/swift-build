@@ -13,7 +13,7 @@
 import SWBCore
 import SWBProtocol
 
-final class CopyXCAppExtensionPointsFileSpec: GenericCommandLineToolSpec, SpecIdentifierType {
+final class CopyXCAppExtensionPointsFileSpec: GenericCommandLineToolSpec, SpecIdentifierType, @unchecked Sendable {
     static let identifier = "com.apple.compilers.process-xcappextensionpoints"
 
     override func createTaskAction(_ cbc: CommandBuildContext, _ delegate: any TaskGenerationDelegate) -> (any PlannedTaskAction)? {

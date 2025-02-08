@@ -14,7 +14,7 @@ public import SWBUtil
 public import SWBCore
 public import SWBMacro
 
-public final class IBStoryboardLinkerCompilerSpec : GenericCompilerSpec, SpecIdentifierType, IbtoolCompilerSupport {
+public final class IBStoryboardLinkerCompilerSpec : GenericCompilerSpec, SpecIdentifierType, IbtoolCompilerSupport, @unchecked Sendable {
     public static let identifier = "com.apple.xcode.tools.ibtool.storyboard.linker"
 
     /// Override to compute the special arguments.

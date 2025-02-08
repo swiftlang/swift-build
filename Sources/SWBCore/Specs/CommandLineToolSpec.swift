@@ -16,7 +16,7 @@ public import class Foundation.JSONDecoder
 public import SWBMacro
 
 /// Describes the type and other characterstics of a single kind of input file accepted by a build tool.
-struct InputFileTypeDescriptor: Encodable {
+struct InputFileTypeDescriptor: Encodable, Sendable {
     /// Identifier of the file type — this is unbound until the build tool is used, since the particular file type any given identifier maps to can depend on the context.
     let identifier: String
     /// FIXME: There will be others, but for now the identifier is the only one we use.
@@ -248,8 +248,8 @@ extension DiscoveredCommandLineToolSpecInfo {
     }
 }
 
-open class CommandLineToolSpec : PropertyDomainSpec, SpecType, TaskTypeDescription {
-    package enum CommandLineTemplateArg : Sendable{
+open class CommandLineToolSpec : PropertyDomainSpec, SpecType, TaskTypeDescription, @unchecked Sendable {
+    package enum CommandLineTemplateArg : Sendable {
         /// Placeholder for the dynamically computed executable path.
         //
         // FIXME: Note, this is only used by 'Ld.xcspec', there might be a simpler implementation.
@@ -1408,7 +1408,7 @@ extension CommandLineToolSpec.RuleInfoTemplateArg: ExpressibleByStringLiteral {
     }
 }
 
-open class GenericCommandLineToolSpec : CommandLineToolSpec {
+open class GenericCommandLineToolSpec : CommandLineToolSpec, @unchecked Sendable {
     required public init(_ parser: SpecParser, _ basedOnSpec: Spec?) {
         super.init(parser, basedOnSpec, isGeneric: true)
     }

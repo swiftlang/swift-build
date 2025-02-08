@@ -12,7 +12,7 @@
 
 import SWBCore
 
-final class DiffToolSpec: CommandLineToolSpec, SpecImplementationType {
+final class DiffToolSpec: CommandLineToolSpec, SpecImplementationType, @unchecked Sendable {
     static let identifier = "com.apple.build-tools.diff"
 
     override var enableSandboxing: Bool {

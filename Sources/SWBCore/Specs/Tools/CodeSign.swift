@@ -13,7 +13,7 @@
 public import SWBUtil
 public import SWBMacro
 
-public final class CodesignToolSpec : CommandLineToolSpec, SpecIdentifierType {
+public final class CodesignToolSpec : CommandLineToolSpec, SpecIdentifierType, @unchecked Sendable {
     public static let identifier = "com.apple.build-tools.codesign"
 
     public override func computeExecutablePath(_ cbc: CommandBuildContext) -> String {

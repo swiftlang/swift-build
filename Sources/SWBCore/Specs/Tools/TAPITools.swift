@@ -18,7 +18,7 @@ public struct DiscoveredTAPIToolSpecInfo: DiscoveredCommandLineToolSpecInfo {
     public let toolVersion: Version?
 }
 
-public final class TAPIToolSpec : GenericCommandLineToolSpec, GCCCompatibleCompilerCommandLineBuilder, SpecIdentifierType {
+public final class TAPIToolSpec : GenericCommandLineToolSpec, GCCCompatibleCompilerCommandLineBuilder, SpecIdentifierType, @unchecked Sendable {
     public static let identifier = "com.apple.build-tools.tapi.installapi"
 
     public static let dSYMSupportRequiredVersion = try! FuzzyVersion("1500.*.7")
@@ -165,7 +165,7 @@ public final class TAPIToolSpec : GenericCommandLineToolSpec, GCCCompatibleCompi
     }
 }
 
-final class TAPIMergeToolSpec : CommandLineToolSpec, SpecImplementationType {
+final class TAPIMergeToolSpec : CommandLineToolSpec, SpecImplementationType, @unchecked Sendable {
     static let identifier = "com.apple.build-tools.tapi.merge"
 
     class func construct(registry: SpecRegistry, proxy: SpecProxy) -> Spec {

@@ -212,11 +212,11 @@ private let buildOptionTypes: [String: any BuildOptionType] = [
 /// Descriptor for a possible value for a build option.
 //
 // FIXME: This should possibly be private, and we really want the compiler to be able to optimize it as much as possible. However, we currently depend on it only being internal for our unit tests.
-@_spi(Testing) public struct BuildOptionValue {
+@_spi(Testing) public struct BuildOptionValue: Sendable {
     /// Type describing the possible ways a value can be expanded into command line arguments.
     ///
     /// For list types, this template defines what to do *for each* option in the list.
-    @_spi(Testing) public enum CommandLineTemplateSpecifier {
+    @_spi(Testing) public enum CommandLineTemplateSpecifier: Sendable {
         /// Don’t add anything — this can be used to “block” default fallback templates.
         case empty
 
@@ -262,7 +262,7 @@ private let buildOptionTypes: [String: any BuildOptionType] = [
 }
 
 /// Represents an individual option that is part of a property domain spec.
-@_spi(Testing) public final class BuildOption: CustomStringConvertible {
+@_spi(Testing) public final class BuildOption: CustomStringConvertible, Sendable {
     /// Helper type for representing the type of command line argument specifier that was used for a build option.
     private enum CommandLineSpecifier {
     case arrayArgs(value: [String])
@@ -1624,7 +1624,7 @@ extension BuildOptionGenerationContext {
 }
 
 /// This is a shared base class, but cannot itself be a declared spec type.
-open class PropertyDomainSpec : Spec {
+open class PropertyDomainSpec : Spec, @unchecked Sendable {
     /// The ordered list of build options associated with this spec, not including any buildOptions from its BasedOn spec (see `flattenedBuildOptions` and `flattenedOrderedBuildOptions` instead).
     @_spi(Testing) public let buildOptions: [BuildOption]
 

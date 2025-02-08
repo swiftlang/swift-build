@@ -12,6 +12,6 @@
 
 import SWBCore
 
-final class CppToolSpec : GenericCommandLineToolSpec, SpecIdentifierType {
+final class CppToolSpec : GenericCommandLineToolSpec, SpecIdentifierType, @unchecked Sendable {
     static let identifier = "com.apple.compilers.cpp"
 }
