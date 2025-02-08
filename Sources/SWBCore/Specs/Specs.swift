@@ -26,7 +26,7 @@ extension SpecParser {
 }
 
 /// Base class for all spec types.
-open class Spec {
+open class Spec: @unchecked Sendable {
     class var typeName: String {
         preconditionFailure("subclass responsibility")
     }
@@ -132,7 +132,7 @@ extension Spec: CustomStringConvertible {
     }
 }
 
-public class ArchitectureSpec : Spec, SpecType {
+public final class ArchitectureSpec : Spec, SpecType, @unchecked Sendable {
     class public override var typeName: String {
         return "Architecture"
     }
@@ -248,7 +248,7 @@ public class ArchitectureSpec : Spec, SpecType {
     }
 }
 
-public class ProjectOverridesSpec : Spec, SpecType {
+public final class ProjectOverridesSpec : Spec, SpecType, @unchecked Sendable {
     class public override var typeName: String {
         return "ProjectOverrides"
     }
@@ -369,7 +369,7 @@ public class FileTypeSpec : Spec, SpecType, @unchecked Sendable {
     }
 }
 
-public class PackageTypeSpec : Spec, SpecType {
+public final class PackageTypeSpec : Spec, SpecType, @unchecked Sendable {
     class public override var typeName: String {
         return "PackageType"
     }
@@ -410,7 +410,7 @@ public class PackageTypeSpec : Spec, SpecType {
     }
 
     /// Structure which encapsulates information about a product directory which we might want to create early in building a target.
-    public struct ProductStructureDirectoryInfo {
+    public struct ProductStructureDirectoryInfo: Sendable {
         public let buildSetting: PathMacroDeclaration
         public let dontCreateIfProducedByAnotherTask: Bool
 
@@ -443,7 +443,7 @@ public class PackageTypeSpec : Spec, SpecType {
     ]
 }
 
-public class PlatformSpec : Spec, SpecType {
+public final class PlatformSpec : Spec, SpecType, @unchecked Sendable {
     class public override var typeName: String {
         return "Platform"
     }
@@ -467,7 +467,7 @@ public final class BuildSystemSpec : PropertyDomainSpec, SpecType, @unchecked Se
     }
 }
 
-public class BuildPhaseSpec : Spec, SpecType {
+public final class BuildPhaseSpec : Spec, SpecType, @unchecked Sendable {
     class public override var typeName: String {
         return "BuildPhase"
     }
