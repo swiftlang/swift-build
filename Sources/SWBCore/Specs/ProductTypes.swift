@@ -13,7 +13,7 @@
 public import SWBUtil
 public import SWBMacro
 
-public class ProductTypeSpec : Spec, SpecType {
+public class ProductTypeSpec : Spec, SpecType, @unchecked Sendable {
     /// The level to elevate the deprecation message as.
     public enum DeprecationLevel {
         case warning
@@ -352,7 +352,7 @@ public class ProductTypeSpec : Spec, SpecType {
 // MARK: Bundle product types
 
 
-public class BundleProductTypeSpec : ProductTypeSpec, SpecClassType {
+public class BundleProductTypeSpec : ProductTypeSpec, SpecClassType, @unchecked Sendable {
     public class var className: String {
         return "PBXBundleProductType"
     }
@@ -366,7 +366,7 @@ public class BundleProductTypeSpec : ProductTypeSpec, SpecClassType {
 	}
 }
 
-public class ApplicationProductTypeSpec : BundleProductTypeSpec {
+public final class ApplicationProductTypeSpec : BundleProductTypeSpec, @unchecked Sendable {
     class public override var className: String {
         return "PBXApplicationProductType"
     }
@@ -390,13 +390,13 @@ public class ApplicationProductTypeSpec : BundleProductTypeSpec {
     }
 }
 
-public class ApplicationExtensionProductTypeSpec: BundleProductTypeSpec {
+public final class ApplicationExtensionProductTypeSpec: BundleProductTypeSpec, @unchecked Sendable {
     public override class var className: String {
         return "PBXApplicationExtensionProductType"
     }
 }
 
-public class FrameworkProductTypeSpec : BundleProductTypeSpec {
+public class FrameworkProductTypeSpec : BundleProductTypeSpec, @unchecked Sendable {
     class public override var className: String {
         return "PBXFrameworkProductType"
     }
@@ -570,20 +570,20 @@ public class FrameworkProductTypeSpec : BundleProductTypeSpec {
     }
 }
 
-public class StaticFrameworkProductTypeSpec : FrameworkProductTypeSpec {
+public final class StaticFrameworkProductTypeSpec : FrameworkProductTypeSpec, @unchecked Sendable {
     class public override var className: String {
         return "XCStaticFrameworkProductType"
     }
 }
 
-public class KernelExtensionProductTypeSpec : BundleProductTypeSpec {
+public final class KernelExtensionProductTypeSpec : BundleProductTypeSpec, @unchecked Sendable {
     class public override var className: String {
         return "XCKernelExtensionProductType"
     }
 }
 
 /// The product type for XCTest unit and UI test bundles.
-public class XCTestBundleProductTypeSpec : BundleProductTypeSpec {
+public final class XCTestBundleProductTypeSpec : BundleProductTypeSpec, @unchecked Sendable {
     class public override var className: String {
         return "PBXXCTestBundleProductType"
     }
@@ -758,13 +758,13 @@ public class XCTestBundleProductTypeSpec : BundleProductTypeSpec {
 // MARK: Standalone binary Product types
 
 
-public class StandaloneExecutableProductTypeSpec : ProductTypeSpec, SpecClassType {
+public class StandaloneExecutableProductTypeSpec : ProductTypeSpec, SpecClassType, @unchecked Sendable {
     public class var className: String {
         return "XCStandaloneExecutableProductType"
     }
 }
 
-public class LibraryProductTypeSpec: StandaloneExecutableProductTypeSpec {
+public class LibraryProductTypeSpec: StandaloneExecutableProductTypeSpec, @unchecked Sendable {
     public override class var className: String {
         fatalError("This method is a subclass responsibility")
     }
@@ -774,7 +774,7 @@ public class LibraryProductTypeSpec: StandaloneExecutableProductTypeSpec {
     }
 }
 
-public class DynamicLibraryProductTypeSpec : LibraryProductTypeSpec {
+public final class DynamicLibraryProductTypeSpec : LibraryProductTypeSpec, @unchecked Sendable {
     class public override var className: String {
         return "PBXDynamicLibraryProductType"
     }
@@ -795,7 +795,7 @@ public class DynamicLibraryProductTypeSpec : LibraryProductTypeSpec {
     }
 }
 
-public class StaticLibraryProductTypeSpec : LibraryProductTypeSpec {
+public final class StaticLibraryProductTypeSpec : LibraryProductTypeSpec, @unchecked Sendable {
     class public override var className: String {
         return "PBXStaticLibraryProductType"
     }
@@ -807,7 +807,7 @@ public class StaticLibraryProductTypeSpec : LibraryProductTypeSpec {
     }
 }
 
-public class ToolProductTypeSpec : StandaloneExecutableProductTypeSpec {
+public final class ToolProductTypeSpec : StandaloneExecutableProductTypeSpec, @unchecked Sendable {
     class public override var className: String {
         return "PBXToolProductType"
     }
