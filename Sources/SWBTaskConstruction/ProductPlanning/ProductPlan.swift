@@ -676,7 +676,7 @@ package final class GlobalProductPlan: GlobalTargetInfoProvider
         }
     }
 
-    // Checks whether we have any duplicated occurences of the same package product in the graph.
+    // Checks whether we have any duplicated occurrences of the same package product in the graph.
     func checkForDiamondProblemsInPackageProductLinkage(dependenciesByTarget: [ConfiguredTarget:OrderedSet<LinkedDependency>], diagnosticDelegate: any TargetDiagnosticProducingDelegate) -> Int {
         func emitError(for name: String, targetName: String, andOther: String, conflicts: Bool = false) {
             if errorComponentsList.insert(ErrorComponents(name: name, targetName: targetName, andOther: andOther, conflicts: conflicts)).inserted {
