@@ -199,7 +199,7 @@ let package = Package(
         .target(
             name: "SWBApplePlatform",
             dependencies: ["SWBCore", "SWBMacro", "SWBUtil", "SWBTaskConstruction"],
-            swiftSettings: swiftSettings(languageMode: .v5)),
+            swiftSettings: swiftSettings(languageMode: .v6)),
         .target(
             name: "SWBGenericUnixPlatform",
             dependencies: ["SWBCore", "SWBUtil"],
