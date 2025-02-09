@@ -41,49 +41,58 @@ public protocol CacheableValue {
     var cost: Int { get }
 }
 
+// NSCache insert, remove, and lookup operations are documented as thread safe: https://developer.apple.com/documentation/foundation/nscache
+fileprivate final class UnsafeNSCacheSendableWrapper<Key: Hashable, Value> {
+    init(value: NSCache<KeyWrapper<Key>, ValueWrapper<Value>>) {
+        self.value = value
+    }
+    let value: NSCache<KeyWrapper<Key>, ValueWrapper<Value>>
+}
+extension UnsafeNSCacheSendableWrapper: @unchecked Sendable where Key: Sendable, Value: Sendable {}
+
 /// A thread-safe cache container.
 ///
 /// This container will automatically evict entries when the system is under memory pressure.
 public final class Cache<Key: Hashable, Value>: NSObject, KeyValueStorage, NSCacheDelegate {
     /// The underlying cache implementation.
-    private let cache: NSCache<KeyWrapper<Key>, ValueWrapper<Value>>
+    private let cache: UnsafeNSCacheSendableWrapper<Key, Value>
     private let willEvictCallback: (@Sendable (Value) -> Void)?
 
     public init(willEvictCallback: (@Sendable (Value)->Void)? = nil, totalCostLimit: Int? = nil) {
-        self.cache = NSCache()
+        self.cache = .init(value: NSCache())
         self.willEvictCallback = willEvictCallback
         super.init()
         if let totalCostLimit {
-            self.cache.totalCostLimit = totalCostLimit
+            self.cache.value.totalCostLimit = totalCostLimit
         }
-        self.cache.delegate = self
+        self.cache.value.delegate = self
     }
 
     /// Remove all objects in the cache.
     public func removeAll() {
-        cache.removeAllObjects()
+        cache.value.removeAllObjects()
     }
 
     /// Remove the entry for a given `key`.
     public func remove(_ key: Key) {
-        cache.removeObject(forKey: KeyWrapper(key))
+        cache.value.removeObject(forKey: KeyWrapper(key))
     }
 
     /// Subscript access to the cache.
     public subscript(_ key: Key) -> Value? {
         get {
-            if let wrappedValue = cache.object(forKey: KeyWrapper(key)) {
+            if let wrappedValue = cache.value.object(forKey: KeyWrapper(key)) {
                 return wrappedValue.value
             }
             return nil
         }
         set {
             if let newValue, let cacheableValue = newValue as? (any CacheableValue) {
-                cache.setObject(ValueWrapper(newValue), forKey: KeyWrapper(key), cost: cacheableValue.cost)
+                cache.value.setObject(ValueWrapper(newValue), forKey: KeyWrapper(key), cost: cacheableValue.cost)
             } else if let newValue = newValue {
-                cache.setObject(ValueWrapper(newValue), forKey: KeyWrapper(key))
+                cache.value.setObject(ValueWrapper(newValue), forKey: KeyWrapper(key))
             } else {
-                cache.removeObject(forKey: KeyWrapper(key))
+                cache.value.removeObject(forKey: KeyWrapper(key))
             }
         }
     }
@@ -98,16 +107,16 @@ public final class Cache<Key: Hashable, Value>: NSObject, KeyValueStorage, NSCac
     /// NOTE: The cache *does not* ensure that the block to compute a value is only called once for a given key. In race conditions, it may be called multiple times, even though only the last computed result will be used.
     public func getOrInsert(_ key: Key, _ body: () throws -> Value) rethrows -> Value {
         let wrappedKey = KeyWrapper(key)
-        if let wrappedValue = cache.object(forKey: wrappedKey) {
+        if let wrappedValue = cache.value.object(forKey: wrappedKey) {
             return wrappedValue.value
         }
 
         let value = try body()
         if let cacheableValue = value as? (any CacheableValue) {
-            cache.setObject(ValueWrapper(value), forKey: wrappedKey, cost: cacheableValue.cost)
+            cache.value.setObject(ValueWrapper(value), forKey: wrappedKey, cost: cacheableValue.cost)
 
         } else {
-            cache.setObject(ValueWrapper(value), forKey: wrappedKey)
+            cache.value.setObject(ValueWrapper(value), forKey: wrappedKey)
         }
         return value
     }

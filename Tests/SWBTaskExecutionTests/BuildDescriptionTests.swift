@@ -781,7 +781,7 @@ fileprivate struct BuildDescriptionTests: CoreBasedTests {
                 }
                 do {
                     // Eliminate the dumping of the cache for the `isBuildDirectoryCache` object, which is not relevant for the comparison.
-                    let regex = RegEx(patternLiteral: "▿ isBuildDirectoryCache:.*$\n\\ +- super:.*$\n\\ +- cache:.*$", options: .anchorsMatchLines)
+                    let regex = RegEx(patternLiteral: "▿ isBuildDirectoryCache:.*$\n\\ +- super:.*$\n +▿ cache:.*$\n\\ +- value:.*$\n\\ +- super:.*$", options: .anchorsMatchLines)
                     _ = regex.replace(in: &s, with: "")
                 }
                 return s
