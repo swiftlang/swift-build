@@ -181,7 +181,7 @@ public struct BuildOperationTaskInfo: Serializable, Equatable, Sendable {
     /// The name of the task, typically the value from the spec for the task.
     public let taskName: String
 
-    /// The signature of the task (for assocating with `wasUpToDate` messages).
+    /// The signature of the task (for associating with `wasUpToDate` messages).
     private let internalSignature: BuildOperationTaskSignature
     public var signature: ByteString {
         internalSignature.rawValue
