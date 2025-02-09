@@ -132,7 +132,7 @@ package final class BuildDescription: Serializable, Sendable, Encodable, Cacheab
     }
 
     // rdar://107734664 (Consider passing the task store as a parameter to build description methods rather than as a property of BuildDescription)
-    package let taskStore: TaskStore
+    package let taskStore: FrozenTaskStore
 
     /// The set of all (non-virtual) paths produced by tasks in the build description.
     private let allOutputPaths: Set<Path>
@@ -188,7 +188,7 @@ package final class BuildDescription: Serializable, Sendable, Encodable, Cacheab
     package let targetsBuildInParallel: Bool
 
     /// Load a build description from the given path.
-    fileprivate init(inDir dir: Path, signature: BuildDescriptionSignature, taskStore: TaskStore, allOutputPaths: Set<Path>, rootPathsPerTarget: [ConfiguredTarget: [Path]], moduleCachePathPerTarget: [ConfiguredTarget: Path], settingsPerTarget: [ConfiguredTarget: Settings], enableStaleFileRemoval: Bool = true, taskActionMap: [String: TaskAction.Type], targetTaskCounts: [ConfiguredTarget: Int], moduleSessionFilePath: Path?, diagnostics: [ConfiguredTarget?: [Diagnostic]], fs: any FSProxy, invalidationPaths: [Path], recursiveSearchPathResults: [RecursiveSearchPathResolver.CachedResult], copiedPathMap: [String: String], targetDependencies: [TargetDependencyRelationship], definingTargetsByModuleName: [String: OrderedSet<ConfiguredTarget>], capturedBuildInfo: CapturedBuildInfo?, bypassActualTasks: Bool, targetsBuildInParallel: Bool) throws {
+    fileprivate init(inDir dir: Path, signature: BuildDescriptionSignature, taskStore: FrozenTaskStore, allOutputPaths: Set<Path>, rootPathsPerTarget: [ConfiguredTarget: [Path]], moduleCachePathPerTarget: [ConfiguredTarget: Path], settingsPerTarget: [ConfiguredTarget: Settings], enableStaleFileRemoval: Bool = true, taskActionMap: [String: TaskAction.Type], targetTaskCounts: [ConfiguredTarget: Int], moduleSessionFilePath: Path?, diagnostics: [ConfiguredTarget?: [Diagnostic]], fs: any FSProxy, invalidationPaths: [Path], recursiveSearchPathResults: [RecursiveSearchPathResolver.CachedResult], copiedPathMap: [String: String], targetDependencies: [TargetDependencyRelationship], definingTargetsByModuleName: [String: OrderedSet<ConfiguredTarget>], capturedBuildInfo: CapturedBuildInfo?, bypassActualTasks: Bool, targetsBuildInParallel: Bool) throws {
         self.dir = dir
         self.signature = signature
         self.taskStore = taskStore
@@ -650,9 +650,11 @@ package final class BuildDescriptionBuilder {
             throw StubError.error("unable to record manifest to build description delegate: \(error)")
         }
 
+        let frozenTaskStore = taskStore.freeze()
+
         // Compute the count of tasks by target, which we use to know when a task is complete.
         var targetTaskCounts = [ConfiguredTarget: Int]()
-        taskStore.forEachTask { task in
+        frozenTaskStore.forEachTask { task in
             if let target = task.forTarget, !task.isGate {
                 targetTaskCounts[target] = (targetTaskCounts[target] ?? 0) + 1
             }
@@ -663,7 +665,7 @@ package final class BuildDescriptionBuilder {
         // Create the build description.
         let buildDescription: BuildDescription
         do {
-            buildDescription = try BuildDescription(inDir: path, signature: signature, taskStore: taskStore, allOutputPaths: allOutputPaths, rootPathsPerTarget: rootPathsPerTarget, moduleCachePathPerTarget: moduleCachePathPerTarget, settingsPerTarget: settingsPerTarget, taskActionMap: taskActionMap, targetTaskCounts: targetTaskCounts, moduleSessionFilePath: moduleSessionFilePath, diagnostics: diagnosticsEngines.mapValues { engine in engine.diagnostics }, fs: fs, invalidationPaths: invalidationPaths, recursiveSearchPathResults: recursiveSearchPathResults, copiedPathMap: copiedPathMap, targetDependencies: targetDependencies, definingTargetsByModuleName: definingTargetsByModuleName, capturedBuildInfo: capturedBuildInfo, bypassActualTasks: bypassActualTasks, targetsBuildInParallel: targetsBuildInParallel)
+            buildDescription = try BuildDescription(inDir: path, signature: signature, taskStore: frozenTaskStore, allOutputPaths: allOutputPaths, rootPathsPerTarget: rootPathsPerTarget, moduleCachePathPerTarget: moduleCachePathPerTarget, settingsPerTarget: settingsPerTarget, taskActionMap: taskActionMap, targetTaskCounts: targetTaskCounts, moduleSessionFilePath: moduleSessionFilePath, diagnostics: diagnosticsEngines.mapValues { engine in engine.diagnostics }, fs: fs, invalidationPaths: invalidationPaths, recursiveSearchPathResults: recursiveSearchPathResults, copiedPathMap: copiedPathMap, targetDependencies: targetDependencies, definingTargetsByModuleName: definingTargetsByModuleName, capturedBuildInfo: capturedBuildInfo, bypassActualTasks: bypassActualTasks, targetsBuildInParallel: targetsBuildInParallel)
         }
         catch {
             throw StubError.error("unable to create build description: \(error)")
@@ -1398,7 +1400,7 @@ package final class BuildDescriptionDeserializerDelegate: DeserializerDelegate, 
 
     package let uniquingCoordinator = UniquingDeserializationCoordinator()
 
-    package var taskStore: TaskStore? = nil
+    package var taskStore: FrozenTaskStore? = nil
 
     package init(workspace: Workspace, platformRegistry: PlatformRegistry, sdkRegistry: SDKRegistry, specRegistry: SpecRegistry) {
         self.workspace = workspace

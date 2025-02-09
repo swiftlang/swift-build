@@ -40,19 +40,24 @@ package final class Task: ExecutableTask, Serializable, Encodable {
 
     package enum Storage {
         package struct InternedStorage {
-            var byteStringArena: ByteStringArena
-            var stringArena: StringArena
+            var byteStringArena: FrozenByteStringArena
+            var stringArena: FrozenStringArena
 
-            var ruleInfo: [StringArena.Handle]
-            enum InternedCommandLineArgument {
-                case literal(ByteStringArena.Handle)
-                case path(StringArena.Handle)
-                case parentPath(StringArena.Handle)
+            struct Handles {
+                var ruleInfo: [StringArena.Handle]
+                enum InternedCommandLineArgument {
+                    case literal(ByteStringArena.Handle)
+                    case path(StringArena.Handle)
+                    case parentPath(StringArena.Handle)
+                }
+                var commandLine: [InternedCommandLineArgument]
+                var additionalSignatureData: StringArena.Handle
+                var inputPathStrings: [StringArena.Handle]
+                var outputPathStrings: [StringArena.Handle]
+                var environmentBindings: [(StringArena.Handle, StringArena.Handle)]
             }
-            var commandLine: [InternedCommandLineArgument]
-            var additionalSignatureData: StringArena.Handle
-            var inputPathStrings: [StringArena.Handle]
-            var outputPathStrings: [StringArena.Handle]
+
+            var handles: Handles
         }
 
         package struct DirectStorage {
@@ -61,13 +66,14 @@ package final class Task: ExecutableTask, Serializable, Encodable {
             var additionalSignatureData: String
             var inputPaths: [Path]
             var outputPaths: [Path]
+            var environmentBindings: [(String, String)]
         }
 
         case direct(DirectStorage)
         case interned(InternedStorage)
     }
 
-    private var storage: Storage
+    private let storage: Storage
 
     /// The rule info description.
     package var ruleInfo: [String] {
@@ -75,7 +81,7 @@ package final class Task: ExecutableTask, Serializable, Encodable {
         case .direct(let directStorage):
             return directStorage.ruleInfo
         case .interned(let internedStorage):
-            return internedStorage.ruleInfo.map { internedStorage.stringArena.lookup(handle: $0) }
+            return internedStorage.handles.ruleInfo.map { internedStorage.stringArena.lookup(handle: $0) }
         }
     }
 
@@ -85,7 +91,7 @@ package final class Task: ExecutableTask, Serializable, Encodable {
         case .direct(let directStorage):
             return directStorage.commandLine
         case .interned(let internedStorage):
-            return internedStorage.commandLine.map {
+            return internedStorage.handles.commandLine.map {
                 switch $0 {
                 case .literal(let handle):
                     return .literal(internedStorage.byteStringArena.lookup(handle: handle))
@@ -104,7 +110,7 @@ package final class Task: ExecutableTask, Serializable, Encodable {
         case .direct(let directStorage):
             return directStorage.additionalSignatureData
         case .interned(let internedStorage):
-            return internedStorage.stringArena.lookup(handle: internedStorage.additionalSignatureData)
+            return internedStorage.stringArena.lookup(handle: internedStorage.handles.additionalSignatureData)
         }
     }
 
@@ -115,7 +121,16 @@ package final class Task: ExecutableTask, Serializable, Encodable {
     package let additionalOutput: [String]
 
     /// The environment variables to pass to the task.
-    package private(set) var environment: EnvironmentBindings
+    package var environment: EnvironmentBindings {
+        switch storage {
+        case .direct(let directStorage):
+            return EnvironmentBindings(directStorage.environmentBindings)
+        case .interned(let internedStorage):
+            return EnvironmentBindings(internedStorage.handles.environmentBindings.map {
+                (internedStorage.stringArena.lookup(handle: $0), internedStorage.stringArena.lookup(handle: $1))
+            })
+        }
+    }
 
     /// The directory in which the task should run.
     package let workingDirectory: Path
@@ -131,7 +146,7 @@ package final class Task: ExecutableTask, Serializable, Encodable {
         case .direct(let storage):
             return storage.inputPaths
         case .interned(let storage):
-            return storage.inputPathStrings.map { Path(storage.stringArena.lookup(handle: $0)) }
+            return storage.handles.inputPathStrings.map { Path(storage.stringArena.lookup(handle: $0)) }
         }
     }
 
@@ -140,7 +155,7 @@ package final class Task: ExecutableTask, Serializable, Encodable {
         case .direct(let storage):
             return storage.outputPaths
         case .interned(let storage):
-            return storage.outputPathStrings.map { Path(storage.stringArena.lookup(handle: $0)) }
+            return storage.handles.outputPathStrings.map { Path(storage.stringArena.lookup(handle: $0)) }
         }
     }
 
@@ -149,7 +164,7 @@ package final class Task: ExecutableTask, Serializable, Encodable {
     package let executionInputs: [ExecutionNode]?
 
     /// Whether the task should show its environment in logs.
-    package var showEnvironment: Bool
+    package let showEnvironment: Bool
 
     /// Do we need to run this task before the indexer can parse sources?
     package let preparesForIndexing: Bool
@@ -243,7 +258,6 @@ package final class Task: ExecutableTask, Serializable, Encodable {
         let additionalSignatureData = additionalSignatureData
         let ruleInfo = ruleInfo
         self.additionalOutput = additionalOutput
-        self.environment = environment
         self.workingDirectory = workingDirectory
         self.showEnvironment = showEnvironment
         self.action = action
@@ -258,7 +272,7 @@ package final class Task: ExecutableTask, Serializable, Encodable {
         self.priority = priority
         self.isDynamic = isDynamic
         self.alwaysExecuteTask = alwaysExecuteTask
-        self.storage = .direct(.init(ruleInfo: ruleInfo, commandLine: commandLine, additionalSignatureData: additionalSignatureData, inputPaths: inputPaths, outputPaths: outputPaths))
+        self.storage = .direct(.init(ruleInfo: ruleInfo, commandLine: commandLine, additionalSignatureData: additionalSignatureData, inputPaths: inputPaths, outputPaths: outputPaths, environmentBindings: environment.bindings))
     }
 
     // MARK: Serialization
@@ -317,7 +331,10 @@ package final class Task: ExecutableTask, Serializable, Encodable {
         serializer.serialize(additionalSignatureData)
         serializer.serialize(commandLine)
         serializer.serialize(additionalOutput)
-        serializer.serialize(environment)
+        serializer.beginAggregate(2)
+        serializer.serialize(environment.bindings.map(\.0))
+        serializer.serialize(environment.bindings.map(\.1))
+        serializer.endAggregate()
         serializer.serialize(workingDirectory)
         serializer.serialize(showEnvironment)
         serializer.serialize(execDescription)
@@ -393,7 +410,12 @@ package final class Task: ExecutableTask, Serializable, Encodable {
         let additionalSignatureData: String = try deserializer.deserialize()
         let commandLine: [CommandLineArgument] = try deserializer.deserialize()
         self.additionalOutput = try deserializer.deserialize()
-        self.environment = try deserializer.deserialize()
+        try deserializer.beginAggregate(2)
+        let environmentKeys: [String] = try deserializer.deserialize()
+        let environmentValues: [String] = try deserializer.deserialize()
+        guard environmentKeys.count == environmentValues.count else {
+            throw DeserializerError.deserializationFailed("Deserialized environment contains unbalanced keys and values")
+        }
         self.workingDirectory = try deserializer.deserialize()
         self.showEnvironment = try deserializer.deserialize()
         self.execDescription = try deserializer.deserialize()
@@ -410,29 +432,51 @@ package final class Task: ExecutableTask, Serializable, Encodable {
         self.priority = try deserializer.deserialize()
         self.isDynamic = try deserializer.deserialize()
         self.alwaysExecuteTask = try deserializer.deserialize()
-        self.storage = .direct(.init(ruleInfo: ruleInfo, commandLine: commandLine, additionalSignatureData: additionalSignatureData, inputPaths: inputPaths, outputPaths: outputPaths))
+        self.storage = .direct(.init(ruleInfo: ruleInfo, commandLine: commandLine, additionalSignatureData: additionalSignatureData, inputPaths: inputPaths, outputPaths: outputPaths, environmentBindings: Array(zip(environmentKeys, environmentValues))))
     }
 
-    package func intern(byteStringArena: ByteStringArena, stringArena: StringArena) {
-        environment.intern(in: stringArena)
-        if case .direct = storage {
-            storage = .interned(.init(byteStringArena: byteStringArena,
-                                      stringArena: stringArena,
-                                      ruleInfo: ruleInfo.map { stringArena.intern($0) },
-                                      commandLine: commandLine.map {
-                                        switch $0 {
-                                        case .literal(let byteString):
-                                            return .literal(byteStringArena.intern(byteString))
-                                        case .path(let path):
-                                            return .path(stringArena.intern(path.str))
-                                        case .parentPath(let path):
-                                            return .parentPath(stringArena.intern(path.str))
-                                        }
-                                      },
-                                      additionalSignatureData: stringArena.intern(additionalSignatureData),
-                                      inputPathStrings: inputPaths.map { stringArena.intern($0.str) },
-                                      outputPathStrings: outputPaths.map { stringArena.intern($0.str) }))
+    internal func internedStorage(byteStringArena: ByteStringArena, stringArena: StringArena) -> Task.Storage.InternedStorage.Handles {
+        let internedCommandLine: [Storage.InternedStorage.Handles.InternedCommandLineArgument] = commandLine.map {
+            switch $0 {
+            case .literal(let byteString):
+                return .literal(byteStringArena.intern(byteString))
+            case .path(let path):
+                return .path(stringArena.intern(path.str))
+            case .parentPath(let path):
+                return .parentPath(stringArena.intern(path.str))
+            }
         }
+        return .init(ruleInfo: ruleInfo.map { stringArena.intern($0) },
+                     commandLine: internedCommandLine,
+                     additionalSignatureData: stringArena.intern(additionalSignatureData),
+                     inputPathStrings: inputPaths.map { stringArena.intern($0.str) },
+                     outputPathStrings: outputPaths.map { stringArena.intern($0.str) },
+                     environmentBindings: environment.bindings.map { (stringArena.intern($0.0), stringArena.intern($0.1)) })
+    }
+
+    internal init(task: Task, internedStorageHandles: Task.Storage.InternedStorage.Handles, frozenByteStringArena: FrozenByteStringArena, frozenStringArena: FrozenStringArena) {
+        self.type = task.type
+        self.dependencyData = task.dependencyData
+        self.payload = task.payload
+        self.forTarget = task.forTarget
+
+        self.storage = .interned(.init(byteStringArena: frozenByteStringArena, stringArena: frozenStringArena, handles: internedStorageHandles))
+
+        self.targetDependencies = task.targetDependencies
+        self.additionalOutput = task.additionalOutput
+        self.workingDirectory = task.workingDirectory
+        self.execDescription = task.execDescription
+        self.action = task.action
+        self.priority = task.priority
+        self.executionInputs = task.executionInputs
+        self.showEnvironment = task.showEnvironment
+        self.preparesForIndexing = task.preparesForIndexing
+        self.llbuildControlDisabled = task.llbuildControlDisabled
+        self.isGate = task.isGate
+        self.showInLog = task.showInLog
+        self.showCommandLineInLog = task.showCommandLineInLog
+        self.isDynamic = task.isDynamic
+        self.alwaysExecuteTask = task.alwaysExecuteTask
     }
 }
 

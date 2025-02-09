@@ -766,7 +766,7 @@ fileprivate struct BuildDescriptionTests: CoreBasedTests {
 
             let deserializerDelegate = BuildDescriptionDeserializerDelegate(workspace: workspaceContext.workspace, platformRegistry: workspaceContext.core.platformRegistry, sdkRegistry: workspaceContext.core.sdkRegistry, specRegistry: workspaceContext.core.specRegistry)
             let taskStoreDeserializer = MsgPackDeserializer(serializedTaskStore, delegate: deserializerDelegate)
-            let taskStore: TaskStore = try! taskStoreDeserializer.deserialize()
+            let taskStore: FrozenTaskStore = try taskStoreDeserializer.deserialize()
             deserializerDelegate.taskStore = taskStore
             let deserializer = MsgPackDeserializer(serializedBuildDescription, delegate: deserializerDelegate)
             let deserializedDescription: BuildDescription = try deserializer.deserialize()
