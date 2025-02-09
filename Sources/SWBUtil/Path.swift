@@ -139,6 +139,11 @@ public struct Path: Serializable, Sendable {
 
     public static var homeDirectory: Path {
         var rawPath = NSHomeDirectory()
+        // NSHomeDirectory produces a NSPathStore2, which is not a contiguous
+        // UTF-8 layout. Most of Path's operations rely on efficient iteration
+        // of String, and we can dodge the -characterAtIndex: slow path by
+        // performing this conversion early.
+        rawPath.makeContiguousUTF8()
         #if os(Windows)
         if rawPath.hasPrefix("/") {
             rawPath.removeFirst()

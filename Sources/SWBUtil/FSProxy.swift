@@ -737,7 +737,11 @@ class LocalFS: FSProxy, @unchecked Sendable {
 
         // FIXME: This enumerator has unclear error handling. Does nextObject() return nil on error? That's wrong.
         return try enumerator.compactMap { next in
-            let nextPath = path.join(next as? String)
+            // FileManager.DirectoryEnumerator produces Strings that are backed
+            // by NSPathStore2, which are slower to work with.
+            var next = (next as? String)
+            next?.makeContiguousUTF8()
+            let nextPath = path.join(next)
             return try f(nextPath)
         }
     }
