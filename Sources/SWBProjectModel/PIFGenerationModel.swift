@@ -124,7 +124,7 @@ public enum PIF {
         }
     }
 
-    /// Abstract base class for all items in the group hierarhcy.
+    /// Abstract base class for all items in the group hierarchy.
     public class Reference {
         public let id: String
 
