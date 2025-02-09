@@ -1102,7 +1102,7 @@ public extension Array where Element == PIF.BuildSettings.Platform {
     }
 }
 
-/// Repesents a filetype recognized by the Xcode build system.
+/// Represents a filetype recognized by the Xcode build system.
 public struct SwiftBuildFileType: Sendable {
     public var fileTypes: Set<String>
     public var fileTypeIdentifier: String
