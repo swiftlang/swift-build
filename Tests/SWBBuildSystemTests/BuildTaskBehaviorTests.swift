@@ -59,7 +59,7 @@ fileprivate extension BuildOperationTester.BuildResults {
 @Suite
 fileprivate struct BuildTaskBehaviorTests: CoreBasedTests {
     /// Helper functions for creating PlannedTask/Task pairs.
-    private func createTask(type: (any TaskTypeDescription)? = nil, forTarget: ConfiguredTarget? = nil, ruleInfo: [String], additionalSignatureData: String = "", commandLine: [String], additionalOutput: [String] = [], environment: EnvironmentBindings = EnvironmentBindings(), workingDirectory: Path = .root, inputs: [any PlannedNode], outputs: [any PlannedNode], mustPrecede: [any PlannedTask] = [], action: TaskAction?, execDescription: String? = nil, preparesForIndexing: Bool = false) -> (ConstructedTask, Task) {
+    private func createTask(type: (any TaskTypeDescription)? = nil, forTarget: ConfiguredTarget? = nil, ruleInfo: [String], additionalSignatureData: String = "", commandLine: [String], additionalOutput: [String] = [], environment: EnvironmentBindings = EnvironmentBindings(), workingDirectory: Path = .root, inputs: [any PlannedNode], outputs: [any PlannedNode], mustPrecede: [any PlannedTask] = [], action: TaskAction?, execDescription: String? = nil, preparesForIndexing: Bool = false) -> ConstructedTask {
 
         var builder = PlannedTaskBuilder(type: type ?? MockTaskTypeDescription(), ruleInfo: ruleInfo, additionalSignatureData: additionalSignatureData, commandLine: commandLine.map{ .literal(ByteString(encodingAsUTF8: $0)) }, additionalOutput: additionalOutput, environment: environment, inputs: inputs, outputs: outputs)
         builder.forTarget = forTarget
@@ -70,7 +70,7 @@ fileprivate struct BuildTaskBehaviorTests: CoreBasedTests {
         builder.preparesForIndexing = preparesForIndexing
         let execTask = Task(&builder)
         let constructedTask = ConstructedTask(&builder, execTask: execTask)
-        return (constructedTask, execTask)
+        return constructedTask
     }
 
     private func createGateTask(inputs: [any PlannedNode], output: any PlannedNode, mustPrecede: [any PlannedTask]) -> GateTask {
@@ -82,7 +82,7 @@ fileprivate struct BuildTaskBehaviorTests: CoreBasedTests {
 
     @Test(.requireSDKs(.host), .requireThreadSafeWorkingDirectory, .skipHostOS(.windows, "no /bin/echo"))
     func simulatedSingleInputlessOutputlessCommand() async throws {
-        let (echoTask, echoExecTask) = createTask(ruleInfo: ["echo", "hi"], commandLine: ["/bin/echo", "hi"], inputs: [], outputs: [MakePlannedVirtualNode("<ECHO>")], action: nil)
+        let echoTask = createTask(ruleInfo: ["echo", "hi"], commandLine: ["/bin/echo", "hi"], inputs: [], outputs: [MakePlannedVirtualNode("<ECHO>")], action: nil)
 
         // Execute a test build against the task set.
         let tester = try await BuildOperationTester(getCore(), [echoTask], simulated: true)
@@ -90,9 +90,9 @@ fileprivate struct BuildTaskBehaviorTests: CoreBasedTests {
         try await tester.checkBuild { results in
             // Check that the delegate was passed build started and build ended events in the right place.
             results.checkCapstoneEvents()
-
+            let echoTask = try #require(results.getTask(.matchRule(["echo", "hi"])))
             // Check that our task was started and stopped (in the correct order).
-            results.check(event: .taskHadEvent(echoExecTask, event: .started), precedes: .taskHadEvent(echoExecTask, event: .completed))
+            results.check(event: .taskHadEvent(echoTask, event: .started), precedes: .taskHadEvent(echoTask, event: .completed))
         }
     }
 
@@ -108,10 +108,10 @@ fileprivate struct BuildTaskBehaviorTests: CoreBasedTests {
     @Test(.requireSDKs(.host))
     func continueBuildingAfterErrorsOn() async throws {
         let otherOutput = MakePlannedPathNode(Path.root.join("mock"))
-        let (constructedOtherTask, _) = createTask(ruleInfo: ["mock"], commandLine: ["true"], inputs: [], outputs: [otherOutput], action: MockTaskAction(contents: "", output: otherOutput))
+        let constructedOtherTask = createTask(ruleInfo: ["mock"], commandLine: ["true"], inputs: [], outputs: [otherOutput], action: MockTaskAction(contents: "", output: otherOutput))
 
         let failOutput = MakePlannedVirtualNode("<FAIL>")
-        let (constructedFailingTask, _) = createTask(ruleInfo: ["failing"], commandLine: ["true"], inputs: [], outputs: [failOutput], action: FailingTaskAction(contents: "", output: failOutput))
+        let constructedFailingTask = createTask(ruleInfo: ["failing"], commandLine: ["true"], inputs: [], outputs: [failOutput], action: FailingTaskAction(contents: "", output: failOutput))
 
         let tester = try await BuildOperationTester(getCore(), [constructedFailingTask, constructedOtherTask], simulated: true, continueBuildingAfterErrors: true)
 
@@ -126,10 +126,10 @@ fileprivate struct BuildTaskBehaviorTests: CoreBasedTests {
     @Test(.requireSDKs(.host))
     func continueBuildingAfterErrorsOff() async throws {
         let otherOutput = MakePlannedPathNode(Path.root.join("mock"))
-        let (constructedOtherTask, _) = createTask(ruleInfo: ["mock"], commandLine: ["true"], inputs: [], outputs: [otherOutput], action: MockTaskAction(contents: "", output: otherOutput))
+        let constructedOtherTask = createTask(ruleInfo: ["mock"], commandLine: ["true"], inputs: [], outputs: [otherOutput], action: MockTaskAction(contents: "", output: otherOutput))
 
         let failOutput = MakePlannedVirtualNode("<FAIL>")
-        let (constructedFailingTask, _) = createTask(ruleInfo: ["failing"], commandLine: ["true"], inputs: [], outputs: [failOutput], mustPrecede: [constructedOtherTask], action: FailingTaskAction(contents: "", output: failOutput))
+        let constructedFailingTask = createTask(ruleInfo: ["failing"], commandLine: ["true"], inputs: [], outputs: [failOutput], mustPrecede: [constructedOtherTask], action: FailingTaskAction(contents: "", output: failOutput))
 
         let tester = try await BuildOperationTester(getCore(), [constructedFailingTask, constructedOtherTask], simulated: true, continueBuildingAfterErrors: false)
 
@@ -146,21 +146,21 @@ fileprivate struct BuildTaskBehaviorTests: CoreBasedTests {
      - one that waits on the returned semaphore indefinitely
      - a second one that depends on the first one
      */
-    private func createBuildOperationTesterForCancellation(temporaryDirectory: NamedTemporaryDirectory? = nil, contents: String = "") async throws -> (tester: BuildOperationTester, taskWaitsForSemaphore: WaitCondition, taskHasStartedSemaphore: WaitCondition, waitTask: Task) {
+    private func createBuildOperationTesterForCancellation(temporaryDirectory: NamedTemporaryDirectory? = nil, contents: String = "") async throws -> (tester: BuildOperationTester, taskWaitsForSemaphore: WaitCondition, taskHasStartedSemaphore: WaitCondition) {
         let output = MakePlannedVirtualNode("<WAIT>")
         let waitTaskAction = WaitTaskAction(contents: contents, output: output)
 
-        let (constructedWaitTask, waitTask) = createTask(ruleInfo: ["wait"], commandLine: ["true"], inputs: [], outputs: [output], action: waitTaskAction)
+        let constructedWaitTask = createTask(ruleInfo: ["wait"], commandLine: ["true"], inputs: [], outputs: [output], action: waitTaskAction)
 
-        let (constructedDependentTask, _) = createTask(ruleInfo: ["dependent"], commandLine: ["true"], inputs: [output], outputs: [MakePlannedVirtualNode("<DEPENDENT>")], action: nil)
+        let constructedDependentTask = createTask(ruleInfo: ["dependent"], commandLine: ["true"], inputs: [output], outputs: [MakePlannedVirtualNode("<DEPENDENT>")], action: nil)
 
         let tester = try await BuildOperationTester(getCore(), [constructedWaitTask, constructedDependentTask], simulated: true, temporaryDirectory: temporaryDirectory)
-        return (tester, waitTaskAction.taskWaitsForSemaphore, waitTaskAction.taskHasStartedSemaphore, waitTask)
+        return (tester, waitTaskAction.taskWaitsForSemaphore, waitTaskAction.taskHasStartedSemaphore)
     }
 
     @Test(.requireSDKs(.host))
     func immediateCancellation() async throws {
-        let (tester, _, _, _) = try await createBuildOperationTesterForCancellation()
+        let (tester, _, _) = try await createBuildOperationTesterForCancellation()
 
         try await tester.checkBuild(body: { results in
             results.checkCapstoneEvents(last: .buildCancelled)
@@ -172,10 +172,12 @@ fileprivate struct BuildTaskBehaviorTests: CoreBasedTests {
 
     @Test(.requireSDKs(.host), .userDefaults(["EnableBuildBacktraceRecording": "false"]))
     func cancellationAfterStart() async throws {
-        let (tester, taskWaitsForSemaphore, taskHasStartedSemaphore, waitTask) = try await createBuildOperationTesterForCancellation()
+        let (tester, taskWaitsForSemaphore, taskHasStartedSemaphore) = try await createBuildOperationTesterForCancellation()
 
         try await tester.checkBuild(body: { results in
             results.checkCapstoneEvents(last: .buildCancelled)
+
+            let waitTask = try #require(results.getTask(.matchRule(["wait"])))
 
             // Check that waiting task did complete
             results.check(event: .taskHadEvent(waitTask, event: .started), precedes: .taskHadEvent(waitTask, event: .completed))
@@ -228,7 +230,7 @@ fileprivate struct BuildTaskBehaviorTests: CoreBasedTests {
                 // build1 cancels immediately
                 _Concurrency.Task<Void, Never> {
                     do {
-                        let (tester, _, _, _) = try await self.createBuildOperationTesterForCancellation(temporaryDirectory: temporaryDirectory, contents: "")
+                        let (tester, _, _) = try await self.createBuildOperationTesterForCancellation(temporaryDirectory: temporaryDirectory, contents: "")
 
                         tester.userPreferences = prefs
 
@@ -256,12 +258,14 @@ fileprivate struct BuildTaskBehaviorTests: CoreBasedTests {
                 // Build 2 proceeds normally
                 _Concurrency.Task<Void, Never> {
                     do {
-                        let (tester, taskWaitsForSemaphore, _, waitTask) = try await self.createBuildOperationTesterForCancellation(temporaryDirectory: temporaryDirectory, contents: "\(i)")
+                        let (tester, taskWaitsForSemaphore, _) = try await self.createBuildOperationTesterForCancellation(temporaryDirectory: temporaryDirectory, contents: "\(i)")
 
                         tester.userPreferences = prefs
 
                         try await tester.checkBuild(body: { results in
                             #expect(results.events.first! == .buildStarted)
+
+                            let waitTask = try #require(results.getTask(.matchRule(["wait"])))
 
                             // Check that waiting task did complete
                             results.check(event: .taskHadEvent(waitTask, event: .started), precedes: .taskHadEvent(waitTask, event: .completed))
@@ -328,15 +332,17 @@ fileprivate struct BuildTaskBehaviorTests: CoreBasedTests {
             try POSIX.setenv("LLBUILD_TEST", "1", Int32(1))
             defer { try? POSIX.unsetenv("LLBUILD_TEST") }
 
-            let (unsafeTask, unsafeExecTask) = createTask(type: MockTaskTypeDescription(isUnsafeToInterrupt: true), ruleInfo: ["unsafe-to-interrupt"], commandLine: [scriptPath.str], inputs: [], outputs: [output], action: nil)
+            let unsafeTask = createTask(type: MockTaskTypeDescription(isUnsafeToInterrupt: true), ruleInfo: ["unsafe-to-interrupt"], commandLine: [scriptPath.str], inputs: [], outputs: [output], action: nil)
             let tester = try await BuildOperationTester(getCore(), [unsafeTask], simulated: false)
 
-            func checkBuildResults(results: BuildOperationTester.BuildResults) {
+            func checkBuildResults(results: BuildOperationTester.BuildResults) throws {
                 // Check the build was cancelled.
                 results.checkCapstoneEvents(last: .buildCancelled)
 
+                let unsafeTask = try #require(results.getTask(.matchRule(["unsafe-to-interrupt"])))
+
                 // Check the task never saw a SIGINT (by checking its output).
-                results.checkTaskOutput(unsafeExecTask) { taskOutput in
+                results.checkTaskOutput(unsafeTask) { taskOutput in
                     #expect(taskOutput.unsafeStringValue == "note: installing trap...\n")
                 }
             }
@@ -375,8 +381,8 @@ fileprivate struct BuildTaskBehaviorTests: CoreBasedTests {
         let bNode = MakePlannedVirtualNode("B")
         let gate = MakePlannedVirtualNode("GATE")
         let gateTask = createGateTask(inputs: [], output: gate, mustPrecede: [])
-        let (aTask, aExecTask) = createTask(ruleInfo: ["A"], commandLine: ["/usr/bin/true"], inputs: [], outputs: [aNode], mustPrecede: [gateTask], action: nil)
-        let (bTask, bExecTask) = createTask(ruleInfo: ["B"], commandLine: ["/usr/bin/true"], inputs: [gate], outputs: [bNode], mustPrecede: [], action: nil)
+        let aTask = createTask(ruleInfo: ["A"], commandLine: ["/usr/bin/true"], inputs: [], outputs: [aNode], mustPrecede: [gateTask], action: nil)
+        let bTask = createTask(ruleInfo: ["B"], commandLine: ["/usr/bin/true"], inputs: [gate], outputs: [bNode], mustPrecede: [], action: nil)
 
         // Execute a test build against the task set.
         let tester = try await BuildOperationTester(getCore(), [aTask, bTask, gateTask], simulated: true)
@@ -385,8 +391,11 @@ fileprivate struct BuildTaskBehaviorTests: CoreBasedTests {
             // Check that the delegate was passed build started and build ended events in the right place.
             results.checkCapstoneEvents()
 
+            let aTask = try #require(results.getTask(.matchRule(["A"])))
+            let bTask = try #require(results.getTask(.matchRule(["B"])))
+
             // Check that A always runs before B.
-            results.check(event: .taskHadEvent(aExecTask, event: .completed), precedes: .taskHadEvent(bExecTask, event: .started))
+            results.check(event: .taskHadEvent(aTask, event: .completed), precedes: .taskHadEvent(bTask, event: .started))
         }
     }
 
@@ -398,14 +407,14 @@ fileprivate struct BuildTaskBehaviorTests: CoreBasedTests {
             ("RIGHT", inputs: ["/START"]),
             ("END", inputs: ["/LEFT", "/RIGHT"]),
         ]
-        var taskMap: [String: any PlannedTask] = [:]
+        var tasks: [any PlannedTask] = []
         for (name, inputs) in tasksToMake {
-            let (task, _) = createTask(ruleInfo: [name], commandLine: ["/bin/echo", name], inputs: inputs.map { MakePlannedPathNode(Path("/\($0)")) }, outputs: [MakePlannedPathNode(Path("/\(name)"))], mustPrecede: [], action: nil)
-            taskMap[name] = task
+            let task = createTask(ruleInfo: [name], commandLine: ["/bin/echo", name], inputs: inputs.map { MakePlannedPathNode(Path("/\($0)")) }, outputs: [MakePlannedPathNode(Path("/\(name)"))], mustPrecede: [], action: nil)
+            tasks.append(task)
         }
 
         // Execute a test build against the task set.
-        let tester = try await BuildOperationTester(getCore(), taskMap.values.map { $0 }, simulated: true)
+        let tester = try await BuildOperationTester(getCore(), tasks, simulated: true)
 
         // Create the required INPUT node.
         try tester.fs.write(Path("/INPUT"), contents: [])
@@ -415,10 +424,10 @@ fileprivate struct BuildTaskBehaviorTests: CoreBasedTests {
             results.checkCapstoneEvents()
 
             // Check the items in the diamond.
-            let startTask = try #require(taskMap["START"]?.execTask as? Task)
-            let leftTask = try #require(taskMap["LEFT"]?.execTask as? Task)
-            let rightTask = try #require(taskMap["RIGHT"]?.execTask as? Task)
-            let endTask = try #require(taskMap["END"]?.execTask as? Task)
+            let startTask = try #require(results.getTask(.matchRule(["START"])))
+            let leftTask = try #require(results.getTask(.matchRule(["LEFT"])))
+            let rightTask = try #require(results.getTask(.matchRule(["RIGHT"])))
+            let endTask = try #require(results.getTask(.matchRule(["END"])))
             results.check(event: .taskHadEvent(startTask, event: .completed), precedes: .taskHadEvent(leftTask, event: .started))
             results.check(event: .taskHadEvent(startTask, event: .completed), precedes: .taskHadEvent(rightTask, event: .started))
             results.check(event: .taskHadEvent(leftTask, event: .completed), precedes: .taskHadEvent(endTask, event: .started))
@@ -429,16 +438,16 @@ fileprivate struct BuildTaskBehaviorTests: CoreBasedTests {
     @Test(.requireSDKs(.host), .skipHostOS(.windows, "no /usr/bin/true"))
     func simulatedMustPrecede() async throws {
         let tasksToMake = ["A", "B", "C", "D"]
-        var taskMap: [String: any PlannedTask] = [:]
+        var tasks: [any PlannedTask] = []
         let gateTask = createGateTask(inputs: [], output: MakePlannedVirtualNode("GATE"), mustPrecede: [])
-        taskMap["GATE"] = gateTask
+        tasks.append(gateTask)
         for name in tasksToMake {
-            let (task, _) = createTask(ruleInfo: [name], commandLine: ["/usr/bin/true"], inputs: [], outputs: [MakePlannedVirtualNode(name)], mustPrecede: [gateTask], action: nil)
-            taskMap[name] = task
+            let task = createTask(ruleInfo: [name], commandLine: ["/usr/bin/true"], inputs: [], outputs: [MakePlannedVirtualNode(name)], mustPrecede: [gateTask], action: nil)
+            tasks.append(task)
         }
 
         // Execute a test build against the task set.
-        let tester = try await BuildOperationTester(getCore(), taskMap.values.map { $0 as (any PlannedTask) }, simulated: true)
+        let tester = try await BuildOperationTester(getCore(), tasks, simulated: true)
         try await tester.checkBuild { results in
             // Check that the delegate was passed build started and build ended events in the right place.
             results.checkCapstoneEvents()
@@ -447,9 +456,10 @@ fileprivate struct BuildTaskBehaviorTests: CoreBasedTests {
             //
             // NOTE: This test isn't completely deterministic, it could report a false negative, but in practice this is very unlikely. It should never have a false positive.
             results.checkCapstoneEvents()
+            let gateTask = try #require(results.getTask(.matchRule(["Gate", "GATE"])))
             for name in tasksToMake {
-                let task = try #require(taskMap[name]?.execTask as? Task)
-                results.check(event: .taskHadEvent(task, event: .completed), precedes: .taskHadEvent(try #require(gateTask.execTask as? Task), event: .started))
+                let task = try #require(results.getTask(.matchRule([name])))
+                results.check(event: .taskHadEvent(task, event: .completed), precedes: .taskHadEvent(gateTask, event: .started))
             }
         }
     }
@@ -461,13 +471,13 @@ fileprivate struct BuildTaskBehaviorTests: CoreBasedTests {
         let testNode = MakePlannedPathNode(testPath)
         let initialVirtualNode = MakePlannedVirtualNode("<INITIAL>")
         let initialTaskAction = MockTaskAction(contents: "Hello", output: testNode)
-        let (initialTask, initialExecTask) = createTask(ruleInfo: ["INITIAL"], commandLine: ["builtin-create-file"], inputs: [], outputs: [testNode, initialVirtualNode], mustPrecede: [], action: initialTaskAction, preparesForIndexing: true)
+        let initialTask = createTask(ruleInfo: ["INITIAL"], commandLine: ["builtin-create-file"], inputs: [], outputs: [testNode, initialVirtualNode], mustPrecede: [], action: initialTaskAction, preparesForIndexing: true)
         let appendVirtualNode = MakePlannedVirtualNode("<APPEND>")
-        let (appendTask, appendExecTask) = createTask(ruleInfo: ["APPEND"], commandLine: ["builtin-append-contents"], inputs: [testNode, initialVirtualNode], outputs: [testNode, appendVirtualNode], mustPrecede: [], action: AppendingTaskAction(contents: ", world!", to: testNode))
+        let appendTask = createTask(ruleInfo: ["APPEND"], commandLine: ["builtin-append-contents"], inputs: [testNode, initialVirtualNode], outputs: [testNode, appendVirtualNode], mustPrecede: [], action: AppendingTaskAction(contents: ", world!", to: testNode))
         let checkNode = MakePlannedVirtualNode("<CHECK>")
         let checkTaskAction = CheckingTaskAction(input: testNode, contents: "Hello, world!")
         // We must have a virtual input on the append task here, as the current mutable strategy does not promote outgoing edges to the mutator.
-        let (checkTask, checkExecTask) = createTask(ruleInfo: ["CHECK"], commandLine: ["builtin-check-contents"], inputs: [testNode, appendVirtualNode], outputs: [checkNode], mustPrecede: [], action: checkTaskAction)
+        let checkTask = createTask(ruleInfo: ["CHECK"], commandLine: ["builtin-check-contents"], inputs: [testNode, appendVirtualNode], outputs: [checkNode], mustPrecede: [], action: checkTaskAction)
         let tasks: [any PlannedTask] = [initialTask, appendTask, checkTask]
 
         // Execute a test build against the task set.
@@ -476,9 +486,13 @@ fileprivate struct BuildTaskBehaviorTests: CoreBasedTests {
             // Check that the delegate was passed build started and build ended events in the right place.
             results.checkCapstoneEvents()
 
+            let initialTask = try #require(results.getTask(.matchRule(["INITIAL"])))
+            let appendTask = try #require(results.getTask(.matchRule(["APPEND"])))
+            let checkTask = try #require(results.getTask(.matchRule(["CHECK"])))
+
             // Check that the expected tasks ran.
             let startedTasks = results.getStartedTasks()
-            #expect(startedTasks == [initialExecTask, appendExecTask, checkExecTask])
+            #expect(startedTasks == [initialTask, appendTask, checkTask])
 
             // Check the file has the expected contents.
             #expect(try results.fs.read(testPath) == ByteString(encodingAsUTF8: "Hello, world!"))
@@ -491,9 +505,13 @@ fileprivate struct BuildTaskBehaviorTests: CoreBasedTests {
         initialTaskAction.contents = "Hello again"
         checkTaskAction.contents = "Hello again, world!"
         try await tester.checkBuild(persistent: true) { results in
+            let initialTask = try #require(results.getTask(.matchRule(["INITIAL"])))
+            let appendTask = try #require(results.getTask(.matchRule(["APPEND"])))
+            let checkTask = try #require(results.getTask(.matchRule(["CHECK"])))
+
             // Check that the expected tasks ran.
             let startedTasks = results.getStartedTasks()
-            #expect(startedTasks == [initialExecTask, appendExecTask, checkExecTask])
+            #expect(startedTasks == [initialTask, appendTask, checkTask])
         }
 
         // Update the file and do a prebuild, then check the next build runs the remaining tasks.
@@ -502,22 +520,31 @@ fileprivate struct BuildTaskBehaviorTests: CoreBasedTests {
         initialTaskAction.contents = "Hello once more"
         checkTaskAction.contents = "Hello once more, world!"
         try await tester.checkBuild(buildCommand: .prepareForIndexing(buildOnlyTheseTargets: nil, enableIndexBuildArena: false), persistent: true) { results in
+            let initialTask = try #require(results.getTask(.matchRule(["INITIAL"])))
+
             // Check that the expected tasks ran.
             let startedTasks = results.getStartedTasks()
-            #expect(startedTasks == [initialExecTask])
+            #expect(startedTasks == [initialTask])
         }
         try await tester.checkBuild(persistent: true) { results in
+            let appendTask = try #require(results.getTask(.matchRule(["APPEND"])))
+            let checkTask = try #require(results.getTask(.matchRule(["CHECK"])))
+
             // Check that the expected tasks ran.
             let startedTasks = results.getStartedTasks()
-            #expect(startedTasks == [appendExecTask, checkExecTask])
+            #expect(startedTasks == [appendTask, checkTask])
         }
 
         // Remove the output file and check the build.
         try tester.fs.remove(testPath)
         try await tester.checkBuild(persistent: true) { results throws in
+            let initialTask = try #require(results.getTask(.matchRule(["INITIAL"])))
+            let appendTask = try #require(results.getTask(.matchRule(["APPEND"])))
+            let checkTask = try #require(results.getTask(.matchRule(["CHECK"])))
+
             // Check that the expected tasks ran.
             let startedTasks = results.getStartedTasks()
-            #expect(startedTasks == [initialExecTask, appendExecTask, checkExecTask])
+            #expect(startedTasks == [initialTask, appendTask, checkTask])
 
             // Check the file has the expected contents.
             #expect(try results.fs.read(testPath) == ByteString(encodingAsUTF8: "Hello once more, world!"))
@@ -533,15 +560,15 @@ fileprivate struct BuildTaskBehaviorTests: CoreBasedTests {
 
         // We intentially declare these using mustPrecede to validate those edges are checked for chaining.
         let append1VirtualNode = MakePlannedVirtualNode("<APPEND-1>")
-        let (append1Task, append1ExecTask) = createTask(ruleInfo: ["APPEND-1"], commandLine: ["builtin-append-contents"], inputs: [testNode], outputs: [testNode, append1VirtualNode], mustPrecede: [], action: AppendingTaskAction(contents: ", world", to: testNode))
+        let append1Task = createTask(ruleInfo: ["APPEND-1"], commandLine: ["builtin-append-contents"], inputs: [testNode], outputs: [testNode, append1VirtualNode], mustPrecede: [], action: AppendingTaskAction(contents: ", world", to: testNode))
         let initialTaskAction = MockTaskAction(contents: "Hello", output: testNode)
-        let (initialTask, initialExecTask) = createTask(ruleInfo: ["INITIAL"], commandLine: ["builtin-create-file"], inputs: [], outputs: [testNode, initialVirtualNode], mustPrecede: [append1Task], action: initialTaskAction, preparesForIndexing: true)
+        let initialTask = createTask(ruleInfo: ["INITIAL"], commandLine: ["builtin-create-file"], inputs: [], outputs: [testNode, initialVirtualNode], mustPrecede: [append1Task], action: initialTaskAction, preparesForIndexing: true)
         let append2VirtualNode = MakePlannedVirtualNode("<APPEND-2>")
-        let (append2Task, append2ExecTask) = createTask(ruleInfo: ["APPEND-2"], commandLine: ["builtin-append-contents"], inputs: [testNode, append1VirtualNode], outputs: [testNode, append2VirtualNode], mustPrecede: [], action: AppendingTaskAction(contents: "!", to: testNode))
+        let append2Task = createTask(ruleInfo: ["APPEND-2"], commandLine: ["builtin-append-contents"], inputs: [testNode, append1VirtualNode], outputs: [testNode, append2VirtualNode], mustPrecede: [], action: AppendingTaskAction(contents: "!", to: testNode))
         let checkNode = MakePlannedVirtualNode("<CHECK>")
         let checkTaskAction = CheckingTaskAction(input: testNode, contents: "Hello, world!")
         // We must have a virtual input on the append task here, as the current mutable strategy does not promote outgoing edges to the mutator.
-        let (checkTask, checkExecTask) = createTask(ruleInfo: ["CHECK"], commandLine: ["builtin-check-contents"], inputs: [testNode, append2VirtualNode], outputs: [checkNode], mustPrecede: [], action: checkTaskAction)
+        let checkTask = createTask(ruleInfo: ["CHECK"], commandLine: ["builtin-check-contents"], inputs: [testNode, append2VirtualNode], outputs: [checkNode], mustPrecede: [], action: checkTaskAction)
         let tasks: [any PlannedTask] = [initialTask, append1Task, append2Task, checkTask]
 
         // Execute a test build against the task set.
@@ -549,10 +576,14 @@ fileprivate struct BuildTaskBehaviorTests: CoreBasedTests {
         try await tester.checkBuild(persistent: true) { results throws in
             // Check that the delegate was passed build started and build ended events in the right place.
             results.checkCapstoneEvents()
+            let initialTask = try #require(results.getTask(.matchRule(["INITIAL"])))
+            let append1Task = try #require(results.getTask(.matchRule(["APPEND-1"])))
+            let append2Task = try #require(results.getTask(.matchRule(["APPEND-2"])))
+            let checkTask = try #require(results.getTask(.matchRule(["CHECK"])))
 
             // Check that the expected tasks ran.
             let startedTasks = results.getStartedTasks()
-            #expect(startedTasks == [initialExecTask, append1ExecTask, append2ExecTask, checkExecTask])
+            #expect(startedTasks == [initialTask, append1Task, append2Task, checkTask])
 
             // Check the file has the expected contents.
             #expect(try results.fs.read(testPath) == ByteString(encodingAsUTF8: "Hello, world!"))
@@ -568,9 +599,9 @@ fileprivate struct BuildTaskBehaviorTests: CoreBasedTests {
         let testPath = Path.root.join("input.txt")
         let testNode = MakePlannedPathNode(testPath)
         let initialTaskAction = MockTaskAction(contents: "Hello", output: testNode)
-        let (initialTask, _) = createTask(ruleInfo: ["INITIAL"], commandLine: ["builtin-create-file"], inputs: [], outputs: [testNode], mustPrecede: [], action: initialTaskAction, preparesForIndexing: true)
-        let (append1Task, _) = createTask(ruleInfo: ["APPEND-1"], commandLine: ["builtin-append-contents"], inputs: [testNode], outputs: [testNode], mustPrecede: [], action: AppendingTaskAction(contents: ", world", to: testNode))
-        let (append2Task, _) = createTask(ruleInfo: ["APPEND-2"], commandLine: ["builtin-append-contents"], inputs: [testNode], outputs: [testNode], mustPrecede: [], action: AppendingTaskAction(contents: "!", to: testNode))
+        let initialTask = createTask(ruleInfo: ["INITIAL"], commandLine: ["builtin-create-file"], inputs: [], outputs: [testNode], mustPrecede: [], action: initialTaskAction, preparesForIndexing: true)
+        let append1Task = createTask(ruleInfo: ["APPEND-1"], commandLine: ["builtin-append-contents"], inputs: [testNode], outputs: [testNode], mustPrecede: [], action: AppendingTaskAction(contents: ", world", to: testNode))
+        let append2Task = createTask(ruleInfo: ["APPEND-2"], commandLine: ["builtin-append-contents"], inputs: [testNode], outputs: [testNode], mustPrecede: [], action: AppendingTaskAction(contents: "!", to: testNode))
         let tasks: [any PlannedTask] = [initialTask, append1Task, append2Task]
 
         // Execute a test build against the task set.
@@ -594,14 +625,14 @@ fileprivate struct BuildTaskBehaviorTests: CoreBasedTests {
         // Create the input files.
         let initialAVirtualNode = MakePlannedVirtualNode("<INITIAL-A>")
         let initialATaskAction = MockTaskAction(contents: "Hello", output: testANode)
-        let (initialATask, initialAExecTask) = createTask(ruleInfo: ["INITIAL-A"], commandLine: ["builtin-create-file"], inputs: [], outputs: [testANode, initialAVirtualNode], mustPrecede: [], action: initialATaskAction, preparesForIndexing: true)
+        let initialATask = createTask(ruleInfo: ["INITIAL-A"], commandLine: ["builtin-create-file"], inputs: [], outputs: [testANode, initialAVirtualNode], mustPrecede: [], action: initialATaskAction, preparesForIndexing: true)
         let initialBVirtualNode = MakePlannedVirtualNode("<INITIAL-B>")
         let initialBTaskAction = MockTaskAction(contents: "Hi", output: testBNode)
-        let (initialBTask, initialBExecTask) = createTask(ruleInfo: ["INITIAL-B"], commandLine: ["builtin-create-file"], inputs: [initialAVirtualNode], outputs: [testBNode, initialBVirtualNode], mustPrecede: [], action: initialBTaskAction, preparesForIndexing: true)
+        let initialBTask = createTask(ruleInfo: ["INITIAL-B"], commandLine: ["builtin-create-file"], inputs: [initialAVirtualNode], outputs: [testBNode, initialBVirtualNode], mustPrecede: [], action: initialBTaskAction, preparesForIndexing: true)
 
         // Create the mutator.
         let appendVirtualNode = MakePlannedVirtualNode("<APPEND-MULTI>")
-        let (appendTask, appendExecTask) = createTask(ruleInfo: ["APPEND-MULTI"], commandLine: ["builtin-append-contents"], inputs: [testANode, testBNode, initialAVirtualNode, initialBVirtualNode], outputs: [testANode, testBNode, appendVirtualNode], mustPrecede: [], action: AppendingTaskAction(contents: ", world!", to: [testANode, testBNode]))
+        let appendTask = createTask(ruleInfo: ["APPEND-MULTI"], commandLine: ["builtin-append-contents"], inputs: [testANode, testBNode, initialAVirtualNode, initialBVirtualNode], outputs: [testANode, testBNode, appendVirtualNode], mustPrecede: [], action: AppendingTaskAction(contents: ", world!", to: [testANode, testBNode]))
 
         // Create tasks to check the output.
         let checkANode = MakePlannedVirtualNode("<CHECK-A>")
@@ -609,19 +640,25 @@ fileprivate struct BuildTaskBehaviorTests: CoreBasedTests {
         let checkBNode = MakePlannedVirtualNode("<CHECK-B>")
         let checkBTaskAction = CheckingTaskAction(input: testBNode, contents: "Hi, world!")
         // We must have a virtual input on the append task here, as the current mutable strategy does not promote outgoing edges to the mutator.
-        let (checkATask, checkAExecTask) = createTask(ruleInfo: ["CHECK-A"], commandLine: ["builtin-check-contents"], inputs: [testANode, appendVirtualNode], outputs: [checkANode], mustPrecede: [], action: checkATaskAction)
-        let (checkBTask, checkBExecTask) = createTask(ruleInfo: ["CHECK-B"], commandLine: ["builtin-check-contents"], inputs: [testBNode, appendVirtualNode, checkANode], outputs: [checkBNode], mustPrecede: [], action: checkBTaskAction)
+        let checkATask = createTask(ruleInfo: ["CHECK-A"], commandLine: ["builtin-check-contents"], inputs: [testANode, appendVirtualNode], outputs: [checkANode], mustPrecede: [], action: checkATaskAction)
+        let checkBTask = createTask(ruleInfo: ["CHECK-B"], commandLine: ["builtin-check-contents"], inputs: [testBNode, appendVirtualNode, checkANode], outputs: [checkBNode], mustPrecede: [], action: checkBTaskAction)
         let tasks: [any PlannedTask] = [initialATask, initialBTask, appendTask, checkATask, checkBTask]
 
         // Execute a test build against the task set.
         let tester = try await BuildOperationTester(getCore(), tasks, simulated: true)
         try await tester.checkBuild(persistent: true) { results throws in
+            let initialATask = try #require(results.getTask(.matchRule(["INITIAL-A"])))
+            let initialBTask = try #require(results.getTask(.matchRule(["INITIAL-B"])))
+            let appendTask = try #require(results.getTask(.matchRule(["APPEND-MULTI"])))
+            let checkATask = try #require(results.getTask(.matchRule(["CHECK-A"])))
+            let checkBTask = try #require(results.getTask(.matchRule(["CHECK-B"])))
+
             // Check that the delegate was passed build started and build ended events in the right place.
             results.checkCapstoneEvents()
 
             // Check that the expected tasks ran.
             let startedTasks = results.getStartedTasks()
-            #expect(startedTasks == [initialAExecTask, initialBExecTask, appendExecTask, checkAExecTask, checkBExecTask])
+            #expect(startedTasks == [initialATask, initialBTask, appendTask, checkATask, checkBTask])
 
             // Check the file has the expected contents.
             #expect(try results.fs.read(testAPath) == ByteString(encodingAsUTF8: "Hello, world!"))
@@ -641,28 +678,33 @@ fileprivate struct BuildTaskBehaviorTests: CoreBasedTests {
 
         // We intentially declare these using mustPrecede to validate those edges are checked for chaining.
         let initialTaskAction = MockTaskAction(contents: "Hello", output: testNode)
-        let (initialTask, initialExecTask) = createTask(ruleInfo: ["INITIAL"], commandLine: ["builtin-create-file"], inputs: [], outputs: [testNode, initialVirtualNode], mustPrecede: [], action: initialTaskAction, preparesForIndexing: true)
+        let initialTask = createTask(ruleInfo: ["INITIAL"], commandLine: ["builtin-create-file"], inputs: [], outputs: [testNode, initialVirtualNode], mustPrecede: [], action: initialTaskAction, preparesForIndexing: true)
         let append1VirtualNode = MakePlannedVirtualNode("<APPEND-1>")
-        let (append1Task, append1ExecTask) = createTask(ruleInfo: ["APPEND-1"], commandLine: ["builtin-append-contents"], inputs: [testNode, initialVirtualNode], outputs: [testNode, append1VirtualNode], mustPrecede: [], action: AppendingTaskAction(contents: ", ", to: testNode))
+        let append1Task = createTask(ruleInfo: ["APPEND-1"], commandLine: ["builtin-append-contents"], inputs: [testNode, initialVirtualNode], outputs: [testNode, append1VirtualNode], mustPrecede: [], action: AppendingTaskAction(contents: ", ", to: testNode))
         let append2VirtualNode = MakePlannedVirtualNode("<APPEND-2>")
-        let (append2Task, append2ExecTask) = createTask(ruleInfo: ["APPEND-2"], commandLine: ["builtin-append-contents"], inputs: [testNode, append1VirtualNode], outputs: [testNode, append2VirtualNode], mustPrecede: [], action: AppendingTaskAction(contents: "world", to: testNode))
+        let append2Task = createTask(ruleInfo: ["APPEND-2"], commandLine: ["builtin-append-contents"], inputs: [testNode, append1VirtualNode], outputs: [testNode, append2VirtualNode], mustPrecede: [], action: AppendingTaskAction(contents: "world", to: testNode))
         let append3VirtualNode = MakePlannedVirtualNode("<APPEND-3>")
-        let (append3Task, append3ExecTask) = createTask(ruleInfo: ["APPEND-3"], commandLine: ["builtin-append-contents"], inputs: [testNode, initialVirtualNode, append2VirtualNode], outputs: [testNode, append3VirtualNode], mustPrecede: [], action: AppendingTaskAction(contents: "!", to: testNode))
+        let append3Task = createTask(ruleInfo: ["APPEND-3"], commandLine: ["builtin-append-contents"], inputs: [testNode, initialVirtualNode, append2VirtualNode], outputs: [testNode, append3VirtualNode], mustPrecede: [], action: AppendingTaskAction(contents: "!", to: testNode))
         let checkNode = MakePlannedVirtualNode("<CHECK>")
         let checkTaskAction = CheckingTaskAction(input: testNode, contents: "Hello, world!")
         // We must have a virtual input on the append task here, as the current mutable strategy does not promote outgoing edges to the mutator.
-        let (checkTask, checkExecTask) = createTask(ruleInfo: ["CHECK"], commandLine: ["builtin-check-contents"], inputs: [testNode, append3VirtualNode], outputs: [checkNode], mustPrecede: [], action: checkTaskAction)
+        let checkTask = createTask(ruleInfo: ["CHECK"], commandLine: ["builtin-check-contents"], inputs: [testNode, append3VirtualNode], outputs: [checkNode], mustPrecede: [], action: checkTaskAction)
         let tasks: [any PlannedTask] = [initialTask, append1Task, append2Task, append3Task, checkTask]
 
         // Execute a test build against the task set.
         let tester = try await BuildOperationTester(getCore(), tasks, simulated: true)
         try await tester.checkBuild(persistent: true) { results throws in
+            let initialTask = try #require(results.getTask(.matchRule(["INITIAL"])))
+            let append1Task = try #require(results.getTask(.matchRule(["APPEND-1"])))
+            let append2Task = try #require(results.getTask(.matchRule(["APPEND-2"])))
+            let append3Task = try #require(results.getTask(.matchRule(["APPEND-3"])))
+            let checkTask = try #require(results.getTask(.matchRule(["CHECK"])))
             // Check that the delegate was passed build started and build ended events in the right place.
             results.checkCapstoneEvents()
 
             // Check that the expected tasks ran.
             let startedTasks = results.getStartedTasks()
-            #expect(startedTasks == [initialExecTask, append1ExecTask, append2ExecTask, append3ExecTask, checkExecTask])
+            #expect(startedTasks == [initialTask, append1Task, append2Task, append3Task, checkTask])
 
             // Check the file has the expected contents.
             #expect(try results.fs.read(testPath) == ByteString(encodingAsUTF8: "Hello, world!"))
@@ -682,12 +724,12 @@ fileprivate struct BuildTaskBehaviorTests: CoreBasedTests {
         let inputTasks = files.enumerated().map { (i, file) in
             return createTask(ruleInfo: ["create-\(i)"], commandLine: ["n"],
                               inputs: [], outputs: [file], mustPrecede: [],
-                              action: MockTaskAction(contents: "create-\(i)", output: file), preparesForIndexing: true).0
+                              action: MockTaskAction(contents: "create-\(i)", output: file), preparesForIndexing: true)
         }
         let merged = MakePlannedPathNode(Path("/merged.txt"))
         let mergedTask = createTask(ruleInfo: ["merge"], commandLine: ["n"],
                                     inputs: files, outputs: files, mustPrecede: [],
-                                    action: MockTaskAction(contents: "merge", output: merged), preparesForIndexing: true).0
+                                    action: MockTaskAction(contents: "merge", output: merged), preparesForIndexing: true)
         let tasks = inputTasks + [mergedTask]
 
         // Check for stability by comparing two manifests.
@@ -707,12 +749,13 @@ fileprivate struct BuildTaskBehaviorTests: CoreBasedTests {
         let outputPath = Path.root.join("output.txt")
         let outputNode = MakePlannedPathNode(outputPath)
         let action = MockTaskAction(contents: "Hello, world!", output: outputNode)
-        let (task, execTask) = createTask(ruleInfo: ["MOCK"], commandLine: ["builtin-mock"], inputs: [], outputs: [outputNode], mustPrecede: [], action: action)
+        let task = createTask(ruleInfo: ["MOCK"], commandLine: ["builtin-mock"], inputs: [], outputs: [outputNode], mustPrecede: [], action: action)
 
         // Execute a test build against the task set.
         let tester = try await BuildOperationTester(getCore(), [task], simulated: true)
 
         try await tester.checkBuild(persistent: true) { results throws in
+            let task = try #require(results.getTask(.matchRule(["MOCK"])))
             // Check that the delegate was passed build started and build ended events in the right place.
             results.checkCapstoneEvents()
 
@@ -728,9 +771,9 @@ fileprivate struct BuildTaskBehaviorTests: CoreBasedTests {
                 }
             }
             #expect(taskEvents == [
-                .taskHadEvent(execTask, event: .started),
-                .taskHadEvent(execTask, event: .exit(.succeeded(metrics: nil))),
-                .taskHadEvent(execTask, event: .completed)])
+                .taskHadEvent(task, event: .started),
+                .taskHadEvent(task, event: .exit(.succeeded(metrics: nil))),
+                .taskHadEvent(task, event: .completed)])
         }
 
         // Check that we get a null build.
@@ -760,13 +803,14 @@ fileprivate struct BuildTaskBehaviorTests: CoreBasedTests {
 
             do {
                 let action = AuxiliaryFileTaskAction(AuxiliaryFileTaskActionContext(output: outputPath, input: tmpDir.path.join("foo"), permissions: nil, forceWrite: false, diagnostics: [], logContents: false))
-                let (task, execTask) = createTask(ruleInfo: ["MOCK"], commandLine: ["builtin-mock"], inputs: [], outputs: [outputNode], mustPrecede: [], action: action)
+                let task = createTask(ruleInfo: ["MOCK"], commandLine: ["builtin-mock"], inputs: [], outputs: [outputNode], mustPrecede: [], action: action)
 
                 // Execute a test build against the task set.
                 let tester = try await BuildOperationTester(getCore(), [task], simulated: true, temporaryDirectory: tmpDir, fileSystem: fs)
                 try await tester.checkBuild(persistent: true) { results throws in
                     // Check the task ran.
-                    #expect(results.getStartedTasks() == [execTask])
+                    let task = try #require(results.getTask(.matchRule(["MOCK"])))
+                    #expect(results.getStartedTasks() == [task])
                     #expect(try results.fs.read(outputPath) == ByteString(encodingAsUTF8: "Hello, world!"))
                 }
             }
@@ -774,7 +818,7 @@ fileprivate struct BuildTaskBehaviorTests: CoreBasedTests {
             // Perform a build with a new, identical task set, and check for a null build.
             do {
                 let action = AuxiliaryFileTaskAction(AuxiliaryFileTaskActionContext(output: outputPath, input: tmpDir.path.join("foo"), permissions: nil, forceWrite: false, diagnostics: [], logContents: false))
-                let (task, _) = createTask(ruleInfo: ["MOCK"], commandLine: ["builtin-mock"], inputs: [], outputs: [outputNode], mustPrecede: [], action: action)
+                let task = createTask(ruleInfo: ["MOCK"], commandLine: ["builtin-mock"], inputs: [], outputs: [outputNode], mustPrecede: [], action: action)
 
                 // Execute a test build against the task set.
                 let tester = try await BuildOperationTester(getCore(), [task], simulated: true, temporaryDirectory: tmpDir, fileSystem: fs)
@@ -785,12 +829,13 @@ fileprivate struct BuildTaskBehaviorTests: CoreBasedTests {
             do {
                 try fs.write(tmpDir.path.join("bar"), contents: "Hello, alternate world!")
                 let action = AuxiliaryFileTaskAction(AuxiliaryFileTaskActionContext(output: outputPath, input: tmpDir.path.join("bar"), permissions: nil, forceWrite: false, diagnostics: [], logContents: false))
-                let (task, execTask) = createTask(ruleInfo: ["MOCK"], commandLine: ["builtin-mock"], inputs: [], outputs: [outputNode], mustPrecede: [], action: action)
+                let task = createTask(ruleInfo: ["MOCK"], commandLine: ["builtin-mock"], inputs: [], outputs: [outputNode], mustPrecede: [], action: action)
 
                 // Execute a test build against the task set.
                 let tester = try await BuildOperationTester(getCore(), [task], simulated: true, temporaryDirectory: tmpDir, fileSystem: fs)
                 try await tester.checkBuild(persistent: true) { results throws in
-                    #expect(results.getStartedTasks() == [execTask])
+                    let task = try #require(results.getTask(.matchRule(["MOCK"])))
+                    #expect(results.getStartedTasks() == [task])
                     #expect(try results.fs.read(outputPath) == ByteString(encodingAsUTF8: "Hello, alternate world!"))
                 }
             }
@@ -810,13 +855,14 @@ fileprivate struct BuildTaskBehaviorTests: CoreBasedTests {
             do {
                 let context = AuxiliaryFileTaskActionContext(output: outputPath, input: tmpDir.path.join("foo"), permissions: nil, forceWrite: false, diagnostics: [.init(kind: .error, message: "Couldn't deal with this for some reason")], logContents: false)
                 let action = AuxiliaryFileTaskAction(context)
-                let (task, execTask) = createTask(ruleInfo: ["MOCK"], commandLine: ["builtin-mock"], inputs: [], outputs: [outputNode], mustPrecede: [], action: action)
+                let task = createTask(ruleInfo: ["MOCK"], commandLine: ["builtin-mock"], inputs: [], outputs: [outputNode], mustPrecede: [], action: action)
 
                 // Execute a test build against the task set.
                 let tester = try await BuildOperationTester(getCore(), [task], simulated: true, temporaryDirectory: tmpDir, fileSystem: fs)
                 try await tester.checkBuild(persistent: true) { results throws in
                     // Check the task ran.
-                    #expect(results.getStartedTasks() == [execTask])
+                    let task = try #require(results.getTask(.matchRule(["MOCK"])))
+                    #expect(results.getStartedTasks() == [task])
                     results.checkError(.equal("Couldn't deal with this for some reason (for task: [\"MOCK\"])"))
                     results.checkNoDiagnostics()
                     #expect(try fs.read(outputPath) == ByteString(encodingAsUTF8: "Hello, world!"))
@@ -831,7 +877,7 @@ fileprivate struct BuildTaskBehaviorTests: CoreBasedTests {
             let fs = localFS
             let outputPath = tmpDir.path.join("input")
 
-            let (task, execTask) = createTask(
+            let task = createTask(
                 ruleInfo: ["MkDir", outputPath.str],
                 commandLine: [],
                 inputs: [],
@@ -842,7 +888,8 @@ fileprivate struct BuildTaskBehaviorTests: CoreBasedTests {
             let tester = try await BuildOperationTester(getCore(), [task], simulated: false, temporaryDirectory: tmpDir, fileSystem: fs)
 
             try await tester.checkBuild(persistent: true) { results in
-                results.check(contains: .taskHadEvent(execTask, event: .exit(.succeeded(metrics: nil))))
+                let task = try #require(results.getTask(.matchRule(["MkDir", outputPath.str])))
+                results.check(contains: .taskHadEvent(task, event: .exit(.succeeded(metrics: nil))))
             }
         }
     }
@@ -860,16 +907,17 @@ fileprivate struct BuildTaskBehaviorTests: CoreBasedTests {
             try fs.createDirectory(subdirPath)
             try fs.write(subdirPath.join("a.txt"), contents: "a")
 
-            let (task, execTask) = createTask(ruleInfo: ["CheckDir"], commandLine: ["/usr/bin/find", inputPath.str], inputs: [MakePlannedDirectoryTreeNode(inputPath)], outputs: [MakePlannedVirtualNode("<CHECK-DIR>")], mustPrecede: [], action: nil)
+            let task = createTask(ruleInfo: ["CheckDir"], commandLine: ["/usr/bin/find", inputPath.str], inputs: [MakePlannedDirectoryTreeNode(inputPath)], outputs: [MakePlannedVirtualNode("<CHECK-DIR>")], mustPrecede: [], action: nil)
             let tester = try await BuildOperationTester(getCore(), [task], simulated: false, temporaryDirectory: tmpDir, fileSystem: fs)
 
             // Perform the initial build.
             try await tester.checkBuild(persistent: true) { results in
                 // Check the task ran.
-                #expect(results.getStartedTasks() == [execTask])
+                let task = try #require(results.getTask(.matchRule(["CheckDir"])))
+                #expect(results.getStartedTasks() == [task])
 
                 // Check the output.
-                results.checkTaskOutput(execTask) { output in
+                results.checkTaskOutput(task) { output in
                     let lines = output.asString.split(separator: "\n").map(String.init).sorted()
                     XCTAssertMatch(lines, [
                         .suffix("/input"),
@@ -882,10 +930,11 @@ fileprivate struct BuildTaskBehaviorTests: CoreBasedTests {
             try fs.write(subdirPath.join("b.txt"), contents: "b")
             try await tester.checkBuild(persistent: true) { results in
                 // Check the task ran.
-                #expect(results.getStartedTasks() == [execTask])
+                let task = try #require(results.getTask(.matchRule(["CheckDir"])))
+                #expect(results.getStartedTasks() == [task])
 
                 // Check the output.
-                results.checkTaskOutput(execTask) { output in
+                results.checkTaskOutput(task) { output in
                     let lines = output.asString.split(separator: "\n").map(String.init).sorted()
                     XCTAssertMatch(lines, [
                         .suffix("/input"),
@@ -899,7 +948,7 @@ fileprivate struct BuildTaskBehaviorTests: CoreBasedTests {
 
     @Test(.requireSDKs(.host), .skipHostOS(.windows, "no /bin/echo"))
     func additionalInfoOutput() async throws {
-        let (echoTask, _) = createTask(ruleInfo: ["echo", "additional-output"], commandLine: ["/bin/echo", "additional-output"], additionalOutput: ["just some extra output"], inputs: [], outputs: [MakePlannedVirtualNode("<ECHO>")], action: nil)
+        let echoTask = createTask(ruleInfo: ["echo", "additional-output"], commandLine: ["/bin/echo", "additional-output"], additionalOutput: ["just some extra output"], inputs: [], outputs: [MakePlannedVirtualNode("<ECHO>")], action: nil)
 
         // Execute a test build against the task set.
         let tester = try await BuildOperationTester(getCore(), [echoTask], simulated: true)

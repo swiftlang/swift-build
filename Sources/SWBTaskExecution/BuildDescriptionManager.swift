@@ -559,7 +559,7 @@ package final class BuildDescriptionManager: Sendable {
         let delegate = BuildDescriptionDeserializerDelegate(workspace: workspaceContext.workspace, platformRegistry: workspaceContext.core.platformRegistry, sdkRegistry: workspaceContext.core.sdkRegistry, specRegistry: workspaceContext.core.specRegistry)
         let taskStoreContents = try fs.read(path.join("task-store.msgpack"))
         let taskStoreDeserializer = MsgPackDeserializer(taskStoreContents, delegate: delegate)
-        let taskStore: TaskStore = try taskStoreDeserializer.deserialize()
+        let taskStore: FrozenTaskStore = try taskStoreDeserializer.deserialize()
         delegate.taskStore = taskStore
         let byteString = try fs.read(path.join("description.msgpack"))
         let deserializer = MsgPackDeserializer(byteString, delegate: delegate)

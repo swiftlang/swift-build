@@ -16,22 +16,8 @@ public import SWBUtil
 ///
 /// We almost never inspect the environment, so we make a space/size tradeoff by compactly storing the environment.
 public struct EnvironmentBindings: Sendable {
-    private enum BindingsStorage {
-        case direct([(String, String)])
-        case interned([(StringArena.Handle, StringArena.Handle)], StringArena)
-    }
-
     /// The bindings are stored as one contiguous string
-    private var bindingsStorage: BindingsStorage
-
-    public var bindings: [(String, String)] {
-        switch bindingsStorage {
-        case .direct(let bindings):
-            return bindings
-        case .interned(let internedBindings, let arena):
-            return internedBindings.map { (arena.lookup(handle: $0.0), arena.lookup(handle: $0.1)) }
-        }
-    }
+    public let bindings: [(String, String)]
 
     public var bindingsDictionary: [String: String] {
         var dict = [String: String]()
@@ -43,15 +29,15 @@ public struct EnvironmentBindings: Sendable {
 
     /// Create an empty binding map.
     public init() {
-        self.bindingsStorage = .direct([])
+        self.bindings = []
     }
 
     public init(_ bindings: [(String, String)]) {
-        self.bindingsStorage = .direct(bindings)
+        self.bindings = bindings
     }
 
     public init(_ bindings: [String: String]) {
-        self.bindingsStorage = .direct(bindings.map { ($0, $1) }.sorted(by: { $0.0 < $1.0 }))
+        self.bindings = bindings.map { ($0, $1) }.sorted(by: { $0.0 < $1.0 })
     }
 
     /// Add a signature of the bindings into the given context.
@@ -63,13 +49,6 @@ public struct EnvironmentBindings: Sendable {
             ctx.add(string: val)
             ctx.add(number: 0)
         }
-    }
-
-    public mutating func intern(in arena: StringArena) {
-        guard case .direct(let bindings) = bindingsStorage else {
-            return
-        }
-        self.bindingsStorage = .interned(bindings.map { (arena.intern($0.0), arena.intern($0.1)) }, arena)
     }
 }
 
@@ -90,6 +69,6 @@ extension EnvironmentBindings: Serializable {
 
     public init(from deserializer: any Deserializer) throws {
         try deserializer.beginAggregate(2)
-        self.bindingsStorage = .direct(Array(zip(try deserializer.deserialize(), try deserializer.deserialize())))
+        self.bindings = Array(zip(try deserializer.deserialize(), try deserializer.deserialize()))
     }
 }
