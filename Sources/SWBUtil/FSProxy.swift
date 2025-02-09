@@ -742,7 +742,11 @@ class LocalFS: FSProxy, @unchecked Sendable {
         }
 
         let results = try enumerator.compactMap { next in
-            return try f(Path((next as! URL).path))
+            var path = (next as! URL).path
+            // Ensure we don't inadvertently create a Path backed by a string
+            // that it can't operate efficiently on.
+            path.makeContiguousUTF8()
+            return try f(Path(path))
         }
 
         if let error {
