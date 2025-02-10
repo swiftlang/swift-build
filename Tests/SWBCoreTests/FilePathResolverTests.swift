@@ -66,7 +66,7 @@ import SWBMacro
     @Test
     func absolutePath() throws {
         let model = try TestFile(Path.root.join("tmp/SomeProject/SomeProject/ClassOne.m").str, sourceTree: .absolute).toProtocol()
-        let fileRef = try #require(Reference.create(model, pifLoader) as? FileReference)
+        let fileRef = try #require(Reference.create(model, pifLoader, isRoot: true) as? FileReference)
 
         // Get the absolute path for the reference and test it.
         let resolvedPath = resolver.resolveAbsolutePath(fileRef)
@@ -86,7 +86,7 @@ import SWBMacro
                                                          children: [TestFile("Base.lproj/View.xib"), TestFile("fr.lproj/View.strings", regionVariantName: "fr")])
                                     ])
                                   ]).toProtocol()
-        let rootGroup = try #require(Reference.create(model, pifLoader) as? FileGroup)
+        let rootGroup = try #require(Reference.create(model, pifLoader, isRoot: true) as? FileGroup)
 
         // Test the individual references.
         // We do all this twice in order to exercise the cache mechanism.
@@ -125,7 +125,7 @@ import SWBMacro
     @Test
     func relativeSourceTree() throws {
         let model = try TestFile("ClassTwo.m", sourceTree: .buildSetting("RELATIVE_SOURCE_TREE")).toProtocol()
-        let fileRef = try #require(Reference.create(model, pifLoader) as? FileReference)
+        let fileRef = try #require(Reference.create(model, pifLoader, isRoot: true) as? FileReference)
 
         // Get the absolute path for the reference and test it.
         let resolvedPath = resolver.resolveAbsolutePath(fileRef)
@@ -135,7 +135,7 @@ import SWBMacro
     @Test
     func emptySourceTree() throws {
         let model = try TestFile("ClassThree.m", sourceTree: .buildSetting("EMPTY_SOURCE_TREE")).toProtocol()
-        let fileRef = try #require(Reference.create(model, pifLoader) as? FileReference)
+        let fileRef = try #require(Reference.create(model, pifLoader, isRoot: true) as? FileReference)
 
         // Get the absolute path for the reference and test it.
         // An empty source tree is
@@ -146,7 +146,7 @@ import SWBMacro
     @Test
     func undefinedSourceTree() throws {
         let model = try TestFile("ClassFour.m", sourceTree: .buildSetting("UNDEFINED_SOURCE_TREE")).toProtocol()
-        let fileRef = try #require(Reference.create(model, pifLoader) as? FileReference)
+        let fileRef = try #require(Reference.create(model, pifLoader, isRoot: true) as? FileReference)
 
         // Get the absolute path for the reference and test it.
         let resolvedPath = resolver.resolveAbsolutePath(fileRef)
@@ -156,7 +156,7 @@ import SWBMacro
     @Test
     func nullSourceTree() throws {
         let model = try TestFile("ClassThree.m", sourceTree: .buildSetting("")).toProtocol()
-        let fileRef = try #require(Reference.create(model, pifLoader) as? FileReference)
+        let fileRef = try #require(Reference.create(model, pifLoader, isRoot: true) as? FileReference)
 
         // Get the absolute path for the reference and test it.
         // An empty source tree is
@@ -167,7 +167,7 @@ import SWBMacro
     @Test
     func buildSettingEmbeddedInPath() throws {
         let model = try TestFile("Sources/Arch_$(CURRENT_ARCH)/ClassFive.m", sourceTree: .buildSetting("PROJECT_DIR")).toProtocol()
-        let fileRef = try #require(Reference.create(model, pifLoader) as? FileReference)
+        let fileRef = try #require(Reference.create(model, pifLoader, isRoot: true) as? FileReference)
 
         // Get the absolute path for the reference and test it.
         let resolvedPath = resolver.resolveAbsolutePath(fileRef)
@@ -177,7 +177,7 @@ import SWBMacro
     @Test
     func dotDotEmbeddedInFileReferencePath() throws {
         let model = try TestFile("Sources/SubDir/../ClassSix.m", sourceTree: .buildSetting("PROJECT_DIR")).toProtocol()
-        let fileRef = try #require(Reference.create(model, pifLoader) as? FileReference)
+        let fileRef = try #require(Reference.create(model, pifLoader, isRoot: true) as? FileReference)
 
         // Get the absolute path for the reference and test it.
         let resolvedPath = resolver.resolveAbsolutePath(fileRef)
@@ -193,7 +193,7 @@ import SWBMacro
                 ]),
             ])
         ]).toProtocol()
-        let rootGroup = try #require(Reference.create(model, pifLoader) as? FileGroup)
+        let rootGroup = try #require(Reference.create(model, pifLoader, isRoot: true) as? FileGroup)
 
         // Get the absolute path for the reference and test it.
         let childGroup = try #require(rootGroup.children[0] as? FileGroup)
@@ -224,7 +224,7 @@ import SWBMacro
 
         for (inputFile, expectedPathString) in testData {
             let model = try inputFile.toProtocol()
-            let fileRef = try #require(Reference.create(model, pifLoader) as? FileReference)
+            let fileRef = try #require(Reference.create(model, pifLoader, isRoot: true) as? FileReference)
 
             // Get the absolute path for the reference and test it.
             let resolvedPath = resolver.resolveAbsolutePath(fileRef)

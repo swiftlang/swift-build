@@ -14,7 +14,7 @@ import SWBProtocol
 import SWBUtil
 public import SWBMacro
 
-public final class BuildConfiguration: ProjectModelItem, Encodable
+public final class BuildConfiguration: ProjectModelItem, Encodable, Sendable
 {
     public let name: String
 

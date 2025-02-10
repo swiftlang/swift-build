@@ -27,7 +27,7 @@ public enum TargetType: Sendable {
     case packageProduct
 }
 
-public final class CustomTask: ProjectModelItem {
+public final class CustomTask: ProjectModelItem, Sendable {
     public let commandLine: [MacroStringExpression]
     public let environment: [(MacroStringExpression, MacroStringExpression)]
     public let workingDirectory: MacroStringExpression?
@@ -80,7 +80,7 @@ public final class CustomTask: ProjectModelItem {
 
 // MARK: Target Dependency Info
 
-public final class TargetDependency: ProjectModelItem, Encodable
+public final class TargetDependency: ProjectModelItem, Encodable, Sendable
 {
     /// The GUID that maps back to the target GUID.
     public let guid: String
@@ -123,7 +123,7 @@ public final class TargetDependency: ProjectModelItem, Encodable
 // MARK: Target abstract class
 
 /// The Target abstract class defines properties common to all types of targets.
-public class Target: ProjectModelItem, PIFObject, Hashable, Encodable
+public class Target: ProjectModelItem, PIFObject, Hashable, Encodable, @unchecked Sendable
 {
     static func referencedObjects(for data: EncodedPIFValue) -> [PIFObjectReference] {
         return []
@@ -197,7 +197,7 @@ public class Target: ProjectModelItem, PIFObject, Hashable, Encodable
         case dynamicTargetVariantGuid
     }
 
-    init(_ model: SWBProtocol.Target, _ pifLoader: PIFLoader, signature: String) {
+    init(_ model: SWBProtocol.Target, _ pifLoader: PIFLoader, signature: String, errors: [String] = [], warnings: [String] = []) {
         self.signature = signature
         self.guid = model.guid
         self.name = model.name
@@ -207,14 +207,16 @@ public class Target: ProjectModelItem, PIFObject, Hashable, Encodable
         self.dynamicTargetVariantGuid = model.dynamicTargetVariantGuid
         self.approvedByUser = model.approvedByUser
         self.hasImpartedBuildProperties = buildConfigurations.filter { !$0.impartedBuildProperties.isEmpty }.isEmpty
+        self.errors = errors
+        self.warnings = warnings
     }
 
     /// Errors about the configuration of the target.
-    public fileprivate(set) var errors = [String]()
+    public let errors: [String]
     /// Warnings about the configuration of the target.
-    public fileprivate(set) var warnings = [String]()
+    public let warnings: [String]
 
-    init(fromDictionary pifDict: ProjectModelItemPIF, signature: String, withPIFLoader pifLoader: PIFLoader) throws {
+    init(fromDictionary pifDict: ProjectModelItemPIF, signature: String, withPIFLoader pifLoader: PIFLoader, errors: [String] = [], warnings: [String] = []) throws {
         self.signature = signature
 
         // The GUID is required.
@@ -238,6 +240,8 @@ public class Target: ProjectModelItem, PIFObject, Hashable, Encodable
         dynamicTargetVariantGuid = try Self.parseOptionalValueForKeyAsString(PIFKey_Target_dynamicTargetVariantGuid, pifDict: pifDict)
         approvedByUser = try Self.parseValueForKeyAsBool(PIFKey_Target_approvedByUser, pifDict: pifDict, defaultValue: true)
         hasImpartedBuildProperties = buildConfigurations.filter { !$0.impartedBuildProperties.isEmpty }.isEmpty
+        self.errors = errors
+        self.warnings = warnings
     }
 
     /// Parses a ProjectModelItemPIF dictionary as an object of the appropriate subclass of Target.
@@ -317,7 +321,7 @@ public class Target: ProjectModelItem, PIFObject, Hashable, Encodable
 
 
 /// A BuildPhaseTarget is a kind of target which can contain build phases.
-public class BuildPhaseTarget: Target
+public class BuildPhaseTarget: Target, @unchecked Sendable
 {
     /// List of build phases in the target.
     public let buildPhases: [BuildPhase]
@@ -369,11 +373,10 @@ public class BuildPhaseTarget: Target
         self.frameworksBuildPhase = frameworksBuildPhase
         self.headersBuildPhase = headersBuildPhase
         self.resourcesBuildPhase = resourcesBuildPhase
-        super.init(model, pifLoader, signature: signature)
-        self.warnings.append(contentsOf: warnings)
+        super.init(model, pifLoader, signature: signature, errors: [], warnings: warnings)
     }
 
-    @_spi(Testing) public override init( fromDictionary pifDict: ProjectModelItemPIF, signature: String, withPIFLoader pifLoader: PIFLoader ) throws
+    @_spi(Testing) public override init(fromDictionary pifDict: ProjectModelItemPIF, signature: String, withPIFLoader pifLoader: PIFLoader, errors: [String] = [], warnings: [String] = []) throws
     {
         // The list of build phases is required.
         buildPhases = try Self.parseValueForKeyAsArrayOfPropertyListItems(PIFKey_Target_buildPhases, pifDict: pifDict).map { plItem in
@@ -392,7 +395,7 @@ public class BuildPhaseTarget: Target
         }
 
         // Populate the convenience build phase properties.
-        var warnings: [String] = []
+        var newWarnings: [String] = []
         var sourcesBuildPhase: SourcesBuildPhase? = nil
         var frameworksBuildPhase: FrameworksBuildPhase? = nil
         var headersBuildPhase: HeadersBuildPhase? = nil
@@ -403,22 +406,22 @@ public class BuildPhaseTarget: Target
             {
                 case let sourcesPhase as SourcesBuildPhase:
                     if sourcesBuildPhase != nil {
-                        warnings.append("target has multiple \(buildPhase.name) build phases, which may cause it to build incorrectly - all but one should be deleted")
+                        newWarnings.append("target has multiple \(buildPhase.name) build phases, which may cause it to build incorrectly - all but one should be deleted")
                     }
                     sourcesBuildPhase = sourcesPhase
                 case let frameworksPhase as FrameworksBuildPhase:
                     if frameworksBuildPhase != nil {
-                        warnings.append("target has multiple \(buildPhase.name) build phases, which may cause it to build incorrectly - all but one should be deleted")
+                        newWarnings.append("target has multiple \(buildPhase.name) build phases, which may cause it to build incorrectly - all but one should be deleted")
                     }
                     frameworksBuildPhase = frameworksPhase
                 case let headersPhase as HeadersBuildPhase:
                     if headersBuildPhase != nil {
-                        warnings.append("target has multiple \(buildPhase.name) build phases, which may cause it to build incorrectly - all but one should be deleted")
+                        newWarnings.append("target has multiple \(buildPhase.name) build phases, which may cause it to build incorrectly - all but one should be deleted")
                     }
                     headersBuildPhase = headersPhase
                 case let resourcesPhase as ResourcesBuildPhase:
                     if resourcesBuildPhase != nil {
-                        warnings.append("target has multiple \(buildPhase.name) build phases, which may cause it to build incorrectly - all but one should be deleted")
+                        newWarnings.append("target has multiple \(buildPhase.name) build phases, which may cause it to build incorrectly - all but one should be deleted")
                     }
                     resourcesBuildPhase = resourcesPhase
                 default:
@@ -430,8 +433,7 @@ public class BuildPhaseTarget: Target
         self.headersBuildPhase = headersBuildPhase
         self.resourcesBuildPhase = resourcesBuildPhase
 
-        try super.init(fromDictionary: pifDict, signature: signature, withPIFLoader: pifLoader)
-        self.warnings.append(contentsOf: warnings)
+        try super.init(fromDictionary: pifDict, signature: signature, withPIFLoader: pifLoader, errors: errors, warnings: warnings + newWarnings)
     }
 }
 
@@ -443,7 +445,7 @@ public class BuildPhaseTarget: Target
 public typealias ProvisioningSourceData = SWBProtocol.ProvisioningSourceData
 
 /// A StandardTarget is the most common type of target: A target which has build phases describing its input files, and which generates a product.
-public final class StandardTarget: BuildPhaseTarget
+public final class StandardTarget: BuildPhaseTarget, @unchecked Sendable
 {
     public enum SourceCodeLanguage: CustomStringConvertible, Sendable {
         case undefined
@@ -526,7 +528,7 @@ public final class StandardTarget: BuildPhaseTarget
         _provisioningSourceData.initialize(to: provisioningSourceData)
     }
 
-    @_spi(Testing) public override init(fromDictionary pifDict: ProjectModelItemPIF, signature: String, withPIFLoader pifLoader: PIFLoader) throws
+    @_spi(Testing) public override init(fromDictionary pifDict: ProjectModelItemPIF, signature: String, withPIFLoader pifLoader: PIFLoader, errors: [String] = [], warnings: [String] = []) throws
     {
         // The product type identifier is required.
         productTypeIdentifier = try Self.parseValueForKeyAsString(PIFKey_Target_productTypeIdentifier, pifDict: pifDict)
@@ -554,7 +556,7 @@ public final class StandardTarget: BuildPhaseTarget
             provisioningSourceData = try sourceDataDicts.map { try PropertyList.decode(ProvisioningSourceData.self, from: $0) }
         }
 
-        try super.init(fromDictionary: pifDict, signature: signature, withPIFLoader: pifLoader)
+        try super.init(fromDictionary: pifDict, signature: signature, withPIFLoader: pifLoader, errors: errors, warnings: warnings)
 
         // Set our product reference's backpointer to ourself.
         productReference.target = self
@@ -608,7 +610,7 @@ public final class StandardTarget: BuildPhaseTarget
 
 
 /// An AggregateTarget is a special kind of target primarily intended to group together other targets it depends on, and which does not have a defined product.  However, it may also have build phases, which will be run after all of its dependencies have finished building.
-public final class AggregateTarget: BuildPhaseTarget
+public final class AggregateTarget: BuildPhaseTarget, @unchecked Sendable
 {
     public override var type: TargetType { return TargetType.aggregate }
 }
@@ -623,7 +625,7 @@ public final class AggregateTarget: BuildPhaseTarget
 /// This target is currently only expected to have target dependencies and an optional frameworks build phase, which should reference other (static library) targets package product targets.
 ///
 /// The behavior of this target is "as if" the dependencies of the package pass through to downstream things which link the target.
-public final class PackageProductTarget: Target
+public final class PackageProductTarget: Target, @unchecked Sendable
 {
     public override var type: TargetType { return TargetType.packageProduct }
 
@@ -640,12 +642,12 @@ public final class PackageProductTarget: Target
         self.productReference.target = self
     }
 
-    @_spi(Testing) public override init(fromDictionary pifDict: ProjectModelItemPIF, signature: String, withPIFLoader pifLoader: PIFLoader) throws {
+    @_spi(Testing) public override init(fromDictionary pifDict: ProjectModelItemPIF, signature: String, withPIFLoader pifLoader: PIFLoader, errors: [String] = [], warnings: [String] = []) throws {
 
         self.frameworksBuildPhase = try Self.parseOptionalValueForKeyAsPIFDictionary(PIFKey_Target_frameworksBuildPhase, pifDict: pifDict).map { try BuildPhase.parsePIFDictAsBuildPhase($0, pifLoader: pifLoader) as? FrameworksBuildPhase } ?? nil
 
         self.productReference = try ProductReference(guid: "\(Self.parseValueForKeyAsString(PIFKey_guid, pifDict: pifDict)):ProductReference", name: Self.parseValueForKeyAsString(PIFKey_name, pifDict: pifDict))
-        try super.init(fromDictionary: pifDict, signature: signature, withPIFLoader: pifLoader)
+        try super.init(fromDictionary: pifDict, signature: signature, withPIFLoader: pifLoader, errors: errors, warnings: warnings)
     }
 }
 
@@ -654,7 +656,7 @@ public final class PackageProductTarget: Target
 
 
 /// An ExternalTarget represents the use of an external build system (most commonly, but not limited to, make).  It is very different from other kinds of targets in that it has no build phases, and does have a defined product.
-public final class ExternalTarget: Target
+public final class ExternalTarget: Target, @unchecked Sendable
 {
     public override var type: TargetType { return TargetType.external }
     public let toolPath: MacroStringExpression
@@ -670,7 +672,7 @@ public final class ExternalTarget: Target
         super.init(model, pifLoader, signature: signature)
     }
 
-    @_spi(Testing) public override init(fromDictionary pifDict: ProjectModelItemPIF, signature: String, withPIFLoader pifLoader: PIFLoader) throws
+    @_spi(Testing) public override init(fromDictionary pifDict: ProjectModelItemPIF, signature: String, withPIFLoader pifLoader: PIFLoader, errors: [String] = [], warnings: [String] = []) throws
     {
         // The tool path is required.
         toolPath = try pifLoader.userNamespace.parseString(Self.parseValueForKeyAsString(PIFKey_ExternalTarget_toolPath, pifDict: pifDict))
@@ -684,6 +686,6 @@ public final class ExternalTarget: Target
         // The flag to indicate whether to pass build settings to the tool in the environment is required.
         passBuildSettingsInEnvironment = try Self.parseValueForKeyAsBool(PIFKey_ExternalTarget_passBuildSettingsInEnvironment, pifDict: pifDict)
 
-        try super.init(fromDictionary: pifDict, signature: signature, withPIFLoader: pifLoader)
+        try super.init(fromDictionary: pifDict, signature: signature, withPIFLoader: pifLoader, errors: errors, warnings: warnings)
     }
 }
