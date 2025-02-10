@@ -465,8 +465,8 @@ package final class BuildDescriptionManager: Sendable {
         // Output the difference in signatures for debugging if we already had a build plan
         if request.workspaceContext.userPreferences.enableDebugActivityLogs,
            !request.isForIndex || request.isIndexWorkspaceDescription {
-            let lastBuildPlanRequest = request.isForIndex ? lastIndexBuildPlanRequest : lastBuildPlanRequest
-            if let planRequest = request.planRequest, let lastBuildPlanRequest = lastBuildPlanRequest.withLock({ $0 }) {
+            let lastBuildPlanRequest = request.isForIndex ? lastIndexBuildPlanRequest.withLock({ $0 }) : lastBuildPlanRequest.withLock({ $0 })
+            if let planRequest = request.planRequest, let lastBuildPlanRequest = lastBuildPlanRequest {
                 do {
                     if let diff = try BuildDescriptionSignature.compareBuildDescriptionSignatures(planRequest, lastBuildPlanRequest, onDiskPath) {
                         constructionDelegate.emit(Diagnostic(behavior: .note, location: .unknown, data: DiagnosticData("New build description required because the signature changed"), childDiagnostics: [
