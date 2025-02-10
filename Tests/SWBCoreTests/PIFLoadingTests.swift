@@ -683,24 +683,19 @@ private final class ProjectModelItemClass: ProjectModelItem {
         #expect(fileGroup.children.count == 2)
 
         // Examine its children
-        if let fileRef = fileGroup.children.first as? FileReference {
+        if let fileRef = try? #require(fileGroup.children.first as? FileReference?) {
             #expect(fileRef.guid == "first-fileReference-guid")
             #expect(fileRef.sourceTree == SourceTree.groupRelative)
             #expect(fileRef.path.stringRep == "ClassOne.m")
             #expect(fileRef.fileTypeIdentifier == "sourcecode.c.objc")
             #expect(fileRef.regionVariantName == nil)
-        } else {
-            Issue.record("Missing file reference in group")
         }
-
-        if let fileRef = fileGroup.children[1] as? FileReference {
+        if let fileRef = try? #require(fileGroup.children[1] as? FileReference?) {
             #expect(fileRef.guid == "second-fileReference-guid")
             #expect(fileRef.sourceTree == SourceTree.groupRelative)
             #expect(fileRef.path.stringRep == "ClassOne.h")
             #expect(fileRef.fileTypeIdentifier == "sourcecode.c.h")
             #expect(fileRef.regionVariantName == nil)
-        } else {
-            Issue.record("Missing file reference in group")
         }
     }
 
@@ -745,24 +740,19 @@ private final class ProjectModelItemClass: ProjectModelItem {
         #expect(versionGroup.children.count == 2)
 
         // Examine its children
-        if let fileRef = versionGroup.children[0] as? FileReference {
+        if let fileRef = try? #require(versionGroup.children[0] as? FileReference?) {
             #expect(fileRef.guid == "first-versionedFile-guid")
             #expect(fileRef.sourceTree == SourceTree.groupRelative)
             #expect(fileRef.path.stringRep == "CoreData-1.xcdatamodel")
             #expect(fileRef.fileTypeIdentifier == "wrapper.xcdatamodel")
             #expect(fileRef.regionVariantName == nil)
-        } else {
-            Issue.record("Missing file reference in group")
         }
-
-        if let fileRef = versionGroup.children[1] as? FileReference {
+        if let fileRef = try? #require(versionGroup.children[1] as? FileReference?) {
             #expect(fileRef.guid == "second-versionedFile-guid")
             #expect(fileRef.sourceTree == SourceTree.groupRelative)
             #expect(fileRef.path.stringRep == "CoreData-2.xcdatamodel")
             #expect(fileRef.fileTypeIdentifier == "wrapper.xcdatamodel")
             #expect(fileRef.regionVariantName == nil)
-        } else {
-            Issue.record("Missing file reference in group")
         }
     }
 
@@ -831,34 +821,26 @@ private final class ProjectModelItemClass: ProjectModelItem {
         #expect(variantGroup.name == "Thingy.xib")
 
         // Examine its children, the xib and its localized strings files
-        if let fileRef = variantGroup.children[0] as? FileReference {
+        if let fileRef = try? #require(variantGroup.children[0] as? FileReference?) {
             #expect(fileRef.guid == "xib-fileReference-guid")
             #expect(fileRef.sourceTree == SourceTree.groupRelative)
             #expect(fileRef.path.stringRep == "Thingy.xib")
             #expect(fileRef.fileTypeIdentifier == "file.xib")
             #expect(fileRef.regionVariantName == nil)
-        } else {
-            Issue.record("Missing file reference in group")
         }
-
-        if let fileRef = variantGroup.children[1] as? FileReference {
+        if let fileRef = try? #require(variantGroup.children[1] as? FileReference?) {
             #expect(fileRef.guid == "fr-strings-fileReference-guid")
             #expect(fileRef.sourceTree == SourceTree.groupRelative)
             #expect(fileRef.path.stringRep == "Thingy.strings")
             #expect(fileRef.fileTypeIdentifier == "text.plist.strings")
             #expect(fileRef.regionVariantName == "fr")
-        } else {
-            Issue.record("Missing file reference in group")
         }
-
-        if let fileRef = variantGroup.children[2] as? FileReference {
+        if let fileRef = try? #require(variantGroup.children[2] as? FileReference?) {
             #expect(fileRef.guid == "de-strings-fileReference-guid")
             #expect(fileRef.sourceTree == SourceTree.groupRelative)
             #expect(fileRef.path.stringRep == "Thingy.strings")
             #expect(fileRef.fileTypeIdentifier == "text.plist.strings")
             #expect(fileRef.regionVariantName == "de")
-        } else {
-            Issue.record("Missing file reference in group")
         }
     }
 
@@ -959,14 +941,10 @@ private final class ProjectModelItemClass: ProjectModelItem {
             ]
 
             // Convert the test data into a property list, then read the build phase from it.
-            #expect(throws: Never.self, performing: {
-                if let buildPhase = try BuildPhase.parsePIFDictAsBuildPhase(buildPhasePIF, pifLoader: pifLoader) as? SourcesBuildPhase {
-                    // Examine the build phase.
-                    #expect(buildPhase.buildFiles.count == 1)
-                } else {
-                    Issue.record("Unexpected build phase type")
-                }
-            })
+            if let buildPhase = try? #require(BuildPhase.parsePIFDictAsBuildPhase(buildPhasePIF, pifLoader: pifLoader) as? SourcesBuildPhase?) {
+                // Examine the build phase.
+                #expect(buildPhase.buildFiles.count == 1)
+            }
         }
 
         // A headers build phase
@@ -984,14 +962,10 @@ private final class ProjectModelItemClass: ProjectModelItem {
             ]
 
             // Convert the test data into a property list, then read the build phase from it.
-            #expect(throws: Never.self, performing: {
-                if let buildPhase = try BuildPhase.parsePIFDictAsBuildPhase(buildPhasePIF, pifLoader: pifLoader) as? HeadersBuildPhase {
-                    // Examine the build phase.
-                    #expect(buildPhase.buildFiles.count == 1)
-                } else {
-                    Issue.record("Unexpected build phase type")
-                }
-            })
+            if let buildPhase = try? #require(BuildPhase.parsePIFDictAsBuildPhase(buildPhasePIF, pifLoader: pifLoader) as? HeadersBuildPhase?) {
+                // Examine the build phase.
+                #expect(buildPhase.buildFiles.count == 1)
+            }
         }
 
         // A resources build phase
@@ -1009,14 +983,10 @@ private final class ProjectModelItemClass: ProjectModelItem {
             ]
 
             // Convert the test data into a property list, then read the build phase from it.
-            #expect(throws: Never.self, performing: {
-                if let buildPhase = try BuildPhase.parsePIFDictAsBuildPhase(buildPhasePIF, pifLoader: pifLoader) as? ResourcesBuildPhase {
-                    // Examine the build phase.
-                    #expect(buildPhase.buildFiles.count == 1)
-                } else {
-                    Issue.record("Unexpected build phase type")
-                }
-            })
+            if let buildPhase = try? #require(BuildPhase.parsePIFDictAsBuildPhase(buildPhasePIF, pifLoader: pifLoader) as? ResourcesBuildPhase?) {
+                // Examine the build phase.
+                #expect(buildPhase.buildFiles.count == 1)
+            }
         }
 
         // A copy files build phase
@@ -1037,17 +1007,13 @@ private final class ProjectModelItemClass: ProjectModelItem {
             ]
 
             // Convert the test data into a property list, then read the build phase from it.
-            #expect(throws: Never.self, performing: {
-                if let buildPhase = try BuildPhase.parsePIFDictAsBuildPhase(buildPhasePIF, pifLoader: pifLoader) as? CopyFilesBuildPhase {
-                    // Examine the build phase.
-                    #expect(buildPhase.destinationSubfolder.stringRep == "Resources")
-                    #expect(buildPhase.destinationSubpath.stringRep == "Subpath")
-                    #expect(buildPhase.buildFiles.count == 1)
-                    #expect(buildPhase.runOnlyForDeploymentPostprocessing);
-                } else {
-                    Issue.record("Unexpected build phase type")
-                }
-            })
+            if let buildPhase = try? #require(BuildPhase.parsePIFDictAsBuildPhase(buildPhasePIF, pifLoader: pifLoader) as? CopyFilesBuildPhase?) {
+                // Examine the build phase.
+                #expect(buildPhase.destinationSubfolder.stringRep == "Resources")
+                #expect(buildPhase.destinationSubpath.stringRep == "Subpath")
+                #expect(buildPhase.buildFiles.count == 1)
+                #expect(buildPhase.runOnlyForDeploymentPostprocessing);
+            }
         }
 
         // A shell script build phase
@@ -1070,24 +1036,20 @@ private final class ProjectModelItemClass: ProjectModelItem {
             ]
 
             // Convert the test data into a property list, then read the build phase from it.
-            #expect(throws: Never.self, performing: {
-                if let buildPhase = try BuildPhase.parsePIFDictAsBuildPhase(buildPhasePIF, pifLoader: pifLoader) as? ShellScriptBuildPhase {
-                    // Examine the build phase.
-                    #expect(buildPhase.guid == "some-shellScriptBuildPhase-guid")
-                    #expect(buildPhase.name == "A Shell Script Phase")
-                    #expect(buildPhase.shellPath.stringRep == "/bin/sh")
-                    #expect(buildPhase.scriptContents == "echo \"Nothing to do.\"\nexit 0")
-                    #expect(buildPhase.originalObjectID == "1234512345")
-                    #expect(buildPhase.inputFilePaths.count == 1)
-                    #expect(buildPhase.inputFilePaths.first?.stringRep == "/tmp/foo.in")
-                    #expect(buildPhase.outputFilePaths.count == 1)
-                    #expect(buildPhase.outputFilePaths.first?.stringRep == "/tmp/foo.out")
-                    #expect(buildPhase.emitEnvironment);
-                    #expect(buildPhase.runOnlyForDeploymentPostprocessing);
-                } else {
-                    Issue.record("Unexpected build phase type")
-                }
-            })
+            if let buildPhase = try? #require(BuildPhase.parsePIFDictAsBuildPhase(buildPhasePIF, pifLoader: pifLoader) as? ShellScriptBuildPhase?) {
+                // Examine the build phase.
+                #expect(buildPhase.guid == "some-shellScriptBuildPhase-guid")
+                #expect(buildPhase.name == "A Shell Script Phase")
+                #expect(buildPhase.shellPath.stringRep == "/bin/sh")
+                #expect(buildPhase.scriptContents == "echo \"Nothing to do.\"\nexit 0")
+                #expect(buildPhase.originalObjectID == "1234512345")
+                #expect(buildPhase.inputFilePaths.count == 1)
+                #expect(buildPhase.inputFilePaths.first?.stringRep == "/tmp/foo.in")
+                #expect(buildPhase.outputFilePaths.count == 1)
+                #expect(buildPhase.outputFilePaths.first?.stringRep == "/tmp/foo.out")
+                #expect(buildPhase.emitEnvironment);
+                #expect(buildPhase.runOnlyForDeploymentPostprocessing);
+            }
         }
     }
 
@@ -1391,8 +1353,7 @@ private final class ProjectModelItemClass: ProjectModelItem {
 
             // Because of the way reference resolution of a BuildFile.BuildableItem works, we don't have a context to resolve the build file's references to real references, so all we can do is check that the GUID is what we expect.
             func checkBuildFileRef(of buildPhase: BuildPhaseWithBuildFiles, fileRef: FileReference) throws {
-                guard let buildFileRef = buildPhase.buildFiles.first else {
-                    Issue.record("No build file in build phase")
+                guard let buildFileRef = try? #require(buildPhase.buildFiles.first) else {
                     return
                 }
                 guard case let .reference(buildFileRefGuid) = buildFileRef.buildableItem else {
