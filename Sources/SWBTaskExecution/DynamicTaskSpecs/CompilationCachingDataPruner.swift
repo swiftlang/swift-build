@@ -13,31 +13,32 @@
 package import SWBCore
 import SWBProtocol
 package import SWBUtil
+package import SWBCAS
 
 package struct ClangCachingPruneDataTaskKey: Hashable, Serializable, CustomDebugStringConvertible, Sendable {
-    let libclangPath: Path
+    let path: Path
     let casOptions: CASOptions
 
-    init(libclangPath: Path, casOptions: CASOptions) {
-        self.libclangPath = libclangPath
+    init(path: Path, casOptions: CASOptions) {
+        self.path = path
         self.casOptions = casOptions
     }
 
     package func serialize<T>(to serializer: T) where T : Serializer {
         serializer.serializeAggregate(2) {
-            serializer.serialize(libclangPath)
+            serializer.serialize(path)
             serializer.serialize(casOptions)
         }
     }
 
     package init(from deserializer: any Deserializer) throws {
         try deserializer.beginAggregate(2)
-        libclangPath = try deserializer.deserialize()
+        path = try deserializer.deserialize()
         casOptions = try deserializer.deserialize()
     }
 
     package var debugDescription: String {
-        "<ClangCachingPruneDataTaskKey libclangPath=\(libclangPath) casOptions=\(casOptions)>"
+        "<ClangCachingPruneDataTaskKey path=\(path) casOptions=\(casOptions)>"
     }
 }
 
@@ -95,7 +96,7 @@ package final class CompilationCachingDataPruner: Sendable {
         let signature = signatureCtx.signature
 
         let casPath = casOpts.casPath.str
-        let libclangPath = key.libclangPath.str
+        let libclangPath = key.path.str
 
         // Avoiding the swift concurrency variant because it may lead to starvation when `waitForCompletion()`
         // blocks on such tasks. Before using a swift concurrency task here make sure there's no deadlock
@@ -125,6 +126,75 @@ package final class CompilationCachingDataPruner: Sendable {
                     }
                     try casDBs.setOndiskSizeLimit(sizeLimit ?? 0)
                     try casDBs.pruneOndiskData()
+                    status = .succeeded
+                } catch {
+                    activityReporter.emit(
+                        diagnostic: Diagnostic(behavior: .error, location: .unknown, data: DiagnosticData(error.localizedDescription)),
+                        for: activityID,
+                        signature: signature
+                    )
+                    status = .failed
+                }
+                return status
+            }
+            self.finishedAction()
+        }
+    }
+
+    package func pruneCAS(
+        _ toolchainCAS: ToolchainCAS,
+        key: ClangCachingPruneDataTaskKey,
+        activityReporter: any ActivityReporter,
+        fileSystem fs: any FSProxy
+    ) {
+        let casOpts = key.casOptions
+        guard casOpts.limitingStrategy != .discarded else {
+            return // No need to prune, CAS directory is getting deleted.
+        }
+        let inserted = state.withLock { $0.prunedCASes.insert(key).inserted }
+        guard inserted else {
+            return // already pruned
+        }
+
+        startedAction()
+        let serializer = MsgPackSerializer()
+        key.serialize(to: serializer)
+        let signatureCtx = MD5Context()
+        signatureCtx.add(string: "ClangCachingPruneData")
+        signatureCtx.add(bytes: serializer.byteString)
+        let signature = signatureCtx.signature
+
+        let casPath = casOpts.casPath.str
+        let path = key.path.str
+
+        // Avoiding the swift concurrency variant because it may lead to starvation when `waitForCompletion()`
+        // blocks on such tasks. Before using a swift concurrency task here make sure there's no deadlock
+        // when setting `LIBDISPATCH_COOPERATIVE_POOL_STRICT`.
+        queue.async {
+            activityReporter.withActivity(
+                ruleInfo: "ClangCachingPruneData \(casPath) \(path)",
+                executionDescription: "Pruning \(casPath) using \(path)",
+                signature: signature,
+                target: nil,
+                parentActivity: nil)
+            { activityID in
+                let status: BuildOperationTaskEnded.Status
+                do {
+                    let dbSize = (try? toolchainCAS.getOnDiskSize()).map { Int($0) }
+                    let sizeLimit = try computeCASSizeLimit(casOptions: casOpts, dbSize: dbSize, fileSystem: fs).map { Int64($0) }
+                    if casOpts.enableDiagnosticRemarks, let dbSize, let sizeLimit, sizeLimit < dbSize {
+                        activityReporter.emit(
+                            diagnostic: Diagnostic(
+                                behavior: .remark,
+                                location: .unknown,
+                                data: DiagnosticData("cache size (\(dbSize)) larger than size limit (\(sizeLimit)")
+                            ),
+                            for: activityID,
+                            signature: signature
+                        )
+                    }
+                    try toolchainCAS.setOnDiskSizeLimit(sizeLimit ?? 0)
+                    try toolchainCAS.prune()
                     status = .succeeded
                 } catch {
                     activityReporter.emit(

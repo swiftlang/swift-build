@@ -954,14 +954,19 @@ public class ClangCompilerSpec : CompilerSpec, SpecIdentifierType, GCCCompatible
 
                 let casOptions: CASOptions? = {
                     guard cachedBuild else { return nil }
-                    var casOpts = CASOptions.createFromBuildContext(cbc, language, delegate)
-                    if casOpts.enableIntegratedCacheQueries, let clangInfo {
-                        if !clangInfo.toolFeatures.has(.libclangCacheQueries) {
-                            delegate.warning("COMPILATION_CACHE_ENABLE_INTEGRATED_QUERIES ignored because it's not supported by the toolchain")
-                            casOpts.enableIntegratedCacheQueries = false
+                    do {
+                        var casOpts = try CASOptions.create(cbc.scope, language)
+                        if casOpts.enableIntegratedCacheQueries, let clangInfo {
+                            if !clangInfo.toolFeatures.has(.libclangCacheQueries) {
+                                delegate.warning("COMPILATION_CACHE_ENABLE_INTEGRATED_QUERIES ignored because it's not supported by the toolchain")
+                                casOpts.enableIntegratedCacheQueries = false
+                            }
                         }
+                        return casOpts
+                    } catch {
+                        delegate.error(error.localizedDescription)
+                        return nil
                     }
-                    return casOpts
                 }()
                 let explicitModulesPayload = ClangExplicitModulesPayload(
                     uniqueID: String(commandLine.hashValue),

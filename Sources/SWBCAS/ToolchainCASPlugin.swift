@@ -172,6 +172,61 @@ public final class ToolchainCAS: @unchecked Sendable, CASProtocol, ActionCachePr
         })
     }
 
+    public func getOnDiskSize() throws -> Int64 {
+        var error: UnsafeMutablePointer<CChar>? = nil
+        guard let llcas_cas_get_ondisk_size = api.llcas_cas_get_ondisk_size else {
+            throw ToolchainCASPluginError.casSizeOperationUnsupported
+        }
+        let result = llcas_cas_get_ondisk_size(cCas, &error)
+        switch result {
+        case -1:
+            throw ToolchainCASPluginError.casSizeOperationUnsupported
+        case -2:
+            if let error = error {
+                let detailedError = String(cString: error)
+                api.llcas_string_dispose(error)
+                throw ToolchainCASPluginError.casSizeOperationFailed(detailedError)
+            }
+            throw ToolchainCASPluginError.casSizeOperationFailed(nil)
+        default:
+            return result
+        }
+    }
+
+    public func setOnDiskSizeLimit(_ limit: Int64) throws {
+        var error: UnsafeMutablePointer<CChar>? = nil
+        guard let  llcas_cas_set_ondisk_size_limit = api.llcas_cas_set_ondisk_size_limit else {
+            throw ToolchainCASPluginError.casSizeOperationUnsupported
+        }
+        if llcas_cas_set_ondisk_size_limit(cCas, limit, &error) {
+            if let error = error {
+                let detailedError = String(cString: error)
+                api.llcas_string_dispose(error)
+                throw ToolchainCASPluginError.casSizeOperationFailed(detailedError)
+            }
+            throw ToolchainCASPluginError.casSizeOperationFailed(nil)
+        }
+    }
+
+    public func prune() throws {
+        var error: UnsafeMutablePointer<CChar>? = nil
+        guard let llcas_cas_prune_ondisk_data = api.llcas_cas_prune_ondisk_data else {
+            throw ToolchainCASPluginError.casPruneOperationUnsupported
+        }
+        if llcas_cas_prune_ondisk_data(cCas, &error) {
+            if let error = error {
+                let detailedError = String(cString: error)
+                api.llcas_string_dispose(error)
+                throw ToolchainCASPluginError.casPruneOperationFailed(detailedError)
+            }
+            throw ToolchainCASPluginError.casPruneOperationFailed(nil)
+        }
+    }
+
+    public var supportsPruning: Bool {
+        api.llcas_cas_get_ondisk_size != nil && api.llcas_cas_set_ondisk_size_limit != nil && api.llcas_cas_prune_ondisk_data != nil
+    }
+
     deinit {
         api.llcas_cas_dispose(cCas)
     }

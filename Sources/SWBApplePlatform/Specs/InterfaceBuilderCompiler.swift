@@ -158,13 +158,14 @@ public final class IbtoolCompilerSpecStoryboard: IbtoolCompilerSpec, SpecIdentif
     }
 
     override public func createTaskAction(_ cbc: CommandBuildContext, _ delegate: any TaskGenerationDelegate) -> (any PlannedTaskAction)? {
-        if cbc.scope.evaluate(BuiltinMacros.ENABLE_GENERIC_TASK_CACHING) {
+        if cbc.scope.evaluate(BuiltinMacros.ENABLE_GENERIC_TASK_CACHING), let casOptions = try? CASOptions.create(cbc.scope, nil) {
             return delegate.taskActionCreationDelegate.createGenericCachingTaskAction(
                 enableCacheDebuggingRemarks: cbc.scope.evaluate(BuiltinMacros.GENERIC_TASK_CACHE_ENABLE_DIAGNOSTIC_REMARKS),
                 enableTaskSandboxEnforcement: !cbc.scope.evaluate(BuiltinMacros.DISABLE_TASK_SANDBOXING),
                 sandboxDirectory: cbc.scope.evaluate(BuiltinMacros.TEMP_SANDBOX_DIR),
                 extraSandboxSubdirectories: [],
-                developerDirectory: cbc.scope.evaluate(BuiltinMacros.DEVELOPER_DIR))
+                developerDirectory: cbc.scope.evaluate(BuiltinMacros.DEVELOPER_DIR),
+                casOptions: casOptions)
         } else {
             return nil
         }

@@ -299,17 +299,17 @@ public final class ActoolCompilerSpec : GenericCompilerSpec, SpecIdentifierType,
                     (macro == BuiltinMacros.ASSETCATALOG_COMPILER_INPUTS) ? cbc.scope.table.namespace.parseLiteralStringList(assetSymbolInputs.map { $0.path.str }) : lookup(macro)
                 }
 
-                let cachingEnabled = cbc.scope.evaluate(BuiltinMacros.ENABLE_GENERIC_TASK_CACHING)
                 let action: (any PlannedTaskAction)?
                 if let deferredAction = delegate.taskActionCreationDelegate.createDeferredExecutionTaskActionIfRequested(userPreferences: cbc.producer.userPreferences) {
                     action = deferredAction
-                } else if cachingEnabled {
+                } else if cbc.scope.evaluate(BuiltinMacros.ENABLE_GENERIC_TASK_CACHING), let casOptions = try? CASOptions.create(cbc.scope, nil) {
                     action = delegate.taskActionCreationDelegate.createGenericCachingTaskAction(
                         enableCacheDebuggingRemarks: cbc.scope.evaluate(BuiltinMacros.GENERIC_TASK_CACHE_ENABLE_DIAGNOSTIC_REMARKS),
                         enableTaskSandboxEnforcement: !cbc.scope.evaluate(BuiltinMacros.DISABLE_TASK_SANDBOXING),
                         sandboxDirectory: cbc.scope.evaluate(BuiltinMacros.TEMP_SANDBOX_DIR),
                         extraSandboxSubdirectories: [],
-                        developerDirectory: cbc.scope.evaluate(BuiltinMacros.DEVELOPER_DIR)
+                        developerDirectory: cbc.scope.evaluate(BuiltinMacros.DEVELOPER_DIR),
+                        casOptions: casOptions
                     )
                 } else {
                     action = nil
@@ -359,17 +359,17 @@ public final class ActoolCompilerSpec : GenericCompilerSpec, SpecIdentifierType,
             var ruleInfo = defaultRuleInfo(cbc, delegate, lookup: lookup)
             ruleInfo[0..<1] = ["CompileAssetCatalogVariant", variant.rawValue]
 
-            let cachingEnabled = cbc.scope.evaluate(BuiltinMacros.ENABLE_GENERIC_TASK_CACHING)
             let action: (any PlannedTaskAction)?
             if let deferredAction = delegate.taskActionCreationDelegate.createDeferredExecutionTaskActionIfRequested(userPreferences: cbc.producer.userPreferences) {
                 action = deferredAction
-            } else if cachingEnabled {
+            } else if cbc.scope.evaluate(BuiltinMacros.ENABLE_GENERIC_TASK_CACHING), let casOptions = try? CASOptions.create(cbc.scope, nil) {
                 action = delegate.taskActionCreationDelegate.createGenericCachingTaskAction(
                     enableCacheDebuggingRemarks: cbc.scope.evaluate(BuiltinMacros.GENERIC_TASK_CACHE_ENABLE_DIAGNOSTIC_REMARKS),
                     enableTaskSandboxEnforcement: !cbc.scope.evaluate(BuiltinMacros.DISABLE_TASK_SANDBOXING),
                     sandboxDirectory: cbc.scope.evaluate(BuiltinMacros.TEMP_SANDBOX_DIR),
                     extraSandboxSubdirectories: [Path("outputs/0/\(overrideDir.basename)")],
-                    developerDirectory: cbc.scope.evaluate(BuiltinMacros.DEVELOPER_DIR)
+                    developerDirectory: cbc.scope.evaluate(BuiltinMacros.DEVELOPER_DIR),
+                    casOptions: casOptions
                 )
             } else {
                 action = nil
