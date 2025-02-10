@@ -145,7 +145,6 @@ fileprivate struct MacroExpressionParsingPerfTests: CoreBasedTests, PerfTests {
                 }
 
                 func handleDiagnostic(_ diagnostic: MacroExpressionDiagnostic, parser: MacroExpressionParser) {
-                    print(diagnostic)
                 }
             }
             for str in stringsToParseCopy {

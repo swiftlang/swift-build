@@ -731,9 +731,7 @@ fileprivate struct HostBuildToolBuildOperationTests: CoreBasedTests {
 
                 // The tool itself should compile and link.
                 results.checkTaskExists(.matchTargetName("Tool"), .matchRuleType("SwiftDriver Compilation"))
-                results.checkTask(.matchTargetName("Tool"), .matchRuleType("Ld")) {
-                    print(Array($0.commandLineAsStrings))
-                }
+                results.checkTask(.matchTargetName("Tool"), .matchRuleType("Ld")) { _ in }
 
                 try results.checkTask(.matchTargetName("Framework"), .matchRuleType(ProductPlan.preparedForIndexPreCompilationRuleName)) { task in
                     try results.checkTaskFollows(task, .matchTargetName("Tool"), .matchRuleType("Ld"))
@@ -816,9 +814,7 @@ fileprivate struct HostBuildToolBuildOperationTests: CoreBasedTests {
 
                 // The tool itself should compile and link.
                 results.checkTaskExists(.matchTargetName("Tool"), .matchRuleType("SwiftDriver Compilation"))
-                results.checkTask(.matchTargetName("Tool"), .matchRuleType("Ld")) {
-                    print(Array($0.commandLineAsStrings))
-                }
+                results.checkTask(.matchTargetName("Tool"), .matchRuleType("Ld")) { _ in }
 
                 try results.checkTask(.matchTargetName("Framework"), .matchRuleType(ProductPlan.preparedForIndexPreCompilationRuleName)) { task in
                     try results.checkTaskFollows(task, .matchTargetName("Tool"), .matchRuleType("Ld"))

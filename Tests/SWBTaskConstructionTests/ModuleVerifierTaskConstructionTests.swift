@@ -146,10 +146,6 @@ fileprivate struct ModuleVerifierTaskConstructionTests: CoreBasedTests {
             let arch = results.runDestinationTargetArchitecture
             results.checkNoDiagnostics()
 
-            for task in results.uncheckedTasks {
-                print(task.ruleInfo)
-            }
-
             results.checkTarget(targetName) { target in
                 results.checkTasks(.matchRuleType("VerifyModuleC")) {tasks in
                     #expect(tasks.count == 6)
@@ -367,10 +363,6 @@ fileprivate struct ModuleVerifierTaskConstructionTests: CoreBasedTests {
             await tester.checkBuild() { results in
                 results.checkNoDiagnostics()
 
-                for task in results.uncheckedTasks {
-                    print(task.ruleInfo)
-                }
-
                 results.checkTarget(targetName) { target in
                     results.checkTask(.matchRuleType("VerifyModuleC")) { task in
                         task.checkCommandLineContains([
@@ -468,10 +460,6 @@ fileprivate struct ModuleVerifierTaskConstructionTests: CoreBasedTests {
             // A regular build will just build the currect architecture.
             await tester.checkBuild() { results in
                 results.checkNoDiagnostics()
-
-                for task in results.uncheckedTasks {
-                    print(task.ruleInfo)
-                }
 
                 results.checkTarget(targetName) { target in
                     results.checkTasks(.matchRuleType("VerifyModuleC")) { tasks in
@@ -590,10 +578,6 @@ fileprivate struct ModuleVerifierTaskConstructionTests: CoreBasedTests {
             await tester.checkBuild() { results in
                 results.checkNoDiagnostics()
 
-                for task in results.uncheckedTasks {
-                    print(task.ruleInfo)
-                }
-
                 results.checkTarget(targetName) { target in
                     results.checkTask(.matchRuleType("VerifyModuleC")) { task in
                         let targetVariant = task.ruleInfo[2]
@@ -658,10 +642,6 @@ fileprivate struct ModuleVerifierTaskConstructionTests: CoreBasedTests {
         await tester.checkBuild() { results in
             let arch = results.runDestinationTargetArchitecture
             results.checkNoDiagnostics()
-
-            for task in results.uncheckedTasks {
-                print(task.ruleInfo)
-            }
 
             results.checkTarget(targetName) { target in
                 results.checkTasks(.matchRuleType("VerifyModuleC")) {tasks in

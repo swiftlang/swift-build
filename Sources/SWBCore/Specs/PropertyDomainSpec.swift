@@ -1283,11 +1283,6 @@ private let buildOptionTypes: [String: any BuildOptionType] = [
     /// Get the command line arguments to use for this option in the given context.
     func getArgumentsForCommand(_ producer: any CommandProducer, scope: MacroEvaluationScope, inputFileType: FileTypeSpec?, optionContext: (any BuildOptionGenerationContext)?, lookup: ((MacroDeclaration) -> MacroExpression?)?) -> [CommandLineArgument] {
         // Filter by supported architecture.
-
-        if self.name == "ASSETCATALOG_COMPILER_INPUTS" {
-            print()
-        }
-
         guard supportsArchitecture(scope.evaluate(BuiltinMacros.CURRENT_ARCH)) else {
             return []
         }
