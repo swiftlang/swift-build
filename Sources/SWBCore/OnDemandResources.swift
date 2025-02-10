@@ -150,16 +150,18 @@ public struct AssetPackManifestPlist: Hashable, PropertyListItemConvertible {
         public enum PrimaryContentHash: Hashable, PropertyListItemConvertible {
             case modtime(Date)
 
-            public static let modtimeFormatter: ISO8601DateFormatter = {
-                let formatter = ISO8601DateFormatter()
-                formatter.formatOptions = [.withInternetDateTime, .withFractionalSeconds]
-                return formatter
-            }()
+            public static let modtimeFormatStyle: Date.ISO8601FormatStyle = .iso8601
+                .year()
+                .month()
+                .day()
+                .timeZone(separator: .omitted)
+                .time(includingFractionalSeconds: true)
+                .timeSeparator(.colon)
 
             public var propertyListItem: PropertyListItem {
                 switch self {
                 case .modtime(let date):
-                    let hash = PrimaryContentHash.modtimeFormatter.string(from: date)
+                    let hash = date.formatted(PrimaryContentHash.modtimeFormatStyle)
 
                     return PropertyListItem([
                         "strategy": "modtime",
