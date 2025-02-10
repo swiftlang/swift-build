@@ -42,8 +42,6 @@ fileprivate struct SerializationPerfTests: CoreBasedTests, PerfTests {
 
     func _testSerializingTargetScopePerf_XXX(numberOfTargets: Int) async throws {
         try await withTemporaryDirectory { tmpDirPath in
-            // Used to make printing for debugging purposes easier.
-            let shouldPrint = false
             let didEmitSerializedSize = SWBMutex(false)
 
             let scope = try await createTestScope(tmpDirPath: tmpDirPath)
@@ -60,8 +58,7 @@ fileprivate struct SerializationPerfTests: CoreBasedTests, PerfTests {
 
                 if !didEmitSerializedSize.withLock({ $0 }) {
                     let mb = accumulatedBytes / (1000.0 * 1000.0)
-                    if shouldPrint { print("Serialized \(mb) megabytes for \(numberOfTargets) targets") }
-                    _ = mb
+                    perfPrint("Serialized \(mb) megabytes for \(numberOfTargets) targets")
                     didEmitSerializedSize.withLock { $0 = true }
                 }
             }
@@ -91,8 +88,7 @@ fileprivate struct SerializationPerfTests: CoreBasedTests, PerfTests {
             let sz = self.serializeMacroEvaluationScope(scope)
 
             let mb = Float64(sz.byteString.bytes.count) / (1000.0 * 1000.0)
-            //print("Will deserialize \(mb) megabytes")
-            _ = mb
+            perfPrint("Will deserialize \(mb) megabytes")
 
             let delegate = MacroEvaluationScopeDeserializerDelegate(namespace: scope.namespace)
 
@@ -117,8 +113,7 @@ fileprivate struct SerializationPerfTests: CoreBasedTests, PerfTests {
             let sz = self.serializeMacroEvaluationScope(scope)
 
             let mb = Float64(sz.byteString.bytes.count) / (1000.0 * 1000.0)
-            //print("Will deserialize \(mb) megabytes")
-            _ = mb
+            perfPrint("Will deserialize \(mb) megabytes")
 
             let delegate = MacroEvaluationScopeDeserializerDelegate(namespace: scope.namespace)
 

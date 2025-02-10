@@ -48,3 +48,12 @@ extension Trait where Self == Testing.ConditionTrait {
         }
     }
 }
+
+// Used to make printing for debugging purposes easier.
+private let shouldPrint = getEnvironmentVariable("SWB_PERF_TESTS_ENABLE_DEBUG_PRINT")?.boolValue ?? false
+
+public func perfPrint(_ message: String) {
+    if shouldPrint {
+        print(message)
+    }
+}
