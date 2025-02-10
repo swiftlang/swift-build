@@ -102,7 +102,7 @@ private extension AssetPackManifestPlist {
             guard contentHashStrategy == "modtime" else { throw StubError.error("expected modtime in \(contentHashStrategy)") }
 
             guard let modDateString = contentHash["hash"]?.stringValue else { throw StubError.error("expected hash String in \(contentHash)") }
-            guard let parsedDate = AssetPackManifestPlist.Resource.PrimaryContentHash.modtimeFormatter.date(from: modDateString) else { throw StubError.error("failed to parse date from \(modDateString)") }
+            guard let parsedDate = try? AssetPackManifestPlist.Resource.PrimaryContentHash.modtimeFormatStyle.parse(modDateString) else { throw StubError.error("failed to parse date from \(modDateString)") }
 
             return AssetPackManifestPlist.Resource(assetPackBundleIdentifier: identifier, isStreamable: isStreamable, primaryContentHash: AssetPackManifestPlist.Resource.PrimaryContentHash.modtime(parsedDate), uncompressedSize: uncompressedSize, url: url, downloadPriority: priority)
         }))
