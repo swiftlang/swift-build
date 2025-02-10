@@ -316,7 +316,7 @@ public protocol TaskActionCreationDelegate
     func createDeferredExecutionTaskAction() -> any PlannedTaskAction
     func createEmbedSwiftStdLibTaskAction() -> any PlannedTaskAction
     func createFileCopyTaskAction(_ context: FileCopyTaskActionContext) -> any PlannedTaskAction
-    func createGenericCachingTaskAction(enableCacheDebuggingRemarks: Bool, enableTaskSandboxEnforcement: Bool, sandboxDirectory: Path, extraSandboxSubdirectories: [Path], developerDirectory: Path) -> any PlannedTaskAction
+    func createGenericCachingTaskAction(enableCacheDebuggingRemarks: Bool, enableTaskSandboxEnforcement: Bool, sandboxDirectory: Path, extraSandboxSubdirectories: [Path], developerDirectory: Path, casOptions: CASOptions) -> any PlannedTaskAction
     func createInfoPlistProcessorTaskAction(_ contextPath: Path) -> any PlannedTaskAction
     func createMergeInfoPlistTaskAction() -> any PlannedTaskAction
     func createLinkAssetCatalogTaskAction() -> any PlannedTaskAction

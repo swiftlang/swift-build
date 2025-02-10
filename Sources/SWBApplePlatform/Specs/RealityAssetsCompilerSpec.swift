@@ -175,7 +175,23 @@ package final class RealityAssetsCompilerSpec: GenericCompilerSpec, SpecIdentifi
             inputs.append(delegate.createNode(usdaSchemaPath) as (any PlannedNode))
         }
 
-        let cachingEnabled = cbc.scope.evaluate(BuiltinMacros.ENABLE_GENERIC_TASK_CACHING)
+        let action: (any PlannedTaskAction)?
+        let cachingEnabled: Bool
+        if cbc.scope.evaluate(BuiltinMacros.ENABLE_GENERIC_TASK_CACHING), let casOptions = try? CASOptions.create(cbc.scope, nil) {
+            action = delegate.taskActionCreationDelegate.createGenericCachingTaskAction(
+                enableCacheDebuggingRemarks: cbc.scope.evaluate(BuiltinMacros.GENERIC_TASK_CACHE_ENABLE_DIAGNOSTIC_REMARKS),
+                enableTaskSandboxEnforcement: !cbc.scope.evaluate(BuiltinMacros.DISABLE_TASK_SANDBOXING),
+                sandboxDirectory: cbc.scope.evaluate(BuiltinMacros.TEMP_SANDBOX_DIR),
+                extraSandboxSubdirectories: [],
+                developerDirectory: cbc.scope.evaluate(BuiltinMacros.DEVELOPER_DIR),
+                casOptions: casOptions
+            )
+            cachingEnabled = true
+        } else {
+            action = nil
+            cachingEnabled = false
+        }
+
 
         let ruleInfo = ["RealityAssetsCompile", cbc.output.str]
         delegate.createTask(type: self,
@@ -190,7 +206,7 @@ package final class RealityAssetsCompilerSpec: GenericCompilerSpec, SpecIdentifi
                             inputs: inputs,
                             outputs: outputs,
                             mustPrecede: [],
-                            action: cachingEnabled ? delegate.taskActionCreationDelegate.createGenericCachingTaskAction(enableCacheDebuggingRemarks: cbc.scope.evaluate(BuiltinMacros.GENERIC_TASK_CACHE_ENABLE_DIAGNOSTIC_REMARKS), enableTaskSandboxEnforcement: !cbc.scope.evaluate(BuiltinMacros.DISABLE_TASK_SANDBOXING), sandboxDirectory: cbc.scope.evaluate(BuiltinMacros.TEMP_SANDBOX_DIR), extraSandboxSubdirectories: [], developerDirectory: cbc.scope.evaluate(BuiltinMacros.DEVELOPER_DIR)) : nil,
+                            action: action,
                             execDescription: "Compile Reality Asset \(rkAssetsPath.basename)",
                             preparesForIndexing: true,
                             enableSandboxing: !cachingEnabled,

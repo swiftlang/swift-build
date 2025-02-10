@@ -26,33 +26,37 @@ public final class GenericCachingTaskAction: TaskAction {
     let sandboxDirectory: Path
     let extraSandboxSubdirectories: [Path]
     let developerDirectory: Path
+    let casOptions: CASOptions
 
-    public init(enableCacheDebuggingRemarks: Bool, enableTaskSandboxEnforcement: Bool, sandboxDirectory: Path, extraSandboxSubdirectories: [Path], developerDirectory: Path) {
+    public init(enableCacheDebuggingRemarks: Bool, enableTaskSandboxEnforcement: Bool, sandboxDirectory: Path, extraSandboxSubdirectories: [Path], developerDirectory: Path, casOptions: CASOptions) {
         self.enableCacheDebuggingRemarks = enableCacheDebuggingRemarks
         self.enableTaskSandboxEnforcement = enableTaskSandboxEnforcement
         self.sandboxDirectory = sandboxDirectory
         self.extraSandboxSubdirectories = extraSandboxSubdirectories
         self.developerDirectory = developerDirectory
+        self.casOptions = casOptions
         super.init()
     }
 
     required init(from deserializer: any Deserializer) throws {
-        try deserializer.beginAggregate(6)
+        try deserializer.beginAggregate(7)
         self.enableCacheDebuggingRemarks = try deserializer.deserialize()
         self.enableTaskSandboxEnforcement = try deserializer.deserialize()
         self.sandboxDirectory = try deserializer.deserialize()
         self.extraSandboxSubdirectories = try deserializer.deserialize()
         self.developerDirectory = try deserializer.deserialize()
+        self.casOptions = try deserializer.deserialize()
         try super.init(from: deserializer)
     }
 
     public override func serialize<T>(to serializer: T) where T : Serializer {
-        serializer.beginAggregate(6)
+        serializer.beginAggregate(7)
         serializer.serialize(enableCacheDebuggingRemarks)
         serializer.serialize(enableTaskSandboxEnforcement)
         serializer.serialize(sandboxDirectory)
         serializer.serialize(extraSandboxSubdirectories)
         serializer.serialize(developerDirectory)
+        serializer.serialize(casOptions)
         super.serialize(to: serializer)
         serializer.endAggregate()
     }
@@ -66,6 +70,15 @@ public final class GenericCachingTaskAction: TaskAction {
         guard let cas = dynamicExecutionDelegate.operationContext.cas else {
             outputDelegate.error("caching is enabled, but no CAS was provided")
             return .failed
+        }
+
+        defer {
+            if cas.supportsPruning {
+                dynamicExecutionDelegate.operationContext.compilationCachingDataPruner.pruneCAS(cas,
+                                                                                                key: .init(path: casOptions.casPath, casOptions: casOptions),
+                                                                                                activityReporter: dynamicExecutionDelegate,
+                                                                                                fileSystem: executionDelegate.fs)
+            }
         }
 
         // Ingest the inputs

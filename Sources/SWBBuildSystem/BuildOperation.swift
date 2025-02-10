@@ -1339,15 +1339,23 @@ internal final class OperationSystemAdaptor: SWBLLBuild.BuildSystemDelegate, Act
         self.buildOutputDelegate = buildOutputDelegate
         self._progressStatistics = BuildOperation.ProgressStatistics(numCommandsLowerBound: operation.buildDescription.targetTaskCounts.values.reduce(0, { $0 + $1 }))
         self.core = core
-        self.dynamicOperationContext = DynamicTaskOperationContext(core: core, definingTargetsByModuleName: operation.buildDescription.definingTargetsByModuleName, cas: Self.setupCAS(core: core, operation: operation))
+        let cas: ToolchainCAS?
+        do {
+            cas = try Self.setupCAS(core: core, operation: operation)
+        } catch {
+            buildOutputDelegate.error(error.localizedDescription)
+            cas = nil
+        }
+        self.dynamicOperationContext = DynamicTaskOperationContext(core: core, definingTargetsByModuleName: operation.buildDescription.definingTargetsByModuleName, cas: cas)
         self.queue = SWBQueue(label: "SWBBuildSystem.OperationSystemAdaptor.queue", qos: operation.request.qos, autoreleaseFrequency: .workItem)
     }
 
-    private static func setupCAS(core: Core, operation: BuildOperation) -> ToolchainCAS? {
+    private static func setupCAS(core: Core, operation: BuildOperation) throws -> ToolchainCAS? {
         let settings = operation.requestContext.getCachedSettings(operation.request.parameters)
-        let cachePath = Path(settings.globalScope.evaluate(BuiltinMacros.COMPILATION_CACHE_CAS_PATH)).join("swiftbuild")
+        let casOptions = try CASOptions.create(settings.globalScope, nil)
         guard let casPlugin = core.lookupCASPlugin() else { return nil }
-        guard let cas = try? casPlugin.createCAS(path: cachePath, options: [:]) else { return nil }
+        guard let cas = try? casPlugin.createCAS(path: casOptions.casPath, options: [:]) else { return nil }
+
         return cas
     }
 

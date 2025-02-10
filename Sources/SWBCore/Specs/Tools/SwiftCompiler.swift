@@ -1796,18 +1796,24 @@ public final class SwiftCompilerSpec : CompilerSpec, SpecIdentifierType, SwiftDi
             }
 
             // Add caching related configurations.
-            let casOptions = isCachingEnabled ? CASOptions.createFromBuildContext(cbc, .other(dialectName: "swift"), delegate) : nil
-            if let casOpts = casOptions {
-                args.append("-cache-compile-job")
-                args += ["-cas-path", casOpts.casPath.str]
-                if let pluginPath = casOpts.pluginPath {
-                    args += ["-cas-plugin-path", pluginPath.str]
+            let casOptions: CASOptions?
+            do {
+                casOptions = isCachingEnabled ? (try CASOptions.create(cbc.scope, .other(dialectName: "swift"))) : nil
+                if let casOpts = casOptions {
+                    args.append("-cache-compile-job")
+                    args += ["-cas-path", casOpts.casPath.str]
+                    if let pluginPath = casOpts.pluginPath {
+                        args += ["-cas-plugin-path", pluginPath.str]
+                    }
+                    // If the integrated cache queries is enabled, the remote service is handled by build system and no need to pass to compiler
+                    if !casOpts.enableIntegratedCacheQueries && casOpts.hasRemoteCache,
+                       let remoteService = casOpts.remoteServicePath {
+                        args += ["-cas-plugin-option", "remote-service-path=" + remoteService.str]
+                    }
                 }
-                // If the integrated cache queries is enabled, the remote service is handled by build system and no need to pass to compiler
-                if !casOpts.enableIntegratedCacheQueries && casOpts.hasRemoteCache,
-                   let remoteService = casOpts.remoteServicePath {
-                    args += ["-cas-plugin-option", "remote-service-path=" + remoteService.str]
-                }
+            } catch {
+                delegate.error(error.localizedDescription)
+                casOptions = nil
             }
 
             // Instruct the compiler to serialize diagnostics.
