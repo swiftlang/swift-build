@@ -907,12 +907,13 @@ import SWBMacro
         #expect(core.specRegistry.getSpec("com.apple.build-tasks.copy-png-file")! is GenericCompilerSpec)
 
         // Validate that we properly fetch the Class field from the base spec.
-        let analyzerSpec = core.specRegistry.getSpec("com.apple.compilers.llvm.clang.1_0.analyzer")! as! CompilerSpec
+        let analyzerSpec = try core.specRegistry.getSpec("com.apple.compilers.llvm.clang.1_0.analyzer") as CompilerSpec
         #expect(analyzerSpec is ClangCompilerSpec)
-        #expect(core.specRegistry.getSpec("com.apple.compilers.llvm.clang.1_0.analyzer", domain:"iphoneos")! is ClangCompilerSpec)
+        let analyzerSpecIPhone = try #require(core.specRegistry.getSpec("com.apple.compilers.llvm.clang.1_0.analyzer", domain: "iphoneos"))
+        #expect(analyzerSpecIPhone is ClangCompilerSpec)
 
         // Validate that we parse other properties from the base spec.
-        let clangSpec = core.specRegistry.getSpec("com.apple.compilers.llvm.clang.1_0")! as! CompilerSpec
+        let clangSpec = try core.specRegistry.getSpec("com.apple.compilers.llvm.clang.1_0") as CompilerSpec
         #expect(clangSpec.execDescription == clangCompilerSpec.execDescription)
 
         // Validate overriden class loading.

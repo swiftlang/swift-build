@@ -20,8 +20,7 @@ import SWBTaskExecution
 /// Tests for how the build operation interacts with the build description objects.
 @Suite
 fileprivate struct BuildOperationDescriptionTests: CoreBasedTests {
-    private func compareTasks(_ oldTask: Task, _ newTask: Task, tasksShouldBeTheSameObject: Bool, sourceLocation: SourceLocation = #_sourceLocation)
-    {
+    private func compareTasks(_ oldTask: Task, _ newTask: Task, tasksShouldBeTheSameObject: Bool, sourceLocation: SourceLocation = #_sourceLocation) throws {
         if tasksShouldBeTheSameObject {
             #expect(oldTask === newTask, "restored-from-cache task is not the same as the constructed task, but should be: \(newTask)", sourceLocation: sourceLocation)
             return
@@ -47,16 +46,15 @@ fileprivate struct BuildOperationDescriptionTests: CoreBasedTests {
         if oldTask.type === GateTask.type || newTask.type === GateTask.type {
             #expect(oldTask.type === GateTask.type && newTask.type === GateTask.type)
         } else {
-            let oldTaskType = oldTask.type as! CommandLineToolSpec
-            let newTaskType = newTask.type as! CommandLineToolSpec
+            let oldTaskType = try #require(oldTask.type as? CommandLineToolSpec)
+            let newTaskType = try #require(newTask.type as? CommandLineToolSpec)
             #expect(oldTaskType == newTaskType, "taskTypes differ for restored Task '\(ruleInfo)': \(String(describing: oldTask.type)) is not equal to \(String(describing: newTask.type))", sourceLocation: sourceLocation)
         }
     }
 
-    private func compareRunTasks(_ oldTask: Task, _ newTask: Task, tasksShouldBeTheSameObject: Bool, _ newResults: BuildOperationTester.BuildResults, sourceLocation: SourceLocation = #_sourceLocation)
-    {
+    private func compareRunTasks(_ oldTask: Task, _ newTask: Task, tasksShouldBeTheSameObject: Bool, _ newResults: BuildOperationTester.BuildResults, sourceLocation: SourceLocation = #_sourceLocation) throws {
         // Compare the old and new tasks.
-        compareTasks(oldTask, newTask, tasksShouldBeTheSameObject: tasksShouldBeTheSameObject, sourceLocation: sourceLocation)
+        try compareTasks(oldTask, newTask, tasksShouldBeTheSameObject: tasksShouldBeTheSameObject, sourceLocation: sourceLocation)
 
         // Make sure the new tasks ran.
         newResults.check(event: .taskHadEvent(newTask, event: .started), precedes: .taskHadEvent(newTask, event: .completed))
@@ -149,8 +147,7 @@ fileprivate struct BuildOperationDescriptionTests: CoreBasedTests {
             // Don't use an in-memory cache since we are testing deserializing build descriptions from disk.
             let tester = try await BuildOperationTester(getCore(), testWorkspace, simulated: false, buildDescriptionMaxCacheSize: (inMemory: 0, onDisk: 2))
 
-            try await tester.fs.writeFileContents(testWorkspace.sourceRoot.join("aProject/main.c"))
-            { stream in
+            try await tester.fs.writeFileContents(testWorkspace.sourceRoot.join("aProject/main.c")) { stream in
                 stream <<< "int main() { return 0; }\n"
             }
             try await tester.fs.writePlist(testWorkspace.sourceRoot.join("aProject/Info-Foo.plist"), .plDict(["key": .plString("value")]))
@@ -272,26 +269,19 @@ fileprivate struct BuildOperationDescriptionTests: CoreBasedTests {
 
                 // Compare the tasks and make sure the cached tasks ran.
                 #expect(firstDesc.tasks.count == thirdDesc.tasks.count)
-                if firstDesc.tasks.count == thirdDesc.tasks.count
-                {
-                    for i in 0..<firstDesc.tasks.count
-                    {
-                        compareRunTasks(firstDesc.tasks[i], thirdDesc.tasks[i], tasksShouldBeTheSameObject: false, results)
+                if firstDesc.tasks.count == thirdDesc.tasks.count {
+                    for i in 0..<firstDesc.tasks.count {
+                        try compareRunTasks(firstDesc.tasks[i], thirdDesc.tasks[i], tasksShouldBeTheSameObject: false, results)
                     }
                 }
 
                 // Compare the task action maps.
                 #expect(firstDesc.taskActionMap.count == thirdDesc.taskActionMap.count)
-                if firstDesc.taskActionMap.count == thirdDesc.taskActionMap.count
-                {
-                    for (tool, oldAction) in firstDesc.taskActionMap
-                    {
-                        if let newAction = thirdDesc.taskActionMap[tool]
-                        {
+                if firstDesc.taskActionMap.count == thirdDesc.taskActionMap.count {
+                    for (tool, oldAction) in firstDesc.taskActionMap {
+                        if let newAction = thirdDesc.taskActionMap[tool] {
                             #expect(oldAction == newAction)
-                        }
-                        else
-                        {
+                        } else {
                             Issue.record("new description's taskActionMap does not have a TaskAction for tool: \(tool)")
                         }
                     }
@@ -302,10 +292,8 @@ fileprivate struct BuildOperationDescriptionTests: CoreBasedTests {
                 // Make sure there were only 2 configured targets deserialized among all the tasks, and that all of the configured targets in the build request are contained in the deserialized description.
                 var targets = Set<ConfiguredTarget>()
                 var targetRefs = Set<Ref<ConfiguredTarget>>()
-                for task in thirdDesc.tasks
-                {
-                    if let target = task.forTarget, !task.isGate
-                    {
+                for task in thirdDesc.tasks {
+                    if let target = task.forTarget, !task.isGate {
                         targets.insert(target)
                         targetRefs.insert(Ref(target))
                     }
@@ -346,8 +334,7 @@ fileprivate struct BuildOperationDescriptionTests: CoreBasedTests {
                 // Compare the tasks and make sure the cached tasks ran.
                 let newDesc = results.buildDescriptionInfo.buildDescription
                 #expect(firstDesc.tasks.count == newDesc.tasks.count)
-                for task in newDesc.tasks
-                {
+                for task in newDesc.tasks {
                     results.check(event: .taskHadEvent(task, event: .started), precedes: .taskHadEvent(task, event: .completed))
                 }
 
@@ -367,8 +354,7 @@ fileprivate struct BuildOperationDescriptionTests: CoreBasedTests {
             // Use an in-memory cache.
             let tester = try await BuildOperationTester(getCore(), testWorkspace, simulated: false)
 
-            try await tester.fs.writeFileContents(testWorkspace.sourceRoot.join("aProject/main.c"))
-            { stream in
+            try await tester.fs.writeFileContents(testWorkspace.sourceRoot.join("aProject/main.c")) { stream in
                 stream <<< "int main() { return 0; }\n"
             }
             try await tester.fs.writePlist(testWorkspace.sourceRoot.join("aProject/Info-Foo.plist"), .plDict(["key": .plString("value")]))
@@ -384,9 +370,7 @@ fileprivate struct BuildOperationDescriptionTests: CoreBasedTests {
             tester.userPreferences = tester.userPreferences.with(enableBuildSystemCaching: false)
 
             // Create a new build description, build from it, and check results.
-            var firstDesc: BuildDescription! = nil
-            try await tester.checkBuild
-            { results in
+            let firstDesc = try await tester.checkBuild { results in
                 // Check that we got the BuildDescription in the expected way.
                 #expect(results.buildDescriptionInfo.source == .new)
                 #expect(results.buildDescriptionInfo.inMemoryCacheSize == 1)
@@ -399,7 +383,7 @@ fileprivate struct BuildOperationDescriptionTests: CoreBasedTests {
                 results.checkCapstoneEvents()
 
                 // Save the build description for later use.
-                firstDesc = results.buildDescription
+                let firstDesc = results.buildDescription
 
                 // FIXME: We should be running swift-stdlib-tool for the app here, since the framework contains Swift, but presently it breaks due to <rdar://problem/28343103> [Swift Build] Build failure when building a Swift app (swift-stdlib-tool issue?)
 
@@ -420,20 +404,19 @@ fileprivate struct BuildOperationDescriptionTests: CoreBasedTests {
                 #expect(results.checkTasks(.matchRuleType("Copy")) { $0 }.count == 6)
                 #expect(results.checkTasks(.matchRuleType("Touch")) { $0 }.count == 2)
                 #expect(results.checkTasks(.matchRuleType("RegisterWithLaunchServices")) { $0 }.count == 1)
+
+                return firstDesc
             }
 
             // Build again using the cached build description, and check results.
-            var secondDesc: BuildDescription! = nil
-            try await tester.checkBuild
-            { results in
+            let secondDesc = try await tester.checkBuild { results in
                 // Check that we got the BuildDescription in the expected way.
                 #expect(results.buildDescriptionInfo.source == .inMemoryCache)
                 #expect(results.buildDescriptionInfo.inMemoryCacheSize == 1)
                 #expect(results.buildDescriptionInfo.onDiskCacheSize(fs: tester.fs) == 1)
 
                 // Check that its signature is the same as the first one above (since we restored it from the cache), but different from the second one above.
-                secondDesc = results.buildDescription
-                #expect(secondDesc.signature == firstDesc.signature)
+                #expect(results.buildDescription.signature == firstDesc.signature)
 
                 // Check that there were no errors or warnings.
                 results.checkNoDiagnostics()
@@ -442,28 +425,21 @@ fileprivate struct BuildOperationDescriptionTests: CoreBasedTests {
                 results.checkCapstoneEvents()
 
                 // Compare the tasks and make sure the cached tasks ran.
-                secondDesc = results.buildDescription
+                let secondDesc = results.buildDescription
                 #expect(firstDesc.tasks.count == secondDesc.tasks.count)
-                if firstDesc.tasks.count == secondDesc.tasks.count
-                {
-                    for i in 0..<firstDesc.tasks.count
-                    {
-                        compareRunTasks(firstDesc.tasks[i], secondDesc.tasks[i], tasksShouldBeTheSameObject: true, results)
+                if firstDesc.tasks.count == secondDesc.tasks.count {
+                    for i in 0..<firstDesc.tasks.count {
+                        try compareRunTasks(firstDesc.tasks[i], secondDesc.tasks[i], tasksShouldBeTheSameObject: true, results)
                     }
                 }
 
                 // Compare the task action maps.
                 #expect(firstDesc.taskActionMap.count == secondDesc.taskActionMap.count)
-                if firstDesc.taskActionMap.count == secondDesc.taskActionMap.count
-                {
-                    for (tool, oldAction) in firstDesc.taskActionMap
-                    {
-                        if let newAction = secondDesc.taskActionMap[tool]
-                        {
+                if firstDesc.taskActionMap.count == secondDesc.taskActionMap.count {
+                    for (tool, oldAction) in firstDesc.taskActionMap {
+                        if let newAction = secondDesc.taskActionMap[tool] {
                             #expect(oldAction == newAction)
-                        }
-                        else
-                        {
+                        } else {
                             Issue.record("new description's taskActionMap does not have a TaskAction for tool: \(tool)")
                         }
                     }
@@ -474,22 +450,21 @@ fileprivate struct BuildOperationDescriptionTests: CoreBasedTests {
                 // Make sure there were only 2 configured targets deserialized among all the tasks, and that all of the configured targets in the build request are contained in the deserialized description.
                 var targets = Set<ConfiguredTarget>()
                 var targetRefs = Set<Ref<ConfiguredTarget>>()
-                for task in secondDesc.tasks
-                {
-                    if let target = task.forTarget, !task.isGate
-                    {
+                for task in secondDesc.tasks {
+                    if let target = task.forTarget, !task.isGate {
                         targets.insert(target)
                         targetRefs.insert(Ref(target))
                     }
                 }
                 // This check uses Refs because it is verifying that only 2 discrete objects were deserialized.
                 #expect(targetRefs.count == 2)
+
+                return secondDesc
             }
 
             // Blow away the build manifest file and rebuild.
             try localFS.remove(secondDesc.manifestPath)
-            try await tester.checkBuild
-            { results in
+            try await tester.checkBuild { results in
                 // Check that we got the BuildDescription in the expected way.
                 #expect(results.buildDescriptionInfo.source == .new)
 
@@ -508,8 +483,7 @@ fileprivate struct BuildOperationDescriptionTests: CoreBasedTests {
             // Use an in-memory cache.
             let tester = try await BuildOperationTester(getCore(), testWorkspace, simulated: false)
 
-            try await tester.fs.writeFileContents(testWorkspace.sourceRoot.join("aProject/main.c"))
-            { stream in
+            try await tester.fs.writeFileContents(testWorkspace.sourceRoot.join("aProject/main.c")) { stream in
                 stream <<< "int main() { return 0; }\n"
             }
             try await tester.fs.writePlist(testWorkspace.sourceRoot.join("aProject/Info-Foo.plist"), .plDict(["key": .plString("value")]))
@@ -525,9 +499,7 @@ fileprivate struct BuildOperationDescriptionTests: CoreBasedTests {
             tester.userPreferences = tester.userPreferences.with(enableBuildSystemCaching: true)
 
             // Create a new build description, build from it, and check results.
-            var firstDesc: BuildDescription! = nil
-            try await tester.checkBuild
-            { results in
+            let firstDesc = try await tester.checkBuild { results in
                 // Check that we got the BuildDescription in the expected way.
                 #expect(results.buildDescriptionInfo.source == .new)
                 #expect(results.buildDescriptionInfo.inMemoryCacheSize == 1)
@@ -540,7 +512,7 @@ fileprivate struct BuildOperationDescriptionTests: CoreBasedTests {
                 results.checkCapstoneEvents()
 
                 // Save the build description for later use.
-                firstDesc = results.buildDescription
+                let firstDesc = results.buildDescription
 
                 // FIXME: We should be running swift-stdlib-tool for the app here, since the framework contains Swift, but presently it breaks due to <rdar://problem/28343103> [Swift Build] Build failure when building a Swift app (swift-stdlib-tool issue?)
 
@@ -561,19 +533,19 @@ fileprivate struct BuildOperationDescriptionTests: CoreBasedTests {
                 #expect(results.checkTasks(.matchRuleType("Copy")) { $0 }.count == 6)
                 #expect(results.checkTasks(.matchRuleType("Touch")) { $0 }.count == 2)
                 #expect(results.checkTasks(.matchRuleType("RegisterWithLaunchServices")) { $0 }.count == 1)
+
+                return firstDesc
             }
 
             // Build again using the cached build description, and check results.
-            var secondDesc: BuildDescription! = nil
-            try await tester.checkBuild
-            { results in
+            let secondDesc = try await tester.checkBuild { results in
                 // Check that we got the BuildDescription in the expected way.
                 #expect(results.buildDescriptionInfo.source == .inMemoryCache)
                 #expect(results.buildDescriptionInfo.inMemoryCacheSize == 1)
                 #expect(results.buildDescriptionInfo.onDiskCacheSize(fs: tester.fs) == 1)
 
                 // Check that its signature is the same as the first one above (since we restored it from the cache), but different from the second one above.
-                secondDesc = results.buildDescription
+                let secondDesc = results.buildDescription
                 #expect(secondDesc.signature == firstDesc.signature)
 
                 // Check that there were no errors or warnings.
@@ -586,22 +558,21 @@ fileprivate struct BuildOperationDescriptionTests: CoreBasedTests {
                 // Make sure there were only 2 configured targets deserialized among all the tasks, and that all of the configured targets in the build request are contained in the deserialized description.
                 var targets = Set<ConfiguredTarget>()
                 var targetRefs = Set<Ref<ConfiguredTarget>>()
-                for task in secondDesc.tasks
-                {
-                    if let target = task.forTarget, !task.isGate
-                    {
+                for task in secondDesc.tasks {
+                    if let target = task.forTarget, !task.isGate {
                         targets.insert(target)
                         targetRefs.insert(Ref(target))
                     }
                 }
                 // This check uses Refs because it is verifying that only 2 discrete objects were deserialized.
                 #expect(targetRefs.count == 2)
+
+                return secondDesc
             }
 
             // Blow away the build manifest file and rebuild.
             try localFS.remove(secondDesc.manifestPath)
-            try await tester.checkBuild
-            { results in
+            try await tester.checkBuild { results in
                 // Check that we got the BuildDescription in the expected way.
                 #expect(results.buildDescriptionInfo.source == .new)
 

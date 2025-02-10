@@ -2505,7 +2505,7 @@ fileprivate struct SwiftTaskConstructionTests: CoreBasedTests {
 
                     let indexingInfo = task.generateIndexingInfo(input: .fullInfo).sorted(by: { (lhs, rhs) in lhs.path < rhs.path })
                     #expect(indexingInfo.count == 1)
-                    let info = indexingInfo[0].indexingInfo as! SwiftSourceFileIndexingInfo
+                    let info = try #require(indexingInfo[0].indexingInfo as? SwiftSourceFileIndexingInfo)
                     let commandLine = try #require(info.propertyListItem.dictValue?["swiftASTCommandArguments"]?.stringArrayValue)
                     let ccSearchPaths = commandLine.indices.filter { commandLine[$0] == "-Xcc" && commandLine[$0.advanced(by: 1)] == "-I" }.map { $0.advanced(by: 3) }.map { commandLine[$0] }
                     #expect(["/tmp/Test/aProject/build/Debug", "/tmp/some-dir"] == ccSearchPaths)
@@ -2520,7 +2520,7 @@ fileprivate struct SwiftTaskConstructionTests: CoreBasedTests {
 
                     let indexingInfo = task.generateIndexingInfo(input: .fullInfo).sorted(by: { (lhs, rhs) in lhs.path < rhs.path })
                     #expect(indexingInfo.count == 1)
-                    let info = indexingInfo[0].indexingInfo as! SwiftSourceFileIndexingInfo
+                    let info = try #require(indexingInfo[0].indexingInfo as? SwiftSourceFileIndexingInfo)
                     let commandLine = try #require(info.propertyListItem.dictValue?["swiftASTCommandArguments"]?.stringArrayValue)
                     let ccSearchPaths = commandLine.indices.filter { commandLine[$0] == "-Xcc" && commandLine[$0.advanced(by: 1)] == "-I" }.map { $0.advanced(by: 3) }.map { commandLine[$0] }
                     #expect(ccSearchPaths.isEmpty)

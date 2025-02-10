@@ -356,8 +356,8 @@ import SWBTestSupport
                         for buildFile in phase.buildFiles {
                             switch buildFile.buildableItem {
                             case .reference(let guid):
-                                let ref = workspace.lookupReference(for: guid)!
-                                #expect(knownReferences.contains(ref as! FileReference), "unexpected target reference: \(ref)")
+                                let ref = try #require(workspace.lookupReference(for: guid) as? FileReference)
+                                #expect(knownReferences.contains(ref), "unexpected target reference: \(ref)")
                             case .targetProduct(_):
                                 continue
                             case .namedReference:
