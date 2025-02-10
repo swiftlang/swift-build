@@ -80,7 +80,7 @@ fileprivate struct BuildTaskBehaviorTests: CoreBasedTests {
 
     // FIXME: We should migrate these tests to primarily only use internal execution nodes, and not end up running tools (except for tests which are explicitly trying to test that behavior).
 
-    @Test(.requireSDKs(.host), .skipHostOS(.windows, "no /bin/echo"))
+    @Test(.requireSDKs(.host), .requireThreadSafeWorkingDirectory, .skipHostOS(.windows, "no /bin/echo"))
     func simulatedSingleInputlessOutputlessCommand() async throws {
         let (echoTask, echoExecTask) = createTask(ruleInfo: ["echo", "hi"], commandLine: ["/bin/echo", "hi"], inputs: [], outputs: [MakePlannedVirtualNode("<ECHO>")], action: nil)
 
