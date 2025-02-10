@@ -17,7 +17,7 @@ public import SWBMacro
 // MARK: Build phase abstract class
 
 
-public class BuildPhase: ProjectModelItem
+public class BuildPhase: ProjectModelItem, @unchecked Sendable
 {
     /// The name of the build phase, typically for reporting issues.
     public var name: String { fatalError("abstract \(type(of: self)) build phase asked for its name") }
@@ -88,7 +88,7 @@ public class BuildPhase: ProjectModelItem
 // MARK: Build phase with build files abstract class
 
 
-public class BuildPhaseWithBuildFiles: BuildPhase
+public class BuildPhaseWithBuildFiles: BuildPhase, @unchecked Sendable
 {
     public let buildFiles: [BuildFile]
 
@@ -134,7 +134,7 @@ public class BuildPhaseWithBuildFiles: BuildPhase
 // MARK: Sources build phase class
 
 
-public final class SourcesBuildPhase: BuildPhaseWithBuildFiles
+public final class SourcesBuildPhase: BuildPhaseWithBuildFiles, @unchecked Sendable
 {
     public override var name: String { return "Compile Sources" }
 }
@@ -143,7 +143,7 @@ public final class SourcesBuildPhase: BuildPhaseWithBuildFiles
 // MARK: Frameworks build phase class
 
 
-public final class FrameworksBuildPhase: BuildPhaseWithBuildFiles
+public final class FrameworksBuildPhase: BuildPhaseWithBuildFiles, @unchecked Sendable
 {
     public override var name: String { return "Link Binary" }
 }
@@ -152,7 +152,7 @@ public final class FrameworksBuildPhase: BuildPhaseWithBuildFiles
 // MARK: Headers build phase class
 
 
-public final class HeadersBuildPhase: BuildPhaseWithBuildFiles
+public final class HeadersBuildPhase: BuildPhaseWithBuildFiles, @unchecked Sendable
 {
     public override var name: String { return "Copy Headers" }
 }
@@ -161,7 +161,7 @@ public final class HeadersBuildPhase: BuildPhaseWithBuildFiles
 // MARK: Resources build phase class
 
 
-public final class ResourcesBuildPhase: BuildPhaseWithBuildFiles
+public final class ResourcesBuildPhase: BuildPhaseWithBuildFiles, @unchecked Sendable
 {
     public override var name: String { return "Copy Bundle Resources" }
 }
@@ -170,7 +170,7 @@ public final class ResourcesBuildPhase: BuildPhaseWithBuildFiles
 // MARK: Copy files build phase class
 
 
-public final class CopyFilesBuildPhase: BuildPhaseWithBuildFiles
+public final class CopyFilesBuildPhase: BuildPhaseWithBuildFiles, @unchecked Sendable
 {
     public override var name: String { return "Copy Files" }
 
@@ -228,7 +228,7 @@ public final class CopyFilesBuildPhase: BuildPhaseWithBuildFiles
 // MARK: Shell script build phase class
 
 
-public final class ShellScriptBuildPhase: BuildPhase
+public final class ShellScriptBuildPhase: BuildPhase, @unchecked Sendable
 {
     public override var name: String { return _name.isEmpty ? "Run Script" : _name }
 
@@ -378,7 +378,7 @@ public final class ShellScriptBuildPhase: BuildPhase
 // MARK: Rez build phase class
 
 
-public final class RezBuildPhase: BuildPhaseWithBuildFiles
+public final class RezBuildPhase: BuildPhaseWithBuildFiles, @unchecked Sendable
 {
     public override var name: String { return "Build Carbon Resources" }
 }
@@ -387,7 +387,7 @@ public final class RezBuildPhase: BuildPhaseWithBuildFiles
 // MARK: AppleScript build phase class
 
 
-public final class AppleScriptBuildPhase: BuildPhaseWithBuildFiles
+public final class AppleScriptBuildPhase: BuildPhaseWithBuildFiles, @unchecked Sendable
 {
     public override var name: String { return "Compile AppleScript Files" }
 }
@@ -396,7 +396,7 @@ public final class AppleScriptBuildPhase: BuildPhaseWithBuildFiles
 // MARK: Java archive build phase class
 
 
-public final class JavaArchiveBuildPhase: BuildPhaseWithBuildFiles
+public final class JavaArchiveBuildPhase: BuildPhaseWithBuildFiles, @unchecked Sendable
 {
     public override var name: String { return "Build Java Resources" }
 }

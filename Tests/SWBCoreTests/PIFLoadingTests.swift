@@ -420,7 +420,7 @@ private final class ProjectModelItemClass: ProjectModelItem {
         }
 
         // Test the required version.
-        let _ = try FileGroup.parseValueForKeyAsProjectModelItem("fileGroupKey", pifDict: pifDict, pifLoader: pifLoader, construct: { try FileGroup(fromDictionary: $0, withPIFLoader: pifLoader) })
+        let _ = try FileGroup.parseValueForKeyAsProjectModelItem("fileGroupKey", pifDict: pifDict, pifLoader: pifLoader, construct: { try FileGroup(fromDictionary: $0, withPIFLoader: pifLoader, isRoot: false) })
 
         // Test failure cases.
         #expect(performing: {
@@ -450,10 +450,10 @@ private final class ProjectModelItemClass: ProjectModelItem {
         }
 
         // Test the optional version.
-        let presentValue: FileGroup? = try FileGroup.parseOptionalValueForKeyAsProjectModelItem("fileGroupKey", pifDict: pifDict, pifLoader: pifLoader, construct: { try FileGroup(fromDictionary: $0, withPIFLoader: pifLoader) })
+        let presentValue: FileGroup? = try FileGroup.parseOptionalValueForKeyAsProjectModelItem("fileGroupKey", pifDict: pifDict, pifLoader: pifLoader, construct: { try FileGroup(fromDictionary: $0, withPIFLoader: pifLoader, isRoot: false) })
         #expect(presentValue != nil)
 
-        let absentValue: FileGroup? = try FileGroup.parseOptionalValueForKeyAsProjectModelItem("missingKey", pifDict: pifDict, pifLoader: pifLoader, construct: { try FileGroup(fromDictionary: $0, withPIFLoader: pifLoader) })
+        let absentValue: FileGroup? = try FileGroup.parseOptionalValueForKeyAsProjectModelItem("missingKey", pifDict: pifDict, pifLoader: pifLoader, construct: { try FileGroup(fromDictionary: $0, withPIFLoader: pifLoader, isRoot: false) })
         #expect(absentValue == nil)
 
         // Test failure cases.
@@ -630,7 +630,7 @@ private final class ProjectModelItemClass: ProjectModelItem {
             Issue.record("property list is not a dictionary")
             return
         }
-        let fileRef = try #require(GroupTreeReference.parsePIFDictAsReference(fileRefPIF, pifLoader: pifLoader) as? FileReference)
+        let fileRef = try #require(GroupTreeReference.parsePIFDictAsReference(fileRefPIF, pifLoader: pifLoader, isRoot: true) as? FileReference)
 
         // Examine the file reference.
         #expect(fileRef.guid == "some-fileReference-guid")
@@ -673,7 +673,7 @@ private final class ProjectModelItemClass: ProjectModelItem {
             Issue.record("property list is not a dictionary")
             return
         }
-        let fileGroup = try #require(GroupTreeReference.parsePIFDictAsReference(fileGroupPIF, pifLoader: pifLoader) as? FileGroup)
+        let fileGroup = try #require(GroupTreeReference.parsePIFDictAsReference(fileGroupPIF, pifLoader: pifLoader, isRoot: true) as? FileGroup)
 
         // Examine the file group.
         #expect(fileGroup.guid == "some-fileGroup-guid")
@@ -736,7 +736,7 @@ private final class ProjectModelItemClass: ProjectModelItem {
             Issue.record("property list is not a dictionary")
             return
         }
-        let versionGroup = try #require(try GroupTreeReference.parsePIFDictAsReference(versionGroupPIF, pifLoader: pifLoader) as? VersionGroup)
+        let versionGroup = try #require(try GroupTreeReference.parsePIFDictAsReference(versionGroupPIF, pifLoader: pifLoader, isRoot: true) as? VersionGroup)
 
         // Examine the file group.
         #expect(versionGroup.guid == "some-versionGroup-guid")
@@ -779,7 +779,7 @@ private final class ProjectModelItemClass: ProjectModelItem {
         // Convert the test data into a property list, then read the file group from it.
         let versionGroupPlist = PropertyListItem(testVersionGroupData)
         let versionGroupPIF = try #require(versionGroupPlist.dictValue, "property list is not a dictionary")
-        let versionGroup = try #require(GroupTreeReference.parsePIFDictAsReference(versionGroupPIF, pifLoader: pifLoader) as? VersionGroup)
+        let versionGroup = try #require(GroupTreeReference.parsePIFDictAsReference(versionGroupPIF, pifLoader: pifLoader, isRoot: true) as? VersionGroup)
 
         // Examine the file group.
         #expect(versionGroup.guid == "some-versionGroup-guid")
@@ -824,7 +824,7 @@ private final class ProjectModelItemClass: ProjectModelItem {
         ]
 
         // Convert the test data into a property list, then read the variant group from it.
-        let variantGroup = try #require(GroupTreeReference.parsePIFDictAsReference( variantGroupPIF, pifLoader: pifLoader ) as? VariantGroup)
+        let variantGroup = try #require(GroupTreeReference.parsePIFDictAsReference( variantGroupPIF, pifLoader: pifLoader, isRoot: true) as? VariantGroup)
 
         // Examine the variant group.
         #expect(variantGroup.guid == "some-variantGroup-guid")
@@ -873,7 +873,7 @@ private final class ProjectModelItemClass: ProjectModelItem {
         ]
 
         // Convert the test data into a property list, then read the xcconfig file reference from it.
-        let xcconfigFileRef = try FileReference(fromDictionary: xcconfigFileRefPIF, withPIFLoader: pifLoader)
+        let xcconfigFileRef = try FileReference(fromDictionary: xcconfigFileRefPIF, withPIFLoader: pifLoader, isRoot: true)
 
         // Now we can perform our build configuration test.
         let buildConfigurationPIF: [String: PropertyListItem] = [
@@ -1177,7 +1177,7 @@ private final class ProjectModelItemClass: ProjectModelItem {
             ]
 
             // Convert the test data into a property list, then read the file reference from it.
-            return try FileReference(fromDictionary: fileRefPIF, withPIFLoader: pifLoader)
+            return try FileReference(fromDictionary: fileRefPIF, withPIFLoader: pifLoader, isRoot: true)
         }()
         let classTwoFileRef: FileReference = try {
             let fileRefPIF: [String: PropertyListItem] = [
@@ -1189,7 +1189,7 @@ private final class ProjectModelItemClass: ProjectModelItem {
             ]
 
             // Convert the test data into a property list, then read the file reference from it.
-            return try FileReference(fromDictionary: fileRefPIF, withPIFLoader: pifLoader)
+            return try FileReference(fromDictionary: fileRefPIF, withPIFLoader: pifLoader, isRoot: true)
         }()
         let cocoaFwkFileRef: FileReference = try {
             let fileRefPIF: [String: PropertyListItem] = [
@@ -1201,7 +1201,7 @@ private final class ProjectModelItemClass: ProjectModelItem {
             ]
 
             // Convert the test data into a property list, then read the file reference from it.
-            return try FileReference(fromDictionary: fileRefPIF, withPIFLoader: pifLoader)
+            return try FileReference(fromDictionary: fileRefPIF, withPIFLoader: pifLoader, isRoot: true)
         }()
 
         // Load a framework target.

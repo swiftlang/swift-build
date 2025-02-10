@@ -96,7 +96,7 @@ public final class Project: ProjectModelItem, PIFObject, Hashable, Encodable
         self.xcodeprojPath = model.xcodeprojPath
         self.sourceRoot = model.sourceRoot
         self.targets = try model.targetSignatures.map{ try pifLoader.loadReference(signature: $0, type: Target.self) }
-        self.groupTree = try Reference.create(model.groupTree, pifLoader) as! FileGroup
+        self.groupTree = try Reference.create(model.groupTree, pifLoader, isRoot: true) as! FileGroup
         self.buildConfigurations = model.buildConfigurations.map{ BuildConfiguration($0, pifLoader) }
         self.defaultConfigurationName = model.defaultConfigurationName
         self.developmentRegion = model.developmentRegion
@@ -133,7 +133,7 @@ public final class Project: ProjectModelItem, PIFObject, Hashable, Encodable
         }
 
         // The top-level file group is required.  We load this early because our or our targets' build configurations can refer to files in here.
-        groupTree = try FileGroup.parsePIFDictAsReference(Self.parseValueForKeyAsPIFDictionary(PIFKey_Project_groupTree, pifDict: pifDict), pifLoader: pifLoader) as! FileGroup
+        groupTree = try FileGroup.parsePIFDictAsReference(Self.parseValueForKeyAsPIFDictionary(PIFKey_Project_groupTree, pifDict: pifDict), pifLoader: pifLoader, isRoot: true) as! FileGroup
 
         // The list of targets is required.
         targets = try Self.parseValueForKeyAsArrayOfIndirectObjects(PIFKey_Project_targets, pifDict: pifDict, pifLoader: pifLoader)

@@ -51,7 +51,7 @@ fileprivate struct FilePathResolverPerfTests: PerfTests {
     @Test
     func projectRelativeSourceTree_X100000() async throws {
         let model = try TestGroup("SomeProject", path: "", sourceTree: .buildSetting("PROJECT_DIR")).toProtocol()
-        let rootGroup = try #require(Reference.create(model, pifLoader) as? FileGroup)
+        let rootGroup = try #require(Reference.create(model, pifLoader, isRoot: true) as? FileGroup)
 
         await measure {
             // We do each iteration many times in order to samples that are more likely to be statistically significant.
@@ -70,7 +70,7 @@ fileprivate struct FilePathResolverPerfTests: PerfTests {
     @Test
     func projectRelativeSourceTree_Cached_X100000() async throws {
         let model = try TestGroup("SomeProject", sourceTree: .buildSetting("PROJECT_DIR")).toProtocol()
-        let rootGroup = try #require(Reference.create(model, pifLoader) as? FileGroup)
+        let rootGroup = try #require(Reference.create(model, pifLoader, isRoot: true) as? FileGroup)
 
         await measure {
             // We do each iteration many times in order to samples that are more likely to be statistically significant.
@@ -86,7 +86,7 @@ fileprivate struct FilePathResolverPerfTests: PerfTests {
     @Test
     func absoluteSourceTree_X100000() async throws {
         let model = try TestGroup("SomeProject", path: "/tmp/AbsolutePath", sourceTree: .absolute).toProtocol()
-        let rootGroup = try #require(Reference.create(model, pifLoader) as? FileGroup)
+        let rootGroup = try #require(Reference.create(model, pifLoader, isRoot: true) as? FileGroup)
 
         await measure {
             // We do each iteration many times in order to samples that are more likely to be statistically significant.
@@ -106,7 +106,7 @@ fileprivate struct FilePathResolverPerfTests: PerfTests {
     func groupRelativeSourceTree_1Level_X100000() async throws {
         let model = try TestGroup("SomeProject", path: "/tmp/SomeProject", sourceTree: .absolute,
                                   children: [TestGroup("AllFiles")]).toProtocol()
-        let rootGroup = try #require(Reference.create(model, pifLoader) as? FileGroup)
+        let rootGroup = try #require(Reference.create(model, pifLoader, isRoot: true) as? FileGroup)
         let childGroup = try #require(rootGroup.children[0] as? FileGroup)
 
         await measure {
@@ -128,7 +128,7 @@ fileprivate struct FilePathResolverPerfTests: PerfTests {
         let model = try TestGroup("SomeProject", path: "/tmp/SomeProject", sourceTree: .absolute,
                                   children: [TestGroup("AllFiles",
                                                        children: [TestGroup("SomeFiles")])]).toProtocol()
-        let rootGroup = try #require(Reference.create(model, pifLoader) as? FileGroup)
+        let rootGroup = try #require(Reference.create(model, pifLoader, isRoot: true) as? FileGroup)
         let childGroup = try #require(rootGroup.children[0] as? FileGroup)
         let grandchildGroup = try #require(childGroup.children[0] as? FileGroup)
 
@@ -151,7 +151,7 @@ fileprivate struct FilePathResolverPerfTests: PerfTests {
         let model = try TestGroup("SomeProject", path: "/tmp/SomeProject", sourceTree: .absolute,
                                   children: [TestGroup("AllFiles",
                                                        children: [TestGroup("SomeFiles")])]).toProtocol()
-        let rootGroup = try #require(Reference.create(model, pifLoader) as? FileGroup)
+        let rootGroup = try #require(Reference.create(model, pifLoader, isRoot: true) as? FileGroup)
         let childGroup = try #require(rootGroup.children[0] as? FileGroup)
         let grandchildGroup = try #require(childGroup.children[0] as? FileGroup)
 
