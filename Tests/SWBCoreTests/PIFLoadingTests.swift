@@ -1566,33 +1566,33 @@ private final class ProjectModelItemClass: ProjectModelItem {
         XCTAssertMatch(rootGroup.guid, .prefix("G"))
         #expect(rootGroup.parent == nil)
         #expect(rootGroup.children.count == 5)
-        let sourceFileRef1 = rootGroup.children[0] as! FileReference
+        let sourceFileRef1 = try #require(rootGroup.children[0] as? FileReference)
         XCTAssertMatch(sourceFileRef1.guid, .prefix("FR"))
         #expect(sourceFileRef1.parent === rootGroup)
-        let headerFileRef1 = rootGroup.children[1] as! FileReference
+        let headerFileRef1 = try #require(rootGroup.children[1] as? FileReference)
         XCTAssertMatch(headerFileRef1.guid, .prefix("FR"))
         #expect(headerFileRef1.parent === rootGroup)
-        let sourceFileRef2 = rootGroup.children[2] as! FileReference
+        let sourceFileRef2 = try #require(rootGroup.children[2] as? FileReference)
         XCTAssertMatch(sourceFileRef2.guid, .prefix("FR"))
         #expect(sourceFileRef2.parent === rootGroup)
-        let headerFileRef2 = rootGroup.children[3] as! FileReference
+        let headerFileRef2 = try #require(rootGroup.children[3] as? FileReference)
         XCTAssertMatch(headerFileRef2.guid, .prefix("FR"))
         #expect(headerFileRef2.parent === rootGroup)
-        let xibVariantGroup = rootGroup.children[4] as! VariantGroup
+        let xibVariantGroup = try #require(rootGroup.children[4] as? VariantGroup)
         XCTAssertMatch(xibVariantGroup.guid, .prefix("VG"))
         #expect(xibVariantGroup.parent === rootGroup)
         #expect(xibVariantGroup.children.count == 3)
-        let xibFile = xibVariantGroup.children[0] as! FileReference
+        let xibFile = try #require(xibVariantGroup.children[0] as? FileReference)
         XCTAssertMatch(xibFile.guid, .prefix("FR"))
         #expect(xibFile.parent === xibVariantGroup)
-        let stringsFile = xibVariantGroup.children[1] as! FileReference
+        let stringsFile = try #require(xibVariantGroup.children[1] as? FileReference)
         XCTAssertMatch(stringsFile.guid, .prefix("FR"))
         #expect(stringsFile.parent === xibVariantGroup)
 
         // Check the targets.
-        let aggregateTarget = project.targets[0] as! AggregateTarget
-        let appTarget = project.targets[2] as! StandardTarget
-        let externalTarget = project.targets[3] as! ExternalTarget
+        let aggregateTarget = try #require(project.targets[0] as? AggregateTarget)
+        let appTarget = try #require(project.targets[2] as? StandardTarget)
+        let externalTarget = try #require(project.targets[3] as? ExternalTarget)
 
         XCTAssertMatch(aggregateTarget.guid, .prefix("AT"))
         #expect(aggregateTarget.name == "AggregateTarget")
@@ -1600,7 +1600,7 @@ private final class ProjectModelItemClass: ProjectModelItem {
         #expect(aggregateTarget.buildConfigurations.count == 2)
         #expect(aggregateTarget.dependencies.map { $0.guid } == [appTarget.guid, externalTarget.guid])
 
-        let fwkTarget = project.targets[1] as! StandardTarget
+        let fwkTarget = try #require(project.targets[1] as? StandardTarget)
         XCTAssertMatch(fwkTarget.guid, .prefix("T"))
         #expect(fwkTarget.name == "FwkTarget")
         #expect(fwkTarget.buildPhases.count == 3)
@@ -1628,36 +1628,36 @@ private final class ProjectModelItemClass: ProjectModelItem {
         #expect([Target](workspace.allTargets) == [aggregateTarget, fwkTarget, appTarget, externalTarget])
 
         // Check the build phases of the framework target.
-        let headersBuildPhase = fwkTarget.buildPhases[0] as! HeadersBuildPhase
+        let headersBuildPhase = try #require(fwkTarget.buildPhases[0] as? HeadersBuildPhase)
         let headerBuildFile = headersBuildPhase.buildFiles[0]
         XCTAssertMatch(headerBuildFile.guid, .prefix("BF"))
         #expect(headerBuildFile.buildableItem == .reference(guid: headerFileRef1.guid))
 
-        let fwkSourcesBuildPhase = fwkTarget.buildPhases[1] as! SourcesBuildPhase
+        let fwkSourcesBuildPhase = try #require(fwkTarget.buildPhases[1] as? SourcesBuildPhase)
         let fwkSourceBuildFile = fwkSourcesBuildPhase.buildFiles[0]
         XCTAssertMatch(fwkSourceBuildFile.guid, .prefix("BF"))
         #expect(fwkSourceBuildFile.buildableItem == .reference(guid: sourceFileRef1.guid))
 
-        let fwkFrameworksBuildPhase = fwkTarget.buildPhases[2] as! FrameworksBuildPhase
+        let fwkFrameworksBuildPhase = try #require(fwkTarget.buildPhases[2] as? FrameworksBuildPhase)
         #expect(fwkFrameworksBuildPhase.buildFiles.count == 0)
 
         // Check the build phases of the app target.
-        let appSourcesBuildPhase = appTarget.buildPhases[0] as! SourcesBuildPhase
+        let appSourcesBuildPhase = try #require(appTarget.buildPhases[0] as? SourcesBuildPhase)
         let appSourceBuildFile = appSourcesBuildPhase.buildFiles[0]
         XCTAssertMatch(appSourceBuildFile.guid, .prefix("BF"))
         #expect(appSourceBuildFile.buildableItem == .reference(guid: sourceFileRef2.guid))
 
-        let appFrameworksBuildPhase = appTarget.buildPhases[1] as! FrameworksBuildPhase
+        let appFrameworksBuildPhase = try #require(appTarget.buildPhases[1] as? FrameworksBuildPhase)
         let appFrameworkBuildFile = appFrameworksBuildPhase.buildFiles[0]
         XCTAssertMatch(appFrameworkBuildFile.guid, .prefix("BF"))
         #expect(appFrameworkBuildFile.buildableItem == .targetProduct(guid: fwkProductReference.target!.guid))
 
-        let resourcesBuildPhase = appTarget.buildPhases[2] as! ResourcesBuildPhase
+        let resourcesBuildPhase = try #require(appTarget.buildPhases[2] as? ResourcesBuildPhase)
         let resourceBuildFile = resourcesBuildPhase.buildFiles[0]
         XCTAssertMatch(resourceBuildFile.guid, .prefix("BF"))
         #expect(resourceBuildFile.buildableItem == .reference(guid: xibVariantGroup.guid))
 
-        let copyFilesBuildPhase = appTarget.buildPhases[3] as! CopyFilesBuildPhase
+        let copyFilesBuildPhase = try #require(appTarget.buildPhases[3] as? CopyFilesBuildPhase)
         let copyFilesBuildFile = copyFilesBuildPhase.buildFiles[0]
         #expect(copyFilesBuildPhase.destinationSubfolder.stringRep == "$(FRAMEWORKS_FOLDER_PATH)")
         #expect(copyFilesBuildPhase.destinationSubpath.stringRep == "")

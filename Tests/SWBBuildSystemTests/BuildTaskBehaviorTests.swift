@@ -415,10 +415,10 @@ fileprivate struct BuildTaskBehaviorTests: CoreBasedTests {
             results.checkCapstoneEvents()
 
             // Check the items in the diamond.
-            let startTask = taskMap["START"]!.execTask as! Task
-            let leftTask = taskMap["LEFT"]!.execTask as! Task
-            let rightTask = taskMap["RIGHT"]!.execTask as! Task
-            let endTask = taskMap["END"]!.execTask as! Task
+            let startTask = try #require(taskMap["START"]?.execTask as? Task)
+            let leftTask = try #require(taskMap["LEFT"]?.execTask as? Task)
+            let rightTask = try #require(taskMap["RIGHT"]?.execTask as? Task)
+            let endTask = try #require(taskMap["END"]?.execTask as? Task)
             results.check(event: .taskHadEvent(startTask, event: .completed), precedes: .taskHadEvent(leftTask, event: .started))
             results.check(event: .taskHadEvent(startTask, event: .completed), precedes: .taskHadEvent(rightTask, event: .started))
             results.check(event: .taskHadEvent(leftTask, event: .completed), precedes: .taskHadEvent(endTask, event: .started))
@@ -448,8 +448,8 @@ fileprivate struct BuildTaskBehaviorTests: CoreBasedTests {
             // NOTE: This test isn't completely deterministic, it could report a false negative, but in practice this is very unlikely. It should never have a false positive.
             results.checkCapstoneEvents()
             for name in tasksToMake {
-                let task = taskMap[name]!.execTask as! Task
-                results.check(event: .taskHadEvent(task, event: .completed), precedes: .taskHadEvent(gateTask.execTask as! Task, event: .started))
+                let task = try #require(taskMap[name]?.execTask as? Task)
+                results.check(event: .taskHadEvent(task, event: .completed), precedes: .taskHadEvent(try #require(gateTask.execTask as? Task), event: .started))
             }
         }
     }

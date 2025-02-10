@@ -401,12 +401,12 @@ import SWBMacro
                 }
 
                 // check that we get the right value for VERSION_INFO_STRING, which validates we parsed it correctly.
-                let VERSION_INFO_STRING = try #require(core.specRegistry.internalMacroNamespace.lookupMacroDeclaration("VERSION_INFO_STRING")) as! StringMacroDeclaration
+                let VERSION_INFO_STRING = try #require(core.specRegistry.internalMacroNamespace.lookupMacroDeclaration("VERSION_INFO_STRING") as? StringMacroDeclaration)
                 let result: String = settings.globalScope.evaluate(VERSION_INFO_STRING)
                 #expect(result == "\"@(#)PROGRAM:Foo  PROJECT:aProject-\"")
 
                 // check handle of empty default macro assignments inside list evaluation (rdar://problem/24786941).
-                #expect(settings.globalScope.evaluate(try #require(core.specRegistry.internalMacroNamespace.lookupMacroDeclaration("OTHER_LDFLAGS")) as! StringListMacroDeclaration) == ["-current_version", ""])
+                #expect(settings.globalScope.evaluate(try #require(core.specRegistry.internalMacroNamespace.lookupMacroDeclaration("OTHER_LDFLAGS") as? StringListMacroDeclaration)) == ["-current_version", ""])
 
                 // check target task overrides.
                 #expect(settings.globalScope.evaluate(BuiltinMacros.ACTION) == action.actionName)

@@ -67,7 +67,7 @@ import SWBMacro
         let associatedTypesForKeysMatching: [String: MacroType] = ["_DEFINED_STRING_SETTING": .string]
         let typedExternalStringData: [String: PropertyListItem] = ["BUILT_IN_DEFINED_STRING_SETTING": .plString("foo value")]
         _ = try namespace.parseTable(typedExternalStringData, allowUserDefined: false, associatedTypesForKeysMatching: associatedTypesForKeysMatching)
-        let stringMacroDecl = namespace.lookupMacroDeclaration("BUILT_IN_DEFINED_STRING_SETTING") as! StringMacroDeclaration
+        let stringMacroDecl = try #require(namespace.lookupMacroDeclaration("BUILT_IN_DEFINED_STRING_SETTING") as? StringMacroDeclaration)
         #expect(stringMacroDecl.type == MacroType.string)
     }
 
