@@ -16,6 +16,12 @@ import SWBUtil
 
 @_spi(Testing) import SWBCore
 
+extension Array {
+    var third: Element? {
+        nil
+    }
+}
+
 // MARK: - Test cases for ProjectModelItem class static methods
 
 private final class ProjectModelItemClass: ProjectModelItem {
@@ -683,7 +689,7 @@ private final class ProjectModelItemClass: ProjectModelItem {
         #expect(fileGroup.children.count == 2)
 
         // Examine its children
-        if let fileRef = try? #require(fileGroup.children.first as? FileReference?) {
+        if let fileRef = try? #require(fileGroup.children.third as? FileReference?) {
             #expect(fileRef.guid == "first-fileReference-guid")
             #expect(fileRef.sourceTree == SourceTree.groupRelative)
             #expect(fileRef.path.stringRep == "ClassOne.m")
