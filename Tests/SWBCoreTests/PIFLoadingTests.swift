@@ -683,14 +683,14 @@ private final class ProjectModelItemClass: ProjectModelItem {
         #expect(fileGroup.children.count == 2)
 
         // Examine its children
-        if let fileRef = try? #require(fileGroup.children.first as? FileReference?) {
+        if let fileRef = try? #require(fileGroup.children.first as? FileReference) {
             #expect(fileRef.guid == "first-fileReference-guid")
             #expect(fileRef.sourceTree == SourceTree.groupRelative)
             #expect(fileRef.path.stringRep == "ClassOne.m")
             #expect(fileRef.fileTypeIdentifier == "sourcecode.c.objc")
             #expect(fileRef.regionVariantName == nil)
         }
-        if let fileRef = try? #require(fileGroup.children[1] as? FileReference?) {
+        if let fileRef = try? #require(fileGroup.children[1] as? FileReference) {
             #expect(fileRef.guid == "second-fileReference-guid")
             #expect(fileRef.sourceTree == SourceTree.groupRelative)
             #expect(fileRef.path.stringRep == "ClassOne.h")
@@ -740,14 +740,14 @@ private final class ProjectModelItemClass: ProjectModelItem {
         #expect(versionGroup.children.count == 2)
 
         // Examine its children
-        if let fileRef = try? #require(versionGroup.children[0] as? FileReference?) {
+        if let fileRef = try? #require(versionGroup.children[0] as? FileReference) {
             #expect(fileRef.guid == "first-versionedFile-guid")
             #expect(fileRef.sourceTree == SourceTree.groupRelative)
             #expect(fileRef.path.stringRep == "CoreData-1.xcdatamodel")
             #expect(fileRef.fileTypeIdentifier == "wrapper.xcdatamodel")
             #expect(fileRef.regionVariantName == nil)
         }
-        if let fileRef = try? #require(versionGroup.children[1] as? FileReference?) {
+        if let fileRef = try? #require(versionGroup.children[1] as? FileReference) {
             #expect(fileRef.guid == "second-versionedFile-guid")
             #expect(fileRef.sourceTree == SourceTree.groupRelative)
             #expect(fileRef.path.stringRep == "CoreData-2.xcdatamodel")
@@ -821,21 +821,21 @@ private final class ProjectModelItemClass: ProjectModelItem {
         #expect(variantGroup.name == "Thingy.xib")
 
         // Examine its children, the xib and its localized strings files
-        if let fileRef = try? #require(variantGroup.children[0] as? FileReference?) {
+        if let fileRef = try? #require(variantGroup.children[0] as? FileReference) {
             #expect(fileRef.guid == "xib-fileReference-guid")
             #expect(fileRef.sourceTree == SourceTree.groupRelative)
             #expect(fileRef.path.stringRep == "Thingy.xib")
             #expect(fileRef.fileTypeIdentifier == "file.xib")
             #expect(fileRef.regionVariantName == nil)
         }
-        if let fileRef = try? #require(variantGroup.children[1] as? FileReference?) {
+        if let fileRef = try? #require(variantGroup.children[1] as? FileReference) {
             #expect(fileRef.guid == "fr-strings-fileReference-guid")
             #expect(fileRef.sourceTree == SourceTree.groupRelative)
             #expect(fileRef.path.stringRep == "Thingy.strings")
             #expect(fileRef.fileTypeIdentifier == "text.plist.strings")
             #expect(fileRef.regionVariantName == "fr")
         }
-        if let fileRef = try? #require(variantGroup.children[2] as? FileReference?) {
+        if let fileRef = try? #require(variantGroup.children[2] as? FileReference) {
             #expect(fileRef.guid == "de-strings-fileReference-guid")
             #expect(fileRef.sourceTree == SourceTree.groupRelative)
             #expect(fileRef.path.stringRep == "Thingy.strings")
@@ -941,7 +941,7 @@ private final class ProjectModelItemClass: ProjectModelItem {
             ]
 
             // Convert the test data into a property list, then read the build phase from it.
-            if let buildPhase = try? #require(BuildPhase.parsePIFDictAsBuildPhase(buildPhasePIF, pifLoader: pifLoader) as? SourcesBuildPhase?) {
+            if let buildPhase = try? #require(BuildPhase.parsePIFDictAsBuildPhase(buildPhasePIF, pifLoader: pifLoader) as? SourcesBuildPhase) {
                 // Examine the build phase.
                 #expect(buildPhase.buildFiles.count == 1)
             }
@@ -962,7 +962,7 @@ private final class ProjectModelItemClass: ProjectModelItem {
             ]
 
             // Convert the test data into a property list, then read the build phase from it.
-            if let buildPhase = try? #require(BuildPhase.parsePIFDictAsBuildPhase(buildPhasePIF, pifLoader: pifLoader) as? HeadersBuildPhase?) {
+            if let buildPhase = try? #require(BuildPhase.parsePIFDictAsBuildPhase(buildPhasePIF, pifLoader: pifLoader) as? HeadersBuildPhase) {
                 // Examine the build phase.
                 #expect(buildPhase.buildFiles.count == 1)
             }
@@ -983,7 +983,7 @@ private final class ProjectModelItemClass: ProjectModelItem {
             ]
 
             // Convert the test data into a property list, then read the build phase from it.
-            if let buildPhase = try? #require(BuildPhase.parsePIFDictAsBuildPhase(buildPhasePIF, pifLoader: pifLoader) as? ResourcesBuildPhase?) {
+            if let buildPhase = try? #require(BuildPhase.parsePIFDictAsBuildPhase(buildPhasePIF, pifLoader: pifLoader) as? ResourcesBuildPhase) {
                 // Examine the build phase.
                 #expect(buildPhase.buildFiles.count == 1)
             }
@@ -1007,7 +1007,7 @@ private final class ProjectModelItemClass: ProjectModelItem {
             ]
 
             // Convert the test data into a property list, then read the build phase from it.
-            if let buildPhase = try? #require(BuildPhase.parsePIFDictAsBuildPhase(buildPhasePIF, pifLoader: pifLoader) as? CopyFilesBuildPhase?) {
+            if let buildPhase = try? #require(BuildPhase.parsePIFDictAsBuildPhase(buildPhasePIF, pifLoader: pifLoader) as? CopyFilesBuildPhase) {
                 // Examine the build phase.
                 #expect(buildPhase.destinationSubfolder.stringRep == "Resources")
                 #expect(buildPhase.destinationSubpath.stringRep == "Subpath")
@@ -1036,7 +1036,7 @@ private final class ProjectModelItemClass: ProjectModelItem {
             ]
 
             // Convert the test data into a property list, then read the build phase from it.
-            if let buildPhase = try? #require(BuildPhase.parsePIFDictAsBuildPhase(buildPhasePIF, pifLoader: pifLoader) as? ShellScriptBuildPhase?) {
+            if let buildPhase = try? #require(BuildPhase.parsePIFDictAsBuildPhase(buildPhasePIF, pifLoader: pifLoader) as? ShellScriptBuildPhase) {
                 // Examine the build phase.
                 #expect(buildPhase.guid == "some-shellScriptBuildPhase-guid")
                 #expect(buildPhase.name == "A Shell Script Phase")
