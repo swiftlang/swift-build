@@ -688,6 +688,48 @@
                 Description = "Enable passing non-Sendable values over isolation boundaries when there's no possibility of concurrent access. This is always enabled when in the Swift 6 language mode.";
             },
 
+            {
+                Name = "SWIFT_UPCOMING_FEATURE_DYNAMIC_ACTOR_ISOLATION";
+                Type = Boolean;
+                DefaultValue = "$(SWIFT_UPCOMING_FEATURE_6_0)";
+                Condition = "$(EFFECTIVE_SWIFT_VERSION) == '4' || $(EFFECTIVE_SWIFT_VERSION) == '4.2' || $(EFFECTIVE_SWIFT_VERSION) == '5'";
+                CommandLineArgs = {
+                    YES = ( "-enable-upcoming-feature", "DynamicActorIsolation" );
+                    NO  = ();
+                };
+                DisplayName = "Dynamic Actor Isolation";
+                Category = "Upcoming Features";
+                Description = "Enable actor isolation checking at runtime for synchronous isolated functions. This is always enabled when in the Swift 6 language mode.";
+            },
+
+            {
+                Name = "SWIFT_UPCOMING_FEATURE_NONFROZEN_ENUM_EXHAUSTIVITY";
+                Type = Boolean;
+                DefaultValue = "$(SWIFT_UPCOMING_FEATURE_6_0)";
+                Condition = "$(EFFECTIVE_SWIFT_VERSION) == '4' || $(EFFECTIVE_SWIFT_VERSION) == '4.2' || $(EFFECTIVE_SWIFT_VERSION) == '5'";
+                CommandLineArgs = {
+                    YES = ( "-enable-upcoming-feature", "NonfrozenEnumExhaustivity" );
+                    NO  = ();
+                };
+                DisplayName = "Nonfrozen Enum Exhaustivity";
+                Category = "Upcoming Features";
+                Description = "Enable errors when switching over nonfrozen enums without an `@unknown default` case. This is always enabled when in the Swift 6 language mode.";
+            },
+
+            {
+                Name = "SWIFT_UPCOMING_FEATURE_GLOBAL_ACTOR_ISOLATED_TYPES_USABILITY";
+                Type = Boolean;
+                DefaultValue = "$(SWIFT_UPCOMING_FEATURE_6_0)";
+                Condition = "$(EFFECTIVE_SWIFT_VERSION) == '4' || $(EFFECTIVE_SWIFT_VERSION) == '4.2' || $(EFFECTIVE_SWIFT_VERSION) == '5'";
+                CommandLineArgs = {
+                    YES = ( "-enable-upcoming-feature", "GlobalActorIsolatedTypesUsability" );
+                    NO  = ();
+                };
+                DisplayName = "Global-Actor-Isolated Types Usability";
+                Category = "Upcoming Features";
+                Description = "Enable new concurrency checking rules for global-actor-isolated types. This is always enabled when in the Swift 6 language mode.";
+            },
+
             // Upcoming Swift "next" features
             {
                 Name = "SWIFT_UPCOMING_FEATURE_INTERNAL_IMPORTS_BY_DEFAULT";
