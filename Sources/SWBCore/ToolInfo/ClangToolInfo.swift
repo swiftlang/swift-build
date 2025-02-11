@@ -118,13 +118,16 @@ public func discoveredClangToolInfo(
                 // "8.1.0 (clang-802.1.38)"
                 // "12.0.0 (clang-1200.0.22.5) [ptrauth objc isa mode: sign-and-strip]"
                 if macroName == "__clang_version__" {
-                    isAppleClang = macroValue.contains("Apple")
                     if let match: RegEx.MatchResult = clangVersionRe.firstMatch(in: macroValue) {
                         llvmVersion = match["llvm"].map { try? Version($0) } ?? nil
                         clangVersion = match["clang"].map { try? Version($0) } ?? nil
                     } else if let match = try? swiftOSSToolchainClangVersionRe.firstMatch(in: macroValue) {
                         llvmVersion = try? Version(String(match.llvm))
                     }
+                }
+
+                if macroName == "__apple_build_version__" {
+                    isAppleClang = true
                 }
             }
         }
