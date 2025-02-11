@@ -653,6 +653,19 @@ public class ClangCompilerSpec : CompilerSpec, SpecIdentifierType, GCCCompatible
         let sparseSDKSearchPaths = GCCCompatibleCompilerSpecSupport.sparseSDKSearchPathArguments(producer.sparseSDKs, headerSearchPaths.headerSearchPaths, frameworkSearchPaths.frameworkSearchPaths)
         commandLine += sparseSDKSearchPaths.searchPathArguments(for: self, scope: scope)
 
+        if let clangInfo = optionContext as? DiscoveredClangToolSpecInfo, !clangInfo.isAppleClang {
+            var filteredCommandLine: [String] = []
+            var iterator = commandLine.makeIterator()
+            while let arg = iterator.next() {
+                if arg == "-index-store-path" {
+                    _ = iterator.next()
+                } else {
+                    filteredCommandLine.append(arg)
+                }
+            }
+            commandLine = filteredCommandLine
+        }
+
         if scope.evaluate(BuiltinMacros.CLANG_USE_RESPONSE_FILE) && (optionContext?.toolPath.basenameWithoutSuffix == "clang" || optionContext?.toolPath.basenameWithoutSuffix == "clang++") {
             var responseFileCommandLine: [String] = []
             var regularCommandLine: [String] = []

@@ -16,6 +16,7 @@ public struct DiscoveredClangToolSpecInfo: DiscoveredCommandLineToolSpecInfo {
     public let toolPath: Path
     public let clangVersion: Version?
     public let llvmVersion: Version?
+    public let isAppleClang: Bool
 
     public var toolVersion: Version? { return self.clangVersion }
 
@@ -79,7 +80,7 @@ public func discoveredClangToolInfo(
 ) async throws -> DiscoveredClangToolSpecInfo {
     // Check that we call a clang variant, 'clang', 'clang++' etc. Note that a test sets `CC` to `/usr/bin/yes` so avoid calling that here.
     guard toolPath.basename.starts(with: "clang") else {
-        return DiscoveredClangToolSpecInfo(toolPath: toolPath, clangVersion: nil, llvmVersion: nil, clangCachingBlocklist: nil, toolFeatures: .none)
+        return DiscoveredClangToolSpecInfo(toolPath: toolPath, clangVersion: nil, llvmVersion: nil, isAppleClang: false, clangCachingBlocklist: nil, toolFeatures: .none)
     }
 
     // Construct the command line to invoke.
@@ -102,6 +103,7 @@ public func discoveredClangToolInfo(
 
         var clangVersion: Version? = nil
         var llvmVersion: Version? = nil
+        var isAppleClang = false
 
         for line in outputString.components(separatedBy: "\n") {
             if line.hasPrefix("#define ") {
@@ -116,6 +118,7 @@ public func discoveredClangToolInfo(
                 // "8.1.0 (clang-802.1.38)"
                 // "12.0.0 (clang-1200.0.22.5) [ptrauth objc isa mode: sign-and-strip]"
                 if macroName == "__clang_version__" {
+                    isAppleClang = macroValue.contains("Apple")
                     if let match: RegEx.MatchResult = clangVersionRe.firstMatch(in: macroValue) {
                         llvmVersion = match["llvm"].map { try? Version($0) } ?? nil
                         clangVersion = match["clang"].map { try? Version($0) } ?? nil
@@ -157,6 +160,7 @@ public func discoveredClangToolInfo(
             toolPath: toolPath,
             clangVersion: clangVersion,
             llvmVersion: llvmVersion,
+            isAppleClang: isAppleClang,
             clangCachingBlocklist: getBlocklist(type: ClangCachingBlockListInfo.self, toolchainFilename: "clang-caching.json", delegate: delegate),
             toolFeatures: getFeatures(at: toolPath)
         )
