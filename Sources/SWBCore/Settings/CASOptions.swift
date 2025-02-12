@@ -170,17 +170,26 @@ public struct CASOptions: Hashable, Serializable, Encodable, Sendable {
         self.limitingStrategy = try deserializer.deserialize()
     }
 
+    public enum Purpose {
+        case generic
+        case compiler(GCCCompatibleLanguageDialect)
+    }
+
     public static func create(
         _ scope: MacroEvaluationScope,
-        _ language: GCCCompatibleLanguageDialect?
+        _ purpose: Purpose
     ) throws -> CASOptions {
         func isLanguageSupportedForRemoteCaching() -> Bool {
-            let supportedLangs = scope.evaluate(BuiltinMacros.COMPILATION_CACHE_REMOTE_SUPPORTED_LANGUAGES)
-            // If no specific list of languages is provided then all languages are supported.
-            guard !supportedLangs.isEmpty else { return true }
-            // If we're  not compiling a specific language, assume support.
-            guard let language else { return true }
-            return supportedLangs.contains(language.dialectNameForCompilerCommandLineArgument)
+            switch purpose {
+            case .compiler(let language):
+                let supportedLangs = scope.evaluate(BuiltinMacros.COMPILATION_CACHE_REMOTE_SUPPORTED_LANGUAGES)
+                // If no specific list of languages is provided then all languages are supported.
+                guard !supportedLangs.isEmpty else { return true }
+                // If we're  not compiling a specific language, assume support.
+                return supportedLangs.contains(language.dialectNameForCompilerCommandLineArgument)
+            case .generic:
+                return true
+            }
         }
 
         let casPath: Path
@@ -200,7 +209,12 @@ public struct CASOptions: Hashable, Serializable, Encodable, Sendable {
                 remoteServicePath = nil
             }
         } else {
-            casPath = Path(scope.evaluate(BuiltinMacros.COMPILATION_CACHE_CAS_PATH)).join("builtin")
+            switch purpose {
+            case .compiler:
+                casPath = Path(scope.evaluate(BuiltinMacros.COMPILATION_CACHE_CAS_PATH)).join("builtin")
+            case .generic:
+                casPath = Path(scope.evaluate(BuiltinMacros.COMPILATION_CACHE_CAS_PATH)).join("generic")
+            }
             pluginPath = nil
             remoteServicePath = nil
         }

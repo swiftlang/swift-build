@@ -1352,11 +1352,14 @@ internal final class OperationSystemAdaptor: SWBLLBuild.BuildSystemDelegate, Act
 
     private static func setupCAS(core: Core, operation: BuildOperation) throws -> ToolchainCAS? {
         let settings = operation.requestContext.getCachedSettings(operation.request.parameters)
-        let casOptions = try CASOptions.create(settings.globalScope, nil)
-        guard let casPlugin = core.lookupCASPlugin() else { return nil }
-        guard let cas = try? casPlugin.createCAS(path: casOptions.casPath, options: [:]) else { return nil }
-
-        return cas
+        let casOptions = try CASOptions.create(settings.globalScope, .generic)
+        let casPlugin: ToolchainCASPlugin?
+        if let pluginPath = casOptions.pluginPath {
+            casPlugin = try? ToolchainCASPlugin(dylib: pluginPath)
+        } else {
+            casPlugin = core.lookupCASPlugin()
+        }
+        return try casPlugin?.createCAS(path: casOptions.casPath, options: [:])
     }
 
     /// Reset the operation for a new build.
