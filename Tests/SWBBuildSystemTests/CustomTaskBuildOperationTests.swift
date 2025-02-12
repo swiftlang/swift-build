@@ -20,6 +20,8 @@ import SWBTaskExecution
 import SWBUtil
 import SWBProtocol
 
+import class Foundation.ProcessInfo
+
 @Suite
 fileprivate struct CustomTaskBuildOperationTests: CoreBasedTests {
 
