@@ -749,9 +749,6 @@ public final class SDKRegistry: SDKRegistryLookup, CustomStringConvertible, Send
         switch operatingSystem {
         case .linux:
             defaultProperties = [
-                // Workaround to avoid `-add_ast_path` on Linux, apparently this needs to perform some "swift modulewrap" step instead.
-                "GCC_GENERATE_DEBUGGING_SYMBOLS": .plString("NO"),
-
                 // Workaround to avoid `-dependency_info` on Linux.
                 "LD_DEPENDENCY_INFO_FILE": .plString(""),
 

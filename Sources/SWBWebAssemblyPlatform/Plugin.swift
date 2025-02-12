@@ -61,9 +61,6 @@ struct WebAssemblySDKRegistryExtension: SDKRegistryExtension {
         let defaultProperties: [String: PropertyListItem] = [
             "SDK_STAT_CACHE_ENABLE": "NO",
 
-            // Workaround to avoid `-add_ast_path` on WebAssembly, apparently this needs to perform some "swift modulewrap" step instead.
-            "GCC_GENERATE_DEBUGGING_SYMBOLS": .plString("NO"),
-
             "GENERATE_TEXT_BASED_STUBS": "NO",
             "GENERATE_INTERMEDIATE_TEXT_BASED_STUBS": "NO",
 
