@@ -2535,6 +2535,7 @@ private class SettingsBuilder {
 
             sdkTable.push(BuiltinMacros.DYNAMIC_LIBRARY_EXTENSION, literal: imageFormat.dynamicLibraryExtension)
             sdkTable.push(BuiltinMacros.PLATFORM_REQUIRES_SWIFT_AUTOLINK_EXTRACT, literal: imageFormat.requiresSwiftAutolinkExtract)
+            sdkTable.push(BuiltinMacros.PLATFORM_REQUIRES_SWIFT_MODULEWRAP, literal: imageFormat.requiresSwiftModulewrap)
         }
 
         // Add additional SDK default settings.

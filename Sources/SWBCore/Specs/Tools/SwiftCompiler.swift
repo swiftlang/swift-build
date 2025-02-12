@@ -2127,6 +2127,11 @@ public final class SwiftCompilerSpec : CompilerSpec, SpecIdentifierType, SwiftDi
                 return (inputs, outputs)
             }()
 
+            if cbc.scope.evaluate(BuiltinMacros.PLATFORM_REQUIRES_SWIFT_MODULEWRAP) && cbc.scope.evaluate(BuiltinMacros.GCC_GENERATE_DEBUGGING_SYMBOLS) {
+                let moduleWrapOutput = Path(moduleFilePath.withoutSuffix + ".o")
+                moduleOutputPaths.append(moduleWrapOutput)
+            }
+
             // Add const metadata outputs to extra compilation outputs
             if await supportConstSupplementaryMetadata(cbc, delegate, compilationMode: compilationMode) {
                 // If using whole module optimization then we use the -master.swiftconstvalues file from the sole compilation task.
@@ -2963,7 +2968,7 @@ public final class SwiftCompilerSpec : CompilerSpec, SpecIdentifierType, SwiftDi
             // be a source-less target which just contains object files in it's framework phase.
             let currentPlatformFilter = PlatformFilter(scope)
             let containsSources = (producer.configuredTarget?.target as? StandardTarget)?.sourcesBuildPhase?.buildFiles.filter { currentPlatformFilter.matches($0.platformFilters) }.isEmpty == false
-            if containsSources && inputFileTypes.contains(where: { $0.conformsTo(identifier: "sourcecode.swift") }) && scope.evaluate(BuiltinMacros.GCC_GENERATE_DEBUGGING_SYMBOLS) {
+            if containsSources && inputFileTypes.contains(where: { $0.conformsTo(identifier: "sourcecode.swift") }) && scope.evaluate(BuiltinMacros.GCC_GENERATE_DEBUGGING_SYMBOLS) && !scope.evaluate(BuiltinMacros.PLATFORM_REQUIRES_SWIFT_MODULEWRAP) {
                 let moduleName = scope.evaluate(BuiltinMacros.SWIFT_MODULE_NAME)
                 let moduleFileDir = scope.evaluate(BuiltinMacros.PER_ARCH_MODULE_FILE_DIR)
                 let moduleFilePath = moduleFileDir.join(moduleName + ".swiftmodule")
