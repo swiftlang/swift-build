@@ -2867,6 +2867,7 @@ import SWBMacro
         #expect(settings.globalScope.evaluate(BuiltinMacros.EXECUTABLE_DEBUG_DYLIB_INSTALL_NAME) == "@rpath/MyOtherClient.debug.dylib")
         // But should be mapped to the original install name
         #expect(settings.globalScope.evaluate(BuiltinMacros.EXECUTABLE_DEBUG_DYLIB_MAPPED_INSTALL_NAME) == "@rpath/Target1.debug.dylib")
+        #expect(settings.globalScope.evaluate(BuiltinMacros.EXECUTABLE_DEBUG_DYLIB_MAPPED_PLATFORM) == "2")
         #expect(settings.globalScope.evaluate(BuiltinMacros.EXECUTABLE_BLANK_INJECTION_DYLIB_PATH).suffix(15) == "__preview.dylib")
     }
 

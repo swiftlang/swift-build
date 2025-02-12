@@ -3326,6 +3326,18 @@ private class SettingsBuilder {
                             BuiltinMacros.EXECUTABLE_DEBUG_DYLIB_MAPPED_INSTALL_NAME,
                             table.namespace.parseString("@rpath/$(EXECUTABLE_NAME).debug.dylib")
                         )
+
+                        let sdkVariant = sdk?.variant(for: scope.evaluate(BuiltinMacros.SDK_VARIANT))
+                        let platform = sdk?.targetBuildVersionPlatform(sdkVariant: sdkVariant)
+
+                        // Platform version identifiers used in `$ld$previous` mappings.
+                        // Unknown values are specified with `0`.
+                        let appleLDPreviousPlatform = platform?.rawValue ?? 0
+
+                        table.push(
+                            BuiltinMacros.EXECUTABLE_DEBUG_DYLIB_MAPPED_PLATFORM,
+                            table.namespace.parseLiteralString("\(appleLDPreviousPlatform)")
+                        )
                     }
                     else {
                         table.push(

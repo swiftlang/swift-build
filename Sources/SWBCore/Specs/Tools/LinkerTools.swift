@@ -536,10 +536,11 @@ public final class LdLinkerSpec : GenericLinkerSpec, SpecIdentifierType, @unchec
                 // Aliasing a known symbol to this `$ld$previous` symbol is sufficient.
                 let ldFlagsForAllowableClientOverride: [String]
                 if let mappedInstallName = cbc.scope.evaluate(BuiltinMacros.EXECUTABLE_DEBUG_DYLIB_MAPPED_INSTALL_NAME).nilIfEmpty {
+                    let platform = cbc.scope.evaluate(BuiltinMacros.EXECUTABLE_DEBUG_DYLIB_MAPPED_PLATFORM)
                     ldFlagsForAllowableClientOverride = [
                         "-Xlinker", "-alias",
                         "-Xlinker", "___debug_main_executable_dylib_entry_point",
-                        "-Xlinker", "$ld$previous$\(mappedInstallName)$$1$1.0$9999.0$$",
+                        "-Xlinker", "$ld$previous$\(mappedInstallName)$$\(platform)$1.0$9999.0$$",
                     ]
                 } else {
                     ldFlagsForAllowableClientOverride = []
