@@ -14,6 +14,7 @@ private import Foundation
 @_spi(Testing) package import SWBCore
 package import SWBUtil
 import SWBTaskConstruction
+import SWBTaskExecution
 
 #if USE_STATIC_PLUGIN_INITIALIZATION
 private import SWBAndroidPlatform
@@ -79,8 +80,11 @@ extension Core {
             pluginManager.registerExtensionPoint(DiagnosticToolingExtensionPoint())
             pluginManager.registerExtensionPoint(SDKVariantInfoExtensionPoint())
             pluginManager.registerExtensionPoint(FeatureAvailabilityExtensionPoint())
+            pluginManager.registerExtensionPoint(TaskActionExtensionPoint())
 
             pluginManager.register(BuiltinSpecsExtension(), type: SpecificationsExtensionPoint.self)
+
+            pluginManager.register(BuiltinTaskActionsExtension(), type: TaskActionExtensionPoint.self)
 
             for path in pluginPaths {
                 pluginManager.load(at: path)

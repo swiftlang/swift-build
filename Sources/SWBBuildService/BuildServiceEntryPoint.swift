@@ -19,6 +19,7 @@ import SWBUtil
 import SWBLibc
 import SWBCore
 import SWBTaskConstruction
+import SWBTaskExecution
 
 #if canImport(System)
 import System
@@ -112,6 +113,7 @@ extension BuildService {
             pluginManager.registerExtensionPoint(DiagnosticToolingExtensionPoint())
             pluginManager.registerExtensionPoint(SDKVariantInfoExtensionPoint())
             pluginManager.registerExtensionPoint(FeatureAvailabilityExtensionPoint())
+            pluginManager.registerExtensionPoint(TaskActionExtensionPoint())
 
             // Register the core set of service message handlers directly since they don't live in a plugin
             pluginManager.register(ServiceSessionMessageHandlers(), type: ServiceExtensionPoint.self)
@@ -121,6 +123,8 @@ extension BuildService {
             pluginManager.register(ServiceMessageHandlers(), type: ServiceExtensionPoint.self)
 
             pluginManager.register(BuiltinSpecsExtension(), type: SpecificationsExtensionPoint.self)
+
+            pluginManager.register(BuiltinTaskActionsExtension(), type: TaskActionExtensionPoint.self)
 
             #if USE_STATIC_PLUGIN_INITIALIZATION
             // Statically initialize the plugins.
@@ -174,7 +178,7 @@ extension BuildService {
 /// This is exported as a C function for clients who wish to spawn the build service in-process, and which is used by the SwiftBuild client framework.
 @_cdecl("swiftbuildServiceEntryPoint")
 public func swiftbuildServiceEntryPoint(inputFD: Int32, outputFD: Int32, pluginsDirectory: URL?, completion: @Sendable @escaping ((any Error)?) -> Void) {
-    Task<Void, Never>.detached {
+    _Concurrency.Task<Void, Never>.detached {
         let error: (any Error)?
         do {
             try await BuildService.run(inputFD: FileDescriptor(rawValue: inputFD), outputFD: FileDescriptor(rawValue: outputFD), connectionMode: .inProcess, pluginsDirectory: pluginsDirectory, arguments: [buildServiceExecutableName()], pluginLoadingFinished: {})

@@ -1356,6 +1356,20 @@ extension BuildDescription {
     }
 }
 
+package final class TaskActionRegistry: Sendable {
+    private let implementations: [SerializableTypeCode: any PolymorphicSerializable.Type]
+
+    @PluginExtensionSystemActor @_spi(Testing) public init(pluginManager: PluginManager) throws {
+        implementations = try TaskActionExtensionPoint.taskActionImplementations(pluginManager: pluginManager)
+    }
+
+    func withSerializationContext<T>(_ block: () throws -> T) rethrows -> T {
+        try TaskAction.$taskActionImplementations.withValue(implementations) {
+            try block()
+        }
+    }
+}
+
 /// A delegate which must be used to serialize a `BuildDescription`.
 package final class BuildDescriptionSerializerDelegate: SerializerDelegate, ConfiguredTargetSerializerDelegate, UniquingSerializerDelegate {
     /// Indexes into the `BuildDescription`'s `Task` array to serialize references to those `Task`s efficiently.
@@ -1369,7 +1383,10 @@ package final class BuildDescriptionSerializerDelegate: SerializerDelegate, Conf
 
     package let uniquingCoordinator = UniquingSerializationCoordinator()
 
-    package init() {
+    let taskActionRegistry: TaskActionRegistry
+
+    package init(taskActionRegistry: TaskActionRegistry) {
+        self.taskActionRegistry = taskActionRegistry
     }
 }
 
@@ -1402,11 +1419,14 @@ package final class BuildDescriptionDeserializerDelegate: DeserializerDelegate, 
 
     package var taskStore: FrozenTaskStore? = nil
 
-    package init(workspace: Workspace, platformRegistry: PlatformRegistry, sdkRegistry: SDKRegistry, specRegistry: SpecRegistry) {
+    let taskActionRegistry: TaskActionRegistry
+
+    package init(workspace: Workspace, platformRegistry: PlatformRegistry, sdkRegistry: SDKRegistry, specRegistry: SpecRegistry, taskActionRegistry: TaskActionRegistry) {
         self.workspace = workspace
         self.platformRegistry = platformRegistry
         self.sdkRegistry = sdkRegistry
         self.specRegistry = specRegistry
+        self.taskActionRegistry = taskActionRegistry
     }
 }
 
