@@ -49,15 +49,17 @@ fileprivate struct ServiceConsoleTests {
         // Test against command line arguments.
         let executionResult = try await Process.getOutput(url: try CLIConnection.swiftbuildToolURL, arguments: ["isAlive"], environment: CLIConnection.environment)
 
+        let output = String(decoding: executionResult.stdout, as: UTF8.self)
+        
         // Verify there were no errors.
-        #expect(String(decoding: executionResult.stdout, as: UTF8.self) == "is alive? yes" + String.newline)
+        #expect(output == "is alive? yes\(String.newline)")
 
         // Assert the tool exited successfully.
         #expect(executionResult.exitStatus == .exit(0))
     }
 
     /// Test that the build service shuts down if the host dies.
-    @Test(.skipHostOS(.windows)) // PTY not supported on Windows
+    @Test(.skipHostOS(.windows, "PTY not supported on Windows"))
     func serviceShutdown() async throws {
         try await withCLIConnection { cli in
             // Find the service pid.
@@ -95,7 +97,7 @@ fileprivate struct ServiceConsoleTests {
     }
 
     /// Tests that the serializedDiagnostics console command is able to print human-readable serialized diagnostics from a .dia file.
-    @Test(.skipHostOS(.windows)) // PTY not supported on Windows
+    @Test(.skipHostOS(.windows, "PTY not supported on Windows"))
     func dumpSerializedDiagnostics() async throws {
         // Generate and compile a C source file that will generate a compiler warning.
         try await withTemporaryDirectory { tmp in

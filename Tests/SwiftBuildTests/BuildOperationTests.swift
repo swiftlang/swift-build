@@ -1137,7 +1137,7 @@ fileprivate struct BuildOperationTests: CoreBasedTests {
     }
 
     /// Check some cancellation related semantics.
-    @Test
+    @Test(.skipHostOS(.windows, "requires /usr/bin/yes"))
     func cancellationBeforeStarting() async throws {
         try await withTemporaryDirectory { (temporaryDirectory: NamedTemporaryDirectory) in
             try await withAsyncDeferrable { deferrable in
