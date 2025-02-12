@@ -302,7 +302,7 @@ public final class ActoolCompilerSpec : GenericCompilerSpec, SpecIdentifierType,
                 let action: (any PlannedTaskAction)?
                 if let deferredAction = delegate.taskActionCreationDelegate.createDeferredExecutionTaskActionIfRequested(userPreferences: cbc.producer.userPreferences) {
                     action = deferredAction
-                } else if cbc.scope.evaluate(BuiltinMacros.ENABLE_GENERIC_TASK_CACHING), let casOptions = try? CASOptions.create(cbc.scope, nil) {
+                } else if cbc.scope.evaluate(BuiltinMacros.ENABLE_GENERIC_TASK_CACHING), let casOptions = try? CASOptions.create(cbc.scope, .generic) {
                     action = delegate.taskActionCreationDelegate.createGenericCachingTaskAction(
                         enableCacheDebuggingRemarks: cbc.scope.evaluate(BuiltinMacros.GENERIC_TASK_CACHE_ENABLE_DIAGNOSTIC_REMARKS),
                         enableTaskSandboxEnforcement: !cbc.scope.evaluate(BuiltinMacros.DISABLE_TASK_SANDBOXING),
@@ -362,7 +362,7 @@ public final class ActoolCompilerSpec : GenericCompilerSpec, SpecIdentifierType,
             let action: (any PlannedTaskAction)?
             if let deferredAction = delegate.taskActionCreationDelegate.createDeferredExecutionTaskActionIfRequested(userPreferences: cbc.producer.userPreferences) {
                 action = deferredAction
-            } else if cbc.scope.evaluate(BuiltinMacros.ENABLE_GENERIC_TASK_CACHING), let casOptions = try? CASOptions.create(cbc.scope, nil) {
+            } else if cbc.scope.evaluate(BuiltinMacros.ENABLE_GENERIC_TASK_CACHING), let casOptions = try? CASOptions.create(cbc.scope, .generic) {
                 action = delegate.taskActionCreationDelegate.createGenericCachingTaskAction(
                     enableCacheDebuggingRemarks: cbc.scope.evaluate(BuiltinMacros.GENERIC_TASK_CACHE_ENABLE_DIAGNOSTIC_REMARKS),
                     enableTaskSandboxEnforcement: !cbc.scope.evaluate(BuiltinMacros.DISABLE_TASK_SANDBOXING),

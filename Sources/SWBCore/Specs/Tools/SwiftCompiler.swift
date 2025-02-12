@@ -1798,7 +1798,7 @@ public final class SwiftCompilerSpec : CompilerSpec, SpecIdentifierType, SwiftDi
             // Add caching related configurations.
             let casOptions: CASOptions?
             do {
-                casOptions = isCachingEnabled ? (try CASOptions.create(cbc.scope, .other(dialectName: "swift"))) : nil
+                casOptions = isCachingEnabled ? (try CASOptions.create(cbc.scope, .compiler(.other(dialectName: "swift")))) : nil
                 if let casOpts = casOptions {
                     args.append("-cache-compile-job")
                     args += ["-cas-path", casOpts.casPath.str]
