@@ -448,8 +448,9 @@ package final class BuildDescriptionManager: Sendable {
             constructionDelegate.updateProgress(statusMessage: "Attemping to load build description from disk", showInLog: request.workspaceContext.userPreferences.enableDebugActivityLogs)
         }
 
+        let taskActionRegistry = try await TaskActionRegistry(pluginManager: request.workspaceContext.core.pluginManager)
         do {
-            let onDiskDesc = try loadSerializedBuildDescription(onDiskPath, workspaceContext: request.workspaceContext, signature: signature)
+            let onDiskDesc = try loadSerializedBuildDescription(onDiskPath, workspaceContext: request.workspaceContext, signature: signature, taskActionRegistry: taskActionRegistry)
             if onDiskDesc.isValidFor(request: request, managerFS: fs) {
                 constructionDelegate.updateProgress(statusMessage: messageShortening == .full ? "Using on-disk description" : "Using build description from disk", showInLog: request.workspaceContext.userPreferences.enableDebugActivityLogs)
                 BuildDescriptionManager.descriptionsLoaded.increment()
@@ -505,14 +506,14 @@ package final class BuildDescriptionManager: Sendable {
         // For performance measurement purposes, we have a user default to force serializing the build description synchronously. We also use synchronous build description serialization if explicitly asked, or if build debugging is enabled, so the build description is written out in time for us to save it to the copy-aside directory just after the build is started (see `BuildOperation.build()`).
         if useSynchronousBuildDescriptionSerialization || UserDefaults.useSynchronousBuildDescriptionSerialization || request.workspaceContext.userPreferences.enableBuildDebugging {
             await onDiskCacheAccessQueue.sync {
-                self.serializeBuildDescription(newDesc, request: request)
+                self.serializeBuildDescription(newDesc, request: request, taskActionRegistry: taskActionRegistry)
                 self.purgeOld(currentBuildDescriptionPath: newDesc.packagePath)
             }
         } else {
             onDiskCacheAccessQueue.async(qos: .background) { [weak newDesc] in
                 // Weak-capture newDesc so we don't potentially deinit a BuildDescription on a background (lowest!) QoS queue if it happens to be the last reference when this block is deallocated, since this block is run in the background out of band. This could result in elevated memory usage as slow build description deallocations pile up.
                 guard let newDesc else { return }
-                self.serializeBuildDescription(newDesc, request: request)
+                self.serializeBuildDescription(newDesc, request: request, taskActionRegistry: taskActionRegistry)
                 self.purgeOld(currentBuildDescriptionPath: newDesc.packagePath)
             }
         }
@@ -523,13 +524,17 @@ package final class BuildDescriptionManager: Sendable {
         return (buildDescription: newDesc, source: .new)
     }
 
-    private func serializeBuildDescription(_ buildDescription: BuildDescription, request: BuildPlanRequest) {
+    private func serializeBuildDescription(_ buildDescription: BuildDescription, request: BuildPlanRequest, taskActionRegistry: TaskActionRegistry) {
         // Serialize the build description.
-        let delegate = BuildDescriptionSerializerDelegate()
+        let delegate = BuildDescriptionSerializerDelegate(taskActionRegistry: taskActionRegistry)
         let taskStoreSerializer = MsgPackSerializer(delegate: delegate)
-        taskStoreSerializer.serialize(buildDescription.taskStore)
+        delegate.taskActionRegistry.withSerializationContext {
+            taskStoreSerializer.serialize(buildDescription.taskStore)
+        }
         let serializer = MsgPackSerializer(delegate: delegate)
-        serializer.serialize(buildDescription)
+        delegate.taskActionRegistry.withSerializationContext {
+            serializer.serialize(buildDescription)
+        }
 
         // Also get the target build graph's display representation.  In the future we would like to emit structured data (e.g. JSON) here instead, although perhaps with the display string embedded in it for human readability.
         let buildGraphString = request.buildGraph.dependencyGraphDiagnostic.formatLocalizedDescription(.debugWithoutBehaviorAndLocation)
@@ -555,15 +560,19 @@ package final class BuildDescriptionManager: Sendable {
     }
 
     /// Loads and returns a build description at the given path for a particular workspace. Throws a `DeserializerError` if it could not be read/deserialized.
-    private func loadSerializedBuildDescription(_ path: Path, workspaceContext: WorkspaceContext, signature: BuildDescriptionSignature) throws -> BuildDescription {
-        let delegate = BuildDescriptionDeserializerDelegate(workspace: workspaceContext.workspace, platformRegistry: workspaceContext.core.platformRegistry, sdkRegistry: workspaceContext.core.sdkRegistry, specRegistry: workspaceContext.core.specRegistry)
+    private func loadSerializedBuildDescription(_ path: Path, workspaceContext: WorkspaceContext, signature: BuildDescriptionSignature, taskActionRegistry: TaskActionRegistry) throws -> BuildDescription {
+        let delegate = BuildDescriptionDeserializerDelegate(workspace: workspaceContext.workspace, platformRegistry: workspaceContext.core.platformRegistry, sdkRegistry: workspaceContext.core.sdkRegistry, specRegistry: workspaceContext.core.specRegistry, taskActionRegistry: taskActionRegistry)
         let taskStoreContents = try fs.read(path.join("task-store.msgpack"))
         let taskStoreDeserializer = MsgPackDeserializer(taskStoreContents, delegate: delegate)
-        let taskStore: FrozenTaskStore = try taskStoreDeserializer.deserialize()
+        let taskStore: FrozenTaskStore = try delegate.taskActionRegistry.withSerializationContext {
+            try taskStoreDeserializer.deserialize()
+        }
         delegate.taskStore = taskStore
         let byteString = try fs.read(path.join("description.msgpack"))
         let deserializer = MsgPackDeserializer(byteString, delegate: delegate)
-        let buildDescription: BuildDescription = try deserializer.deserialize()
+        let buildDescription: BuildDescription = try delegate.taskActionRegistry.withSerializationContext {
+            try deserializer.deserialize()
+        }
 
         // Correctness check: If the signature of the description we deserialized is different from the one we expected, then something has gone wrong.
         guard buildDescription.signature == signature else {
