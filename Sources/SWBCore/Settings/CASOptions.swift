@@ -104,7 +104,7 @@ public struct CASOptions: Hashable, Serializable, Encodable, Sendable {
             return size * mb
         case "G": // gigabytes
             return size * gb
-        case "T": // terrabytes
+        case "T": // terabytes
             return size * tb
         default:
             return nil

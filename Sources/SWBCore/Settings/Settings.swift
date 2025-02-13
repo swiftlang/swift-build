@@ -1195,7 +1195,7 @@ private class SettingsBuilder {
         /// The sparse SDKs to use.
         let sparseSDKs: [SDK]
 
-        /// The SDK and platform values before they were overriden by the active run destination.
+        /// The SDK and platform values before they were overridden by the active run destination.
         ///
         /// We use these to decide if we want to include the TOOLCHAINS from the SDK settings.
         fileprivate let preOverrides: PreOverridesSettings
@@ -3316,7 +3316,7 @@ private class SettingsBuilder {
                         //
                         // The net result is the linker writes the actual path into the load command of the
                         // stub executor so it can be found at runtime, but the debug dylib has an actual
-                        // identity as the specified client name. It therefore can succesfully link against
+                        // identity as the specified client name. It therefore can successfully link against
                         // libraries with allowable client restrictions of the same name.
                         table.push(
                             BuiltinMacros.EXECUTABLE_DEBUG_DYLIB_INSTALL_NAME,
@@ -4071,8 +4071,8 @@ private class SettingsBuilder {
         table.push(BuiltinMacros.ARCHS, literal: effectiveArchs.removingDuplicates())
 
         // The set of Swift module-only architectures should be a set of valid architectures that's disjoint from the
-        // set of effective archtectures. We don't necessarily care about these architectures being deprecated as this
-        // setting will primarily be used to support building Swift modules for deprected (or at least unsupported)
+        // set of effective architectures. We don't necessarily care about these architectures being deprecated as this
+        // setting will primarily be used to support building Swift modules for deprecated (or at least unsupported)
         // architectures.
         let originalModuleOnlyArchs = scope.evaluate(BuiltinMacros.SWIFT_MODULE_ONLY_ARCHS)
         let moduleOnlyArchs = onlyActiveArchApplied ? [] : originalModuleOnlyArchs
@@ -4824,7 +4824,7 @@ private class SettingsBuilder {
             analyzeExcludedLocalizationFiles(inLevelWithTable: settings.table, scope: levelScope, name: settings.level, generalScope: scope)
         }
 
-        // Diagnose unknown specialization options on targets. This is a warning and not an error so that if we introduce a new option, using it will not necesarily break compatibility with older Xcodes.
+        // Diagnose unknown specialization options on targets. This is a warning and not an error so that if we introduce a new option, using it will not necessarily break compatibility with older Xcodes.
         if target != nil {
             let unknownSpecializationOptions = Set(scope.evaluate(BuiltinMacros.SPECIALIZATION_SDK_OPTIONS)).subtracting(["internal"])
             if !unknownSpecializationOptions.isEmpty {
