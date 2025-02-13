@@ -4824,7 +4824,7 @@ private class SettingsBuilder {
             analyzeExcludedLocalizationFiles(inLevelWithTable: settings.table, scope: levelScope, name: settings.level, generalScope: scope)
         }
 
-        // Diagnose unknown specialization options on targets. This is a warning and not an error so that if we introduce a new option, using it will not necesarily break compatibility with older Xcodes.
+        // Diagnose unknown specialization options on targets. This is a warning and not an error so that if we introduce a new option, using it will not necessarily break compatibility with older Xcodes.
         if target != nil {
             let unknownSpecializationOptions = Set(scope.evaluate(BuiltinMacros.SPECIALIZATION_SDK_OPTIONS)).subtracting(["internal"])
             if !unknownSpecializationOptions.isEmpty {
