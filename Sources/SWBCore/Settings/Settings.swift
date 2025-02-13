@@ -4071,8 +4071,8 @@ private class SettingsBuilder {
         table.push(BuiltinMacros.ARCHS, literal: effectiveArchs.removingDuplicates())
 
         // The set of Swift module-only architectures should be a set of valid architectures that's disjoint from the
-        // set of effective archtectures. We don't necessarily care about these architectures being deprecated as this
-        // setting will primarily be used to support building Swift modules for deprected (or at least unsupported)
+        // set of effective architectures. We don't necessarily care about these architectures being deprecated as this
+        // setting will primarily be used to support building Swift modules for deprecated (or at least unsupported)
         // architectures.
         let originalModuleOnlyArchs = scope.evaluate(BuiltinMacros.SWIFT_MODULE_ONLY_ARCHS)
         let moduleOnlyArchs = onlyActiveArchApplied ? [] : originalModuleOnlyArchs
