@@ -1359,7 +1359,7 @@ internal final class OperationSystemAdaptor: SWBLLBuild.BuildSystemDelegate, Act
         } else {
             casPlugin = core.lookupCASPlugin()
         }
-        return try casPlugin?.createCAS(path: casOptions.casPath, options: [:])
+        return try? casPlugin?.createCAS(path: casOptions.casPath, options: [:])
     }
 
     /// Reset the operation for a new build.
