@@ -4874,7 +4874,7 @@ private class SettingsBuilder {
                 // If values is empty then we emit a warning if the setting is defined at all.
                 let assignedValue = scope.evaluateAsString(setting)
                 if !assignedValue.isEmpty {
-                    let explanation = explanation ?? "This setting is not suppported."
+                    let explanation = explanation ?? "This setting is not supported."
                     warnings.append("\(setting.name) is set to '\(assignedValue)': \(explanation)")
                 }
             }
