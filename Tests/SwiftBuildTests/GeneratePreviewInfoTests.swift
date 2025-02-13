@@ -50,6 +50,8 @@ fileprivate struct GeneratePreviewInfoTests: CoreBasedTests {
                                 "CLANG_ENABLE_MODULES": "YES",
                                 "SWIFT_OPTIMIZATION_LEVEL": "-Onone",
                                 "SDK_STAT_CACHE_ENABLE": "NO",
+                                // Test that we strip the flag
+                                "SWIFT_EMIT_LOC_STRINGS": "YES",
                                 "SWIFT_VALIDATE_CLANG_MODULES_ONCE_PER_BUILD_SESSION": "NO",
                             ].merging(overrides, uniquingKeysWith: { _, new in new }))
                     ],
@@ -177,6 +179,8 @@ fileprivate struct GeneratePreviewInfoTests: CoreBasedTests {
                         "-emit-dependencies",
                         "-emit-module",
                         "-emit-objc-header",
+                        "-emit-localized-strings",
+                        "-emit-localized-strings-path",
                         "-explicit-module-build",
                         "-output-file-map",
                         "-index-store-path",

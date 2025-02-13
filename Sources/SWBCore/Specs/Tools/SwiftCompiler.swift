@@ -3237,6 +3237,9 @@ public final class SwiftCompilerSpec : CompilerSpec, SpecIdentifierType, SwiftDi
             // Avoids emitting the `.d`` file
             "-emit-dependencies",
 
+            // Avoids overwriting localized strings for the transformed source file.
+            "-emit-localized-strings",
+
             // Previews doesn't need a `.swiftmodule` for the thunk
             "-emit-module",
 
@@ -3325,6 +3328,7 @@ public final class SwiftCompilerSpec : CompilerSpec, SpecIdentifierType, SwiftDi
             "-emit-module-interface-path",
             "-emit-private-module-interface-path",
             "-emit-package-module-interface-path",
+            "-emit-localized-strings-path",
             "-pch-output-dir",
         ] {
             removeWithParameter(arg)
