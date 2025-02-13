@@ -3316,7 +3316,7 @@ private class SettingsBuilder {
                         //
                         // The net result is the linker writes the actual path into the load command of the
                         // stub executor so it can be found at runtime, but the debug dylib has an actual
-                        // identity as the specified client name. It therefore can succesfully link against
+                        // identity as the specified client name. It therefore can successfully link against
                         // libraries with allowable client restrictions of the same name.
                         table.push(
                             BuiltinMacros.EXECUTABLE_DEBUG_DYLIB_INSTALL_NAME,
