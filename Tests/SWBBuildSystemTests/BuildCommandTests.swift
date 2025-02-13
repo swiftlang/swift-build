@@ -74,7 +74,7 @@ fileprivate struct BuildCommandTests: CoreBasedTests {
 
             // Construct the output paths.
             let excludedTypes: Set<String> = ["Copy", "Gate", "MkDir", "SymLink", "WriteAuxiliaryFile", "CreateBuildDirectory", "SwiftDriver", "SwiftDriver Compilation Requirements", "SwiftDriver Compilation", "SwiftMergeGeneratedHeaders", "ClangStatCache", "SwiftExplicitDependencyCompileModuleFromInterface", "SwiftExplicitDependencyGeneratePcm", "ProcessSDKImports"]
-            let runDestination = RunDestinationInfo.macOS
+            let runDestination = RunDestinationInfo.host
             let parameters = BuildParameters(configuration: "Debug", activeRunDestination: runDestination)
             let target = tester.workspace.allTargets.first(where: { _ in true })!
             let cOutputPath = try #require(buildRequestContext.computeOutputPaths(for: [cFile], workspace: tester.workspace, target: BuildRequest.BuildTargetInfo(parameters: parameters, target: target), command: .singleFileBuild(buildOnlyTheseFiles: [Path("")]), parameters: parameters).only)
@@ -277,7 +277,7 @@ fileprivate struct BuildCommandTests: CoreBasedTests {
                 let parameters = BuildParameters(configuration: "Debug", activeRunDestination: runDestination)
 
                 try await tester.checkBuild(parameters: parameters, runDestination: runDestination, buildCommand: .build(style: .buildOnly, skipDependencies: skipDependencies), persistent: true) { results in
-                    results.consumeTasksMatchingRuleTypes(["Gate", "MkDir", "CreateBuildDirectory", "RegisterExecutionPolicyException", "SymLink", "Touch", "WriteAuxiliaryFile", "GenerateTAPI", "ClangStatCache", "ProcessSDKImports"])
+                    results.consumeTasksMatchingRuleTypes(["Gate", "MkDir", "CreateBuildDirectory", "RegisterExecutionPolicyException", "SymLink", "Touch", "WriteAuxiliaryFile", "GenerateTAPI", "ClangStatCache", "ProcessSDKImports", "Libtool"])
 
                     results.consumeTasksMatchingRuleTypes(["CompileC", "Ld"], targetName: "aLibrary")
 
