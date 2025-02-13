@@ -1195,7 +1195,7 @@ private class SettingsBuilder {
         /// The sparse SDKs to use.
         let sparseSDKs: [SDK]
 
-        /// The SDK and platform values before they were overriden by the active run destination.
+        /// The SDK and platform values before they were overridden by the active run destination.
         ///
         /// We use these to decide if we want to include the TOOLCHAINS from the SDK settings.
         fileprivate let preOverrides: PreOverridesSettings
