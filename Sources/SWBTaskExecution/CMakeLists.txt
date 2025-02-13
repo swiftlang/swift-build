@@ -12,6 +12,7 @@ add_library(SWBTaskExecution
   BuildDescription.swift
   BuildDescriptionManager.swift
   BuildDescriptionSignature.swift
+  BuiltinTaskActionsExtension.swift
   DynamicTaskSpecs/ClangCachingKeyQueryDynamicTaskSpec.swift
   DynamicTaskSpecs/ClangCachingMaterializeKeyDynamicTaskSpec.swift
   DynamicTaskSpecs/ClangCachingOutputMaterializerDynamicTaskSpec.swift
@@ -28,6 +29,7 @@ add_library(SWBTaskExecution
   DynamicTaskSpecs/SwiftDriverPlanningDynamicTaskSpec.swift
   ProjectPlanner.swift
   Task.swift
+  TaskActionExtensionPoint.swift
   TaskActions/AuxiliaryFileTaskAction.swift
   TaskActions/ClangCachingKeyQueryTaskAction.swift
   TaskActions/ClangCachingMaterializeKeyTaskAction.swift
