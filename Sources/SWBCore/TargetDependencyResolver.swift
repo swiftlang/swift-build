@@ -172,7 +172,7 @@ public struct TargetBuildGraph: TargetGraph, Sendable {
         } else {
             let behavior: Diagnostic.Behavior
             let suffix: String
-            let isError = allTargets.contains(where: { buildRequestContext.getCachedSettings($0.parameters, target: $0.target).globalScope.evaluate(BuiltinMacros._OBSELETE_MANUAL_BUILD_ORDER) })
+            let isError = allTargets.contains(where: { buildRequestContext.getCachedSettings($0.parameters, target: $0.target).globalScope.evaluate(BuiltinMacros._OBSOLETE_MANUAL_BUILD_ORDER) })
             if isError {
                 behavior = .error
                 suffix = "prohibited"

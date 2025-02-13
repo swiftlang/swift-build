@@ -862,7 +862,7 @@ public final class BuiltinMacros {
     public static let OBJCC = BuiltinMacros.declarePathMacro("OBJCC")
     public static let OBJCPLUSPLUS = BuiltinMacros.declarePathMacro("OBJCPLUSPLUS")
     public static let OBJECT_FILE_DIR = BuiltinMacros.declarePathMacro("OBJECT_FILE_DIR")
-    public static let _OBSELETE_MANUAL_BUILD_ORDER = BuiltinMacros.declareBooleanMacro("_OBSELETE_MANUAL_BUILD_ORDER")
+    public static let _OBSOLETE_MANUAL_BUILD_ORDER = BuiltinMacros.declareBooleanMacro("_OBSELETE_MANUAL_BUILD_ORDER")
     public static let ONLY_ACTIVE_ARCH = BuiltinMacros.declareBooleanMacro("ONLY_ACTIVE_ARCH")
     public static let OPENCLC = BuiltinMacros.declareStringMacro("OPENCLC")
     public static let OPENCL_ARCHS = BuiltinMacros.declareStringListMacro("OPENCL_ARCHS")
@@ -1938,7 +1938,7 @@ public final class BuiltinMacros {
         OBJC_ABI_VERSION,
         OBJECT_FILE_DIR,
         OBJROOT,
-        _OBSELETE_MANUAL_BUILD_ORDER,
+        _OBSOLETE_MANUAL_BUILD_ORDER,
         ONLY_ACTIVE_ARCH,
         OPENCLC,
         OPENCL_ARCHS,
