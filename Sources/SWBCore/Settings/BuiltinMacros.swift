@@ -809,6 +809,7 @@ public final class BuiltinMacros {
     public static let LIBRARY_SEARCH_PATHS = BuiltinMacros.declarePathListMacro("LIBRARY_SEARCH_PATHS")
     public static let LIBTOOL = BuiltinMacros.declarePathMacro("LIBTOOL")
     public static let LIBTOOL_DEPENDENCY_INFO_FILE = BuiltinMacros.declarePathMacro("LIBTOOL_DEPENDENCY_INFO_FILE")
+    public static let LIBTOOL_USE_RESPONSE_FILE = BuiltinMacros.declareBooleanMacro("LIBTOOL_USE_RESPONSE_FILE")
     public static let LINKER = BuiltinMacros.declareStringMacro("LINKER")
     public static let ALTERNATE_LINKER = BuiltinMacros.declareStringMacro("ALTERNATE_LINKER")
     public static let LINK_OBJC_RUNTIME = BuiltinMacros.declareBooleanMacro("LINK_OBJC_RUNTIME")
@@ -1863,6 +1864,7 @@ public final class BuiltinMacros {
         LIBRARY_SEARCH_PATHS,
         LIBTOOL,
         LIBTOOL_DEPENDENCY_INFO_FILE,
+        LIBTOOL_USE_RESPONSE_FILE,
         LINKER,
         LINK_OBJC_RUNTIME,
         LINK_WITH_STANDARD_LIBRARIES,
