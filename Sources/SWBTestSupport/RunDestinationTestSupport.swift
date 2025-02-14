@@ -283,6 +283,19 @@ extension RunDestinationInfo {
         guard let sdk = try? core.sdkRegistry.lookup(sdk, activeRunDestination: self) else { return nil }
         return sdk.targetBuildVersionPlatform(sdkVariant: sdkVariant.map { sdkVariant in sdk.variant(for: sdkVariant) } ?? sdk.defaultVariant)
     }
+
+    package func imageFormat(_ core: Core) -> ImageFormat {
+        switch platform {
+        case "webassembly":
+            fatalError("not implemented")
+        case "windows":
+            return .pe
+        case _ where buildVersionPlatform(core) != nil:
+            return .macho
+        default:
+            return .elf
+        }
+    }
 }
 
 extension _RunDestinationInfo {
