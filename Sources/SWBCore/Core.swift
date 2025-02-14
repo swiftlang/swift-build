@@ -100,9 +100,10 @@ public final class Core: Sendable {
 
             await core.initializeToolchainRegistry()
 
+            await core.initializePlatformRegistry()
+
             // Force loading SDKs.
             let sdkRegistry = core.sdkRegistry
-
             for `extension` in await pluginManager.extensions(of: SDKRegistryExtensionPoint.self) {
                 await sdkRegistry.registerSDKs(extension: `extension`, platformRegistry: core.platformRegistry)
             }
@@ -178,6 +179,7 @@ public final class Core: Sendable {
     public let connectionMode: ServiceHostConnectionMode
 
     @_spi(Testing) public init(delegate: any CoreDelegate, hostOperatingSystem: OperatingSystem, pluginManager: PluginManager, developerPath: String, inferiorProductsPath: Path?, additionalContentPaths: [Path], environment: [String:String], buildServiceModTime: Date, connectionMode: ServiceHostConnectionMode) async throws {
+
         self.delegate = delegate
         self.hostOperatingSystem = hostOperatingSystem
         self.pluginManager = pluginManager
@@ -301,31 +303,10 @@ public final class Core: Sendable {
     @_spi(Testing) public var toolchainPaths: [(Path, strict: Bool)]
 
     /// The platform registry.
-    public lazy var platformRegistry: PlatformRegistry = {
-        // FIXME: We should support building the platforms (with symlinks) locally (for `inferiorProductsPath`).
-
-        // Search the default location first (unless directed not to), then search any extra locations we've been passed.
-        var searchPaths: [Path]
-        if let onlySearchAdditionalPlatformPaths = getEnvironmentVariable("XCODE_ONLY_EXTRA_PLATFORM_FOLDERS"), onlySearchAdditionalPlatformPaths.boolValue {
-            searchPaths = []
-        }
-        else {
-            let platformsDir = self.developerPath.join("Platforms")
-            searchPaths = [platformsDir]
-            if hostOperatingSystem == .windows {
-                for dir in (try? localFS.listdir(platformsDir)) ?? [] {
-                    searchPaths.append(platformsDir.join(dir))
-                }
-            }
-        }
-        if let additionalPlatformSearchPaths = getEnvironmentVariable("XCODE_EXTRA_PLATFORM_FOLDERS") {
-            for searchPath in additionalPlatformSearchPaths.split(separator: ":") {
-                searchPaths.append(Path(searchPath))
-            }
-        }
-        searchPaths += UserDefaults.additionalPlatformSearchPaths
-        return PlatformRegistry(delegate: self.registryDelegate, searchPaths: searchPaths, hostOperatingSystem: hostOperatingSystem)
-    }()
+    let _platformRegistry: UnsafeDelayedInitializationSendableWrapper<PlatformRegistry> = .init()
+    public var platformRegistry: PlatformRegistry {
+        _platformRegistry.value
+    }
 
     @PluginExtensionSystemActor public var loadedPluginPaths: [Path] {
         pluginManager.pluginsByIdentifier.values.map(\.path)
@@ -421,6 +402,29 @@ public final class Core: Sendable {
         }
 
         _specRegistry = await SpecRegistry(self.pluginManager, self.registryDelegate, searchPaths, domainInclusions, [:])
+    }
+
+    private func initializePlatformRegistry() async {
+        var searchPaths: [Path]
+        let fs = localFS
+        if let onlySearchAdditionalPlatformPaths = getEnvironmentVariable("XCODE_ONLY_EXTRA_PLATFORM_FOLDERS"), onlySearchAdditionalPlatformPaths.boolValue {
+            searchPaths = []
+        } else {
+            let platformsDir = self.developerPath.join("Platforms")
+            searchPaths = [platformsDir]
+            if hostOperatingSystem == .windows {
+                for dir in (try? fs.listdir(platformsDir)) ?? [] {
+                    searchPaths.append(platformsDir.join(dir))
+                }
+            }
+        }
+        if let additionalPlatformSearchPaths = getEnvironmentVariable("XCODE_EXTRA_PLATFORM_FOLDERS") {
+            for searchPath in additionalPlatformSearchPaths.split(separator: ":") {
+                searchPaths.append(Path(searchPath))
+            }
+        }
+        searchPaths += UserDefaults.additionalPlatformSearchPaths
+        _platformRegistry.initialize(to: await PlatformRegistry(delegate: self.registryDelegate, searchPaths: searchPaths, hostOperatingSystem: hostOperatingSystem, fs: fs))
     }
 
     /// Force all specs to be loaded.

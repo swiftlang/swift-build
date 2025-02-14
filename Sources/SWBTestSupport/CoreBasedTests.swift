@@ -234,6 +234,28 @@ extension CoreBasedTests {
             return try #require(defaultToolchain.executableSearchPaths.findExecutable(operatingSystem: core.hostOperatingSystem, basename: "llvm-lib") ?? (localFS.exists(fallbacklibtool) ? fallbacklibtool : nil), "couldn't find llvm-lib in default toolchain")
         }
     }
+    
+    // The path to ld in default toolchain or plaftform.
+    package var ldPath: Path {
+        get async throws {
+            let (core, defaultToolchain) = try await coreAndToolchain()
+            let fallbacklibtool = Path("/usr/bin/ld")
+            let toolName = core.hostOperatingSystem == .windows ? "link" : "ld"
+
+            // Look in the default toolchain.
+            if let executable = defaultToolchain.executableSearchPaths.findExecutable(operatingSystem: core.hostOperatingSystem, basename: toolName) {
+                return executable
+            }
+            // Try in the registered platforms.
+            for platform in core.platformRegistry.platforms {
+                if let executable = platform.executableSearchPaths.findExecutable(operatingSystem: core.hostOperatingSystem, basename: toolName) {
+                    return executable
+                }
+            }
+            // Finally try the fallback
+            return try #require(localFS.exists(fallbacklibtool) ? fallbacklibtool : nil, "couldn't find \(toolName) in default toolchain or in platform")
+        }
+    }
 
     /// If compilation caching is supported.
     package var supportsCompilationCaching: Bool {

@@ -56,7 +56,7 @@ package struct MockCommandProducer: CommandProducer, Sendable {
             for path in core.toolchainRegistry.defaultToolchain?.executableSearchPaths.paths ?? [] {
                 paths.append(path)
             }
-            for path in platform?.executableSearchPaths ?? [] {
+            for path in platform?.executableSearchPaths.paths ?? [] {
                 paths.append(path)
             }
             paths.append(core.developerPath.join("usr").join("bin"))

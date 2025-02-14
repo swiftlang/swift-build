@@ -401,7 +401,7 @@ public final class LdLinkerSpec : GenericLinkerSpec, SpecIdentifierType, @unchec
 
         // FIXME: Honor LD_QUITE_LINKER_ARGUMENTS_FOR_COMPILER_DRIVER == NO ?
 
-        let optionContext = await discoveredCommandLineToolSpecInfo(cbc.producer, cbc.scope, delegate)
+        let optionContext: (any DiscoveredCommandLineToolSpecInfo)? = await discoveredCommandLineToolSpecInfo(cbc.producer, cbc.scope, delegate)
 
         // Gather additional linker arguments from the used tools.
         //
@@ -571,7 +571,6 @@ public final class LdLinkerSpec : GenericLinkerSpec, SpecIdentifierType, @unchec
         if !usesLDClassic, supportsSDKImportsFeature, !sdkImportsInfoFile.isEmpty, cbc.scope.evaluate(BuiltinMacros.ENABLE_SDK_IMPORTS), cbc.producer.isApplePlatform {
             commandLine.insert(contentsOf: ["-Xlinker", "-sdk_imports", "-Xlinker", sdkImportsInfoFile.str, "-Xlinker", "-sdk_imports_each_object"], at: commandLine.count - 2) // This preserves the assumption that the last argument is the linker output which a few tests make.
             outputs.append(delegate.createNode(sdkImportsInfoFile))
-
             await cbc.producer.processSDKImportsSpec.createTasks(CommandBuildContext(producer: cbc.producer, scope: cbc.scope, inputs: []), delegate, ldSDKImportsPath: sdkImportsInfoFile)
         }
 
@@ -1239,11 +1238,18 @@ public final class LdLinkerSpec : GenericLinkerSpec, SpecIdentifierType, @unchec
 
     override public func discoveredCommandLineToolSpecInfo(_ producer: any CommandProducer, _ scope: MacroEvaluationScope, _ delegate: any CoreClientTargetDiagnosticProducingDelegate) async -> (any DiscoveredCommandLineToolSpecInfo)? {
         let alternateLinker = scope.evaluate(BuiltinMacros.ALTERNATE_LINKER)
+        var linker = if alternateLinker != "" { Path(alternateLinker) } else { producer.hostOperatingSystem == .windows ? Path("link.exe") : Path("ld") }
 
-        let linkerPath = if alternateLinker != "" { Path(alternateLinker) } else { Path("ld") }
+        // ALTERNATE_LINKER is used in specs i.e. -fuseld=$ALTERNATE_LINKER, so it cannot be used to force the linker location.
+        // _LINKER_EXEC can be used to force the linker location, for usage in tests with empty pseudo filesystems.
+        let linkerExec = scope.evaluate(BuiltinMacros._LINKER_EXEC)
+        if !linkerExec.isEmpty{
+            linker = linkerExec
+        }
 
         // Create the cache key.  This is just the path to the ld linker we would invoke if we were invoking the linker directly.
-        guard let toolPath = producer.executableSearchPaths.lookup(linkerPath) else {
+        // Note: If the linker is an absolute path 'findExectable' will simply return the path to execute.
+        guard let toolPath = producer.executableSearchPaths.findExecutable(operatingSystem: producer.hostOperatingSystem, basename: linker.withoutSuffix) else {
             return nil
         }
 
@@ -1547,7 +1553,7 @@ public final class LibtoolLinkerSpec : GenericLinkerSpec, SpecIdentifierType, @u
 public func discoveredLinkerToolsInfo(_ producer: any CommandProducer, _ delegate: any CoreClientTargetDiagnosticProducingDelegate, at toolPath: Path) async -> (any DiscoveredCommandLineToolSpecInfo)? {
     do {
         do {
-            let commandLine = [toolPath.str, "-version_details"]
+            let commandLine = [toolPath.str,  producer.hostOperatingSystem == .windows ? "/VERSION" : "-version_details"]
             return try await producer.discoveredCommandLineToolSpecInfo(delegate, nil, commandLine, { executionResult in
                 let gnuLD = [
                     #/GNU ld version (?<version>[\d.]+)-.*/#,
@@ -1556,13 +1562,19 @@ public func discoveredLinkerToolsInfo(_ producer: any CommandProducer, _ delegat
                 if let match = try gnuLD.compactMap({ try $0.firstMatch(in: String(decoding: executionResult.stdout, as: UTF8.self)) }).first {
                     return DiscoveredLdLinkerToolSpecInfo(linker: .gnuld, toolPath: toolPath, toolVersion: try Version(String(match.output.version)), architectures: Set())
                 }
-
                 let goLD = [
                     #/GNU gold version (?<version>[\d.]+)-.*/#,
                     #/GNU gold \(GNU Binutils.*\) (?<version>[\d.]+)/#,
                 ]
                 if let match = try goLD.compactMap({ try $0.firstMatch(in: String(decoding: executionResult.stdout, as: UTF8.self)) }).first {
                     return DiscoveredLdLinkerToolSpecInfo(linker: .gold, toolPath: toolPath, toolVersion: try Version(String(match.output.version)), architectures: Set())
+                }
+                // link.exe has no option to simply dump the version, but if you pass an invalid argument, the program will dump a header that contains the version.
+                let linkExe = [
+                    #/Microsoft \(R\) Incremental Linker Version (?<version>[\d.]+)/#
+                ]
+                if let match = try linkExe.compactMap({ try $0.firstMatch(in: String(decoding: executionResult.stdout, as: UTF8.self)) }).first {
+                    return DiscoveredLdLinkerToolSpecInfo(linker: .linkExe, toolPath: toolPath, toolVersion: try Version(String(match.output.version)), architectures: Set())
                 }
 
                 struct LDVersionDetails: Decodable {
@@ -1597,7 +1609,6 @@ public func discoveredLinkerToolsInfo(_ producer: any CommandProducer, _ delegat
                     if let match = try lld.compactMap({ try $0.firstMatch(in: String(decoding: executionResult.stdout, as: UTF8.self)) }).first {
                         return DiscoveredLdLinkerToolSpecInfo(linker: .lld, toolPath: toolPath, toolVersion: try Version(String(match.output.version)), architectures: Set())
                     }
-
                     throw e
                 })
             })

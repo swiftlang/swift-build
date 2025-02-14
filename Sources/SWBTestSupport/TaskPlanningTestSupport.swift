@@ -192,6 +192,7 @@ open class MockTestTaskPlanningClientDelegate: TaskPlanningClientDelegate, @unch
 
     open func executeExternalTool(commandLine: [String], workingDirectory: String?, environment: [String: String]) async throws -> ExternalToolResult {
         let args = commandLine.dropFirst()
+        let commandBinary = commandLine.first.map(Path.init)?.basenameWithoutSuffix
         switch commandLine.first.map(Path.init)?.basenameWithoutSuffix {
         case "actool" where args == ["--version", "--output-format", "xml1"]:
             return .deferred
@@ -208,6 +209,8 @@ open class MockTestTaskPlanningClientDelegate: TaskPlanningClientDelegate, @unch
         case "iig" where args == ["--version"]:
             return .deferred
         case "ld" where args == ["-version_details"]:
+             return .deferred
+        case "link" where args == ["/VERSION"]:
             return .deferred
         case "libtool" where args == ["-V"] || args == ["--version"]:
             return .deferred
@@ -219,6 +222,7 @@ open class MockTestTaskPlanningClientDelegate: TaskPlanningClientDelegate, @unch
             return .deferred
         case "what":
             return .deferred
+
         default:
             break
         }
