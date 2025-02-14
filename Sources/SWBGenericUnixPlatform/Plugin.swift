@@ -39,7 +39,11 @@ struct GenericUnixPlatformSpecsExtension: SpecificationsExtension {
     }
 
     func specificationDomains() -> [String: [String]] {
-        ["linux": ["generic-unix"]]
+        [
+            "linux": ["generic-unix"],
+            "freebsd": ["generic-unix"],
+            "openbsd": ["generic-unix"],
+        ]
     }
 }
 
@@ -73,9 +77,9 @@ struct GenericUnixSDKRegistryExtension: SDKRegistryExtension {
 
         let defaultProperties: [String: PropertyListItem]
         switch operatingSystem {
-        case .linux:
+        case .linux, .freebsd:
             defaultProperties = [
-                // Workaround to avoid `-dependency_info` on Linux.
+                // Workaround to avoid `-dependency_info`.
                 "LD_DEPENDENCY_INFO_FILE": .plString(""),
 
                 "GENERATE_TEXT_BASED_STUBS": "NO",
@@ -167,6 +171,6 @@ struct GenericUnixToolchainRegistryExtension: ToolchainRegistryExtension {
 extension OperatingSystem {
     /// Whether the Core is allowed to create a fallback toolchain, SDK, and platform for this operating system in cases where no others have been provided.
     var createFallbackSystemToolchain: Bool {
-        return self == .linux
+        return self == .linux || self == .freebsd || self == .openbsd
     }
 }

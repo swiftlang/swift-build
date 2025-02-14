@@ -718,6 +718,9 @@ class LocalFS: FSProxy, @unchecked Sendable {
         #if os(Windows)
         // Implement ADS on Windows? See also https://github.com/swiftlang/swift-foundation/issues/1166
         return []
+        #elseif os(FreeBSD)
+        // FreeBSD blocked on https://github.com/swiftlang/swift/pull/77836
+        return []
         #elseif os(OpenBSD)
         // OpenBSD no longer supports extended attributes
         return []
@@ -758,6 +761,8 @@ class LocalFS: FSProxy, @unchecked Sendable {
     func setExtendedAttribute(_ path: Path, key: String, value: ByteString) throws {
         #if os(Windows)
         // Implement ADS on Windows? See also https://github.com/swiftlang/swift-foundation/issues/1166
+        #elseif os(FreeBSD)
+        // FreeBSD blocked on https://github.com/swiftlang/swift/pull/77836
         #elseif os(OpenBSD)
         // OpenBSD no longer supports extended attributes
         #else
@@ -777,6 +782,9 @@ class LocalFS: FSProxy, @unchecked Sendable {
     func getExtendedAttribute(_ path: Path, key: String) throws -> ByteString? {
         #if os(Windows)
         // Implement ADS on Windows? See also https://github.com/swiftlang/swift-foundation/issues/1166
+        return nil
+        #elseif os(FreeBSD)
+        // FreeBSD blocked on https://github.com/swiftlang/swift/pull/77836
         return nil
         #elseif os(OpenBSD)
         // OpenBSD no longer supports extended attributes

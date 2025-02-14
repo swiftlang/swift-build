@@ -553,7 +553,7 @@ fileprivate struct PBXCpTests: CoreBasedTests {
         }
     }
 
-    @Test
+    @Test(.skipHostOS(.freebsd, "Currently hangs on FreeBSD"))
     func skipCopyIfContentsEqual() async throws {
         try await withTemporaryDirectory { tmp in
             let src = tmp.join("src")
