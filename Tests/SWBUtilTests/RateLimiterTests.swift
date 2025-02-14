@@ -13,8 +13,10 @@
 import Foundation
 import Testing
 import SWBUtil
+import SWBTestSupport
 
-@Suite fileprivate struct RateLimiterTests {
+@Suite(.skipHostOS(.freebsd, "Currently hangs on FreeBSD"))
+fileprivate struct RateLimiterTests {
     @Test
     func rateLimiterSeconds() async throws {
         let timer = ElapsedTimer()

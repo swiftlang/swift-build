@@ -26,8 +26,7 @@ import SWBTestSupport
         #expect(FileTextEncoding("utf8") != FileTextEncoding.utf8)
     }
 
-    @Test(.skipHostOS(.windows, "feature not available on Windows due to missing CF APIs"),
-          .skipHostOS(.linux, "feature not available on Linux due to missing CF APIs"))
+    @Test(.requireHostOS(.macOS)) // requires CoreFoundation which is macOS-only
     func encoding() throws {
         #expect(FileTextEncoding.utf8.stringEncoding == String.Encoding.utf8)
         #expect(FileTextEncoding.utf16.stringEncoding == String.Encoding.utf16)
