@@ -13,9 +13,10 @@
 import Foundation
 import SWBUtil
 import Testing
+import SWBTestSupport
 
 @Suite fileprivate struct ElapsedTimerTests {
-    @Test
+    @Test(.skipHostOS(.freebsd, "Currently hangs on FreeBSD"))
     func time() async throws {
         do {
             let delta = try await ElapsedTimer.measure {

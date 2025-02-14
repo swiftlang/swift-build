@@ -1772,7 +1772,7 @@ import SWBMacro
         #expect(!core.platformRegistry.platforms.isEmpty)
         for developmentTeam in ["ABCDWXYZ", ""] {
             for platform in core.platformRegistry.platforms {
-                if ["android", "linux", "qnx", "windows"].contains(platform.name) {
+                if ["android", "freebsd", "linux", "qnx", "windows"].contains(platform.name) {
                     continue
                 }
                 for sdk in platform.sdks {
