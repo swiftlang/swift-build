@@ -1472,6 +1472,7 @@ import SWBMacro
         // Create the mock table.
         var table = MacroValueAssignmentTable(namespace: core.specRegistry.internalMacroNamespace)
         table.push(try #require(core.specRegistry.internalMacroNamespace.lookupMacroDeclaration("LIBTOOL") as? PathMacroDeclaration), literal: "libtool")
+        table.push(BuiltinMacros.LIBTOOL_USE_RESPONSE_FILE, literal: true)
         table.push(BuiltinMacros.arch, literal: "x86_64")
         table.push(BuiltinMacros.variant, literal: "normal")
 

@@ -1379,17 +1379,22 @@ public final class LibtoolLinkerSpec : GenericLinkerSpec, SpecIdentifierType, @u
 
     override public func constructLinkerTasks(_ cbc: CommandBuildContext, _ delegate: any TaskGenerationDelegate, libraries: [LibrarySpecifier], usedTools: [CommandLineToolSpec: Set<FileTypeSpec>]) async {
         var inputPaths = cbc.inputs.map({ $0.absolutePath })
+        var specialArgs = [String]()
 
-        // Define the linker file list.
-        let fileListPath = cbc.scope.evaluate(BuiltinMacros.__INPUT_FILE_LIST_PATH__)
-        if !fileListPath.isEmpty {
-            let contents = cbc.inputs.map({ return $0.absolutePath.strWithPosixSlashes + "\n" }).joined(separator: "")
-            cbc.producer.writeFileSpec.constructFileTasks(CommandBuildContext(producer: cbc.producer, scope: cbc.scope, inputs: [], output: fileListPath), delegate, contents: ByteString(encodingAsUTF8: contents), permissions: nil, preparesForIndexing: false, additionalTaskOrderingOptions: [.immediate, .ignorePhaseOrdering])
-            inputPaths.append(fileListPath)
+        if cbc.scope.evaluate(BuiltinMacros.LIBTOOL_USE_RESPONSE_FILE) {
+            // Define the linker file list.
+            let fileListPath = cbc.scope.evaluate(BuiltinMacros.__INPUT_FILE_LIST_PATH__)
+            if !fileListPath.isEmpty {
+                let contents = cbc.inputs.map({ return $0.absolutePath.strWithPosixSlashes + "\n" }).joined(separator: "")
+                cbc.producer.writeFileSpec.constructFileTasks(CommandBuildContext(producer: cbc.producer, scope: cbc.scope, inputs: [], output: fileListPath), delegate, contents: ByteString(encodingAsUTF8: contents), permissions: nil, preparesForIndexing: false, additionalTaskOrderingOptions: [.immediate, .ignorePhaseOrdering])
+                inputPaths.append(fileListPath)
+            }
+        } else {
+            specialArgs.append(contentsOf: cbc.inputs.map { $0.absolutePath.str })
+            inputPaths.append(contentsOf: cbc.inputs.map { $0.absolutePath })
         }
 
         // Add arguments for the contents of the Link Binaries build phase.
-        var specialArgs = [String]()
         specialArgs.append(contentsOf: libraries.flatMap { specifier -> [String] in
             let basename = specifier.path.basename
 
