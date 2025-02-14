@@ -623,7 +623,7 @@ public final class SDKRegistry: SDKRegistryLookup, CustomStringConvertible, Send
     private func fallbackSystemSDKSettings(operatingSystem: OperatingSystem) throws -> [String: PropertyListItem] {
         let defaultProperties: [String: PropertyListItem]
         switch operatingSystem {
-        case .linux:
+        case .linux, .freebsd:
             defaultProperties = [
                 // Workaround to avoid `-dependency_info` on Linux.
                 "LD_DEPENDENCY_INFO_FILE": .plString(""),
