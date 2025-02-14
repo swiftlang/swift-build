@@ -370,9 +370,10 @@ final class ModuleMapTaskProducer: PhasedTaskProducer, TaskProducer {
             //
             // NOTE: This is unrelated to the "MODULE_NAME" build setting, which is much older and used by kexts.
             let moduleName = scope.evaluate(BuiltinMacros.PRODUCT_MODULE_NAME)
+            let isSystem = scope.evaluate(BuiltinMacros.GENERATED_MODULEMAPS_USE_SYSTEM)
 
             // Create the trivial synthesized module map.
-            outputStream <<< "framework module \(try moduleName.asModuleIdentifierString()) {\n"
+            outputStream <<< "framework module \(try moduleName.asModuleIdentifierString()) \(isSystem ? "[system] " : ""){\n"
             outputStream <<< "  umbrella header \"\(umbrellaHeaderName.asCStringLiteralContent)\"\n"
             outputStream <<< "  export *\n"
             outputStream <<< "\n"
@@ -393,12 +394,13 @@ final class ModuleMapTaskProducer: PhasedTaskProducer, TaskProducer {
 
             let interfaceHeaderName = scope.evaluate(BuiltinMacros.SWIFT_OBJC_INTERFACE_HEADER_NAME)
             assert(!interfaceHeaderName.isEmpty) // implied by exportsSwiftObjCAPI
+            let isSystem = scope.evaluate(BuiltinMacros.GENERATED_MODULEMAPS_USE_SYSTEM)
 
             // Swift only module map contents is a top level framework module. Swift contents
             // for a mixed module map is a submodule of the top level framework module (whose
             // name had better be PRODUCT_MODULE_NAME or things are going to get weird).
             if moduleInfo.forSwiftOnly {
-                outputStream <<< "framework module \(try moduleName.asModuleIdentifierString()) {\n"
+                outputStream <<< "framework module \(try moduleName.asModuleIdentifierString()) \(isSystem ? "[system] " : ""){\n"
             } else {
                 outputStream <<< "\n"
                 outputStream <<< "module \(try moduleName.asModuleIdentifierString()).Swift {\n"
