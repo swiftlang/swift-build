@@ -307,7 +307,7 @@ fileprivate struct BuildTaskBehaviorTests: CoreBasedTests {
     }
 
     /// Check that we honor specs which are unsafe to interrupt.
-    @Test(.requireSDKs(.host), .skipHostOS(.windows, "no bash shell"))
+    @Test(.requireSDKs(.host), .skipHostOS(.windows, "no bash shell"), .skipHostOS(.freebsd, "Currently hangs on FreeBSD"))
     func unsafeToInterrupt() async throws {
         let fs = localFS
         let output = MakePlannedVirtualNode("<WAIT>")
