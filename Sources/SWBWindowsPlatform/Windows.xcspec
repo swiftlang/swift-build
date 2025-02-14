@@ -61,7 +61,6 @@
         BasedOn = default:com.apple.product-type.library.dynamic;
         HasInfoPlist = NO;
         DefaultBuildProperties = {
-            EXECUTABLE_EXTENSION = "$(DYNAMIC_LIBRARY_EXTENSION:default=dll)";
             PUBLIC_HEADERS_FOLDER_PATH = "";
             PRIVATE_HEADERS_FOLDER_PATH = "";
         };

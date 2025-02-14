@@ -424,10 +424,10 @@ fileprivate struct PBXCpTests: CoreBasedTests {
                 #expect(result.output == (
                     "copying \(fwkName)/...\n"
                 ))
-   #if !os(Windows)
-                let dstPerm = try fs.getFilePermissions(dst.join(fwkName).join(fName))
-                #expect(dstPerm == 0o755) // files are created with u+rw, g+wr, o+rw (and +x if src is executable) permissions and umask will adjust
-    #endif
+                if try ProcessInfo.processInfo.hostOperatingSystem() != .windows {
+                    let dstPerm = try fs.getFilePermissions(dst.join(fwkName).join(fName))
+                    #expect(dstPerm == 0o755) // files are created with u+rw, g+wr, o+rw (and +x if src is executable) permissions and umask will adjust
+                }
             }
         }
     }
