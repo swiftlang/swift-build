@@ -98,6 +98,8 @@ extension _RunDestinationInfo {
             windows
         case .linux:
             linux
+        case .freebsd:
+            freebsd
         case .android:
             android
         case .unknown:
@@ -257,6 +259,14 @@ extension _RunDestinationInfo {
             preconditionFailure("Unknown architecture \(Architecture.host.stringValue ?? "<nil>")")
         }
         return .init(platform: "linux", sdk: "linux", sdkVariant: "linux", targetArchitecture: arch, supportedArchitectures: ["x86_64", "aarch64"], disableOnlyActiveArch: false)
+    }
+
+    /// A run destination targeting FreeBSD generic device, using the public SDK.
+    package static var freebsd: Self {
+        guard let arch = Architecture.hostStringValue  else {
+            preconditionFailure("Unknown architecture \(Architecture.host.stringValue ?? "<nil>")")
+        }
+        return .init(platform: "freebsd", sdk: "freebsd", sdkVariant: "freebsd", targetArchitecture: arch, supportedArchitectures: ["x86_64", "aarch64"], disableOnlyActiveArch: false)
     }
 
     /// A run destination targeting Android generic device, using the public SDK.
