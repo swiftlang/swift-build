@@ -759,6 +759,7 @@ public final class SDKRegistry: SDKRegistryLookup, CustomStringConvertible, Send
                 "GENERATE_INTERMEDIATE_TEXT_BASED_STUBS": "NO",
 
                 "CHOWN": "/usr/bin/chown",
+                "AR": "llvm-ar",
             ]
         case .windows:
             defaultProperties = [
