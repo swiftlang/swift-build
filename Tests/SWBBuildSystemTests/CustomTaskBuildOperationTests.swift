@@ -37,10 +37,12 @@ fileprivate struct CustomTaskBuildOperationTests: CoreBasedTests {
                     TestBuildConfiguration(
                         "Debug",
                         buildSettings: [
+                            "ARCHS": "$(ARCHS_STANDARD)",
                             "GENERATE_INFOPLIST_FILE": "YES",
                             "PRODUCT_NAME": "$(TARGET_NAME)",
                             "SWIFT_VERSION": try await swiftVersion,
-                            "SDKROOT": "auto",
+                            "SDKROOT": "$(HOST_PLATFORM)",
+                            "SUPPORTED_PLATFORMS": "$(HOST_PLATFORM)",
                             "CODE_SIGNING_ALLOWED": "NO",
                             "MACOSX_DEPLOYMENT_TARGET": "$(RECOMMENDED_MACOSX_DEPLOYMENT_TARGET)"
                         ]),
@@ -95,7 +97,7 @@ fileprivate struct CustomTaskBuildOperationTests: CoreBasedTests {
                     """
             }
 
-            try await tester.checkBuild(parameters: parameters) { results in
+            try await tester.checkBuild(parameters: parameters, runDestination: .host) { results in
                 results.checkWarning(.contains("this is a warning"))
                 results.checkNoDiagnostics()
             }

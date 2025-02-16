@@ -1785,7 +1785,7 @@ fileprivate struct TaskConstructionTests: CoreBasedTests {
                                                    "-o", targetObjectsPerArchBuildDir.join("Binary/\(libSupportFileName)").str
                                                   ])
                         case .linux:
-                            task.checkCommandLine(["ar", "rcs", targetBuildDir.join(libSupportFileName).str, "@\(targetObjectsPerArchBuildDir.join("Support.LinkFileList").str)"])
+                            task.checkCommandLine(["llvm-ar", "rcs", targetBuildDir.join(libSupportFileName).str, "@\(targetObjectsPerArchBuildDir.join("Support.LinkFileList").str)"])
                         case .windows:
                             task.checkCommandLine(["llvm-lib.exe",
                                                    "/out:\(architectures.count > 1 ? targetObjectsPerArchBuildDir.join("Binary/\(libSupportFileName)").str : targetBuildDir.join(libSupportFileName).str)",
