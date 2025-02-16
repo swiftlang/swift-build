@@ -122,6 +122,8 @@ extension Core {
             throw CoreInitializationError(diagnostics: delegate.diagnostics)
         }
 
+        ConcurrencyPoolDeadlockWatchdog.start(threshold: 180, swiftInspectPath: core.toolchainRegistry.defaultToolchain?.executableSearchPaths.lookup(Path("swift-inspect")))
+
         return core
     }
 }
