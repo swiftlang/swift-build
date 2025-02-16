@@ -1488,7 +1488,7 @@ internal final class OperationSystemAdaptor: SWBLLBuild.BuildSystemDelegate, Act
     ///
     /// - returns: The active delegate, or nil if not found.
     func getActiveOutputDelegate(_ command: Command) -> (any TaskOutputDelegate)? {
-        // FIXME: This is a very bad idea, doing a sync against the response queue is introducing artifical latency when an in-process command needs to wait for the response queue to flush. However, we also can't simply move to a decoupled lock, because we don't want the command to start reporting output before it has been fully reported as having started. We need to move in-process task to another model.
+        // FIXME: This is a very bad idea, doing a sync against the response queue is introducing artificial latency when an in-process command needs to wait for the response queue to flush. However, we also can't simply move to a decoupled lock, because we don't want the command to start reporting output before it has been fully reported as having started. We need to move in-process task to another model.
         return queue.blocking_sync {
             self.commandOutputDelegates[command]
         }
