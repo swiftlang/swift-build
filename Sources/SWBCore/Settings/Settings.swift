@@ -2304,10 +2304,15 @@ private class SettingsBuilder {
         // subtypes in all cases (x86_64h, arm64e, etc.). Also, NXGetLocalArchInfo is not guaranteed to include the CPU_ARCH_ABI64 mask in its returned cputype
         // (for example on a non-Haswell CPU we get a general x86 CPU subtype which won't infer 64-bit like Haswell does), so we manually add the mask if the CPU is 64-bit capable.
         let fallbackArch = "undefined_arch"
-        platformTable.push(BuiltinMacros.NATIVE_ARCH_ACTUAL, literal: Architecture.host.stringValue ?? fallbackArch)
-        platformTable.push(BuiltinMacros.NATIVE_ARCH_32_BIT, literal: Architecture.host.as32bit.stringValue ?? fallbackArch)
-        platformTable.push(BuiltinMacros.NATIVE_ARCH_64_BIT, literal: Architecture.host.as64bit.stringValue ?? fallbackArch)
-        platformTable.push(BuiltinMacros.NATIVE_ARCH, literal: Architecture.host.stringValue ?? fallbackArch)
+        if core.hostOperatingSystem == .macOS {
+            platformTable.push(BuiltinMacros.NATIVE_ARCH_ACTUAL, literal: Architecture.host.stringValue ?? fallbackArch)
+            platformTable.push(BuiltinMacros.NATIVE_ARCH_32_BIT, literal: Architecture.host.as32bit.stringValue ?? fallbackArch)
+            platformTable.push(BuiltinMacros.NATIVE_ARCH_64_BIT, literal: Architecture.host.as64bit.stringValue ?? fallbackArch)
+            platformTable.push(BuiltinMacros.NATIVE_ARCH, literal: Architecture.host.stringValue ?? fallbackArch)
+        } else {
+            platformTable.push(BuiltinMacros.NATIVE_ARCH_ACTUAL, literal: Architecture.hostStringValue ?? fallbackArch)
+            platformTable.push(BuiltinMacros.NATIVE_ARCH, literal: Architecture.hostStringValue ?? fallbackArch)
+        }
 
         // Add the platform deployment target defaults, for real platforms.
         //
