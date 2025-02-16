@@ -46,6 +46,11 @@
                 Type = String;
                 DefaultValue = "ar";
             },
+            // Used to lookup tool info
+            {   Name = LIBTOOL;
+                Type = Path;
+                DefaultValue = "$(AR)";
+            },
             // Input file lists
             {
                 Name = __INPUT_FILE_LIST_PATH__;
