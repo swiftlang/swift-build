@@ -1078,7 +1078,7 @@ private class InProcessCommand: SWBLLBuild.ExternalCommand, SWBLLBuild.ExternalD
         return signature
     }
 
-    var depedencyDataFormat: SWBLLBuild.DependencyDataFormat {
+    var dependencyDataFormat: SWBLLBuild.DependencyDataFormat {
         switch task.dependencyData {
         case .makefile?, .makefiles?:
             return .makefile
