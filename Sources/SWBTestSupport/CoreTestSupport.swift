@@ -134,6 +134,8 @@ extension Core {
             throw CoreInitializationError(diagnostics: delegate.diagnostics)
         }
 
+        ConcurrencyPoolDeadlockWatchdog.start(threshold: 600)
+
         return core
     }
 }

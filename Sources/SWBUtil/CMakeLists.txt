@@ -22,6 +22,7 @@ add_library(SWBUtil
   ByteString.swift
   Cache.swift
   Collection.swift
+  ConcurrencyPoolDeadlockWatchdog.swift
   CountedSet.swift
   CSV.swift
   Debugger.swift
