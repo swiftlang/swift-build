@@ -17,13 +17,24 @@ import SWBCore
 import SWBTestSupport
 import SWBTaskExecution
 import SWBUtil
+import SWBProtocol
 
 @Suite
 fileprivate struct CustomTaskBuildOperationTests: CoreBasedTests {
 
     @Test(.requireSDKs(.host))
     func outputParsing() async throws {
-        try await withTemporaryDirectory { tmpDir in
+        try await withTemporaryDirectory(removeTreeOnDeinit: false) { tmpDir in
+            let destination: RunDestinationInfo = .host
+            let core = try await getCore()
+            let toolchain = try #require(core.toolchainRegistry.defaultToolchain)
+            let environment: [String: String]
+            if  destination.imageFormat(core) == .elf {
+                environment = ["LD_LIBRARY_PATH": toolchain.path.join("usr/lib/swift/\(destination.platform)").str]
+            } else {
+                environment = [:]
+            }
+
             let testProject = TestProject(
                 "aProject",
                 sourceRoot: tmpDir,
@@ -55,11 +66,11 @@ fileprivate struct CustomTaskBuildOperationTests: CoreBasedTests {
                         ],
                         customTasks: [
                             TestCustomTask(
-                                commandLine: ["$(BUILD_DIR)/$(CONFIGURATION)/tool"],
-                                environment: [:],
+                                commandLine: ["$(CONFIGURATION_BUILD_DIR)/tool"],
+                                environment: environment,
                                 workingDirectory: tmpDir.str,
                                 executionDescription: "My Custom Task",
-                                inputs: ["$(BUILD_DIR)/$(CONFIGURATION)/tool"],
+                                inputs: ["$(CONFIGURATION_BUILD_DIR)/tool"],
                                 outputs: [Path.root.join("output").str],
                                 enableSandboxing: false,
                                 preparesForIndexing: false)
@@ -73,7 +84,6 @@ fileprivate struct CustomTaskBuildOperationTests: CoreBasedTests {
                         ]
                     ),
                 ])
-            let core = try await getCore()
             let tester = try await BuildOperationTester(core, testProject, simulated: false)
 
             let parameters = BuildParameters(action: .build, configuration: "Debug")
