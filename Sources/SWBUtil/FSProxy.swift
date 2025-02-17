@@ -562,9 +562,13 @@ class LocalFS: FSProxy, @unchecked Sendable {
     }
 
     func remove(_ path: Path) throws {
+        #if os(Windows)
+        try fileManager.removeItem(atPath: path.str)
+        #else
         guard unlink(path.str) == 0 else {
             throw POSIXError(errno, context: "unlink", path.str)
         }
+        #endif
     }
 
     func removeDirectory(_ path: Path) throws {
