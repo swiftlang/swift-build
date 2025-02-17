@@ -451,6 +451,6 @@ if useLocalDependencies {
         .package(url: "https://github.com/apple/swift-argument-parser.git", from: "1.0.3"),
     ]
     if !useLLBuildFramework {
-        package.dependencies += [.package(url: "https://github.com/apple/swift-llbuild.git", branch: "main"),]
+        package.dependencies += [.package(url: "https://github.com/swiftlang/swift-llbuild.git", branch: "main"),]
     }
 }
