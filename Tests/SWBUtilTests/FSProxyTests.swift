@@ -547,6 +547,16 @@ import SWBTestSupport
     @Test(.skipHostOS(.windows))
     func extendedAttributesSupport() throws {
         try withTemporaryDirectory { (tmpDir: Path) in
+            // Many filesystems on other platforms (e.g. various non-ext4 temporary filesystems on Linux) don't support xattrs and will return ENOTSUP.
+            // In particular, tmpfs doesn't support xattrs on Linux unless `CONFIG_TMPFS_XATTR` is enabled in the kernel config.
+            if try ProcessInfo.processInfo.hostOperatingSystem() == .linux {
+                do {
+                    try localFS.setExtendedAttribute(tmpDir, key: "user.test", value: [])
+                } catch let error as SWBUtil.POSIXError where error.code == ENOTSUP {
+                    return
+                }
+            }
+
             let testDataPath = tmpDir.join("test-data.txt")
             try localFS.write(testDataPath, contents: ByteString("best-data"))
 
