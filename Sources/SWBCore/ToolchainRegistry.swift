@@ -389,6 +389,7 @@ extension Array where Element == Toolchain {
 /// The ToolchainRegistry manages the set of registered toolchains.
 public final class ToolchainRegistry: @unchecked Sendable {
     let fs: any FSProxy
+    let hostOperatingSystem: OperatingSystem
 
     /// The map of toolchains by identifier.
     @_spi(Testing) public private(set) var toolchainsByIdentifier = Dictionary<String, Toolchain>()
@@ -402,6 +403,7 @@ public final class ToolchainRegistry: @unchecked Sendable {
 
     @_spi(Testing) public init(delegate: any ToolchainRegistryDelegate, searchPaths: [(Path, strict: Bool)], fs: any FSProxy, hostOperatingSystem: OperatingSystem) async {
         self.fs = fs
+        self.hostOperatingSystem = hostOperatingSystem
 
         for (path, strict) in searchPaths {
             if !strict && !fs.exists(path) {
@@ -504,8 +506,16 @@ public final class ToolchainRegistry: @unchecked Sendable {
     /// Look up the toolchain with the given identifier.
     public func lookup(_ identifier: String) -> Toolchain? {
         let lowercasedIdentifier = identifier.lowercased()
-        let identifier = ["default", "xcode"].contains(lowercasedIdentifier) ? ToolchainRegistry.defaultToolchainIdentifier : identifier
-        return toolchainsByIdentifier[identifier] ?? toolchainsByAlias[lowercasedIdentifier]
+        if ["default", "xcode"].contains(lowercasedIdentifier) {
+            if hostOperatingSystem == .macOS {
+                return toolchainsByIdentifier[ToolchainRegistry.defaultToolchainIdentifier] ?? toolchainsByAlias[lowercasedIdentifier]
+            } else {
+                // On non-Darwin, assume if there is only one registered toolchain, it is the default.
+                return toolchainsByIdentifier[ToolchainRegistry.defaultToolchainIdentifier] ?? toolchainsByAlias[lowercasedIdentifier] ?? toolchainsByIdentifier.values.only
+            }
+        } else {
+            return toolchainsByIdentifier[identifier] ?? toolchainsByAlias[lowercasedIdentifier]
+        }
     }
 
     public var defaultToolchain: Toolchain? {
