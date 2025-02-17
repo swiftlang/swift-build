@@ -560,7 +560,14 @@ public final class LdLinkerSpec : GenericLinkerSpec, SpecIdentifierType, @unchec
         // Add flags to emit SDK imports info.
         let sdkImportsInfoFile = cbc.scope.evaluate(BuiltinMacros.LD_SDK_IMPORTS_FILE)
         let supportsSDKImportsFeature = (try? optionContext?.toolVersion >= .init("1164")) == true
-        let usesLDClassic = commandLine.contains("-r") || commandLine.contains("-ld_classic") || cbc.scope.evaluate(BuiltinMacros.CURRENT_ARCH) == "armv7k"
+        var usesLDClassic = cbc.scope.evaluate(BuiltinMacros.CURRENT_ARCH) == "armv7k"
+        enumerateLinkerCommandLine(arguments: commandLine) { arg, value in
+            switch arg {
+            case "-ld_classic": usesLDClassic = true
+            case "-r": usesLDClassic = true
+            default: break
+            }
+        }
         if !usesLDClassic, supportsSDKImportsFeature, !sdkImportsInfoFile.isEmpty, cbc.scope.evaluate(BuiltinMacros.ENABLE_SDK_IMPORTS), cbc.producer.isApplePlatform {
             commandLine.insert(contentsOf: ["-Xlinker", "-sdk_imports", "-Xlinker", sdkImportsInfoFile.str, "-Xlinker", "-sdk_imports_each_object"], at: commandLine.count - 2) // This preserves the assumption that the last argument is the linker output which a few tests make.
             outputs.append(delegate.createNode(sdkImportsInfoFile))
