@@ -362,7 +362,6 @@ class LocalFS: FSProxy, @unchecked Sendable {
     /// Check whether a given path is a symlink.
     /// - parameter destinationExists: If the path is a symlink, then this `inout` parameter will be set to `true` if the destination exists.  Otherwise it will be set to `false`.
     func isSymlink(_ path: Path, _ destinationExists: inout Bool) -> Bool {
-        #if os(Windows)
         do {
             let destination = try fileManager.destinationOfSymbolicLink(atPath: path.str)
             destinationExists = exists((path.isAbsolute ? path.dirname : Path.currentDirectory).join(destination))
@@ -371,22 +370,6 @@ class LocalFS: FSProxy, @unchecked Sendable {
             destinationExists = false
             return false
         }
-        #else
-        destinationExists = false
-        var statBuf = stat()
-        if lstat(path.str, &statBuf) < 0 {
-            return false
-        }
-        guard createFileInfo(statBuf).isSymlink else {
-            return false
-        }
-        statBuf = stat()
-        if stat(path.str, &statBuf) < 0 {
-            return true
-        }
-        destinationExists = true
-        return true
-        #endif
     }
 
     func listdir(_ path: Path) throws -> [String] {
@@ -397,70 +380,11 @@ class LocalFS: FSProxy, @unchecked Sendable {
     /// - parameter recursive: If `false`, then the parent directory at `path` must already exist in order to create the directory.  If it doesn't, then it will return without creating the directory (it will not throw an exception).  If `true`, then the directory hierarchy of `path` will be created if possible.
     func createDirectory(_ path: Path, recursive: Bool) throws {
         // Try to create the directory.
-        #if os(Windows)
         do {
             return try fileManager.createDirectory(atPath: path.str, withIntermediateDirectories: recursive)
         } catch {
             throw StubError.error("Could not create directory at path '\(path.str)': \(error)")
         }
-        #else
-        let result = mkdir(path.str, S_IRWXU | S_IRWXG | S_IRWXO)
-
-        // If it succeeded, we are done.
-        if result == 0 {
-            return
-        }
-
-        // If the failure was because something exists at this path, then we examine it to see whether it means we're okay.
-        if errno == EEXIST {
-            var destinationExists = false
-            if isDirectory(path) {
-                // If the item at the path is a directory, then we're good.  This includes if it's a symlink which points to a directory.
-                return
-            }
-            else if isSymlink(path, &destinationExists) {
-                // If the item at the path is a symlink, then we check whether it's a broken symlink or points to something that is not a directory.
-                if destinationExists {
-                    // The destination does exist, so it's not a directory.
-                    throw StubError.error("File is a symbolic link which references a path which is not a directory: \(path.str)")
-                }
-                else {
-                    // The destination does not exist - throw an exception because we have a broken symlink.
-                    throw StubError.error("File is a broken symbolic link: \(path.str)")
-                }
-            }
-            else {
-                /// The path exists but is not a directory
-                throw StubError.error("File exists but is not a directory: \(path.str)")
-            }
-        }
-
-        // If we are recursive and not the root path, then...
-        if recursive && !path.isRoot {
-            // If it failed due to ENOENT (e.g., a missing parent), then attempt to create the parent and retry.
-            if errno == ENOENT {
-                // Attempt to create the parent.
-                guard path.isAbsolute else {
-                    throw StubError.error("Cannot recursively create directory at non-absolute path: \(path.str)")
-                }
-                try createDirectory(path.dirname, recursive: true)
-
-                // Re-attempt creation, non-recursively.
-                try createDirectory(path)
-
-                // We are done.
-                return
-            }
-
-            // If our parent is not a directory, then report that.
-            if !isDirectory(path.dirname) {
-                throw StubError.error("File exists but is not a directory: \(path.dirname.str)")
-            }
-        }
-
-        // Otherwise, we failed due to some other error. Report it.
-        throw POSIXError(errno, context: "mkdir", path.str, "S_IRWXU | S_IRWXG | S_IRWXO")
-        #endif
     }
 
     func createTemporaryDirectory(parent: Path) throws -> Path {
@@ -562,24 +486,12 @@ class LocalFS: FSProxy, @unchecked Sendable {
     }
 
     func remove(_ path: Path) throws {
-        guard unlink(path.str) == 0 else {
-            throw POSIXError(errno, context: "unlink", path.str)
-        }
+        try fileManager.removeItem(atPath: path.str)
     }
 
     func removeDirectory(_ path: Path) throws {
         if isDirectory(path) {
-            #if os(Windows)
             try fileManager.removeItem(atPath: path.str)
-            #else
-            var paths = [path]
-            try traverse(path) { paths.append($0) }
-            for path in paths.reversed() {
-                guard SWBLibc.remove(path.str) == 0 else {
-                    throw POSIXError(errno, context: "remove", path.str)
-                }
-            }
-            #endif
         }
     }
 
@@ -608,69 +520,11 @@ class LocalFS: FSProxy, @unchecked Sendable {
     }
 
     func touch(_ path: Path) throws {
-        #if os(Windows)
-        let handle: HANDLE = path.withPlatformString {
-            CreateFileW($0, DWORD(GENERIC_WRITE), DWORD(FILE_SHARE_READ), nil,
-                        DWORD(OPEN_EXISTING), DWORD(FILE_FLAG_BACKUP_SEMANTICS), nil)
-        }
-        if handle == INVALID_HANDLE_VALUE {
-            throw StubError.error("Failed to update file time")
-        }
-        try handle.closeAfter {
-            var ft = FILETIME()
-            var st = SYSTEMTIME()
-            GetSystemTime(&st)
-            SystemTimeToFileTime(&st, &ft)
-            if !SetFileTime(handle, nil, &ft, &ft) {
-                throw StubError.error("Failed to update file time")
-            }
-        }
-        #else
-        try eintrLoop {
-            guard utimensat(AT_FDCWD, path.str, nil, 0) == 0 else {
-                throw POSIXError(errno, context: "utimensat", "AT_FDCWD", path.str)
-            }
-        }
-        #endif
+        try fileManager.setAttributes([.modificationDate:Date()], ofItemAtPath: path.str)
     }
 
     func setFileTimestamp(_ path: Path, timestamp: Int) throws {
-        #if os(Windows)
-        let handle: HANDLE = path.withPlatformString {
-            CreateFileW($0, DWORD(GENERIC_WRITE), DWORD(FILE_SHARE_READ), nil,
-                        DWORD(OPEN_EXISTING), DWORD(FILE_FLAG_BACKUP_SEMANTICS), nil)
-        }
-        if handle == INVALID_HANDLE_VALUE {
-            throw StubError.error("Failed to update file time")
-        }
-        try handle.closeAfter {
-            // Number of 100ns intervals between 1601 and 1970 epochs
-            let delta = 116444736000000000
-
-            let ll = UInt64((timestamp * 10000000) + delta)
-
-            var timeInt = ULARGE_INTEGER()
-            timeInt.QuadPart = ll
-
-            var ft = FILETIME()
-            ft.dwLowDateTime = timeInt.LowPart
-            ft.dwHighDateTime = timeInt.HighPart
-            if !SetFileTime(handle, nil, &ft, &ft) {
-                throw StubError.error("Failed to update file time")
-            }
-        }
-        #else
-        try eintrLoop {
-            #if os(Linux) || os(Android)
-            let UTIME_OMIT = 1073741822
-            #endif
-            let atime = timespec(tv_sec: 0, tv_nsec: Int(UTIME_OMIT))
-            let mtime = timespec(tv_sec: timestamp, tv_nsec: 0)
-            guard utimensat(AT_FDCWD, path.str, [atime, mtime], 0) == 0 else {
-                throw POSIXError(errno, context: "utimensat", "AT_FDCWD", path.str, String(timestamp))
-            }
-        }
-        #endif
+        try fileManager.setAttributes([.modificationDate:Date(timeIntervalSince1970: Double(timestamp))], ofItemAtPath: path.str)
     }
 
     func getFileInfo(_ path: Path) throws -> FileInfo {
@@ -711,7 +565,7 @@ class LocalFS: FSProxy, @unchecked Sendable {
         #if os(Windows)
         try eintrLoop {
             guard stat(path.str, &buf) == 0 else {
-                throw POSIXError(errno, context: "lstat", path.str)
+                throw POSIXError(errno, context: "stat", path.str)
             }
         }
 
