@@ -667,7 +667,7 @@ public final class LdLinkerSpec : GenericLinkerSpec, SpecIdentifierType, @unchec
 
         // Add dependencies on any directories in our input search paths for which the build system is creating those directories.
         let ldSearchPaths = Set(cbc.scope.evaluate(BuiltinMacros.FRAMEWORK_SEARCH_PATHS) + cbc.scope.evaluate(BuiltinMacros.LIBRARY_SEARCH_PATHS))
-        let otherInputs = delegate.buildDirectories.compactMap { path in ldSearchPaths.contains(path.str) ? delegate.createBuildDirectoryNode(absolutePath: path) : nil } + cbc.commandOrderingInputs
+        let otherInputs = delegate.buildDirectories.sorted().compactMap { path in ldSearchPaths.contains(path.str) ? delegate.createBuildDirectoryNode(absolutePath: path) : nil } + cbc.commandOrderingInputs
 
         // Create the task.
         delegate.createTask(type: self, dependencyData: dependencyInfo, payload: payload, ruleInfo: defaultRuleInfo(cbc, delegate), commandLine: commandLine, environment: environment, workingDirectory: cbc.producer.defaultWorkingDirectory, inputs: inputs + otherInputs, outputs: outputs, action: delegate.taskActionCreationDelegate.createDeferredExecutionTaskActionIfRequested(userPreferences: cbc.producer.userPreferences), execDescription: resolveExecutionDescription(cbc, delegate), enableSandboxing: enableSandboxing)
