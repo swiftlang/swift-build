@@ -1417,7 +1417,7 @@ open class GenericCommandLineToolSpec : CommandLineToolSpec, @unchecked Sendable
 /// A general-purpose output parser for scraping traditional POSIX-style diagnostics.  Output is passed through to the delegate as it is received, while diagnostic parsing is done line-by-line as each newline is encountered.
 open class GenericOutputParser : TaskOutputParser {
 
-    /// The delegate that's informed about ouput and diagnostics.
+    /// The delegate that's informed about output and diagnostics.
     public let delegate: any TaskOutputParserDelegate
 
     /// Workspace context associated with the output parser.
