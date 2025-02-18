@@ -24,16 +24,6 @@ fileprivate struct BuildCommandTests: CoreBasedTests {
     /// Check compilation of a single file in C, ObjC and Swift, including the `uniquingSuffix` behaviour.
     @Test(.requireSDKs(.host))
     func singleFileCompile() async throws {
-        let runDestination: RunDestinationInfo = .host
-        let testGroup: TestGroup
-        let buildPhases: TestSourcesBuildPhase
-        if runDestination == .macOS {
-            testGroup = TestGroup("Sources", children: [TestFile("CFile.c"), TestFile("SwiftFile.swift"), TestFile("ObjCFile.m"), TestFile("Metal.metal")])
-            buildPhases = TestSourcesBuildPhase(["CFile.c", "SwiftFile.swift", "ObjCFile.m", "Metal.metal"])
-        } else {
-            testGroup = TestGroup("Sources", children: [TestFile("CFile.c"), TestFile("SwiftFile.swift"), TestFile("ObjCFile.m")])
-            buildPhases = TestSourcesBuildPhase(["CFile.c", "SwiftFile.swift", "ObjCFile.m"])
-        }
         try await withTemporaryDirectory { tmpDirPath async throws -> Void in
             let testWorkspace = try await TestWorkspace(
                 "Test",
@@ -41,7 +31,7 @@ fileprivate struct BuildCommandTests: CoreBasedTests {
                 projects: [
                     TestProject(
                         "aProject",
-                        groupTree: testGroup,
+                        groupTree: TestGroup("Sources", children: [TestFile("CFile.c"), TestFile("SwiftFile.swift"), TestFile("ObjCFile.m")]),
                         buildConfigurations: [TestBuildConfiguration(
                             "Debug",
                             buildSettings: ["PRODUCT_NAME": "$(TARGET_NAME)",
@@ -51,7 +41,7 @@ fileprivate struct BuildCommandTests: CoreBasedTests {
                             TestStandardTarget(
                                 "aLibrary", type: .staticLibrary,
                                 buildConfigurations: [TestBuildConfiguration("Debug")],
-                                buildPhases: [buildPhases]
+                                buildPhases: [TestSourcesBuildPhase(["CFile.c", "SwiftFile.swift", "ObjCFile.m"])]
                             )
                         ]
                     )
@@ -66,8 +56,6 @@ fileprivate struct BuildCommandTests: CoreBasedTests {
             try await tester.fs.writeFileContents(swiftFile) { stream in }
             let objcFile = testWorkspace.sourceRoot.join("aProject/ObjCFile.m")
             try await tester.fs.writeFileContents(objcFile) { stream in }
-            let metalFile = testWorkspace.sourceRoot.join("aProject/Metal.metal")
-            try await tester.fs.writeFileContents(metalFile) { stream in }
 
             // Create a build request context to compute the output paths - can't use one from the tester because it's an _output_ of checkBuild.
             let buildRequestContext = BuildRequestContext(workspaceContext: tester.workspaceContext)
@@ -80,7 +68,6 @@ fileprivate struct BuildCommandTests: CoreBasedTests {
             let cOutputPath = try #require(buildRequestContext.computeOutputPaths(for: [cFile], workspace: tester.workspace, target: BuildRequest.BuildTargetInfo(parameters: parameters, target: target), command: .singleFileBuild(buildOnlyTheseFiles: [Path("")]), parameters: parameters).only)
             let objcOutputPath = try #require(buildRequestContext.computeOutputPaths(for: [objcFile], workspace: tester.workspace, target: BuildRequest.BuildTargetInfo(parameters: parameters, target: target), command: .singleFileBuild(buildOnlyTheseFiles: [Path("")]), parameters: parameters).only)
             let swiftOutputPath = try #require(buildRequestContext.computeOutputPaths(for: [swiftFile], workspace: tester.workspace, target: BuildRequest.BuildTargetInfo(parameters: parameters, target: target), command: .singleFileBuild(buildOnlyTheseFiles: [Path("")]), parameters: parameters).only)
-            let metalOutputPath = try #require(buildRequestContext.computeOutputPaths(for: [metalFile], workspace: tester.workspace, target: BuildRequest.BuildTargetInfo(parameters: parameters, target: target), command: .singleFileBuild(buildOnlyTheseFiles: [Path("")]), parameters: parameters).only)
 
             // Check building just the Swift file.
             try await tester.checkBuild(parameters: parameters, runDestination: runDestination, persistent: true, buildOutputMap: [swiftOutputPath: swiftFile.str]) { results in
@@ -102,15 +89,6 @@ fileprivate struct BuildCommandTests: CoreBasedTests {
                 results.consumeTasksMatchingRuleTypes(excludedTypes)
                 results.checkTaskExists(.matchRule(["CompileC", tmpDirPath.join("Test/aProject/build/aProject.build/Debug\(SWBRunDestinationInfo.host.builtProductsDirSuffix)/aLibrary.build/Objects-normal/\(results.runDestinationTargetArchitecture)/ObjCFile.o").str, objcFile.str, "normal", results.runDestinationTargetArchitecture, "objective-c", "com.apple.compilers.llvm.clang.1_0.compiler"]))
                 results.checkNoTask()
-            }
-
-            if runDestination == .macOS {
-                // Check building just the Metal file.
-                try await tester.checkBuild(parameters: parameters, runDestination: runDestination, persistent: true, buildOutputMap: [metalOutputPath: metalFile.str]) { results in
-                    results.consumeTasksMatchingRuleTypes(excludedTypes)
-                    results.checkTask(.matchRule(["CompileMetalFile", metalFile.str])) { _ in }
-                    results.checkNoTask()
-                }
             }
 
             try await tester.checkBuild(runDestination: runDestination, persistent: true) { results in
@@ -295,6 +273,59 @@ fileprivate struct BuildCommandTests: CoreBasedTests {
 
         try await runTest(skipDependencies: false) { results in
             results.consumeTasksMatchingRuleTypes(["CompileC", "Ld"], targetName: "aLibraryDep")
+        }
+    }
+
+    @Test(.requireSDKs(.macOS), .requireXcode16())
+    func singleFileCompileMetal() async throws {
+        try await withTemporaryDirectory { tmpDirPath async throws -> Void in
+            let testWorkspace = try await TestWorkspace(
+                "Test",
+                sourceRoot: tmpDirPath.join("Test"),
+                projects: [
+                    TestProject(
+                        "aProject",
+                        groupTree: TestGroup("Sources", children: [TestFile("Metal.metal")]),
+                        buildConfigurations: [TestBuildConfiguration(
+                            "Debug",
+                            buildSettings: ["PRODUCT_NAME": "$(TARGET_NAME)",
+                                            "SWIFT_ENABLE_EXPLICIT_MODULES": "NO",
+                                            "SWIFT_VERSION": swiftVersion])],
+                        targets: [
+                            TestStandardTarget(
+                                "aLibrary", type: .staticLibrary,
+                                buildConfigurations: [TestBuildConfiguration("Debug")],
+                                buildPhases: [TestSourcesBuildPhase(["Metal.metal"])]
+                            )
+                        ]
+                    )
+                ]
+            )
+            let tester = try await BuildOperationTester(getCore(), testWorkspace, simulated: false)
+
+            let metalFile = testWorkspace.sourceRoot.join("aProject/Metal.metal")
+            try await tester.fs.writeFileContents(metalFile) { stream in }
+
+            // Create a build request context to compute the output paths - can't use one from the tester because it's an _output_ of checkBuild.
+            let buildRequestContext = BuildRequestContext(workspaceContext: tester.workspaceContext)
+
+            // Construct the output paths.
+            let excludedTypes: Set<String> = ["Copy", "Gate", "MkDir", "SymLink", "WriteAuxiliaryFile", "CreateBuildDirectory", "SwiftDriver", "SwiftDriver Compilation Requirements", "SwiftDriver Compilation", "SwiftMergeGeneratedHeaders", "ClangStatCache", "SwiftExplicitDependencyCompileModuleFromInterface", "SwiftExplicitDependencyGeneratePcm", "ProcessSDKImports"]
+            let runDestination = RunDestinationInfo.host
+            let parameters = BuildParameters(configuration: "Debug", activeRunDestination: runDestination)
+            let target = tester.workspace.allTargets.first(where: { _ in true })!
+            let metalOutputPath = try #require(buildRequestContext.computeOutputPaths(for: [metalFile], workspace: tester.workspace, target: BuildRequest.BuildTargetInfo(parameters: parameters, target: target), command: .singleFileBuild(buildOnlyTheseFiles: [Path("")]), parameters: parameters).only)
+
+            // Check building just the Metal file.
+            try await tester.checkBuild(parameters: parameters, runDestination: runDestination, persistent: true, buildOutputMap: [metalOutputPath: metalFile.str]) { results in
+                results.consumeTasksMatchingRuleTypes(excludedTypes)
+                results.checkTask(.matchRule(["CompileMetalFile", metalFile.str])) { _ in }
+                results.checkNoTask()
+            }
+
+            try await tester.checkBuild(runDestination: runDestination, persistent: true) { results in
+                results.checkNoDiagnostics()
+            }
         }
     }
 }
