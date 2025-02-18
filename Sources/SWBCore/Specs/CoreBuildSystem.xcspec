@@ -1757,7 +1757,7 @@ When `GENERATE_INFOPLIST_FILE` is enabled, sets the value of the [CFBundleIdenti
 * When set to Automatic, this target's immediate dependencies which build dynamic libraries or frameworks and are in its Link Binaries With Libraries will automatically be built as mergeable libraries and merged into this target's binary during release builds, or reexported during debug builds.
 * When set to Manual, only immediate dependencies which have Build Mergeable Library explicitly enabled will be merged or reexported.
 
-For more information on mergable libraries, see [Configuring your project to use mergeable libraries](https://developer.apple.com/documentation/xcode/configuring-your-project-to-use-mergeable-libraries).";
+For more information on mergeable libraries, see [Configuring your project to use mergeable libraries](https://developer.apple.com/documentation/xcode/configuring-your-project-to-use-mergeable-libraries).";
             },
             {
                 Name = "AUTOMATICALLY_MERGE_DEPENDENCIES";
@@ -1777,7 +1777,7 @@ For more information on mergable libraries, see [Configuring your project to use
                 DisplayName = "Build Mergeable Library";
                 Description = "For dynamic libraries and frameworks, links this target's binary as a mergeable library which can be merged into the product of a target which depends on it if that target is configured to do so. This target will be linked as a mergeable library in release builds so it can be merged, but will instead be linked as a normal dynamic library to be reexported in debug builds. For other binary types, this setting has no effect.
 
-For more information on mergable libraries, see [Configuring your project to use mergeable libraries](https://developer.apple.com/documentation/xcode/configuring-your-project-to-use-mergeable-libraries).";
+For more information on mergeable libraries, see [Configuring your project to use mergeable libraries](https://developer.apple.com/documentation/xcode/configuring-your-project-to-use-mergeable-libraries).";
             },
             {
                 Name = "MAKE_MERGEABLE";
@@ -1925,7 +1925,7 @@ For more information on mergable libraries, see [Configuring your project to use
         );
         DefaultValue = "compiler-default";
         DisplayName = "Text-Based InstallAPI Language Dialect";
-        Description = "Selects the langauge dialect when building `Text-Based InstallAPI`.";
+        Description = "Selects the language dialect when building `Text-Based InstallAPI`.";
         ConditionFlavors = (
           arch,
           sdk,
