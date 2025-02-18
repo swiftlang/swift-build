@@ -105,7 +105,7 @@ fileprivate struct BuildCommandTests: CoreBasedTests {
             }
 
             if runDestination == .macOS {
-                // Check build ing just the Metal file.
+                // Check building just the Metal file.
                 try await tester.checkBuild(parameters: parameters, runDestination: runDestination, persistent: true, buildOutputMap: [metalOutputPath: metalFile.str]) { results in
                     results.consumeTasksMatchingRuleTypes(excludedTypes)
                     results.checkTask(.matchRule(["CompileMetalFile", metalFile.str])) { _ in }
