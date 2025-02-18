@@ -210,7 +210,7 @@ open class MockTestTaskPlanningClientDelegate: TaskPlanningClientDelegate, @unch
             return .deferred
         case "ld" where args == ["-version_details"]:
              return .deferred
-        case "link" where args == ["/VERSION"]:
+        case "link":
             return .deferred
         case "libtool" where args == ["-V"] || args == ["--version"]:
             return .deferred

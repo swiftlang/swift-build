@@ -59,7 +59,11 @@ struct WindowsPlatformExtension: PlatformInfoExtension {
         guard let dir = try? await findLatestInstallDirectory(fs: fs) else {
             return []
         }
-        return [dir.join("bin/Hostarm64/arm64"), dir.join("bin/Hostx64/x64") ]
+        if Architecture.hostStringValue == "aarch64" {
+            return [dir.join("bin/Hostarm64/arm64")]
+        } else {
+            return [dir.join("bin/Hostx64/x64")]
+        }
    }
 }
 

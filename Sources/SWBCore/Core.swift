@@ -419,7 +419,7 @@ public final class Core: Sendable {
             }
         }
         if let additionalPlatformSearchPaths = getEnvironmentVariable("XCODE_EXTRA_PLATFORM_FOLDERS") {
-            for searchPath in additionalPlatformSearchPaths.split(separator: ":") {
+            for searchPath in additionalPlatformSearchPaths.split(separator: Path.pathEnvironmentSeparator) {
                 searchPaths.append(Path(searchPath))
             }
         }

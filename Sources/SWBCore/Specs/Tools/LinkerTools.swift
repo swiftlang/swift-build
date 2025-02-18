@@ -1553,7 +1553,7 @@ public final class LibtoolLinkerSpec : GenericLinkerSpec, SpecIdentifierType, @u
 public func discoveredLinkerToolsInfo(_ producer: any CommandProducer, _ delegate: any CoreClientTargetDiagnosticProducingDelegate, at toolPath: Path) async -> (any DiscoveredCommandLineToolSpecInfo)? {
     do {
         do {
-            let commandLine = [toolPath.str,  producer.hostOperatingSystem == .windows ? "/VERSION" : "-version_details"]
+            let commandLine = [toolPath.str] + (producer.hostOperatingSystem == .windows ? [] : ["-version_details"])
             return try await producer.discoveredCommandLineToolSpecInfo(delegate, nil, commandLine, { executionResult in
                 let gnuLD = [
                     #/GNU ld version (?<version>[\d.]+)-.*/#,
@@ -1569,7 +1569,7 @@ public func discoveredLinkerToolsInfo(_ producer: any CommandProducer, _ delegat
                 if let match = try goLD.compactMap({ try $0.firstMatch(in: String(decoding: executionResult.stdout, as: UTF8.self)) }).first {
                     return DiscoveredLdLinkerToolSpecInfo(linker: .gold, toolPath: toolPath, toolVersion: try Version(String(match.output.version)), architectures: Set())
                 }
-                // link.exe has no option to simply dump the version, but if you pass an invalid argument, the program will dump a header that contains the version.
+                // link.exe has no option to simply dump the version, running, the program will no arguments will dump a header that contains the version.
                 let linkExe = [
                     #/Microsoft \(R\) Incremental Linker Version (?<version>[\d.]+)/#
                 ]
