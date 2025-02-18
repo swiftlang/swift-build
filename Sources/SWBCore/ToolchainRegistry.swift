@@ -113,8 +113,9 @@ public final class Toolchain: Hashable, Sendable {
             data = try PropertyList.fromPath(toolchainInfoPath, fs: fs)
         } catch {
             if path.fileExtension != "xctoolchain" && operatingSystem == .windows {
-                // Windows toolchains do not have any metadata files that define a version, so the version needs to be derived from the path.
+                // Windows toolchains do not have any metadata files that define a version (ToolchainInfo.plist is only present in Swift 6.2+ toolchains), so the version needs to be derived from the path.
                 // Use the directory name to scrape the semantic version from.
+                // This branch can be removed once we no longer need to work with toolchains older than Swift 6.2.
                 let pattern = #/^(?<major>0|[1-9][0-9]*)\.(?<minor>0|[1-9][0-9]*)\.(?<patch>0|[1-9][0-9]*)(-(0|[1-9A-Za-z-][0-9A-Za-z-]*)(\.[0-9A-Za-z-]+)*)?(\+[0-9A-Za-z-]+(\.[0-9A-Za-z-]+)*)?$/#
                 guard let match = try pattern.wholeMatch(in: path.basename) else {
                     throw StubError.error("Unable to extract version from toolchain directory name in \(path.str)")
