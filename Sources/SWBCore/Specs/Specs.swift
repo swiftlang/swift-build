@@ -243,7 +243,6 @@ public final class ArchitectureSpec : Spec, SpecType, @unchecked Sendable {
         parser.parseBool("ListInEnum")
         parser.parseString("PerArchBuildSettingName")
         parser.parseString("SortNumber")
-        parser.parseString("UserVisibleName")
         super.init(parser, basedOnSpec)
     }
 }
