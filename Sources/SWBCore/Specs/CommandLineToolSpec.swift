@@ -15,7 +15,7 @@ public import struct Foundation.Data
 public import class Foundation.JSONDecoder
 public import SWBMacro
 
-/// Describes the type and other characterstics of a single kind of input file accepted by a build tool.
+/// Describes the type and other characteristics of a single kind of input file accepted by a build tool.
 struct InputFileTypeDescriptor: Encodable, Sendable {
     /// Identifier of the file type — this is unbound until the build tool is used, since the particular file type any given identifier maps to can depend on the context.
     let identifier: String
