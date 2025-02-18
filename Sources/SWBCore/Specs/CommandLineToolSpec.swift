@@ -1470,7 +1470,7 @@ open class GenericOutputParser : TaskOutputParser {
         // Following that, there must be a diagnostic kind keyword or a basename
         // alias, and then a diagnostic.
         //
-        // We also retrict the leading indicator to not have any quote characters,
+        // We also restrict the leading indicator to not have any quote characters,
         // which helps filter out anything which looks like a diagnostic but is
         // appearing within a quoted string.
         self.diagnosticRegex = try! RegEx(pattern: "^([^'\"]+: +|[ \\t\\f\\p{Z}]*)(error|warning|note|notice|fixit|\(toolnameSubregex)): (.*)$")
