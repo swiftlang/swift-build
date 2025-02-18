@@ -223,7 +223,7 @@ private let buildOptionTypes: [String: any BuildOptionType] = [
         /// Expand to the literal dynamic value, unmodified.
         case literal
 
-        /// Expand into the given arguments, after macro expression evaluation (as appropiate for the macro type). The special macro '$(value)' can be used to refer to the dynamic value of the option.
+        /// Expand into the given arguments, after macro expression evaluation (as appropriate for the macro type). The special macro '$(value)' can be used to refer to the dynamic value of the option.
         case args(MacroStringListExpression)
 
         /// Expand to the given flag.
