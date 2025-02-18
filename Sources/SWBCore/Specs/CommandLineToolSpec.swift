@@ -509,7 +509,7 @@ open class CommandLineToolSpec : PropertyDomainSpec, SpecType, TaskTypeDescripti
             } else if let inherited = (basedOnSpec as? CommandLineToolSpec)?.outputs {
                 self.outputs = inherited
             } else {
-                // If the tool defined no outputs then force the definition of one using $(OutputPath). This correpsonds to the effective behavior of Xcode, which would implicitly create the output node when the spec asked for [output].
+                // If the tool defined no outputs then force the definition of one using $(OutputPath). This corresponds to the effective behavior of Xcode, which would implicitly create the output node when the spec asked for [output].
                 //
                 // FIXME: Force the specs to define this, instead of synthesizing it: <rdar://problem/24544779> [Swift Build] Stop synthesizing Outputs for generic command line tools
                 self.outputs = [parser.delegate.internalMacroNamespace.parseString("$(OutputPath)")]
