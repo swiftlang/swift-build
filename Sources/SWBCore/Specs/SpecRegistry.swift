@@ -657,7 +657,7 @@ public final class SpecRegistry {
 
         // Load the localized strings, if available.
         //
-        // We currently hard code a local search, asuming the xcspec file is adjacent to the `strings` file or the containing `lproj`.
+        // We currently hard code a local search, assuming the xcspec file is adjacent to the `strings` file or the containing `lproj`.
         func loadLocalizedStrings(_ path: Path) -> [String: String]? {
             if let data = try? PropertyList.fromPath(path, fs: localFS) {
                 // If we found a property list, it should be a map of strings.
