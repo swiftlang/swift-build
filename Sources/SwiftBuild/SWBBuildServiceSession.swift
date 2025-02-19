@@ -32,6 +32,9 @@ public enum SwiftBuildServicePIFObjectType: Sendable {
     }
 }
 
+private protocol InvalidateDeprecated {
+    func invalidateDeprecated(isolated: (any Actor)?) async throws
+}
 
 /// This class encapsulates a unique session connection to the inferior build service process.
 ///
@@ -54,7 +57,8 @@ public final class SWBBuildServiceSession: Sendable {
     /// For macro evaluation scopes, the session will register each newly created scope with the tracker. If the client manually discards the scope, it will be removed from the tracker by the session. If the client does not manually discard their scopes, they will be cleaned up by the tracker when the session is closed.
     ///
     /// For build operations, the tracker implements a generic background operation queue. Closures are enqueued to a stream, and consumed and awaited on a background task. Closing the session awaits that background taskto ensure all closures are awaited before continuing with teardown.
-    private actor SessionResourceTracker {
+    private actor SessionResourceTracker: InvalidateDeprecated {
+        @available(*, deprecated, message: "SWBMacroEvaluationScope is deprecated and should not be used")
         private var macroEvaluationScopes: [String: SWBMacroEvaluationScope] = [:]
         private var awaitableBuildOperations: AsyncStreamController<SWBBuildOperation, Never>
         private let cancellableBuildOperationsHolder = CancellableBuildOperationsHolder()
@@ -90,10 +94,12 @@ public final class SWBBuildServiceSession: Sendable {
             }
         }
 
+        @available(*, deprecated, message: "SWBMacroEvaluationScope is deprecated and should not be used")
         func append(_ scope: SWBMacroEvaluationScope) {
             macroEvaluationScopes[scope.settingsHandle] = scope
         }
 
+        @available(*, deprecated, message: "SWBMacroEvaluationScope is deprecated and should not be used")
         func remove(_ scope: SWBMacroEvaluationScope) {
             macroEvaluationScopes.removeValue(forKey: scope.settingsHandle)
         }
@@ -123,6 +129,11 @@ public final class SWBBuildServiceSession: Sendable {
             await cancellableBuildOperationsHolder.cancelAll()
             await awaitableBuildOperations.wait()
 
+            try await (self as (any InvalidateDeprecated)).invalidateDeprecated(isolated: #isolation)
+        }
+
+        @available(*, deprecated, message: "SWBMacroEvaluationScope is deprecated and should not be used")
+        func invalidateDeprecated(isolated: (any Actor)?) async throws {
             let scopes = macroEvaluationScopes.values
             macroEvaluationScopes = [:]
             try await withThrowingTaskGroup(of: Void.self) { group in
