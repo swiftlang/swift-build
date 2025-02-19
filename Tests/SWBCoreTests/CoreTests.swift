@@ -178,7 +178,7 @@ import Foundation
         }
     }
 
-    @Test
+    @Test(.requireHostOS(.macOS))
     func toolchainLoading() async throws {
         // Validate that we loaded the default toolchain.
         let defaultToolchain = try #require(await getCore().toolchainRegistry.lookup("default"), "no default toolchain")

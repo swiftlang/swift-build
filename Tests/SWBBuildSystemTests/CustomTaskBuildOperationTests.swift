@@ -66,11 +66,11 @@ fileprivate struct CustomTaskBuildOperationTests: CoreBasedTests {
                         ],
                         customTasks: [
                             TestCustomTask(
-                                commandLine: ["$(CONFIGURATION_BUILD_DIR)/tool"],
+                                commandLine: ["$(CONFIGURATION_BUILD_DIR)/\(destination.imageFormat(core).executableName(basename: "tool"))"],
                                 environment: environment,
                                 workingDirectory: tmpDir.str,
                                 executionDescription: "My Custom Task",
-                                inputs: ["$(CONFIGURATION_BUILD_DIR)/tool"],
+                                inputs: ["$(CONFIGURATION_BUILD_DIR)/\(destination.imageFormat(core).executableName(basename: "tool"))"],
                                 outputs: [Path.root.join("output").str],
                                 enableSandboxing: false,
                                 preparesForIndexing: false)
