@@ -274,6 +274,7 @@ public final class Toolchain: Hashable, Sendable {
             defaultSettingsWhenPrimary = settingsItems
         }
         defaultSettingsWhenPrimary["TOOLCHAIN_DIR"] = .plString(path.str)
+        defaultSettingsWhenPrimary["TOOLCHAIN_VERSION"] = .plString(version.description)
 
         var executableSearchPaths = [
             path.join("usr").join("bin"),
