@@ -2436,6 +2436,26 @@ private class SettingsBuilder {
             platformTable.push(macro, realArchs)
         }
 
+        // Add ObjC ARC support for Apple platforms.
+        if let platform {
+            switch platform.name {
+            case "macosx",
+                "iphoneos",
+                "iphonesimulator",
+                "appletvos",
+                "appletvsimulator",
+                "watchos",
+                "watchsimulator",
+                "xros",
+                "xrsimulator":
+                if let project, project.isPackage {
+                    platformTable.push(BuiltinMacros.CLANG_ENABLE_OBJC_ARC, literal: true)
+                }
+            default:
+                break
+            }
+        }
+
         // Push the table.
         push(platformTable, .exported)
     }
