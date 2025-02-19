@@ -3932,12 +3932,11 @@ fileprivate struct SwiftTaskConstructionTests: CoreBasedTests {
                 targets: [
                     TestStandardTarget(
                         "TargetName",
-                        type: .framework,
+                        type: .dynamicLibrary,
                         buildConfigurations: [
                             TestBuildConfiguration("Debug", buildSettings: [
                                 "SWIFT_WARNINGS_AS_WARNINGS_GROUPS": "Unsafe DeprecatedDeclaration",
                                 "SWIFT_EXEC": swiftCompilerPath.str,
-                                "CODE_SIGN_IDENTITY": "",
                                 "SDKROOT": "$(HOST_PLATFORM)",
                                 "SUPPORTED_PLATFORMS": "$(HOST_PLATFORM)",
                             ]),
@@ -3978,12 +3977,11 @@ fileprivate struct SwiftTaskConstructionTests: CoreBasedTests {
                 targets: [
                     TestStandardTarget(
                         "TargetName",
-                        type: .framework,
+                        type: .dynamicLibrary,
                         buildConfigurations: [
                             TestBuildConfiguration("Debug", buildSettings: [
                                 "SWIFT_WARNINGS_AS_ERRORS_GROUPS": "UnknownWarningGroup PreconcurrencyImport",
                                 "SWIFT_EXEC": swiftCompilerPath.str,
-                                "CODE_SIGN_IDENTITY": "",
                                 "SDKROOT": "$(HOST_PLATFORM)",
                                 "SUPPORTED_PLATFORMS": "$(HOST_PLATFORM)",
                             ]),
