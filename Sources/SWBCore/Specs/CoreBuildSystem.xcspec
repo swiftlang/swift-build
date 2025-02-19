@@ -4467,7 +4467,7 @@ When this setting is enabled:
             {
                 Name = "ENABLE_SDK_IMPORTS";
                 Type = Boolean;
-                DefaultValue = "$(ASSETCATALOG_COMPILER_SKIP_APP_STORE_DEPLOYMENT:not)";
+                DefaultValue = "NO";
             },
         );
     },
