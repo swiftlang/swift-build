@@ -45,43 +45,6 @@ fileprivate struct MacroEvaluationTests {
 
                 let buildParameters = SWBBuildParameters()
 
-                // Evaluate using a scope.
-                do {
-                    // Get the project macro scope.
-                    let scope = try await session.createMacroEvaluationScope(level: .project(testProject.guid), buildParameters: buildParameters)
-
-                    expectEqual(try await scope.evaluateMacroAsString("PROJECT"), "aProject")
-                    #expect(try await !scope.evaluateMacroAsBool("PROJECT"))
-                    expectEqual(try await scope.evaluateMacroAsStringList("PROJECT"), ["aProject"])
-                    expectEqual(try await scope.evaluateMacroAsString("TARGET_NAME"), "")
-                    #expect(try await !scope.evaluateMacroAsBool("TARGET_NAME"))
-                    expectEqual(try await scope.evaluateMacroAsStringList("TARGET_NAME"), [""])
-                    expectEqual(try await scope.evaluateMacroAsStringList("HEADER_SEARCH_PATHS"), [])
-                    #expect(try await !scope.evaluateMacroAsBool("HEADER_SEARCH_PATHS"))
-                    expectEqual(try await scope.evaluateMacroAsString("HEADER_SEARCH_PATHS"), "")
-                    #expect(try await scope.evaluateMacroAsBool("INFOPLIST_EXPAND_BUILD_SETTINGS"))
-                    expectEqual(try await scope.evaluateMacroAsStringList("INFOPLIST_EXPAND_BUILD_SETTINGS"), ["YES"])
-                    expectEqual(try await scope.evaluateMacroAsString("INFOPLIST_EXPAND_BUILD_SETTINGS"), "YES")
-                    await #expect(throws: (any Error).self) {
-                        try await scope.evaluateMacroAsBool("DOES_NOT_EXIST")
-                    }
-                    await #expect(throws: (any Error).self) {
-                        try await scope.evaluateMacroAsString("DOES_NOT_EXIST")
-                    }
-                    await #expect(throws: (any Error).self) {
-                        try await scope.evaluateMacroAsStringList("DOES_NOT_EXIST")
-                    }
-                }
-
-                do {
-                    // Get the target macro scope.
-                    let scope = try await session.createMacroEvaluationScope(level: .target(testTarget.guid), buildParameters: buildParameters)
-
-                    expectEqual(try await scope.evaluateMacroAsString("TARGET_NAME"), "ExternalTarget")
-                    #expect(try await !scope.evaluateMacroAsBool("TARGET_NAME"))
-                    expectEqual(try await scope.evaluateMacroAsStringList("TARGET_NAME"), ["ExternalTarget"])
-                }
-
                 // Evaluate directly against the model objects.
                 do {
                     let level = SWBMacroEvaluationLevel.project(testProject.guid)
@@ -240,45 +203,6 @@ fileprivate struct MacroEvaluationTests {
                 parameters.action = "build"
                 parameters.configurationName = "Config1"
 
-                // Evaluate using a scope.
-                let scope = try await session.createMacroEvaluationScope(level: .target("T1"), buildParameters: parameters)
-
-                // Evaluate some macros as strings.
-                await #expect(throws: (any Error).self) {
-                    try await scope.evaluateMacroAsString("UNDEFINED_MACRO", overrides: nil)
-                }
-                expectEqual(try await scope.evaluateMacroAsString("USER", overrides: nil), userInfo.userName)
-                expectEqual(try await scope.evaluateMacroAsString("PRODUCT_NAME", overrides: nil), "MyApp")
-                expectEqual(try await scope.evaluateMacroAsString("TARGET_NAME", overrides: nil), "Target1")
-                expectEqual(try await scope.evaluateMacroAsString("CONFIGURATION", overrides: nil), "Config1")
-                expectEqual(try await scope.evaluateMacroAsString("IS_TRUE", overrides: nil), "YES")
-                expectEqual(try await scope.evaluateMacroAsString("IS_FALSE", overrides: nil), "NO")
-                expectEqual(try await scope.evaluateMacroAsString("OTHER_CFLAGS", overrides: nil), " -DPROJECT -DTARGET")
-                // Evaluate some macros as booleans.
-                #expect(try await scope.evaluateMacroAsBool("IS_TRUE"))
-                #expect(try await !scope.evaluateMacroAsBool("IS_FALSE"))
-                await #expect(throws: (any Error).self) {
-                    try await scope.evaluateMacroAsBool("UNDEFINED_MACRO")
-                }
-                #expect(try await !scope.evaluateMacroAsBool("PRODUCT_NAME"))
-
-                // Evaluate some macros as string lists.
-                expectEqual(try await scope.evaluateMacroAsStringList("OTHER_CFLAGS"), ["-DPROJECT", "-DTARGET"])
-                // Evaluate some macro expressions as strings.
-                expectEqual(try await scope.evaluateMacroExpressionAsString("The name of the product is $(FULL_PRODUCT_NAME)"), "The name of the product is MyApp.app")
-
-                #expect((try await scope.evaluateMacroExpressionAsString("$(TARGET_BUILD_DIR)/$(EXECUTABLE_PATH)")).hasSuffix("build/Config1/MyApp.app/Contents/MacOS/MyApp"))
-
-                // Evaluate some macro expressions as string lists.
-                expectEqual(try await scope.evaluateMacroExpressionAsStringList("$(FULL_PRODUCT_NAME)"), ["MyApp.app"])
-                expectEqual(try await scope.evaluateMacroExpressionArrayAsStringList(["$(A)", "$(B)"]), ["A", "B"])
-                // Evaluate an array of macro expressions as individual strings.
-                expectEqual(try await scope.evaluateMacroExpressionArrayAsStringList(["$(A)", "$(B)", "$(IS_TRUE)"]), ["A", "B", "YES"])
-                // Test using overrides.
-                expectEqual(try await scope.evaluateMacroAsString("FLEXIBLE"), "A B C")
-                expectEqual(try await scope.evaluateMacroAsString("FLEXIBLE", overrides: ["A": "D"]), "D B C")
-                expectEqual(try await scope.evaluateMacroAsString("FLEXIBLE", overrides: ["B": "$(PRODUCT_NAME)"]), "A MyApp C")
-                expectEqual(try await scope.evaluateMacroExpressionAsStringList("$(FLEXIBLE)", overrides: ["C": "X Y"]), ["A", "B", "X", "Y"])
                 // Evaluate directly against the target.
                 let level = SWBMacroEvaluationLevel.target("T1")
 
