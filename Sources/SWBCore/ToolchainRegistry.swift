@@ -508,15 +508,19 @@ public final class ToolchainRegistry: @unchecked Sendable {
     /// Look up the toolchain with the given identifier.
     public func lookup(_ identifier: String) -> Toolchain? {
         let lowercasedIdentifier = identifier.lowercased()
-        if ["default", "xcode"].contains(lowercasedIdentifier) {
-            if hostOperatingSystem == .macOS {
+        if hostOperatingSystem == .macOS {
+            if ["default", "xcode"].contains(lowercasedIdentifier) {
                 return toolchainsByIdentifier[ToolchainRegistry.defaultToolchainIdentifier] ?? toolchainsByAlias[lowercasedIdentifier]
             } else {
-                // On non-Darwin, assume if there is only one registered toolchain, it is the default.
-                return toolchainsByIdentifier[ToolchainRegistry.defaultToolchainIdentifier] ?? toolchainsByAlias[lowercasedIdentifier] ?? toolchainsByIdentifier.values.only
+                return toolchainsByIdentifier[identifier] ?? toolchainsByAlias[lowercasedIdentifier]
             }
         } else {
-            return toolchainsByIdentifier[identifier] ?? toolchainsByAlias[lowercasedIdentifier]
+            // On non-Darwin, assume if there is only one registered toolchain, it is the default.
+            if ["default", "xcode"].contains(lowercasedIdentifier) || identifier == ToolchainRegistry.defaultToolchainIdentifier {
+                return toolchainsByIdentifier[ToolchainRegistry.defaultToolchainIdentifier] ?? toolchainsByAlias[lowercasedIdentifier] ?? toolchainsByIdentifier.values.only
+            } else {
+                return toolchainsByIdentifier[identifier] ?? toolchainsByAlias[lowercasedIdentifier]
+            }
         }
     }
 
