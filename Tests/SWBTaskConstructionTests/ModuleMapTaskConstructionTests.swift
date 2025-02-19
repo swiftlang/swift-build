@@ -733,12 +733,7 @@ fileprivate struct ModuleMapTaskConstructionTests: CoreBasedTests {
 
         await tester.checkBuild() { results in
             results.checkTarget("CookieCutter") { target in
-                let generatedModuleMap = "\(SRCROOT)/build/Project.build/Debug/CookieCutter.build/module.modulemap"
-                let installedModuleMap = "\(SRCROOT)/build/Debug/CookieCutter.framework/Versions/A/Modules/module.modulemap"
-
-                let copyModuleMap = TaskCondition.matchRule(["Copy", installedModuleMap, generatedModuleMap])
-
-                results.checkWriteAuxiliaryFileTask(.matchTarget(target), .matchRule(["WriteAuxiliaryFile", generatedModuleMap])) { task, contents in
+                results.checkWriteAuxiliaryFileTask(.matchTarget(target), .matchRule(["WriteAuxiliaryFile", "\(SRCROOT)/build/Project.build/Debug/CookieCutter.build/module.modulemap"])) { task, contents in
                     #expect(contents == (OutputByteStream()
                                          <<< "framework module CookieCutter [system] {\n"
                                          <<< "  umbrella header \"CookieCutter.h\"\n"
