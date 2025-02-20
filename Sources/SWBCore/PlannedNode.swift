@@ -15,7 +15,7 @@ public import SWBUtil
 
 /// A node that represents an input or output of a task (often, but not necessarily, representing the path of a file system entity).  Every node has a name, even if it doesn’t have a path.  If it does have a path, the name will be the same as the last path component of a path.
 /// PlannedNode are AnyObject-type and all instances are interned to allow for reference equality.
-public protocol PlannedNode: AnyObject, Sendable {
+public protocol PlannedNode: AnyObject, Sendable, CustomStringConvertible {
     /// Node name (never empty, and constant through the lifetime of the node).
     var name: String { get }
 
@@ -33,6 +33,10 @@ public final class PlannedPathNode: PlannedNode {
         assert(path.normalize() == path)
         self.path = path
         self.name = path.basename
+    }
+
+    public var description: String {
+        return "<\(type(of: self)):\(path.str)>"
     }
 }
 
@@ -52,6 +56,10 @@ public final class PlannedDirectoryTreeNode: PlannedNode {
         self.name = path.basename + "/"
         self.exclusionPatterns = excluding
     }
+
+    public var description: String {
+        return "<\(type(of: self)):\(path.str)>"
+    }
 }
 
 /// A node that represents a conceptual entity that is not a path.
@@ -62,6 +70,10 @@ public final class PlannedVirtualNode: PlannedNode {
     fileprivate init(name: String) {
         assert(!name.isEmpty)
         self.name = name
+    }
+
+    public var description: String {
+        return "<\(type(of: self)):\(name)>"
     }
 }
 
