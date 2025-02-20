@@ -47,7 +47,8 @@ fileprivate struct BuildCommandTests: CoreBasedTests {
                     )
                 ]
             )
-            let tester = try await BuildOperationTester(getCore(), testWorkspace, simulated: false)
+            let core = try await getCore()
+            let tester = try await BuildOperationTester(core, testWorkspace, simulated: false)
 
             // Create the input files.
             let cFile = testWorkspace.sourceRoot.join("aProject/CFile.c")
@@ -74,6 +75,12 @@ fileprivate struct BuildCommandTests: CoreBasedTests {
                 results.consumeTasksMatchingRuleTypes(excludedTypes)
                 results.checkTaskExists(.matchRule(["SwiftCompile", "normal", results.runDestinationTargetArchitecture, "Compiling \(swiftFile.basename)", swiftFile.str]))
                 results.checkTaskExists(.matchRule(["SwiftEmitModule", "normal", results.runDestinationTargetArchitecture, "Emitting module for aLibrary"]))
+                if core.hostOperatingSystem.imageFormat.requiresSwiftModulewrap  {
+                    let toolWrap = try #require(results.getTask(.matchTargetName("tool"), .matchRuleType("SwiftModuleWrap")))
+                    try results.checkTask(.matchTargetName("tool"), .matchRuleType("Ld")) { task in
+                        try results.checkTaskFollows(task, toolWrap)
+                    }
+                }
                 results.checkNoTask()
             }
 
