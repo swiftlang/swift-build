@@ -14,10 +14,13 @@ import Testing
 
 import SWBBuildSystem
 import SWBCore
+import SWBProtocol
 import SWBTestSupport
 import SWBTaskExecution
 import SWBUtil
 import SWBProtocol
+
+import class Foundation.ProcessInfo
 
 @Suite
 fileprivate struct CustomTaskBuildOperationTests: CoreBasedTests {
@@ -32,7 +35,7 @@ fileprivate struct CustomTaskBuildOperationTests: CoreBasedTests {
             if  destination.imageFormat(core) == .elf {
                 environment = ["LD_LIBRARY_PATH": toolchain.path.join("usr/lib/swift/\(destination.platform)").str]
             } else {
-                environment = [:]
+                environment = ProcessInfo.processInfo.environment.filter { $0.key.uppercased() == "PATH" } // important to allow swift to be looked up in PATH on Windows/Linux
             }
 
             let testProject = TestProject(
@@ -66,11 +69,11 @@ fileprivate struct CustomTaskBuildOperationTests: CoreBasedTests {
                         ],
                         customTasks: [
                             TestCustomTask(
-                                commandLine: ["$(CONFIGURATION_BUILD_DIR)/\(destination.imageFormat(core).executableName(basename: "tool"))"],
+                                commandLine: ["$(BUILD_DIR)/$(CONFIGURATION)$(EFFECTIVE_PLATFORM_NAME)/tool\(destination == .windows ? ".exe" : "")"],
                                 environment: environment,
                                 workingDirectory: tmpDir.str,
                                 executionDescription: "My Custom Task",
-                                inputs: ["$(CONFIGURATION_BUILD_DIR)/\(destination.imageFormat(core).executableName(basename: "tool"))"],
+                                inputs: ["$(BUILD_DIR)/$(CONFIGURATION)$(EFFECTIVE_PLATFORM_NAME)/tool\(destination == .windows ? ".exe" : "")"],
                                 outputs: [Path.root.join("output").str],
                                 enableSandboxing: false,
                                 preparesForIndexing: false)
@@ -86,7 +89,7 @@ fileprivate struct CustomTaskBuildOperationTests: CoreBasedTests {
                 ])
             let tester = try await BuildOperationTester(core, testProject, simulated: false)
 
-            let parameters = BuildParameters(action: .build, configuration: "Debug")
+            let parameters = BuildParameters(action: .build, configuration: "Debug", activeRunDestination: .host)
 
             try await tester.fs.writeFileContents(tmpDir.join("Sources").join("tool.swift")) { stream in
                 stream <<<
