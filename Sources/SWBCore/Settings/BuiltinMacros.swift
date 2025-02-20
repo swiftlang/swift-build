@@ -1186,6 +1186,8 @@ public final class BuiltinMacros {
     public static let INFOPLIST_KEY_NSPrincipalClass = BuiltinMacros.declareStringMacro("INFOPLIST_KEY_NSPrincipalClass")
 
     // Info.plist Keys - Usage Descriptions
+    public static let INFOPLIST_KEY_ITSAppUsesNonExemptEncryption = BuiltinMacros.declareBooleanMacro("INFOPLIST_KEY_ITSAppUsesNonExemptEncryption")
+    public static let INFOPLIST_KEY_ITSEncryptionExportComplianceCode = BuiltinMacros.declareStringMacro("INFOPLIST_KEY_ITSEncryptionExportComplianceCode")
     public static let INFOPLIST_KEY_NFCReaderUsageDescription = BuiltinMacros.declareStringMacro("INFOPLIST_KEY_NFCReaderUsageDescription")
     public static let INFOPLIST_KEY_NSAppleEventsUsageDescription = BuiltinMacros.declareStringMacro("INFOPLIST_KEY_NSAppleEventsUsageDescription")
     public static let INFOPLIST_KEY_NSAppleMusicUsageDescription = BuiltinMacros.declareStringMacro("INFOPLIST_KEY_NSAppleMusicUsageDescription")
@@ -2396,6 +2398,8 @@ public final class BuiltinMacros {
         INFOPLIST_KEY_NSPrincipalClass,
 
         // Info.plist Keys - Usage Descriptions
+        INFOPLIST_KEY_ITSAppUsesNonExemptEncryption,
+        INFOPLIST_KEY_ITSEncryptionExportComplianceCode,
         INFOPLIST_KEY_NFCReaderUsageDescription,
         INFOPLIST_KEY_NSAppleEventsUsageDescription,
         INFOPLIST_KEY_NSAppleMusicUsageDescription,

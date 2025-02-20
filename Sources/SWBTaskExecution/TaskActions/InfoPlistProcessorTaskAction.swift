@@ -690,6 +690,8 @@ public final class InfoPlistProcessorTaskAction: TaskAction
 
             // Usage Descriptions
 
+            "ITSAppUsesNonExemptEncryption",
+            "ITSEncryptionExportComplianceCode",
             "NFCReaderUsageDescription",
             "NSAppleEventsUsageDescription",
             "NSAppleMusicUsageDescription",

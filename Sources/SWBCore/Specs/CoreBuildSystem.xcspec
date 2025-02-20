@@ -3659,6 +3659,26 @@ When this setting is enabled:
                 Description = "When `GENERATE_INFOPLIST_FILE` is enabled, sets the value of the [CFBundleDisplayName](https://developer.apple.com/documentation/bundleresources/information_property_list/cfbundledisplayname) key in the `Info.plist` file to the value of this build setting.";
             },
             {
+                Name = INFOPLIST_KEY_ITSAppUsesNonExemptEncryption;
+                Type = Boolean;
+                Category = "Info.plist Values";
+                ConditionFlavors = (
+                    sdk,
+                );
+                DisplayName = "App Uses Non-Exempt Encryption";
+                Description = "When `GENERATE_INFOPLIST_FILE` is enabled, sets the value of the [ITSAppUsesNonExemptEncryption](https://developer.apple.com/documentation/bundleresources/information_property_list/itsappusesnonexemptencryption) key in the `Info.plist` file to the value of this build setting.";
+            },
+            {
+                Name = INFOPLIST_KEY_ITSEncryptionExportComplianceCode;
+                Type = String;
+                Category = "Info.plist Values";
+                ConditionFlavors = (
+                    sdk,
+                );
+                DisplayName = "App Encryption Export Compliance Code";
+                Description = "When `GENERATE_INFOPLIST_FILE` is enabled, sets the value of the [ITSEncryptionExportComplianceCode](https://developer.apple.com/documentation/bundleresources/information_property_list/itsencryptionexportcompliancecode) key in the `Info.plist` file to the value of this build setting.";
+            },
+            {
                 Name = INFOPLIST_KEY_LSApplicationCategoryType;
                 Type = Enumeration;
                 Values = (
