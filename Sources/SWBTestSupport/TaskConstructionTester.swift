@@ -1198,7 +1198,7 @@ package extension PlannedTaskInputsOutputs {
     }
 
     private func checkNodes(nodes: [any PlannedNode], name: String, contain patterns: [NodePattern], sourceLocation: SourceLocation = #_sourceLocation) {
-        #expect(nodes.count >= patterns.count, "too many patterns (\(patterns.count) > \(nodes.count)) for \(name)", sourceLocation: sourceLocation)
+        #expect(nodes.count >= patterns.count, "too many patterns for \(name) (\(nodes) vs \(patterns))", sourceLocation: sourceLocation)
         if nodes.count >= patterns.count {
             for pattern in patterns {
                 var foundPattern = false
