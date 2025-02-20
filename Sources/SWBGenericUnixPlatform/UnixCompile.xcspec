@@ -59,7 +59,6 @@
                     NO = ("-fPIE");
                 };
                 Condition = "$(MACH_O_TYPE) == mh_execute";
-                Category = Linking;
             },
             {
                 Name = "ENABLE_BLOCKS";
