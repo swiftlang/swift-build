@@ -424,8 +424,10 @@ fileprivate struct PBXCpTests: CoreBasedTests {
                 #expect(result.output == (
                     "copying \(fwkName)/...\n"
                 ))
-                let dstPerm = try fs.getFilePermissions(dst.join(fwkName).join(fName))
-                #expect(dstPerm == 0o755) // files are created with u+rw, g+wr, o+rw (and +x if src is executable) permissions and umask will adjust
+                if try ProcessInfo.processInfo.hostOperatingSystem() != .windows {
+                    let dstPerm = try fs.getFilePermissions(dst.join(fwkName).join(fName))
+                    #expect(dstPerm == 0o755) // files are created with u+rw, g+wr, o+rw (and +x if src is executable) permissions and umask will adjust
+                }
             }
         }
     }
@@ -555,13 +557,14 @@ fileprivate struct PBXCpTests: CoreBasedTests {
             #expect(try fs.read(dst) == "contents1")
             let modificationDate = try fs.getFileInfo(dst).modificationDate
 
-            try await Task.sleep(for: .milliseconds(100))
+            try await Task.sleep(for: .milliseconds(500))
             let result2 = await pbxcp(["builtin-copy", "-skip-copy-if-contents-equal", "-rename", "-v", src.str, dst.str], cwd: Path("/"))
             #expect(result2.success == true)
             #expect(result2.output == "note: skipping copy of '\(src.str)' because it has the same contents as '\(dst.str)'\n")
             #expect(try fs.read(dst) == "contents1")
             #expect(try fs.getFileInfo(dst).modificationDate == modificationDate)
 
+            try await Task.sleep(for: .milliseconds(500))
             try fs.write(src, contents: "contents2")
             let result3 = await pbxcp(["builtin-copy", "-skip-copy-if-contents-equal", "-rename", "-v", src.str, dst.str], cwd: Path("/"))
             #expect(result3.success == true)
@@ -586,13 +589,14 @@ fileprivate struct PBXCpTests: CoreBasedTests {
             #expect(try fs.read(dstFile) == "contents1")
             let modificationDate = try fs.getFileInfo(dstFile).modificationDate
 
-            try await Task.sleep(for: .milliseconds(100))
+            try await Task.sleep(for: .milliseconds(500))
             let result2 = await pbxcp(["builtin-copy", "-skip-copy-if-contents-equal", "-rename", "-v", src.str, dst.str], cwd: Path("/"))
             #expect(result2.success == true)
             #expect(result2.output == "note: skipping copy of '\(src.str)' because it has the same contents as '\(dst.str)'\n")
             #expect(try fs.read(dstFile) == "contents1")
             #expect(try fs.getFileInfo(dstFile).modificationDate == modificationDate)
 
+            try await Task.sleep(for: .milliseconds(500))
             try fs.write(srcFile, contents: "contents2")
             let result3 = await pbxcp(["builtin-copy", "-skip-copy-if-contents-equal", "-rename", "-v", src.str, dst.str], cwd: Path("/"))
             #expect(result3.success == true)
