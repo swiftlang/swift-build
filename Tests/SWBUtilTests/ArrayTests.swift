@@ -109,20 +109,4 @@ import Testing
         // We compare against the variance (stddev-squared) because otherwise we end up with an awkward decimal which I don't trust to always be the same.
         #expect(pow([2.0, 4.0, 9.0].standardDeviation(), 2).rounded(.toNearestOrEven) == 13.0)
     }
-
-    @Test
-    func concurrentMap() {
-        #expect([0, 1, 2].concurrentMap { String($0 )} == ["0", "1", "2"])
-
-        #expect {
-            try ["0", "1", "2", "nan", "alsonan"].concurrentMap { (s: String) -> Int in
-                guard let i = Int(s) else {
-                    throw StubError.error("NaN")
-                }
-                return i
-            }
-        } throws: { error in
-            error as? StubError == StubError.error("NaN")
-        }
-    }
 }

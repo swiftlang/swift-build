@@ -1151,7 +1151,6 @@ public final class BuiltinMacros {
     public static let TARGET_DEVICE_OS_VERSION = BuiltinMacros.declareStringMacro("TARGET_DEVICE_OS_VERSION")
     public static let TARGET_DEVICE_PLATFORM_NAME = BuiltinMacros.declareStringMacro("TARGET_DEVICE_PLATFORM_NAME")
 
-    public static let DISABLE_SDK_METADATA_PARSING = BuiltinMacros.declareBooleanMacro("DISABLE_SDK_METADATA_PARSING")
     public static let RC_ARCHS = BuiltinMacros.declareStringListMacro("RC_ARCHS")
     public static let RC_BASE_PROJECT_NAME = BuiltinMacros.declareStringMacro("RC_BASE_PROJECT_NAME")
     public static let RC_ProjectName = BuiltinMacros.declareStringMacro("RC_ProjectName")
@@ -1587,7 +1586,6 @@ public final class BuiltinMacros {
         DISABLE_INFOPLIST_PLATFORM_PROCESSING,
         DISABLE_MANUAL_TARGET_ORDER_BUILD_WARNING,
         DISABLE_STALE_FILE_REMOVAL,
-        DISABLE_SDK_METADATA_PARSING,
         DISABLE_TEST_HOST_PLATFORM_PROCESSING,
         DISABLE_XCFRAMEWORK_SIGNATURE_VALIDATION,
         DOCC_ARCHIVE_PATH,

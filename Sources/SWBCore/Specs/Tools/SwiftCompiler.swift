@@ -914,18 +914,8 @@ public final class SwiftCommandOutputParser: TaskOutputParser {
             // Don't try to read diagnostics if the process exited with an uncaught signal as they were almost certainly not written in this case.
             let serializedDiagnosticsPaths = subtask.nonEmptyDiagnosticsPaths(fs: workspaceContext.fs)
             if !serializedDiagnosticsPaths.isEmpty {
-                let serializedDiagnostics = serializedDiagnosticsPaths.flatMap { path in
+                for path in serializedDiagnosticsPaths {
                     subtask.delegate.processSerializedDiagnostics(at: path, workingDirectory: workingDirectory, workspaceContext: workspaceContext)
-                }
-
-                // Emit an additional diagnostic for missing frameworks that match the names of Apple SDK frameworks known to not be present in the current platform SDK.
-                if let configuredTarget = task?.forTarget {
-                    // Due to rdar://53726633, the actual target instance needs to be re-fetched instead of used directly, when retrieving the settings.
-                    if let target = workspaceContext.workspace.target(for: configuredTarget.target.guid), let settings = buildRequestContext.getCachedSettings(configuredTarget.parameters, target: target) as Settings?, !settings.globalScope.evaluate(BuiltinMacros.DISABLE_SDK_METADATA_PARSING), let sdk = settings.sdk {
-                        DiagnosticsEngine.generateMissingFrameworkDiagnostics(usingSerializedDiagnostics: serializedDiagnostics, settings: settings, infoLookup: workspaceContext.core, sdk: sdk, sdkVariant: settings.sdkVariant, missingFrameworkNames: workspaceContext.core.sdkRegistry.knownUnavailableFrameworksForSDK(sdk, sdkVariant: settings.sdkVariant), frameworkDeprecationInfo: workspaceContext.core.sdkRegistry.frameworkReplacementInfoForSDK(sdk, sdkVariant: settings.sdkVariant), diagnosticMessageRegexes: [SwiftCommandOutputParser.noSuchModuleRegEx], context: .swiftCompiler) { originalDiagnostic, newDiagnostic in
-                            subtask.delegate.diagnosticsEngine.emit(newDiagnostic)
-                        }
-                    }
                 }
             }
 

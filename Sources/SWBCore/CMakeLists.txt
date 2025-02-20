@@ -82,7 +82,6 @@ add_library(SWBCore
   MacroConfigFileLoader.swift
   MacroEvaluationExtensions.swift
   MacroExpressionSourceExtensions.swift
-  MissingFrameworkDiagnostics.swift
   OnDemandResources.swift
   OptimizationRemarks.swift
   PlannedNode.swift

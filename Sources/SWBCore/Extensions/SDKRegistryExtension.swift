@@ -22,17 +22,12 @@ public struct SDKRegistryExtensionPoint: ExtensionPoint {
 
 public protocol SDKRegistryExtension: Sendable {
     var supportedSDKCanonicalNameSuffixes: Set<String> { get }
-    func additionalKnownFrameworkDirectories(for sdkCanonicalName: String, sdkPath: Path) -> [Path]
 
     func additionalSDKs(platformRegistry: PlatformRegistry) async -> [(path: Path, platform: Platform?, data: [String: PropertyListItem])]
 }
 
 extension SDKRegistryExtension {
     public var supportedSDKCanonicalNameSuffixes: Set<String> {
-        []
-    }
-
-    public func additionalKnownFrameworkDirectories(for sdkCanonicalName: String, sdkPath: Path) -> [Path] {
         []
     }
 
