@@ -396,13 +396,61 @@ final class SourcesTaskProducer: FilesBasedBuildPhaseTaskProducerBase, FilesBase
                     let parameters = self.context.configuredTarget?.parameters ?? BuildParameters(configuration: nil)
                     let settings = self.context.settingsForProductReferenceTarget(referenceTarget, parameters: parameters)
                     if referenceTarget.usesSwift(context: self.context, settings: settings) {
-                        for arch in scope.evaluate(BuiltinMacros.ARCHS) {
-                            let scope = settings.globalScope.subscope(binding: BuiltinMacros.archCondition, to: arch)
+                        var architectures = scope.evaluate(BuiltinMacros.ARCHS)
+                        var processedArchitectures: Set<String> = []
+                        while !architectures.isEmpty {
+                            let originalArch = architectures.removeFirst()
+                            guard !processedArchitectures.contains(originalArch) else {
+                                continue
+                            }
+                            processedArchitectures.insert(originalArch)
+                            let scope = settings.globalScope.subscope(binding: BuiltinMacros.archCondition, to: originalArch)
+                            // Binding the architecture may change how we evaluate $(ARCHS). Ensure we process any new architectures.
+                            for potentiallyNewArch in scope.evaluate(BuiltinMacros.ARCHS) {
+                                if !processedArchitectures.contains(potentiallyNewArch) {
+                                    architectures.append(potentiallyNewArch)
+                                }
+                            }
+                            // Recompute arch as it will be interpolated in settings below, in case binding the architecture condition produced a value other than the original literal.
+                            let arch = scope.evaluate(BuiltinMacros.CURRENT_ARCH)
+                            if arch == "undefined_arch" {
+                                // If we end up with an undefined architecture here, the settings we use to compute the
+                                // AST path and additional linker args below will be incorrect. This state is undesirable,
+                                // but recoverable, so do not record these incorrect paths.
+                                // FIXME: The `settingsForProductReferenceTarget` call above should always find settings for a
+                                // concrete configured target. However, there appears to be an issue currently when a root-level target
+                                // with package dependencies uses non-standard architectures. We should remove the `settingsForProductReferenceTarget` once that issue is resolved, and then this check should no longer
+                                // be needed.
+                                if context.workspaceContext.userPreferences.enableDebugActivityLogs {
+                                    context.warning("Could not determine settings for \(referenceTarget.name) when computing Swift AST paths for \(context.configuredTarget?.target.name ?? "<unknown>")")
+                                }
+                                continue
+                            }
                             let moduleName = scope.evaluate(BuiltinMacros.SWIFT_MODULE_NAME)
                             let moduleFileDir = scope.evaluate(BuiltinMacros.PER_ARCH_MODULE_FILE_DIR)
                             swiftModulePaths[arch] = moduleFileDir.join(moduleName + ".swiftmodule")
                             if scope.evaluate(BuiltinMacros.SWIFT_GENERATE_ADDITIONAL_LINKER_ARGS) {
                                 swiftModuleAdditionalLinkerArgResponseFilePaths[arch] = moduleFileDir.join("\(moduleName)-linker-args.resp")
+                            }
+                        }
+
+                        // Check if we can fill in information for missing architectures using a compatible architecture.
+                        for (arch, moduleFileDir) in swiftModulePaths {
+                            if let archSpec = context.workspaceContext.core.specRegistry.getSpec(arch, domain: scope.evaluate(BuiltinMacros.PLATFORM_NAME)) as? ArchitectureSpec {
+                                for compatibilityArch in archSpec.compatibilityArchs {
+                                    if swiftModulePaths[compatibilityArch] == nil {
+                                        swiftModulePaths[compatibilityArch] = moduleFileDir
+                                    }
+                                }
+                            }
+                        }
+                        for (arch, moduleFileDir) in swiftModuleAdditionalLinkerArgResponseFilePaths {
+                            if let archSpec = context.workspaceContext.core.specRegistry.getSpec(arch, domain: scope.evaluate(BuiltinMacros.PLATFORM_NAME)) as? ArchitectureSpec {
+                                for compatibilityArch in archSpec.compatibilityArchs {
+                                    if swiftModuleAdditionalLinkerArgResponseFilePaths[compatibilityArch] == nil {
+                                        swiftModuleAdditionalLinkerArgResponseFilePaths[compatibilityArch] = moduleFileDir
+                                    }
+                                }
                             }
                         }
                     }
