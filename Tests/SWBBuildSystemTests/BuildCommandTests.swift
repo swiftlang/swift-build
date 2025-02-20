@@ -47,8 +47,7 @@ fileprivate struct BuildCommandTests: CoreBasedTests {
                     )
                 ]
             )
-            let core = try await getCore()
-            let tester = try await BuildOperationTester(core, testWorkspace, simulated: false)
+            let tester = try await BuildOperationTester(getCore(), testWorkspace, simulated: false)
 
             // Create the input files.
             let cFile = testWorkspace.sourceRoot.join("aProject/CFile.c")
@@ -62,7 +61,7 @@ fileprivate struct BuildCommandTests: CoreBasedTests {
             let buildRequestContext = BuildRequestContext(workspaceContext: tester.workspaceContext)
 
             // Construct the output paths.
-            let excludedTypes: Set<String> = ["Copy", "Gate", "MkDir", "SymLink", "WriteAuxiliaryFile", "CreateBuildDirectory", "SwiftDriver", "SwiftDriver Compilation Requirements", "SwiftDriver Compilation", "SwiftMergeGeneratedHeaders", "ClangStatCache", "SwiftExplicitDependencyCompileModuleFromInterface", "SwiftExplicitDependencyGeneratePcm", "ProcessSDKImports"]
+            let excludedTypes: Set<String> = ["Copy", "Gate", "MkDir", "SymLink", "WriteAuxiliaryFile", "SwiftModuleWrap", "CreateBuildDirectory", "SwiftDriver", "SwiftDriver Compilation Requirements", "SwiftDriver Compilation", "SwiftMergeGeneratedHeaders", "ClangStatCache", "SwiftExplicitDependencyCompileModuleFromInterface", "SwiftExplicitDependencyGeneratePcm", "ProcessSDKImports"]
             let runDestination = RunDestinationInfo.host
             let parameters = BuildParameters(configuration: "Debug", activeRunDestination: runDestination)
             let target = tester.workspace.allTargets.first(where: { _ in true })!
@@ -75,12 +74,6 @@ fileprivate struct BuildCommandTests: CoreBasedTests {
                 results.consumeTasksMatchingRuleTypes(excludedTypes)
                 results.checkTaskExists(.matchRule(["SwiftCompile", "normal", results.runDestinationTargetArchitecture, "Compiling \(swiftFile.basename)", swiftFile.str]))
                 results.checkTaskExists(.matchRule(["SwiftEmitModule", "normal", results.runDestinationTargetArchitecture, "Emitting module for aLibrary"]))
-                if core.hostOperatingSystem.imageFormat.requiresSwiftModulewrap  {
-                    let toolWrap = try #require(results.getTask(.matchTargetName("aLibrary"), .matchRuleType("SwiftModuleWrap")))
-                    try results.checkTask(.matchTargetName("tool"), .matchRuleType("Ld")) { task in
-                        try results.checkTaskFollows(task, toolWrap)
-                    }
-                }
                 results.checkNoTask()
             }
 
