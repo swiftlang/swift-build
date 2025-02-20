@@ -213,13 +213,7 @@ public struct DiscoveredLdLinkerToolSpecInfo: DiscoveredCommandLineToolSpecInfo 
             let behavior = Diagnostic.Behavior(name: severity) ?? .note
             let message = match[3].prefix(1).localizedCapitalized + match[3].dropFirst()
             let diagnostic = Diagnostic(behavior: behavior, location: .unknown, data: DiagnosticData(message), appendToOutputStream: false)
-
-            // Emit a modified diagnostic for missing frameworks that match the names of Apple SDK frameworks known to not be present in the current platform SDK.
-            if let configuredTarget = task.forTarget, let target = workspaceContext.workspace.target(for: configuredTarget.target.guid), let settings = buildRequestContext.getCachedSettings(configuredTarget.parameters, target: target) as Settings?, !settings.globalScope.evaluate(BuiltinMacros.DISABLE_SDK_METADATA_PARSING), let sdk = settings.sdk, let newDiagnostic = Diagnostic.missingFrameworkDiagnostic(forDiagnostic: diagnostic, settings: settings, infoLookup: workspaceContext.core, sdk: sdk, sdkVariant: settings.sdkVariant, missingFrameworkNames: workspaceContext.core.sdkRegistry.knownUnavailableFrameworksForSDK(sdk, sdkVariant: settings.sdkVariant), frameworkReplacementInfo: workspaceContext.core.sdkRegistry.frameworkReplacementInfoForSDK(sdk, sdkVariant: settings.sdkVariant), diagnosticMessageRegexes: [LdLinkerOutputParser.frameworkNotFoundRegEx, LdLinkerOutputParser.newFrameworkNotFoundRegEx], context: .linker) {
-                delegate.diagnosticsEngine.emit(newDiagnostic)
-            } else {
-                delegate.diagnosticsEngine.emit(diagnostic)
-            }
+            delegate.diagnosticsEngine.emit(diagnostic)
         }
         return true
     }

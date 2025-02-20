@@ -542,10 +542,6 @@ public final class Core: Sendable {
         return result
     }
 
-    public func appleSystemFrameworkNames() throws -> Set<String> {
-        Set(sdkRegistry.allSDKs.flatMap { sdk in sdk.knownFrameworkNames })
-    }
-
     public func productTypeSupportsMacCatalyst(productTypeIdentifier: String) throws -> Bool {
         do {
             let productTypeSpec = try specRegistry.getSpec(productTypeIdentifier, domain: "macosx") as ProductTypeSpec

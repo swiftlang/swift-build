@@ -1289,8 +1289,6 @@ package final class BuildOperationTester {
             "ALWAYS_SEARCH_USER_PATHS": "NO",
             // Temporarily force each tester to use its own stat cache dir. rdar://104356237 (Clang-stat-cache should write to a temporary file and rename into place to avoid races generating the cache)
             "SDK_STAT_CACHE_DIR": workspace.path.dirname.str,
-            // This is slow, and not relevant for the vast majority of tests.
-            "DISABLE_SDK_METADATA_PARSING": "YES",
         ]
 
         // If we have a run destination, then we default ONLY_ACTIVE_ARCH to YES. This means when they build with a non-generic run destination, that run destination's architecture will be used rather than building universal.

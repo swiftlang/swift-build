@@ -282,6 +282,7 @@ public final class SWBBuildService: Sendable {
         }
     }
 
+    @available(*, deprecated, message: "Do not use.")
     public func appleSystemFrameworkNames(developerPath: String?) async throws -> Set<String> {
         try await Set(send(request: AppleSystemFrameworkNamesRequest(developerPath: developerPath.map(Path.init))).value)
     }

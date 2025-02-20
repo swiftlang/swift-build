@@ -104,7 +104,7 @@ private struct AppleSystemFrameworkNamesHandler: MessageHandler {
         guard let buildService = request.service as? BuildService else {
             throw StubError.error("service object is not of type BuildService")
         }
-        return try await StringListResponse(Array(buildService.sharedCore(developerPath: message.effectiveDeveloperPath).appleSystemFrameworkNames()))
+        return try await StringListResponse([])
     }
 }
 
