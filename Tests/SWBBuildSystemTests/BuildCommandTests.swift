@@ -76,7 +76,7 @@ fileprivate struct BuildCommandTests: CoreBasedTests {
                 results.checkTaskExists(.matchRule(["SwiftCompile", "normal", results.runDestinationTargetArchitecture, "Compiling \(swiftFile.basename)", swiftFile.str]))
                 results.checkTaskExists(.matchRule(["SwiftEmitModule", "normal", results.runDestinationTargetArchitecture, "Emitting module for aLibrary"]))
                 if core.hostOperatingSystem.imageFormat.requiresSwiftModulewrap  {
-                    let toolWrap = try #require(results.getTask(.matchTargetName("tool"), .matchRuleType("SwiftModuleWrap")))
+                    let toolWrap = try #require(results.getTask(.matchTargetName("aLibrary"), .matchRuleType("SwiftModuleWrap")))
                     try results.checkTask(.matchTargetName("tool"), .matchRuleType("Ld")) { task in
                         try results.checkTaskFollows(task, toolWrap)
                     }
