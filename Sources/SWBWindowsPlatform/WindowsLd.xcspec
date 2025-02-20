@@ -133,6 +133,17 @@
                 );
                 IsInputDependency = Yes;
             },
+            {
+                Name = "ALTERNATE_LINKER";
+                Type = String;
+                DefaultValue = "lld-link";
+                CommandLineArgs = {
+                    "" = ();
+                    "<<otherwise>>" = (
+                        "-fuse-ld=$(value)"
+                    );
+                };
+            },
         );
     },
 )

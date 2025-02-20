@@ -256,6 +256,35 @@ extension CoreBasedTests {
             #endif
         }
     }
+
+    // Linkers
+    package var ldPath: Path {
+        get async throws {
+            let (core, defaultToolchain) = try await coreAndToolchain()
+            return try #require(defaultToolchain.executableSearchPaths.findExecutable(operatingSystem: core.hostOperatingSystem, basename: "ld"), "couldn't find ld in default toolchain")
+        }
+    }
+    package var linkPath: Path {
+        get async throws {
+            let (core, defaultToolchain) = try await coreAndToolchain()
+            return try #require(defaultToolchain.executableSearchPaths.findExecutable(operatingSystem: core.hostOperatingSystem, basename: "link"), "couldn't find link in default toolchain")
+        }
+    }
+    package var lldPath: Path {
+        get async throws {
+            let (core, defaultToolchain) = try await coreAndToolchain()
+            return try #require(
+                defaultToolchain.executableSearchPaths.findExecutable(
+                    operatingSystem: core.hostOperatingSystem,
+                    basename: core.hostOperatingSystem == .windows ? "lld-link" : "ld.lld"), "couldn't find ld.ldd in default toolchain")
+        }
+    }
+    package var goldPath: Path {
+        get async throws {
+            let (core, defaultToolchain) = try await coreAndToolchain()
+            return try #require(defaultToolchain.executableSearchPaths.findExecutable(operatingSystem: core.hostOperatingSystem, basename: "ld.gold"), "couldn't find ld.gold in default toolchain")
+        }
+    }
 }
 
 /// Process-wide registry of inferior products paths to Core instances.

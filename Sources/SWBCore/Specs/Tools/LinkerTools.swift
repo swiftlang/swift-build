@@ -177,6 +177,7 @@ public struct DiscoveredLdLinkerToolSpecInfo: DiscoveredCommandLineToolSpecInfo 
     let undefinedSymbolCountLimit = 100
 
     override func parseLine<S: Collection>(_ lineBytes: S) -> Bool where S.Element == UInt8 {
+
         // Create a string that we can examine.  Use the non-failable constructor, so that we are robust against potentially invalid UTF-8.
         let lineString = String(decoding: lineBytes, as: Unicode.UTF8.self)
 
@@ -1274,9 +1275,18 @@ public final class LdLinkerSpec : GenericLinkerSpec, SpecIdentifierType, @unchec
     override public func discoveredCommandLineToolSpecInfo(_ producer: any CommandProducer, _ scope: MacroEvaluationScope, _ delegate: any CoreClientTargetDiagnosticProducingDelegate) async -> (any DiscoveredCommandLineToolSpecInfo)? {
         let alternateLinker = scope.evaluate(BuiltinMacros.ALTERNATE_LINKER)
 
-        let linkerPath = if alternateLinker != "" { Path(alternateLinker) } else { Path("ld") }
-
-        // Create the cache key.  This is just the path to the ld linker we would invoke if we were invoking the linker directly.
+        // The ALTERNATE_LINKER is the 'name' of the linker not the executable name, clang will find the linker binary based on name passed via -fuse-ld, but we need to discover
+        // its properties by executing the actual binary. On unix based oses the linkers are installed as ld.<name> on windows its <name>.exe
+        var linkerPath = Path("ld")
+        if alternateLinker != "" {
+            linkerPath =
+                switch producer.hostOperatingSystem {
+                        case .linux: Path("ld.\(alternateLinker)")
+                        case .windows: Path("\(alternateLinker).exe")
+                        default : Path("\(alternateLinker)")
+                }
+        }
+        // Create the cache key.  This is just the path to the linker we would invoke if we were invoking the linker directly.
         guard let toolPath = producer.executableSearchPaths.lookup(linkerPath) else {
             return nil
         }
@@ -1622,7 +1632,7 @@ public func discoveredLinkerToolsInfo(_ producer: any CommandProducer, _ delegat
             let vCommandLine = [toolPath.str, "-v"]
             return try await producer.discoveredCommandLineToolSpecInfo(delegate, nil, vCommandLine, { executionResult in
                 let lld = [
-                    #/LLD (?<version>[\d.]+) .*/#,
+                    #/LLD (?<version>[\d.]+).*/#,
                 ]
                 if let match = try lld.compactMap({ try $0.firstMatch(in: String(decoding: executionResult.stdout, as: UTF8.self)) }).first {
                     return DiscoveredLdLinkerToolSpecInfo(linker: .lld, toolPath: toolPath, toolVersion: try Version(String(match.output.version)), architectures: Set())
@@ -1631,7 +1641,7 @@ public func discoveredLinkerToolsInfo(_ producer: any CommandProducer, _ delegat
                 let versionCommandLine = [toolPath.str, "--version"]
                 return try await producer.discoveredCommandLineToolSpecInfo(delegate, nil, versionCommandLine, { executionResult in
                     let lld = [
-                        #/LLD (?<version>[\d.]+) .*/#,
+                        #/LLD (?<version>[\d.]+).*/#,
                     ]
                     if let match = try lld.compactMap({ try $0.firstMatch(in: String(decoding: executionResult.stdout, as: UTF8.self)) }).first {
                         return DiscoveredLdLinkerToolSpecInfo(linker: .lld, toolPath: toolPath, toolVersion: try Version(String(match.output.version)), architectures: Set())
