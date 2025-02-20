@@ -3939,6 +3939,7 @@ fileprivate struct SwiftTaskConstructionTests: CoreBasedTests {
                                 "SWIFT_EXEC": swiftCompilerPath.str,
                                 "SDKROOT": "$(HOST_PLATFORM)",
                                 "SUPPORTED_PLATFORMS": "$(HOST_PLATFORM)",
+                                 "CODE_SIGNING_ALLOWED": "NO",
                             ]),
                         ],
                         buildPhases: [
@@ -3984,6 +3985,7 @@ fileprivate struct SwiftTaskConstructionTests: CoreBasedTests {
                                 "SWIFT_EXEC": swiftCompilerPath.str,
                                 "SDKROOT": "$(HOST_PLATFORM)",
                                 "SUPPORTED_PLATFORMS": "$(HOST_PLATFORM)",
+                                "CODE_SIGNING_ALLOWED": "NO",
                             ]),
                         ],
                         buildPhases: [

@@ -35,7 +35,7 @@ fileprivate struct CustomTaskBuildOperationTests: CoreBasedTests {
             if  destination.imageFormat(core) == .elf {
                 environment = ["LD_LIBRARY_PATH": toolchain.path.join("usr/lib/swift/\(destination.platform)").str]
             } else {
-                environment = ProcessInfo.processInfo.environment.filter { $0.key.uppercased() == "PATH" }, // important to allow swift to be looked up in PATH on Windows/Linux
+                environment = ProcessInfo.processInfo.environment.filter { $0.key.uppercased() == "PATH" } // important to allow swift to be looked up in PATH on Windows/Linux
             }
 
             let testProject = TestProject(
