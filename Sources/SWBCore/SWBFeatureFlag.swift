@@ -157,5 +157,5 @@ public enum SWBFeatureFlag {
 
     public static let enableCacheMetricsLogs = SWBFeatureFlagProperty("EnableCacheMetricsLogs", defaultValue: false)
 
-    public static let enableAppSandboxConflictingValuesEmitsWarning = SWBFeatureFlagProperty("AppSandboxConflictingValuesEmitsWarning", defaultValue: false)
+    public static let enableAppSandboxConflictingValuesEmitsWarning = SWBFeatureFlagProperty("AppSandboxConflictingValuesEmitsWarning", defaultValue: true)
 }
