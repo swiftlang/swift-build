@@ -59,7 +59,7 @@ final class MacroConfigFileLoader: Sendable {
         return loadSettingsFromConfig(data: data, path: path, namespace: namespace, searchPaths: searchPaths, filesSignature: filesSignature)
     }
 
-    /// Stores data about previosuly visited xcconfig files.
+    /// Stores data about previously visited xcconfig files.
     fileprivate final class AncestorInclude {
         let path: Path
         let fs: any FSProxy
