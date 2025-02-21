@@ -298,7 +298,7 @@ public final class PlatformRegistry {
     /// The list of all registered platforms, ordered by identifier.
     public private(set) var platforms = Array<Platform>()
 
-    /// The map of platforms by identifer.
+    /// The map of platforms by identifier.
     @_spi(Testing) public private(set) var platformsByIdentifier = Dictionary<String, Platform>()
 
     /// The map of platforms by name.
