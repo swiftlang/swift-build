@@ -73,7 +73,7 @@ fileprivate struct BuildCommandTests: CoreBasedTests {
                 results.consumeTasksMatchingRuleTypes(excludedTypes)
                 results.checkTaskExists(.matchRule(["SwiftCompile", "normal", results.runDestinationTargetArchitecture, "Compiling \(swiftFile.basename)", swiftFile.str]))
                 results.checkTaskExists(.matchRule(["SwiftEmitModule", "normal", results.runDestinationTargetArchitecture, "Emitting module for aLibrary"]))
-                if runDestination == .linux {
+                if runDestination == .linux {  // FIXME: This needs to be investigated... We should be able to use core.hostOperatingSystem.imageFormat.requiresSwiftModulewrap to test for this, but on Windows using this causes the test to fail as the SwiftModuleWrap does not seem to be added.
                     results.checkTaskExists(.matchRule(["SwiftModuleWrap", "normal", results.runDestinationTargetArchitecture,  "Wrapping Swift module aLibrary"]))
                 }
                 results.checkNoTask()
@@ -83,7 +83,7 @@ fileprivate struct BuildCommandTests: CoreBasedTests {
             try await tester.checkBuild(parameters: parameters, runDestination: runDestination, persistent: true, buildOutputMap: [cOutputPath: cFile.str]) { results in
                 results.consumeTasksMatchingRuleTypes(excludedTypes)
                 results.checkTaskExists(.matchRule(["CompileC", tmpDirPath.join("Test/aProject/build/aProject.build/Debug\(runDestination.builtProductsDirSuffix)/aLibrary.build/Objects-normal/\(results.runDestinationTargetArchitecture)/CFile.o").str, cFile.str, "normal", results.runDestinationTargetArchitecture, "c", "com.apple.compilers.llvm.clang.1_0.compiler"]))
-                if runDestination == .linux {
+                if runDestination == .linux {  // FIXME: This needs to be investigated... iIs not clear why this task is added when building a C file, and only on Linux.
                     results.checkTaskExists(.matchRule(["SwiftEmitModule", "normal", results.runDestinationTargetArchitecture, "Emitting module for aLibrary"]))
                 }
                 results.checkNoTask()
