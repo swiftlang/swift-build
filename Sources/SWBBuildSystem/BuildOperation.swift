@@ -584,7 +584,7 @@ package final class BuildOperation: BuildSystemOperation {
                 if let buildOnlyTheseOutputs = buildOutputMap?.keys {
                     // Build selected outputs, the build fails if one operation failed.
                     result = await _Concurrency.Task.detachNewThread(name: "llb_buildsystem_build_node") {
-                        !buildOnlyTheseOutputs.map({ system.build(node: $0) }).contains(false)
+                        !buildOnlyTheseOutputs.map({ return system.build(node: Path($0).strWithPosixSlashes) }).contains(false)
                     }
                 } else if let buildOnlyTheseNodes = nodesToBuild {
                     // Build selected nodes, the build fails if one operation failed.
