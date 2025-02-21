@@ -1078,6 +1078,11 @@ private class InProcessCommand: SWBLLBuild.ExternalCommand, SWBLLBuild.ExternalD
         return signature
     }
 
+    // temporary for compatibility
+    var depedencyDataFormat: SWBLLBuild.DependencyDataFormat {
+        dependencyDataFormat
+    }
+
     var dependencyDataFormat: SWBLLBuild.DependencyDataFormat {
         switch task.dependencyData {
         case .makefile?, .makefiles?:
