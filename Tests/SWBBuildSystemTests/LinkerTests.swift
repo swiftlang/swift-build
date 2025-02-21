@@ -170,16 +170,7 @@ fileprivate struct LinkerTests: CoreBasedTests {
     ///       a capaitalized error snippet, so this needs to be handled.
     @Test(.requireSDKs(.host))
     func alternateLinkerSelection() async throws {
-
-        // struct Linker {
-        //     let name: String
-        //     let exec: Path
-        //     let validOn: [RunDestinationInfo]
-        // }
-
         let runDestination: RunDestinationInfo = .host
-        // let defaultLinker = try await runDestination == .windows ? Linker(name: "link", exec: self.linkExePath, validOn: [.windows]) : Linker(name: "ld", exec: self.ldPath, validOn: [.macOS, .linux])
-
         let swiftVersion = try await self.swiftVersion
         try await withTemporaryDirectory { tmpDir in
             let testProject = try await TestProject(
