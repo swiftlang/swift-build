@@ -661,7 +661,7 @@ public final class XCTestBundleProductTypeSpec : BundleProductTypeSpec, @uncheck
         table.push(BuiltinMacros.XCTRUNNER_PRODUCT_NAME, table.namespace.parseString("$(PRODUCT_NAME)-Runner.app"))
 
         // Define TARGET_BUILD_SUBPATH so the target builds to $(TARGET_BUILD_DIR)/$(TARGET_BUILD_SUBPATH) (or slightly different for deployment location builds).
-        // <rdar://problem/18902931> Should PBXXCTestBundleProductType override BUILT_PRODUCTS_DIR when it overrides TARGET_BULD_DIR?
+        // <rdar://problem/18902931> Should PBXXCTestBundleProductType override BUILT_PRODUCTS_DIR when it overrides TARGET_BUILD_DIR?
         table.push(BuiltinMacros.TARGET_BUILD_SUBPATH, table.namespace.parseString("/$(XCTRUNNER_PRODUCT_NAME)$(_WRAPPER_CONTENTS_DIR)/PlugIns"))
         table.push(BuiltinMacros.DWARF_DSYM_FOLDER_PATH, table.namespace.parseString("$(TARGET_BUILD_DIR)"))        // Do we really want dSYMs to go inside of the host app's PlugIns dir?
 
@@ -706,7 +706,7 @@ public final class XCTestBundleProductTypeSpec : BundleProductTypeSpec, @uncheck
         }
 
         // Define TARGET_BUILD_SUBPATH so the target builds to $(TARGET_BUILD_DIR)/$(TARGET_BUILD_SUBPATH) (or slightly different for deployment location builds).
-        // <rdar://problem/18902931> Should PBXXCTestBundleProductType override BUILT_PRODUCTS_DIR when it overrides TARGET_BULD_DIR?
+        // <rdar://problem/18902931> Should PBXXCTestBundleProductType override BUILT_PRODUCTS_DIR when it overrides TARGET_BUILD_DIR?
         table.push(BuiltinMacros.TARGET_BUILD_SUBPATH, table.namespace.parseLiteralString("/\(targetBuildSubpath)"))
         table.push(BuiltinMacros.DWARF_DSYM_FOLDER_PATH, table.namespace.parseString("$(TARGET_BUILD_DIR)"))
 

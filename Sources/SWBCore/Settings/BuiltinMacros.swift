@@ -809,6 +809,7 @@ public final class BuiltinMacros {
     public static let LIBRARY_SEARCH_PATHS = BuiltinMacros.declarePathListMacro("LIBRARY_SEARCH_PATHS")
     public static let LIBTOOL = BuiltinMacros.declarePathMacro("LIBTOOL")
     public static let LIBTOOL_DEPENDENCY_INFO_FILE = BuiltinMacros.declarePathMacro("LIBTOOL_DEPENDENCY_INFO_FILE")
+    public static let LIBTOOL_USE_RESPONSE_FILE = BuiltinMacros.declareBooleanMacro("LIBTOOL_USE_RESPONSE_FILE")
     public static let LINKER = BuiltinMacros.declareStringMacro("LINKER")
     public static let ALTERNATE_LINKER = BuiltinMacros.declareStringMacro("ALTERNATE_LINKER")
     public static let LINK_OBJC_RUNTIME = BuiltinMacros.declareBooleanMacro("LINK_OBJC_RUNTIME")
@@ -851,6 +852,7 @@ public final class BuiltinMacros {
     public static let MODULEMAP_FILE_CONTENTS = BuiltinMacros.declareStringMacro("MODULEMAP_FILE_CONTENTS")
     public static let MODULEMAP_PATH = BuiltinMacros.declareStringMacro("MODULEMAP_PATH")
     public static let MODULEMAP_PRIVATE_FILE = BuiltinMacros.declareStringMacro("MODULEMAP_PRIVATE_FILE")
+    public static let GENERATED_MODULEMAPS_USE_SYSTEM = BuiltinMacros.declareBooleanMacro("GENERATED_MODULEMAPS_USE_SYSTEM")
     public static let MODULES_FOLDER_PATH = BuiltinMacros.declarePathMacro("MODULES_FOLDER_PATH")
     public static let MODULE_VERIFIER_KIND = BuiltinMacros.declareEnumMacro("MODULE_VERIFIER_KIND") as EnumMacroDeclaration<ModuleVerifierKind>
     public static let MODULE_VERIFIER_LSV = BuiltinMacros.declareBooleanMacro("MODULE_VERIFIER_LSV")
@@ -975,6 +977,7 @@ public final class BuiltinMacros {
     public static let SUPPORTS_TEXT_BASED_API = BuiltinMacros.declareBooleanMacro("SUPPORTS_TEXT_BASED_API")
     public static let SWIFT_AUTOLINK_EXTRACT_OUTPUT_PATH = BuiltinMacros.declarePathMacro("SWIFT_AUTOLINK_EXTRACT_OUTPUT_PATH")
     public static let PLATFORM_REQUIRES_SWIFT_AUTOLINK_EXTRACT = BuiltinMacros.declareBooleanMacro("PLATFORM_REQUIRES_SWIFT_AUTOLINK_EXTRACT")
+    public static let PLATFORM_REQUIRES_SWIFT_MODULEWRAP = BuiltinMacros.declareBooleanMacro("PLATFORM_REQUIRES_SWIFT_MODULEWRAP")
     public static let SWIFT_ABI_CHECKER_BASELINE_DIR = BuiltinMacros.declareStringMacro("SWIFT_ABI_CHECKER_BASELINE_DIR")
     public static let SWIFT_ABI_CHECKER_EXCEPTIONS_FILE = BuiltinMacros.declareStringMacro("SWIFT_ABI_CHECKER_EXCEPTIONS_FILE")
     public static let SWIFT_ABI_GENERATION_TOOL_OUTPUT_DIR = BuiltinMacros.declareStringMacro("SWIFT_ABI_GENERATION_TOOL_OUTPUT_DIR")
@@ -1148,7 +1151,6 @@ public final class BuiltinMacros {
     public static let TARGET_DEVICE_OS_VERSION = BuiltinMacros.declareStringMacro("TARGET_DEVICE_OS_VERSION")
     public static let TARGET_DEVICE_PLATFORM_NAME = BuiltinMacros.declareStringMacro("TARGET_DEVICE_PLATFORM_NAME")
 
-    public static let DISABLE_SDK_METADATA_PARSING = BuiltinMacros.declareBooleanMacro("DISABLE_SDK_METADATA_PARSING")
     public static let RC_ARCHS = BuiltinMacros.declareStringListMacro("RC_ARCHS")
     public static let RC_BASE_PROJECT_NAME = BuiltinMacros.declareStringMacro("RC_BASE_PROJECT_NAME")
     public static let RC_ProjectName = BuiltinMacros.declareStringMacro("RC_ProjectName")
@@ -1184,6 +1186,8 @@ public final class BuiltinMacros {
     public static let INFOPLIST_KEY_NSPrincipalClass = BuiltinMacros.declareStringMacro("INFOPLIST_KEY_NSPrincipalClass")
 
     // Info.plist Keys - Usage Descriptions
+    public static let INFOPLIST_KEY_ITSAppUsesNonExemptEncryption = BuiltinMacros.declareBooleanMacro("INFOPLIST_KEY_ITSAppUsesNonExemptEncryption")
+    public static let INFOPLIST_KEY_ITSEncryptionExportComplianceCode = BuiltinMacros.declareStringMacro("INFOPLIST_KEY_ITSEncryptionExportComplianceCode")
     public static let INFOPLIST_KEY_NFCReaderUsageDescription = BuiltinMacros.declareStringMacro("INFOPLIST_KEY_NFCReaderUsageDescription")
     public static let INFOPLIST_KEY_NSAppleEventsUsageDescription = BuiltinMacros.declareStringMacro("INFOPLIST_KEY_NSAppleEventsUsageDescription")
     public static let INFOPLIST_KEY_NSAppleMusicUsageDescription = BuiltinMacros.declareStringMacro("INFOPLIST_KEY_NSAppleMusicUsageDescription")
@@ -1584,7 +1588,6 @@ public final class BuiltinMacros {
         DISABLE_INFOPLIST_PLATFORM_PROCESSING,
         DISABLE_MANUAL_TARGET_ORDER_BUILD_WARNING,
         DISABLE_STALE_FILE_REMOVAL,
-        DISABLE_SDK_METADATA_PARSING,
         DISABLE_TEST_HOST_PLATFORM_PROCESSING,
         DISABLE_XCFRAMEWORK_SIGNATURE_VALIDATION,
         DOCC_ARCHIVE_PATH,
@@ -1861,6 +1864,7 @@ public final class BuiltinMacros {
         LIBRARY_SEARCH_PATHS,
         LIBTOOL,
         LIBTOOL_DEPENDENCY_INFO_FILE,
+        LIBTOOL_USE_RESPONSE_FILE,
         LINKER,
         LINK_OBJC_RUNTIME,
         LINK_WITH_STANDARD_LIBRARIES,
@@ -1916,6 +1920,7 @@ public final class BuiltinMacros {
         MODULEMAP_FILE_CONTENTS,
         MODULEMAP_PATH,
         MODULEMAP_PRIVATE_FILE,
+        GENERATED_MODULEMAPS_USE_SYSTEM,
         MODULES_FOLDER_PATH,
         MODULE_CACHE_DIR,
         MODULE_NAME,
@@ -2126,6 +2131,7 @@ public final class BuiltinMacros {
         SUPPORTS_TEXT_BASED_API,
         SWIFT_AUTOLINK_EXTRACT_OUTPUT_PATH,
         PLATFORM_REQUIRES_SWIFT_AUTOLINK_EXTRACT,
+        PLATFORM_REQUIRES_SWIFT_MODULEWRAP,
         SWIFT_ABI_CHECKER_BASELINE_DIR,
         SWIFT_ABI_CHECKER_EXCEPTIONS_FILE,
         SWIFT_ABI_GENERATION_TOOL_OUTPUT_DIR,
@@ -2392,6 +2398,8 @@ public final class BuiltinMacros {
         INFOPLIST_KEY_NSPrincipalClass,
 
         // Info.plist Keys - Usage Descriptions
+        INFOPLIST_KEY_ITSAppUsesNonExemptEncryption,
+        INFOPLIST_KEY_ITSEncryptionExportComplianceCode,
         INFOPLIST_KEY_NFCReaderUsageDescription,
         INFOPLIST_KEY_NSAppleEventsUsageDescription,
         INFOPLIST_KEY_NSAppleMusicUsageDescription,

@@ -50,7 +50,19 @@ extension Core {
         // When this code is being loaded directly via unit tests, find the running Xcode path.
         //
         // This is a "well known" launch parameter set in Xcode's schemes.
-        let developerPath = getEnvironmentVariable("XCODE_DEVELOPER_DIR_PATH").map(Path.init)
+        let developerPath: Path?
+        if let xcodeDeveloperDirPath = getEnvironmentVariable("XCODE_DEVELOPER_DIR_PATH").map(Path.init) {
+            developerPath = xcodeDeveloperDirPath
+        } else {
+            // In the context of auto-generated package schemes, try to infer the active Xcode.
+            let potentialDeveloperPath = getEnvironmentVariable("PATH")?.components(separatedBy: String(Path.pathEnvironmentSeparator)).first.map(Path.init)?.dirname.dirname
+            let versionInfo = potentialDeveloperPath?.dirname.join("version.plist")
+            if let versionInfo = versionInfo, (try? PropertyList.fromPath(versionInfo, fs: localFS))?.dictValue?["ProjectName"] == "IDEApplication" {
+                developerPath = potentialDeveloperPath
+            } else {
+                developerPath = nil
+            }
+        }
 
         // Unset variables which may interfere with testing in Swift CI
         for variable in ["SWIFT_EXEC", "SWIFT_DRIVER_SWIFT_FRONTEND_EXEC", "SWIFT_DRIVER_SWIFT_EXEC"] {

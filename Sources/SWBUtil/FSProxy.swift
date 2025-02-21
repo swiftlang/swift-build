@@ -759,7 +759,10 @@ class LocalFS: FSProxy, @unchecked Sendable {
 
     func listExtendedAttributes(_ path: Path) throws -> [String] {
         #if os(Windows)
-        // no xattrs on Windows
+        // Implement ADS on Windows? See also https://github.com/swiftlang/swift-foundation/issues/1166
+        return []
+        #elseif os(OpenBSD)
+        // OpenBSD no longer supports extended attributes
         return []
         #else
         #if canImport(Darwin)
@@ -797,7 +800,9 @@ class LocalFS: FSProxy, @unchecked Sendable {
 
     func setExtendedAttribute(_ path: Path, key: String, value: ByteString) throws {
         #if os(Windows)
-        // no xattrs on Windows
+        // Implement ADS on Windows? See also https://github.com/swiftlang/swift-foundation/issues/1166
+        #elseif os(OpenBSD)
+        // OpenBSD no longer supports extended attributes
         #else
         try value.bytes.withUnsafeBufferPointer { buf throws -> Void in
             #if canImport(Darwin)
@@ -814,7 +819,11 @@ class LocalFS: FSProxy, @unchecked Sendable {
 
     func getExtendedAttribute(_ path: Path, key: String) throws -> ByteString? {
         #if os(Windows)
-        return nil // no xattrs on Windows
+        // Implement ADS on Windows? See also https://github.com/swiftlang/swift-foundation/issues/1166
+        return nil
+        #elseif os(OpenBSD)
+        // OpenBSD no longer supports extended attributes
+        return nil
         #else
         var bufferSize = 4096
         repeat {

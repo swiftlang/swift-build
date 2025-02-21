@@ -113,8 +113,9 @@ public final class Toolchain: Hashable, Sendable {
             data = try PropertyList.fromPath(toolchainInfoPath, fs: fs)
         } catch {
             if path.fileExtension != "xctoolchain" && operatingSystem == .windows {
-                // Windows toolchains do not have any metadata files that define a version, so the version needs to be derived from the path.
+                // Windows toolchains do not have any metadata files that define a version (ToolchainInfo.plist is only present in Swift 6.2+ toolchains), so the version needs to be derived from the path.
                 // Use the directory name to scrape the semantic version from.
+                // This branch can be removed once we no longer need to work with toolchains older than Swift 6.2.
                 let pattern = #/^(?<major>0|[1-9][0-9]*)\.(?<minor>0|[1-9][0-9]*)\.(?<patch>0|[1-9][0-9]*)(-(0|[1-9A-Za-z-][0-9A-Za-z-]*)(\.[0-9A-Za-z-]+)*)?(\+[0-9A-Za-z-]+(\.[0-9A-Za-z-]+)*)?$/#
                 guard let match = try pattern.wholeMatch(in: path.basename) else {
                     throw StubError.error("Unable to extract version from toolchain directory name in \(path.str)")
@@ -273,6 +274,7 @@ public final class Toolchain: Hashable, Sendable {
             defaultSettingsWhenPrimary = settingsItems
         }
         defaultSettingsWhenPrimary["TOOLCHAIN_DIR"] = .plString(path.str)
+        defaultSettingsWhenPrimary["TOOLCHAIN_VERSION"] = .plString(version.description)
 
         var executableSearchPaths = [
             path.join("usr").join("bin"),
@@ -389,6 +391,7 @@ extension Array where Element == Toolchain {
 /// The ToolchainRegistry manages the set of registered toolchains.
 public final class ToolchainRegistry: @unchecked Sendable {
     let fs: any FSProxy
+    let hostOperatingSystem: OperatingSystem
 
     /// The map of toolchains by identifier.
     @_spi(Testing) public private(set) var toolchainsByIdentifier = Dictionary<String, Toolchain>()
@@ -402,6 +405,7 @@ public final class ToolchainRegistry: @unchecked Sendable {
 
     @_spi(Testing) public init(delegate: any ToolchainRegistryDelegate, searchPaths: [(Path, strict: Bool)], fs: any FSProxy, hostOperatingSystem: OperatingSystem) async {
         self.fs = fs
+        self.hostOperatingSystem = hostOperatingSystem
 
         for (path, strict) in searchPaths {
             if !strict && !fs.exists(path) {
@@ -440,10 +444,23 @@ public final class ToolchainRegistry: @unchecked Sendable {
             return
         }
 
-        if let swift = StackedSearchPath(environment: ProcessInfo.processInfo.cleanEnvironment, fs: fs).lookup(Path("swift")), fs.exists(swift) && swift.normalize().str.hasSuffix("/usr/bin/swift") {
-            let path = swift.dirname.dirname.dirname
-            let llvmDirectories = try fs.listdir(Path("/usr/lib")).filter { $0.hasPrefix("llvm-") }.sorted().reversed()
-            try register(Toolchain(Self.defaultToolchainIdentifier, "Default", Version(), [], path, [], llvmDirectories.map { "/usr/lib/\($0)/lib" } + ["/usr/lib64"], [:], [:], [:], executableSearchPaths: [path.join("usr").join("bin"), path.join("usr").join("local").join("bin"),  path.join("usr").join("libexec")], fs: fs))
+        if let swift = StackedSearchPath(environment: ProcessInfo.processInfo.cleanEnvironment, fs: fs).lookup(Path("swift")), fs.exists(swift) {
+            let hasUsrBin = swift.normalize().str.hasSuffix("/usr/bin/swift")
+            let hasUsrLocalBin = swift.normalize().str.hasSuffix("/usr/local/bin/swift")
+            let path: Path
+            switch (hasUsrBin, hasUsrLocalBin) {
+            case (true, false):
+                path = swift.dirname.dirname.dirname
+            case (false, true):
+                path = swift.dirname.dirname.dirname.dirname
+            case (false, false):
+                return
+            case (true, true):
+                preconditionFailure()
+            }
+            let llvmDirectories = try Array(fs.listdir(Path("/usr/lib")).filter { $0.hasPrefix("llvm-") }.sorted().reversed())
+            let llvmDirectoriesLocal = try Array(fs.listdir(Path("/usr/local")).filter { $0.hasPrefix("llvm") }.sorted().reversed())
+            try register(Toolchain(Self.defaultToolchainIdentifier, "Default", Version(), [], path, [], llvmDirectories.map { "/usr/lib/\($0)/lib" } + llvmDirectoriesLocal.map { "/usr/local/\($0)/lib" } + ["/usr/lib64"], [:], [:], [:], executableSearchPaths: [path.join("usr").join("bin"), path.join("usr").join("local").join("bin"),  path.join("usr").join("libexec")], fs: fs))
         }
     }
 
@@ -491,8 +508,20 @@ public final class ToolchainRegistry: @unchecked Sendable {
     /// Look up the toolchain with the given identifier.
     public func lookup(_ identifier: String) -> Toolchain? {
         let lowercasedIdentifier = identifier.lowercased()
-        let identifier = ["default", "xcode"].contains(lowercasedIdentifier) ? ToolchainRegistry.defaultToolchainIdentifier : identifier
-        return toolchainsByIdentifier[identifier] ?? toolchainsByAlias[lowercasedIdentifier]
+        if hostOperatingSystem == .macOS {
+            if ["default", "xcode"].contains(lowercasedIdentifier) {
+                return toolchainsByIdentifier[ToolchainRegistry.defaultToolchainIdentifier] ?? toolchainsByAlias[lowercasedIdentifier]
+            } else {
+                return toolchainsByIdentifier[identifier] ?? toolchainsByAlias[lowercasedIdentifier]
+            }
+        } else {
+            // On non-Darwin, assume if there is only one registered toolchain, it is the default.
+            if ["default", "xcode"].contains(lowercasedIdentifier) || identifier == ToolchainRegistry.defaultToolchainIdentifier {
+                return toolchainsByIdentifier[ToolchainRegistry.defaultToolchainIdentifier] ?? toolchainsByAlias[lowercasedIdentifier] ?? toolchainsByIdentifier.values.only
+            } else {
+                return toolchainsByIdentifier[identifier] ?? toolchainsByAlias[lowercasedIdentifier]
+            }
+        }
     }
 
     public var defaultToolchain: Toolchain? {

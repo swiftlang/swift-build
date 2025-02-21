@@ -914,18 +914,8 @@ public final class SwiftCommandOutputParser: TaskOutputParser {
             // Don't try to read diagnostics if the process exited with an uncaught signal as they were almost certainly not written in this case.
             let serializedDiagnosticsPaths = subtask.nonEmptyDiagnosticsPaths(fs: workspaceContext.fs)
             if !serializedDiagnosticsPaths.isEmpty {
-                let serializedDiagnostics = serializedDiagnosticsPaths.flatMap { path in
+                for path in serializedDiagnosticsPaths {
                     subtask.delegate.processSerializedDiagnostics(at: path, workingDirectory: workingDirectory, workspaceContext: workspaceContext)
-                }
-
-                // Emit an additional diagnostic for missing frameworks that match the names of Apple SDK frameworks known to not be present in the current platform SDK.
-                if let configuredTarget = task?.forTarget {
-                    // Due to rdar://53726633, the actual target instance needs to be re-fetched instead of used directly, when retrieving the settings.
-                    if let target = workspaceContext.workspace.target(for: configuredTarget.target.guid), let settings = buildRequestContext.getCachedSettings(configuredTarget.parameters, target: target) as Settings?, !settings.globalScope.evaluate(BuiltinMacros.DISABLE_SDK_METADATA_PARSING), let sdk = settings.sdk {
-                        DiagnosticsEngine.generateMissingFrameworkDiagnostics(usingSerializedDiagnostics: serializedDiagnostics, settings: settings, infoLookup: workspaceContext.core, sdk: sdk, sdkVariant: settings.sdkVariant, missingFrameworkNames: workspaceContext.core.sdkRegistry.knownUnavailableFrameworksForSDK(sdk, sdkVariant: settings.sdkVariant), frameworkDeprecationInfo: workspaceContext.core.sdkRegistry.frameworkReplacementInfoForSDK(sdk, sdkVariant: settings.sdkVariant), diagnosticMessageRegexes: [SwiftCommandOutputParser.noSuchModuleRegEx], context: .swiftCompiler) { originalDiagnostic, newDiagnostic in
-                            subtask.delegate.diagnosticsEngine.emit(newDiagnostic)
-                        }
-                    }
                 }
             }
 
@@ -2127,6 +2117,11 @@ public final class SwiftCompilerSpec : CompilerSpec, SpecIdentifierType, SwiftDi
                 return (inputs, outputs)
             }()
 
+            if cbc.scope.evaluate(BuiltinMacros.PLATFORM_REQUIRES_SWIFT_MODULEWRAP) && cbc.scope.evaluate(BuiltinMacros.GCC_GENERATE_DEBUGGING_SYMBOLS) {
+                let moduleWrapOutput = Path(moduleFilePath.withoutSuffix + ".o")
+                moduleOutputPaths.append(moduleWrapOutput)
+            }
+
             // Add const metadata outputs to extra compilation outputs
             if await supportConstSupplementaryMetadata(cbc, delegate, compilationMode: compilationMode) {
                 // If using whole module optimization then we use the -master.swiftconstvalues file from the sole compilation task.
@@ -2963,7 +2958,7 @@ public final class SwiftCompilerSpec : CompilerSpec, SpecIdentifierType, SwiftDi
             // be a source-less target which just contains object files in it's framework phase.
             let currentPlatformFilter = PlatformFilter(scope)
             let containsSources = (producer.configuredTarget?.target as? StandardTarget)?.sourcesBuildPhase?.buildFiles.filter { currentPlatformFilter.matches($0.platformFilters) }.isEmpty == false
-            if containsSources && inputFileTypes.contains(where: { $0.conformsTo(identifier: "sourcecode.swift") }) && scope.evaluate(BuiltinMacros.GCC_GENERATE_DEBUGGING_SYMBOLS) {
+            if containsSources && inputFileTypes.contains(where: { $0.conformsTo(identifier: "sourcecode.swift") }) && scope.evaluate(BuiltinMacros.GCC_GENERATE_DEBUGGING_SYMBOLS) && !scope.evaluate(BuiltinMacros.PLATFORM_REQUIRES_SWIFT_MODULEWRAP) {
                 let moduleName = scope.evaluate(BuiltinMacros.SWIFT_MODULE_NAME)
                 let moduleFileDir = scope.evaluate(BuiltinMacros.PER_ARCH_MODULE_FILE_DIR)
                 let moduleFilePath = moduleFileDir.join(moduleName + ".swiftmodule")

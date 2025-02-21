@@ -120,9 +120,6 @@ public final class SDK: Sendable {
     /// SDK variants, mapped by their name.  Each variant can define a set of additional settings that a target can opt into by setting `SDK_VARIANT`.
     @_spi(Testing) public let variants: [String: SDKVariant]
 
-    /// Additional framework directories to use when assembling the list of all frameworks vended by this SDK.
-    private let additionalKnownFrameworkDirectories: [Path]
-
     /// Get the SDK variant for the given name.
     public func variant(for name: String) -> SDKVariant? {
         // Unfortunately on macOS the default variant name 'macos' doesn't match the corresponding supported target name 'macosx'.  Since there are already projects expecting SDK_VARIANT to be 'macos', we prefer that name.
@@ -165,69 +162,7 @@ public final class SDK: Sendable {
     /// Note that this is technically "broken" for macOS, as the third version component in practice is more like a minor version, and macOS does not have true patch versions, but we'll respect the value in the SDK as-is for now.
     @_spi(Testing) public let maximumDeploymentTarget: Version?
 
-    /// The list of all known frameworks in this SDK, across all variants.
-    ///
-    /// This is thread-safe and cached at first call.
-    @_spi(Testing) public var knownFrameworkNames: Set<String> {
-        return knownFrameworkNamesCache.getValue(self)
-    }
-
-    /// The list of all known frameworks in this SDK, filtered for the specified variant.
-    ///
-    /// This is effectively the same as `knownFrameworkNames` but removes frameworks which only exist in macCatalyst-exclusive search paths, from the `macos` variant of the macOS SDK.
-    ///
-    /// This is thread-safe and cached at first call.
-    @_spi(Testing) public func knownFrameworkNames(for variant: SDKVariant?) -> Set<String> {
-        let key = String(describing: [canonicalName, variant?.name ?? ""])
-        return perVariantKnownFrameworkNamesCache.getValue((self, variant), forKey: key)
-    }
-
-    private let knownFrameworkNamesCache = LazyCache { (sdk: SDK) -> Set<String> in
-        if !sdk.variants.isEmpty {
-            return sdk.variants.map { _, variant in sdk.knownFrameworkNames(for: variant) }.reduce(Set<String>(), { $0.union($1) })
-        }
-        return sdk.knownFrameworkNames(for: nil)
-    }
-
-    private let perVariantKnownFrameworkNamesCache = LazyKeyValueCache<(SDK, SDKVariant?), String, Set<String>> { context, _ -> Set<String> in
-        let (sdk, sdkVariant) = context
-        let isDK = sdk.canonicalName.hasPrefix("driverkit")
-        let isMacCatalyst = sdkVariant?.isMacCatalyst == true
-
-        let dirs = isDK ? [sdk.path.join("System/DriverKit/System/Library/Frameworks")] : ([
-            sdk.path.join("../../../Developer/Library/Frameworks").normalize(),
-            sdk.path.join("Developer/Library/Frameworks"),
-            sdk.path.join("System/Library/Frameworks")
-        ] + (isMacCatalyst ? [sdk.path.join("System/iOSSupport/System/Library/Frameworks")] : [])) + sdk.additionalKnownFrameworkDirectories
-
-        let paths: [Path] = dirs.map { dir -> [Path?] in
-            do {
-                return try localFS.listdir(dir).concurrentMap { path -> Path? in
-                    if path.hasSuffix(".framework") {
-                        // Exclude underscore-prefixed modules - these should never appear in user visible diagnostics
-                        let frameworkName = Path(path).basenameWithoutSuffix
-                        if frameworkName.hasPrefix("_") {
-                            return nil
-                        }
-
-                        // Exclude macOS-only libraries -- if we fail to read the TBD file (or it's missing), we'll assume it's compatible
-                        let frameworkFullPath = dir.join(path)
-                        if isMacCatalyst, let tbd = try? TBDFile(frameworkFullPath.join(frameworkName + ".tbd")), !tbd.platforms.contains(.macCatalyst) {
-                            return nil
-                        }
-                        return frameworkFullPath
-                    }
-                    return nil
-                }
-            } catch {
-                return []
-            }
-        }.flatMap { $0 }.compactMap { $0 }
-
-        return Set(paths.map { $0.basenameWithoutSuffix })
-    }
-
-    init(_ canonicalName: String, canonicalNameComponents: CanonicalNameComponents?, _ aliases: Set<String>, _ cohortPlatforms: [String], _ displayName: String, _ path: Path, _ version: Version?, _ productBuildVersion: String?, _ defaultSettings: [String: PropertyListItem], _ overrideSettings: [String: PropertyListItem], _ variants: [String: SDKVariant], _ defaultDeploymentTarget: Version?, _ defaultVariant: SDKVariant?, _ searchPaths: (header: [Path], framework: [Path], library: [Path]), _ directoryMacros: [StringMacroDeclaration], _ isBaseSDK: Bool, _ fallbackSettingConditionValues: [String], _ toolchains: [String], _ versionMap: [String:[Version:Version]], _ maximumDeploymentTarget: Version?, additionalKnownFrameworkDirectories: [Path]) {
+    init(_ canonicalName: String, canonicalNameComponents: CanonicalNameComponents?, _ aliases: Set<String>, _ cohortPlatforms: [String], _ displayName: String, _ path: Path, _ version: Version?, _ productBuildVersion: String?, _ defaultSettings: [String: PropertyListItem], _ overrideSettings: [String: PropertyListItem], _ variants: [String: SDKVariant], _ defaultDeploymentTarget: Version?, _ defaultVariant: SDKVariant?, _ searchPaths: (header: [Path], framework: [Path], library: [Path]), _ directoryMacros: [StringMacroDeclaration], _ isBaseSDK: Bool, _ fallbackSettingConditionValues: [String], _ toolchains: [String], _ versionMap: [String:[Version:Version]], _ maximumDeploymentTarget: Version?) {
         self.canonicalName = canonicalName
         self.canonicalNameComponents = canonicalNameComponents
         self.aliases = aliases
@@ -250,7 +185,6 @@ public final class SDK: Sendable {
         self.toolchains = toolchains
         self.versionMap = versionMap
         self.maximumDeploymentTarget = maximumDeploymentTarget
-        self.additionalKnownFrameworkDirectories = additionalKnownFrameworkDirectories
 
         if defaultVariant == nil {
             // We sort the variant names so that we always pick the same one.
@@ -664,64 +598,6 @@ public final class SDKRegistry: SDKRegistryLookup, CustomStringConvertible, Send
         return try? self.lookup("macosx", activeRunDestination: nil)
     }
 
-    private let knownUnavailableFrameworksForSDKsCache = LazyKeyValueCache<(SDKRegistry, SDK, SDKVariant?), String, Set<String>> { context, _ -> Set<String> in
-        let (sdkRegistry, sdk, sdkVariant) = context
-        let allFrameworks = sdkRegistry.allSDKs.filter { $0.canonicalNameSuffix == sdk.canonicalNameSuffix }
-                                               .map({ $0.knownFrameworkNames })
-                                               .reduce(Set(), { $0.union($1) })
-        return allFrameworks.subtracting(sdk.knownFrameworkNames(for: sdkVariant))
-    }
-
-    /// Returns the list of all known frameworks in all registered SDKs, minus the frameworks available in the given SDK.
-    ///
-    /// This is thread-safe and cached at first call.
-    public func knownUnavailableFrameworksForSDK(_ sdk: SDK, sdkVariant: SDKVariant?) -> Set<String> {
-        let key = String(describing: [sdk.canonicalName, sdkVariant?.name ?? ""])
-        return knownUnavailableFrameworksForSDKsCache.getValue((self, sdk, sdkVariant), forKey: key)
-    }
-
-    /// Returns a map of deprecated framework names to their replacement framework names (if one exists), for the given SDK.
-    public func frameworkReplacementInfoForSDK(_ sdk: SDK, sdkVariant: SDKVariant?) -> [String: FrameworkReplacementKind] {
-        switch sdk.targetBuildVersionPlatform(sdkVariant: sdkVariant) {
-        case .macOS?:
-            return [
-                "AddressBook": .deprecated(replacement: "Contacts"),
-                "GLKit": .deprecated(replacement: "MetalKit"),
-                "OpenGL": .deprecated(replacement: "Metal"),
-                "Testing": .conditionallyAvailableSuccessor(original: "XCTest"),
-            ]
-        case .iOS?, .iOSSimulator?, .macCatalyst?:
-            return [
-                "AddressBook": .deprecated(replacement: "Contacts"),
-                "AddressBookUI": .deprecated(replacement: "ContactsUI"),
-                "AssetsLibrary": .deprecated(replacement: "Photos"),
-                "GLKit": .deprecated(replacement: "MetalKit"),
-                "MobileCoreServices": .renamed(replacement: "CoreServices"),
-                "NewsstandKit": .deprecated(replacement: nil),
-                "OpenGLES": .deprecated(replacement: "Metal"),
-                "Testing": .conditionallyAvailableSuccessor(original: "XCTest"),
-            ]
-        case .tvOS?, .tvOSSimulator?:
-            return [
-                "GLKit": .deprecated(replacement: "MetalKit"),
-                "MobileCoreServices": .renamed(replacement: "CoreServices"),
-                "OpenGLES": .deprecated(replacement: "Metal"),
-                "Testing": .conditionallyAvailableSuccessor(original: "XCTest"),
-            ]
-        case .watchOS?, .watchOSSimulator?:
-            return [
-                "MobileCoreServices": .renamed(replacement: "CoreServices"),
-                "Testing": .conditionallyAvailableSuccessor(original: "XCTest"),
-            ]
-        case .xrOS?, .xrOSSimulator?:
-            return [
-                "Testing": .conditionallyAvailableSuccessor(original: "XCTest"),
-            ]
-        default:
-            return [:]
-        }
-    }
-
     @_spi(Testing) public init(delegate: any SDKRegistryDelegate, searchPaths: [(Path, Platform?)], type: SDKRegistryType, hostOperatingSystem: OperatingSystem) {
         self.delegate = delegate
         self.type = type
@@ -749,9 +625,6 @@ public final class SDKRegistry: SDKRegistryLookup, CustomStringConvertible, Send
         switch operatingSystem {
         case .linux:
             defaultProperties = [
-                // Workaround to avoid `-add_ast_path` on Linux, apparently this needs to perform some "swift modulewrap" step instead.
-                "GCC_GENERATE_DEBUGGING_SYMBOLS": .plString("NO"),
-
                 // Workaround to avoid `-dependency_info` on Linux.
                 "LD_DEPENDENCY_INFO_FILE": .plString(""),
 
@@ -759,6 +632,7 @@ public final class SDKRegistry: SDKRegistryLookup, CustomStringConvertible, Send
                 "GENERATE_INTERMEDIATE_TEXT_BASED_STUBS": "NO",
 
                 "CHOWN": "/usr/bin/chown",
+                "AR": "llvm-ar",
             ]
         case .windows:
             defaultProperties = [
@@ -1198,13 +1072,9 @@ public final class SDKRegistry: SDKRegistryLookup, CustomStringConvertible, Send
         @preconcurrency @PluginExtensionSystemActor func extensions() -> [any SDKRegistryExtensionPoint.ExtensionProtocol] {
             delegate.pluginManager.extensions(of: SDKRegistryExtensionPoint.self)
         }
-        var additionalKnownFrameworkDirectories: [Path] = []
-        for `extension` in extensions() {
-            additionalKnownFrameworkDirectories.append(contentsOf: `extension`.additionalKnownFrameworkDirectories(for: canonicalName, sdkPath: path))
-        }
 
         // Construct the SDK and add it to the registry.
-        let sdk = SDK(canonicalName, canonicalNameComponents: try? parseSDKName(canonicalName), aliases, cohortPlatforms, displayName, path, version, productBuildVersion, defaultSettings, overrideSettings, variants, defaultDeploymentTarget, defaultVariant, (headerSearchPaths, frameworkSearchPaths, librarySearchPaths), directoryMacros.elements, isBaseSDK, fallbackSettingConditionValues, toolchains, versionMap, maximumDeploymentTarget, additionalKnownFrameworkDirectories: additionalKnownFrameworkDirectories)
+        let sdk = SDK(canonicalName, canonicalNameComponents: try? parseSDKName(canonicalName), aliases, cohortPlatforms, displayName, path, version, productBuildVersion, defaultSettings, overrideSettings, variants, defaultDeploymentTarget, defaultVariant, (headerSearchPaths, frameworkSearchPaths, librarySearchPaths), directoryMacros.elements, isBaseSDK, fallbackSettingConditionValues, toolchains, versionMap, maximumDeploymentTarget)
         if let duplicate = sdksByCanonicalName[canonicalName] {
             delegate.error(path, "SDK '\(canonicalName)' already registered from \(duplicate.path.str)")
             return nil

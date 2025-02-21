@@ -1785,7 +1785,7 @@ fileprivate struct TaskConstructionTests: CoreBasedTests {
                                                    "-o", targetObjectsPerArchBuildDir.join("Binary/\(libSupportFileName)").str
                                                   ])
                         case .linux:
-                            task.checkCommandLine(["ar", "rcs", targetBuildDir.join(libSupportFileName).str, "@\(targetObjectsPerArchBuildDir.join("Support.LinkFileList").str)"])
+                            task.checkCommandLine(["llvm-ar", "rcs", targetBuildDir.join(libSupportFileName).str, "@\(targetObjectsPerArchBuildDir.join("Support.LinkFileList").str)"])
                         case .windows:
                             task.checkCommandLine(["llvm-lib.exe",
                                                    "/out:\(architectures.count > 1 ? targetObjectsPerArchBuildDir.join("Binary/\(libSupportFileName)").str : targetBuildDir.join(libSupportFileName).str)",
@@ -8585,6 +8585,54 @@ fileprivate struct TaskConstructionTests: CoreBasedTests {
                     results.checkTask(.matchTarget(target), .matchRuleType("Ld")) { task in
                         task.checkCommandLineMatches(["-w"])
                     }
+                }
+            }
+        }
+    }
+
+    @Test(.requireSDKs(.host))
+    func deterministicBuildDirectoryInputOrdering() async throws {
+        try await withTemporaryDirectory { tmpDir in
+            let testProject = try await TestPackageProject(
+                "aProject",
+                sourceRoot: tmpDir,
+                groupTree: TestGroup(
+                    "SomeFiles",
+                    children: [
+                        TestFile("main.swift"),
+                    ]),
+                buildConfigurations: [
+                    TestBuildConfiguration("Debug", buildSettings: [
+                        "PRODUCT_NAME": "$(TARGET_NAME)",
+                        "SWIFT_EXEC": swiftCompilerPath.str,
+                        "SWIFT_VERSION": try await swiftVersion,
+                        "SUPPORTED_PLATFORMS": "$(HOST_PLATFORM)",
+                        "SDKROOT": "$(HOST_PLATFORM)",
+                        "LIBRARY_SEARCH_PATHS": "$(inherited) $(BUILT_PRODUCTS_DIR)/PackageFrameworks"
+                    ]),
+                ],
+                targets: [
+                    TestStandardTarget(
+                        "swifttool", type: .commandLineTool,
+                        buildConfigurations: [
+                            TestBuildConfiguration("Debug", buildSettings: [
+                                "PRODUCT_NAME": "$(TARGET_NAME)",
+                            ]),
+                        ],
+                        buildPhases: [
+                            TestSourcesBuildPhase(["main.swift"]),
+                        ],
+                        dependencies: []
+                    ),
+                ])
+            let tester = try await TaskConstructionTester(getCore(), testProject)
+            try await tester.checkBuild(BuildParameters(action: .install, configuration: "Debug"), runDestination: .host) { results in
+                try results.checkTask(.matchRuleType("Ld")) { task in
+                    results.checkNoDiagnostics()
+                    let debugIndex = try #require(task.inputs.firstIndex { $0.path.basename.hasPrefix("Debug") })
+                    let packageFrameworksIndex = try #require(task.inputs.firstIndex { $0.path.basename == "PackageFrameworks" })
+                    // Ensure the build directory input order is stable
+                    #expect(debugIndex < packageFrameworksIndex)
                 }
             }
         }

@@ -142,7 +142,7 @@ fileprivate struct ClangTests: CoreBasedTests {
         }
     }
 
-    @Test(.skipHostOS(.windows, "clang-cache is not available on Windows"), .requireSDKs(.host))
+    @Test(.skipHostOS(.windows, "clang-cache is not available on Windows"), .skipHostOS(.linux, "test is incompatible with linux fallback system toolchain mechanism"), .requireSDKs(.host))
     func clangCacheEnableLauncher() async throws {
         let runDestination: RunDestinationInfo = .host
         let clangCachePath: String = switch runDestination {

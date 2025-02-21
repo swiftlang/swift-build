@@ -697,6 +697,57 @@ fileprivate struct ModuleMapTaskConstructionTests: CoreBasedTests {
     }
 
     @Test(.requireSDKs(.macOS))
+    func moduleMapGenerationSystemInference() async throws {
+        let testProject = TestProject(
+            "Project",
+            groupTree: TestGroup(
+                "Group",
+                children: [
+                    TestFile("CookieCutter.h"),
+                    TestFile("CSource.c"),
+                ]),
+            buildConfigurations: [
+                TestBuildConfiguration("Debug", buildSettings: [
+                    "DEFINES_MODULE": "YES",
+                    "PRODUCT_NAME": "$(TARGET_NAME)",
+                    "GENERATE_INFOPLIST_FILE": "YES",
+                    "INSTALL_PATH": "/System/Library/Frameworks",
+                ])
+            ],
+            targets: [
+                TestStandardTarget(
+                    "CookieCutter",
+                    type: .framework,
+                    buildPhases: [
+                        TestHeadersBuildPhase([
+                            TestBuildFile("CookieCutter.h", headerVisibility: .public),
+                        ]),
+                        TestSourcesBuildPhase([
+                            "CSource.c",
+                        ]),
+                    ]
+                ),
+            ])
+        let tester = try await TaskConstructionTester(getCore(), testProject)
+        let SRCROOT = tester.workspace.projects[0].sourceRoot.str
+
+        await tester.checkBuild() { results in
+            results.checkTarget("CookieCutter") { target in
+                results.checkWriteAuxiliaryFileTask(.matchTarget(target), .matchRule(["WriteAuxiliaryFile", "\(SRCROOT)/build/Project.build/Debug/CookieCutter.build/module.modulemap"])) { task, contents in
+                    #expect(contents == (OutputByteStream()
+                                         <<< "framework module CookieCutter [system] {\n"
+                                         <<< "  umbrella header \"CookieCutter.h\"\n"
+                                         <<< "  export *\n"
+                                         <<< "\n"
+                                         <<< "  module * { export * }\n"
+                                         <<< "}\n").bytes)
+                }
+            }
+            results.checkNoDiagnostics()
+        }
+    }
+
+    @Test(.requireSDKs(.macOS))
     func staticModuleMapContents() async throws {
         let testProject = try await TestProject(
             "Project",

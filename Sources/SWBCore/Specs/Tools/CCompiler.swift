@@ -321,14 +321,7 @@ final class ClangOutputParser: TaskOutputParser {
         if result.shouldSkipParsingDiagnostics { return }
 
         for path in task.type.serializedDiagnosticsPaths(task, workspaceContext.fs) {
-            let serializedDiagnostics = delegate.processSerializedDiagnostics(at: path, workingDirectory: task.workingDirectory, workspaceContext: workspaceContext)
-
-            // Emit an additional diagnostic for missing frameworks that match the names of Apple SDK frameworks known to not be present in the current platform SDK.
-            if let configuredTarget = task.forTarget, let target = workspaceContext.workspace.target(for: configuredTarget.target.guid), let settings = buildRequestContext.getCachedSettings(configuredTarget.parameters, target: target) as Settings?, !settings.globalScope.evaluate(BuiltinMacros.DISABLE_SDK_METADATA_PARSING), let sdk = settings.sdk {
-                DiagnosticsEngine.generateMissingFrameworkDiagnostics(usingSerializedDiagnostics: serializedDiagnostics, settings: settings, infoLookup: workspaceContext.core, sdk: sdk, sdkVariant: settings.sdkVariant, missingFrameworkNames: workspaceContext.core.sdkRegistry.knownUnavailableFrameworksForSDK(sdk, sdkVariant: settings.sdkVariant), frameworkDeprecationInfo: workspaceContext.core.sdkRegistry.frameworkReplacementInfoForSDK(sdk, sdkVariant: settings.sdkVariant), diagnosticMessageRegexes: [ClangOutputParserRegex.headerNotFoundRegEx, ClangOutputParserRegex.moduleNotFoundRegEx], context: .cxxCompiler) { originalDiagnostic, newDiagnostic in
-                    delegate.diagnosticsEngine.emit(newDiagnostic)
-                }
-            }
+            delegate.processSerializedDiagnostics(at: path, workingDirectory: task.workingDirectory, workspaceContext: workspaceContext)
         }
 
         // Read optimization remarks if the build succeeded.

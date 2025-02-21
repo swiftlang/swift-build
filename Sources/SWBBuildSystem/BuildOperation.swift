@@ -1446,7 +1446,7 @@ internal final class OperationSystemAdaptor: SWBLLBuild.BuildSystemDelegate, Act
             self.validateTargetCompletion(buildSucceeded: buildSucceeded)
 
             // If the build failed, make sure we flush any pending incremental build records.
-            // Usually, driver instances are cleaned up and write out their incremental build records when a target finishes building. However, this won't necesarily be the case if the build fails. Ensure we write out any pending records before tearing down the graph so we don't use a stale record on a subsequent build.
+            // Usually, driver instances are cleaned up and write out their incremental build records when a target finishes building. However, this won't necessarily be the case if the build fails. Ensure we write out any pending records before tearing down the graph so we don't use a stale record on a subsequent build.
             if !buildSucceeded {
                 self.dynamicOperationContext.swiftModuleDependencyGraph.cleanUpForAllKeys()
             }
@@ -1488,7 +1488,7 @@ internal final class OperationSystemAdaptor: SWBLLBuild.BuildSystemDelegate, Act
     ///
     /// - returns: The active delegate, or nil if not found.
     func getActiveOutputDelegate(_ command: Command) -> (any TaskOutputDelegate)? {
-        // FIXME: This is a very bad idea, doing a sync against the response queue is introducing artifical latency when an in-process command needs to wait for the response queue to flush. However, we also can't simply move to a decoupled lock, because we don't want the command to start reporting output before it has been fully reported as having started. We need to move in-process task to another model.
+        // FIXME: This is a very bad idea, doing a sync against the response queue is introducing artificial latency when an in-process command needs to wait for the response queue to flush. However, we also can't simply move to a decoupled lock, because we don't want the command to start reporting output before it has been fully reported as having started. We need to move in-process task to another model.
         return queue.blocking_sync {
             self.commandOutputDelegates[command]
         }

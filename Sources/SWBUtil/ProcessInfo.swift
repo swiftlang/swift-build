@@ -200,6 +200,15 @@ extension ImageFormat {
             return false
         }
     }
+
+    public var requiresSwiftModulewrap: Bool {
+        switch self {
+        case .macho:
+            return false
+        default:
+            return true
+        }
+    }
 }
 
 extension FixedWidthInteger {

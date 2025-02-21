@@ -222,6 +222,180 @@ fileprivate struct BuildOperationTests: CoreBasedTests {
         }
     }
 
+    @Test(.requireSDKs(.host), .requireThreadSafeWorkingDirectory)
+    func debuggableCommandLineTool() async throws {
+        try await withTemporaryDirectory { (tmpDir: Path) in
+            let testProject = try await TestProject(
+                "TestProject",
+                sourceRoot: tmpDir,
+                groupTree: TestGroup(
+                    "SomeFiles",
+                    children: [
+                        TestFile("main.swift"),
+                        TestFile("dynamic.swift"),
+                        TestFile("static.swift"),
+                    ]),
+                buildConfigurations: [
+                    TestBuildConfiguration("Debug", buildSettings: [
+                        "ARCHS": "$(ARCHS_STANDARD)",
+                        "CODE_SIGNING_ALLOWED": ProcessInfo.processInfo.hostOperatingSystem() == .macOS ? "YES" : "NO",
+                        "CODE_SIGN_IDENTITY": "-",
+                        "CODE_SIGN_ENTITLEMENTS": "Entitlements.plist",
+                        "DEFINES_MODULE": "YES",
+                        "PRODUCT_NAME": "$(TARGET_NAME)",
+                        "SDKROOT": "$(HOST_PLATFORM)",
+                        "SUPPORTED_PLATFORMS": "$(HOST_PLATFORM)",
+                        "SWIFT_VERSION": swiftVersion,
+                        "GCC_GENERATE_DEBUGGING_SYMBOLS": "YES",
+                    ])
+                ],
+                targets: [
+                    TestStandardTarget(
+                        "tool",
+                        type: .commandLineTool,
+                        buildConfigurations: [
+                            TestBuildConfiguration("Debug", buildSettings: [
+                                "LD_RUNPATH_SEARCH_PATHS": "@loader_path/",
+                            ])
+                        ],
+                        buildPhases: [
+                            TestSourcesBuildPhase(["main.swift"]),
+                            TestFrameworksBuildPhase([
+                                TestBuildFile(.target("dynamiclib")),
+                                TestBuildFile(.target("staticlib")),
+                            ])
+                        ],
+                        dependencies: [
+                            "dynamiclib",
+                            "staticlib",
+                        ]
+                    ),
+                    TestStandardTarget(
+                        "dynamiclib",
+                        type: .dynamicLibrary,
+                        buildConfigurations: [
+                            TestBuildConfiguration("Debug", buildSettings: [
+                                "DYLIB_INSTALL_NAME_BASE": "$ORIGIN",
+                                "DYLIB_INSTALL_NAME_BASE[sdk=macosx*]": "@rpath",
+
+                                // FIXME: Find a way to make these default
+                                "EXECUTABLE_PREFIX": "lib",
+                                "EXECUTABLE_PREFIX[sdk=windows*]": "",
+                            ])
+                        ],
+                        buildPhases: [
+                            TestSourcesBuildPhase(["dynamic.swift"]),
+                        ]
+                    ),
+                    TestStandardTarget(
+                        "staticlib",
+                        type: .staticLibrary,
+                        buildConfigurations: [
+                            TestBuildConfiguration("Debug", buildSettings: [
+                                // FIXME: Find a way to make these default
+                                "EXECUTABLE_PREFIX": "lib",
+                                "EXECUTABLE_PREFIX[sdk=windows*]": "",
+                            ])
+                        ],
+                        buildPhases: [
+                            TestSourcesBuildPhase(["static.swift"]),
+                        ]
+                    ),
+                ])
+            let core = try await getCore()
+            let tester = try await BuildOperationTester(core, testProject, simulated: false)
+
+            let projectDir = tester.workspace.projects[0].sourceRoot
+
+            try await tester.fs.writeFileContents(projectDir.join("main.swift")) { stream in
+                stream <<< "import dynamiclib\n"
+                stream <<< "import staticlib\n"
+                stream <<< "dynamicLib()\n"
+                stream <<< "dynamicLib()\n"
+                stream <<< "staticLib()\n"
+                stream <<< "print(\"Hello world\")\n"
+            }
+
+            try await tester.fs.writeFileContents(projectDir.join("dynamic.swift")) { stream in
+                stream <<< "public func dynamicLib() { }"
+            }
+
+            try await tester.fs.writeFileContents(projectDir.join("static.swift")) { stream in
+                stream <<< "public func staticLib() { }"
+            }
+
+            try await tester.fs.writePlist(projectDir.join("Entitlements.plist"), .plDict([:]))
+
+            let provisioningInputs = [
+                "dynamiclib": ProvisioningTaskInputs(identityHash: "-", signedEntitlements: .plDict([:]), simulatedEntitlements: .plDict([:])),
+                "staticlib": ProvisioningTaskInputs(identityHash: "-", signedEntitlements: .plDict([:]), simulatedEntitlements: .plDict([:])),
+                "tool": ProvisioningTaskInputs(identityHash: "-", signedEntitlements: .plDict([:]), simulatedEntitlements: .plDict([:]))
+            ]
+
+            let destination: RunDestinationInfo = .host
+            try await tester.checkBuild(runDestination: destination, persistent: true, signableTargets: Set(provisioningInputs.keys), signableTargetInputs: provisioningInputs) { results in
+                results.checkNoErrors()
+                if core.hostOperatingSystem.imageFormat.requiresSwiftModulewrap {
+                    try results.checkTask(.matchTargetName("tool"), .matchRulePattern(["WriteAuxiliaryFile", .suffix("LinkFileList")])) { task in
+                        let auxFileAction = try #require(task.action as? AuxiliaryFileTaskAction)
+                        let contents = try tester.fs.read(auxFileAction.context.input).asString
+                        let files = contents.components(separatedBy: "\n").map { $0.trimmingCharacters(in: .whitespacesAndNewlines) }.filter { !$0.isEmpty }
+                        #expect(files.count == 2)
+                        #expect(files[0].hasSuffix("tool.o"))
+                        #expect(files[1].hasSuffix("main.o"))
+                    }
+                    let toolWrap = try #require(results.getTask(.matchTargetName("tool"), .matchRuleType("SwiftModuleWrap")))
+                    try results.checkTask(.matchTargetName("tool"), .matchRuleType("Ld")) { task in
+                        try results.checkTaskFollows(task, toolWrap)
+                    }
+
+                    try results.checkTask(.matchTargetName("dynamiclib"), .matchRulePattern(["WriteAuxiliaryFile", .suffix("LinkFileList")])) { task in
+                        let auxFileAction = try #require(task.action as? AuxiliaryFileTaskAction)
+                        let contents = try tester.fs.read(auxFileAction.context.input).asString
+                        let files = contents.components(separatedBy: "\n").map { $0.trimmingCharacters(in: .whitespacesAndNewlines) }.filter { !$0.isEmpty }
+                        #expect(files.count == 2)
+                        #expect(files[0].hasSuffix("dynamiclib.o"))
+                        #expect(files[1].hasSuffix("dynamic.o"))
+                    }
+                    let dylibWrap = try #require(results.getTask(.matchTargetName("dynamiclib"), .matchRuleType("SwiftModuleWrap")))
+                    try results.checkTask(.matchTargetName("dynamiclib"), .matchRuleType("Ld")) { task in
+                        try results.checkTaskFollows(task, dylibWrap)
+                    }
+
+                    try results.checkTask(.matchTargetName("staticlib"), .matchRulePattern(["WriteAuxiliaryFile", .suffix("LinkFileList")])) { task in
+                        let auxFileAction = try #require(task.action as? AuxiliaryFileTaskAction)
+                        let contents = try tester.fs.read(auxFileAction.context.input).asString
+                        let files = contents.components(separatedBy: "\n").map { $0.trimmingCharacters(in: .whitespacesAndNewlines) }.filter { !$0.isEmpty }
+                        #expect(files.count == 2)
+                        #expect(files[0].hasSuffix("staticlib.o"))
+                        #expect(files[1].hasSuffix("static.o"))
+                    }
+                    let staticWrap = try #require(results.getTask(.matchTargetName("staticlib"), .matchRuleType("SwiftModuleWrap")))
+                    try results.checkTask(.matchTargetName("staticlib"), .matchRuleType("Libtool")) { task in
+                        try results.checkTaskFollows(task, staticWrap)
+                    }
+                }
+
+                let toolchain = try #require(try await getCore().toolchainRegistry.defaultToolchain)
+                let environment: [String: String]
+                if destination.platform == "linux" {
+                    environment = ["LD_LIBRARY_PATH": toolchain.path.join("usr/lib/swift/linux").str]
+                } else {
+                    environment = [:]
+                }
+
+                let executionResult = try await Process.getOutput(url: URL(fileURLWithPath: projectDir.join("build").join("Debug\(destination.builtProductsDirSuffix)").join(core.hostOperatingSystem.imageFormat.executableName(basename: "tool")).str), arguments: [], environment: environment)
+                #expect(executionResult.exitStatus == .exit(0))
+                if core.hostOperatingSystem == .windows {
+                    #expect(String(decoding: executionResult.stdout, as: UTF8.self) == "Hello world\r\n")
+                } else {
+                    #expect(String(decoding: executionResult.stdout, as: UTF8.self) == "Hello world\n")
+                }
+                #expect(String(decoding: executionResult.stderr, as: UTF8.self) == "")
+            }
+        }
+    }
+
     /// Check that environment variables are propagated from the user environment correctly.
     @Test(.requireSDKs(.host), .skipHostOS(.windows), .requireSystemPackages(apt: "yacc", yum: "byacc"))
     func userEnvironment() async throws {

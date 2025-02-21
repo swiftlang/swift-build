@@ -55,7 +55,7 @@ open class Spec: @unchecked Sendable {
         return result
     }
 
-    /// The spec proxy informaton.
+    /// The spec proxy information.
     @_spi(Testing) public let proxyPath: Path
     @_spi(Testing) public let proxyDomain: String
     @_spi(Testing) public let proxyIdentifier: String
@@ -243,7 +243,6 @@ public final class ArchitectureSpec : Spec, SpecType, @unchecked Sendable {
         parser.parseBool("ListInEnum")
         parser.parseString("PerArchBuildSettingName")
         parser.parseString("SortNumber")
-        parser.parseString("UserVisisbleName")
         super.init(parser, basedOnSpec)
     }
 }

@@ -384,7 +384,12 @@ public final class WorkspaceContext: Sendable {
 
 extension FSProxy {
     private static var CreatedByBuildSystemAttribute: String {
+        #if os(Linux)
+        // On Linux, "the name [of an extended attribute] must be a null-terminated string prefixed by a namespace identifier and a dot character" and only the "user" namespace is available for unrestricted access.
+        "user.org.swift.swift-build.CreatedByBuildSystem"
+        #else
         "com.apple.xcode.CreatedByBuildSystem"
+        #endif
     }
 
     private static var CreatedByBuildSystemAttributeOnValue: String {

@@ -37,7 +37,7 @@ fileprivate struct ServiceConsoleTests {
             let output = String(decoding: data, as: UTF8.self)
 
             // Verify there were no errors.
-            #expect(output == "swbuild> \n")
+            #expect(output == "swbuild> \(String.newline)")
 
             // Assert the tool exited successfully.
             await #expect(try promise.value == .exit(0))

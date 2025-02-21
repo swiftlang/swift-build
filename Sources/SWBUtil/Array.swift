@@ -116,46 +116,6 @@ public extension Array where Element: FloatingPoint {
 
 }
 
-fileprivate struct _concurrentMap_State<T: Sendable, E> {
-    var results = [Int: T]()
-    var errors = [Int: E]()
-}
-
-extension Array where Element: Sendable {
-    @available(*, noasync)
-    @available(*, deprecated, message: "Use a ThrowingTaskGroup instead.")
-    public func concurrentMap<T: Sendable, E>(_ transform: @escaping @Sendable (Element) throws(E) -> T) throws(E) -> [T] {
-        let state = LockedValue(_concurrentMap_State<T, E>())
-        let queue = SWBQueue(label: "concurrentMap")
-        SWBQueue.concurrentPerform(iterations: count) { i in
-            do throws(E) {
-                if state.withLock({ $0.errors.isEmpty }) {
-                    let result = try transform(self[i])
-                    state.withLock { $0.results[i] = result }
-                }
-            } catch {
-                state.withLock { $0.errors[i] = error }
-            }
-        }
-        queue.blocking_sync { }
-        if let error = state.withLock({ $0.errors }).sorted(byKey: <).first?.value {
-            throw error
-        }
-        return (0..<count).map{ i in state.withLock { $0.results[i]! } }
-    }
-
-    @available(*, noasync)
-    @available(*, deprecated, message: "Use a TaskGroup instead.")
-    public func concurrentMap<T: Sendable>(_ transform: @escaping @Sendable (Element) -> T) -> [T] {
-        let results = LockedValue([Int: T]())
-        SWBQueue.concurrentPerform(iterations: count) { i in
-            let result = transform(self[i])
-            results.withLock { $0[i] = result }
-        }
-        return (0..<count).map{ i in results.withLock { $0[i]! } }
-    }
-}
-
 extension Sequence {
     public func asyncFilter<E>(_ isIncluded: (Element) async throws(E) -> Bool) async throws(E) -> [Element] {
         var elements: [Element] = []

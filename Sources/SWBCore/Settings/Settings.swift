@@ -2048,17 +2048,18 @@ private class SettingsBuilder {
         // FIXME: Arguably we should emit a warning if the optimization settings are out of sync, as the user may be getting weird results.  It's not clear if there are lots of old projects which might spuriously get such a warning, and this isn't a new state of affairs.
         table.push(BuiltinMacros.IS_UNOPTIMIZED_BUILD, literal: (scope.evaluate(BuiltinMacros.GCC_OPTIMIZATION_LEVEL) == "0" || scope.evaluate(BuiltinMacros.SWIFT_OPTIMIZATION_LEVEL) == "-Onone"))
 
+        let privateInstallPaths = scope.evaluate(BuiltinMacros.__KNOWN_SPI_INSTALL_PATHS).map { Path($0) }
+        let publicInstallPaths = [
+            Path("/System/Library/Frameworks"),
+            Path("/System/Library/SubFrameworks"),
+            Path("/usr/lib"),
+            Path("/System/iOSSupport/System/Library/Frameworks"),
+            Path("/System/iOSSupport/System/Library/SubFrameworks"),
+            Path("/System/iOSSupport/usr/lib"),]
+
         // If unset, infer the default SWIFT_LIBRARY_LEVEL from the INSTALL_PATH.
         if scope.evaluateAsString(BuiltinMacros.SWIFT_LIBRARY_LEVEL).isEmpty &&
            scope.evaluate(BuiltinMacros.MACH_O_TYPE) == "mh_dylib" {
-            let privateInstallPaths = scope.evaluate(BuiltinMacros.__KNOWN_SPI_INSTALL_PATHS).map { Path($0) }
-            let publicInstallPaths = [
-                Path("/System/Library/Frameworks"),
-                Path("/System/Library/SubFrameworks"),
-                Path("/usr/lib"),
-                Path("/System/iOSSupport/System/Library/Frameworks"),
-                Path("/System/iOSSupport/System/Library/SubFrameworks"),
-                Path("/System/iOSSupport/usr/lib"),]
             let installPath = scope.evaluate(BuiltinMacros.INSTALL_PATH)
 
             if table.contains(BuiltinMacros.SKIP_INSTALL) {
@@ -2071,6 +2072,16 @@ private class SettingsBuilder {
                 table.push(BuiltinMacros.SWIFT_LIBRARY_LEVEL, literal: "api")
             }
             // Else, leave it to the compiler's default.
+        }
+
+        // If unset, infer the default SWIFT_LIBRARY_LEVEL from the INSTALL_PATH.
+        if scope.evaluateAsString(BuiltinMacros.GENERATED_MODULEMAPS_USE_SYSTEM).isEmpty {
+            let systemInstallPaths = publicInstallPaths + privateInstallPaths
+            let installPath = scope.evaluate(BuiltinMacros.INSTALL_PATH)
+
+            if systemInstallPaths.contains(where: { $0.isAncestorOrEqual(of: installPath) }) {
+                table.push(BuiltinMacros.GENERATED_MODULEMAPS_USE_SYSTEM, literal: true)
+            }
         }
 
         // Overrides specific to building for Mac Catalyst.
@@ -2304,10 +2315,15 @@ private class SettingsBuilder {
         // subtypes in all cases (x86_64h, arm64e, etc.). Also, NXGetLocalArchInfo is not guaranteed to include the CPU_ARCH_ABI64 mask in its returned cputype
         // (for example on a non-Haswell CPU we get a general x86 CPU subtype which won't infer 64-bit like Haswell does), so we manually add the mask if the CPU is 64-bit capable.
         let fallbackArch = "undefined_arch"
-        platformTable.push(BuiltinMacros.NATIVE_ARCH_ACTUAL, literal: Architecture.host.stringValue ?? fallbackArch)
-        platformTable.push(BuiltinMacros.NATIVE_ARCH_32_BIT, literal: Architecture.host.as32bit.stringValue ?? fallbackArch)
-        platformTable.push(BuiltinMacros.NATIVE_ARCH_64_BIT, literal: Architecture.host.as64bit.stringValue ?? fallbackArch)
-        platformTable.push(BuiltinMacros.NATIVE_ARCH, literal: Architecture.host.stringValue ?? fallbackArch)
+        if core.hostOperatingSystem == .macOS {
+            platformTable.push(BuiltinMacros.NATIVE_ARCH_ACTUAL, literal: Architecture.host.stringValue ?? fallbackArch)
+            platformTable.push(BuiltinMacros.NATIVE_ARCH_32_BIT, literal: Architecture.host.as32bit.stringValue ?? fallbackArch)
+            platformTable.push(BuiltinMacros.NATIVE_ARCH_64_BIT, literal: Architecture.host.as64bit.stringValue ?? fallbackArch)
+            platformTable.push(BuiltinMacros.NATIVE_ARCH, literal: Architecture.host.stringValue ?? fallbackArch)
+        } else {
+            platformTable.push(BuiltinMacros.NATIVE_ARCH_ACTUAL, literal: Architecture.hostStringValue ?? fallbackArch)
+            platformTable.push(BuiltinMacros.NATIVE_ARCH, literal: Architecture.hostStringValue ?? fallbackArch)
+        }
 
         // Add the platform deployment target defaults, for real platforms.
         //
@@ -2519,6 +2535,7 @@ private class SettingsBuilder {
 
             sdkTable.push(BuiltinMacros.DYNAMIC_LIBRARY_EXTENSION, literal: imageFormat.dynamicLibraryExtension)
             sdkTable.push(BuiltinMacros.PLATFORM_REQUIRES_SWIFT_AUTOLINK_EXTRACT, literal: imageFormat.requiresSwiftAutolinkExtract)
+            sdkTable.push(BuiltinMacros.PLATFORM_REQUIRES_SWIFT_MODULEWRAP, literal: imageFormat.requiresSwiftModulewrap)
         }
 
         // Add additional SDK default settings.

@@ -17,12 +17,6 @@ import SWBBuildService
 import SWBTestSupport
 
 @Suite fileprivate struct BuildServiceTests: CoreBasedTests {
-    @Test(.requireSDKs(.macOS, .iOS, .tvOS, .watchOS, .xrOS, .driverKit)) func SDKSystemFrameworks() async throws {
-        let frameworkNames = try await withBuildService { try await $0.appleSystemFrameworkNames(developerPath: nil) }
-        //attach(name: "Apple system frameworks", plistObject: frameworkNames.sorted(), lifetime: .keepAlways)
-        XCTAssertSuperset(frameworkNames, ["AppKit", "DriverKit", "TVUIKit", "UIKit", "WatchKit"])
-    }
-
     @Test func createXCFramework() async throws {
         do {
             let (result, message) = try await withBuildService { await $0.createXCFramework([], currentWorkingDirectory: Path.root.str, developerPath: nil) }

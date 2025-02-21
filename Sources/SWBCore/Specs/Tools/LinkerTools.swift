@@ -213,13 +213,7 @@ public struct DiscoveredLdLinkerToolSpecInfo: DiscoveredCommandLineToolSpecInfo 
             let behavior = Diagnostic.Behavior(name: severity) ?? .note
             let message = match[3].prefix(1).localizedCapitalized + match[3].dropFirst()
             let diagnostic = Diagnostic(behavior: behavior, location: .unknown, data: DiagnosticData(message), appendToOutputStream: false)
-
-            // Emit a modified diagnostic for missing frameworks that match the names of Apple SDK frameworks known to not be present in the current platform SDK.
-            if let configuredTarget = task.forTarget, let target = workspaceContext.workspace.target(for: configuredTarget.target.guid), let settings = buildRequestContext.getCachedSettings(configuredTarget.parameters, target: target) as Settings?, !settings.globalScope.evaluate(BuiltinMacros.DISABLE_SDK_METADATA_PARSING), let sdk = settings.sdk, let newDiagnostic = Diagnostic.missingFrameworkDiagnostic(forDiagnostic: diagnostic, settings: settings, infoLookup: workspaceContext.core, sdk: sdk, sdkVariant: settings.sdkVariant, missingFrameworkNames: workspaceContext.core.sdkRegistry.knownUnavailableFrameworksForSDK(sdk, sdkVariant: settings.sdkVariant), frameworkReplacementInfo: workspaceContext.core.sdkRegistry.frameworkReplacementInfoForSDK(sdk, sdkVariant: settings.sdkVariant), diagnosticMessageRegexes: [LdLinkerOutputParser.frameworkNotFoundRegEx, LdLinkerOutputParser.newFrameworkNotFoundRegEx], context: .linker) {
-                delegate.diagnosticsEngine.emit(newDiagnostic)
-            } else {
-                delegate.diagnosticsEngine.emit(diagnostic)
-            }
+            delegate.diagnosticsEngine.emit(diagnostic)
         }
         return true
     }
@@ -560,7 +554,14 @@ public final class LdLinkerSpec : GenericLinkerSpec, SpecIdentifierType, @unchec
         // Add flags to emit SDK imports info.
         let sdkImportsInfoFile = cbc.scope.evaluate(BuiltinMacros.LD_SDK_IMPORTS_FILE)
         let supportsSDKImportsFeature = (try? optionContext?.toolVersion >= .init("1164")) == true
-        let usesLDClassic = commandLine.contains("-r") || commandLine.contains("-ld_classic") || cbc.scope.evaluate(BuiltinMacros.CURRENT_ARCH) == "armv7k"
+        var usesLDClassic = cbc.scope.evaluate(BuiltinMacros.CURRENT_ARCH) == "armv7k"
+        enumerateLinkerCommandLine(arguments: commandLine) { arg, value in
+            switch arg {
+            case "-ld_classic": usesLDClassic = true
+            case "-r": usesLDClassic = true
+            default: break
+            }
+        }
         if !usesLDClassic, supportsSDKImportsFeature, !sdkImportsInfoFile.isEmpty, cbc.scope.evaluate(BuiltinMacros.ENABLE_SDK_IMPORTS), cbc.producer.isApplePlatform {
             commandLine.insert(contentsOf: ["-Xlinker", "-sdk_imports", "-Xlinker", sdkImportsInfoFile.str, "-Xlinker", "-sdk_imports_each_object"], at: commandLine.count - 2) // This preserves the assumption that the last argument is the linker output which a few tests make.
             outputs.append(delegate.createNode(sdkImportsInfoFile))
@@ -585,7 +586,7 @@ public final class LdLinkerSpec : GenericLinkerSpec, SpecIdentifierType, @unchec
         // If we are linking Swift and build for debugging, pass the right .swiftmodule file for the current architecture to the
         // linker. This is needed so that debugging these modules works correctly. Note that `swiftModulePaths` will be empty for
         // anything but static archives and object files, because dynamic libraries and frameworks do not require this.
-        if isLinkUsingSwift && cbc.scope.evaluate(BuiltinMacros.GCC_GENERATE_DEBUGGING_SYMBOLS) {
+        if isLinkUsingSwift && cbc.scope.evaluate(BuiltinMacros.GCC_GENERATE_DEBUGGING_SYMBOLS) && !cbc.scope.evaluate(BuiltinMacros.PLATFORM_REQUIRES_SWIFT_MODULEWRAP) {
             for library in libraries {
                 if let swiftModulePath = library.swiftModulePaths[cbc.scope.evaluate(BuiltinMacros.CURRENT_ARCH)] {
                     commandLine += ["-Xlinker", "-add_ast_path", "-Xlinker", swiftModulePath.str]
@@ -666,7 +667,7 @@ public final class LdLinkerSpec : GenericLinkerSpec, SpecIdentifierType, @unchec
 
         // Add dependencies on any directories in our input search paths for which the build system is creating those directories.
         let ldSearchPaths = Set(cbc.scope.evaluate(BuiltinMacros.FRAMEWORK_SEARCH_PATHS) + cbc.scope.evaluate(BuiltinMacros.LIBRARY_SEARCH_PATHS))
-        let otherInputs = delegate.buildDirectories.compactMap { path in ldSearchPaths.contains(path.str) ? delegate.createBuildDirectoryNode(absolutePath: path) : nil } + cbc.commandOrderingInputs
+        let otherInputs = delegate.buildDirectories.sorted().compactMap { path in ldSearchPaths.contains(path.str) ? delegate.createBuildDirectoryNode(absolutePath: path) : nil } + cbc.commandOrderingInputs
 
         // Create the task.
         delegate.createTask(type: self, dependencyData: dependencyInfo, payload: payload, ruleInfo: defaultRuleInfo(cbc, delegate), commandLine: commandLine, environment: environment, workingDirectory: cbc.producer.defaultWorkingDirectory, inputs: inputs + otherInputs, outputs: outputs, action: delegate.taskActionCreationDelegate.createDeferredExecutionTaskActionIfRequested(userPreferences: cbc.producer.userPreferences), execDescription: resolveExecutionDescription(cbc, delegate), enableSandboxing: enableSandboxing)
@@ -1372,17 +1373,22 @@ public final class LibtoolLinkerSpec : GenericLinkerSpec, SpecIdentifierType, @u
 
     override public func constructLinkerTasks(_ cbc: CommandBuildContext, _ delegate: any TaskGenerationDelegate, libraries: [LibrarySpecifier], usedTools: [CommandLineToolSpec: Set<FileTypeSpec>]) async {
         var inputPaths = cbc.inputs.map({ $0.absolutePath })
+        var specialArgs = [String]()
 
-        // Define the linker file list.
-        let fileListPath = cbc.scope.evaluate(BuiltinMacros.__INPUT_FILE_LIST_PATH__)
-        if !fileListPath.isEmpty {
-            let contents = cbc.inputs.map({ return $0.absolutePath.strWithPosixSlashes + "\n" }).joined(separator: "")
-            cbc.producer.writeFileSpec.constructFileTasks(CommandBuildContext(producer: cbc.producer, scope: cbc.scope, inputs: [], output: fileListPath), delegate, contents: ByteString(encodingAsUTF8: contents), permissions: nil, preparesForIndexing: false, additionalTaskOrderingOptions: [.immediate, .ignorePhaseOrdering])
-            inputPaths.append(fileListPath)
+        if cbc.scope.evaluate(BuiltinMacros.LIBTOOL_USE_RESPONSE_FILE) {
+            // Define the linker file list.
+            let fileListPath = cbc.scope.evaluate(BuiltinMacros.__INPUT_FILE_LIST_PATH__)
+            if !fileListPath.isEmpty {
+                let contents = cbc.inputs.map({ return $0.absolutePath.strWithPosixSlashes + "\n" }).joined(separator: "")
+                cbc.producer.writeFileSpec.constructFileTasks(CommandBuildContext(producer: cbc.producer, scope: cbc.scope, inputs: [], output: fileListPath), delegate, contents: ByteString(encodingAsUTF8: contents), permissions: nil, preparesForIndexing: false, additionalTaskOrderingOptions: [.immediate, .ignorePhaseOrdering])
+                inputPaths.append(fileListPath)
+            }
+        } else {
+            specialArgs.append(contentsOf: cbc.inputs.map { $0.absolutePath.str })
+            inputPaths.append(contentsOf: cbc.inputs.map { $0.absolutePath })
         }
 
         // Add arguments for the contents of the Link Binaries build phase.
-        var specialArgs = [String]()
         specialArgs.append(contentsOf: libraries.flatMap { specifier -> [String] in
             let basename = specifier.path.basename
 

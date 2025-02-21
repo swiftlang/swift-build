@@ -19,74 +19,81 @@ import Testing
 
 @Suite
 fileprivate struct SDKImportsBuildOperationTests: CoreBasedTests {
+    func makeTester(ldFlags: String = "", tmpDir: Path) async throws -> BuildOperationTester {
+        let testProject = try await TestProject(
+            "TestProject",
+            sourceRoot: tmpDir,
+            groupTree: TestGroup(
+                "SomeFiles",
+                children: [
+                    TestFile("main.swift"),
+                    TestFile("static.swift"),
+                ]),
+            buildConfigurations: [
+                TestBuildConfiguration("Debug", buildSettings: [
+                    "ARCHS": "$(ARCHS_STANDARD)",
+                    "CODE_SIGNING_ALLOWED": "YES",
+                    "CODE_SIGN_IDENTITY": "-",
+                    "CODE_SIGN_ENTITLEMENTS": "Entitlements.plist",
+                    "DEFINES_MODULE": "YES",
+                    "ENABLE_SDK_IMPORTS": "YES",
+                    "GENERATE_INFOPLIST_FILE": "YES",
+                    "PRODUCT_NAME": "$(TARGET_NAME)",
+                    "SDKROOT": "$(HOST_PLATFORM)",
+                    "SUPPORTED_PLATFORMS": "$(HOST_PLATFORM)",
+                    "SWIFT_VERSION": swiftVersion,
+                    "OTHER_LDFLAGS": ldFlags,
+                ])
+            ],
+            targets: [
+                TestStandardTarget(
+                    "tool",
+                    type: .application,
+                    buildPhases: [
+                        TestSourcesBuildPhase(["main.swift"]),
+                        TestFrameworksBuildPhase([
+                            TestBuildFile(.target("staticlib")),
+                        ])
+                    ],
+                    dependencies: [
+                        "staticlib",
+                    ]
+                ),
+                TestStandardTarget(
+                    "staticlib",
+                    type: .staticLibrary,
+                    buildPhases: [
+                        TestSourcesBuildPhase(["static.swift"]),
+                    ]
+                ),
+            ])
+        let core = try await getCore()
+        let tester = try await BuildOperationTester(core, testProject, simulated: false)
+
+        let projectDir = tester.workspace.projects[0].sourceRoot
+
+        try await tester.fs.writeFileContents(projectDir.join("main.swift")) { stream in
+            stream <<< "import staticlib\n"
+            stream <<< "staticLib()\n"
+            stream <<< "print(\"Hello world\")\n"
+        }
+
+        try await tester.fs.writeFileContents(projectDir.join("static.swift")) { stream in
+            stream <<< "import Foundation\n"
+            stream <<< "public func staticLib() {\n"
+            stream <<< "_ = UserDefaults.standard\n"
+            stream <<< "}\n"
+        }
+
+        try await tester.fs.writePlist(projectDir.join("Entitlements.plist"), .plDict([:]))
+
+        return tester
+    }
+
     @Test(.requireSDKs(.macOS), .requireSDKImports())
     func basic() async throws {
         try await withTemporaryDirectory { (tmpDir: Path) in
-            let testProject = try await TestProject(
-                "TestProject",
-                sourceRoot: tmpDir,
-                groupTree: TestGroup(
-                    "SomeFiles",
-                    children: [
-                        TestFile("main.swift"),
-                        TestFile("static.swift"),
-                    ]),
-                buildConfigurations: [
-                    TestBuildConfiguration("Debug", buildSettings: [
-                        "ARCHS": "$(ARCHS_STANDARD)",
-                        "CODE_SIGNING_ALLOWED": "YES",
-                        "CODE_SIGN_IDENTITY": "-",
-                        "CODE_SIGN_ENTITLEMENTS": "Entitlements.plist",
-                        "DEFINES_MODULE": "YES",
-                        "GENERATE_INFOPLIST_FILE": "YES",
-                        "PRODUCT_NAME": "$(TARGET_NAME)",
-                        "SDKROOT": "$(HOST_PLATFORM)",
-                        "SUPPORTED_PLATFORMS": "$(HOST_PLATFORM)",
-                        "SWIFT_VERSION": swiftVersion,
-                    ])
-                ],
-                targets: [
-                    TestStandardTarget(
-                        "tool",
-                        type: .application,
-                        buildPhases: [
-                            TestSourcesBuildPhase(["main.swift"]),
-                            TestFrameworksBuildPhase([
-                                TestBuildFile(.target("staticlib")),
-                            ])
-                        ],
-                        dependencies: [
-                            "staticlib",
-                        ]
-                    ),
-                    TestStandardTarget(
-                        "staticlib",
-                        type: .staticLibrary,
-                        buildPhases: [
-                            TestSourcesBuildPhase(["static.swift"]),
-                        ]
-                    ),
-                ])
-            let core = try await getCore()
-            let tester = try await BuildOperationTester(core, testProject, simulated: false)
-
-            let projectDir = tester.workspace.projects[0].sourceRoot
-
-            try await tester.fs.writeFileContents(projectDir.join("main.swift")) { stream in
-                stream <<< "import staticlib\n"
-                stream <<< "staticLib()\n"
-                stream <<< "print(\"Hello world\")\n"
-            }
-
-            try await tester.fs.writeFileContents(projectDir.join("static.swift")) { stream in
-                stream <<< "import Foundation\n"
-                stream <<< "public func staticLib() {\n"
-                stream <<< "_ = UserDefaults.standard\n"
-                stream <<< "}\n"
-            }
-
-            try await tester.fs.writePlist(projectDir.join("Entitlements.plist"), .plDict([:]))
-
+            let tester = try await makeTester(tmpDir: tmpDir)
             let provisioningInputs = [
                 "staticlib": ProvisioningTaskInputs(identityHash: "-", signedEntitlements: .plDict([:]), simulatedEntitlements: .plDict([:])),
                 "tool": ProvisioningTaskInputs(identityHash: "-", signedEntitlements: .plDict([:]), simulatedEntitlements: .plDict([:]))
@@ -132,6 +139,7 @@ fileprivate struct SDKImportsBuildOperationTests: CoreBasedTests {
                         "ARCHS": "$(ARCHS_STANDARD)",
                         "CODE_SIGNING_ALLOWED": "NO",
                         "DEFINES_MODULE": "YES",
+                        "ENABLE_SDK_IMPORTS": "YES",
                         "GENERATE_INFOPLIST_FILE": "YES",
                         "PRODUCT_NAME": "$(TARGET_NAME)",
                         "SDKROOT": "$(HOST_PLATFORM)",
@@ -179,6 +187,31 @@ fileprivate struct SDKImportsBuildOperationTests: CoreBasedTests {
                 }
 
                 #expect(libs == ["liblib.a"])
+            }
+        }
+    }
+
+    @Test(.requireSDKs(.macOS), .requireSDKImports())
+    func disabledWhenLdClassicIsInUse() async throws {
+        for flags in ["-Xlinker -ld_classic", "-Wl,-ld_classic"] {
+            try await withTemporaryDirectory { (tmpDir: Path) in
+                let tester = try await makeTester(ldFlags: flags, tmpDir: tmpDir)
+                let provisioningInputs = [
+                    "staticlib": ProvisioningTaskInputs(identityHash: "-", signedEntitlements: .plDict([:]), simulatedEntitlements: .plDict([:])),
+                    "tool": ProvisioningTaskInputs(identityHash: "-", signedEntitlements: .plDict([:]), simulatedEntitlements: .plDict([:]))
+                ]
+
+                let destination: RunDestinationInfo = .host
+                try await tester.checkBuild(runDestination: destination, signableTargets: Set(provisioningInputs.keys), signableTargetInputs: provisioningInputs) { results in
+                    results.checkNoErrors()
+                    results.checkWarning(.prefix("-ld_classic is deprecated"))
+
+                    let derivedData = tmpDir.join("build/Debug")
+                    let appResources = derivedData.join("tool.app/Contents/Resources")
+
+                    let sdkImportsPath = appResources.join("tool_normal_x86_64_sdk_imports.json")
+                    #expect(tester.fs.exists(sdkImportsPath) == false)
+                }
             }
         }
     }

@@ -44,7 +44,7 @@ public protocol SpecType: AnyObject {
     /// The name of the spec subregistry to associate with this type.
     static var subregistryName: String { get }
 
-    /// The default class type to instantiate as, if not overriden.
+    /// The default class type to instantiate as, if not overridden.
     ///
     /// By default, this will be the SpecType itself, however this can be used to force specs which do not override 'Class' to be instantiated as a separate type (which would generally be a subclass of the actual SpecType). This is useful when specs without a custom 'Class' support a different set of keys than those that do.
     static var defaultClassType: (any SpecType.Type)? { get }
@@ -657,7 +657,7 @@ public final class SpecRegistry {
 
         // Load the localized strings, if available.
         //
-        // We currently hard code a local search, asuming the xcspec file is adjacent to the `strings` file or the containing `lproj`.
+        // We currently hard code a local search, assuming the xcspec file is adjacent to the `strings` file or the containing `lproj`.
         func loadLocalizedStrings(_ path: Path) -> [String: String]? {
             if let data = try? PropertyList.fromPath(path, fs: localFS) {
                 // If we found a property list, it should be a map of strings.
@@ -909,7 +909,7 @@ public final class SpecRegistry {
             print(error)
         }
 
-        // Find places where a proxy illegally depends on a spec overriden in a subdomain.
+        // Find places where a proxy illegally depends on a spec overridden in a subdomain.
         //
         // Essentially, if spec in a generic domain (foo:default) is based on an unspecified specification (bar), which is in a more specific domain 'device', then the semantics we want are that a search for 'foo:device' will return 'foo:device basedOn bar:device'. These are unfortunate semantics to implement dynamically (we want each proxy to resolve to one spec), so instead we clone any proxies that might need to satisfy this.
 

@@ -3932,12 +3932,13 @@ fileprivate struct SwiftTaskConstructionTests: CoreBasedTests {
                 targets: [
                     TestStandardTarget(
                         "TargetName",
-                        type: .framework,
+                        type: .dynamicLibrary,
                         buildConfigurations: [
                             TestBuildConfiguration("Debug", buildSettings: [
                                 "SWIFT_WARNINGS_AS_WARNINGS_GROUPS": "Unsafe DeprecatedDeclaration",
                                 "SWIFT_EXEC": swiftCompilerPath.str,
-                                "CODE_SIGN_IDENTITY": ""
+                                "SDKROOT": "$(HOST_PLATFORM)",
+                                "SUPPORTED_PLATFORMS": "$(HOST_PLATFORM)",
                             ]),
                         ],
                         buildPhases: [
@@ -3949,7 +3950,7 @@ fileprivate struct SwiftTaskConstructionTests: CoreBasedTests {
 
             let tester = try await TaskConstructionTester(getCore(), testProject)
 
-            try await tester.checkBuild(BuildParameters(configuration: "Debug", overrides: ["SWIFT_VERSION": swiftVersion])) { results in
+            try await tester.checkBuild(BuildParameters(configuration: "Debug", overrides: ["SWIFT_VERSION": swiftVersion]), runDestination: .host) { results in
                 results.checkTarget("TargetName") { target in
                     results.checkTask(.matchTarget(target), .matchRuleType("SwiftDriver Compilation")) { task in
                         task.checkCommandLineContains([
@@ -3976,12 +3977,13 @@ fileprivate struct SwiftTaskConstructionTests: CoreBasedTests {
                 targets: [
                     TestStandardTarget(
                         "TargetName",
-                        type: .framework,
+                        type: .dynamicLibrary,
                         buildConfigurations: [
                             TestBuildConfiguration("Debug", buildSettings: [
                                 "SWIFT_WARNINGS_AS_ERRORS_GROUPS": "UnknownWarningGroup PreconcurrencyImport",
                                 "SWIFT_EXEC": swiftCompilerPath.str,
-                                "CODE_SIGN_IDENTITY": ""
+                                "SDKROOT": "$(HOST_PLATFORM)",
+                                "SUPPORTED_PLATFORMS": "$(HOST_PLATFORM)",
                             ]),
                         ],
                         buildPhases: [
@@ -3993,7 +3995,7 @@ fileprivate struct SwiftTaskConstructionTests: CoreBasedTests {
 
             let tester = try await TaskConstructionTester(getCore(), testProject)
 
-            try await tester.checkBuild(BuildParameters(configuration: "Debug", overrides: ["SWIFT_VERSION": swiftVersion])) { results in
+            try await tester.checkBuild(BuildParameters(configuration: "Debug", overrides: ["SWIFT_VERSION": swiftVersion]), runDestination: .host) { results in
                 results.checkTarget("TargetName") { target in
                     results.checkTask(.matchTarget(target), .matchRuleType("SwiftDriver Compilation")) { task in
                         task.checkCommandLineContains([

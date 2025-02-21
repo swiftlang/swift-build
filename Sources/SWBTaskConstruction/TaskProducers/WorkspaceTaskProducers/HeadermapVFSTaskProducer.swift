@@ -49,7 +49,7 @@ final class HeadermapVFSTaskProducer: StandardTaskProducer, TaskProducer {
 
             for (vfsPath, contents) in vfsContentsByPath {
                 await appendGeneratedTasks(&tasks) { delegate in
-                    let orderingInputs = delegate.buildDirectories.filter { $0.isAncestor(of: vfsPath) }.map { delegate.createBuildDirectoryNode(absolutePath: $0) }
+                    let orderingInputs = delegate.buildDirectories.sorted().filter { $0.isAncestor(of: vfsPath) }.map { delegate.createBuildDirectoryNode(absolutePath: $0) }
                     context.writeFileSpec.constructFileTasks(CommandBuildContext(producer: context, scope: context.settings.globalScope, inputs: [], output: vfsPath, commandOrderingInputs: orderingInputs), delegate, contents: contents, permissions: nil, preparesForIndexing: true, additionalTaskOrderingOptions: [.immediate])
                 }
             }
