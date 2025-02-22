@@ -817,7 +817,7 @@ final class SourcesTaskProducer: FilesBasedBuildPhaseTaskProducerBase, FilesBase
                 // Process all of the groups.
                 //
                 // FIXME: We should do this in parallel.
-                let buildFilesContext = BuildFilesProcessingContext(scope, belongsToPreferedArch: preferredArch == nil || preferredArch == arch, currentArchSpec: currentArchSpec)
+                let buildFilesContext = BuildFilesProcessingContext(scope, belongsToPreferredArch: preferredArch == nil || preferredArch == arch, currentArchSpec: currentArchSpec)
                 var perArchTasks: [any PlannedTask] = []
                 await groupAndAddTasksForFiles(self, buildFilesContext, scope, filterToAPIRules: isForAPI, filterToHeaderRules: isForHeaders, &perArchTasks, extraResolvedBuildFiles: {
                     var result: [(Path, FileTypeSpec, Bool)] = []
@@ -1151,7 +1151,7 @@ final class SourcesTaskProducer: FilesBasedBuildPhaseTaskProducerBase, FilesBase
                 // Process all of the groups.
                 //
                 // FIXME: We should do this in parallel.
-                let buildFilesContext = BuildFilesProcessingContext(scope, belongsToPreferedArch: preferredArch == nil || preferredArch == arch, currentArchSpec: currentArchSpec)
+                let buildFilesContext = BuildFilesProcessingContext(scope, belongsToPreferredArch: preferredArch == nil || preferredArch == arch, currentArchSpec: currentArchSpec)
                 var perArchTasks: [any PlannedTask] = []
                 await groupAndAddTasksForFiles(self, buildFilesContext, scope, filterToAPIRules: isForAPI, filterToHeaderRules: isForHeaders, &perArchTasks, extraResolvedBuildFiles: {
                     if let packageTargetBundleAccessorResult {
@@ -1599,7 +1599,7 @@ final class SourcesTaskProducer: FilesBasedBuildPhaseTaskProducerBase, FilesBase
         // Compute the resources directory.
         let resourcesDir = buildFilesContext.resourcesDir.join(group.regionVariantPathComponent)
 
-        let cbc = CommandBuildContext(producer: context, scope: scope, inputs: group.files, isPreferredArch: buildFilesContext.belongsToPreferedArch, currentArchSpec: buildFilesContext.currentArchSpec, buildPhaseInfo: buildFilesContext.buildPhaseInfo(for: rule), resourcesDir: resourcesDir, tmpResourcesDir: buildFilesContext.tmpResourcesDir, unlocalizedResourcesDir: buildFilesContext.resourcesDir)
+        let cbc = CommandBuildContext(producer: context, scope: scope, inputs: group.files, isPreferredArch: buildFilesContext.belongsToPreferredArch, currentArchSpec: buildFilesContext.currentArchSpec, buildPhaseInfo: buildFilesContext.buildPhaseInfo(for: rule), resourcesDir: resourcesDir, tmpResourcesDir: buildFilesContext.tmpResourcesDir, unlocalizedResourcesDir: buildFilesContext.resourcesDir)
         await constructTasksForRule(rule, cbc, delegate)
     }
 

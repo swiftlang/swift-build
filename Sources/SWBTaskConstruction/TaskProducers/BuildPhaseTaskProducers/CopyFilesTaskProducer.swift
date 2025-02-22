@@ -169,7 +169,7 @@ class CopyFilesTaskProducer: FilesBasedBuildPhaseTaskProducerBase, FilesBasedBui
 
         // FIXME: Merge the region variant.
 
-        let cbc = CommandBuildContext(producer: context, scope: scope, inputs: group.files, isPreferredArch: buildFilesContext.belongsToPreferedArch, buildPhaseInfo: buildFilesContext.buildPhaseInfo(for: rule), resourcesDir: dstFolder, unlocalizedResourcesDir: dstFolder)
+        let cbc = CommandBuildContext(producer: context, scope: scope, inputs: group.files, isPreferredArch: buildFilesContext.belongsToPreferredArch, buildPhaseInfo: buildFilesContext.buildPhaseInfo(for: rule), resourcesDir: dstFolder, unlocalizedResourcesDir: dstFolder)
         await constructTasksForRule(rule, cbc, delegate)
     }
 
