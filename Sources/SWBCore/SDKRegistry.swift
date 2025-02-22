@@ -1164,7 +1164,7 @@ public final class SDKRegistry: SDKRegistryLookup, CustomStringConvertible, Send
         }
 
         // Iterate through all of the SDKs looking for the best match.
-        // We sort the values by canoical name in reverse-lexicographic order solely to ensure determinism in any potential weird edge cases someone might accidentally stumble into that we haven't considered.
+        // We sort the values by canonical name in reverse-lexicographic order solely to ensure determinism in any potential weird edge cases someone might accidentally stumble into that we haven't considered.
         var matchedSDK: (sdk: SDK, components: SDK.CanonicalNameComponents)? = nil
         for candidateSDK in sdksByCanonicalName.values.sorted(by: { $0.canonicalName > $1.canonicalName }) {
             // Get the components for the candidate SDK.
