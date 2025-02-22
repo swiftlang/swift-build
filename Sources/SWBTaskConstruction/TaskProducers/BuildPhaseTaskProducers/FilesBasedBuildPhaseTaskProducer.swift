@@ -79,10 +79,10 @@ package final class BuildFilesProcessingContext: BuildFileFilteringContext {
     /// True if the build files belongs to the preferred arch among the archs we're processing.
     ///
     /// For e.g., if we're processing a file for arm64 as well as arm7, this will be true for arm64.
-    let belongsToPreferedArch: Bool
+    let belongsToPreferredArch: Bool
     let currentArchSpec: ArchitectureSpec?
 
-    package init(_ scope: MacroEvaluationScope, belongsToPreferedArch: Bool = true, currentArchSpec: ArchitectureSpec? = nil, resolveBuildRules: Bool = true, resourcesDir: Path? = nil, tmpResourcesDir: Path? = nil) {
+    package init(_ scope: MacroEvaluationScope, belongsToPreferredArch: Bool = true, currentArchSpec: ArchitectureSpec? = nil, resolveBuildRules: Bool = true, resourcesDir: Path? = nil, tmpResourcesDir: Path? = nil) {
         // Define the predicates for filtering source files.
         //
         // FIXME: Factor this out, and make this machinery efficient.
@@ -92,7 +92,7 @@ package final class BuildFilesProcessingContext: BuildFileFilteringContext {
         self.resolveBuildRules = resolveBuildRules
         self.resourcesDir = resourcesDir ?? scope.evaluate(BuiltinMacros.TARGET_BUILD_DIR).join(scope.evaluate(BuiltinMacros.UNLOCALIZED_RESOURCES_FOLDER_PATH))
         self.tmpResourcesDir = tmpResourcesDir ?? scope.evaluate(BuiltinMacros.TARGET_TEMP_DIR)
-        self.belongsToPreferedArch = belongsToPreferedArch
+        self.belongsToPreferredArch = belongsToPreferredArch
         self.currentArchSpec = currentArchSpec
         self.currentPlatformFilter = PlatformFilter(scope)
     }
@@ -831,7 +831,7 @@ class FilesBasedBuildPhaseTaskProducerBase: PhasedTaskProducer {
     /// This is an extension point provided to allow the ResourcesBuildPhase to provide custom context data.
     func constructTasksForRule(_ rule: any BuildRuleAction, _ group: FileToBuildGroup, _ buildFilesContext: BuildFilesProcessingContext, _ scope: MacroEvaluationScope, _ delegate: any TaskGenerationDelegate) async {
         // Create the build context.
-        let cbc = CommandBuildContext(producer: context, scope: scope, inputs: group.files, isPreferredArch: buildFilesContext.belongsToPreferedArch, buildPhaseInfo: buildFilesContext.buildPhaseInfo(for: rule))
+        let cbc = CommandBuildContext(producer: context, scope: scope, inputs: group.files, isPreferredArch: buildFilesContext.belongsToPreferredArch, buildPhaseInfo: buildFilesContext.buildPhaseInfo(for: rule))
 
         await constructTasksForRule(rule, cbc, delegate)
     }
