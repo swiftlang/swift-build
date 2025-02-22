@@ -461,7 +461,7 @@ fileprivate struct PBXCpTests: CoreBasedTests {
                 #expect(result.output == (
                     "copying src/...\n   copying file...\n    \(size) bytes\n"
                 ))
-                // Check permssions
+                // Check permissions
                 let dstPerm = try fs.getFilePermissions(dName)
                 #expect(dstPerm == 0o644) // files are created with u+rw, g+wr, o+rw (and +x if src is executable) permissions and umask will adjust
                 #expect(FileManager.default.contentsEqual(atPath: sName.str, andPath: dName.str))

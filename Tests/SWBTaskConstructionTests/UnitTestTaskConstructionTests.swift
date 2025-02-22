@@ -856,7 +856,7 @@ fileprivate struct UnitTestTaskConstructionTests: CoreBasedTests {
 
     /// Test task construction for a unit test target for watchOS.  Both debug and install builds are tested for the device, and a debug build is tested for the simulator.
     ///
-    /// This test is primarily intended to validate some pecularities of building for watchOS.
+    /// This test is primarily intended to validate some peculiarities of building for watchOS.
     @Test(.requireSDKs(.watchOS))
     func applicationUnitTestTarget_watchOS() async throws {
 

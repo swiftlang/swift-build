@@ -123,7 +123,7 @@ public enum FileSystemMode: Sendable {
 ///
 /// This protocol is used to allow one part of the codebase to interact with a natural filesystem interface, while still allowing clients to transparently substitute a virtual file system or redirect file system operations.
 ///
-/// NOTE: All of these APIs are sychnronous and could block.
+/// NOTE: All of these APIs are synchronous and could block.
 //
 // FIXME: This API needs error handling support.
 //
@@ -1079,7 +1079,7 @@ public class PseudoFS: FSProxy, @unchecked Sendable {
 
     public let fileSystemMode: FileSystemMode
 
-    /// The root filesytem.
+    /// The root filesystem.
     private var root: Node
 
     public init(ignoreFileSystemDeviceInodeChanges: Bool = UserDefaults.ignoreFileSystemDeviceInodeChanges) {

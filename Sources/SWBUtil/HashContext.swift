@@ -147,7 +147,7 @@ fileprivate final class SwiftCryptoHashContext<HF: HashFunction>: HashContext {
 extension SwiftCryptoHashContext: Sendable { }
 #endif
 
-/// Convert a hexadecimal digit to a lowecase ASCII character value.
+/// Convert a hexadecimal digit to a lowercase ASCII character value.
 private func hexchar(_ value: UInt8) -> UInt8 {
     assert(value >= 0 && value < 16)
     if value < 10 {

@@ -992,7 +992,7 @@ fileprivate func ==(lhs: ParseDelegateCallLogEntry, rhs: ParseDelegateCallLogEnt
     }
 }
 
-///  For testing purposes.  Helper delegate that keeps a log of the methods that were called, and in what order and with what parameters.  Then we can compare that against what was exected.
+///  For testing purposes.  Helper delegate that keeps a log of the methods that were called, and in what order and with what parameters.  Then we can compare that against what was expected.
 fileprivate final class TestDelegate : MacroExpressionParserDelegate {
     // Keep an array of call log entries, and add to it whenever we get a call.
     var callLogEntries: [ParseDelegateCallLogEntry] = []

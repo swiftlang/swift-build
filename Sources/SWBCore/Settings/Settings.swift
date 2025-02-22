@@ -558,7 +558,7 @@ final class WorkspaceSettings: Sendable {
         // Do not add arm64e to ARCHS_STANDARD by default
         table.push(BuiltinMacros.ENABLE_POINTER_AUTHENTICATION, literal: false)
 
-        // Enable additional codesign tracking by default, but opt-out of scripts phases as their outputs are free-form, and thus have the potential to introduce cycles in the build some circumstances. If that does happen, these build settings provide a relief valve while projects authors figure out how to break the cycle they are introducing (or how we break the target dependencies more granualarly).
+        // Enable additional codesign tracking by default, but opt-out of scripts phases as their outputs are free-form, and thus have the potential to introduce cycles in the build some circumstances. If that does happen, these build settings provide a relief valve while projects authors figure out how to break the cycle they are introducing (or how we break the target dependencies more granularly).
         table.push(BuiltinMacros.ENABLE_ADDITIONAL_CODESIGN_INPUT_TRACKING, literal: true)
         table.push(BuiltinMacros.ENABLE_ADDITIONAL_CODESIGN_INPUT_TRACKING_FOR_SCRIPT_OUTPUTS, literal: true)
 
@@ -1682,7 +1682,7 @@ private class SettingsBuilder {
             sdkroot = createScope(effectiveTargetConfig, sdkToUse: sdk).evaluate(BuiltinMacros.SDKROOT).str
 
             // We will replace SDKROOT values of "auto" here if the run destination is compatible.
-            let usesReplacableAutomaticSDKRoot: Bool
+            let usesReplaceableAutomaticSDKRoot: Bool
             if sdkroot == "auto", let activePlatform = parameters.activeRunDestination?.platform {
                 let destinationIsMacCatalyst = parameters.activeRunDestination?.sdkVariant == MacCatalystInfo.sdkVariantName
 
@@ -1691,15 +1691,15 @@ private class SettingsBuilder {
                 let runDestinationIsSupported = supportedPlatforms.contains(activePlatform)
                 let supportsMacCatalyst = Settings.supportsMacCatalyst(scope: scope, core: core)
                 if destinationIsMacCatalyst && supportsMacCatalyst {
-                    usesReplacableAutomaticSDKRoot = true
+                    usesReplaceableAutomaticSDKRoot = true
                 }
                 else {
-                    usesReplacableAutomaticSDKRoot = runDestinationIsSupported
+                    usesReplaceableAutomaticSDKRoot = runDestinationIsSupported
                 }
             } else {
-                usesReplacableAutomaticSDKRoot = false
+                usesReplaceableAutomaticSDKRoot = false
             }
-            if usesReplacableAutomaticSDKRoot, let activeSDK = parameters.activeRunDestination?.sdk {
+            if usesReplaceableAutomaticSDKRoot, let activeSDK = parameters.activeRunDestination?.sdk {
                 sdkroot = activeSDK
             }
 
@@ -1712,7 +1712,7 @@ private class SettingsBuilder {
             if let s = sdk {
                 // Evaluate the SDK variant, if there is one.
                 let sdkVariantName: String
-                if usesReplacableAutomaticSDKRoot, let activeSDKVariant = parameters.activeRunDestination?.sdkVariant {
+                if usesReplaceableAutomaticSDKRoot, let activeSDKVariant = parameters.activeRunDestination?.sdkVariant {
                     sdkVariantName = activeSDKVariant
                 } else {
                     sdkVariantName = createScope(effectiveTargetConfig, sdkToUse: s).evaluate(BuiltinMacros.SDK_VARIANT)
@@ -2031,7 +2031,7 @@ private class SettingsBuilder {
         var table = MacroValueAssignmentTable(namespace: core.specRegistry.internalMacroNamespace)
         let scope = createScope(sdkToUse: sdk)
 
-        // FIXME: Previously, both of these were handled with dynamic property expressions, so they could be pushed in the same place as Xcode in the tierless model, and as a way to ensure the definition matched the intent. However, we move this until later and then do it in a manner close to what Xcode does, and if it suffices then we may want to stick with it just to avoid the complexity of dynamic expressions (which are tracked by: <rdar://problem/22981068> Add support for "dynamic" macro expressions).
+        // FIXME: Previously, both of these were handled with dynamic property expressions, so they could be pushed in the same place as Xcode in the tier-less model, and as a way to ensure the definition matched the intent. However, we move this until later and then do it in a manner close to what Xcode does, and if it suffices then we may want to stick with it just to avoid the complexity of dynamic expressions (which are tracked by: <rdar://problem/22981068> Add support for "dynamic" macro expressions).
 
         // If there is no INSTALL_PATH, then SKIP_INSTALL is set to YES.
         if scope.evaluate(BuiltinMacros.INSTALL_PATH).isEmpty {
@@ -3546,7 +3546,7 @@ private class SettingsBuilder {
         // specific DriverKit suffixed SDK to the platform-neutral DriverKit suffixed SDK ("driverkit.foo")
         // making the concrete SDK resolution ambiguous again. Thus without considering aliases, we could end up
         // changing the SDKROOT of a target configured with driverkit.macosx.foo back to driverkit.foo,
-        // and if the run destination were NOT macOS, we could end up changing the platformness of the SDK.
+        // and if the run destination were NOT macOS, we could end up changing the platform-ness of the SDK.
         guard newSDKCanonicalName != targetSDK.canonicalName && !targetSDK.aliases.contains(newSDKCanonicalName) else {
             return
         }

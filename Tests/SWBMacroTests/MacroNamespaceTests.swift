@@ -80,7 +80,7 @@ import SWBMacro
         // the values are MacroValueAssignments, which are a linked list of values consisting of the
         // condition parameter set and macro expression value. While the keys of the table are enumerated
         // deterministically during serialization, the creation of the MacroValueAssignment linked list
-        // must also be determinstic from the input dictionary to ensure they are written deterministically
+        // must also be deterministic from the input dictionary to ensure they are written deterministically
         // as well.
         let table = try namespace.parseTable([
             "SETTING[sdk=macosx*]": "value",

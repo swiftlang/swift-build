@@ -16,7 +16,7 @@ extension Int {
         return String(format: format, self)
     }
 
-    /// Returns a string form of the receiver as an adjective, e.g. 1st, 2nd, 3rd, 4th, <n>th.  This only makes grammatical sense for positive integers, but is supported for nonpositive integers for ease of use.
+    /// Returns a string form of the receiver as an adjective, e.g. 1st, 2nd, 3rd, 4th, <n>th.  This only makes grammatical sense for positive integers, but is supported for non-positive integers for ease of use.
     public var asOrdinal: String {
         let tensDigit = self / 10 % 10
         switch self % 10 {
@@ -38,7 +38,7 @@ extension UInt {
         return String(format: format, self)
     }
 
-    /// Returns a string form of the receiver as an adjective, e.g. 1st, 2nd, 3rd, 4th, <n>th.  This only makes grammatical sense for positive integers, but is supported for nonpositive integers for ease of use.
+    /// Returns a string form of the receiver as an adjective, e.g. 1st, 2nd, 3rd, 4th, <n>th.  This only makes grammatical sense for positive integers, but is supported for non-positive integers for ease of use.
     public var asOrdinal: String {
         let tensDigit = self / 10 % 10
         switch self % 10 {

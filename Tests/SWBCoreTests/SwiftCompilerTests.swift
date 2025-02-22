@@ -467,7 +467,7 @@ fileprivate final class TestSwiftParserDelegate: TaskOutputParserDelegate, Senda
     }
 
     @Test
-    func executationDescription() async throws {
+    func executionDescription() async throws {
         do {
             let (delegate, _) = try await makeTestParserWithMessages([
                 [ "kind": "began", "name": "compile", "pid": 1, "inputs": ["/tmp/file.swift"]],

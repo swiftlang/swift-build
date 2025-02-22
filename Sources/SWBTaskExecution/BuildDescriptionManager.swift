@@ -445,7 +445,7 @@ package final class BuildDescriptionManager: Sendable {
 
 
         if messageShortening != .full || userPreferences.enableDebugActivityLogs {
-            constructionDelegate.updateProgress(statusMessage: "Attemping to load build description from disk", showInLog: request.workspaceContext.userPreferences.enableDebugActivityLogs)
+            constructionDelegate.updateProgress(statusMessage: "Attempting to load build description from disk", showInLog: request.workspaceContext.userPreferences.enableDebugActivityLogs)
         }
 
         let taskActionRegistry = try await TaskActionRegistry(pluginManager: request.workspaceContext.core.pluginManager)

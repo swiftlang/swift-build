@@ -158,7 +158,7 @@ fileprivate struct ClangModuleVerifierTests: CoreBasedTests {
                 #include <Orange/Orange.h>
                 """)
 
-            // A regular build will just build the currect architecture.
+            // A regular build will just build the correct architecture.
             try await tester.checkBuild(persistent: true) { results in
                 results.checkNoDiagnostics()
 
@@ -254,7 +254,7 @@ fileprivate struct ClangModuleVerifierTests: CoreBasedTests {
                 #include <Orange/Orange.h>
                 """)
 
-            // A regular build will just build the currect architecture.
+            // A regular build will just build the correct architecture.
             try await tester.checkBuild(persistent: true) { results in
                 // There are no non-verification PrecompileModule tasks.
                 results.checkNoTask(.matchRuleType("PrecompileModule"))

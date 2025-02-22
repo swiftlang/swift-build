@@ -140,7 +140,7 @@ package final class TestFile: TestInternalStructureItem, CustomStringConvertible
     private let sourceTree: TestSourceTree
     private let expectedSignature: String?
 
-    /// We use stable GUIDs for file references, since they are indirected to.
+    /// We use stable GUIDs for file references, since they are referenced indirectly.
     ///
     /// Test projects are expected to not have collisions in these.
     package var guid: String {

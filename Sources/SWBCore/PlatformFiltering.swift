@@ -18,7 +18,7 @@ extension PlatformFilter {
         let os = (!scope.evaluate(BuiltinMacros.__USE_PLATFORM_NAME_FOR_FILTERS) ? scope.evaluate(BuiltinMacros.SWIFT_PLATFORM_TARGET_PREFIX).nilIfEmpty : nil) ?? platformName
 
         // We always want developers to set platform filters for a device platform *and* its simulator counterpart as a *single* inseparable unit.
-        // To implicitly enforce this behaviour (and avoid the need for Swift Build clients to replicate it individually) for any target platform
+        // To implicitly enforce this behavior (and avoid the need for Swift Build clients to replicate it individually) for any target platform
         // whose *environment* is "simulator" we simply omit it, effectively treating the target the same as the corresponding device platform.
         let targetTripleSuffix = scope.evaluate(BuiltinMacros.LLVM_TARGET_TRIPLE_SUFFIX)
         let env = targetTripleSuffix == "-simulator" ? "" : targetTripleSuffix

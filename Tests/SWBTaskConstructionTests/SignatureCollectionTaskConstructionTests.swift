@@ -102,7 +102,7 @@ fileprivate struct SignatureCollectionTaskConstructionTests: CoreBasedTests {
         try fs.createDirectory(Path(SRCROOT), recursive: true)
         try fs.write(Path(SRCROOT).join("file.c"), contents: "int f() { return 0; }")
 
-        let googiesXCFramework = try XCFramework(version: Version(1, 0), libraries: [
+        let goodiesXCFramework = try XCFramework(version: Version(1, 0), libraries: [
             XCFramework.Library(libraryIdentifier: "x86_64-apple-macos\(core.loadSDK(.macOS).defaultDeploymentTarget)", supportedPlatform: "macos", supportedArchitectures: ["x86_64"], platformVariant: nil, libraryPath: Path("Goodies.framework"), binaryPath: Path("Goodies.framework/Versions/A/Goodies"), headersPath: nil),
             XCFramework.Library(libraryIdentifier: "arm64-apple-iphoneos\(core.loadSDK(.iOS).defaultDeploymentTarget)", supportedPlatform: "ios", supportedArchitectures: ["arm64", "arm64e"], platformVariant: nil, libraryPath: Path("Goodies.framework"), binaryPath: Path("Goodies.framework/Goodies"), headersPath: nil),
             XCFramework.Library(libraryIdentifier: "x86_64-apple-ios\(core.loadSDK(.iOS).defaultDeploymentTarget)-maccatalyst", supportedPlatform: "ios", supportedArchitectures: ["x86_64"], platformVariant: "macabi", libraryPath: Path("Goodies.framework"), binaryPath: Path("Goodies.framework/Goodies"), headersPath: nil),
@@ -110,7 +110,7 @@ fileprivate struct SignatureCollectionTaskConstructionTests: CoreBasedTests {
         let goodiesXCFrameworkPath = Path(SRCROOT).join("Goodies.xcframework")
         try fs.createDirectory(goodiesXCFrameworkPath, recursive: true)
         let infoLookup = try await getCore()
-        try await XCFrameworkTestSupport.writeXCFramework(googiesXCFramework, fs: fs, path: goodiesXCFrameworkPath, infoLookup: infoLookup)
+        try await XCFrameworkTestSupport.writeXCFramework(goodiesXCFramework, fs: fs, path: goodiesXCFrameworkPath, infoLookup: infoLookup)
 
         try await tester.checkBuild(BuildParameters(configuration: "Debug", activeRunDestination: .macOS, overrides: ["ENABLE_SIGNATURE_AGGREGATION": "YES"]), fs: fs) { results in
             // NOTE: The signature collection pulls out the framework signature information **NOT** the xcframework signature info.

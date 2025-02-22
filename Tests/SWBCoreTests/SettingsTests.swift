@@ -593,7 +593,7 @@ import SWBMacro
         #expect(settings.tableForTesting.lookupMacro(BuiltinMacros.TARGET_BUILD_DIR)?.next?.next?.expression.stringRep == "$(CONFIGURATION_BUILD_DIR)$(TARGET_BUILD_SUBPATH)")
         #expect(settings.tableForTesting.lookupMacro(BuiltinMacros.CONFIGURATION_TEMP_DIR)?.next?.next?.expression.stringRep == nil)
 
-        // This setting is always overriden by the project defaults.
+        // This setting is always overridden by the project defaults.
         #expect(settings.tableForTesting.lookupMacro(BuiltinMacros.CONFIGURATION_BUILD_DIR)?.next?.next?.expression.stringRep == nil)
 
         // Check that the correct build system defaults are exported (should be the native ones).
@@ -790,7 +790,7 @@ import SWBMacro
                            expectedExcludedFileNames: ["docs/*", "/tmp/Workspace/aProject/AppTarget/Preview Resources/*"])
         }
 
-        // However, if DEPLOYMENT_LOCATION is explicitely set to NO, development assets should not be excluded
+        // However, if DEPLOYMENT_LOCATION is explicitly set to NO, development assets should not be excluded
         for action in [BuildAction.analyze, .clean, .build] {
             try await test(buildSettings: ["DEVELOPMENT_ASSET_PATHS": "'AppTarget/Preview Resources'",
                                            "EXCLUDED_SOURCE_FILE_NAMES": "$(inherited) docs/*"],
@@ -1376,7 +1376,7 @@ import SWBMacro
                                        "ENABLE_POINTER_AUTHENTICATION": "YES"],
                        expectedARCHS_STANDARD: ["arm64", "arm64e"])
 
-        // explicitely opting out of pointer authentication does not add arm64e
+        // explicitly opting out of pointer authentication does not add arm64e
         try await test(buildSettings: ["SDKROOT": platform,
                                        "ENABLE_POINTER_AUTHENTICATION": "NO"],
                        expectedARCHS_STANDARD: ["arm64"])
@@ -2973,7 +2973,7 @@ import SWBMacro
     }
 
     @Test(.requireSDKs(.iOS))
-    func previewsDisablingHardedRuntimeWithAdHocSigning() async throws {
+    func previewsDisablingHardenedRuntimeWithAdHocSigning() async throws {
         let testWorkspace = try await TestWorkspace(
             "Workspace",
             projects: [TestProject(
@@ -3003,7 +3003,7 @@ import SWBMacro
                                 "ENABLE_XOJIT_PREVIEWS": "YES",
                                 "CODE_SIGN_IDENTITY": "An Engineer",
 
-                                "ENABLE_HARDED_RUNTIME_EXPECTED": "YES",
+                                "ENABLE_HARDENED_RUNTIME_EXPECTED": "YES",
                             ]),
                         ],
                         buildPhases: [TestSourcesBuildPhase(["main.swift"])]
@@ -3022,7 +3022,7 @@ import SWBMacro
                                 "ENABLE_XOJIT_PREVIEWS": "YES",
                                 "CODE_SIGN_IDENTITY": "-",
 
-                                "ENABLE_HARDED_RUNTIME_EXPECTED": "NO",
+                                "ENABLE_HARDENED_RUNTIME_EXPECTED": "NO",
                             ]),
                         ],
                         buildPhases: [TestSourcesBuildPhase(["main.swift"])]
@@ -3035,7 +3035,7 @@ import SWBMacro
 
         let parameters = BuildParameters(action: .build, configuration: "Debug", overrides: [:])
 
-        let expectedMacro = try BuiltinMacros.namespace.declareBooleanMacro("ENABLE_HARDED_RUNTIME_EXPECTED")
+        let expectedMacro = try BuiltinMacros.namespace.declareBooleanMacro("ENABLE_HARDENED_RUNTIME_EXPECTED")
 
         for target in testProject.targets {
             let settings = Settings(

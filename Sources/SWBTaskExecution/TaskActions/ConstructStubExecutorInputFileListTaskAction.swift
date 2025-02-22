@@ -18,12 +18,12 @@ public import SWBLLBuild
 /// rdar://125894897 (🚨 fetchOperationServiceEndpoint seems completely broken for app extensions implemented in Swift (SwiftUI: Swift entry point data not found.))
 ///
 /// We need to the final stub executor to contain the `__swift5_entry` trampoline to
-/// jump to the debug dylib's `__swfit5_entry` IFF it has one. Prior to addressing
+/// jump to the debug dylib's `__swift5_entry` IFF it has one. Prior to addressing
 /// the above, we always emitted the trampoline and assumed it would be inert unless
 /// used. But for older delegate style extensions, the presence of this linker
-/// section dermines the launch lifecycle used.
+/// section determines the launch lifecycle used.
 ///
-/// To accomodate this at link time, we are choosing a variant of the stub executor
+/// To accommodate this at link time, we are choosing a variant of the stub executor
 /// library, one with or without the entry point, based on whether the entry point
 /// is present in the user's debug dylib. To do this, we need to inspect the binary
 /// so we'll do this in a new task that will write the chosen library path to a file

@@ -2636,7 +2636,7 @@ public enum ModuleVerifierKind: String, Equatable, Hashable, EnumerationMacroTyp
     case both
 }
 
-/// Enumeration macro type for the value of the `IFNOPLIST_KEY_LSApplicationCategoryType` build setting.
+/// Enumeration macro type for the value of the `INFOPLIST_KEY_LSApplicationCategoryType` build setting.
 public enum ApplicationCategory: String, Equatable, Hashable, EnumerationMacroType {
     public static let defaultValue = ApplicationCategory.none
 

@@ -1403,7 +1403,7 @@ import SWBMacro
         table.push(BuiltinMacros.variant, literal: "normal")
         table.push(BuiltinMacros.MACH_O_TYPE, literal: "dylib")
 
-        // Construst data we can re-use across the tests.
+        // Construct data we can re-use across the tests.
         let producer = try MockCommandProducer(core: core, productTypeIdentifier: "com.apple.product-type.framework", platform: "macosx")
         let mockFileType: FileTypeSpec = try core.specRegistry.getSpec("file")
 

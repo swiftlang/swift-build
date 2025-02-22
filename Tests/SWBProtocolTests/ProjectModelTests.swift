@@ -14,7 +14,7 @@ import SWBProtocol
 import SWBUtil
 import Testing
 
-/// Test that we are generating the expected errors for invalid/unexpected type codes when serialiazing various types.
+/// Test that we are generating the expected errors for invalid/unexpected type codes when serializing various types.
 @Suite fileprivate struct SWBProtocolUnexpectedTypecodeTests {
     @Test func buildableItemGUID() {
         let serializer = MsgPackSerializer()

@@ -253,7 +253,7 @@ struct SpecializationParameters: Hashable, CustomStringConvertible {
         else {
             overridingSdk = nil
         }
-        // This seems like an unfortunate way to get from the SDK to its platform.  But SettingsBuilder.computeBoundProperties() creates a scope to evalulate the PLATFORM_NAME defined in the SDK's default properties, so maybe there isn't a clearly better way.
+        // This seems like an unfortunate way to get from the SDK to its platform.  But SettingsBuilder.computeBoundProperties() creates a scope to evaluate the PLATFORM_NAME defined in the SDK's default properties, so maybe there isn't a clearly better way.
         if let overridingSdk, let overridingPlatform = workspaceContext.core.platformRegistry.platforms.filter({ $0.sdks.contains(where: { $0.canonicalName == overridingSdk.canonicalName }) }).first {
             platformName = overridingPlatform.name
         } else {
@@ -274,7 +274,7 @@ struct SpecializationParameters: Hashable, CustomStringConvertible {
             if let suffix = try? workspaceContext.sdkRegistry.lookup(sdk, activeRunDestination: parameters.activeRunDestination)?.canonicalNameSuffix, !suffix.isEmpty {
                 sdkSuffix = suffix
             } else {
-                // Treat a run destination that uses the public SDK as one that does not express an opinion about internalness instead of one that *requires* the public SDK.
+                // Treat a run destination that uses the public SDK as one that does not express an opinion about internal-ness instead of one that *requires* the public SDK.
                 sdkSuffix = nil
             }
         } else {
@@ -739,19 +739,19 @@ extension SpecializationParameters {
         let shouldImposePlatform = settings.enableTargetPlatformSpecialization
 
         var imposedSupportedPlatforms: [String]?
-        let specializatonIsSupported: Bool
+        let specializationIsSupported: Bool
         if let specializedSupportedPlatforms = specialization.supportedPlatforms {
             // If `SDKROOT` is automatic, specialize supported platforms, but only if there is a non-empty intersection with the current value.
-            specializatonIsSupported = !Set(supportedPlatforms).intersection(specializedSupportedPlatforms).isEmpty
-            imposedSupportedPlatforms = specializatonIsSupported && shouldImposePlatform ? specialization.supportedPlatforms : nil
+            specializationIsSupported = !Set(supportedPlatforms).intersection(specializedSupportedPlatforms).isEmpty
+            imposedSupportedPlatforms = specializationIsSupported && shouldImposePlatform ? specialization.supportedPlatforms : nil
         } else {
             imposedSupportedPlatforms = nil
-            specializatonIsSupported = false
+            specializationIsSupported = false
         }
 
         let imposedPlatform: Platform?
         if shouldImposePlatform {
-            if specializatonIsSupported {
+            if specializationIsSupported {
                 imposedPlatform = specialization.platform
             } else {
                 // There may be an existing `SUPPORTED_PLATFORMS` override in the parameters passed down by the client, so we want to make sure to provide our own, even if it might not be strictly necessary.
@@ -798,7 +798,7 @@ extension SpecializationParameters {
             // iOS targets get SUPPORTS_MACCATALYST by default, but SDKROOT=auto targets get an inconsistent view.
 
             let isHostTool = settings.productType?.conformsTo(identifier: "com.apple.product-type.tool.host-build") == true
-            if specializatonIsSupported && !isHostTool {
+            if specializationIsSupported && !isHostTool {
                 imposedSdkVariant = specialization.sdkVariant ?? imposedPlatform?.defaultSDKVariant
             } else {
                 imposedSdkVariant = imposedPlatform?.defaultSDKVariant
@@ -814,7 +814,7 @@ extension SpecializationParameters {
             let initialFilteredSpecialization = SpecializationParameters(source: .synthesized, platform: imposedPlatform, sdkVariant: imposedSdkVariant, supportedPlatforms: imposedSupportedPlatforms, toolchain: nil, canonicalNameSuffix: nil)
             let initialSettings = buildRequestContext.getCachedSettings(initialFilteredSpecialization.imposed(on: parameters, workspaceContext: workspaceContext), target: forTarget)
             let specializationSDKOptions = initialSettings.globalScope.evaluate(BuiltinMacros.SPECIALIZATION_SDK_OPTIONS)
-            if specializatonIsSupported {
+            if specializationIsSupported {
                 // If specialization explicitly requires public, but the target itself requires internal, emit an error.
                 if let sdkSuffixFromSpecialization = specialization.canonicalNameSuffix, sdkSuffixFromSpecialization.isEmpty, !specializationSDKOptions.isEmpty {
                     let specializationSuffix: String
@@ -869,7 +869,7 @@ extension SpecializationParameters {
 
         // If we are imposing a platform, we also need to impose the toolchain, but skip it if the explicit setting already matches what we would impose.
         let imposedToolchain: [String]?
-        if shouldImposePlatform && specializatonIsSupported {
+        if shouldImposePlatform && specializationIsSupported {
             let specializationWithoutToolchainImposition = SpecializationParameters(source: .synthesized, platform: imposedPlatform, sdkVariant: imposedSdkVariant, supportedPlatforms: imposedSupportedPlatforms, toolchain: nil, canonicalNameSuffix: imposedCanonicalNameSuffix)
             let settingsWithToolchainImposition = buildRequestContext.getCachedSettings(specializationWithoutToolchainImposition.imposed(on: parameters, workspaceContext: workspaceContext), target: forTarget)
             let configuredToolchains = settingsWithToolchainImposition.toolchains.map({ $0.identifier })

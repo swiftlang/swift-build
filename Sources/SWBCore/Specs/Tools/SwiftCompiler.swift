@@ -1610,7 +1610,7 @@ public final class SwiftCompilerSpec : CompilerSpec, SpecIdentifierType, SwiftDi
                 let typeStr = cbc.scope.evaluate(BuiltinMacros.PRODUCT_TYPE)
                 let productType = ProductTypeIdentifier(typeStr)
 
-                // For some targets, a tbd can be emitted to allow donwstream targets to begin linking earlier.
+                // For some targets, a tbd can be emitted to allow downstream targets to begin linking earlier.
                 let supportsTBDEmissionForEagerLinking = cbc.producer.supportsEagerLinking(scope: cbc.scope)
 
                 // InstallAPI support requires explicit opt-in and a compatible product type.
@@ -2083,7 +2083,7 @@ public final class SwiftCompilerSpec : CompilerSpec, SpecIdentifierType, SwiftDi
             // Pass in access notes if present.
             // "Access notes" are YAML files to override attributes on Swift declarations in this module.
             // We want to be able to add an access note for a particular target without changing anything in the project itself, including the project file. So instead of setting SWIFT_ACCESS_NOTES_PATH only in targets that have an access note, SWIFT_ACCESS_NOTES_PATH can be set by default in SDKs that contain access notes.
-            // But that means SWIFT_ACCESS_NOTES_PATH is often set in targets which don't actually have a corresponding access note. A nonexistent access note is not an error--in fact, it's the most common case. Swift Build must threfore check not only whether SWIFT_ACCESS_NOTES_PATH is non-empty, but also whether there is a file at the path it specifies, before it knows whether to pass the path to the compiler.
+            // But that means SWIFT_ACCESS_NOTES_PATH is often set in targets which don't actually have a corresponding access note. A nonexistent access note is not an error--in fact, it's the most common case. Swift Build must therefore check not only whether SWIFT_ACCESS_NOTES_PATH is non-empty, but also whether there is a file at the path it specifies, before it knows whether to pass the path to the compiler.
             // This special case only covers nonexistent files. Other errors (e.g. bad permissions, directory instead of file, parse errors) will be diagnosed by the compiler, so Swift Build doesn't check for them.
             let accessNotesPath = Path(cbc.scope.evaluate(BuiltinMacros.SWIFT_ACCESS_NOTES_PATH))
             if !accessNotesPath.isEmpty && delegate.fileExists(at: accessNotesPath) {

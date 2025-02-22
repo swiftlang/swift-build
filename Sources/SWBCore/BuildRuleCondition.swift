@@ -98,9 +98,9 @@ public final class BuildRuleFileNameCondition: BuildRuleCondition {
     /// Evaluates the condition against the candidate, returning a `.normal` match priority level if its file name matches any of the patterns, or `.none` if there is no match.
     public func match(_ candidate: FileToBuild, _ scope: MacroEvaluationScope) -> BuildRuleConditionMatchPriority {
         for namePattern in namePatterns {
-            let evalutedNamePattern = scope.evaluate(namePattern)
+            let evaluatedNamePattern = scope.evaluate(namePattern)
             do {
-                if try fnmatch(pattern: evalutedNamePattern, input: candidate.absolutePath.str) {
+                if try fnmatch(pattern: evaluatedNamePattern, input: candidate.absolutePath.str) {
                     return .normal
                 }
             } catch {

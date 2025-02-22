@@ -545,7 +545,7 @@ private final class MacroConditionContainsExpression: MacroConditionBinaryBoolea
 {
     override func evaluateAsBoolean(_ scope: MacroEvaluationScope, lookup: ((MacroDeclaration) -> MacroExpression?)? = nil) -> Bool
     {
-        // As the contains operator works on strings, we're assuming that both expressions, left and right, will be strings. Also of note, we currently assume the substring search will be case insensitive. It might be good in the future to allow the user to specify case sensitivity vs. nonsensitivity. As a point of comparison, NSPredicate does this by appending '[c]' to the operator.
+        // As the contains operator works on strings, we're assuming that both expressions, left and right, will be strings. Also of note, we currently assume the substring search will be case insensitive. It might be good in the future to allow the user to specify case sensitivity vs. non-sensitivity. As a point of comparison, NSPredicate does this by appending '[c]' to the operator.
         let leftString = leftExpr != nil ? leftExpr!.evaluateAsString(scope, lookup: lookup) : ""
         let rightString = rightExpr != nil ? rightExpr!.evaluateAsString(scope, lookup: lookup) : ""
         return leftString.contains(rightString)

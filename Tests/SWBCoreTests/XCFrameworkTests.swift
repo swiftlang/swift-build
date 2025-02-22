@@ -741,8 +741,8 @@ import SWBUtil
         }
 
         // Now validate that when we serialize the xcframework back out, we get the sanitized versions.
-        let rountripPlist = try PropertyList.fromBytes([UInt8](try xcframework.serialize()))
-        let libraries = rountripPlist.dictValue?["AvailableLibraries"]?.arrayValue ?? []
+        let roundtripPlist = try PropertyList.fromBytes([UInt8](try xcframework.serialize()))
+        let libraries = roundtripPlist.dictValue?["AvailableLibraries"]?.arrayValue ?? []
         #expect(libraries.count == 3)
         #expect(libraries[0].dictValue?["SupportedPlatformVariant"]?.stringValue == "maccatalyst")
         #expect(libraries[1].dictValue?["SupportedPlatformVariant"]?.stringValue == "maccatalyst")
@@ -1477,7 +1477,7 @@ fileprivate struct XCFrameworkCreationCommandTests: CoreBasedTests {
 
     @Test
     func XCFrameworkCommandForDynamicLibraries_swift_internalDistribution() async throws {
-        try await _testXCFrameworkCommandForDynamicLibraries(useSwift: true, allowInternalDistrubtion: true)
+        try await _testXCFrameworkCommandForDynamicLibraries(useSwift: true, allowInternalDistribution: true)
     }
 
     @Test
@@ -1485,7 +1485,7 @@ fileprivate struct XCFrameworkCreationCommandTests: CoreBasedTests {
         try await _testXCFrameworkCommandForDynamicLibraries(useSwift: false)
     }
 
-    func _testXCFrameworkCommandForDynamicLibraries(useSwift: Bool, allowInternalDistrubtion: Bool = false) async throws {
+    func _testXCFrameworkCommandForDynamicLibraries(useSwift: Bool, allowInternalDistribution: Bool = false) async throws {
         try await withTemporaryDirectory { tmpDir -> Void in
             let infoLookup = try await getCore()
 
@@ -1522,7 +1522,7 @@ fileprivate struct XCFrameworkCreationCommandTests: CoreBasedTests {
             let bcsymPath3b = try createFakeDebugFile(at: path3, basename: "bitcode2", fileExtension: "bcsymbolmap")
 
             let commandLine: [String]
-            commandLine = ["createXCFramework", "-library", path1.str, "-debug-symbols", dsymPath1.str, "-headers", path1.dirname.join("include").str, "-library", path2.str, "-headers", path2.dirname.join("include").str, "-library", path3.str, "-headers", path3.dirname.join("include").str, "-debug-symbols", dsymPath3.str, "-debug-symbols", bcsymPath3a.str, "-debug-symbols", bcsymPath3b.str, "-output", outputPath.str] + (allowInternalDistrubtion ? ["-allow-internal-distribution"] : [])
+            commandLine = ["createXCFramework", "-library", path1.str, "-debug-symbols", dsymPath1.str, "-headers", path1.dirname.join("include").str, "-library", path2.str, "-headers", path2.dirname.join("include").str, "-library", path3.str, "-headers", path3.dirname.join("include").str, "-debug-symbols", dsymPath3.str, "-debug-symbols", bcsymPath3a.str, "-debug-symbols", bcsymPath3b.str, "-output", outputPath.str] + (allowInternalDistribution ? ["-allow-internal-distribution"] : [])
 
             // Validate that the output is correct.
             let (passed, output) = XCFramework.createXCFramework(commandLine: commandLine, currentWorkingDirectory: tmpDir, infoLookup: infoLookup)
@@ -1599,19 +1599,19 @@ fileprivate struct XCFrameworkCreationCommandTests: CoreBasedTests {
 
             if useSwift {
                 let macosSwiftModuleDir = outputPath.join(macos.libraryIdentifier).join(macos.headersPath!).join("sample.swiftmodule")
-                #expect(localFS.exists(macosSwiftModuleDir.join("x86_64.swiftmodule")) == allowInternalDistrubtion)
+                #expect(localFS.exists(macosSwiftModuleDir.join("x86_64.swiftmodule")) == allowInternalDistribution)
                 #expect(localFS.exists(macosSwiftModuleDir.join("sample.swiftinterface")))
                 #expect(localFS.exists(macosSwiftModuleDir.join("x86_64.swiftdoc")))
 
                 let iphoneosSwiftModuleDir = outputPath.join(iphoneos.libraryIdentifier).join(iphoneos.headersPath!).join("sample.swiftmodule")
-                #expect(localFS.exists(iphoneosSwiftModuleDir.join("arm64.swiftmodule")) == allowInternalDistrubtion)
-                #expect(localFS.exists(iphoneosSwiftModuleDir.join("arm64e.swiftmodule")) == allowInternalDistrubtion)
+                #expect(localFS.exists(iphoneosSwiftModuleDir.join("arm64.swiftmodule")) == allowInternalDistribution)
+                #expect(localFS.exists(iphoneosSwiftModuleDir.join("arm64e.swiftmodule")) == allowInternalDistribution)
                 #expect(localFS.exists(iphoneosSwiftModuleDir.join("sample.swiftinterface")))
                 #expect(localFS.exists(iphoneosSwiftModuleDir.join("arm64.swiftdoc")))
                 #expect(localFS.exists(iphoneosSwiftModuleDir.join("arm64e.swiftdoc")))
 
                 let iphonesimulatorSwiftModuleDir = outputPath.join(iphonesimulator.libraryIdentifier).join(iphonesimulator.headersPath!).join("sample.swiftmodule")
-                #expect(localFS.exists(iphonesimulatorSwiftModuleDir.join("x86_64.swiftmodule")) == allowInternalDistrubtion)
+                #expect(localFS.exists(iphonesimulatorSwiftModuleDir.join("x86_64.swiftmodule")) == allowInternalDistribution)
                 #expect(localFS.exists(iphonesimulatorSwiftModuleDir.join("sample.swiftinterface")))
                 #expect(localFS.exists(iphonesimulatorSwiftModuleDir.join("x86_64.swiftdoc")))
             }

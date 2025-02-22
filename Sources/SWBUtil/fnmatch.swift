@@ -48,7 +48,7 @@ private extension StringProtocol {
 
 /// Multi-platform fnmatch implementation. This is intended to be a close match the the POSIX fnmatch of all platforms including Windows (though not all options are supported).
 ///
-/// - parameter pattern: The pattern to match. When using the ``FnmatchOptions/pathname`` option, any path representation in the pattern is expected to use the POSIX path separator (`/`) to match with the input, and on Windows, the path seperator (`/`) will be matched to either separator in the input string ( both `/` and `\` will be matched).
+/// - parameter pattern: The pattern to match. When using the ``FnmatchOptions/pathname`` option, any path representation in the pattern is expected to use the POSIX path separator (`/`) to match with the input, and on Windows, the path separator (`/`) will be matched to either separator in the input string ( both `/` and `\` will be matched).
 /// - parameter input: The input string to match.
 /// - parameter options: The ``FnmatchOptions`` to use.
 /// - returns: `true` if the pattern matches the input, `false` otherwise.

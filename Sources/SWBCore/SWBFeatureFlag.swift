@@ -137,7 +137,7 @@ public enum SWBFeatureFlag {
 
     public static let generatePrecompiledModulesReport = SWBFeatureFlagProperty("GeneratePrecompiledModulesReport", defaultValue: false)
 
-    /// Turn on llbuild's ownership analyis.
+    /// Turn on llbuild's ownership analysis.
     /// Remove this feature flag after landing rdar://104894978 (Write "perform-ownership-analysis" = "yes" to build manifest by default)
     public static let performOwnershipAnalysis = SWBFeatureFlagProperty("PerformOwnershipAnalysis", defaultValue: false)
 

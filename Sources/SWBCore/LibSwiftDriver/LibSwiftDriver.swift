@@ -47,7 +47,7 @@ public protocol SwiftGlobalExplicitDependencyGraph : AnyObject {
 }
 
 /// Keeps track of all of the explicit module dependency build jobs as depended on by individual target builds
-private struct GlobalExplicitDepependencyTracker {
+private struct GlobalExplicitDependencyTracker {
     /// Maps a SwiftDriverJob's UniqueID to its index in this store
     private var uniqueIndexMap: [Int: Int] = [:]
 
@@ -120,7 +120,7 @@ public final class SwiftModuleDependencyGraph: SwiftGlobalExplicitDependencyGrap
 
     private let registryQueue = SWBQueue(label: "SwiftModuleDependencyGraph", autoreleaseFrequency: .workItem)
     private var registry: [String: LibSwiftDriver] = [:]
-    private var globalExplicitDepependencyTracker = GlobalExplicitDepependencyTracker()
+    private var globalExplicitDependencyTracker = GlobalExplicitDependencyTracker()
 
     public init() {}
 
@@ -199,35 +199,35 @@ public final class SwiftModuleDependencyGraph: SwiftGlobalExplicitDependencyGrap
     public func addExplicitDependencyBuildJobs(_ jobs: [SwiftDriverJob], workingDirectory: Path,
                                                producerMap: inout [Path: LibSwiftDriver.JobKey]) throws -> Set<LibSwiftDriver.JobKey> {
         try registryQueue.blocking_sync {
-            try globalExplicitDepependencyTracker.addExplicitDependencyBuildJobs(jobs, workingDirectory: workingDirectory, producerMap: &producerMap)
+            try globalExplicitDependencyTracker.addExplicitDependencyBuildJobs(jobs, workingDirectory: workingDirectory, producerMap: &producerMap)
         }
     }
     public func getExplicitDependencyBuildJobs(for keys: [LibSwiftDriver.JobKey]) -> [LibSwiftDriver.PlannedBuild.PlannedSwiftDriverJob] {
         registryQueue.blocking_sync {
-            globalExplicitDepependencyTracker.getExplicitDependencyBuildJobs(for: keys)
+            globalExplicitDependencyTracker.getExplicitDependencyBuildJobs(for: keys)
         }
     }
     public func plannedExplicitDependencyBuildJob(for key: LibSwiftDriver.JobKey) -> LibSwiftDriver.PlannedBuild.PlannedSwiftDriverJob? {
         registryQueue.blocking_sync {
-            globalExplicitDepependencyTracker.plannedExplicitDependencyBuildJob(for: key)
+            globalExplicitDependencyTracker.plannedExplicitDependencyBuildJob(for: key)
         }
     }
     public func explicitDependencies(for job: LibSwiftDriver.PlannedBuild.PlannedSwiftDriverJob) -> [LibSwiftDriver.PlannedBuild.PlannedSwiftDriverJob] {
         registryQueue.blocking_sync {
-            globalExplicitDepependencyTracker.explicitDependencies(for: job)
+            globalExplicitDependencyTracker.explicitDependencies(for: job)
         }
     }
 
     public var isEmpty: Bool {
         registryQueue.blocking_sync {
-            globalExplicitDepependencyTracker.plannedExplicitDependencyJobs.isEmpty
+            globalExplicitDependencyTracker.plannedExplicitDependencyJobs.isEmpty
         }
     }
 
     public func generatePrecompiledModulesReport(in directory: Path, fs: any FSProxy) async throws -> String {
         // Collect DependencyInfo of every module built during the current build.
         var jobsByModuleID: [String: [SwiftDriverJob]] = [:]
-        for job in globalExplicitDepependencyTracker.plannedExplicitDependencyJobs {
+        for job in globalExplicitDependencyTracker.plannedExplicitDependencyJobs {
             let qualifier: String
             switch job.driverJob.ruleInfoType {
             case "CompileModuleFromInterface":

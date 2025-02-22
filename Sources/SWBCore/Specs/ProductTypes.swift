@@ -328,7 +328,7 @@ public class ProductTypeSpec : Spec, SpecType, @unchecked Sendable {
         return false
     }
 
-    /// Returns whether the product type's target should be configured as a mergeable library (have `MERGEABLE_LIBRARY` set in target speciaization) if an merged binary target depends on it, as part of superimposed properties in `DependencyResolver`.
+    /// Returns whether the product type's target should be configured as a mergeable library (have `MERGEABLE_LIBRARY` set in target specialization) if an merged binary target depends on it, as part of superimposed properties in `DependencyResolver`.
     public func autoConfigureAsMergeableLibrary(_ scope: MacroEvaluationScope) -> Bool {
         return false
     }

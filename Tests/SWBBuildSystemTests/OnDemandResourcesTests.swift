@@ -587,7 +587,7 @@ fileprivate struct OnDemandResourcesTests: CoreBasedTests {
         try await withTemporaryDirectory { tmpDirPath in
             let srcRoot = tmpDirPath.join("srcroot")
 
-            // Create the project and teter to use.
+            // Create the project and tester to use.
             let tester = try await createODRProjectAndTester(srcRoot)
             let fs = tester.fs
 

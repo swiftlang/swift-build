@@ -20,7 +20,7 @@ import Testing
 /// Tests the behavior of various alternative build commands of a build request, including single-file compiles.
 @Suite
 fileprivate struct BuildCommandTests: CoreBasedTests {
-    /// Check compilation of a single file in C, ObjC and Swift, including the `uniquingSuffix` behaviour.
+    /// Check compilation of a single file in C, ObjC and Swift, including the `uniquingSuffix` behavior.
     @Test(.requireSDKs(.host))
     func singleFileCompile() async throws {
         try await withTemporaryDirectory { tmpDirPath async throws -> Void in

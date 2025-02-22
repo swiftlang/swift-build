@@ -357,7 +357,7 @@ extension PIF.ImpartedBuildProperties : PIFRepresentable {
 extension PIF.BuildSettings : PIFRepresentable {
 
     public func serialize(to serializer: any IDEPIFSerializer) -> PIFDict {
-        // Borderline hacky, but the main thing is that adding or changing a build setting does not require any changes to the property list representation code.  Using a handcoded serializer might be more efficient but not even remotely as robust, and robustness is the key factor for this use case, as there aren't going to be millions of BuildSettings structs.
+        // Borderline hacky, but the main thing is that adding or changing a build setting does not require any changes to the property list representation code.  Using a hand-coded serializer might be more efficient but not even remotely as robust, and robustness is the key factor for this use case, as there aren't going to be millions of BuildSettings structs.
         var dict = PIFDict()
         let mirror = Mirror(reflecting: self)
         for child in mirror.children {
@@ -374,7 +374,7 @@ extension PIF.BuildSettings : PIFRepresentable {
             case let value as [String]:
                 dict[name] = value
             default:
-                // FIXME: I haven't found a way of distinguishing a value of an unexpected type from a value that is nil; they all seem to go throught the `default` case instead of the `nil` case above.  Currently we will silently fail to serialize any struct field that isn't a `String` or a `[String]` (or an optional of either of those two).  This would only come up if a property of a type other than `String` or `[String]` were to be added to `BuildSettings`.
+                // FIXME: I haven't found a way of distinguishing a value of an unexpected type from a value that is nil; they all seem to go through the `default` case instead of the `nil` case above.  Currently we will silently fail to serialize any struct field that isn't a `String` or a `[String]` (or an optional of either of those two).  This would only come up if a property of a type other than `String` or `[String]` were to be added to `BuildSettings`.
                 continue
             }
         }

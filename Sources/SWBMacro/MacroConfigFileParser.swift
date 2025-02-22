@@ -365,7 +365,7 @@ public final class MacroConfigFileParser {
         while let chunk = parseNonListAssignmentRHS() {
             // we have already ensured chunk doesn't have trailing spaces
             if chunk.hasSuffix("\\") {
-                // we should drop the line contunuation character from the chunk
+                // we should drop the line continuation character from the chunk
                 let trimmed = chunk.dropLast().trimmingCharacters(in: .whitespaces)
                 if !trimmed.isEmpty { // no need to add empty lines
                     chunks.append(String(trimmed))
@@ -410,7 +410,7 @@ public final class MacroConfigFileParser {
             endIdx -= 1
         }
 
-        // Trim any trailing semicolon (and preceeding whitespace).
+        // Trim any trailing semicolon (and preceding whitespace).
         if bytes[endIdx-1] == /* ';' */ 59 {
             endIdx -= 1
             while endIdx > valueMarkIdx && bytes[endIdx-1].isASCIISpace {

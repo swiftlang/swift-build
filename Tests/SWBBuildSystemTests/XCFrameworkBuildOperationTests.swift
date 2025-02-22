@@ -511,7 +511,7 @@ fileprivate struct XCFrameworkBuildOperationTests: CoreBasedTests {
     }
 
     @Test(.requireSDKs(.macOS, .iOS))
-    func missingMetatadaFoldersProducesDiagnostics() async throws {
+    func missingMetadataFoldersProducesDiagnostics() async throws {
         try await withTemporaryDirectory { (tmpDir: Path) in
             let testProject = TestProject(
                 "aProject",

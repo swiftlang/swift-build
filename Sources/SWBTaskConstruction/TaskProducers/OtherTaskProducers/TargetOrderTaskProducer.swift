@@ -279,7 +279,7 @@ final class TargetOrderTaskProducer: StandardTaskProducer, TaskProducer {
         return true
     }()
 
-    /// Workhorse utility method for computing the input node for use for immediate dependend-on (upstream) targets of a target.
+    /// Workhorse utility method for computing the input node for use for immediate depended-on (upstream) targets of a target.
     /// - parameter lookup: A lookup method which takes a `ConfiguredTarget` and returns an input `PlannedNode`, or nil if there are no inputs.
     /// - returns: A tuple of synchronized lists of input `PlannedNode`s and their corresponding `ConfiguredTarget`s
     private func inputsForDependencies(_ lookup: (ConfiguredTarget, ConfiguredTarget) -> (any PlannedNode)?) -> (inputs: [any PlannedNode], resolvedTargetDependencies: [ResolvedTargetDependency]) {

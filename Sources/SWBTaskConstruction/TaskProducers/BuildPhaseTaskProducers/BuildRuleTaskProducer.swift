@@ -120,7 +120,7 @@ final class BuildRuleTaskProducer: StandardTaskProducer, TaskProducer, ShellBase
         var environment = computeScriptEnvironment(.shellScriptPhase, scope: cbc.scope, settings: context.settings, workspaceContext: context.workspaceContext)
 
         // If we are in a headers build phase, expose visibility and output dir
-        // infomation to the script and set the HEADER_OUTPUT_DIR macro value
+        // information to the script and set the HEADER_OUTPUT_DIR macro value
         // for output path resolution.
         if buildPhase is HeadersBuildPhase {
             if let headerVisibility = input.headerVisibility, let outputDir = TargetHeaderInfo.outputPath(for: input.absolutePath, visibility: headerVisibility, scope: cbc.scope)?.dirname {

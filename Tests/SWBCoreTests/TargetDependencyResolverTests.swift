@@ -1572,7 +1572,7 @@ fileprivate enum TargetPlatformSpecializationMode {
         let targets = buildGraph.allTargets.filter { $0.target.name == name }
         #expect(targets.count == expectedPlatforms.count)
 
-        var unexepectedPlatforms: [String] = []
+        var unexpectedPlatforms: [String] = []
         var visitedPlatforms = Set(expectedPlatforms)
         for target in targets {
             let settings = buildRequestContext.getCachedSettings(target.parameters, target: target.target)
@@ -1581,12 +1581,12 @@ fileprivate enum TargetPlatformSpecializationMode {
                 continue
             }
             if visitedPlatforms.remove(platform.name) == nil {
-                unexepectedPlatforms.append(platform.name)
+                unexpectedPlatforms.append(platform.name)
             }
         }
 
         #expect(visitedPlatforms == [])
-        #expect(unexepectedPlatforms == [])
+        #expect(unexpectedPlatforms == [])
     }
 
     let specializationWorkspace_basic: TestWorkspace = {
@@ -2007,9 +2007,9 @@ fileprivate enum TargetPlatformSpecializationMode {
                 try checkTarget(graphType, buildRequestContext, buildGraph, name: "SinglePlatformFramework", expectedPlatform: "macosx")
                 try checkTarget(graphType, buildRequestContext, buildGraph, name: "Intermediate", expectedPlatforms: ["macosx"])
 
-                // NOTE: Due to how the aggegrate targets are specialized "transparently", this means this project configuration is actually non-deterministc
-                // as our depedency resolver can run concurrently. This test forces the order to verify the specialization is happening correctly, but the
-                // project configuration itself is non-determinstic. It's also an odd setup as the leaf framework is not used by any of the top-level targets,
+                // NOTE: Due to how the aggregate targets are specialized "transparently", this means this project configuration is actually non-deterministic
+                // as our dependency resolver can run concurrently. This test forces the order to verify the specialization is happening correctly, but the
+                // project configuration itself is non-deterministic. It's also an odd setup as the leaf framework is not used by any of the top-level targets,
                 // which would mean this target would be specialized.
                 try checkTarget(graphType, buildRequestContext, buildGraph, name: "MultiPlatformFramework", expectedPlatforms: [expectedPlatform])
 
@@ -4118,7 +4118,7 @@ fileprivate enum TargetPlatformSpecializationMode {
 
     /// This is a specific regression test for part of rdar://73361908.
     @Test(.requireSDKs(.macOS, .iOS))
-    func implicitDependencyResolutionMultiPlatDepsSameProdutName() async throws {
+    func implicitDependencyResolutionMultiPlatDepsSameProductName() async throws {
         let core = try await getCore()
 
         let testProject = try await TestProject(
@@ -4733,7 +4733,7 @@ fileprivate enum TargetPlatformSpecializationMode {
         let workspaceContext = WorkspaceContext(core: core, workspace: workspace, processExecutionCache: .sharedForTesting)
         let project = workspace.projects[0]
 
-        // The key thing that's being tested here is that all of the targets are top-level targets, but since MergedFwkTarget has AUTOMATICALLY_MERGE_DEPENDENCIES set, it will imppose on its framework & dylib dependencies, and we want to make sure that none of them show up more than once, there should only be one of each, with MERGEABLE_LIBRARY enabled.
+        // The key thing that's being tested here is that all of the targets are top-level targets, but since MergedFwkTarget has AUTOMATICALLY_MERGE_DEPENDENCIES set, it will impose on its framework & dylib dependencies, and we want to make sure that none of them show up more than once, there should only be one of each, with MERGEABLE_LIBRARY enabled.
         // TaskConstructionTests.MergeableLibraryTests will also exercise this, but this is a lower-level test exercising target dependency resolution specifically.
         let parameters = BuildParameters(configuration: "Release")
         let targets = project.targets.map({ BuildRequest.BuildTargetInfo(parameters: parameters, target: $0) })

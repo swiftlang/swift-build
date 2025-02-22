@@ -75,7 +75,7 @@ final public class PrecompileClangModuleTaskAction: TaskAction, BuildValueValida
     public override func taskSetup(_ task: any ExecutableTask, executionDelegate: any TaskExecutionDelegate, dynamicExecutionDelegate: any DynamicTaskExecutionDelegate) {
         let clangModuleDependencyGraph = dynamicExecutionDelegate.operationContext.clangModuleDependencyGraph
 
-        // If a precompile task action is executing, it is expected that the scanning action already happend, so the
+        // If a precompile task action is executing, it is expected that the scanning action already happened, so the
         // dependencies for this module should already be present in the ModuleDependencyGraph.
         let dependencyInfo: ClangModuleDependencyGraph.DependencyInfo
         do {

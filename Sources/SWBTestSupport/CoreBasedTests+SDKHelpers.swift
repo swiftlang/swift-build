@@ -97,7 +97,7 @@ extension CoreBasedTests {
 
     /// Utility method to compute the build directories for a build.
     /// - parameter baseDir: The root directory under which all the build directories will be located.
-    /// - parameter buildType: A string indicating the type of build, distinguishing it from other builds in the same test. This can be a usefully symbolic name, but functionallty is the subdirectory of the `baseDir` in which the root dirs are defined.
+    /// - parameter buildType: A string indicating the type of build, distinguishing it from other builds in the same test. This can be a usefully symbolic name, but functionally is the subdirectory of the `baseDir` in which the root dirs are defined.
     /// - returns: A tuple with the `SYMROOT`, `OBJROOT` and `DSTROOT` absolute paths.
     package func buildDirs(in baseDir: Path, for buildType: String) -> (symroot: String, objroot: String, dstroot: String) {
         let buildTypePath = baseDir.join(buildType)

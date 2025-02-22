@@ -108,7 +108,7 @@ public final class MacroExpressionParser {
         let markIdx = currIdx
         while isAtWhitespace { advance() }
 
-        // If directed to capture the whitespace as a list separator, then we do so - *except* that if the whitespace is at the end of the string, then we don't treat it as a list sepatror.
+        // If directed to capture the whitespace as a list separator, then we do so - *except* that if the whitespace is at the end of the string, then we don't treat it as a list separator.
         if parseAsListSeparator && !isAtEnd {
             delegate.foundListElementSeparator(utf8[markIdx ..< currIdx], parser: self)
         }
@@ -553,7 +553,7 @@ public protocol MacroExpressionParserDelegate {
     /// Invoked for each “retrieval” operator found inside a macro substitution expression of the form `$(XYZ)`.  The operator name is always non-empty.  This callback function is always invoked with the parser’s cursor positioned immediately after the operator name.
     func foundRetrievalOperator(_ operatorName: Input, parser: MacroExpressionParser)
 
-    /// Invoked at the start of a “replacement” operator found inside a macro substitution expression of the form `$(XYZ)`.  The operator name is always non-empty.  This call is always balanced by a later call to `foundEndOfReplacementOperator()`.  This callback function is always invoked with the parser’s cursor positioned immediately after the `=` character that follows the operator name; this is the same as the start position of the replacement operatand subexpression.
+    /// Invoked at the start of a “replacement” operator found inside a macro substitution expression of the form `$(XYZ)`.  The operator name is always non-empty.  This call is always balanced by a later call to `foundEndOfReplacementOperator()`.  This callback function is always invoked with the parser’s cursor positioned immediately after the `=` character that follows the operator name; this is the same as the start position of the replacement operand subexpression.
     func foundStartOfReplacementOperator(_ operatorName: Input, parser: MacroExpressionParser)
 
     /// Invoked at the end of a “replacement” operator found inside a macro substitution expression of the form `$(XYZ)`.  This call always balances an earlier call to `foundStartOfReplacementOperator()`.  The same operator name is passed in both calls.  This callback function is always invoked with the parser’s cursor positioned immediately after the operand expression.  Note that if the operand expression is empty, the `foundEndOfReplacementOperator()` call will occur immediately after the `foundStartOfReplacementOperator()` call, and the cursor position will be unchanged between the two.

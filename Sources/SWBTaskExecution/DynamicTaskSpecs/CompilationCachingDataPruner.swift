@@ -43,7 +43,7 @@ package struct ClangCachingPruneDataTaskKey: Hashable, Serializable, CustomDebug
 }
 
 /// Manages the growth of the on-disk CAS by setting a size limit and pruning its data when necessary.
-/// Each CAS instance will be attempted to be prunned once per build, but this happens concurrently
+/// Each CAS instance will be attempted to be pruned once per build, but this happens concurrently
 /// with the rest of the build and in a lower QoS priority. It is expected to have one pruning action
 /// per used toolchain.
 package final class CompilationCachingDataPruner: Sendable {

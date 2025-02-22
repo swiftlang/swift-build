@@ -199,7 +199,7 @@ fileprivate struct UnitTestBuildOperationTests: CoreBasedTests {
                 return
             }
 
-            // Check tbhat the app sign task runs after the test targets' end gate tasks.
+            // Check that the app sign task runs after the test targets' end gate tasks.
             results.check(event: .taskHadEvent(testOneGateTask, event: .completed), precedes: .taskHadEvent(appSignTask, event: .started))
             results.check(event: .taskHadEvent(testTwoGateTask, event: .completed), precedes: .taskHadEvent(appSignTask, event: .started))
 
