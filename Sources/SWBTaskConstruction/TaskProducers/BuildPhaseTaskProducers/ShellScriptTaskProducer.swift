@@ -66,7 +66,7 @@ final class ShellScriptTaskProducer: PhasedTaskProducer, TaskProducer, ShellBase
         // This is to provide a fallback to prevent any unexpected side-effects this close to shipping...
         guard scope.evaluate(BuiltinMacros.ENABLE_ADDITIONAL_CODESIGN_INPUT_TRACKING) else { return }
 
-        // Due to the free-form nature of how script outputs can be formed, it can be problematic to blanketly add these as doing so can trigger cycles from downstream targets.
+        // Due to the free-form nature of how script outputs can be formed, it can be problematic to blanket add these as doing so can trigger cycles from downstream targets.
         guard scope.evaluate(BuiltinMacros.ENABLE_ADDITIONAL_CODESIGN_INPUT_TRACKING_FOR_SCRIPT_OUTPUTS) else { return }
 
         // There is no reason to process any files if we're not building into a wrapper.

@@ -691,7 +691,7 @@ public protocol TaskGenerationDelegate: AnyObject, TargetDiagnosticProducingDele
     ///
     /// This file will be added to the generated files headermap.
     //
-    // FIXME: Could we handle this automatically based simply on the declared outputs? We know from the file type which are soure files.
+    // FIXME: Could we handle this automatically based simply on the declared outputs? We know from the file type which are source files.
     func declareGeneratedSourceFile(_ path: Path)
 
     /// Declare a generated info plist addition.
@@ -741,7 +741,7 @@ public protocol TaskGenerationDelegate: AnyObject, TargetDiagnosticProducingDele
     /// Returns true if a file exists at `path`, and adds the path to the list of paths which invalidate the build description.
     func fileExists(at path: Path) -> Bool
 
-    /// Record an arbitrary attachment as part of the build desceription, which can be accessed at the returned path.
+    /// Record an arbitrary attachment as part of the build description, which can be accessed at the returned path.
     func recordAttachment(contents: ByteString) -> Path
 
     /// User preferences

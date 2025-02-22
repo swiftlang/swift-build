@@ -1280,7 +1280,7 @@ import SWBTestSupport
 ///
 /// - Parameters:
 ///   - fs: The filesystem to test on.
-///   - basePath: The path at which the temporary file strucutre should be created.
+///   - basePath: The path at which the temporary file structure should be created.
 private func removeFileTreeTester(fs: any FSProxy, basePath path: Path, sourceLocation: SourceLocation = #_sourceLocation) {
     // Test removing folders.
     let folders = path.join("foo/bar/baz")

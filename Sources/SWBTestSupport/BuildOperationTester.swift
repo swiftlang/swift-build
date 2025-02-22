@@ -66,7 +66,7 @@ package protocol BuildRequestCheckingResult {
 }
 
 extension BuildRequestCheckingResult {
-    /// The target architecture of the run destination in the build request.  Returns `undefined_arch` if the build request has no run destination, or the run destination has no target archotecture.
+    /// The target architecture of the run destination in the build request.  Returns `undefined_arch` if the build request has no run destination, or the run destination has no target architecture.
     package var runDestinationTargetArchitecture: String {
         return buildRequest.parameters.activeRunDestination?.targetArchitecture ?? "undefined_arch"
     }
@@ -224,7 +224,7 @@ package final class BuildOperationTester {
         }
     }
 
-    /// Describes a single event which ocurred as a part of a task, during the build.
+    /// Describes a single event which occurred as a part of a task, during the build.
     package enum TaskEvent: Hashable, Equatable, CustomStringConvertible, Sendable {
 
         /// The task was started.
@@ -1318,7 +1318,7 @@ package final class BuildOperationTester {
             }
         }
 
-        // Add overrides from the parameters we were passed, which will supercede the default overrides above.
+        // Add overrides from the parameters we were passed, which will supersede the default overrides above.
         overrides.addContents(of: parameters.overrides)
 
         // Create and return the effective parameters.

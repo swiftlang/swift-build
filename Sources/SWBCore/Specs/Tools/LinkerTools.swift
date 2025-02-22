@@ -390,7 +390,7 @@ public final class LdLinkerSpec : GenericLinkerSpec, SpecIdentifierType, @unchec
             delegate.declareGeneratedInfoPlistContent(infoPlistContent)
         }
 
-        // Add flags to emity dependency info.
+        // Add flags to emit dependency info.
         let dependencyInfo = await self.dependencyData(cbc: cbc, delegate: delegate, outputs: &outputs)
 
         // FIXME: Honor LD_QUITE_LINKER_ARGUMENTS_FOR_COMPILER_DRIVER == NO ?
@@ -1447,7 +1447,7 @@ public final class LibtoolLinkerSpec : GenericLinkerSpec, SpecIdentifierType, @u
 
         var outputs: [any PlannedNode] = [delegate.createNode(cbc.output)] + cbc.commandOrderingOutputs
 
-        // Add flags to emity dependency info.
+        // Add flags to emit dependency info.
         var dependencyInfo: DependencyDataStyle?
         let dependencyInfoFile = cbc.scope.evaluate(BuiltinMacros.LIBTOOL_DEPENDENCY_INFO_FILE)
         if !dependencyInfoFile.isEmpty {

@@ -121,7 +121,7 @@ extension Trait where Self == Testing.ConditionTrait {
     }
 
     /// Constructs a condition trait that causes a test to be disabled if not running on the specified host OS.
-    /// - parameter when: An additional constraint to apply such that the host OS requirement is only applied if this parameer is _also_ true. Defaults to true.
+    /// - parameter when: An additional constraint to apply such that the host OS requirement is only applied if this parameter is _also_ true. Defaults to true.
     package static func requireHostOS(_ os: OperatingSystem, when condition: Bool = true) -> Self {
         enabled("This test requires a \(os) host OS.", { try ProcessInfo.processInfo.hostOperatingSystem() == os && condition })
     }
@@ -289,12 +289,12 @@ extension Trait where Self == Testing.ConditionTrait {
         })
     }
 
-    /// Constructs a condition trait that causes a test to be disabled if not running against a version of Xcode including the SDK which is equal to or newer than at least one of the given versions wihin the same release.
+    /// Constructs a condition trait that causes a test to be disabled if not running against a version of Xcode including the SDK which is equal to or newer than at least one of the given versions within the same release.
     package static func requireMinimumSDKBuildVersion(sdkName: String, requiredVersions: [String], sourceLocation: SourceLocation = #_sourceLocation) -> Self {
         requireMinimumSDKBuildVersion(sdkName: sdkName, requiredVersions: try requiredVersions.map { try ProductBuildVersion($0) }, sourceLocation: sourceLocation)
     }
 
-    /// Constructs a condition trait that causes a test to be disabled if not running against a version of Xcode including the SDK which is equal to or newer than at least one of the given versions wihin the same release.
+    /// Constructs a condition trait that causes a test to be disabled if not running against a version of Xcode including the SDK which is equal to or newer than at least one of the given versions within the same release.
     package static func requireMinimumSDKBuildVersion(sdkName: String, requiredVersions: @Sendable @autoclosure @escaping () throws -> [ProductBuildVersion], sourceLocation: SourceLocation = #_sourceLocation) -> Self {
         disabled("SDK build version is too old", sourceLocation: sourceLocation, {
             let sdkVersion = try await InstalledXcode.currentlySelected().productBuildVersion(sdkCanonicalName: sdkName)

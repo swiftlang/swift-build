@@ -232,7 +232,7 @@ fileprivate struct DiscoveredDependenciesBuildOperationTests: CoreBasedTests {
             try await tester.checkBuild(persistent: true, serial: true) { results in
                 // We should rebuild Dep, recopy its .swiftmodule, rebuild the client, and relink both.
                 //
-                // FIXME: Why doesn't this trigger the bug where we sometiems stat the module ahead of when it is needed? That was the purpose of this test so we need to get this to fail more before we fix it.
+                // FIXME: Why doesn't this trigger the bug where we sometimes stat the module ahead of when it is needed? That was the purpose of this test so we need to get this to fail more before we fix it.
                 results.consumeTasksMatchingRuleTypes(["Gate"])
 
                 checkDriverContainerTasks(results)

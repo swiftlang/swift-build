@@ -107,7 +107,7 @@ import SWBMacro
         let superSpec = core.specRegistry.getSpec("sourcecode.c")!
         #expect(spec.basedOnSpec === superSpec)
 
-        // Validate that we loaded specs from IDE pugins.
+        // Validate that we loaded specs from IDE plugins.
         #expect(core.specRegistry.getSpec("com.apple.product-type.bundle", domain: "embedded") != nil)
 
         // Validate use of default proxy as fallback for based on references.
@@ -916,7 +916,7 @@ import SWBMacro
         let clangSpec = try core.specRegistry.getSpec("com.apple.compilers.llvm.clang.1_0") as CompilerSpec
         #expect(clangSpec.execDescription == clangCompilerSpec.execDescription)
 
-        // Validate overriden class loading.
+        // Validate overridden class loading.
         let codesignSpec = core.specRegistry.getSpec("com.apple.build-tools.codesign")
         #expect(codesignSpec is CodesignToolSpec)
 

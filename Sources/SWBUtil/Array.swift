@@ -152,7 +152,7 @@ extension Sequence where Element: Sendable {
         try await withThrowingTaskGroup(of: (Int, T).self) { group in
             var index = 0
             for element in self {
-                // Expand the results arrray with initial value nil
+                // Expand the results array with initial value nil
                 // which will be later be replaced with the final value
                 results.append(nil)
                 defer {

@@ -18,7 +18,7 @@ public protocol EmptyState {
 extension EmptyState {
     /// Returns `nil` if this instance is considered empty, otherwise returns `self`.
     ///
-    /// This is used to aid in constructing expressions of form `x.isEmpty ? x : y` where `x` is a complex exression, by allowing it to be instead written as `x.nilIfEmpty ?? y`.
+    /// This is used to aid in constructing expressions of form `x.isEmpty ? x : y` where `x` is a complex expression, by allowing it to be instead written as `x.nilIfEmpty ?? y`.
     public var nilIfEmpty: Self? {
         return isEmpty ? nil : self
     }

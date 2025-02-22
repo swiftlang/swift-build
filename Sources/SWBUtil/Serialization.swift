@@ -679,7 +679,7 @@ extension PendingSerializableCodable {
 // MARK: PolymorphicSerializable protocol.
 
 
-/// Protocol for types which can be serialized as polymorphic elements, where the type of each element is read during deserialization so the correct class or struct can be instatiated.  The top-level class typically will implement `classForCode()` to return the class to be instantiated based on the code it is passed by the deserializer, while all classes will implement the other methods.  Each class should return a unique value for `serializableTypeCode`, although this is not enforced.
+/// Protocol for types which can be serialized as polymorphic elements, where the type of each element is read during deserialization so the correct class or struct can be instantiated.  The top-level class typically will implement `classForCode()` to return the class to be instantiated based on the code it is passed by the deserializer, while all classes will implement the other methods.  Each class should return a unique value for `serializableTypeCode`, although this is not enforced.
 ///
 /// Elements of these types will be wrapped in a `PolymorphicSerializableWrapper` struct to be serialized.  They should never be serialized directly (which is why this protocol does not adopt `Serializable`).
 ///

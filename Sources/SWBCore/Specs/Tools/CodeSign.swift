@@ -156,7 +156,7 @@ public final class CodesignToolSpec : CommandLineToolSpec, SpecIdentifierType, @
             extraInputs.append(Path(entitlementsFilePath))
         }
 
-        // Add designatred requirements if we need to.
+        // Add designated requirements if we need to.
         if generateDesignatedRequirements {
             if let unevaluatedDesignatedRequirements = provisioningTaskInputs.designatedRequirements {
                 if let designatedRequirements = defaultDesignatedRequirements(cbc, commandLine, unevaluatedDesignatedRequirements) {
@@ -206,7 +206,7 @@ public final class CodesignToolSpec : CommandLineToolSpec, SpecIdentifierType, @
             uniquingKeysWith: { (_, second) in second })
 
         // Normally, the additional inputs shouldn't be applied on a resign-task for the target as doing so can create a cycle between the Copy Files Phase and Run Script Phase. However, due to the way that app hosted tests work (e.g. misuse the copy phase to inject content into the app bundle), we need to provide a provision to track that in order to properly-resign the app bundle (cf: testIncrementalCodesignForCopyFileChangesWithAppHostedTests).
-        // NOTE: This does mean that the users can actually introduce a cycle if they have a script phase that also injects content into the app bundle related to the test bundle that is geing copied in. However, this should be an obscure usage.
+        // NOTE: This does mean that the users can actually introduce a cycle if they have a script phase that also injects content into the app bundle related to the test bundle that is getting copied in. However, this should be an obscure usage.
         // NOTE: This also means that we can tend to over-sign some of the additional test infrastructure libraries... not sure it's actually worth trying to filter those out and if we can do it reliably without over filtering.
         if !isReSignTask || !cbc.scope.evaluate(BuiltinMacros.TEST_HOST).isEmpty {
             extraInputs = (extraInputs + delegate.additionalCodeSignInputs).sorted()

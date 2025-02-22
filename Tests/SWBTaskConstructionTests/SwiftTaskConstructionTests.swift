@@ -3295,7 +3295,7 @@ fileprivate struct SwiftTaskConstructionTests: CoreBasedTests {
         }
     }
 
-    // Test frontend flag -library-level inferrence from the INSTALL_PATH.
+    // Test frontend flag -library-level inference from the INSTALL_PATH.
     @Test(.requireSDKs(.macOS))
     func libraryLevel() async throws {
         if try await !swiftFeatures.has(.libraryLevel) {
@@ -3876,7 +3876,7 @@ fileprivate struct SwiftTaskConstructionTests: CoreBasedTests {
         }
     }
     @Test(.requireSDKs(.host))
-    func nonConformantPathsCauseDiganostics() async throws {
+    func nonConformantPathsCauseDiagnostics() async throws {
         let destination: RunDestinationInfo = .host
         let testFilename = (destination == .windows) ? "main\t\n.swift": "main\u{0}.swift"
         let testProject = try await TestProject(

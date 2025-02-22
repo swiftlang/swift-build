@@ -60,7 +60,7 @@ public extension InputFileGroupingStrategy {
     }
 }
 
-/// A grouping strategy that groups all files in a build phase which matchn a given build rule into the same group.  For example, all files to be processed by the Swift compiler in a build phase will be passed to a single invocation of the compiler.
+/// A grouping strategy that groups all files in a build phase which match a given build rule into the same group.  For example, all files to be processed by the Swift compiler in a build phase will be passed to a single invocation of the compiler.
 @_spi(Testing) public final class AllInputFilesGroupingStrategy : InputFileGroupingStrategy, Encodable {
 
     /// Group identifier that’s returned for every path.
@@ -1670,7 +1670,7 @@ fileprivate extension Diagnostic.FixIt {
 public func generateIndexOutputPath(from output: Path, basePath: Path) -> Path? {
     // We want the paths in the index store to be relocatable. This could be
     // relative, but use an absolute path instead to ensure no accidental
-    // absoluting by eg. the compilers.
+    // conversion to absolute by eg. the compilers.
     if let relative = output.relativeSubpath(from: basePath) {
         if let newPath = Path(relative).makeAbsolute(relativeTo: Path(Path.pathSeparatorString)) {
             return newPath

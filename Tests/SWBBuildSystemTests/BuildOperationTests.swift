@@ -1734,13 +1734,13 @@ That command depends on command in Target 'agg2' (project \'aProject\'): script 
                 stream <<< "magic string\n"
             }
 
-            let overridenParameters = BuildParameters(configuration: "Debug", overrides: [
+            let overriddenParameters = BuildParameters(configuration: "Debug", overrides: [
                 "FUSE_BUILD_SCRIPT_PHASES": "NO",
                 "FAKE_PATH_OUT": Path(SRCROOT).join("aProject/magic.txt").str
             ])
 
             // Check the initial build.
-            try await tester.checkBuild(parameters: overridenParameters, persistent: true) { results in
+            try await tester.checkBuild(parameters: overriddenParameters, persistent: true) { results in
                 // Check that the expected tasks ran.
                 results.consumeTasksMatchingRuleTypes(["CreateBuildDirectory", "Gate"])
 
@@ -1774,7 +1774,7 @@ That command depends on command in Target 'agg2' (project \'aProject\'): script 
             // We should avoid scheduling upstream/downstream tasks.
             try await tester.fs.updateTimestamp(Path(SRCROOT).join("aProject/magic.txt"))
 
-            try await tester.checkBuild(parameters: overridenParameters, persistent: true) { results in
+            try await tester.checkBuild(parameters: overriddenParameters, persistent: true) { results in
                 // Check that the script ran.
                 results.consumeTasksMatchingRuleTypes(["Gate"])
 
@@ -1783,7 +1783,7 @@ That command depends on command in Target 'agg2' (project \'aProject\'): script 
                 results.checkNoDiagnostics()
             }
 
-            try await tester.checkBuild(parameters: overridenParameters, persistent: true) { results in
+            try await tester.checkBuild(parameters: overriddenParameters, persistent: true) { results in
                 // Check that the script ran.
                 results.consumeTasksMatchingRuleTypes(["Gate"])
 
@@ -1798,7 +1798,7 @@ That command depends on command in Target 'agg2' (project \'aProject\'): script 
                 stream <<< "modified string"
             }
 
-            try await tester.checkBuild(parameters: overridenParameters, persistent: true) { results in
+            try await tester.checkBuild(parameters: overriddenParameters, persistent: true) { results in
                 // Check that the script ran.
                 results.consumeTasksMatchingRuleTypes(["Gate"])
 
@@ -1818,7 +1818,7 @@ That command depends on command in Target 'agg2' (project \'aProject\'): script 
             // We must re-run the script to re-create the file
             try tester.fs.remove(Path(SRCROOT).join("aProject/magic.txt"))
 
-            try await tester.checkBuild(parameters: overridenParameters, persistent: true) { results in
+            try await tester.checkBuild(parameters: overriddenParameters, persistent: true) { results in
                 // Check that the script ran.
                 results.consumeTasksMatchingRuleTypes(["Gate"])
 
@@ -1913,13 +1913,13 @@ That command depends on command in Target 'agg2' (project \'aProject\'): script 
                 stream <<< "magic string\n"
             }
 
-            let overridenParameters = BuildParameters(configuration: "Debug", overrides: [
+            let overriddenParameters = BuildParameters(configuration: "Debug", overrides: [
                 "FAKE_PATH_IN": Path(SRCROOT).join("aProject/magic.txt").str,
                 "FUSE_BUILD_SCRIPT_PHASES": "NO"
             ])
 
             // Check the initial build.
-            try await tester.checkBuild(parameters: overridenParameters, persistent: true) { results in
+            try await tester.checkBuild(parameters: overriddenParameters, persistent: true) { results in
                 // Check that the expected tasks ran.
                 results.consumeTasksMatchingRuleTypes(["CreateBuildDirectory", "Gate"])
 
@@ -1956,7 +1956,7 @@ That command depends on command in Target 'agg2' (project \'aProject\'): script 
                 results.checkNoDiagnostics()
             }
 
-            try await tester.checkBuild(parameters: overridenParameters, persistent: true) { results in
+            try await tester.checkBuild(parameters: overriddenParameters, persistent: true) { results in
                 results.consumeTasksMatchingRuleTypes(["Gate"])
                 results.checkNoTask()
             }
@@ -1965,7 +1965,7 @@ That command depends on command in Target 'agg2' (project \'aProject\'): script 
                 stream <<< "magic modified string"
             }
 
-            try await tester.checkBuild(parameters: overridenParameters, persistent: true) { results in
+            try await tester.checkBuild(parameters: overriddenParameters, persistent: true) { results in
                 // Check that the script ran.
                 results.consumeTasksMatchingRuleTypes(["Gate"])
 
@@ -1984,7 +1984,7 @@ That command depends on command in Target 'agg2' (project \'aProject\'): script 
                 stream <<< "supermagic string"
             }
 
-            try await tester.checkBuild(parameters: overridenParameters, persistent: true) { results in
+            try await tester.checkBuild(parameters: overriddenParameters, persistent: true) { results in
                 // Check that the script ran.
                 results.consumeTasksMatchingRuleTypes(["Gate"])
 
@@ -3705,7 +3705,7 @@ That command depends on command in Target 'agg2' (project \'aProject\'): script 
                     """
             }
 
-            // Write a basebones Info.plist file.
+            // Write a barebones Info.plist file.
             try await tester.fs.writePlist(testWorkspace.sourceRoot.join("TestProject/Info.plist"), .plDict([
                 "CFBundleDevelopmentRegion": .plString("en"),
                 "CFBundleExecutable": .plString("$(EXECUTABLE_NAME)")
@@ -3779,7 +3779,7 @@ That command depends on command in Target 'agg2' (project \'aProject\'): script 
                     #expect(dependencyInfo.version == expectedDependencyInfo.version)
                     XCTAssertSuperset(Set(dependencyInfo.inputs), Set(expectedDependencyInfo.inputs))
 
-                    // Ensure that the depenedency info is correct. Due to the changing nature of how Swift overlays are added, there is no need to be explicit about each one, so only the mechanism is validated by checking a handful of stable Swift overlays.
+                    // Ensure that the dependency info is correct. Due to the changing nature of how Swift overlays are added, there is no need to be explicit about each one, so only the mechanism is validated by checking a handful of stable Swift overlays.
                     if shouldFilterSwiftLibs && !shouldBackDeploySwiftConcurrency {
                         #expect(dependencyInfo == expectedDependencyInfo)
                     }
@@ -3824,7 +3824,7 @@ That command depends on command in Target 'agg2' (project \'aProject\'): script 
                     #expect(unitTestsDependencyInfo.version == unitTestsExpectedDependencyInfo.version)
                     XCTAssertSuperset(Set(unitTestsDependencyInfo.inputs), Set(unitTestsExpectedDependencyInfo.inputs))
 
-                    // Ensure that the depenedency info is correct. Due to the changing nature of how Swift overlays are added, there is no need to be explicit about each one, so only the mechanism is validated by checking a handful of stable Swift overlays.
+                    // Ensure that the dependency info is correct. Due to the changing nature of how Swift overlays are added, there is no need to be explicit about each one, so only the mechanism is validated by checking a handful of stable Swift overlays.
                     if shouldFilterSwiftLibs && !shouldBackDeploySwiftConcurrency {
                         #expect(unitTestsDependencyInfo == unitTestsExpectedDependencyInfo)
                     }
@@ -3993,7 +3993,7 @@ That command depends on command in Target 'agg2' (project \'aProject\'): script 
                 contents <<< "}\n"
             }
 
-            // Write a basebones Info.plist file.
+            // Write a barebones Info.plist file.
             try await tester.fs.writePlist(testWorkspace.sourceRoot.join("TestProject/Info.plist"), .plDict([
                 "CFBundleDevelopmentRegion": .plString("en"),
                 "CFBundleExecutable": .plString("$(EXECUTABLE_NAME)")

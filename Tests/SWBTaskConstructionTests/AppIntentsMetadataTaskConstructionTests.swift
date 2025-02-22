@@ -842,7 +842,7 @@ fileprivate struct AppIntentsMetadataTaskConstructionTests: CoreBasedTests {
     }
 
     // Ensure SSU tasks are enabled by-default for public SDK clients,
-    // but can be overriden with 'APP_SHORTCUTS_ENABLE_FLEXIBLE_MATCHING=NO'
+    // but can be overridden with 'APP_SHORTCUTS_ENABLE_FLEXIBLE_MATCHING=NO'
     @Test(.requireSDKs(.iOS))
     func overrideSSUTasksIfPublicSDK() async throws {
         try await withTemporaryDirectory { tmpDir in

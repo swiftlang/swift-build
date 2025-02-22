@@ -1480,7 +1480,7 @@ fileprivate struct IndexBuildOperationTests: CoreBasedTests {
 
             try await checkBuild(macosFramework, .macOS, discriminator: "macos", matchingTarget: macosFramework)
             try await checkBuild(iosFramework, .iOS, discriminator: "iphoneos", matchingTarget: iosFramework)
-            // No run destination match, macos because it's lexographically-first
+            // No run destination match, macos because it's lexicographically-first
             try await checkBuild(macosFramework, .watchOS, discriminator: "macos", matchingTarget: macosFramework)
             try await checkBuild(iosFramework, .watchOS, discriminator: "macos", matchingTarget: macosFramework)
         }

@@ -135,7 +135,7 @@ fileprivate struct WatchKitTests: CoreBasedTests {
             case "i386":
                 break
             default:
-                Issue.record("Uexpected architecture \(slice.arch)")
+                Issue.record("Unexpected architecture \(slice.arch)")
             }
         }
     }

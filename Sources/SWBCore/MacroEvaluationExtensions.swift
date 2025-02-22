@@ -47,7 +47,7 @@ public extension PropertyListItem
             let parsedString = scope.table.namespace.parseString(string)
             let result = scope.evaluate(parsedString, lookup: preservingLookup)
             if anyReferencesWerePreserved {
-                // If we preserved any refererences, then we need to convert the '\$\(((' in the result back to '$('.
+                // If we preserved any references, then we need to convert the '\$\(((' in the result back to '$('.
                 return result.replacingOccurrences(of: "\\$\\(((", with: "$(")
             }
             return result

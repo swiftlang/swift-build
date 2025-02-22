@@ -21,7 +21,7 @@ package import SWBMacro
 
 /// This class adapts the TaskGenerationDelegate protocol used by the Core to that provided by the producer delegate API, for use inside the sources build phase.
 ///
-/// This delegate auto-attachs constructed tasks to the generated headers completion ordering gates, and chains to another delegate for performing the actual work.
+/// This delegate auto-attaches constructed tasks to the generated headers completion ordering gates, and chains to another delegate for performing the actual work.
 private final class SourcesPhaseBasedTaskGenerationDelegate: TaskGenerationDelegate {
     /// The producer we are operating on behalf of.
     let producer: SourcesTaskProducer
@@ -667,8 +667,8 @@ final class SourcesTaskProducer: FilesBasedBuildPhaseTaskProducerBase, FilesBase
     }
 
     func prepare() {
-        // CodeSigning in a monster... really, it is. Further, we don't actually have a model where we can perform proper pre-planning to determine what inputs will cause downstream outputs to end up in a particular location. Every source file has the potential to contribute some type of ouput that ends up in the wrapper.
-        // For example, every metal file creates a library that is embedded into the product wrapper. However, the build system doesn't actually *know* that, as the ouputs aren't really tracked in a way that the CodeSign task itself can depend on it.
+        // CodeSigning in a monster... really, it is. Further, we don't actually have a model where we can perform proper pre-planning to determine what inputs will cause downstream outputs to end up in a particular location. Every source file has the potential to contribute some type of output that ends up in the wrapper.
+        // For example, every metal file creates a library that is embedded into the product wrapper. However, the build system doesn't actually *know* that, as the outputs aren't really tracked in a way that the CodeSign task itself can depend on it.
         // What the build system does _know_, is that _all_ source files run tools that can potentially end up invalidating the code signature. Until we have a proper pre-planning (e.g. or dry-run) model (or a model that allows us to have dependencies on task producers), we need to be more conservative in our tracking of inputs, even if they can result in additional codesign work.
         // An additional note: if out output file, such as a metallib, is changed by something other than a source input, the codesign task will still not know about it, and that incremental build will fail to sign properly. That should be less likely to happen, but just goes to point out that we need to re-work how our codesign model works, in general.
 
@@ -1751,8 +1751,8 @@ final class SourcesTaskProducer: FilesBasedBuildPhaseTaskProducerBase, FilesBase
                 NSBundle.mainBundle.bundleURL
             ];
 
-            for (NSURL* candiate in candidates) {
-                NSURL *bundlePath = [candiate URLByAppendingPathComponent:[NSString stringWithFormat:@"%@.bundle", bundleName]];
+            for (NSURL* candidate in candidates) {
+                NSURL *bundlePath = [candidate URLByAppendingPathComponent:[NSString stringWithFormat:@"%@.bundle", bundleName]];
 
                 NSBundle *bundle = [NSBundle bundleWithURL:bundlePath];
                 if (bundle != nil) {
@@ -1955,7 +1955,7 @@ final class SourcesTaskProducer: FilesBasedBuildPhaseTaskProducerBase, FilesBase
     /// `ENABLE_DEBUG_DYLIB` is set on the main target, we need to add the previews
     /// dylib to the list of libraries to link for the test target.
     ///
-    /// `TEST_HOST` and `BUNDLE_LOADER` in fluence the `hostTargetForTargets` mapping.
+    /// `TEST_HOST` and `BUNDLE_LOADER` influence the `hostTargetForTargets` mapping.
     /// So if this target is present in there, we have a host we need to check.
     ///
     /// If the host has `EXECUTABLE_DEBUG_DYLIB_PATH`, then it had the preview dylib
@@ -2015,7 +2015,7 @@ private extension Target {
         return (self as? StandardTarget)?.sourcesBuildPhase?.buildFiles.compactMap { try? context.resolveBuildFileReference($0).fileType }.filter { $0.conformsTo(context.getSpec("sourcecode.swift") as! FileTypeSpec) }.count ?? 0 > 0
     }
 
-    /// Check whether a target has atleast one asset catalog.
+    /// Check whether a target has at least one asset catalog.
     func hasAssetCatalog(scope: MacroEvaluationScope, context: TaskProducerContext, includeGenerated: Bool) -> Bool {
         guard let standardTarget = (self as? StandardTarget) else { return false }
         let buildPhases = [standardTarget.resourcesBuildPhase, standardTarget.sourcesBuildPhase].compactMap { $0 }

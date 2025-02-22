@@ -558,7 +558,7 @@ fileprivate struct BuildTaskBehaviorTests: CoreBasedTests {
         let testNode = MakePlannedPathNode(testPath)
         let initialVirtualNode = MakePlannedVirtualNode("<INITIAL>")
 
-        // We intentially declare these using mustPrecede to validate those edges are checked for chaining.
+        // We intentionally declare these using mustPrecede to validate those edges are checked for chaining.
         let append1VirtualNode = MakePlannedVirtualNode("<APPEND-1>")
         let append1Task = createTask(ruleInfo: ["APPEND-1"], commandLine: ["builtin-append-contents"], inputs: [testNode], outputs: [testNode, append1VirtualNode], mustPrecede: [], action: AppendingTaskAction(contents: ", world", to: testNode))
         let initialTaskAction = MockTaskAction(contents: "Hello", output: testNode)
@@ -676,7 +676,7 @@ fileprivate struct BuildTaskBehaviorTests: CoreBasedTests {
         let testNode = MakePlannedPathNode(testPath)
         let initialVirtualNode = MakePlannedVirtualNode("<INITIAL>")
 
-        // We intentially declare these using mustPrecede to validate those edges are checked for chaining.
+        // We intentionally declare these using mustPrecede to validate those edges are checked for chaining.
         let initialTaskAction = MockTaskAction(contents: "Hello", output: testNode)
         let initialTask = createTask(ruleInfo: ["INITIAL"], commandLine: ["builtin-create-file"], inputs: [], outputs: [testNode, initialVirtualNode], mustPrecede: [], action: initialTaskAction, preparesForIndexing: true)
         let append1VirtualNode = MakePlannedVirtualNode("<APPEND-1>")

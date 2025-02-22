@@ -15,7 +15,7 @@ public import protocol Foundation.DataProtocol
 
 /// A `ByteString` represents a sequence of bytes.
 ///
-/// This struct provides useful operations for working with buffers of bytes. Conceptually it is just a contiguous array of bytes (UInt8), but it contains methods and default behavor suitable for common operations done using bytes strings.
+/// This struct provides useful operations for working with buffers of bytes. Conceptually it is just a contiguous array of bytes (UInt8), but it contains methods and default behavior suitable for common operations done using bytes strings.
 ///
 /// This struct *is not* intended to be used for significant mutation of byte strings, we wish to retain the flexibility to micro-optimize the memory allocation of the storage (for example, by inlining the storage for small strings or and by eliminating wasted space in growable arrays). For construction of byte arrays, clients should use the `OutputByteStream` class and then convert to a `ByteString` when complete.
 @DebugDescription
@@ -133,7 +133,7 @@ extension ByteString: ByteStreamable {
     }
 }
 
-/// StringLiteralConvertable conformance for a ByteString.
+/// StringLiteralConvertible conformance for a ByteString.
 extension ByteString: ExpressibleByStringLiteral {
     public typealias UnicodeScalarLiteralType = StringLiteralType
     public typealias ExtendedGraphemeClusterLiteralType = StringLiteralType

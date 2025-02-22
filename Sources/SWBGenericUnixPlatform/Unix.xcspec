@@ -59,7 +59,7 @@
         );
     },
 
-    // Dynamic library (masquarading as a framework to placate Swift's project structure)
+    // Dynamic library (masquerading as a framework to placate Swift's project structure)
     {
         Domain = generic-unix;
         Type = ProductType;

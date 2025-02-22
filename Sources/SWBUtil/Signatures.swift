@@ -23,7 +23,7 @@ public struct CodeSignatureInfo: Codable, Sendable {
 
     enum CodingKeys: String, CodingKey {
         case isSigned = "signed"
-        case identifier = "bundleIndentifier"
+        case identifier = "bundleIndentifier" // NOTE: bundle identifier is mis-spelled
         case mainExecutable = "mainExecutable"
         case source = "source"
         case runtimeVersion = "runtimeVersion"

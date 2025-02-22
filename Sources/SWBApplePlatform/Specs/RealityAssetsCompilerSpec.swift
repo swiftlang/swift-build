@@ -47,7 +47,7 @@ package final class RealityAssetsCompilerSpec: GenericCompilerSpec, SpecIdentifi
     private func environmentBindings(_ cbc: CommandBuildContext, _ delegate: any TaskGenerationDelegate) -> EnvironmentBindings {
         var environmentBindings: [(String, String)] = environmentFromSpec(cbc, delegate)
 
-        // this is required to pass the funtional/integration tests in sandbox mode
+        // this is required to pass the functional/integration tests in sandbox mode
         // because LLVM seems to create default.profraw files in the test directories
         environmentBindings.append(("LLVM_PROFILE_FILE", Path.null.str))
 
@@ -168,7 +168,7 @@ package final class RealityAssetsCompilerSpec: GenericCompilerSpec, SpecIdentifi
         var inputs = [delegate.createDirectoryTreeNode(rkAssetsPath) as (any PlannedNode)]
         let outputs = [delegate.createNode(cbc.output) as (any PlannedNode)]
 
-        // need to add in o	ptional --schema-file
+        // need to add in optional --schema-file
         if let usdaSchemaPath {
             commandLine.append("--schema-file")
             commandLine.append(.path(usdaSchemaPath))
@@ -215,12 +215,12 @@ package final class RealityAssetsCompilerSpec: GenericCompilerSpec, SpecIdentifi
     }
 
     public func constructTasks(_ cbc: CommandBuildContext, _ delegate: any TaskGenerationDelegate, moduleWithDependencies: ModuleWithDependencies) async {
-        // Construct the realitool 'create-schema' preprocess swift -> schema .usda task.
+        // Construct the realitytool 'create-schema' preprocess swift -> schema .usda task.
         await constructRealityAssetsCreateSchemaTasks(cbc, delegate, moduleWithDependencies: moduleWithDependencies)
     }
 
     public override func constructTasks(_ cbc: CommandBuildContext, _ delegate: any TaskGenerationDelegate) async {
-        // Construct the realitool 'compile' .rkassets [schema .usda] -> .reality task.
+        // Construct the realitytool 'compile' .rkassets [schema .usda] -> .reality task.
         await constructRealityAssetCompilerTasks(cbc, delegate)
     }
 }

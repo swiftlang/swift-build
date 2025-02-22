@@ -15,7 +15,7 @@ import SWBUtil
 import SWBMacro
 
 /// Returns an array of build variant-macro evaluation scope pairs for the given scope for a list of build variants.
-/// - parameter scope: The base scope for which to return the varianted subscropes.
+/// - parameter scope: The base scope for which to return the varianted subscopes.
 /// - parameter variants: If non-nil, then the subscopes for the given variants will be returned.  If nil, then subscopes for the values of `$(BUILD_VARIANTS)` evaluated in the given scope will be returned.
 private func perVariantSubscopes(_ scope: MacroEvaluationScope, variants: [String]? = nil) -> [(variant: String, scope: MacroEvaluationScope)] {
     let effectiveVariants = variants ?? scope.evaluate(BuiltinMacros.BUILD_VARIANTS)

@@ -102,7 +102,7 @@ fileprivate struct BuildToolTaskConstructionTests: CoreBasedTests {
                             ]),
                     ],
                     buildPhases: [
-                        // Copy Files will not unidfef unless APPLY_RULES_IN_COPY_FILES is set.
+                        // Copy Files will not unifdef unless APPLY_RULES_IN_COPY_FILES is set.
                         TestCopyFilesBuildPhase([
                             "Header.h",
                             "ModuleMap.modulemap",

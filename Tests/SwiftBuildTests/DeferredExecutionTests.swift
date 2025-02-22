@@ -184,7 +184,7 @@ fileprivate func withConfirmations(invert: Bool, _ body: (_ assetCatalogExpectat
             try await confirmation("Clang deferred execution requested", expectedCount: expectedCount) { clangExpectation in
                 try await confirmation("Swift deferred execution requested", expectedCount: swiftExpectedCount) { swiftExpectation in
                     try await confirmation("Linker deferred execution requested", expectedCount: expectedCount) { linkerExpectation in
-                        try await confirmation("Touch deferred exeucution requested", expectedCount: expectedCount) { touchExpectation in
+                        try await confirmation("Touch deferred execution requested", expectedCount: expectedCount) { touchExpectation in
                             try await confirmation("derq deferred execution requested", expectedCount: expectedCount) { derqExpectation in
                                 try await body(assetCatalogExpectation, codeSignExpectation, clangExpectation, swiftExpectation, linkerExpectation, touchExpectation, derqExpectation)
                             }

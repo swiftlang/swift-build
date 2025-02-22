@@ -544,7 +544,7 @@ package final class TaskConstructionTester {
                             break
                         }
                     }
-                    // Note that the cycle reported here flows *downstream* (from producer task to output).  This is the reverse of the order in which cycles emitted by llbuild are printed (which shows the output first and then its producer task).  I don't remeber why I did it this way.
+                    // Note that the cycle reported here flows *downstream* (from producer task to output).  This is the reverse of the order in which cycles emitted by llbuild are printed (which shows the output first and then its producer task).  I don't remember why I did it this way.
                     Issue.record("dependency cycle found: \(cycle)", sourceLocation: sourceLocation)
                     return
                 }
@@ -638,7 +638,7 @@ package final class TaskConstructionTester {
                 return (try minimumDistance(from: Ref(origin), to: Ref(predecessor), successors: _successors))
             }
 
-            /// Compute the shortest path from a task to a potential precessor and return the list of nodes.
+            /// Compute the shortest path from a task to a potential predecessor and return the list of nodes.
             ///
             /// This will *not* include edges which traverse mutated nodes.
             func shortestPath(from origin: any PlannedTask, to predecessor: any PlannedTask) throws -> [Ref<any PlannedTask>]? {
@@ -781,7 +781,7 @@ package final class TaskConstructionTester {
         if runDestination != nil {
             overrides["ONLY_ACTIVE_ARCH"] = "YES"
         }
-        // Add overrides from the parameters we were passed, which will supercede the default overrides above.
+        // Add overrides from the parameters we were passed, which will supersede the default overrides above.
         overrides.addContents(of: parameters.overrides)
 
         // Create and return the effective parameters.

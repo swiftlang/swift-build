@@ -1999,7 +1999,7 @@ fileprivate struct MergeableLibraryTests: CoreBasedTests {
                         ]),
                     ]
                 ),
-                // Not-mergeeable framework target
+                // Not-mergeable framework target
                 TestStandardTarget(
                     "NormalFwkTarget",
                     type: .framework,
@@ -2425,7 +2425,7 @@ fileprivate struct MergeableLibraryTests: CoreBasedTests {
                     // App sources
                     TestFile("Application.swift"),
 
-                    // Dramework sources
+                    // Framework sources
                     TestFile("ClassOne.swift"),
                     TestFile("ClassTwo.swift"),
                 ]),
@@ -2485,7 +2485,7 @@ fileprivate struct MergeableLibraryTests: CoreBasedTests {
                         ]),
                     ]
                 ),
-                // Not-Mmrgeable framework target, which the mergeable framework target depends on, but which is not merged.
+                // Non-mergeable framework target, which the mergeable framework target depends on, but which is not merged.
                 TestStandardTarget(
                     "NormalFwkTarget",
                     type: .framework,

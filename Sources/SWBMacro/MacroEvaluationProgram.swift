@@ -547,7 +547,7 @@ final class MacroEvaluationResultBuilder {
     /// Create a macro result builder.
     init() { }
 
-    /// If the “needs list element separator” flag has been set, this function adds a list separator for the index corresponding to the current end of the acculuator string, and clears the flag.  Otherwise, this function does nothing.  Clients never invoke this function directly — instead, they note the need for a list element separator and let it be created the next time anything is appended.
+    /// If the “needs list element separator” flag has been set, this function adds a list separator for the index corresponding to the current end of the accumulator string, and clears the flag.  Otherwise, this function does nothing.  Clients never invoke this function directly — instead, they note the need for a list element separator and let it be created the next time anything is appended.
     private func applyPendingListElementSeparatorIfNeeded() {
         // If the flag is set, we record the current end index of the accumulated string as the start index of the next element, and clear the flag.
         guard needsListElementSeparator else { return }

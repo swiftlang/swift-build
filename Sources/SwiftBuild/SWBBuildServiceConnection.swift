@@ -249,7 +249,7 @@ typealias swb_build_service_connection_message_handler_t = @Sendable (UInt64, SW
         }
     }
 
-    /// Suspends the connection (but doesn’t terminate or even suspend the Swift Build service process).  After suspending the connection, no futher messages will be dispatched until it is resumed again.  Does nothing if the connection is already suspended.
+    /// Suspends the connection (but doesn’t terminate or even suspend the Swift Build service process).  After suspending the connection, no further messages will be dispatched until it is resumed again.  Does nothing if the connection is already suspended.
     public func suspend() {
         // If we are already suspended, do nothing.
         // Otherwise, mark the connection as suspended.
@@ -382,7 +382,7 @@ extension SWBBuildServiceConnection {
         }
     }
 
-    /// Enqueues `data` to be sent on the specified channel, and returns immediately.  The channel must be one that has already been opened using the `openChannel(messageHandler:)` method, and it must not have been closed again.  Any replies will be sent to the block that was associated with the channed when it was opened.  It is valid for `data` to be empty, but not to be `nil`.
+    /// Enqueues `data` to be sent on the specified channel, and returns immediately.  The channel must be one that has already been opened using the `openChannel(messageHandler:)` method, and it must not have been closed again.  Any replies will be sent to the block that was associated with the channel when it was opened.  It is valid for `data` to be empty, but not to be `nil`.
     func send(_ data: SWBDispatchData, onChannel channel: UInt64) {
         // Immediately reply with an error if the service has been terminated.
         // We only do this for "real" channels; the zero channel is used for special one-way messages.
@@ -842,7 +842,7 @@ fileprivate final class OutOfProcessConnection: ConnectionTransport {
         var updatedEnvironment = ProcessInfo.processInfo.environment
         // Add the contents of the SWBBuildServiceEnvironmentOverrides user default.
         updatedEnvironment = updatedEnvironment.addingContents(of: (UserDefaults.standard.dictionary(forKey: "SWBBuildServiceEnvironmentOverrides") as? [String: String]) ?? [:])
-        // Remove inferior DYLD_LIBRARY_PATH paths into toolchains, or which contain a compiler library known to cause issues when mismatched. Swift Build does not need these when used by an inferior Xcode, and they can intefere with loading of correct clang and swift libraries.
+        // Remove inferior DYLD_LIBRARY_PATH paths into toolchains, or which contain a compiler library known to cause issues when mismatched. Swift Build does not need these when used by an inferior Xcode, and they can interfere with loading of correct clang and swift libraries.
         if let libraryPaths = updatedEnvironment["DYLD_LIBRARY_PATH"]?.components(separatedBy: ":") {
             updatedEnvironment["DYLD_LIBRARY_PATH"] = try libraryPaths.filter {
                 var path = Path($0).normalize()

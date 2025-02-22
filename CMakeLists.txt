@@ -37,7 +37,7 @@ add_compile_options("$<$<COMPILE_LANGUAGE:Swift>:SHELL:-package-name SwiftBuild>
                     "$<$<COMPILE_LANGUAGE:Swift>:SHELL:-enable-upcoming-feature ExistentialAny>"
                     "$<$<COMPILE_LANGUAGE:Swift>:SHELL:-enable-upcoming-feature InternalImportsByDefault>")
 
-# Prefer the static initialisation for the pluigns.
+# Prefer the static initialization for the plugins.
 add_compile_definitions(USE_STATIC_PLUGIN_INITIALIZATION)
 
 find_package(ArgumentParser)

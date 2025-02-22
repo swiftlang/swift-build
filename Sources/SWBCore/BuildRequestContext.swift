@@ -149,7 +149,7 @@ extension BuildRequestContext {
 
         let currentPlatformFilter = PlatformFilter(settings.globalScope)
 
-        // FIXME: It is a bit unfortunate that we need to compute all this for the `uniquingSuffix` behaviour.
+        // FIXME: It is a bit unfortunate that we need to compute all this for the `uniquingSuffix` behavior.
         var sourceCodeFileToBuildableReference = [Path:Reference]()
         if let target = target.target as? StandardTarget {
             if let buildableReferences = try! target.sourcesBuildPhase?.buildFiles.compactMap({ (buildFile) -> Reference? in

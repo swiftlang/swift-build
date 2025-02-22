@@ -106,7 +106,7 @@ package extension ConfiguredTarget {
     var platformDiscriminator: String? {
         // Converts the sdkroot/sdkvariant info into a set of normalized values.
         func normalize(platform: String, variant: String?) -> String {
-            // The suffix is not important in the discrimator as that can be verified via other means if necessary.
+            // The suffix is not important in the discriminator as that can be verified via other means if necessary.
             let platform = String(platform.split(separator: ".").first ?? "")
 
             if let variant, platform == "macosx" { return variant }

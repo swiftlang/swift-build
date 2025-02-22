@@ -2062,7 +2062,7 @@ fileprivate struct EagerCompilationTests: CoreBasedTests {
                     results.checkTaskDoesNotFollow(compilationRequirementTargetC, antecedent: copyTask)
                 }
 
-                // Check that compilation requirement is waiting for compilartion requirements of dependency targets
+                // Check that compilation requirement is waiting for compilation requirements of dependency targets
                 results.checkTaskFollows(compilationRequirementTargetB, antecedent: compilationRequirementTargetA)
                 results.checkTaskDoesNotFollow(compilationRequirementTargetA, antecedent: compilationRequirementTargetB)
                 results.checkTaskDoesNotFollow(compilationRequirementTargetA, antecedent: compilationRequirementTargetC)

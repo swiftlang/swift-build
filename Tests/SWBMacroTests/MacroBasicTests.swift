@@ -85,7 +85,7 @@ import SWBMacro
 
 
     @Test
-    func macroExpressionEquatableness() {
+    func macroExpressionEquality() {
         let namespace = MacroNamespace(debugDescription: "test")
 
         let expr1 = namespace.parseString("something")
@@ -104,7 +104,7 @@ import SWBMacro
     func macroNamespaceInheritance() throws {
         let lowerNamespace = MacroNamespace(debugDescription: "lower")
 
-        // Declarate a string macro in the lower namespace.
+        // Declare a string macro in the lower namespace.
         let lowerStringDecl = try lowerNamespace.declareStringMacro("StringMacro")
         #expect(lowerStringDecl.type == .string)
 

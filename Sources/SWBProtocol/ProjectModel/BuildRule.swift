@@ -14,7 +14,7 @@ public import SWBUtil
 
 public struct BuildRule: Sendable {
     public enum InputSpecifier: Sendable {
-        // FIXME: We should consider if we can deprecate the abililty to expand macros in the patterns.
+        // FIXME: We should consider if we can deprecate the ability to expand macros in the patterns.
         case patterns(MacroExpressionSource)
         case fileType(identifier: String)
     }

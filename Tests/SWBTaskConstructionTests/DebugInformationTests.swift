@@ -20,7 +20,7 @@ import SWBTestSupport
 fileprivate struct DebugInformationTests: CoreBasedTests {
     /// Test the different DWARF version formats we support.
     @Test(.requireSDKs(.macOS))
-    func debugInformationVersiom() async throws {
+    func debugInformationVersion() async throws {
         let testProject = try await TestProject(
             "aProject",
             groupTree: TestGroup(
@@ -204,7 +204,7 @@ fileprivate struct DebugInformationTests: CoreBasedTests {
             results.checkNoDiagnostics()
         }
 
-        // Check install behaviour with `DWARF_DSYM_FILE_SHOULD_ACCOMPANY_PRODUCT` enabled.
+        // Check install behavior with `DWARF_DSYM_FILE_SHOULD_ACCOMPANY_PRODUCT` enabled.
         await tester.checkBuild(BuildParameters(action: .install, configuration: "Debug", overrides: [
             "DWARF_DSYM_FILE_SHOULD_ACCOMPANY_PRODUCT": "YES",
             "DEBUG_INFORMATION_FORMAT": "dwarf-with-dsym",
@@ -234,7 +234,7 @@ fileprivate struct DebugInformationTests: CoreBasedTests {
             results.checkNoDiagnostics()
         }
 
-        // Check build behaviour with `DWARF_DSYM_FILE_SHOULD_ACCOMPANY_PRODUCT` enabled.
+        // Check build behavior with `DWARF_DSYM_FILE_SHOULD_ACCOMPANY_PRODUCT` enabled.
         await tester.checkBuild(BuildParameters(action: .build, configuration: "Debug", overrides: [
             "DWARF_DSYM_FILE_SHOULD_ACCOMPANY_PRODUCT": "YES",
             "DEBUG_INFORMATION_FORMAT": "dwarf-with-dsym",

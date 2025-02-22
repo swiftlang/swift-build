@@ -153,7 +153,7 @@ open class PhasedTaskProducer: StandardTaskProducer {
     ///
     /// - Parameters:
     ///   - tasks: The task array to append to.
-    ///   - usePhasedOrdering: If true, the tasks are bound between the phase start and end, otherwise they will preceed the target end task.
+    ///   - usePhasedOrdering: If true, the tasks are bound between the phase start and end, otherwise they will precede the target end task.
     /// - Returns: The generated tasks and outputs.
     @discardableResult
     func appendGeneratedTasks<T>(_ tasks: inout [any PlannedTask], usePhasedOrdering: Bool, options: TaskOrderingOptions? = nil, body: (any TaskGenerationDelegate) async -> T) async -> (tasks: [any PlannedTask], outputs: [FileToBuild], result: T) {

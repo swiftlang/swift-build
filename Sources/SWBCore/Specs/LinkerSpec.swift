@@ -56,7 +56,7 @@ open class LinkerSpec : CommandLineToolSpec, @unchecked Sendable {
         /// The path of the input.
         public let path: Path
 
-        /// The mode to use when linking the library.  Not all modes make sense for all knds.
+        /// The mode to use when linking the library.  Not all modes make sense for all kinds.
         public let mode: Mode
 
         /// Whether the library should be found via the linker search path.

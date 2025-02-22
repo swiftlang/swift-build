@@ -233,7 +233,7 @@ import SWBTestSupport
         let X = try namespace.declareStringMacro("X")
         let Y = try namespace.declareStringMacro("Y")
 
-        // Push down several values that use inheritance in its different forms, alteranting between X and Y.
+        // Push down several values that use inheritance in its different forms, alternating between X and Y.
         table.push(X, literal: "a")
         table.push(Y, literal: "b")
         table.push(X, namespace.parseString("($(Y))"))
@@ -687,7 +687,7 @@ import SWBTestSupport
             #expect(scope.evaluate(stringExpr) == expectedStringValue)
         }
 
-        // Test evalating various strings both as string lists and as strings.
+        // Test evaluating various strings both as string lists and as strings.
         try checkStringListEvaluatedAsString("LEADING_TRAILING_SPACES", "   $(X)    ", ["x"], "   x    ")
         try checkStringListEvaluatedAsString("LEADING_TRAILING_WHITESPACE", "\n  $(X)\n\n\n", ["x"], "\n  x\n\n\n")
         try checkStringListEvaluatedAsString("LEADING_TRAILING_ESCAPES", "\\a$(X)\\b", ["axb"], "\\ax\\b")

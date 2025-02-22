@@ -96,7 +96,7 @@ fileprivate struct IndexBuildTaskConstructionTests: CoreBasedTests {
             ])
         let tester = try await TaskConstructionTester(getCore(), testProject)
 
-        // Check that we get tasks for all the supported platforms, indepedent of the run destination in the build request.
+        // Check that we get tasks for all the supported platforms, independent of the run destination in the build request.
 
         func checkResults(_ results: TaskConstructionTester.PlanningResults) {
             results.checkTarget(macApp.name) { target in

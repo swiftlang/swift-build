@@ -862,7 +862,7 @@ fileprivate struct SwiftDriverTests: CoreBasedTests {
             do {
                 let buildParameters = BuildParameters(configuration: "Debug",
                                                       commandLineOverrides: ["SWIFT_ENABLE_EXPLICIT_MODULES":"YES"])
-                // Ensure explicit moduels are enabled as per the default
+                // Ensure explicit modules are enabled as per the default
                 try await tester.fs.writeFileContents(blockListFilePath) { file in
                     file <<<
                             """

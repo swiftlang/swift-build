@@ -1963,13 +1963,13 @@ fileprivate struct TaskConstructionTests: CoreBasedTests {
                         ], destinationSubfolder: .frameworks, onlyForDeployment: false),
                         // The destination here matches how the "XPCServices" popup in the build phase UI populates it.  See <rdar://problem/15366863>
                         TestCopyFilesBuildPhase([
-                            TestBuildFile("Servicible.xpc", codeSignOnCopy: true),
+                            TestBuildFile("Serviceable.xpc", codeSignOnCopy: true),
                         ], destinationSubfolder: .builtProductsDir, destinationSubpath: "$(CONTENTS_FOLDER_PATH)/XPCServices", onlyForDeployment: false),
                         TestCopyFilesBuildPhase([
                             TestBuildFile("Extending.appex", codeSignOnCopy: true),
                         ], destinationSubfolder: .plugins, onlyForDeployment: false),
                     ],
-                    dependencies: ["FwkTarget", "Servicible", "Extending"]
+                    dependencies: ["FwkTarget", "Serviceable", "Extending"]
                 ),
                 TestStandardTarget(
                     "FwkTarget",
@@ -1989,7 +1989,7 @@ fileprivate struct TaskConstructionTests: CoreBasedTests {
                     ]
                 ),
                 TestStandardTarget(
-                    "Servicible",
+                    "Serviceable",
                     type: .xpcService,
                     buildConfigurations: [
                         TestBuildConfiguration("Debug", buildSettings: [:]),
@@ -2035,9 +2035,9 @@ fileprivate struct TaskConstructionTests: CoreBasedTests {
                 results.checkTask(.matchTarget(target), .matchRuleType("CodeSign"), .matchRuleItem("\(SRCROOT)/build/Debug/FwkTarget.framework/Versions/A")) { task in
                 }
             }
-            results.checkTarget("Servicible") { target in
+            results.checkTarget("Serviceable") { target in
                 // There should be one codesign task.
-                results.checkTask(.matchTarget(target), .matchRuleType("CodeSign"), .matchRuleItem("\(SRCROOT)/build/Debug/Servicible.xpc")) { task in
+                results.checkTask(.matchTarget(target), .matchRuleType("CodeSign"), .matchRuleItem("\(SRCROOT)/build/Debug/Serviceable.xpc")) { task in
                 }
             }
             results.checkTarget("Extending") { target in
@@ -2053,9 +2053,9 @@ fileprivate struct TaskConstructionTests: CoreBasedTests {
                 }
 
                 // For the XPC service, there should be a copy task, and no signing task.
-                results.checkTask(.matchTarget(target), .matchRuleType("Copy"), .matchRuleItem("\(SRCROOT)/build/Debug/AppTarget.app/Contents/XPCServices/Servicible.xpc"), .matchRuleItem("\(SRCROOT)/build/Debug/Servicible.xpc")) { task in
+                results.checkTask(.matchTarget(target), .matchRuleType("Copy"), .matchRuleItem("\(SRCROOT)/build/Debug/AppTarget.app/Contents/XPCServices/Serviceable.xpc"), .matchRuleItem("\(SRCROOT)/build/Debug/Serviceable.xpc")) { task in
                 }
-                results.checkNoTask(.matchTarget(target), .matchRuleType("CodeSign"), .matchRuleItem("\(SRCROOT)/build/Debug/AppTarget.app/Contents/XPCServices/Servicible.xpc"))
+                results.checkNoTask(.matchTarget(target), .matchRuleType("CodeSign"), .matchRuleItem("\(SRCROOT)/build/Debug/AppTarget.app/Contents/XPCServices/Serviceable.xpc"))
 
                 // For the appex, there should be a copy task, no signing task, and a validation task.
                 results.checkTask(.matchTarget(target), .matchRuleType("Copy"), .matchRuleItem("\(SRCROOT)/build/Debug/AppTarget.app/Contents/PlugIns/Extending.appex"), .matchRuleItem("\(SRCROOT)/build/Debug/Extending.appex")) { task in
@@ -2237,7 +2237,7 @@ fileprivate struct TaskConstructionTests: CoreBasedTests {
             ])
         let tester = try await TaskConstructionTester(getCore(), testProject)
 
-        // Test a regular build.  Since `only-for-deplyment` is set, this should not result in any tasks.
+        // Test a regular build.  Since `only-for-deployment` is set, this should not result in any tasks.
         let buildParameters = BuildParameters(action: .build, configuration: "Debug", overrides: [:])
         await tester.checkBuild(buildParameters) { results in
             // We need to filter out boilerplate tasks such as `Gate` and `WriteAuxiliaryFile`, but there should be no others besides those.
@@ -2415,7 +2415,7 @@ fileprivate struct TaskConstructionTests: CoreBasedTests {
                     ])
                 }
 
-                // Ignore all Gate and build direcotry tasks.
+                // Ignore all Gate and build directory tasks.
                 results.checkTasks(.matchRuleType("Gate")) { _ in }
                 results.checkTasks(.matchRuleType("CreateBuildDirectory")) { _ in }
 
@@ -2661,7 +2661,7 @@ fileprivate struct TaskConstructionTests: CoreBasedTests {
         }
     }
 
-    // Test vaguaries of build variant handling.
+    // Test vagaries of build variant handling.
     @Test(.requireSDKs(.macOS))
     func buildVariants() async throws {
         let variants = ["normal", "debug"]
@@ -5212,7 +5212,7 @@ fileprivate struct TaskConstructionTests: CoreBasedTests {
         let tester = try TaskConstructionTester(core, project)
         let SRCROOT = tester.workspace.projects[0].sourceRoot.str
 
-        // We need to construct a csutom build request because `PACKAGE_BUILD_DYNAMICALLY` only works in the per-target parameters.
+        // We need to construct a custom build request because `PACKAGE_BUILD_DYNAMICALLY` only works in the per-target parameters.
         let targets = tester.workspace.projects[0].targets.map({ BuildRequest.BuildTargetInfo(parameters: buildParameters.replacing(activeRunDestination: destination, activeArchitecture: nil), target: $0) })
         let buildRequest = BuildRequest(parameters: buildParameters.replacing(activeRunDestination: destination, activeArchitecture: nil), buildTargets: targets, continueBuildingAfterErrors: false, useParallelTargets: true, useImplicitDependencies: true, useDryRun: false)
 

@@ -50,7 +50,7 @@ package extension BuildDescriptionConstructionDelegate {
 
 /// Persistable representation of the complete set of tasks needed for a build.
 ///
-/// This representation primarily is in the form of a build file suitable for use with llbuild's BuildSystem library, but also contains additional task-specific data used for the xecution of internal tasks, as well as metadata to allow matching up status information from llbuild to the corresponding Swift Build and PIF objects.
+/// This representation primarily is in the form of a build file suitable for use with llbuild's BuildSystem library, but also contains additional task-specific data used for the execution of internal tasks, as well as metadata to allow matching up status information from llbuild to the corresponding Swift Build and PIF objects.
 package final class BuildDescription: Serializable, Sendable, Encodable, CacheableValue {
 
     enum CodingKeys: CodingKey {
@@ -1317,7 +1317,7 @@ extension BuildDescription {
                         }
                     }
 
-                    // the above task of emitting the status messages overlaps with the parllel processing of Gate/Constructed tasks
+                    // the above task of emitting the status messages overlaps with the parallel processing of Gate/Constructed tasks
                     try await sortedTasks.enumerated().parallelForEach(group: &group, maximumParallelism: 100) { _, task in
                         try _Concurrency.Task.checkCancellation()
                         progressContinuation.yield(())
@@ -1341,7 +1341,7 @@ extension BuildDescription {
         // Diagnose attempts to define multiple producers (tasks) for an output.
         var outputsSet = Set<Ref<any PlannedNode>>() // for identifying duplicate output nodes across tasks
         for (_, task) in sortedTasks.enumerated() {
-            let amendedOutputs = builder.taskOutputMap[Ref(task)] ?? [] // get the amended ouputs of the task
+            let amendedOutputs = builder.taskOutputMap[Ref(task)] ?? [] // get the amended outputs of the task
             for output in amendedOutputs {
                 if outputsSet.contains(Ref(output)) {
                     // This condition should almost never appear on a user projects, but we surface   it as an error versus an assert in case there are valid situations where the user can author a project    that would hit it.
