@@ -739,19 +739,19 @@ extension SpecializationParameters {
         let shouldImposePlatform = settings.enableTargetPlatformSpecialization
 
         var imposedSupportedPlatforms: [String]?
-        let specializatonIsSupported: Bool
+        let specializationIsSupported: Bool
         if let specializedSupportedPlatforms = specialization.supportedPlatforms {
             // If `SDKROOT` is automatic, specialize supported platforms, but only if there is a non-empty intersection with the current value.
-            specializatonIsSupported = !Set(supportedPlatforms).intersection(specializedSupportedPlatforms).isEmpty
-            imposedSupportedPlatforms = specializatonIsSupported && shouldImposePlatform ? specialization.supportedPlatforms : nil
+            specializationIsSupported = !Set(supportedPlatforms).intersection(specializedSupportedPlatforms).isEmpty
+            imposedSupportedPlatforms = specializationIsSupported && shouldImposePlatform ? specialization.supportedPlatforms : nil
         } else {
             imposedSupportedPlatforms = nil
-            specializatonIsSupported = false
+            specializationIsSupported = false
         }
 
         let imposedPlatform: Platform?
         if shouldImposePlatform {
-            if specializatonIsSupported {
+            if specializationIsSupported {
                 imposedPlatform = specialization.platform
             } else {
                 // There may be an existing `SUPPORTED_PLATFORMS` override in the parameters passed down by the client, so we want to make sure to provide our own, even if it might not be strictly necessary.
@@ -798,7 +798,7 @@ extension SpecializationParameters {
             // iOS targets get SUPPORTS_MACCATALYST by default, but SDKROOT=auto targets get an inconsistent view.
 
             let isHostTool = settings.productType?.conformsTo(identifier: "com.apple.product-type.tool.host-build") == true
-            if specializatonIsSupported && !isHostTool {
+            if specializationIsSupported && !isHostTool {
                 imposedSdkVariant = specialization.sdkVariant ?? imposedPlatform?.defaultSDKVariant
             } else {
                 imposedSdkVariant = imposedPlatform?.defaultSDKVariant
@@ -814,7 +814,7 @@ extension SpecializationParameters {
             let initialFilteredSpecialization = SpecializationParameters(source: .synthesized, platform: imposedPlatform, sdkVariant: imposedSdkVariant, supportedPlatforms: imposedSupportedPlatforms, toolchain: nil, canonicalNameSuffix: nil)
             let initialSettings = buildRequestContext.getCachedSettings(initialFilteredSpecialization.imposed(on: parameters, workspaceContext: workspaceContext), target: forTarget)
             let specializationSDKOptions = initialSettings.globalScope.evaluate(BuiltinMacros.SPECIALIZATION_SDK_OPTIONS)
-            if specializatonIsSupported {
+            if specializationIsSupported {
                 // If specialization explicitly requires public, but the target itself requires internal, emit an error.
                 if let sdkSuffixFromSpecialization = specialization.canonicalNameSuffix, sdkSuffixFromSpecialization.isEmpty, !specializationSDKOptions.isEmpty {
                     let specializationSuffix: String
@@ -869,7 +869,7 @@ extension SpecializationParameters {
 
         // If we are imposing a platform, we also need to impose the toolchain, but skip it if the explicit setting already matches what we would impose.
         let imposedToolchain: [String]?
-        if shouldImposePlatform && specializatonIsSupported {
+        if shouldImposePlatform && specializationIsSupported {
             let specializationWithoutToolchainImposition = SpecializationParameters(source: .synthesized, platform: imposedPlatform, sdkVariant: imposedSdkVariant, supportedPlatforms: imposedSupportedPlatforms, toolchain: nil, canonicalNameSuffix: imposedCanonicalNameSuffix)
             let settingsWithToolchainImposition = buildRequestContext.getCachedSettings(specializationWithoutToolchainImposition.imposed(on: parameters, workspaceContext: workspaceContext), target: forTarget)
             let configuredToolchains = settingsWithToolchainImposition.toolchains.map({ $0.identifier })
