@@ -2436,26 +2436,6 @@ private class SettingsBuilder {
             platformTable.push(macro, realArchs)
         }
 
-        // Add ObjC ARC support for Apple platforms.
-        if let platform {
-            switch platform.name {
-            case "macosx",
-                "iphoneos",
-                "iphonesimulator",
-                "appletvos",
-                "appletvsimulator",
-                "watchos",
-                "watchsimulator",
-                "xros",
-                "xrsimulator":
-                if let project, project.isPackage {
-                    platformTable.push(BuiltinMacros.CLANG_ENABLE_OBJC_ARC, literal: true)
-                }
-            default:
-                break
-            }
-        }
-
         // Push the table.
         push(platformTable, .exported)
     }
@@ -2508,6 +2488,11 @@ private class SettingsBuilder {
             sdkTable.push(BuiltinMacros.SYSTEM_PREFIX, literal: variant.systemPrefix)
 
             sdkTable.push(BuiltinMacros.LINK_OBJC_RUNTIME, literal: variant.isMacCatalyst ? true : localFS.exists(sdk.path.join(variant.systemPrefix, preserveRoot: true).join("usr/lib/libobjc.tbd")))
+
+            // Add ObjC ARC support for Apple platforms.
+            if let project, project.isPackage, variant.llvmTargetTripleVendor == "apple" {
+                sdkTable.push(BuiltinMacros.CLANG_ENABLE_OBJC_ARC, literal: true)
+            }
 
             if let llvmTargetTripleVendor = variant.llvmTargetTripleVendor {
                 sdkTable.push(BuiltinMacros.LLVM_TARGET_TRIPLE_VENDOR, literal: llvmTargetTripleVendor)
