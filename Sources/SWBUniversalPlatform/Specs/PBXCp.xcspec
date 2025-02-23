@@ -25,7 +25,7 @@
         );
         RuleFormat = "$(pbxcp_rule_name:quote) $(Output:quote) $(Input:quote)";
         ExecDescription = "Copy $(InputFileName)";
-        /* This description is dynamically overriden for certain rule types. */
+        /* This description is dynamically overridden for certain rule types. */
         ProgressDescription = "Copying $(CommandProgressByType) files";
         DeeplyStatInputDirectories = YES;
         CaresAboutInclusionDependencies = NO;
