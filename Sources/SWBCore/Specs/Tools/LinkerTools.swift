@@ -1274,17 +1274,44 @@ public final class LdLinkerSpec : GenericLinkerSpec, SpecIdentifierType, @unchec
 
     override public func discoveredCommandLineToolSpecInfo(_ producer: any CommandProducer, _ scope: MacroEvaluationScope, _ delegate: any CoreClientTargetDiagnosticProducingDelegate) async -> (any DiscoveredCommandLineToolSpecInfo)? {
         let alternateLinker = scope.evaluate(BuiltinMacros.ALTERNATE_LINKER)
-
         // The ALTERNATE_LINKER is the 'name' of the linker not the executable name, clang will find the linker binary based on name passed via -fuse-ld, but we need to discover
-        // its properties by executing the actual binary. On unix based oses the linkers are installed as ld.<name> on windows its <name>.exe
+        // its properties by executing the actual binary. There is a common filename when the linker is not "ld" across all platforms using "ld.<ALTERNAME_LINKER>(.exe)"
+        // macOS (Xcode SDK)
+        // -----------------
+        // ld
+        // ld-classic
+        //
+        // macOS (Open Source)
+        // -----------
+        // ld.lld -> lld
+        // ld64.lld -> lld
+        // lld
+        // lld-link -> lld
+        //
+        // Linux
+        // ------
+        // /usr/bin/ld -> aarch64-linux-gnu-ld
+        // /usr/bin/ld.bfd -> aarch64-linux-gnu-ld.bfd
+        // /usr/bin/ld.gold -> aarch64-linux-gnu-ld.gold
+        // /usr/bin/ld.lld -> lld
+        // /usr/bin/ld64.lld -> lld
+        // /usr/bin/lld
+        // /usr/bin/lld-link -> lld
+        // /usr/bin/gold -> aarch64-linux-gnu-gold
+        //
+        // Windows
+        // -------
+        // ld.lld.exe
+        // ld64.lld.exe
+        // lld-link.exe
+        // lld.exe
+        // link.exe //In Visual Studio
+        //
+        // Note: On Linux you cannot invoke the llvm linker by the direct name for determining the version,
+        // you need to use ld.<ALTERNATE_LINKER>
         var linkerPath = Path("ld")
-        if alternateLinker != "" {
-            linkerPath =
-                switch producer.hostOperatingSystem {
-                        case .linux: Path("ld.\(alternateLinker)")
-                        case .windows: Path("\(alternateLinker).exe")
-                        default : Path("\(alternateLinker)")
-                }
+        if alternateLinker != "" && alternateLinker != "ld" {
+            linkerPath = Path(producer.hostOperatingSystem.imageFormat.executableName(basename: "ld.\(alternateLinker)"))
         }
         // Create the cache key.  This is just the path to the linker we would invoke if we were invoking the linker directly.
         guard let toolPath = producer.executableSearchPaths.lookup(linkerPath) else {

@@ -258,31 +258,32 @@ extension CoreBasedTests {
     }
 
     // Linkers
-    package var ldPath: Path {
+    package var ldPath: Path? {
         get async throws {
             let (core, defaultToolchain) = try await coreAndToolchain()
-            return try #require(defaultToolchain.executableSearchPaths.findExecutable(operatingSystem: core.hostOperatingSystem, basename: "ld"), "couldn't find ld in default toolchain")
+            return defaultToolchain.executableSearchPaths.findExecutable(operatingSystem: core.hostOperatingSystem, basename: "ld")
         }
     }
-    package var linkPath: Path {
+    package var linkPath: Path? {
         get async throws {
             let (core, defaultToolchain) = try await coreAndToolchain()
-            return try #require(defaultToolchain.executableSearchPaths.findExecutable(operatingSystem: core.hostOperatingSystem, basename: "link"), "couldn't find link in default toolchain")
+            if core.hostOperatingSystem != .windows {
+                // Most unixes have a link executable, but that is not a linker
+                return nil
+            }
+            return defaultToolchain.executableSearchPaths.findExecutable(operatingSystem: core.hostOperatingSystem, basename: "link")
         }
     }
-    package var lldPath: Path {
+    package var lldPath: Path? {
         get async throws {
             let (core, defaultToolchain) = try await coreAndToolchain()
-            return try #require(
-                defaultToolchain.executableSearchPaths.findExecutable(
-                    operatingSystem: core.hostOperatingSystem,
-                    basename: core.hostOperatingSystem == .windows ? "lld-link" : "ld.lld"), "couldn't find ld.ldd in default toolchain")
+            return defaultToolchain.executableSearchPaths.findExecutable(operatingSystem: core.hostOperatingSystem, basename: "ld.lld")
         }
     }
-    package var goldPath: Path {
+    package var goldPath: Path? {
         get async throws {
             let (core, defaultToolchain) = try await coreAndToolchain()
-            return try #require(defaultToolchain.executableSearchPaths.findExecutable(operatingSystem: core.hostOperatingSystem, basename: "ld.gold"), "couldn't find ld.gold in default toolchain")
+            return defaultToolchain.executableSearchPaths.findExecutable(operatingSystem: core.hostOperatingSystem, basename: "ld.gold")
         }
     }
 }
