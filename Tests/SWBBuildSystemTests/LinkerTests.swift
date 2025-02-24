@@ -198,7 +198,7 @@ fileprivate struct LinkerTests: CoreBasedTests {
                         type: .commandLineTool,
                         buildPhases: [
                             TestSourcesBuildPhase(["main.swift"]),
-                            TestFrameworksBuildPhase([TestBuildFile(.target("Library"))])
+                            TestFrameworksBuildPhase([TestBuildFile(.target("Library"))]),
                         ],
                         dependencies: ["Library"]
                     ),
@@ -216,35 +216,45 @@ fileprivate struct LinkerTests: CoreBasedTests {
             let projectDir = tester.workspace.projects[0].sourceRoot
             try await tester.fs.writeFileContents(projectDir.join("main.swift")) { stream in
                 stream <<< """
-                import Library
+                    import Library
 
-                hello()
-                """
+                    hello()
+                    """
             }
             try await tester.fs.writeFileContents(projectDir.join("library.swift")) { stream in
                 stream <<< """
-                public func hello() {
-                    print(\"Hello World\")
-                }
-                """
+                    public func hello() {
+                        print(\"Hello World\")
+                    }
+                    """
             }
 
+            // Try to find the installed linkers
+            let ldLinkerPath = try await self.ldPath
+            let lldLinkerPath = try await self.lldPath
+            let goldLinkerPath = try await self.goldPath
+            var linkLinkerPath = try await self.linkPath
+            if runDestination == .windows {
+                // Issue: Finding link.exe will fail until https://github.com/swiftlang/swift-build/pull/163 is merged. Clang will find it via PATH.
+                linkLinkerPath = Path("link.exe")
+            }
+            let installedLinkerPaths = [lldLinkerPath, ldLinkerPath, goldLinkerPath, linkLinkerPath].compactMap { $0 }
+
             // Default Linker
-            var parameters = BuildParameters(configuration: "Debug")
-            let defaultLinker = try await runDestination == .windows ? self.lldPath : self.ldPath
+            var parameters = BuildParameters(configuration: "Debug", overrides: ["ALTERNATE_LINKER": ""])
             try await tester.checkBuild(parameters: parameters, runDestination: .host) { results in
                 results.checkTask(.matchRuleType("Ld")) { task in
                     results.checkTaskOutput(task) { taskOutput in
                         results.checkTaskOutput(task) { output in
-                            // Expect that the default linker is called by clang
-                            #expect(output.asString.contains(anyOf: defaultLinker.str))
+                            // Expect that one of the installed linkers is used, we are not sure which one.
+                            #expect(installedLinkerPaths.map { $0.str }.contains(where: output.asString.contains))
                         }
                     }
                 }
                 if runDestination == .windows {
                     // Issue: Linker cannot find dependent library
                     results.checkError(.contains("Linker command failed with exit code 1"))
-                    results.checkError(.contains("lld-link: error: could not open 'Library.lib'"))
+                    results.checkError(.contains("LNK1181: cannot open input file 'Library.lib'"))
                 }
                 results.checkNoDiagnostics()
             }
@@ -256,7 +266,7 @@ fileprivate struct LinkerTests: CoreBasedTests {
                     results.checkError(.contains("Invalid linker name in argument '-fuse-ld=not-a-linker'"))
                     results.checkError(.contains("invalid linker name in argument '-fuse-ld=not-a-linker'"))
                 } else {
-                    //Windows 'clang' does not check the linker in passed in via -fuse-ld and simply tries to execute it verbatim.
+                    // Windows 'clang' does not check the linker in passed in via -fuse-ld and simply tries to execute it verbatim.
                     results.checkError(.contains("Unable to execute command: program not executable"))
                     results.checkError(.contains("unable to execute command: program not executable"))
                     results.checkError(.contains("Linker command failed with exit code 1"))
@@ -264,11 +274,9 @@ fileprivate struct LinkerTests: CoreBasedTests {
                 results.checkNoDiagnostics()
             }
 
-
             // lld - llvm linker
-            if runDestination != .macOS {
-                parameters = BuildParameters(configuration: "Debug", overrides: ["ALTERNATE_LINKER": runDestination == .windows ? "lld-link": "lld"])
-                let linkerPath = try await self.lldPath
+            if let lldLinkerPath {
+                parameters = BuildParameters(configuration: "Debug", overrides: ["ALTERNATE_LINKER": "lld"])
                 try await tester.checkBuild(parameters: parameters, runDestination: .host) { results in
                     if runDestination == .windows {
                         // Issue: Linker cannot find dependent library
@@ -277,10 +285,16 @@ fileprivate struct LinkerTests: CoreBasedTests {
                     }
 
                     results.checkTask(.matchRuleType("Ld")) { task in
-                    task.checkCommandLineContains(["-fuse-ld=\(runDestination == .windows ? "lld-link" : "lld")"])
+                        task.checkCommandLineContains(["-fuse-ld=lld"])
                         results.checkTaskOutput(task) { output in
-                            //Expect that the default linker is called by clang
-                            #expect(output.asString.contains(anyOf: linkerPath.str))
+                            // Expect that the default linker is called by clang
+                            if runDestination == .windows {
+                                // clang will choose to run lld-link rather than ld.lld.exe.
+                                // clang output will have escaped slashes in stdout.
+                                #expect(output.asString.replacingOccurrences(of: "\\\\", with: "\\").contains(lldLinkerPath.dirname.join("lld-link").str))
+                            } else {
+                                #expect(output.asString.contains(lldLinkerPath.str))
+                            }
                         }
                     }
                     results.checkNoDiagnostics()
@@ -288,15 +302,14 @@ fileprivate struct LinkerTests: CoreBasedTests {
             }
 
             // gold
-            if runDestination == .linux {
+            if let goldLinkerPath {
                 parameters = BuildParameters(configuration: "Debug", overrides: ["ALTERNATE_LINKER": "gold"])
-                let linkerPath = try await self.goldPath
                 try await tester.checkBuild(parameters: parameters, runDestination: .host) { results in
                     results.checkTask(.matchRuleType("Ld")) { task in
-                    task.checkCommandLineContains(["-fuse-ld=gold"])
+                        task.checkCommandLineContains(["-fuse-ld=gold"])
                         results.checkTaskOutput(task) { output in
-                            //Expect that the default linker is called by clang
-                            #expect(output.asString.contains(anyOf: linkerPath.str))
+                            // Expect that the default linker is called by clang
+                            #expect(output.asString.contains(goldLinkerPath.str))
                         }
                     }
                     results.checkNoDiagnostics()
@@ -304,19 +317,14 @@ fileprivate struct LinkerTests: CoreBasedTests {
             }
 
             // link.exe
-            if runDestination == .windows {
+            if let linkLinkerPath {
                 parameters = BuildParameters(configuration: "Debug", overrides: ["ALTERNATE_LINKER": "link"])
-                // Issue: Finding link.exe will fail until https://github.com/swiftlang/swift-build/pull/163 is merged
-                // clang will find it via PATH.
-                // linkerPath = try await self.linkPath
-                let linkerPath = Path("link.exe")
-
                 try await tester.checkBuild(parameters: parameters, runDestination: .host) { results in
                     results.checkTask(.matchRuleType("Ld")) { task in
-                    task.checkCommandLineContains(["-fuse-ld=link"])
+                        task.checkCommandLineContains(["-fuse-ld=link"])
                         results.checkTaskOutput(task) { output in
-                            //Expect that the default linker is called by clang
-                            #expect(output.asString.contains(anyOf: linkerPath.str))
+                            // Expect that the default linker is called by clang
+                            #expect(output.asString.contains(linkLinkerPath.str))
                         }
                     }
                     //Issue: Linker cannot find dependent library
