@@ -59,9 +59,22 @@ package actor BuildManager {
 
         let buildOutputMap: [String:String]?
         if let buildOnlyThesePaths {
-            precondition(request.buildTargets.count == 1, "the client should ensure we have one target only")
-            let buildOnlyTheseOutputs = buildRequestContext.computeOutputPaths(for: buildOnlyThesePaths, workspace: workspaceContext.workspace, target: request.buildTargets.first!, command: request.buildCommand, parameters: request.parameters)
-            buildOutputMap = Dictionary(uniqueKeysWithValues: zip(buildOnlyTheseOutputs, buildOnlyThesePaths.map{ $0.str }))
+            buildOutputMap = {
+                var outputMap: [String: String] = [:]
+                for target in request.buildTargets {
+                    for buildOnlyThisPath in buildOnlyThesePaths {
+                        for output in buildRequestContext.computeOutputPaths(for: buildOnlyThisPath, workspace: workspaceContext.workspace, target: target, command: request.buildCommand, parameters: request.parameters) {
+                            if let existing = outputMap[output] {
+                                // This shouldn't ever happen in practice, but we don't have a good way to emit an error from here.
+                                assertionFailure("\(output) unexpectedly produced by both \(existing) and \(buildOnlyThisPath.str)")
+                                return nil
+                            }
+                            outputMap[output] = buildOnlyThisPath.str
+                        }
+                    }
+                }
+                return outputMap
+            }()
         } else {
             buildOutputMap = nil
         }
