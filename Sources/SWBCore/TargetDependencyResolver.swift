@@ -316,12 +316,10 @@ fileprivate extension TargetDependencyResolver {
     ///
     /// The result closure guarantees that all targets a target depends on appear in the returned array before that target.  Any detected dependency cycles will be broken.
     fileprivate func computeGraph() async -> (allTargets: OrderedSet<ConfiguredTarget>, targetDependencies: [ConfiguredTarget: [ResolvedTargetDependency]], targetsToLinkedReferencesToProducingTargets: [ConfiguredTarget: [BuildFile.BuildableItem: ResolvedTargetDependency]], dynamicallyBuildingTargets: Set<Target>) {
-        // For generating assembly or preprocessor output, we limit the build to a single target.
+        // For generating assembly or preprocessor output, we limit the build to the requested targets.
         switch buildRequest.buildCommand {
         case .generateAssemblyCode, .generatePreprocessedFile:
-            precondition(buildRequest.buildTargets.count == 1, "`\(buildRequest.buildCommand)` only supports exactly one target")
-            let info = buildRequest.buildTargets.first!
-            return await (OrderedSet<ConfiguredTarget>([resolver.lookupConfiguredTarget(info.target, parameters: info.parameters, imposedParameters: resolver.defaultImposedParameters)]), [:], [:], [])
+            return await (OrderedSet<ConfiguredTarget>(buildRequest.buildTargets.asyncMap { info in await resolver.lookupConfiguredTarget(info.target, parameters: info.parameters, imposedParameters: resolver.defaultImposedParameters) }), [:], [:], [])
         default:
             break
         }

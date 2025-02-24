@@ -64,9 +64,9 @@ fileprivate struct BuildCommandTests: CoreBasedTests {
             let runDestination = RunDestinationInfo.host
             let parameters = BuildParameters(configuration: "Debug", activeRunDestination: runDestination)
             let target = tester.workspace.allTargets.first(where: { _ in true })!
-            let cOutputPath = try #require(buildRequestContext.computeOutputPaths(for: [cFile], workspace: tester.workspace, target: BuildRequest.BuildTargetInfo(parameters: parameters, target: target), command: .singleFileBuild(buildOnlyTheseFiles: [Path("")]), parameters: parameters).only)
-            let objcOutputPath = try #require(buildRequestContext.computeOutputPaths(for: [objcFile], workspace: tester.workspace, target: BuildRequest.BuildTargetInfo(parameters: parameters, target: target), command: .singleFileBuild(buildOnlyTheseFiles: [Path("")]), parameters: parameters).only)
-            let swiftOutputPath = try #require(buildRequestContext.computeOutputPaths(for: [swiftFile], workspace: tester.workspace, target: BuildRequest.BuildTargetInfo(parameters: parameters, target: target), command: .singleFileBuild(buildOnlyTheseFiles: [Path("")]), parameters: parameters).only)
+            let cOutputPath = try #require(buildRequestContext.computeOutputPaths(for: cFile, workspace: tester.workspace, target: BuildRequest.BuildTargetInfo(parameters: parameters, target: target), command: .singleFileBuild(buildOnlyTheseFiles: [Path("")]), parameters: parameters).only)
+            let objcOutputPath = try #require(buildRequestContext.computeOutputPaths(for: objcFile, workspace: tester.workspace, target: BuildRequest.BuildTargetInfo(parameters: parameters, target: target), command: .singleFileBuild(buildOnlyTheseFiles: [Path("")]), parameters: parameters).only)
+            let swiftOutputPath = try #require(buildRequestContext.computeOutputPaths(for: swiftFile, workspace: tester.workspace, target: BuildRequest.BuildTargetInfo(parameters: parameters, target: target), command: .singleFileBuild(buildOnlyTheseFiles: [Path("")]), parameters: parameters).only)
 
             // Check building just the Swift file.
             try await tester.checkBuild(parameters: parameters, runDestination: runDestination, persistent: true, buildOutputMap: [swiftOutputPath: swiftFile.str]) { results in
@@ -103,8 +103,29 @@ fileprivate struct BuildCommandTests: CoreBasedTests {
     }
 
     // Helper method with sets up a single file build with a single ObjC file.
-    func runSingleFileTask(_ parameters: BuildParameters, buildCommand: BuildCommand, fileName: String, fileType: String? = nil, body: @escaping (_ results: BuildOperationTester.BuildResults, _ excludedTypes: Set<String>, _ inputs: [Path], _ outputs: [String]) throws -> Void) async throws {
+    func runSingleFileTask(_ parameters: BuildParameters, buildCommand: BuildCommand, fileName: String, fileType: String? = nil, multipleTargets: Bool = false, body: @escaping (_ results: BuildOperationTester.BuildResults, _ excludedTypes: Set<String>, _ inputs: [Path], _ outputs: [String]) throws -> Void) async throws {
         try await withTemporaryDirectory { tmpDirPath async throws -> Void in
+            var targets: [any TestTarget] = [
+                TestAggregateTarget("All", dependencies: ["aFramework"] + (multipleTargets ? ["bFramework"] : [])),
+                TestStandardTarget(
+                    "aFramework", type: .framework,
+                    buildConfigurations: [TestBuildConfiguration("Debug")],
+                    buildPhases: [
+                        TestSourcesBuildPhase([
+                            TestBuildFile(fileName)
+                        ]),
+                    ])
+            ]
+            if multipleTargets {
+                targets.append(TestStandardTarget(
+                    "bFramework", type: .framework,
+                    buildConfigurations: [TestBuildConfiguration("Debug")],
+                    buildPhases: [
+                        TestSourcesBuildPhase([
+                            TestBuildFile(fileName)
+                        ]),
+                    ]))
+            }
             let testWorkspace = TestWorkspace(
                 "Test",
                 sourceRoot: tmpDirPath.join("Test"),
@@ -117,15 +138,8 @@ fileprivate struct BuildCommandTests: CoreBasedTests {
                         buildConfigurations: [TestBuildConfiguration(
                             "Debug",
                             buildSettings: ["PRODUCT_NAME": "$(TARGET_NAME)"])],
-                        targets: [
-                            TestStandardTarget(
-                                "aFramework", type: .framework,
-                                buildConfigurations: [TestBuildConfiguration("Debug")],
-                                buildPhases: [
-                                    TestSourcesBuildPhase([
-                                        TestBuildFile(fileName)
-                                    ]),
-                                ])])])
+                        targets: targets)
+                ])
             let tester = try await BuildOperationTester(getCore(), testWorkspace, simulated: false)
 
             // Create the input file.
@@ -137,12 +151,13 @@ fileprivate struct BuildCommandTests: CoreBasedTests {
 
             // Construct the output paths.
             let excludedTypes: Set<String> = ["Copy", "Gate", "MkDir", "SymLink", "WriteAuxiliaryFile", "CreateBuildDirectory", "ClangStatCache"]
-            let target = tester.workspace.allTargets.first(where: { _ in true })!
-            let output = buildRequestContext.computeOutputPaths(for: [input], workspace: tester.workspace, target: BuildRequest.BuildTargetInfo(parameters: parameters, target: target), command: buildCommand).first!
+            let outputs = try tester.workspace.allTargets.dropFirst().map { target in
+                try #require(buildRequestContext.computeOutputPaths(for: input, workspace: tester.workspace, target: BuildRequest.BuildTargetInfo(parameters: parameters, target: target), command: buildCommand).only)
+            }
 
             // Check analyzing the file.
-            try await tester.checkBuild(parameters: parameters, buildCommand: buildCommand, persistent: true, buildOutputMap: [output: input.str]) { results in
-                try body(results, excludedTypes, [input], [output])
+            try await tester.checkBuild(parameters: parameters, buildRequest: BuildRequest(parameters: parameters, buildTargets: tester.workspace.allTargets.dropFirst().map { .init(parameters: parameters, target: $0) }, continueBuildingAfterErrors: true, useParallelTargets: true, useImplicitDependencies: true, useDryRun: false, buildCommand: buildCommand), persistent: true, buildOutputMap: Dictionary(uniqueKeysWithValues: outputs.map { ($0, input.str) })) { results in
+                try body(results, excludedTypes, [input], outputs)
             }
         }
     }
@@ -214,6 +229,27 @@ fileprivate struct BuildCommandTests: CoreBasedTests {
                 #expect(assembly.hasPrefix("\t.section\t__TEXT,__text,regular,pure_instructions"))
             }
             results.checkNoTask()
+        }
+
+        // Include the single file to assemble in multiple targets
+        try await runSingleFileTask(BuildParameters(configuration: "Debug", activeRunDestination: .host), buildCommand: .generateAssemblyCode(buildOnlyTheseFiles: [Path("")]), fileName: "File.m", multipleTargets: true) { results, excludedTypes, inputs, outputs in
+            let firstOutput = try #require(outputs.sorted()[safe: 0])
+            let secondOutput = try #require(outputs.sorted()[safe: 1])
+            results.consumeTasksMatchingRuleTypes(excludedTypes)
+            try results.checkTask(.matchRuleType("Assemble"), .matchRuleItemBasename("File.m"), .matchRuleItem("normal"), .matchRuleItem(results.runDestinationTargetArchitecture), .matchTargetName("aFramework")) { task in
+                task.checkCommandLineContainsUninterrupted(["-x", "objective-c"])
+                try task.checkCommandLineContainsUninterrupted(["-S", #require(inputs.first).str, "-o", firstOutput])
+                let assembly = try String(contentsOfFile: firstOutput, encoding: .utf8)
+                #expect(assembly.hasPrefix("\t.section\t__TEXT,__text,regular,pure_instructions"))
+            }
+            try results.checkTask(.matchRuleType("Assemble"), .matchRuleItemBasename("File.m"), .matchRuleItem("normal"), .matchRuleItem(results.runDestinationTargetArchitecture), .matchTargetName("bFramework")) { task in
+                task.checkCommandLineContainsUninterrupted(["-x", "objective-c"])
+                try task.checkCommandLineContainsUninterrupted(["-S", #require(inputs.first).str, "-o", secondOutput])
+                let assembly = try String(contentsOfFile: secondOutput, encoding: .utf8)
+                #expect(assembly.hasPrefix("\t.section\t__TEXT,__text,regular,pure_instructions"))
+            }
+            results.checkNoTask()
+            results.checkNoErrors()
         }
     }
 
@@ -319,7 +355,7 @@ fileprivate struct BuildCommandTests: CoreBasedTests {
             let runDestination = RunDestinationInfo.host
             let parameters = BuildParameters(configuration: "Debug", activeRunDestination: runDestination)
             let target = tester.workspace.allTargets.first(where: { _ in true })!
-            let metalOutputPath = try #require(buildRequestContext.computeOutputPaths(for: [metalFile], workspace: tester.workspace, target: BuildRequest.BuildTargetInfo(parameters: parameters, target: target), command: .singleFileBuild(buildOnlyTheseFiles: [Path("")]), parameters: parameters).only)
+            let metalOutputPath = try #require(buildRequestContext.computeOutputPaths(for: metalFile, workspace: tester.workspace, target: BuildRequest.BuildTargetInfo(parameters: parameters, target: target), command: .singleFileBuild(buildOnlyTheseFiles: [Path("")]), parameters: parameters).only)
 
             // Check building just the Metal file.
             try await tester.checkBuild(parameters: parameters, runDestination: runDestination, persistent: true, buildOutputMap: [metalOutputPath: metalFile.str]) { results in
