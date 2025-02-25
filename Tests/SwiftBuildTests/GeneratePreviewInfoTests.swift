@@ -251,14 +251,6 @@ fileprivate struct GeneratePreviewInfoTests: CoreBasedTests {
                                 "_main",
                                 "-Xlinker",
                                 "___debug_main_executable_dylib_entry_point",
-                            ] + (supportsSDKImports ? [
-                                "-Xlinker",
-                                "-sdk_imports",
-                                "-Xlinker",
-                                "\(tmpDir.str)/Test/build/Test.build/Debug-iphoneos/App.build/Objects-normal/\(activeRunDestination.targetArchitecture)/App_normal_\(activeRunDestination.targetArchitecture)_sdk_imports.json",
-                                "-Xlinker",
-                                "-sdk_imports_each_object",
-                            ] : []) + [
                                 "-o",
                                 "\(tmpDir.str)/Test/build/Debug-iphoneos/App.app/App.debug.dylib"
                             ],
@@ -528,14 +520,6 @@ fileprivate struct GeneratePreviewInfoTests: CoreBasedTests {
                                 "-Xlinker", "-object_path_lto", "-Xlinker", "\(tmpDir.str)/Test/build/Test.build/Debug-iphoneos/CApplication.build/Objects-normal/arm64/CApplication_lto.o",
                                 "-Xlinker", "-dependency_info",
                                 "-Xlinker", "\(tmpDir.str)/Test/build/Test.build/Debug-iphoneos/CApplication.build/Objects-normal/arm64/CApplication_dependency_info.dat",
-                            ] + (supportsSDKImports ? [
-                                "-Xlinker",
-                                "-sdk_imports",
-                                "-Xlinker",
-                                "\(tmpDir.str)/Test/build/Test.build/Debug-iphoneos/CApplication.build/Objects-normal/\(activeRunDestination.targetArchitecture)/CApplication_normal_\(activeRunDestination.targetArchitecture)_sdk_imports.json",
-                                "-Xlinker",
-                                "-sdk_imports_each_object",
-                            ] : []) + [
                                 "-o",
                                 "\(tmpDir.str)/Test/build/Debug-iphoneos/CApplication.app/CApplication"
                             ],

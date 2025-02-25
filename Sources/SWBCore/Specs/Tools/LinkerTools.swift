@@ -1035,7 +1035,47 @@ public final class LdLinkerSpec : GenericLinkerSpec, SpecIdentifierType, @unchec
         guard let payload = task.payload as? LdLinkerTaskPayload else { return [] }
         guard let previewPayload = payload.previewPayload else { return [] }
 
-        return [TaskGeneratePreviewInfoOutput(architecture: previewPayload.architecture, buildVariant: previewPayload.buildVariant, commandLine: Array(task.commandLineAsStrings), input: Path(""), output: payload.outputPath, type: .Ld)]
+        var commandLine = Array(task.commandLineAsStrings)
+
+        let argPrefix = "-Xlinker"
+
+        // Args without parameters
+        for arg in [
+            "-sdk_imports_each_object"
+        ] {
+            while let index = commandLine.firstIndex(of: arg) {
+                guard index > 0, commandLine[index - 1] == argPrefix else { break }
+                commandLine.removeSubrange(index - 1 ... index)
+            }
+        }
+
+        // Args with a parameter (-Xlinker-prefixed, e.g. -Xlinker arg -Xlinker param)
+        for arg in [
+            "-sdk_imports"
+        ] {
+            while let index = commandLine.firstIndex(of: arg) {
+                guard index > 0,
+                    index + 2 < commandLine.count,
+                    commandLine[index - 1] == argPrefix,
+                    commandLine[index + 1] == argPrefix
+                    else {
+                        break
+                }
+
+                commandLine.removeSubrange(index - 1 ... index + 2)
+            }
+        }
+
+        return [
+            TaskGeneratePreviewInfoOutput(
+                architecture: previewPayload.architecture,
+                buildVariant: previewPayload.buildVariant,
+                commandLine: commandLine,
+                input: Path(""),
+                output: payload.outputPath,
+                type: .Ld
+            )
+        ]
     }
 
     private func computeLinkerPath(_ cbc: CommandBuildContext, usedCXX: Bool) -> Path {
