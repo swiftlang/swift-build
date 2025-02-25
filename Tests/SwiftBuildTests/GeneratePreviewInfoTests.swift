@@ -50,6 +50,8 @@ fileprivate struct GeneratePreviewInfoTests: CoreBasedTests {
                                 "CLANG_ENABLE_MODULES": "YES",
                                 "SWIFT_OPTIMIZATION_LEVEL": "-Onone",
                                 "SDK_STAT_CACHE_ENABLE": "NO",
+                                "SWIFT_ENABLE_EXPLICIT_MODULES": "NO",
+                                "_EXPERIMENTAL_SWIFT_EXPLICIT_MODULES": "NO",
                                 // Test that we strip the flag
                                 "SWIFT_EMIT_LOC_STRINGS": "YES",
                                 "SWIFT_VALIDATE_CLANG_MODULES_ONCE_PER_BUILD_SESSION": "NO",

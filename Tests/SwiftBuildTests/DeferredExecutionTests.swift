@@ -43,6 +43,9 @@ fileprivate struct DeferredExecutionTests: CoreBasedTests {
                         "ONLY_ACTIVE_ARCH": "YES",
                         "SDKROOT": "macosx",
                         "SWIFT_VERSION": "5.0",
+                        // Disable explicit modules here so we generate a consistent number of swift-frontend invocations that doesn't depend on the structure of the SDK
+                        "SWIFT_ENABLE_EXPLICIT_MODULES": "NO",
+                        "_EXPERIMENTAL_SWIFT_EXPLICIT_MODULES": "NO",
 
                         // TAPI can't read the "world's smallest dylib", so don't run that
                         "GENERATE_INTERMEDIATE_TEXT_BASED_STUBS": "NO",

@@ -3514,6 +3514,7 @@ fileprivate struct SwiftDriverTests: CoreBasedTests {
                                             "ENABLE_PREVIEWS": "YES",
                                             "SWIFT_USE_INTEGRATED_DRIVER": useIntegratedDriver ? "YES" : "NO",
                                             "SWIFT_ENABLE_EXPLICIT_MODULES": useIntegratedDriver ? "YES" : "NO",
+                                            "_EXPERIMENTAL_SWIFT_EXPLICIT_MODULES": useIntegratedDriver ? "YES" : "NO",
                                             // Eager linking is not supported when using the driver binary.
                                             "EAGER_LINKING": "NO",
                                             "SWIFT_VALIDATE_CLANG_MODULES_ONCE_PER_BUILD_SESSION": "NO",
