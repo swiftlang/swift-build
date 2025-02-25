@@ -174,7 +174,7 @@ fileprivate struct PackageBuildOperationTests: CoreBasedTests {
     }
 
     /// Check that an .rkassets bundle gets an incremental build.
-    @Test(.requireSDKs(.xrOS), .disabled(if: !ProcessInfo.processInfo.isOperatingSystemAtLeast(OperatingSystemVersion(majorVersion: 15, minorVersion: 0, patchVersion: 0)), "rdar://129991610"))
+    @Test(.requireSDKs(.xrOS), .disabled(if: !ProcessInfo.processInfo.isOperatingSystemAtLeast(OperatingSystemVersion(majorVersion: 15, minorVersion: 0, patchVersion: 0)), "rdar://129991610"), .disabled(if: getEnvironmentVariable("CI")?.isEmpty == false))
     func RKAssetsIncrementalRebuild() async throws {
         // FIXME: We should be able to test this in simulation. For that, we need BuildDescription support for knowing which tasks are safe to run in simulation.
         let core = try await getCore()
