@@ -370,6 +370,8 @@ fileprivate struct XCFrameworkTaskConstructionTests: CoreBasedTests {
                     "CODE_SIGN_IDENTITY": "-",
                     "ARCHS": "x86_64",
                     "INFOPLIST_FILE": "Info.plist",
+                    "SWIFT_ENABLE_EXPLICIT_MODULES": "NO",
+                    "_EXPERIMENTAL_SWIFT_EXPLICIT_MODULES": "NO",
                     "SWIFT_VERSION": "5",
                     "SWIFT_EXEC": swiftCompilerPath.str,
                 ]),
