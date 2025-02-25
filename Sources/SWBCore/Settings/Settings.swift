@@ -1015,7 +1015,7 @@ extension WorkspaceContext {
             }
 
             // Add the platform search paths.
-            for path in platform?.executableSearchPaths ?? [] {
+            for path in platform?.executableSearchPaths.paths ?? [] {
                 paths.append(path)
             }
 

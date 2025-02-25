@@ -180,9 +180,9 @@ public final class Platform: Sendable {
     @_spi(Testing) public var sdks: [SDK] = []
 
     /// The list of executable search paths in the platform.
-    @_spi(Testing) public var executableSearchPaths: [Path]
+    @_spi(Testing) public var executableSearchPaths: StackedSearchPath
 
-    init(_ name: String, _ displayName: String, _ familyName: String, _ familyDisplayName: String?, _ identifier: String, _ devicePlatformName: String?, _ simulatorPlatformName: String?, _ path: Path, _ version: String?, _ productBuildVersion: String?, _ defaultSettings: [String: PropertyListItem], _ additionalInfoPlistEntries: [String: PropertyListItem], _ isDeploymentPlatform: Bool, _ specRegistryProvider: any SpecRegistryProvider, preferredArchValue: String?, executableSearchPaths: [Path]) {
+    init(_ name: String, _ displayName: String, _ familyName: String, _ familyDisplayName: String?, _ identifier: String, _ devicePlatformName: String?, _ simulatorPlatformName: String?, _ path: Path, _ version: String?, _ productBuildVersion: String?, _ defaultSettings: [String: PropertyListItem], _ additionalInfoPlistEntries: [String: PropertyListItem], _ isDeploymentPlatform: Bool, _ specRegistryProvider: any SpecRegistryProvider, preferredArchValue: String?, executableSearchPaths: [Path], fs: any FSProxy) {
         self.name = name
         self.displayName = displayName
         self.familyName = familyName
@@ -198,7 +198,7 @@ public final class Platform: Sendable {
         self.isDeploymentPlatform = isDeploymentPlatform
         self.specRegistryProvider = specRegistryProvider
         self.preferredArch = preferredArchValue
-        self.executableSearchPaths = executableSearchPaths
+        self.executableSearchPaths = StackedSearchPath(paths: executableSearchPaths, fs: fs)
         self.sdkCanonicalName = name
     }
 
@@ -319,16 +319,16 @@ public final class PlatformRegistry {
             })
     }
 
-    @_spi(Testing) public init(delegate: any PlatformRegistryDelegate, searchPaths: [Path], hostOperatingSystem: OperatingSystem) {
+    @_spi(Testing) public init(delegate: any PlatformRegistryDelegate, searchPaths: [Path], hostOperatingSystem: OperatingSystem, fs: any FSProxy) {
         self.delegate = delegate
 
         for path in searchPaths {
-            registerPlatformsInDirectory(path)
+            registerPlatformsInDirectory(path, fs)
         }
 
         do {
             if hostOperatingSystem.createFallbackSystemToolchain {
-                try registerFallbackSystemPlatform(operatingSystem: hostOperatingSystem)
+                try registerFallbackSystemPlatform(operatingSystem: hostOperatingSystem, fs: fs)
             }
         } catch {
             delegate.error(error)
@@ -340,13 +340,13 @@ public final class PlatformRegistry {
 
         for platformExtension in platformInfoExtensions() {
             for (path, data) in platformExtension.additionalPlatforms() {
-                registerPlatform(path, .plDict(data))
+                registerPlatform(path, .plDict(data), fs)
             }
         }
     }
 
-    private func registerFallbackSystemPlatform(operatingSystem: OperatingSystem) throws {
-        try registerPlatform(Path("/"), .plDict(fallbackSystemPlatformSettings(operatingSystem: operatingSystem)))
+    private func registerFallbackSystemPlatform(operatingSystem: OperatingSystem, fs: any FSProxy) throws {
+        try registerPlatform(Path("/"), .plDict(fallbackSystemPlatformSettings(operatingSystem: operatingSystem)), fs)
     }
 
     private func fallbackSystemPlatformSettings(operatingSystem: OperatingSystem) throws -> [String: PropertyListItem] {
@@ -413,7 +413,7 @@ public final class PlatformRegistry {
     }
 
     /// Register all platforms in the given directory.
-    private func registerPlatformsInDirectory(_ path: Path) {
+    private func registerPlatformsInDirectory(_ path: Path, _ fs: any FSProxy) {
         for item in (try? localFS.listdir(path))?.sorted(by: <) ?? [] {
             let itemPath = path.join(item)
 
@@ -431,15 +431,14 @@ public final class PlatformRegistry {
                     // Silently skip loading the platform if it does not have an Info.plist at all.  (We will still error below if it has an Info.plist which is malformed.)
                     continue
                 }
-
-                registerPlatform(itemPath, infoPlist)
+                registerPlatform(itemPath, infoPlist, fs)
             } catch let err {
                 delegate.error(itemPath, "unable to load platform: 'Info.plist' was malformed: \(err)")
             }
         }
     }
 
-    private func registerPlatform(_ path: Path, _ data: PropertyListItem) {
+    private func registerPlatform(_ path: Path, _ data: PropertyListItem, _ fs: any FSProxy) {
         // The data should always be a dictionary.
         guard case .plDict(var items) = data else {
             delegate.error(path, "unexpected platform data")
@@ -635,7 +634,7 @@ public final class PlatformRegistry {
         ])
 
         // FIXME: Need to parse other fields. It would also be nice to diagnose unused keys like we do for Spec data (and we might want to just use the spec parser here).
-        let platform = Platform(name, displayName, familyName, familyDisplayName, identifier, devicePlatformName, simulatorPlatformName, path, version, productBuildVersion, defaultSettings, additionalInfoPlistEntries, isDeploymentPlatform, delegate, preferredArchValue: preferredArchValue, executableSearchPaths: executableSearchPaths)
+        let platform = Platform(name, displayName, familyName, familyDisplayName, identifier, devicePlatformName, simulatorPlatformName, path, version, productBuildVersion, defaultSettings, additionalInfoPlistEntries, isDeploymentPlatform, delegate, preferredArchValue: preferredArchValue, executableSearchPaths: executableSearchPaths, fs: fs)
         if let duplicatePlatform = platformsByIdentifier[identifier] {
             delegate.error(path, "platform '\(identifier)' already registered from \(duplicatePlatform.path.str)")
             return

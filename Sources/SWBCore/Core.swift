@@ -306,6 +306,7 @@ public final class Core: Sendable {
 
         // Search the default location first (unless directed not to), then search any extra locations we've been passed.
         var searchPaths: [Path]
+        let fs = localFS
         if let onlySearchAdditionalPlatformPaths = getEnvironmentVariable("XCODE_ONLY_EXTRA_PLATFORM_FOLDERS"), onlySearchAdditionalPlatformPaths.boolValue {
             searchPaths = []
         }
@@ -324,7 +325,7 @@ public final class Core: Sendable {
             }
         }
         searchPaths += UserDefaults.additionalPlatformSearchPaths
-        return PlatformRegistry(delegate: self.registryDelegate, searchPaths: searchPaths, hostOperatingSystem: hostOperatingSystem)
+        return PlatformRegistry(delegate: self.registryDelegate, searchPaths: searchPaths, hostOperatingSystem: hostOperatingSystem, fs: fs)
     }()
 
     @PluginExtensionSystemActor public var loadedPluginPaths: [Path] {
