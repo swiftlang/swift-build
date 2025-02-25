@@ -612,7 +612,15 @@ public class ClangCompilerSpec : CompilerSpec, SpecIdentifierType, GCCCompatible
         var commandLine = Array<String>()
 
         // Add the arguments from the specification.
-        commandLine += self.commandLineFromOptions(producer, scope: scope, inputFileType: inputFileType, optionContext: optionContext).map(\.asString)
+        commandLine += self.commandLineFromOptions(producer, scope: scope, inputFileType: inputFileType, optionContext: optionContext,lookup: { declaration in
+            if declaration.name == "CLANG_INDEX_STORE_ENABLE" && optionContext is DiscoveredClangToolSpecInfo {
+                let clangToolInfo = optionContext as! DiscoveredClangToolSpecInfo
+                if !clangToolInfo.isAppleClang {
+                    return BuiltinMacros.namespace.parseString("NO")
+                }
+            }
+            return nil
+        }).map(\.asString)
 
         // Add the common header search paths.
         let headerSearchPaths = GCCCompatibleCompilerSpecSupport.headerSearchPathArguments(producer, scope, usesModules: scope.evaluate(BuiltinMacros.CLANG_ENABLE_MODULES))
@@ -652,19 +660,6 @@ public class ClangCompilerSpec : CompilerSpec, SpecIdentifierType, GCCCompatible
         // Add search paths for sparse SDKs.
         let sparseSDKSearchPaths = GCCCompatibleCompilerSpecSupport.sparseSDKSearchPathArguments(producer.sparseSDKs, headerSearchPaths.headerSearchPaths, frameworkSearchPaths.frameworkSearchPaths)
         commandLine += sparseSDKSearchPaths.searchPathArguments(for: self, scope: scope)
-
-        if let clangInfo = optionContext as? DiscoveredClangToolSpecInfo, !clangInfo.isAppleClang {
-            var filteredCommandLine: [String] = []
-            var iterator = commandLine.makeIterator()
-            while let arg = iterator.next() {
-                if arg == "-index-store-path" {
-                    _ = iterator.next()
-                } else {
-                    filteredCommandLine.append(arg)
-                }
-            }
-            commandLine = filteredCommandLine
-        }
 
         if scope.evaluate(BuiltinMacros.CLANG_USE_RESPONSE_FILE) && (optionContext?.toolPath.basenameWithoutSuffix == "clang" || optionContext?.toolPath.basenameWithoutSuffix == "clang++") {
             var responseFileCommandLine: [String] = []
