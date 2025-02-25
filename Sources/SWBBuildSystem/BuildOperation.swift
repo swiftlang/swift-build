@@ -976,7 +976,6 @@ private struct OperatorSystemAdaptorDynamicContext: DynamicTaskExecutionDelegate
         singleUse: Bool,
         workingDirectory: Path,
         environment: EnvironmentBindings = EnvironmentBindings(),
-        taskInputs: [ExecutionNode],
         forTarget: ConfiguredTarget?,
         priority: TaskPriority,
         showEnvironment: Bool = false,
@@ -987,7 +986,6 @@ private struct OperatorSystemAdaptorDynamicContext: DynamicTaskExecutionDelegate
             taskKey: taskKey,
             workingDirectory: workingDirectory,
             environment: environment,
-            taskInputs: taskInputs,
             target: forTarget,
             showEnvironment: showEnvironment
         )

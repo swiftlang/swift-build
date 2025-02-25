@@ -142,7 +142,6 @@ final class PrecompileClangModuleDynamicTaskSpec: DynamicTaskSpec {
             workingDirectory: dynamicTask.workingDirectory,
             showEnvironment: dynamicTask.showEnvironment,
             execDescription: execDescription,
-            executionInputs: dynamicTask.taskInputs,
             isDynamic: true
         )
     }

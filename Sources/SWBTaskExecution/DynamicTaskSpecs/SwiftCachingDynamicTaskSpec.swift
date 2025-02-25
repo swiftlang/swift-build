@@ -29,7 +29,6 @@ final class SwiftCachingKeyQueryDynamicTaskSpec: DynamicTaskSpec {
             workingDirectory: dynamicTask.workingDirectory,
             showEnvironment: dynamicTask.showEnvironment,
             execDescription: "Swift caching query key \(swiftCachingKeyQueryTaskKey.cacheKey)",
-            executionInputs: dynamicTask.taskInputs,
             priority: .network,
             isDynamic: true
         )
@@ -64,7 +63,6 @@ final class SwiftCachingMaterializeKeyDynamicTaskSpec: DynamicTaskSpec {
             workingDirectory: dynamicTask.workingDirectory,
             showEnvironment: dynamicTask.showEnvironment,
             execDescription: "Swift caching materialize key \(swiftCachingTaskKey.cacheKey)",
-            executionInputs: dynamicTask.taskInputs,
             priority: .network,
             isDynamic: true
         )
@@ -101,7 +99,6 @@ final class SwiftCachingOutputMaterializerDynamicTaskSpec: DynamicTaskSpec {
             workingDirectory: dynamicTask.workingDirectory,
             showEnvironment: dynamicTask.showEnvironment,
             execDescription: "Swift caching materialize outputs from \(casID)",
-            executionInputs: dynamicTask.taskInputs,
             priority: .network,
             isDynamic: true
         )

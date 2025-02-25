@@ -103,7 +103,6 @@ final public class PrecompileClangModuleTaskAction: TaskAction, BuildValueValida
                 singleUse: false,
                 workingDirectory: dependencyInfo.workingDirectory,
                 environment: task.environment,
-                taskInputs: [],
                 forTarget: task.forTarget,
                 priority: .preferred,
                 showEnvironment: task.showEnvironment,

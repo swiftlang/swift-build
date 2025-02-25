@@ -60,7 +60,6 @@ final class SwiftDriverPlanningDynamicTaskSpec: DynamicTaskSpec {
                     showEnvironment: dynamicTask.showEnvironment,
                     execDescription: "Planning Swift module \(driverPayload.moduleName) (\(driverPayload.architecture))",
                     preparesForIndexing: true,
-                    executionInputs: dynamicTask.taskInputs,
                     priority: .unblocksDownstreamTasks,
                     isDynamic: true
                 )

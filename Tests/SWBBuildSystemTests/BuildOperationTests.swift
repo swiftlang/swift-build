@@ -7426,12 +7426,6 @@ That command depends on command in Target 'agg2' (project \'aProject\'): script 
                     checkDependencyInfoNote(driverTask, [], [])
                 }
 
-                // Checking dependency information for emit-module job
-                // Dynamic tasks don't track outputs yet
-                results.checkTask(.matchRuleType("SwiftEmitModule")) { emitModuleTask in
-                    checkDependencyInfoNote(emitModuleTask, ["\(SRCROOT.str)/Sources/Source.swift"], [])
-                }
-
                 results.checkTask(.matchRuleType("Ld")) { linkerTask in
                     checkDependencyInfoNote(
                         linkerTask,
