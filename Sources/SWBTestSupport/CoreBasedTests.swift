@@ -261,7 +261,15 @@ extension CoreBasedTests {
     package var ldPath: Path? {
         get async throws {
             let (core, defaultToolchain) = try await coreAndToolchain()
-            return defaultToolchain.executableSearchPaths.findExecutable(operatingSystem: core.hostOperatingSystem, basename: "ld")
+            if let executable = defaultToolchain.executableSearchPaths.findExecutable(operatingSystem: core.hostOperatingSystem, basename: "ld") {
+                return executable
+            }
+            for platform in core.platformRegistry.platforms {
+                if let executable = platform.executableSearchPaths.findExecutable(operatingSystem: core.hostOperatingSystem, basename: "ld") {
+                    return executable
+                }
+            }
+            return nil
         }
     }
     package var linkPath: Path? {
@@ -271,19 +279,45 @@ extension CoreBasedTests {
                 // Most unixes have a link executable, but that is not a linker
                 return nil
             }
-            return defaultToolchain.executableSearchPaths.findExecutable(operatingSystem: core.hostOperatingSystem, basename: "link")
+            if let executable = defaultToolchain.executableSearchPaths.findExecutable(operatingSystem: core.hostOperatingSystem, basename: "link") {
+                return executable
+            }
+            for platform in core.platformRegistry.platforms {
+                if let executable = platform.executableSearchPaths.findExecutable(operatingSystem: core.hostOperatingSystem, basename: "link") {
+                    return executable
+                }
+            }
+            return nil
         }
     }
+
     package var lldPath: Path? {
         get async throws {
             let (core, defaultToolchain) = try await coreAndToolchain()
-            return defaultToolchain.executableSearchPaths.findExecutable(operatingSystem: core.hostOperatingSystem, basename: "ld.lld")
+            if let executable = defaultToolchain.executableSearchPaths.findExecutable(operatingSystem: core.hostOperatingSystem, basename: "ld.ld") {
+                return executable
+            }
+            for platform in core.platformRegistry.platforms {
+                if let executable = platform.executableSearchPaths.findExecutable(operatingSystem: core.hostOperatingSystem, basename: "ld.ld") {
+                    return executable
+                }
+            }
+            return nil
         }
     }
+
     package var goldPath: Path? {
         get async throws {
             let (core, defaultToolchain) = try await coreAndToolchain()
-            return defaultToolchain.executableSearchPaths.findExecutable(operatingSystem: core.hostOperatingSystem, basename: "ld.gold")
+            if let executable = defaultToolchain.executableSearchPaths.findExecutable(operatingSystem: core.hostOperatingSystem, basename: "ld.gold") {
+                return executable
+            }
+            for platform in core.platformRegistry.platforms {
+                if let executable = platform.executableSearchPaths.findExecutable(operatingSystem: core.hostOperatingSystem, basename: "ld.gold") {
+                    return executable
+                }
+            }
+            return nil
         }
     }
 }
