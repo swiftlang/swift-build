@@ -30,7 +30,6 @@ final class ClangCachingKeyQueryDynamicTaskSpec: DynamicTaskSpec {
             workingDirectory: dynamicTask.workingDirectory,
             showEnvironment: dynamicTask.showEnvironment,
             execDescription: "Clang caching query key \(cacheKey)",
-            executionInputs: dynamicTask.taskInputs,
             priority: .network,
             isDynamic: true
         )

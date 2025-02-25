@@ -201,7 +201,6 @@ public protocol DynamicTaskExecutionDelegate: ActivityReporter {
         singleUse: Bool,
         workingDirectory: Path,
         environment: EnvironmentBindings,
-        taskInputs: [ExecutionNode],
         forTarget: ConfiguredTarget?,
         priority: TaskPriority,
         showEnvironment: Bool,

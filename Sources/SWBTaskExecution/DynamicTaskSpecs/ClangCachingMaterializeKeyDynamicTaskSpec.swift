@@ -30,7 +30,6 @@ final class ClangCachingMaterializeKeyDynamicTaskSpec: DynamicTaskSpec {
             workingDirectory: dynamicTask.workingDirectory,
             showEnvironment: dynamicTask.showEnvironment,
             execDescription: "Clang caching materialize key \(cacheKey)",
-            executionInputs: dynamicTask.taskInputs,
             priority: .network,
             isDynamic: true
         )

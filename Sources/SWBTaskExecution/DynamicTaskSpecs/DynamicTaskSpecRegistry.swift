@@ -209,9 +209,6 @@ package struct DynamicTask: Serializable {
     /// The environment variables to set during the action execution.
     package let environment: EnvironmentBindings
 
-    /// The known inputs to the dynamic task action.
-    package let taskInputs: [ExecutionNode]
-
     /// The target this dynamic task belongs to. This is needed for mapping the output of the dynamic task to the logs.
     package let target: ConfiguredTarget?
 
@@ -223,7 +220,6 @@ package struct DynamicTask: Serializable {
         taskKey: DynamicTaskKey,
         workingDirectory: Path,
         environment: EnvironmentBindings,
-        taskInputs: [ExecutionNode],
         target: ConfiguredTarget?,
         showEnvironment: Bool
     ) {
@@ -231,30 +227,27 @@ package struct DynamicTask: Serializable {
         self.taskKey = taskKey
         self.workingDirectory = workingDirectory
         self.environment = environment
-        self.taskInputs = taskInputs
         self.target = target
         self.showEnvironment = showEnvironment
     }
 
     package func serialize<T: Serializer>(to serializer: T) {
-        serializer.beginAggregate(7)
+        serializer.beginAggregate(6)
         serializer.serialize(toolIdentifier)
         serializer.serialize(taskKey)
         serializer.serialize(workingDirectory)
         serializer.serialize(environment)
-        serializer.serialize(taskInputs)
         serializer.serialize(target)
         serializer.serialize(showEnvironment)
         serializer.endAggregate()
     }
 
     package init(from deserializer: any Deserializer) throws {
-        try deserializer.beginAggregate(7)
+        try deserializer.beginAggregate(6)
         self.toolIdentifier = try deserializer.deserialize()
         self.taskKey = try deserializer.deserialize()
         self.workingDirectory = try deserializer.deserialize()
         self.environment = try deserializer.deserialize()
-        self.taskInputs = try deserializer.deserialize()
         self.target = try deserializer.deserialize()
         self.showEnvironment = try deserializer.deserialize()
     }

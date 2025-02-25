@@ -204,7 +204,6 @@ final class SwiftDriverJobDynamicTaskSpec: DynamicTaskSpec {
                     showEnvironment: dynamicTask.showEnvironment,
                     execDescription: descriptionForLifecycle,
                     preparesForIndexing: true,
-                    executionInputs: dynamicTask.taskInputs,
                     showCommandLineInLog: false,
                     isDynamic: true
                 )
