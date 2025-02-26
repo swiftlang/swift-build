@@ -738,11 +738,15 @@ package final class BuildOperation: BuildSystemOperation {
             struct SwiftDataTraceEntry: Codable {
                 let buildDescriptionSignature: String
                 let isTargetParallelizationEnabled: Bool
+                let name: String
+                let path: String
             }
             do {
                 let traceEntry  = SwiftDataTraceEntry(
                     buildDescriptionSignature: buildDescription.signature.asString,
-                    isTargetParallelizationEnabled: request.useParallelTargets
+                    isTargetParallelizationEnabled: request.useParallelTargets,
+                    name: workspace.name,
+                    path: workspace.path.str
                 )
                 let encoder = JSONEncoder(outputFormatting: .sortedKeys)
                 try fs.append(swiftBuildTraceFilePath, contents: ByteString(encoder.encode(traceEntry)) + "\n")
