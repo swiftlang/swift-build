@@ -211,7 +211,7 @@ public final class ClangCompileTaskAction: TaskAction, BuildValueValidatingTaskA
         let commandLines = dependencyInfo.commands.map{$0.arguments}
 
         // By default, don't print the frontend command lines, to avoid introducing too much noise in the log.
-        if executionDelegate.userPreferences.enableDebugActivityLogs {
+        if executionDelegate.userPreferences.enableDebugActivityLogs || executionDelegate.emitFrontendCommandLines {
             for commandLine in commandLines {
                 let commandString = UNIXShellCommandCodec(
                     encodingStrategy: .backslashes,
@@ -288,7 +288,7 @@ public final class ClangCompileTaskAction: TaskAction, BuildValueValidatingTaskA
                     continue
                 default:
                     // Emit the frontend command which failed, unless we have debugging enabled and printed it already
-                    if !executionDelegate.userPreferences.enableDebugActivityLogs {
+                    if !executionDelegate.userPreferences.enableDebugActivityLogs && !executionDelegate.emitFrontendCommandLines {
                         let commandString = UNIXShellCommandCodec(
                             encodingStrategy: .backslashes,
                             encodingBehavior: .fullCommandLine

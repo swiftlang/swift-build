@@ -898,6 +898,10 @@ extension BuildOperation: TaskExecutionDelegate {
     package var namespace: MacroNamespace {
         workspace.userNamespace
     }
+
+    package var emitFrontendCommandLines: Bool {
+        buildDescription.emitFrontendCommandLines
+    }
 }
 
 // BuildOperation uses reference semantics.

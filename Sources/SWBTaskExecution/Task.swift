@@ -569,6 +569,8 @@ public protocol TaskExecutionDelegate
     /// User preferences
     var userPreferences: UserPreferences { get }
 
+    var emitFrontendCommandLines: Bool { get }
+
     var infoLookup: any PlatformInfoLookup { get }
 
     var sdkRegistry: SDKRegistry { get }

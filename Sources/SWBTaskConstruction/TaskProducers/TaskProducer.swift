@@ -132,6 +132,9 @@ public class TaskProducerContext: StaleFileRemovalContext, BuildFileResolution
     /// This is currently only ever done by Swift.
     private var _generatedTBDFiles: [String: [Path]] = [:]
 
+    /// Whether a task planned by this producer has requested frontend command line emission.
+    var emitFrontendCommandLines: Bool
+
     /// The map of architecture names to generated Swift Objective-C interface header files produced in this target.
     ///
     /// This is currently only ever done by Swift.
@@ -389,7 +392,7 @@ public class TaskProducerContext: StaleFileRemovalContext, BuildFileResolution
         self._realityAssetsCompilerSpec = Result { try workspaceContext.core.specRegistry.getSpec("com.apple.build-tasks.compile-rk-assets.xcplugin", domain: domain) as CommandLineToolSpec }
 
         self.compilationRequirementOutputFileTypes = (SpecRegistry.headerFileTypeIdentifiers + [SpecRegistry.modulemapFileTypeIdentifier]).compactMap { workspaceContext.core.specRegistry.lookupFileType(identifier: $0, domain: domain) }
-
+        self.emitFrontendCommandLines = settings.globalScope.evaluate(BuiltinMacros.EMIT_FRONTEND_COMMAND_LINES)
 
         for diagnostic in settings.diagnostics {
             delegate.emit(diagnostic)
