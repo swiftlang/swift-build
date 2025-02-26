@@ -2048,18 +2048,17 @@ private class SettingsBuilder {
         // FIXME: Arguably we should emit a warning if the optimization settings are out of sync, as the user may be getting weird results.  It's not clear if there are lots of old projects which might spuriously get such a warning, and this isn't a new state of affairs.
         table.push(BuiltinMacros.IS_UNOPTIMIZED_BUILD, literal: (scope.evaluate(BuiltinMacros.GCC_OPTIMIZATION_LEVEL) == "0" || scope.evaluate(BuiltinMacros.SWIFT_OPTIMIZATION_LEVEL) == "-Onone"))
 
-        let privateInstallPaths = scope.evaluate(BuiltinMacros.__KNOWN_SPI_INSTALL_PATHS).map { Path($0) }
-        let publicInstallPaths = [
-            Path("/System/Library/Frameworks"),
-            Path("/System/Library/SubFrameworks"),
-            Path("/usr/lib"),
-            Path("/System/iOSSupport/System/Library/Frameworks"),
-            Path("/System/iOSSupport/System/Library/SubFrameworks"),
-            Path("/System/iOSSupport/usr/lib"),]
-
         // If unset, infer the default SWIFT_LIBRARY_LEVEL from the INSTALL_PATH.
         if scope.evaluateAsString(BuiltinMacros.SWIFT_LIBRARY_LEVEL).isEmpty &&
            scope.evaluate(BuiltinMacros.MACH_O_TYPE) == "mh_dylib" {
+            let privateInstallPaths = scope.evaluate(BuiltinMacros.__KNOWN_SPI_INSTALL_PATHS).map { Path($0) }
+            let publicInstallPaths = [
+                Path("/System/Library/Frameworks"),
+                Path("/System/Library/SubFrameworks"),
+                Path("/usr/lib"),
+                Path("/System/iOSSupport/System/Library/Frameworks"),
+                Path("/System/iOSSupport/System/Library/SubFrameworks"),
+                Path("/System/iOSSupport/usr/lib"),]
             let installPath = scope.evaluate(BuiltinMacros.INSTALL_PATH)
 
             if table.contains(BuiltinMacros.SKIP_INSTALL) {
@@ -2072,16 +2071,6 @@ private class SettingsBuilder {
                 table.push(BuiltinMacros.SWIFT_LIBRARY_LEVEL, literal: "api")
             }
             // Else, leave it to the compiler's default.
-        }
-
-        // If unset, infer the default SWIFT_LIBRARY_LEVEL from the INSTALL_PATH.
-        if scope.evaluateAsString(BuiltinMacros.GENERATED_MODULEMAPS_USE_SYSTEM).isEmpty {
-            let systemInstallPaths = publicInstallPaths + privateInstallPaths
-            let installPath = scope.evaluate(BuiltinMacros.INSTALL_PATH)
-
-            if systemInstallPaths.contains(where: { $0.isAncestorOrEqual(of: installPath) }) {
-                table.push(BuiltinMacros.GENERATED_MODULEMAPS_USE_SYSTEM, literal: true)
-            }
         }
 
         // Overrides specific to building for Mac Catalyst.
