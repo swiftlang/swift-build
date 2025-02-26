@@ -18,6 +18,10 @@ Changes to swift-build can also be tested in Xcode using the `launch-xcode` comm
 
 Changes to swift-build can also be tested in xcodebuild using the `run-xcodebuild` command plugin provided by the package. Run `swift package --disable-sandbox run-xcodebuild` from your checkout of swift-build to run xcodebuild from the currently `xcode-select`ed Xcode.app configured to use your modified copy of the build system service. Arguments followed by `--` will be forwarded to xcodebuild unmodified. This workflow is currently supported when using Xcode 16.2.
 
+### Debugging
+
+When using the Xcode or xcodebuild workflows above, you can set easily set breakpoints and debug. First, open the swift-build package containing your changes in Xcode and choosing the "Debug > Attach to Process by PID or Name…" menu item. In the panel that appears, type "SWBBuildServiceBundle" as the process name and click "Attach". The debugger will wait for the process to launch. Run the relevant command shown above to launch Xcode or xcodebuild, and once you open a workspace, the swift-build process will launch and the debugger will attach to it automatically.
+
 Documentation
 -------------
 
