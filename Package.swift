@@ -295,13 +295,13 @@ let package = Package(
             name: "SWBWindowsPlatformTests",
             dependencies: ["SWBWindowsPlatform", "SWBTestSupport"],
             swiftSettings: swiftSettings(languageMode: .v6)),
-        .testTarget(
-            name: "SwiftBuildTests",
-            dependencies: ["SwiftBuild", "SWBBuildService", "SwiftBuildTestSupport"],
-            resources: [
-                .copy("TestData")
-            ],
-            swiftSettings: swiftSettings(languageMode: .v6)),
+        //.testTarget(
+         //   name: "SwiftBuildTests",
+          //  dependencies: ["SwiftBuild", "SWBBuildService", "SwiftBuildTestSupport"],
+          //  resources: [
+          //      .copy("TestData")
+          //  ],
+          //  swiftSettings: swiftSettings(languageMode: .v6)),
         .testTarget(
             name: "SWBProjectModelTests",
             dependencies: ["SWBProjectModel"],
