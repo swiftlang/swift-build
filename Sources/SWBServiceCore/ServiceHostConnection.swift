@@ -140,7 +140,7 @@ final class ServiceHostConnection: @unchecked Sendable {
             // Read data forever.
             var data: [UInt8] = []
             let tmpBufferSize = 4096
-            let tmp = UnsafeMutableBufferPointer(start: UnsafeMutablePointer<UInt8>.allocate(capacity: tmpBufferSize), count: tmpBufferSize)
+            nonisolated(unsafe) let tmp = UnsafeMutableBufferPointer(start: UnsafeMutablePointer<UInt8>.allocate(capacity: tmpBufferSize), count: tmpBufferSize)
 
             var error: (any Error)?
             while !self.isSuspended.withLock({ $0 }) {
@@ -152,7 +152,9 @@ final class ServiceHostConnection: @unchecked Sendable {
                 #endif
 
                 // Read data.
-                let result = read(self.inputFD.rawValue, tmp.baseAddress, numericCast(tmpBufferSize))
+                let result = await self.receiveQueue.sync {
+                    read(self.inputFD.rawValue, tmp.baseAddress, numericCast(tmpBufferSize))
+                }
                 if result < 0 {
                     if errno == EINTR { continue }
                     error = ServiceHostIOError(message: "read from client failed", cause: SWBUtil.POSIXError(errno, context: "read"))
