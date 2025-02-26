@@ -4217,6 +4217,14 @@ private class SettingsBuilder {
             table.push(BuiltinMacros.LIBRARY_SEARCH_PATHS, BuiltinMacros.namespace.parseStringList(["$(inherited)", "$(TEST_LIBRARY_SEARCH_PATHS$(TEST_BUILD_STYLE))"]))
             table.push(BuiltinMacros.SWIFT_INCLUDE_PATHS, BuiltinMacros.namespace.parseStringList(["$(inherited)", "$(TEST_LIBRARY_SEARCH_PATHS$(TEST_BUILD_STYLE))"]))
 
+            // If the toolchain contains a copy of Swift Testing, prefer it.
+            let toolchainPath = Path(scope.evaluateAsString(BuiltinMacros.TOOLCHAIN_DIR))
+            let platformName = scope.evaluate(BuiltinMacros.PLATFORM_NAME)
+            let toolchainTestingLibraryDir = toolchainPath.join("usr/lib/swift/\(platformName)/testing")
+            if workspaceContext.fs.exists(toolchainTestingLibraryDir) {
+                table.push(BuiltinMacros.TEST_LIBRARY_SEARCH_PATHS, BuiltinMacros.namespace.parseStringList(["$(inherited)", toolchainTestingLibraryDir.str]))
+            }
+
             if scope.evaluate(BuiltinMacros.ENABLE_PRIVATE_TESTING_SEARCH_PATHS) {
                 table.push(BuiltinMacros.SYSTEM_FRAMEWORK_SEARCH_PATHS, BuiltinMacros.namespace.parseStringList(["$(inherited)", "$(TEST_PRIVATE_FRAMEWORK_SEARCH_PATHS$(TEST_BUILD_STYLE))"]))
             }
