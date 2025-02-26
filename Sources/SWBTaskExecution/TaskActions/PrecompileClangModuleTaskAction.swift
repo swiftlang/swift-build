@@ -158,7 +158,7 @@ final public class PrecompileClangModuleTaskAction: TaskAction, BuildValueValida
         }
         let commandLine = command.arguments
 
-        if executionDelegate.userPreferences.enableDebugActivityLogs {
+        if executionDelegate.userPreferences.enableDebugActivityLogs || executionDelegate.emitFrontendCommandLines {
             let commandString = UNIXShellCommandCodec(
                 encodingStrategy: .backslashes,
                 encodingBehavior: .fullCommandLine
@@ -215,7 +215,7 @@ final public class PrecompileClangModuleTaskAction: TaskAction, BuildValueValida
                         enableStrictCASErrors: key.casOptions!.enableStrictCASErrors
                     )
                 }
-            } else if result == .failed && !executionDelegate.userPreferences.enableDebugActivityLogs {
+            } else if result == .failed && !executionDelegate.userPreferences.enableDebugActivityLogs && !executionDelegate.emitFrontendCommandLines {
                 let commandString = UNIXShellCommandCodec(
                     encodingStrategy: .backslashes,
                     encodingBehavior: .fullCommandLine

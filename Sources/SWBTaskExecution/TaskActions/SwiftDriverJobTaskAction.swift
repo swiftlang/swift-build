@@ -392,7 +392,7 @@ public final class SwiftDriverJobTaskAction: TaskAction, BuildValueValidatingTas
             outputDelegate.emitOutput(ByteString(encodingAsUTF8: commandString) + "\n")
         }
 
-        if executionDelegate.userPreferences.enableDebugActivityLogs {
+        if executionDelegate.userPreferences.enableDebugActivityLogs || executionDelegate.emitFrontendCommandLines {
             emitCommandLine()
         }
 
@@ -525,7 +525,7 @@ public final class SwiftDriverJobTaskAction: TaskAction, BuildValueValidatingTas
                                 enableStrictCASErrors: casOpts.enableStrictCASErrors)
             }
 
-            if delegate.commandResult == .failed && !executionDelegate.userPreferences.enableDebugActivityLogs {
+            if delegate.commandResult == .failed && !executionDelegate.userPreferences.enableDebugActivityLogs && !executionDelegate.emitFrontendCommandLines {
                 outputDelegate.emitOutput("Failed frontend command:\n")
                 emitCommandLine()
             }

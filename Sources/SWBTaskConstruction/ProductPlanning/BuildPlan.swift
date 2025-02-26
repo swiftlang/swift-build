@@ -77,6 +77,8 @@ package final class BuildPlan: StaleFileRemovalContext {
     /// The list of recursive search path requests used in construction.
     package let recursiveSearchPathResults: [RecursiveSearchPathResolver.CachedResult]
 
+    package let emitFrontendCommandLines: Bool
+
     /// Create the build plan for a particular request.
     ///
     /// This will cause the actual construction of all of the product plans and tasks.
@@ -280,6 +282,7 @@ package final class BuildPlan: StaleFileRemovalContext {
         self.invalidationPaths = Array(invalidationPaths.sorted(by: \.str))
         self.recursiveSearchPathResults = globalProductPlan.recursiveSearchPathResolver.allResults
         self.copiedPathMap = copiedPathMap
+        self.emitFrontendCommandLines = productPlanResultContexts.map { $0.productPlan.taskProducerContext.emitFrontendCommandLines }.reduce(false, { $0 || $1 })
     }
 
     static func unexpectedDuplicateTasksWithIdentifier(_ tasks: [any PlannedTask], _ workspace: Workspace, _ delegate: any TaskPlanningDelegate) {
