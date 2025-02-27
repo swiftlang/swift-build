@@ -295,12 +295,13 @@ public final class Toolchain: Hashable, Sendable {
         ])
 
         // Testing library platform names
-        var testingLibraryPlatformNames = Set<String>()
-        if let platformRegistry {
-            let testingLibrarySearchDir = path.join("usr").join("lib").join("swift")
-            testingLibraryPlatformNames = Set(try fs.listdir(testingLibrarySearchDir).filter {
+        let testingLibrarySearchDir = path.join("usr").join("lib").join("swift")
+        let testingLibraryPlatformNames: Set<String> = if let platformRegistry, fs.exists(testingLibrarySearchDir) {
+            Set(try fs.listdir(testingLibrarySearchDir).filter {
                 platformRegistry.lookup(name: $0) != nil && fs.exists(testingLibrarySearchDir.join($0).join("testing"))
             })
+        } else {
+            []
         }
 
         // Construct the toolchain
