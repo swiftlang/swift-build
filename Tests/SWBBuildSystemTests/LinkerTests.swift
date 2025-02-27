@@ -29,23 +29,25 @@ fileprivate struct LinkerTests: CoreBasedTests {
                 groupTree: TestGroup(
                     "SomeFiles",
                     children: [
-                        TestFile("source.swift"),
+                        TestFile("source.swift")
                     ]),
                 targets: [
                     TestStandardTarget(
                         "testTarget", type: .framework,
                         buildConfigurations: [
-                            TestBuildConfiguration("Debug", buildSettings: [
-                                "GENERATE_INFOPLIST_FILE": "YES",
-                                "PRODUCT_NAME": "$(TARGET_NAME)",
-                                "SWIFT_VERSION": swiftVersion,
-                                "OTHER_LDFLAGS": "-not-a-real-flag"
-                            ]),
+                            TestBuildConfiguration(
+                                "Debug",
+                                buildSettings: [
+                                    "GENERATE_INFOPLIST_FILE": "YES",
+                                    "PRODUCT_NAME": "$(TARGET_NAME)",
+                                    "SWIFT_VERSION": swiftVersion,
+                                    "OTHER_LDFLAGS": "-not-a-real-flag",
+                                ])
                         ],
                         buildPhases: [
-                            TestSourcesBuildPhase(["source.swift"]),
+                            TestSourcesBuildPhase(["source.swift"])
                         ]
-                    ),
+                    )
                 ])
             let tester = try await BuildOperationTester(getCore(), testProject, simulated: false)
 
@@ -74,37 +76,41 @@ fileprivate struct LinkerTests: CoreBasedTests {
                     "SomeFiles",
                     children: [
                         TestFile("source.swift"),
-                        TestFile("source.mm")
+                        TestFile("source.mm"),
                     ]),
                 targets: [
                     TestStandardTarget(
                         "testTarget", type: .application,
                         buildConfigurations: [
-                            TestBuildConfiguration("Debug", buildSettings: [
-                                "GENERATE_INFOPLIST_FILE": "YES",
-                                "PRODUCT_NAME": "$(TARGET_NAME)",
-                                "SWIFT_VERSION": swiftVersion,
-                            ]),
+                            TestBuildConfiguration(
+                                "Debug",
+                                buildSettings: [
+                                    "GENERATE_INFOPLIST_FILE": "YES",
+                                    "PRODUCT_NAME": "$(TARGET_NAME)",
+                                    "SWIFT_VERSION": swiftVersion,
+                                ])
                         ],
                         buildPhases: [
-                            TestSourcesBuildPhase(["source.mm"]),
+                            TestSourcesBuildPhase(["source.mm"])
                         ],
                         dependencies: [TestTargetDependency("testFramework")]
                     ),
                     TestStandardTarget(
                         "testFramework", type: .framework,
                         buildConfigurations: [
-                            TestBuildConfiguration("Debug", buildSettings: [
-                                "GENERATE_INFOPLIST_FILE": "YES",
-                                "PRODUCT_NAME": "$(TARGET_NAME)",
-                                "SWIFT_VERSION": swiftVersion,
-                                "SWIFT_OBJC_INTEROP_MODE": enableInterop ? "objcxx" : "objc",
-                            ]),
+                            TestBuildConfiguration(
+                                "Debug",
+                                buildSettings: [
+                                    "GENERATE_INFOPLIST_FILE": "YES",
+                                    "PRODUCT_NAME": "$(TARGET_NAME)",
+                                    "SWIFT_VERSION": swiftVersion,
+                                    "SWIFT_OBJC_INTEROP_MODE": enableInterop ? "objcxx" : "objc",
+                                ])
                         ],
                         buildPhases: [
                             TestSourcesBuildPhase(["source.swift"])
                         ]
-                    )
+                    ),
                 ])
         }
 
@@ -120,7 +126,7 @@ fileprivate struct LinkerTests: CoreBasedTests {
             }
             try await tester.checkBuild() { results in
                 try results.checkTasks(.matchRuleType("Ld")) { tasks in
-                    let task = try #require(tasks.first(where: {  $0.outputPaths[0].ends(with: "testTarget") }))
+                    let task = try #require(tasks.first(where: { $0.outputPaths[0].ends(with: "testTarget") }))
                     task.checkCommandLineMatches([StringPattern.and(StringPattern.prefix("-L"), StringPattern.suffix("usr/lib/swift/macosx"))])
                     task.checkCommandLineContains(["-L/usr/lib/swift", "-lswiftCore"])
                     task.checkCommandLineMatches([StringPattern.suffix("testTarget.app/Contents/MacOS/testTarget")])
@@ -147,7 +153,7 @@ fileprivate struct LinkerTests: CoreBasedTests {
             }
             try await tester.checkBuild() { results in
                 results.checkTasks(.matchRuleType("Ld")) { tasks in
-                    let task = tasks.first(where: {  $0.outputPaths[0].ends(with: "testTarget") })!
+                    let task = tasks.first(where: { $0.outputPaths[0].ends(with: "testTarget") })!
                     task.checkCommandLineNoMatch([StringPattern.and(StringPattern.prefix("-L"), StringPattern.suffix("usr/lib/swift/macosx"))])
                     task.checkCommandLineDoesNotContain("-L/usr/lib/swift")
                     task.checkCommandLineDoesNotContain("-lswiftCore")
@@ -165,15 +171,19 @@ fileprivate struct LinkerTests: CoreBasedTests {
     /// There is no reliable way to determine from a final linked binary which
     /// linker was used, so the test enables some verbosity to see which linker
     /// clang invokes.
-    /// Note: There is an output parser in the LinkerTool spec that does
-    ///       error parsing and creates a new build error diagnostic with
-    ///       a capaitalized error snippet, so this needs to be handled.
+    /// Notes:
+    /// * There is an output parser in the LinkerTool spec that does
+    ///   error parsing and creates a new build error diagnostic with
+    ///   a capaitalized error snippet, so this needs to be handled.
+    /// * The clang output on Windows has paths that have double slashes, not
+    ///   quite valid command quoted. i.e. "C:\\Program Files\\Microsoft Visual Studio\\2022\\Community\\VC"
+    ///   This needs to be taken into account.
     @Test(.requireSDKs(.host))
     func alternateLinkerSelection() async throws {
         let runDestination: RunDestinationInfo = .host
         let swiftVersion = try await self.swiftVersion
         try await withTemporaryDirectory { tmpDir in
-            let testProject = try await TestProject(
+            let testProject = TestProject(
                 "TestProject",
                 sourceRoot: tmpDir,
                 groupTree: TestGroup(
@@ -233,11 +243,7 @@ fileprivate struct LinkerTests: CoreBasedTests {
             let ldLinkerPath = try await self.ldPath
             let lldLinkerPath = try await self.lldPath
             let goldLinkerPath = try await self.goldPath
-            var linkLinkerPath = try await self.linkPath
-            if runDestination == .windows {
-                // Issue: Finding link.exe will fail until https://github.com/swiftlang/swift-build/pull/163 is merged. Clang will find it via PATH.
-                linkLinkerPath = Path("link.exe")
-            }
+            let linkLinkerPath = try await self.linkPath
             let installedLinkerPaths = [lldLinkerPath, ldLinkerPath, goldLinkerPath, linkLinkerPath].compactMap { $0 }
 
             // Default Linker
@@ -247,7 +253,14 @@ fileprivate struct LinkerTests: CoreBasedTests {
                     results.checkTaskOutput(task) { taskOutput in
                         results.checkTaskOutput(task) { output in
                             // Expect that one of the installed linkers is used, we are not sure which one.
-                            #expect(installedLinkerPaths.map { $0.str }.contains(where: output.asString.contains))
+                            if runDestination == .windows && Architecture.hostStringValue == "aarch64" {
+                                withKnownIssue("'clang' picks the wrong binary for link.exe using x86 version") {
+                                    // On windows aarch64 'clang' picks the wrong host architecture for link.exe, choosing "MSVC\14.41.34120\bin\Hostx86\arm64\link.exe"
+                                    #expect(installedLinkerPaths.map { $0.str }.contains(where: output.asString.replacingOccurrences(of: "\\\\", with: "\\").contains))
+                                }
+                            } else {
+                                #expect(installedLinkerPaths.map { $0.str }.contains(where: output.asString.replacingOccurrences(of: "\\\\", with: "\\").contains))
+                            }
                         }
                     }
                 }
@@ -282,13 +295,12 @@ fileprivate struct LinkerTests: CoreBasedTests {
                     results.checkTask(.matchRuleType("Ld")) { task in
                         task.checkCommandLineContains(["-fuse-ld=lld"])
                         results.checkTaskOutput(task) { output in
-                            // Expect that the default linker is called by clang
+                            // Expect that the llvm linker is called by clang
                             if runDestination == .windows {
                                 // clang will choose to run lld-link rather than ld.lld.exe.
-                                // clang output will have escaped slashes in stdout.
                                 #expect(output.asString.replacingOccurrences(of: "\\\\", with: "\\").contains(lldLinkerPath.dirname.join("lld-link").str))
                             } else {
-                                #expect(output.asString.contains(lldLinkerPath.str))
+                                #expect(output.asString.replacingOccurrences(of: "\\\\", with: "\\").contains(lldLinkerPath.str))
                             }
                         }
                     }
@@ -303,8 +315,8 @@ fileprivate struct LinkerTests: CoreBasedTests {
                     results.checkTask(.matchRuleType("Ld")) { task in
                         task.checkCommandLineContains(["-fuse-ld=gold"])
                         results.checkTaskOutput(task) { output in
-                            // Expect that the default linker is called by clang
-                            #expect(output.asString.contains(goldLinkerPath.str))
+                            // Expect that the gold linker is called by clang
+                            #expect(output.asString.replacingOccurrences(of: "\\\\", with: "\\").contains(goldLinkerPath.str))
                         }
                     }
                     results.checkNoDiagnostics()
@@ -318,8 +330,15 @@ fileprivate struct LinkerTests: CoreBasedTests {
                     results.checkTask(.matchRuleType("Ld")) { task in
                         task.checkCommandLineContains(["-fuse-ld=link"])
                         results.checkTaskOutput(task) { output in
-                            // Expect that the default linker is called by clang
-                            #expect(output.asString.contains(linkLinkerPath.str))
+                            // Expect that the 'link' linker is called by clang
+                            if runDestination == .windows && Architecture.hostStringValue == "aarch64" {
+                                withKnownIssue("'clang' picks the wrong binary for link.exe using Hostx86 version") {
+                                    // On windows aarch64 'clang' picks the wrong host architecture for link.exe, choosing "MSVC\14.41.34120\bin\Hostx86\arm64\link.exe"
+                                    #expect(output.asString.replacingOccurrences(of: "Hostx86", with: "Hostarm64").contains(linkLinkerPath.str))
+                                }
+                            } else {
+                                #expect(output.asString.replacingOccurrences(of: "\\\\", with: "\\").contains(linkLinkerPath.str))
+                            }
                         }
                     }
                     results.checkNoDiagnostics()
