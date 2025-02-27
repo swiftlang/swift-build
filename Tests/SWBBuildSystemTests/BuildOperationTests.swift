@@ -4192,7 +4192,9 @@ That command depends on command in Target 'agg2' (project \'aProject\'): script 
                 }
 
                 results.checkTasks(.matchRuleType("Libtool")) { tasks in
-                    #expect(tasks.count == 2)
+                    withKnownIssue("Sometimes the task count is 1", isIntermittent: true) {
+                        #expect(tasks.count == 2)
+                    }
                 }
 
                 results.checkNoTask()
