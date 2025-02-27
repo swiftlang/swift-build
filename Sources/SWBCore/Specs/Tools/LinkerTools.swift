@@ -1635,7 +1635,8 @@ public func discoveredLinkerToolsInfo(_ producer: any CommandProducer, _ delegat
 
                 let goLD = [
                     #/GNU gold version (?<version>[\d.]+)-.*/#,
-                    #/GNU gold \(GNU Binutils.*\) (?<version>[\d.]+)/#,
+                    #/GNU gold \(GNU Binutils.*\) (?<version>[\d.]+)/#, // Ubuntu "GNU gold (GNU Binutils for Ubuntu 2.38) 1.16", Debian "GNU gold (GNU Binutils for Debian 2.40) 1.16"
+                    #/GNU gold \(version .*\) (?<version>[\d.]+)/#,     // Fedora "GNU gold (version 2.40-14.fc39) 1.16", RHEL "GNU gold (version 2.35.2-54.el9) 1.16", Amazon "GNU gold (version 2.29.1-31.amzn2.0.1) 1.14"
                 ]
                 if let match = try goLD.compactMap({ try $0.firstMatch(in: String(decoding: executionResult.stdout, as: UTF8.self)) }).first {
                     return DiscoveredLdLinkerToolSpecInfo(linker: .gold, toolPath: toolPath, toolVersion: try Version(String(match.output.version)), architectures: Set())
