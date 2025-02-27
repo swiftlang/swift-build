@@ -18,6 +18,7 @@ import Foundation
 /// Delegate protocol used to report diagnostics.
 @_spi(Testing) public protocol ToolchainRegistryDelegate: DiagnosticProducingDelegate {
     var pluginManager: PluginManager { get }
+    var platformRegistry: PlatformRegistry? { get }
 }
 
 /// Some problems are reported as either errors or warnings depending on if we're loading a built-in toolchain or an external toolchain
@@ -70,7 +71,10 @@ public final class Toolchain: Hashable, Sendable {
     /// The fallback search paths for libraries.
     public let fallbackLibrarySearchPaths: StackedSearchPath
 
-    package init(_ identifier: String, _ displayName: String, _ version: Version, _ aliases: Set<String>, _ path: Path, _ frameworkPaths: [String], _ libraryPaths: [String], _ defaultSettings: [String: PropertyListItem], _ overrideSettings: [String: PropertyListItem], _ defaultSettingsWhenPrimary: [String: PropertyListItem], executableSearchPaths: [Path], fs: any FSProxy) {
+    /// The names of the platforms for which this toolchain contains testing libraries.
+    public let testingLibraryPlatformNames: Set<String>
+
+    package init(_ identifier: String, _ displayName: String, _ version: Version, _ aliases: Set<String>, _ path: Path, _ frameworkPaths: [String], _ libraryPaths: [String], _ defaultSettings: [String: PropertyListItem], _ overrideSettings: [String: PropertyListItem], _ defaultSettingsWhenPrimary: [String: PropertyListItem], executableSearchPaths: [Path], testingLibraryPlatformNames: Set<String>, fs: any FSProxy) {
         self.identifier = identifier
         self.version = version
 
@@ -97,9 +101,10 @@ public final class Toolchain: Hashable, Sendable {
             paths: librarySearchPaths,
             fs: fs
         )
+        self.testingLibraryPlatformNames = testingLibraryPlatformNames
     }
 
-    convenience init(_ path: Path, operatingSystem: OperatingSystem, fs: any FSProxy, pluginManager: PluginManager) async throws {
+    convenience init(_ path: Path, operatingSystem: OperatingSystem, fs: any FSProxy, pluginManager: PluginManager, platformRegistry: PlatformRegistry?) async throws {
         let data: PropertyListItem
 
         do {
@@ -289,8 +294,17 @@ public final class Toolchain: Hashable, Sendable {
             path.join("usr").join("libexec")
         ])
 
+        // Testing library platform names
+        var testingLibraryPlatformNames = Set<String>()
+        if let platformRegistry {
+            let testingLibrarySearchDir = path.join("usr").join("lib").join("swift")
+            testingLibraryPlatformNames = Set(try fs.listdir(testingLibrarySearchDir).filter {
+                platformRegistry.lookup(name: $0) != nil && fs.exists(testingLibrarySearchDir.join($0).join("testing"))
+            })
+        }
+
         // Construct the toolchain
-        self.init(identifier, displayName, version, aliases, path, frameworkSearchPaths, librarySearchPaths, defaultSettings, overrideSettings, defaultSettingsWhenPrimary, executableSearchPaths: executableSearchPaths, fs: fs)
+        self.init(identifier, displayName, version, aliases, path, frameworkSearchPaths, librarySearchPaths, defaultSettings, overrideSettings, defaultSettingsWhenPrimary, executableSearchPaths: executableSearchPaths, testingLibraryPlatformNames: testingLibraryPlatformNames, fs: fs)
     }
 
     public func hash(into hasher: inout Hasher) {
@@ -367,6 +381,14 @@ public final class Toolchain: Hashable, Sendable {
         let numbers: [UInt] = Array(groups.prefix(3)).map{ $0.first! }.map{ UInt($0) ?? 0 }
 
         return Version(numbers)
+    }
+
+    func testingLibrarySearchPath(forPlatformNamed platformName: String) -> Path? {
+        if testingLibraryPlatformNames.contains(platformName) {
+            path.join("usr").join("lib").join("swift").join(platformName).join("testing")
+        } else {
+            nil
+        }
     }
 }
 
@@ -460,7 +482,7 @@ public final class ToolchainRegistry: @unchecked Sendable {
             }
             let llvmDirectories = try Array(fs.listdir(Path("/usr/lib")).filter { $0.hasPrefix("llvm-") }.sorted().reversed())
             let llvmDirectoriesLocal = try Array(fs.listdir(Path("/usr/local")).filter { $0.hasPrefix("llvm") }.sorted().reversed())
-            try register(Toolchain(Self.defaultToolchainIdentifier, "Default", Version(), [], path, [], llvmDirectories.map { "/usr/lib/\($0)/lib" } + llvmDirectoriesLocal.map { "/usr/local/\($0)/lib" } + ["/usr/lib64"], [:], [:], [:], executableSearchPaths: [path.join("usr").join("bin"), path.join("usr").join("local").join("bin"),  path.join("usr").join("libexec")], fs: fs))
+            try register(Toolchain(Self.defaultToolchainIdentifier, "Default", Version(), [], path, [], llvmDirectories.map { "/usr/lib/\($0)/lib" } + llvmDirectoriesLocal.map { "/usr/local/\($0)/lib" } + ["/usr/lib64"], [:], [:], [:], executableSearchPaths: [path.join("usr").join("bin"), path.join("usr").join("local").join("bin"),  path.join("usr").join("libexec")], testingLibraryPlatformNames: [], fs: fs))
         }
     }
 
@@ -478,7 +500,7 @@ public final class ToolchainRegistry: @unchecked Sendable {
             guard toolchainPath.basenameWithoutSuffix != "swift-latest" else { continue }
 
             do {
-                let toolchain = try await Toolchain(toolchainPath, operatingSystem: operatingSystem, fs: fs, pluginManager: delegate.pluginManager)
+                let toolchain = try await Toolchain(toolchainPath, operatingSystem: operatingSystem, fs: fs, pluginManager: delegate.pluginManager, platformRegistry: delegate.platformRegistry)
                 try register(toolchain)
             } catch let err {
                 delegate.issue(strict: strict, toolchainPath, "failed to load toolchain: \(err)")

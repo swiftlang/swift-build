@@ -146,6 +146,6 @@ struct AndroidToolchainRegistryExtension: ToolchainRegistryExtension {
             return []
         }
 
-        return [Toolchain("android", "Android", Version(0, 0, 0), [], toolchainPath, [], [], [:], [:], [:], executableSearchPaths: [toolchainPath.join("bin")], fs: fs)]
+        return [Toolchain("android", "Android", Version(0, 0, 0), [], toolchainPath, [], [], [:], [:], [:], executableSearchPaths: [toolchainPath.join("bin")], testingLibraryPlatformNames: [], fs: fs)]
     }
 }

@@ -4219,10 +4219,11 @@ private class SettingsBuilder {
 
             // If the toolchain contains a copy of Swift Testing, prefer it.
             let toolchainPath = Path(scope.evaluateAsString(BuiltinMacros.TOOLCHAIN_DIR))
-            let platformName = scope.evaluate(BuiltinMacros.PLATFORM_NAME)
-            let toolchainTestingLibraryDir = toolchainPath.join("usr/lib/swift/\(platformName)/testing")
-            if workspaceContext.fs.exists(toolchainTestingLibraryDir) {
-                table.push(BuiltinMacros.TEST_LIBRARY_SEARCH_PATHS, BuiltinMacros.namespace.parseStringList(["$(inherited)", toolchainTestingLibraryDir.str]))
+            if let toolchain = core.toolchainRegistry.toolchains.first(where: { $0.path == toolchainPath }) {
+                let platformName = scope.evaluate(BuiltinMacros.PLATFORM_NAME)
+                if let testingLibrarySearchPath = toolchain.testingLibrarySearchPath(forPlatformNamed: platformName) {
+                    table.push(BuiltinMacros.TEST_LIBRARY_SEARCH_PATHS, BuiltinMacros.namespace.parseStringList(["$(inherited)", testingLibrarySearchPath.str]))
+                }
             }
 
             if scope.evaluate(BuiltinMacros.ENABLE_PRIVATE_TESTING_SEARCH_PATHS) {
