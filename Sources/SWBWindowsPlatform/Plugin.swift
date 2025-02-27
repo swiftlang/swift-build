@@ -44,23 +44,29 @@ struct WindowsPlatformSpecsExtension: SpecificationsExtension {
 
     @_spi(Testing) public func additionalEnvironmentVariables(context: any EnvironmentExtensionAdditionalEnvironmentVariablesContext) async throws -> [String: String] {
         if context.hostOperatingSystem == .windows {
-            // Add the environment variable for the MSVC toolset for Swift and Clang to find it
             let vcToolsInstallDir = "VCToolsInstallDir"
-            let installations = try await plugin.cachedVSInstallations()
-                .sorted(by: { $0.installationVersion > $1.installationVersion })
-            if let latest = installations.first {
-                let msvcDir = latest.installationPath.join("VC").join("Tools").join("MSVC")
-                if context.fs.exists(msvcDir) {
-                    let versions = try context.fs.listdir(msvcDir).map { try Version($0) }.sorted { $0 > $1 }
-                    if let latestVersion = versions.first {
-                        let dir = msvcDir.join(latestVersion.description).str
-                        return [vcToolsInstallDir: dir]
-                    }
-                }
+            guard let dir = try? await findLatestInstallDirectory(fs: context.fs) else {
+                return [:]
+            }
+            return [vcToolsInstallDir: dir.str]
+        }
+    }
+
+     @_spi(Testing)public func findLatestInstallDirectory(fs: any FSProxy) async throws -> Path? {
+    let plugin: WindowsPlugin
+    let installations = try await plugin.cachedVSInstallations()
+        .sorted(by: { $0.installationVersion > $1.installationVersion })
+    if let latest = installations.first {
+        let msvcDir = latest.installationPath.join("VC").join("Tools").join("MSVC")
+        if fs.exists(msvcDir) {
+            let versions = try fs.listdir(msvcDir).map { try Version($0) }.sorted { $0 > $1 }
+            if let latestVersion = versions.first {
+                return msvcDir.join(latestVersion.description)
             }
         }
-        return [:]
     }
+    return nil
+}
 }
 
 struct WindowsPlatformExtension: PlatformInfoExtension {
@@ -105,6 +111,17 @@ struct WindowsPlatformExtension: PlatformInfoExtension {
         // The WindowsSDKRegistryExtension will handle discovery and registration of the SDK.
         if platformName == "windows" {
             sdkSearchPaths = []
+        }
+    }
+
+    public func additionalPlatformExecutableSearchPaths(platformName: String, platformPath: Path, fs: any FSProxy) async -> [Path] {
+        guard let dir = try? await findLatestInstallDirectory(fs: fs) else {
+            return []
+        }
+        if Architecture.hostStringValue == "aarch64" {
+            return [dir.join("bin/Hostarm64/arm64")]
+        } else {
+            return [dir.join("bin/Hostx64/x64")]
         }
     }
 }
