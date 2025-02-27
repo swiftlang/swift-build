@@ -30,7 +30,7 @@ public protocol PlatformInfoExtension: Sendable {
 
     func additionalKnownTestLibraryPathSuffixes() -> [Path]
 
-    func additionalPlatformExecutableSearchPaths(platformName: String, platformPath: Path) -> [Path]
+    func additionalPlatformExecutableSearchPaths(platformName: String, platformPath: Path, fs: any FSProxy) async -> [Path]
 
     func additionalToolchainExecutableSearchPaths(toolchainIdentifier: String, toolchainPath: Path) -> [Path]
 
@@ -56,7 +56,7 @@ extension PlatformInfoExtension {
         []
     }
 
-    public func additionalPlatformExecutableSearchPaths(platformName: String, platformPath: Path) -> [Path] {
+    public func additionalPlatformExecutableSearchPaths(platformName: String, platformPath: Path, fs: any FSProxy) async -> [Path] {
         []
     }
 

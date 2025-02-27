@@ -1309,15 +1309,14 @@ public final class LdLinkerSpec : GenericLinkerSpec, SpecIdentifierType, @unchec
         //
         // Note: On Linux you cannot invoke the llvm linker by the direct name for determining the version,
         // you need to use ld.<ALTERNATE_LINKER>
-        var linkerPath = Path("ld")
+        var linkerPath = producer.hostOperatingSystem == .windows ? Path("link") : Path("ld")
         if alternateLinker != "" && alternateLinker != "ld" {
             linkerPath = Path(producer.hostOperatingSystem.imageFormat.executableName(basename: "ld.\(alternateLinker)"))
         }
-        // Create the cache key.  This is just the path to the linker we would invoke if we were invoking the linker directly.
-        guard let toolPath = producer.executableSearchPaths.lookup(linkerPath) else {
+        guard let toolPath = producer.executableSearchPaths.findExecutable(operatingSystem: producer.hostOperatingSystem, basename: linkerPath.str) else {
             return nil
         }
-
+        // Create the cache key.  This is just the path to the linker we would invoke if we were invoking the linker directly.
         return await discoveredLinkerToolsInfo(producer, delegate, at: toolPath)
     }
 }
@@ -1638,8 +1637,17 @@ public func discoveredLinkerToolsInfo(_ producer: any CommandProducer, _ delegat
                     #/GNU gold \(GNU Binutils.*\) (?<version>[\d.]+)/#, // Ubuntu "GNU gold (GNU Binutils for Ubuntu 2.38) 1.16", Debian "GNU gold (GNU Binutils for Debian 2.40) 1.16"
                     #/GNU gold \(version .*\) (?<version>[\d.]+)/#,     // Fedora "GNU gold (version 2.40-14.fc39) 1.16", RHEL "GNU gold (version 2.35.2-54.el9) 1.16", Amazon "GNU gold (version 2.29.1-31.amzn2.0.1) 1.14"
                 ]
+
                 if let match = try goLD.compactMap({ try $0.firstMatch(in: String(decoding: executionResult.stdout, as: UTF8.self)) }).first {
                     return DiscoveredLdLinkerToolSpecInfo(linker: .gold, toolPath: toolPath, toolVersion: try Version(String(match.output.version)), architectures: Set())
+                }
+
+                // link.exe has no option to simply dump the version, running, the program will no arguments or an invalid one will dump a header that contains the version.
+                let linkExe = [
+                    #/Microsoft \(R\) Incremental Linker Version (?<version>[\d.]+)/#
+                ]
+                if let match = try linkExe.compactMap({ try $0.firstMatch(in: String(decoding: executionResult.stdout, as: UTF8.self)) }).first {
+                    return DiscoveredLdLinkerToolSpecInfo(linker: .linkExe, toolPath: toolPath, toolVersion: try Version(String(match.output.version)), architectures: Set())
                 }
 
                 struct LDVersionDetails: Decodable {
