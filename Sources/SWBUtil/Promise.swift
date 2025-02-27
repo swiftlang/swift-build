@@ -30,7 +30,7 @@ public final class Promise<Success: Sendable, Failure: Swift.Error>: Sendable {
         }
     }
 
-    /// Fullfills the promise with the specified result.
+    /// Fulfills the promise with the specified result.
     ///
     /// - returns: Whether the promise was already fulfilled.
     @discardableResult
@@ -53,7 +53,7 @@ public final class Promise<Success: Sendable, Failure: Swift.Error>: Sendable {
         return alreadyFulfilled
     }
 
-    /// Fullfills the promise with the specified value.
+    /// Fulfills the promise with the specified value.
     ///
     /// - returns: Whether the promise was already fulfilled.
     @discardableResult
@@ -61,7 +61,7 @@ public final class Promise<Success: Sendable, Failure: Swift.Error>: Sendable {
         fulfill(with: .success(value))
     }
 
-    /// Fullfills the promise with the specified error.
+    /// Fulfills the promise with the specified error.
     ///
     /// - returns: Whether the promise was already fulfilled.
     @discardableResult
@@ -71,7 +71,7 @@ public final class Promise<Success: Sendable, Failure: Swift.Error>: Sendable {
 }
 
 extension Promise where Success == Void {
-    /// Fullfills the promise.
+    /// Fulfills the promise.
     ///
     /// - returns: Whether the promise was already fulfilled.
     @discardableResult
