@@ -1001,6 +1001,7 @@ public final class BuiltinMacros {
     public static let SWIFT_USE_INTEGRATED_DRIVER = BuiltinMacros.declareBooleanMacro("SWIFT_USE_INTEGRATED_DRIVER")
     public static let SWIFT_EAGER_MODULE_EMISSION_IN_WMO = BuiltinMacros.declareBooleanMacro("SWIFT_EAGER_MODULE_EMISSION_IN_WMO")
     public static let SWIFT_ENABLE_EXPLICIT_MODULES = BuiltinMacros.declareEnumMacro("SWIFT_ENABLE_EXPLICIT_MODULES") as EnumMacroDeclaration<SwiftEnableExplicitModulesSetting>
+    public static let _SWIFT_EXPLICIT_MODULES_ALLOW_CXX_INTEROP = BuiltinMacros.declareBooleanMacro("_SWIFT_EXPLICIT_MODULES_ALLOW_CXX_INTEROP")
     public static let _EXPERIMENTAL_SWIFT_EXPLICIT_MODULES = BuiltinMacros.declareEnumMacro("_EXPERIMENTAL_SWIFT_EXPLICIT_MODULES") as EnumMacroDeclaration<SwiftEnableExplicitModulesSetting>
     public static let SWIFT_ENABLE_TESTABILITY = BuiltinMacros.declareBooleanMacro("SWIFT_ENABLE_TESTABILITY")
     public static let SWIFT_EXEC = BuiltinMacros.declarePathMacro("SWIFT_EXEC")
@@ -2150,6 +2151,7 @@ public final class BuiltinMacros {
         SWIFT_USE_INTEGRATED_DRIVER,
         SWIFT_EAGER_MODULE_EMISSION_IN_WMO,
         SWIFT_ENABLE_EXPLICIT_MODULES,
+        _SWIFT_EXPLICIT_MODULES_ALLOW_CXX_INTEROP,
         _EXPERIMENTAL_SWIFT_EXPLICIT_MODULES,
         SWIFT_ENABLE_BARE_SLASH_REGEX,
         SWIFT_ENABLE_EMIT_CONST_VALUES,
