@@ -63,6 +63,10 @@ import SWBUtil
                 }
 
                 var pluginManager: PluginManager
+
+                var platformRegistry: PlatformRegistry? {
+                    nil
+                }
             }
 
             let core = try await Self.makeCore(skipLoadingPluginsNamed: ["com.apple.dt.SWBAndroidPlatformPlugin"])
