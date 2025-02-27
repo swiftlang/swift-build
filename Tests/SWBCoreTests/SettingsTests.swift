@@ -1331,6 +1331,44 @@ import SWBMacro
         }
     }
 
+    /// Validate that setting `VALID_ARCHS` to `arm64` doesn't remove `arm64e` from `ARCHS` because `arm64` is marked as a compatibility architecture of `arm64e`. This only occurs if `__POPULATE_COMPATIBILITY_ARCH_MAP` is on.
+    @Test(.requireSDKs(.iOS))
+    func compatArchs() async throws {
+        let core = try await getCore()
+
+        let testWorkspace = try TestWorkspace(
+            "Workspace",
+            projects: [
+                TestProject(
+                    "aProject",
+                    groupTree: TestGroup(
+                        "SomeFiles",
+                        children: []),
+                    buildConfigurations: [
+                        TestBuildConfiguration(
+                            "Config1", buildSettings: [
+                                "ARCHS": "arm64 arm64e",
+                                "SDKROOT": "iphoneos",
+                                "VALID_ARCHS": "arm64",
+                                "__POPULATE_COMPATIBILITY_ARCH_MAP": "YES",
+                            ])
+                    ],
+                    targets: [TestStandardTarget("Target")]
+                )
+            ]
+        ).load(core)
+
+        let context = try await contextForTestData(testWorkspace, core: core)
+        let buildRequestContext = BuildRequestContext(workspaceContext: context)
+        let testProject = context.workspace.projects[0]
+
+        let parameters = BuildParameters(action: .build, configuration: "Debug")
+        let settings = Settings(workspaceContext: context, buildRequestContext: buildRequestContext, parameters: parameters, project: testProject, target: testProject.targets[0])
+
+        // If arm64e didn't have arm64 in its CompatibilityArchitectures list in the xcspecs, this would only return arm64 due to the VALID_ARCHS build setting in the test project above.
+        #expect(settings.globalScope.evaluate(BuiltinMacros.ARCHS).sorted() == ["arm64", "arm64e"])
+    }
+
     func testArchPointerAuthentication(platform: String) async throws {
         func test(buildSettings: [String: String], expectedARCHS_STANDARD: [String], expectedErrors: [String] = [], sourceLocation: SourceLocation = #_sourceLocation) async throws {
             let workspace = try await TestWorkspace("Workspace",
