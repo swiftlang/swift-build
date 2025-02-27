@@ -320,7 +320,7 @@
                 // that the ObjC runtime must be linked in (with possible
                 // backwards compatibility libraries linked in).
                 AdditionalLinkerArgs = {
-                    YES = ( "-fobjc-link-runtime" );
+                    YES = ( "$(LD_OBJC_RUNTIME_ARGS)" );
                     NO = ();
                 };
                 FileTypes = (

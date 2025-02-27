@@ -822,6 +822,7 @@ public final class BuiltinMacros {
     public static let LIBTOOL_DEPENDENCY_INFO_FILE = BuiltinMacros.declarePathMacro("LIBTOOL_DEPENDENCY_INFO_FILE")
     public static let LIBTOOL_USE_RESPONSE_FILE = BuiltinMacros.declareBooleanMacro("LIBTOOL_USE_RESPONSE_FILE")
     public static let LINKER = BuiltinMacros.declareStringMacro("LINKER")
+    public static let LINKER_DRIVER = BuiltinMacros.declareEnumMacro("LINKER_DRIVER") as EnumMacroDeclaration<LinkerDriverChoice>
     public static let ALTERNATE_LINKER = BuiltinMacros.declareStringMacro("ALTERNATE_LINKER")
     public static let LINK_OBJC_RUNTIME = BuiltinMacros.declareBooleanMacro("LINK_OBJC_RUNTIME")
     public static let LINK_WITH_STANDARD_LIBRARIES = BuiltinMacros.declareBooleanMacro("LINK_WITH_STANDARD_LIBRARIES")
@@ -1371,6 +1372,7 @@ public final class BuiltinMacros {
         ALL_OTHER_LDFLAGS,
         ALL_SETTINGS,
         ALTERNATE_GROUP,
+        LINKER_DRIVER,
         ALTERNATE_LINKER,
         ALTERNATE_MODE,
         ALTERNATE_OWNER,
@@ -2660,6 +2662,13 @@ public enum ModuleVerifierKind: String, Equatable, Hashable, EnumerationMacroTyp
     case builtin
     case external
     case both
+}
+
+public enum LinkerDriverChoice: String, Equatable, Hashable, EnumerationMacroType {
+    public static let defaultValue: LinkerDriverChoice = .clang
+
+    case clang
+    case swiftc
 }
 
 /// Enumeration macro type for the value of the `INFOPLIST_KEY_LSApplicationCategoryType` build setting.
