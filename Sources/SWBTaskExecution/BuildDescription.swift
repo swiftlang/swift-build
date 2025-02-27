@@ -188,7 +188,7 @@ package final class BuildDescription: Serializable, Sendable, Encodable, Cacheab
     package let targetsBuildInParallel: Bool
 
     /// `true` if builds using this description should emit frontend command lines. This setting is important for debugging workflows, so we want the ability to enable it conveniently via build setting.
-    /// However, it should be consistent across all tasks in a build to avoid introducing unnecesary variants of dynamic compile tasks. To address this, we store it as a bit on the build description.
+    /// However, it should be consistent across all tasks in a build to avoid introducing unnecessary variants of dynamic compile tasks. To address this, we store it as a bit on the build description.
     package let emitFrontendCommandLines: Bool
 
     /// Load a build description from the given path.
