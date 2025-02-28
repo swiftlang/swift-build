@@ -105,7 +105,7 @@ let package = Package(
                 "SWBBuildSystem",
                 "SWBServiceCore",
                 "SWBTaskExecution",
-                .product(name: "SystemPackage", package: "swift-system", condition: .when(platforms: [.linux, .android, .windows])),
+                .product(name: "SystemPackage", package: "swift-system", condition: .when(platforms: [.linux, .openbsd, .android, .windows, .custom("freebsd")])),
             ],
             exclude: ["CMakeLists.txt"],
             swiftSettings: swiftSettings(languageMode: .v5)),
@@ -197,8 +197,8 @@ let package = Package(
                 "SWBCSupport",
                 "SWBLibc",
                 .product(name: "ArgumentParser", package: "swift-argument-parser"),
-                .product(name: "Crypto", package: "swift-crypto", condition: .when(platforms: [.linux, .android])),
-                .product(name: "SystemPackage", package: "swift-system", condition: .when(platforms: [.linux, .android, .windows])),
+                .product(name: "Crypto", package: "swift-crypto", condition: .when(platforms: [.linux, .openbsd, .android, .custom("freebsd")])),
+                .product(name: "SystemPackage", package: "swift-system", condition: .when(platforms: [.linux, .openbsd, .android, .windows, .custom("freebsd")])),
             ],
             exclude: ["CMakeLists.txt"],
             swiftSettings: swiftSettings(languageMode: .v5)),
@@ -445,7 +445,7 @@ if useLocalDependencies {
     package.dependencies += [
         .package(url: "https://github.com/apple/swift-crypto.git", "2.0.0"..<"4.0.0"),
         .package(url: "https://github.com/swiftlang/swift-driver.git", branch: "main"),
-        .package(url: "https://github.com/apple/swift-system.git", .upToNextMajor(from: "1.4.1")),
+        .package(url: "https://github.com/apple/swift-system.git", .upToNextMajor(from: "1.4.2")),
         .package(url: "https://github.com/apple/swift-argument-parser.git", from: "1.0.3"),
     ]
     if !useLLBuildFramework {
