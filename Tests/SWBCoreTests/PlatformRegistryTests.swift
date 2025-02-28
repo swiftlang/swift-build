@@ -66,7 +66,7 @@ import SWBMacro
             }
 
             let delegate = await TestDataDelegate(pluginManager: PluginManager(skipLoadingPluginIdentifiers: []))
-            let registry = PlatformRegistry(delegate: delegate, searchPaths: [tmpDirPath], hostOperatingSystem: try ProcessInfo.processInfo.hostOperatingSystem(), fs: localFS)
+            let registry = await PlatformRegistry(delegate: delegate, searchPaths: [tmpDirPath], hostOperatingSystem: try ProcessInfo.processInfo.hostOperatingSystem(), fs: localFS)
             try await perform(registry, delegate)
         }
     }
