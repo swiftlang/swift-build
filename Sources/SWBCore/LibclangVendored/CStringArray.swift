@@ -12,6 +12,12 @@
 
 import Foundation
 
+#if os(Windows)
+private func strdup(_ s: UnsafePointer<CChar>) -> UnsafeMutablePointer<CChar> {
+    return _strdup(s)
+}
+#endif
+
 /// `CStringArray` represents a C null-terminated array of pointers to C strings.
 ///
 /// The lifetime of the C strings will correspond to the lifetime of the `CStringArray`

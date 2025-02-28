@@ -34,7 +34,7 @@ struct Main {
                         }
                         var inputData = try Data(contentsOf: URL(fileURLWithPath: inputFile))
                         unifdef(&inputData)
-                        try PropertyListSerialization.propertyList(from: inputData, options: [], format: nil)
+                        _ = try PropertyListSerialization.propertyList(from: inputData, options: [], format: nil)
                         inputData.removeAll(where: { $0 == Character("\r").asciiValue }) // normalize newlines for Windows
                         try inputData.write(to: URL(fileURLWithPath: outputFile), options: .atomic)
                     }

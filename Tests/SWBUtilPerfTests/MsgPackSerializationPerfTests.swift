@@ -42,9 +42,8 @@ fileprivate struct MsgPackSerializationPerfTests: PerfTests {
         let iterations = 100000
 
         await measure {
-            for _ in 1...iterations
-            {
-                #expect(self.serializeScalarData() != nil)
+            for _ in 1...iterations {
+                _ = self.serializeScalarData()
             }
         }
     }
@@ -91,7 +90,7 @@ fileprivate struct MsgPackSerializationPerfTests: PerfTests {
 
         await measure {
             for _ in 1...iterations {
-                #expect(self.serializeStringData() != nil)
+                _ = self.serializeStringData()
             }
         }
     }
@@ -131,9 +130,8 @@ fileprivate struct MsgPackSerializationPerfTests: PerfTests {
         let iterations = 100000
 
         await measure {
-            for _ in 1...iterations
-            {
-                #expect(self.serializeArrayData() != nil)
+            for _ in 1...iterations {
+                _ = self.serializeArrayData()
             }
         }
     }
@@ -171,7 +169,7 @@ fileprivate struct MsgPackSerializationPerfTests: PerfTests {
 
         await measure {
             for _ in 1...iterations {
-                #expect(self.serializeDictionaryData() != nil)
+                _ = self.serializeDictionaryData()
             }
         }
     }
@@ -218,9 +216,8 @@ fileprivate struct MsgPackSerializationPerfTests: PerfTests {
 
         await measure
         {
-            for _ in 1...iterations
-            {
-                #expect(self.serializeCustomElementData(elements) != nil)
+            for _ in 1...iterations {
+                _ = self.serializeCustomElementData(elements)
             }
         }
     }
