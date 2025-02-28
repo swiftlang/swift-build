@@ -612,7 +612,15 @@ public class ClangCompilerSpec : CompilerSpec, SpecIdentifierType, GCCCompatible
         var commandLine = Array<String>()
 
         // Add the arguments from the specification.
-        commandLine += self.commandLineFromOptions(producer, scope: scope, inputFileType: inputFileType, optionContext: optionContext).map(\.asString)
+        commandLine += self.commandLineFromOptions(producer, scope: scope, inputFileType: inputFileType, optionContext: optionContext,lookup: { declaration in
+            if declaration.name == "CLANG_INDEX_STORE_ENABLE" && optionContext is DiscoveredClangToolSpecInfo {
+                let clangToolInfo = optionContext as! DiscoveredClangToolSpecInfo
+                if !clangToolInfo.isAppleClang {
+                    return BuiltinMacros.namespace.parseString("NO")
+                }
+            }
+            return nil
+        }).map(\.asString)
 
         // Add the common header search paths.
         let headerSearchPaths = GCCCompatibleCompilerSpecSupport.headerSearchPathArguments(producer, scope, usesModules: scope.evaluate(BuiltinMacros.CLANG_ENABLE_MODULES))
