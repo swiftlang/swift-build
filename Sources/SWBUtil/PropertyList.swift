@@ -658,7 +658,12 @@ private func convertToPropertyListItem(_ item: Any) -> PropertyListItem {
         // Expected these to fall into the NSNumber/CFNumber case (except on non-Darwin), but leaving this here in case that implicit conversion changes unexpectedly.
         return .plDouble(asDouble)
 
-    case let asString as String:
+    case var asString as String:
+        // It is likely that property list decoding has produced a string that
+        // is not contiguous UTF-8. While this doesn't break anything, it is a
+        // performance footgun for most clients. Eagerly convert it to a native
+        // representation to ensure they hit the String fast paths.
+        asString.makeContiguousUTF8()
         return .plString(asString)
 
     case let asData as Data:

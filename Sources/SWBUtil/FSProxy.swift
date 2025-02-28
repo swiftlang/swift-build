@@ -731,14 +731,28 @@ class LocalFS: FSProxy, @unchecked Sendable {
     }
 
     @discardableResult func traverse<T>(_ path: Path, _ f: (Path) throws -> T?) throws -> [T] {
-        guard let enumerator = fileManager.enumerator(atPath: path.str) else {
+        var error: (any Error)?
+        let errorHandler: (URL, any Error) -> Bool = { _, e in
+            error = e
+            return false
+        }
+
+        guard let enumerator = fileManager.enumerator(at: URL(fileURLWithPath: try realpath(path).str), includingPropertiesForKeys: nil, errorHandler: errorHandler) else {
             throw StubError.error("Cannot traverse \(path.str)")
         }
 
-        // FIXME: This enumerator has unclear error handling. Does nextObject() return nil on error? That's wrong.
-        return try enumerator.compactMap { next in
-            let nextPath = path.join(next as? String)
-            return try f(nextPath)
+        let results = try enumerator.compactMap { next in
+            var path = (next as! URL).path
+            // Ensure we don't inadvertently create a Path backed by a string
+            // that it can't operate efficiently on.
+            path.makeContiguousUTF8()
+            return try f(Path(path))
+        }
+
+        if let error {
+            throw error
+        } else {
+            return results
         }
     }
 
