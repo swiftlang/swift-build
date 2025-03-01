@@ -1757,7 +1757,7 @@ When `GENERATE_INFOPLIST_FILE` is enabled, sets the value of the [CFBundleIdenti
 * When set to Automatic, this target's immediate dependencies which build dynamic libraries or frameworks and are in its Link Binaries With Libraries will automatically be built as mergeable libraries and merged into this target's binary during release builds, or reexported during debug builds.
 * When set to Manual, only immediate dependencies which have Build Mergeable Library explicitly enabled will be merged or reexported.
 
-For more information on mergable libraries, see [Configuring your project to use mergeable libraries](https://developer.apple.com/documentation/xcode/configuring-your-project-to-use-mergeable-libraries).";
+For more information on mergeable libraries, see [Configuring your project to use mergeable libraries](https://developer.apple.com/documentation/xcode/configuring-your-project-to-use-mergeable-libraries).";
             },
             {
                 Name = "AUTOMATICALLY_MERGE_DEPENDENCIES";
@@ -1777,7 +1777,7 @@ For more information on mergable libraries, see [Configuring your project to use
                 DisplayName = "Build Mergeable Library";
                 Description = "For dynamic libraries and frameworks, links this target's binary as a mergeable library which can be merged into the product of a target which depends on it if that target is configured to do so. This target will be linked as a mergeable library in release builds so it can be merged, but will instead be linked as a normal dynamic library to be reexported in debug builds. For other binary types, this setting has no effect.
 
-For more information on mergable libraries, see [Configuring your project to use mergeable libraries](https://developer.apple.com/documentation/xcode/configuring-your-project-to-use-mergeable-libraries).";
+For more information on mergeable libraries, see [Configuring your project to use mergeable libraries](https://developer.apple.com/documentation/xcode/configuring-your-project-to-use-mergeable-libraries).";
             },
             {
                 Name = "MAKE_MERGEABLE";
@@ -1925,7 +1925,7 @@ For more information on mergable libraries, see [Configuring your project to use
         );
         DefaultValue = "compiler-default";
         DisplayName = "Text-Based InstallAPI Language Dialect";
-        Description = "Selects the langauge dialect when building `Text-Based InstallAPI`.";
+        Description = "Selects the language dialect when building `Text-Based InstallAPI`.";
         ConditionFlavors = (
           arch,
           sdk,
@@ -3000,6 +3000,11 @@ For more information on mergable libraries, see [Configuring your project to use
                 DefaultValue = "$(TEMP_ROOT)/UninstalledProducts";
             },
             {
+                Name = "PER_ARCH_MODULE_FILE_DIR";
+                Type = Path;
+                DefaultValue = "$(PER_ARCH_OBJECT_FILE_DIR)/Modules";
+            },
+            {
                 Name = "ENABLE_HEADER_DEPENDENCIES";
                 Type = Boolean;
                 DefaultValue = YES;
@@ -3499,7 +3504,7 @@ When this setting is enabled:
 
 * `GCC_SYMBOLS_PRIVATE_EXTERN` is disabled (`-fvisibility=hidden` will not be passed to `clang`).
 * `-enable-testing` is passed to the Swift compiler.
-* `-export_dynamic` is passed to the linker.
+* `-rdynamic` is passed to the linker.
 * `STRIP_INSTALLED_PRODUCT` is disabled (`strip` will not be run on the produced binary).";
             },
 
@@ -3652,6 +3657,26 @@ When this setting is enabled:
                 );
                 DisplayName = "Bundle Display Name";
                 Description = "When `GENERATE_INFOPLIST_FILE` is enabled, sets the value of the [CFBundleDisplayName](https://developer.apple.com/documentation/bundleresources/information_property_list/cfbundledisplayname) key in the `Info.plist` file to the value of this build setting.";
+            },
+            {
+                Name = INFOPLIST_KEY_ITSAppUsesNonExemptEncryption;
+                Type = Boolean;
+                Category = "Info.plist Values";
+                ConditionFlavors = (
+                    sdk,
+                );
+                DisplayName = "App Uses Non-Exempt Encryption";
+                Description = "When `GENERATE_INFOPLIST_FILE` is enabled, sets the value of the [ITSAppUsesNonExemptEncryption](https://developer.apple.com/documentation/bundleresources/information_property_list/itsappusesnonexemptencryption) key in the `Info.plist` file to the value of this build setting.";
+            },
+            {
+                Name = INFOPLIST_KEY_ITSEncryptionExportComplianceCode;
+                Type = String;
+                Category = "Info.plist Values";
+                ConditionFlavors = (
+                    sdk,
+                );
+                DisplayName = "App Encryption Export Compliance Code";
+                Description = "When `GENERATE_INFOPLIST_FILE` is enabled, sets the value of the [ITSEncryptionExportComplianceCode](https://developer.apple.com/documentation/bundleresources/information_property_list/itsencryptionexportcompliancecode) key in the `Info.plist` file to the value of this build setting.";
             },
             {
                 Name = INFOPLIST_KEY_LSApplicationCategoryType;
@@ -4456,6 +4481,13 @@ When this setting is enabled:
                 );
                 DisplayName = "Sticker Sharing Level";
                 Description = "When `GENERATE_INFOPLIST_FILE` is enabled, sets the value of the NSStickerSharingLevel key in the `Info.plist` file to the value of this build setting.";
+            },
+
+            // Support for producing SDK imports metadata
+            {
+                Name = "ENABLE_SDK_IMPORTS";
+                Type = Boolean;
+                DefaultValue = "NO";
             },
         );
     },

@@ -72,6 +72,12 @@ extension ResolvedTargetDependency {
 
 /// A completely resolved graph of configured targets for use in a build.
 public struct TargetBuildGraph: TargetGraph, Sendable {
+    /// The reason for constructing a build graph. Relevant for whether to stop early or continue.
+    public enum Purpose: Sendable {
+        case build
+        case dependencyGraph
+    }
+
     /// The workspace context this graph is for.
     public let workspaceContext: WorkspaceContext
 
@@ -102,12 +108,12 @@ public struct TargetBuildGraph: TargetGraph, Sendable {
     ///
     ///
     /// The result closure guarantees that all targets a target depends on appear in the returned array before that target.  Any detected dependency cycles will be broken.
-    public init(workspaceContext: WorkspaceContext, buildRequest: BuildRequest, buildRequestContext: BuildRequestContext, delegate: any TargetDependencyResolverDelegate) async {
-        let resolver = TargetDependencyResolver(workspaceContext: workspaceContext, buildRequest: buildRequest, buildRequestContext: buildRequestContext, delegate: delegate)
+    public init(workspaceContext: WorkspaceContext, buildRequest: BuildRequest, buildRequestContext: BuildRequestContext, delegate: any TargetDependencyResolverDelegate, purpose: Purpose = .build) async {
         let (allTargets, targetDependencies, targetsToLinkedReferencesToProducingTargets, dynamicallyBuildingTargets) =
         await MacroNamespace.withExpressionInterningEnabled {
             await buildRequestContext.keepAliveSettingsCache {
-                await resolver.computeGraph()
+                let resolver = TargetDependencyResolver(workspaceContext: workspaceContext, buildRequest: buildRequest, buildRequestContext: buildRequestContext, delegate: delegate, purpose: purpose)
+                return await resolver.computeGraph()
             }
         }
         self.init(workspaceContext: workspaceContext, buildRequest: buildRequest, buildRequestContext: buildRequestContext, allTargets: allTargets, targetDependencies: targetDependencies, targetsToLinkedReferencesToProducingTargets: targetsToLinkedReferencesToProducingTargets, dynamicallyBuildingTargets: dynamicallyBuildingTargets)
@@ -166,7 +172,7 @@ public struct TargetBuildGraph: TargetGraph, Sendable {
         } else {
             let behavior: Diagnostic.Behavior
             let suffix: String
-            let isError = allTargets.contains(where: { buildRequestContext.getCachedSettings($0.parameters, target: $0.target).globalScope.evaluate(BuiltinMacros._OBSELETE_MANUAL_BUILD_ORDER) })
+            let isError = allTargets.contains(where: { buildRequestContext.getCachedSettings($0.parameters, target: $0.target).globalScope.evaluate(BuiltinMacros._OBSOLETE_MANUAL_BUILD_ORDER) })
             if isError {
                 behavior = .error
                 suffix = "prohibited"
@@ -291,7 +297,9 @@ fileprivate extension TargetDependencyResolver {
 
     @_spi(Testing) public let resolver: DependencyResolver
 
-    public init(workspaceContext: WorkspaceContext, buildRequest: BuildRequest, buildRequestContext: BuildRequestContext, delegate: any TargetDependencyResolverDelegate) {
+    private let purpose: TargetBuildGraph.Purpose
+
+    public init(workspaceContext: WorkspaceContext, buildRequest: BuildRequest, buildRequestContext: BuildRequestContext, delegate: any TargetDependencyResolverDelegate, purpose: TargetBuildGraph.Purpose = .build) {
         // Go through all targets in the workspace and build the indexes we need to look up implicit dependencies.
         // At this point the only parameters we have are the ones from the build request, so if the values we put in the indices could differ for other parameters (e.g., for different platforms) then we won't account for that here.  However, I believe Xcode will have the same problem.
         if buildRequest.useImplicitDependencies {
@@ -301,18 +309,17 @@ fileprivate extension TargetDependencyResolver {
         }
 
         self.resolver = DependencyResolver(workspaceContext: workspaceContext, buildRequest: buildRequest, buildRequestContext: buildRequestContext, delegate: delegate)
+        self.purpose = purpose
     }
 
     /// Computes the dependency closure of configured targets for the resolver's build request.
     ///
     /// The result closure guarantees that all targets a target depends on appear in the returned array before that target.  Any detected dependency cycles will be broken.
     fileprivate func computeGraph() async -> (allTargets: OrderedSet<ConfiguredTarget>, targetDependencies: [ConfiguredTarget: [ResolvedTargetDependency]], targetsToLinkedReferencesToProducingTargets: [ConfiguredTarget: [BuildFile.BuildableItem: ResolvedTargetDependency]], dynamicallyBuildingTargets: Set<Target>) {
-        // For generating assembly or preprocessor output, we limit the build to a single target.
+        // For generating assembly or preprocessor output, we limit the build to the requested targets.
         switch buildRequest.buildCommand {
         case .generateAssemblyCode, .generatePreprocessedFile:
-            precondition(buildRequest.buildTargets.count == 1, "`\(buildRequest.buildCommand)` only supports exactly one target")
-            let info = buildRequest.buildTargets.first!
-            return await (OrderedSet<ConfiguredTarget>([resolver.lookupConfiguredTarget(info.target, parameters: info.parameters, imposedParameters: resolver.defaultImposedParameters)]), [:], [:], [])
+            return await (OrderedSet<ConfiguredTarget>(buildRequest.buildTargets.asyncMap { info in await resolver.lookupConfiguredTarget(info.target, parameters: info.parameters, imposedParameters: resolver.defaultImposedParameters) }), [:], [:], [])
         default:
             break
         }
@@ -325,6 +332,7 @@ fileprivate extension TargetDependencyResolver {
         }
         if !topLevelTargetsToDiscover.isEmpty {
             await resolver.concurrentPerform(iterations: topLevelTargetsToDiscover.count, maximumParallelism: 100) { [self] i in
+                if Task.isCancelled { return }
                 let configuredTarget = topLevelTargetsToDiscover[i]
                 let imposedParameters = resolver.specializationParameters(configuredTarget, workspaceContext: workspaceContext, buildRequest: buildRequest, buildRequestContext: buildRequestContext)
                 await discoverInfo(for: configuredTarget, imposedParameters: imposedParameters)
@@ -342,7 +350,8 @@ fileprivate extension TargetDependencyResolver {
         }
 
         for target in allTargets {
-            if !target.target.approvedByUser {
+            // we don't want to stop too early (when we are computing the dependency graph) because this prevents us from getting better diagnostics later on, when it matters.
+            if !target.target.approvedByUser, purpose != .dependencyGraph {
                 // FIXME: This should be a target-level diagnostic once rdar://108290784 (Target-level diagnostics are possibly not working for failures during planning) has been fixed.
                 // Downgrade this to a warning when indexing to support functionality that doesn't require expanding macros. Execution-time checks will ensure the macro is not built until approved by the user.
                 let behavior = buildRequest.enableIndexBuildArena ? Diagnostic.Behavior.warning : .error
@@ -356,6 +365,7 @@ fileprivate extension TargetDependencyResolver {
         var configuredTargetsToReplace = [ConfiguredTarget: ConfiguredTarget]()
         // First build up a new dependency closure in allTargets.  Since this is a set, this will deduplicate any ConfiguredTargets which end up identical after the global overrides are applied..
         for configuredTarget in allTargets {
+            if Task.isCancelled { break }
             if let allSuperimposedSpecializations = await resolver.superimposedSpecializations[configuredTarget.target] {
                 var overridesToApply = [String: String]()
                 let settings = buildRequestContext.getCachedSettings(configuredTarget.parameters, target: configuredTarget.target)
@@ -416,6 +426,7 @@ fileprivate extension TargetDependencyResolver {
 
         // FIXME: This is a bit gross, but we have to reduce the number of specializations in case there are both internal and public specializations for the same platform, because they would both be building in the same arena. Unfortunately, we cannot do this while creating specializations because that step is running in parallel. In the future, we will likely have to generalize this a bit more for other cases where we need to narrow down the number of specializations based on some criteria.
         for (_, configuredTargets) in await resolver.configuredTargetsByTarget {
+            if Task.isCancelled { break }
             if configuredTargets.count == 1 { continue }
 
             // Order all configured targets per platform.
@@ -483,6 +494,7 @@ fileprivate extension TargetDependencyResolver {
         // For other items, we need to match them against the product of the target's explicit dependencies.  This is the nasty part which sort of replicates logic in the LinkageDependencyResolver, but we can't just piggy-back on that logic because not all targets have implicit dependencies enabled.
         var targetsToLinkedReferencesToProducingTargets = [ConfiguredTarget: [BuildFile.BuildableItem: ResolvedTargetDependency]]()
         for configuredTarget in allTargets {
+            if Task.isCancelled { break }
             guard let target = configuredTarget.target as? BuildPhaseTarget else {
                 continue
             }

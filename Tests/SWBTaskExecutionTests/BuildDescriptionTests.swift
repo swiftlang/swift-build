@@ -38,7 +38,7 @@ fileprivate struct BuildDescriptionTests: CoreBasedTests {
         signature = "aca37e3650838b65a98c26816eed1031"
         #endif
         return """
-            {"client":{"name":"basic","version":0,"file-system":"\(fileSystem)","perform-ownership-analysis":"\(SWBFeatureFlag.performOwnershipAnalysis ? "yes" : "no")"},"targets":{"":["<all>"]},"nodes":{"\(tmp)/filtered/":{"content-exclusion-patterns":["_CodeSignature","*.gitignore"]}},"commands":{"<all>":{"tool":"phony","inputs":[],"outputs":["<all>"]},"P0:::Foo":{"tool":"shell","description":"Foo","inputs":["\(tmp)/all/","\(tmp)/filtered/"],"outputs":[],"args":["true"],"env":{},"working-directory":"\(Path.pathSeparatorString.escapedForJSON)","deps":["\(deps.str.escapedForJSON)"],"deps-style":"makefile","signature":"\(signature)"}}}
+            {"client":{"name":"basic","version":0,"file-system":"\(fileSystem)","perform-ownership-analysis":"\(SWBFeatureFlag.performOwnershipAnalysis.value ? "yes" : "no")"},"targets":{"":["<all>"]},"nodes":{"\(tmp)/filtered/":{"content-exclusion-patterns":["_CodeSignature","*.gitignore"]}},"commands":{"<all>":{"tool":"phony","inputs":[],"outputs":["<all>"]},"P0:::Foo":{"tool":"shell","description":"Foo","inputs":["\(tmp)/all/","\(tmp)/filtered/"],"outputs":[],"args":["true"],"env":{},"working-directory":"\(Path.pathSeparatorString.escapedForJSON)","deps":["\(deps.str.escapedForJSON)"],"deps-style":"makefile","signature":"\(signature)"}}}
             """
     }
 
@@ -70,6 +70,7 @@ fileprivate struct BuildDescriptionTests: CoreBasedTests {
     @Test(.skipHostOS(.windows, "taking up to 30 minutes on Windows"))
     func determinism() async throws {
         try await withTemporaryDirectory { tmpDirPath in
+            let core = try await getCore()
             let testWorkspace = TestWorkspace(
                 "Test",
                 sourceRoot: tmpDirPath,
@@ -104,13 +105,15 @@ fileprivate struct BuildDescriptionTests: CoreBasedTests {
                                 dependencies: [TestTargetDependency("Foo")]),
                         ])
                 ])
-            let workspace1 = try await testWorkspace.load(getCore())
+            let workspace1 = try testWorkspace.load(core)
+
+            let taskActionRegistry = try await TaskActionRegistry(pluginManager: core.pluginManager)
 
             let fs1 = PseudoFS()
             let (description1, _) = try await buildDescription(for: workspace1, fs: fs1)
             let manifest1Contents = try fs1.read(description1.manifestPath).bytes
             let serialized1 = { () -> ByteString in
-                let serializer = MsgPackSerializer(delegate: BuildDescriptionSerializerDelegate())
+                let serializer = MsgPackSerializer(delegate: BuildDescriptionSerializerDelegate(taskActionRegistry: taskActionRegistry))
                 description1.serialize(to: serializer)
                 return serializer.byteString
             }()
@@ -130,7 +133,7 @@ fileprivate struct BuildDescriptionTests: CoreBasedTests {
 
                 // Check the contents of the serialized description.
                 let serialized2 = { () -> ByteString in
-                    let serializer = MsgPackSerializer(delegate: BuildDescriptionSerializerDelegate())
+                    let serializer = MsgPackSerializer(delegate: BuildDescriptionSerializerDelegate(taskActionRegistry: taskActionRegistry))
                     description2.serialize(to: serializer)
                     return serializer.byteString
                 }()
@@ -743,8 +746,9 @@ fileprivate struct BuildDescriptionTests: CoreBasedTests {
     @Test(.requireHostOS(.macOS))
     func serializable() async throws {
         try await withTemporaryDirectory { tmpDirPath -> Void in
-            let testWorkspace = try await TestWorkspace("SomeName", sourceRoot: tmpDirPath, projects: [.init("Project1", groupTree: TestGroup.init("Empty"), targets: [TestStandardTarget("Target1")])]).load(getCore())
-            let workspaceContext = try await WorkspaceContext(core: getCore(), workspace: testWorkspace, processExecutionCache: .sharedForTesting)
+            let core = try await getCore()
+            let testWorkspace = try TestWorkspace("SomeName", sourceRoot: tmpDirPath, projects: [.init("Project1", groupTree: TestGroup.init("Empty"), targets: [TestStandardTarget("Target1")])]).load(core)
+            let workspaceContext = WorkspaceContext(core: core, workspace: testWorkspace, processExecutionCache: .sharedForTesting)
 
             let diagnostics: [ConfiguredTarget?: [Diagnostic]] = [
                 nil: [
@@ -756,7 +760,8 @@ fileprivate struct BuildDescriptionTests: CoreBasedTests {
                 return
             }
 
-            let delegate = BuildDescriptionSerializerDelegate()
+            let taskActionRegistry = try await TaskActionRegistry(pluginManager: core.pluginManager)
+            let delegate = BuildDescriptionSerializerDelegate(taskActionRegistry: taskActionRegistry)
             let taskStoreSerializer = MsgPackSerializer(delegate: delegate)
             taskStoreSerializer.serialize(description.taskStore)
             let serializer = MsgPackSerializer(delegate: delegate)
@@ -764,9 +769,9 @@ fileprivate struct BuildDescriptionTests: CoreBasedTests {
             let serializedTaskStore = taskStoreSerializer.byteString
             let serializedBuildDescription = serializer.byteString
 
-            let deserializerDelegate = BuildDescriptionDeserializerDelegate(workspace: workspaceContext.workspace, platformRegistry: workspaceContext.core.platformRegistry, sdkRegistry: workspaceContext.core.sdkRegistry, specRegistry: workspaceContext.core.specRegistry)
+            let deserializerDelegate = BuildDescriptionDeserializerDelegate(workspace: workspaceContext.workspace, platformRegistry: workspaceContext.core.platformRegistry, sdkRegistry: workspaceContext.core.sdkRegistry, specRegistry: workspaceContext.core.specRegistry, taskActionRegistry: taskActionRegistry)
             let taskStoreDeserializer = MsgPackDeserializer(serializedTaskStore, delegate: deserializerDelegate)
-            let taskStore: TaskStore = try! taskStoreDeserializer.deserialize()
+            let taskStore: FrozenTaskStore = try taskStoreDeserializer.deserialize()
             deserializerDelegate.taskStore = taskStore
             let deserializer = MsgPackDeserializer(serializedBuildDescription, delegate: deserializerDelegate)
             let deserializedDescription: BuildDescription = try deserializer.deserialize()
@@ -781,7 +786,7 @@ fileprivate struct BuildDescriptionTests: CoreBasedTests {
                 }
                 do {
                     // Eliminate the dumping of the cache for the `isBuildDirectoryCache` object, which is not relevant for the comparison.
-                    let regex = RegEx(patternLiteral: "▿ isBuildDirectoryCache:.*$\n\\ +- super:.*$\n\\ +- cache:.*$", options: .anchorsMatchLines)
+                    let regex = RegEx(patternLiteral: "▿ isBuildDirectoryCache:.*$\n\\ +- super:.*$\n +▿ cache:.*$\n\\ +- value:.*$\n\\ +- super:.*$", options: .anchorsMatchLines)
                     _ = regex.replace(in: &s, with: "")
                 }
                 return s

@@ -20,7 +20,7 @@ public final class ScopedKeepAliveCache<Key: Hashable & Sendable, Value: Sendabl
     private typealias Store = Registry<Key, Value>
 
     private struct State {
-        /// Tracks the number of active invoations of `keepAlive`
+        /// Tracks the number of active invocations of `keepAlive`
         var keepAliveCount = UInt(0)
 
         /// Used to store cache entries when `keepAlive` is active

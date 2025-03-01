@@ -374,7 +374,7 @@ fileprivate struct EntitlementsBuildOperationTests: CoreBasedTests {
 
             let parameters = BuildParameters(action: .build, configuration: "Debug")
             let entitlements: PropertyListItem = [
-                // Specify jsut the baseline entitlements, since other entitlements should be added via build settings.
+                // Specify just the baseline entitlements, since other entitlements should be added via build settings.
                 "com.apple.application-identifier": "$(AppIdentifierPrefix)$(CFBundleIdentifier)",
             ]
             let provisioningInputs = ["App": ProvisioningTaskInputs(identityHash: "-", signedEntitlements: entitlements, simulatedEntitlements: entitlements)]
@@ -438,7 +438,7 @@ fileprivate struct EntitlementsBuildOperationTests: CoreBasedTests {
         // Perform the initial for-launch build.
         let parameters = BuildParameters(action: .build, configuration: "Debug")
         let entitlements: PropertyListItem = [
-            // Specify jsut the baseline entitlements, since other entitlements should be added via build settings.
+            // Specify just the baseline entitlements, since other entitlements should be added via build settings.
             "com.apple.application-identifier": "$(AppIdentifierPrefix)$(CFBundleIdentifier)",
         ]
         let provisioningInputs = ["App": ProvisioningTaskInputs(identityHash: "-", signedEntitlements: entitlements, simulatedEntitlements: [:])]

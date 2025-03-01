@@ -298,7 +298,11 @@ fileprivate func copyRegular(_ srcPath: Path, _ srcParentPath: Path, _ dstPath: 
 
 func _copyFile(_ srcPath: Path, _ dstPath: Path) throws {
     do {
-        let dstFd = try FileDescriptor.open(FilePath(dstPath.str), .writeOnly, options: [.create, .truncate], permissions: [.ownerReadWrite, .groupRead, .otherRead])
+        var permissions: FilePermissions = [.ownerRead, .ownerWrite, .groupRead, .groupWrite, .otherRead, .otherWrite]
+        if try localFS.isExecutable(srcPath) {
+            permissions.insert([.ownerExecute, .groupExecute, .otherExecute])
+        }
+        let dstFd = try FileDescriptor.open(FilePath(dstPath.str), .writeOnly, options: [.create, .truncate], permissions: permissions)
         try dstFd.closeAfter {
             let srcFd = try FileDescriptor.open(FilePath(srcPath.str), .readOnly)
             try srcFd.closeAfter {
@@ -316,7 +320,6 @@ func _copyFile(_ srcPath: Path, _ dstPath: Path) throws {
                     } while (bread > bwritten)
                 }
             }
-            try localFS.setFilePermissions(dstPath, permissions: localFS.getFilePermissions(srcPath))
         }
     } catch let error as Errno {
         throw POSIXError(error.rawValue, context: "copy", srcPath.str, dstPath.str)

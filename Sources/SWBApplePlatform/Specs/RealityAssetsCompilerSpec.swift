@@ -41,13 +41,13 @@ public struct ModuleWithDependencies: Codable, Equatable {
 //
 //---------------------
 
-package final class RealityAssetsCompilerSpec: GenericCompilerSpec, SpecIdentifierType {
+package final class RealityAssetsCompilerSpec: GenericCompilerSpec, SpecIdentifierType, @unchecked Sendable {
     public static let identifier = "com.apple.build-tasks.compile-rk-assets.xcplugin"
 
     private func environmentBindings(_ cbc: CommandBuildContext, _ delegate: any TaskGenerationDelegate) -> EnvironmentBindings {
         var environmentBindings: [(String, String)] = environmentFromSpec(cbc, delegate)
 
-        // this is required to pass the funtional/integration tests in sandbox mode
+        // this is required to pass the functional/integration tests in sandbox mode
         // because LLVM seems to create default.profraw files in the test directories
         environmentBindings.append(("LLVM_PROFILE_FILE", Path.null.str))
 
@@ -168,14 +168,30 @@ package final class RealityAssetsCompilerSpec: GenericCompilerSpec, SpecIdentifi
         var inputs = [delegate.createDirectoryTreeNode(rkAssetsPath) as (any PlannedNode)]
         let outputs = [delegate.createNode(cbc.output) as (any PlannedNode)]
 
-        // need to add in o	ptional --schema-file
+        // need to add in optional --schema-file
         if let usdaSchemaPath {
             commandLine.append("--schema-file")
             commandLine.append(.path(usdaSchemaPath))
             inputs.append(delegate.createNode(usdaSchemaPath) as (any PlannedNode))
         }
 
-        let cachingEnabled = cbc.scope.evaluate(BuiltinMacros.ENABLE_GENERIC_TASK_CACHING)
+        let action: (any PlannedTaskAction)?
+        let cachingEnabled: Bool
+        if cbc.scope.evaluate(BuiltinMacros.ENABLE_GENERIC_TASK_CACHING), let casOptions = try? CASOptions.create(cbc.scope, .generic) {
+            action = delegate.taskActionCreationDelegate.createGenericCachingTaskAction(
+                enableCacheDebuggingRemarks: cbc.scope.evaluate(BuiltinMacros.GENERIC_TASK_CACHE_ENABLE_DIAGNOSTIC_REMARKS),
+                enableTaskSandboxEnforcement: !cbc.scope.evaluate(BuiltinMacros.DISABLE_TASK_SANDBOXING),
+                sandboxDirectory: cbc.scope.evaluate(BuiltinMacros.TEMP_SANDBOX_DIR),
+                extraSandboxSubdirectories: [],
+                developerDirectory: cbc.scope.evaluate(BuiltinMacros.DEVELOPER_DIR),
+                casOptions: casOptions
+            )
+            cachingEnabled = true
+        } else {
+            action = nil
+            cachingEnabled = false
+        }
+
 
         let ruleInfo = ["RealityAssetsCompile", cbc.output.str]
         delegate.createTask(type: self,
@@ -190,7 +206,7 @@ package final class RealityAssetsCompilerSpec: GenericCompilerSpec, SpecIdentifi
                             inputs: inputs,
                             outputs: outputs,
                             mustPrecede: [],
-                            action: cachingEnabled ? delegate.taskActionCreationDelegate.createGenericCachingTaskAction(enableCacheDebuggingRemarks: cbc.scope.evaluate(BuiltinMacros.GENERIC_TASK_CACHE_ENABLE_DIAGNOSTIC_REMARKS), enableTaskSandboxEnforcement: !cbc.scope.evaluate(BuiltinMacros.DISABLE_TASK_SANDBOXING), sandboxDirectory: cbc.scope.evaluate(BuiltinMacros.TEMP_SANDBOX_DIR), extraSandboxSubdirectories: [], developerDirectory: cbc.scope.evaluate(BuiltinMacros.DEVELOPER_DIR)) : nil,
+                            action: action,
                             execDescription: "Compile Reality Asset \(rkAssetsPath.basename)",
                             preparesForIndexing: true,
                             enableSandboxing: !cachingEnabled,
@@ -199,12 +215,12 @@ package final class RealityAssetsCompilerSpec: GenericCompilerSpec, SpecIdentifi
     }
 
     public func constructTasks(_ cbc: CommandBuildContext, _ delegate: any TaskGenerationDelegate, moduleWithDependencies: ModuleWithDependencies) async {
-        // Construct the realitool 'create-schema' preproces swift -> schema .usda task.
+        // Construct the realitytool 'create-schema' preprocess swift -> schema .usda task.
         await constructRealityAssetsCreateSchemaTasks(cbc, delegate, moduleWithDependencies: moduleWithDependencies)
     }
 
     public override func constructTasks(_ cbc: CommandBuildContext, _ delegate: any TaskGenerationDelegate) async {
-        // Construct the realitool 'compile' .rkassets [schema .usda] -> .reality task.
+        // Construct the realitytool 'compile' .rkassets [schema .usda] -> .reality task.
         await constructRealityAssetCompilerTasks(cbc, delegate)
     }
 }

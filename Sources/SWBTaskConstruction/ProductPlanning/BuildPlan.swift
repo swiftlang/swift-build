@@ -77,6 +77,8 @@ package final class BuildPlan: StaleFileRemovalContext {
     /// The list of recursive search path requests used in construction.
     package let recursiveSearchPathResults: [RecursiveSearchPathResolver.CachedResult]
 
+    package let emitFrontendCommandLines: Bool
+
     /// Create the build plan for a particular request.
     ///
     /// This will cause the actual construction of all of the product plans and tasks.
@@ -216,7 +218,7 @@ package final class BuildPlan: StaleFileRemovalContext {
             return nil
         }
 
-        // Now we have a list of product plan result contexts, each of which contains a list of all planned tasks for each plan, as well as the information needed to vaidate the provisional tasks in the plan.
+        // Now we have a list of product plan result contexts, each of which contains a list of all planned tasks for each plan, as well as the information needed to validate the provisional tasks in the plan.
         // Since these contexts are independent of each other, we can in parallel have each one validate its provisional tasks, and then serially add the tasks it ends up with to a final task array.
         delegate.updateProgress(statusMessage: messageShortening == .full ? "Finalizing plan" : "Finalizing provisional tasks", showInLog: false)
         let tasks = await withTaskGroup(of: [any PlannedTask].self) { group in
@@ -280,6 +282,7 @@ package final class BuildPlan: StaleFileRemovalContext {
         self.invalidationPaths = Array(invalidationPaths.sorted(by: \.str))
         self.recursiveSearchPathResults = globalProductPlan.recursiveSearchPathResolver.allResults
         self.copiedPathMap = copiedPathMap
+        self.emitFrontendCommandLines = productPlanResultContexts.map { $0.productPlan.taskProducerContext.emitFrontendCommandLines }.reduce(false, { $0 || $1 })
     }
 
     static func unexpectedDuplicateTasksWithIdentifier(_ tasks: [any PlannedTask], _ workspace: Workspace, _ delegate: any TaskPlanningDelegate) {

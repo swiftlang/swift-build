@@ -10,7 +10,11 @@
 //
 //===----------------------------------------------------------------------===//
 
+#if os(Windows)
+private import Foundation
+#else
 public import Foundation
+#endif
 
 import SwiftDriver
 import TSCBasic
@@ -76,7 +80,7 @@ public struct SwiftDriverJob: Serializable, CustomDebugStringConvertible {
     public let outputs: [Path]
     /// The command line to execute for this job
     public let commandLine: [SWBUtil.ByteString]
-    /// A signature which uniquely idnetifies the job.
+    /// A signature which uniquely identifies the job.
     public let signature: SWBUtil.ByteString
     /// Cache keys for the swift-frontend invocation (one key per output producing input)
     public let cacheKeys: [String]

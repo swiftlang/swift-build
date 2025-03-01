@@ -342,7 +342,7 @@ fileprivate struct DevelopmentAssetsDiagnosticTests: CoreBasedTests {
     }
 
     @Test(.requireSDKs(.macOS))
-    func developmentAssetsOverridenSRCROOT() async throws {
+    func developmentAssetsOverriddenSRCROOT() async throws {
         try await withTemporaryDirectory { tmpDirPath in
             // Some environments override SRCROOT but that shouldn't interfer with relative paths in DEVELOPMENT_ASSET_PATHS since they are based in PROJECT_DIR
             let testProject = TestProject(

@@ -10,7 +10,7 @@
 //
 //===----------------------------------------------------------------------===//
 
-final class LaunchServicesRegisterToolSpec : GenericCommandLineToolSpec, SpecIdentifierType {
+final class LaunchServicesRegisterToolSpec : GenericCommandLineToolSpec, SpecIdentifierType, @unchecked Sendable {
     static let identifier = "com.apple.build-tasks.ls-register-url"
 
     override func createTaskAction(_ cbc: CommandBuildContext, _ delegate: any TaskGenerationDelegate) -> (any PlannedTaskAction)? {

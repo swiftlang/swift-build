@@ -10,7 +10,7 @@
 //
 //===----------------------------------------------------------------------===//
 
-public final class MkdirToolSpec : CommandLineToolSpec, SpecIdentifierType {
+public final class MkdirToolSpec : CommandLineToolSpec, SpecIdentifierType, @unchecked Sendable {
     public static let identifier = "com.apple.tools.mkdir"
 
     override public func constructTasks(_ cbc: CommandBuildContext, _ delegate: any TaskGenerationDelegate) async {

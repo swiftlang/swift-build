@@ -374,7 +374,6 @@ fileprivate struct HeadermapTaskConstructionTests: CoreBasedTests {
                 }
             }
         }
-        #expect(hmapContents != nil)
     }
 
     @Test(.requireSDKs(.macOS))

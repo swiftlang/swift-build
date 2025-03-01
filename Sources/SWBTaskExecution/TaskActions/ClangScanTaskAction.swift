@@ -164,11 +164,6 @@ public final class ClangScanTaskAction: TaskAction, BuildValueValidatingTaskActi
             for diag in diagnostics {
                 outputDelegate.emit(diag)
             }
-            if let configuredTarget = task.forTarget, let settings = executionDelegate.requestContext.getCachedSettings(configuredTarget.parameters, target: configuredTarget.target) as Settings?, !settings.globalScope.evaluate(BuiltinMacros.DISABLE_SDK_METADATA_PARSING), let sdk = settings.sdk {
-                DiagnosticsEngine.generateMissingFrameworkDiagnostics(usingSerializedDiagnostics: diagnostics, settings: settings, infoLookup: executionDelegate.infoLookup, sdk: sdk, sdkVariant: settings.sdkVariant, missingFrameworkNames: executionDelegate.sdkRegistry.knownUnavailableFrameworksForSDK(sdk, sdkVariant: settings.sdkVariant), frameworkDeprecationInfo: executionDelegate.sdkRegistry.frameworkReplacementInfoForSDK(sdk, sdkVariant: settings.sdkVariant), diagnosticMessageRegexes: [ClangOutputParserRegex.headerNotFoundRegEx, ClangOutputParserRegex.moduleNotFoundRegEx], context: .cxxCompiler) { originalDiagnostic, newDiagnostic in
-                    outputDelegate.emit(newDiagnostic)
-                }
-            }
             if !diagnostics.contains(where: { $0.behavior == .error }) {
                 outputDelegate.error("failed to scan dependencies for source '\(explicitModulesPayload.sourcePath.str)'")
             }

@@ -15,7 +15,7 @@ public import SWBMacro
 
 
 /// Abstract C Compiler.  This is not a concrete implementation, but rather it uses various information in the command build context to choose a specific compiler and to call `constructTasks()` on that compiler.  This provides a level of indirection for projects that just want their source files compiled using the default C compiler.  Depending on the context, the default C compiler for any particular combination of platform, architecture, and other factors may be Clang, ICC, GCC, or some other compiler.
-class AbstractCCompilerSpec : CompilerSpec, SpecIdentifierType, GCCCompatibleCompilerCommandLineBuilder {
+class AbstractCCompilerSpec : CompilerSpec, SpecIdentifierType, GCCCompatibleCompilerCommandLineBuilder, @unchecked Sendable {
     static let identifier = "com.apple.compilers.gcc"
 
     override func resolveConcreteSpec(_ cbc: CommandBuildContext) -> CommandLineToolSpec {
@@ -35,7 +35,7 @@ class AbstractCCompilerSpec : CompilerSpec, SpecIdentifierType, GCCCompatibleCom
     }
 }
 
-public struct ClangPrefixInfo: Serializable, Hashable, Encodable {
+public struct ClangPrefixInfo: Serializable, Hashable, Encodable, Sendable {
     let input: Path
     let pch: PCHInfo?
 
@@ -321,14 +321,7 @@ final class ClangOutputParser: TaskOutputParser {
         if result.shouldSkipParsingDiagnostics { return }
 
         for path in task.type.serializedDiagnosticsPaths(task, workspaceContext.fs) {
-            let serializedDiagnostics = delegate.processSerializedDiagnostics(at: path, workingDirectory: task.workingDirectory, workspaceContext: workspaceContext)
-
-            // Emit an additional diagnostic for missing frameworks that match the names of Apple SDK frameworks known to not be present in the current platform SDK.
-            if let configuredTarget = task.forTarget, let target = workspaceContext.workspace.target(for: configuredTarget.target.guid), let settings = buildRequestContext.getCachedSettings(configuredTarget.parameters, target: target) as Settings?, !settings.globalScope.evaluate(BuiltinMacros.DISABLE_SDK_METADATA_PARSING), let sdk = settings.sdk {
-                DiagnosticsEngine.generateMissingFrameworkDiagnostics(usingSerializedDiagnostics: serializedDiagnostics, settings: settings, infoLookup: workspaceContext.core, sdk: sdk, sdkVariant: settings.sdkVariant, missingFrameworkNames: workspaceContext.core.sdkRegistry.knownUnavailableFrameworksForSDK(sdk, sdkVariant: settings.sdkVariant), frameworkDeprecationInfo: workspaceContext.core.sdkRegistry.frameworkReplacementInfoForSDK(sdk, sdkVariant: settings.sdkVariant), diagnosticMessageRegexes: [ClangOutputParserRegex.headerNotFoundRegEx, ClangOutputParserRegex.moduleNotFoundRegEx], context: .cxxCompiler) { originalDiagnostic, newDiagnostic in
-                    delegate.diagnosticsEngine.emit(newDiagnostic)
-                }
-            }
+            delegate.processSerializedDiagnostics(at: path, workingDirectory: task.workingDirectory, workspaceContext: workspaceContext)
         }
 
         // Read optimization remarks if the build succeeded.
@@ -525,10 +518,10 @@ public enum FlagPattern: Sendable {
 }
 
 
-public class ClangCompilerSpec : CompilerSpec, SpecIdentifierType, GCCCompatibleCompilerCommandLineBuilder {
+public class ClangCompilerSpec : CompilerSpec, SpecIdentifierType, GCCCompatibleCompilerCommandLineBuilder, @unchecked Sendable {
     /// Clang compiler data cache, used to cache constant flags.
     fileprivate final class DataCache: SpecDataCache {
-        fileprivate struct ConstantFlagsKey: Hashable {
+        fileprivate struct ConstantFlagsKey: Hashable, Sendable {
             /// The scope in use.
             let scope: MacroEvaluationScope
 
@@ -545,12 +538,12 @@ public class ClangCompilerSpec : CompilerSpec, SpecIdentifierType, GCCCompatible
             let flags: [String]
 
             /// The header search path arguments used to compute these flags.
-            let headerSearchPaths: SearchPathBuilder
+            let headerSearchPaths: SearchPaths
 
             /// The compilation inputs implied by these flags.
             let inputs: [Path]
 
-            /// Maps response files in `flags` to the correspoding recorded attachment in the build description.
+            /// Maps response files in `flags` to the corresponding recorded attachment in the build description.
             let responseFileMapping: [Path: Path]
 
         }
@@ -936,7 +929,7 @@ public class ClangCompilerSpec : CompilerSpec, SpecIdentifierType, GCCCompatible
                     }
                 }
 
-                // If an open-source Swift toolchain is in use, supress warnings about libclang mismatch.
+                // If an open-source Swift toolchain is in use, suppress warnings about libclang mismatch.
                 if !cbc.producer.toolchains.contains(where: { toolchain in
                     toolchain.identifier.hasPrefix("org.swift.")
                 }) {
@@ -954,14 +947,19 @@ public class ClangCompilerSpec : CompilerSpec, SpecIdentifierType, GCCCompatible
 
                 let casOptions: CASOptions? = {
                     guard cachedBuild else { return nil }
-                    var casOpts = CASOptions.createFromBuildContext(cbc, language, delegate)
-                    if casOpts.enableIntegratedCacheQueries, let clangInfo {
-                        if !clangInfo.toolFeatures.has(.libclangCacheQueries) {
-                            delegate.warning("COMPILATION_CACHE_ENABLE_INTEGRATED_QUERIES ignored because it's not supported by the toolchain")
-                            casOpts.enableIntegratedCacheQueries = false
+                    do {
+                        var casOpts = try CASOptions.create(cbc.scope, .compiler(language))
+                        if casOpts.enableIntegratedCacheQueries, let clangInfo {
+                            if !clangInfo.toolFeatures.has(.libclangCacheQueries) {
+                                delegate.warning("COMPILATION_CACHE_ENABLE_INTEGRATED_QUERIES ignored because it's not supported by the toolchain")
+                                casOpts.enableIntegratedCacheQueries = false
+                            }
                         }
+                        return casOpts
+                    } catch {
+                        delegate.error(error.localizedDescription)
+                        return nil
                     }
-                    return casOpts
                 }()
                 let explicitModulesPayload = ClangExplicitModulesPayload(
                     uniqueID: String(commandLine.hashValue),
@@ -1874,7 +1872,7 @@ extension ClangCompilerSpec {
     }
 }
 
-public final class ClangStaticAnalyzerSpec : ClangCompilerSpec {
+public final class ClangStaticAnalyzerSpec : ClangCompilerSpec, @unchecked Sendable {
     public class override var identifier: String {
         "com.apple.compilers.llvm.clang.1_0.analyzer"
     }
@@ -1944,7 +1942,7 @@ func createSpecParser(for proxy: SpecProxy, registry: SpecRegistry) -> SpecParse
     return SpecParser(delegate, proxy)
 }
 
-public final class ClangPreprocessorSpec : ClangCompilerSpec, SpecImplementationType {
+public final class ClangPreprocessorSpec : ClangCompilerSpec, SpecImplementationType, @unchecked Sendable {
     public class override var identifier: String {
         "com.apple.compilers.llvm.clang.1_0.preprocessor"
     }
@@ -1980,7 +1978,7 @@ public final class ClangPreprocessorSpec : ClangCompilerSpec, SpecImplementation
     }
 }
 
-public final class ClangAssemblerSpec : ClangCompilerSpec, SpecImplementationType {
+public final class ClangAssemblerSpec : ClangCompilerSpec, SpecImplementationType, @unchecked Sendable {
     public class override var identifier: String {
         "com.apple.compilers.llvm.clang.1_0.assembler"
     }
@@ -2016,7 +2014,7 @@ public final class ClangAssemblerSpec : ClangCompilerSpec, SpecImplementationTyp
     }
 }
 
-public final class ClangModuleVerifierSpec: ClangCompilerSpec, SpecImplementationType {
+public final class ClangModuleVerifierSpec: ClangCompilerSpec, SpecImplementationType, @unchecked Sendable {
     public class override var identifier: String {
         "com.apple.compilers.llvm.clang.1_0.verify_module"
     }

@@ -465,7 +465,7 @@ In C, every `else` branch belongs to the innermost possible `if` statement, whic
 "[GCC_WARN_CHECK_SWITCH_STATEMENTS]-value-[YES]" = "Yes";
 
 "[GCC_WARN_UNUSED_FUNCTION]-name" = "Unused Functions";
-"[GCC_WARN_UNUSED_FUNCTION]-description" = "Warn whenever a static function is declared but not defined or a noninline static function is unused.";
+"[GCC_WARN_UNUSED_FUNCTION]-description" = "Warn whenever a static function is declared but not defined or a non-inline static function is unused.";
 "[GCC_WARN_UNUSED_FUNCTION]-value-[NO]" = "No";
 "[GCC_WARN_UNUSED_FUNCTION]-value-[YES]" = "Yes";
 
@@ -664,7 +664,7 @@ The compiler may not detect all cases where an automatic variable is initialized
 "[GCC_WARN_ABOUT_DEPRECATED_FUNCTIONS]-value-[YES]" = "Yes";
 
 "[GCC_WARN_ABOUT_INVALID_OFFSETOF_MACRO]-name" = "Undefined Use of offsetof Macro";
-"[GCC_WARN_ABOUT_INVALID_OFFSETOF_MACRO]-description" = "Unchecking this setting will suppress warnings from applying the `offsetof` macro to a non-POD type. According to the 1998 ISO C++ standard, applying `offsetof` to a non-POD type is undefined. In existing C++ implementations, however, `offsetof` typically gives meaningful results even when applied to certain kinds of non-POD types, such as a simple struct that fails to be a POD type only by virtue of having a constructor. This flag is for users who are aware that they are writing nonportable code and who have deliberately chosen to ignore the warning about it.
+"[GCC_WARN_ABOUT_INVALID_OFFSETOF_MACRO]-description" = "Unchecking this setting will suppress warnings from applying the `offsetof` macro to a non-POD type. According to the 1998 ISO C++ standard, applying `offsetof` to a non-POD type is undefined. In existing C++ implementations, however, `offsetof` typically gives meaningful results even when applied to certain kinds of non-POD types, such as a simple struct that fails to be a POD type only by virtue of having a constructor. This flag is for users who are aware that they are writing non-portable code and who have deliberately chosen to ignore the warning about it.
 
 The restrictions on `offsetof` may be relaxed in a future version of the C++ standard.";
 "[GCC_WARN_ABOUT_INVALID_OFFSETOF_MACRO]-value-[NO]" = "No";
@@ -1057,7 +1057,7 @@ The restrictions on `offsetof` may be relaxed in a future version of the C++ sta
 "[CLANG_ANALYZER_GCD_PERFORMANCE]-value-[YES]" = "Yes";
 
 "[CLANG_ANALYZER_LIBKERN_RETAIN_COUNT]-name" = "Violation of IOKit and libkern Reference Counting Rules";
-"[CLANG_ANALYZER_LIBKERN_RETAIN_COUNT]-description" = "Finds leaks and overreleases associated with objects inheriting from OSObject.";
+"[CLANG_ANALYZER_LIBKERN_RETAIN_COUNT]-description" = "Finds leaks and over-releases associated with objects inheriting from OSObject.";
 "[CLANG_ANALYZER_LIBKERN_RETAIN_COUNT]-value-[NO]" = "No";
 "[CLANG_ANALYZER_LIBKERN_RETAIN_COUNT]-value-[YES]" = "Yes";
 

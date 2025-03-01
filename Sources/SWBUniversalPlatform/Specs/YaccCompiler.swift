@@ -13,7 +13,7 @@
 import SWBUtil
 import SWBCore
 
-final class YaccCompilerSpec : CompilerSpec, SpecIdentifierType {
+final class YaccCompilerSpec : CompilerSpec, SpecIdentifierType, @unchecked Sendable {
     static let identifier = "com.apple.compilers.yacc"
 
     static let extensionMappings = [

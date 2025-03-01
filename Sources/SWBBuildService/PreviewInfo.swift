@@ -17,8 +17,8 @@ package import SWBTaskExecution
 package import SWBUtil
 
 enum PreviewInfoErrors: Error {
-    case noBuildDescription(targetID: String, any Error)
-    case failedToGetTargetBuildGraph(targetID: String)
+    case noBuildDescription(any Error)
+    case failedToGetTargetBuildGraph(targetIDs: [String])
     case cancelled
     case unableToFindTarget(targetID: String)
 }
@@ -90,46 +90,82 @@ extension PreviewInfoOutput {
 }
 
 extension BuildDescriptionManager {
-    func generatePreviewInfo(workspaceContext: WorkspaceContext, buildRequest: BuildRequest, buildRequestContext: BuildRequestContext, delegate: any PreviewInfoDelegate, targetID: String, input: TaskGeneratePreviewInfoInput) async throws -> [PreviewInfoOutput] {
+    func generatePreviewInfo(
+        workspaceContext: WorkspaceContext,
+        buildRequest: BuildRequest,
+        buildRequestContext: BuildRequestContext,
+        delegate: any PreviewInfoDelegate,
+        targetIDs: [String],
+        input: TaskGeneratePreviewInfoInput
+    ) async throws -> [PreviewInfoOutput] {
         // FIXME: We have temporarily disabled going through the planning operation, since it was causing significant churn: <rdar://problem/31772753> ProvisioningInputs are changing substantially for the same request
-        let buildGraph = await TargetBuildGraph(workspaceContext: workspaceContext, buildRequest: buildRequest, buildRequestContext: buildRequestContext, delegate: delegate)
+        let buildGraph = await TargetBuildGraph(
+            workspaceContext: workspaceContext,
+            buildRequest: buildRequest,
+            buildRequestContext: buildRequestContext,
+            delegate: delegate
+        )
         if delegate.hadErrors {
-            throw PreviewInfoErrors.failedToGetTargetBuildGraph(targetID: targetID)
+            throw PreviewInfoErrors.failedToGetTargetBuildGraph(targetIDs: targetIDs)
         }
-        let planRequest = BuildPlanRequest(workspaceContext: workspaceContext, buildRequest: buildRequest, buildRequestContext: buildRequestContext, buildGraph: buildGraph, provisioningInputs: [:])
+        let planRequest = BuildPlanRequest(
+            workspaceContext: workspaceContext,
+            buildRequest: buildRequest,
+            buildRequestContext: buildRequestContext,
+            buildGraph: buildGraph,
+            provisioningInputs: [:]
+        )
 
         // Get the complete build description.
         let buildDescription: BuildDescription
         do {
-            if let retrievedBuildDescription = try await getBuildDescription(planRequest, clientDelegate: delegate.clientDelegate, constructionDelegate: delegate) {
+            if let retrievedBuildDescription = try await getBuildDescription(
+                planRequest,
+                clientDelegate: delegate.clientDelegate,
+                constructionDelegate: delegate
+            ) {
                 buildDescription = retrievedBuildDescription
             } else {
                 // If we don't receive a build description it means we were cancelled.
                 throw PreviewInfoErrors.cancelled
             }
         } catch {
-            throw PreviewInfoErrors.noBuildDescription(targetID: targetID, error)
+            throw PreviewInfoErrors.noBuildDescription(error)
         }
 
-        let targetsByGuid = planRequest.buildGraph.allTargets.reduce([String: [ConfiguredTarget]]()) { (dict, configuredTarget) -> [String: [ConfiguredTarget]] in
+        let targetsByGuid = planRequest.buildGraph.allTargets.reduce([:]) { (dict, configuredTarget) -> [String: [ConfiguredTarget]] in
             var dict = dict
             dict[configuredTarget.target.guid, default: []].append(configuredTarget)
             return dict
         }
 
         // Collect and return the preview info.
-        let targets = (targetsByGuid[targetID] ?? []).flatMap { (configuredTarget: ConfiguredTarget) -> [ConfiguredTarget] in
-            if let packageProductTarget = configuredTarget.target as? PackageProductTarget, let dynamicTargetVariantGuid = packageProductTarget.dynamicTargetVariantGuid, let targets = targetsByGuid[dynamicTargetVariantGuid] {
-                return targets
-            } else {
-                return [configuredTarget]
+        var targets: [ConfiguredTarget] = []
+        for targetID in targetIDs {
+            guard let potentialTargets = targetsByGuid[targetID] else { continue }
+            for configuredTarget in potentialTargets {
+                if case .thunkInfo = input,
+                   let packageProductTarget = configuredTarget.target as? PackageProductTarget,
+                   let dynamicTargetVariantGuid = packageProductTarget.dynamicTargetVariantGuid,
+                   let dynamicTargetVariants = targetsByGuid[dynamicTargetVariantGuid]
+                {
+                    targets.append(contentsOf: dynamicTargetVariants)
+                } else {
+                    targets.append(configuredTarget)
+                }
             }
         }
 
-        guard !targets.isEmpty else {
-            throw PreviewInfoErrors.unableToFindTarget(targetID: targetID)
+        if targetIDs.count == 1, targets.isEmpty {
+            throw PreviewInfoErrors.unableToFindTarget(targetID: targetIDs[0])
         }
-        return buildDescription.generatePreviewInfo(for: targets, workspaceContext: workspaceContext, buildRequestContext: buildRequestContext, input: input)
+
+        return buildDescription.generatePreviewInfo(
+            for: targets,
+            workspaceContext: workspaceContext,
+            buildRequestContext: buildRequestContext,
+            input: input
+        )
     }
 }
 

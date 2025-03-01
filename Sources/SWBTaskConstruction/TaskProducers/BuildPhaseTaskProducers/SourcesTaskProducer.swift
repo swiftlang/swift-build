@@ -14,14 +14,14 @@ package import SWBCore
 package import SWBUtil
 import struct SWBProtocol.BuildOperationTaskEnded
 import Foundation
-public import SWBMacro
+package import SWBMacro
 
 // Some things that should probably live in this task producer that might not be immediately obvious:
 //      Emitting an error if PGO is turned on for a target containing Swift files.
 
 /// This class adapts the TaskGenerationDelegate protocol used by the Core to that provided by the producer delegate API, for use inside the sources build phase.
 ///
-/// This delegate auto-attachs constructed tasks to the generated headers completion ordering gates, and chains to another delegate for performing the actual work.
+/// This delegate auto-attaches constructed tasks to the generated headers completion ordering gates, and chains to another delegate for performing the actual work.
 private final class SourcesPhaseBasedTaskGenerationDelegate: TaskGenerationDelegate {
     /// The producer we are operating on behalf of.
     let producer: SourcesTaskProducer
@@ -396,13 +396,61 @@ final class SourcesTaskProducer: FilesBasedBuildPhaseTaskProducerBase, FilesBase
                     let parameters = self.context.configuredTarget?.parameters ?? BuildParameters(configuration: nil)
                     let settings = self.context.settingsForProductReferenceTarget(referenceTarget, parameters: parameters)
                     if referenceTarget.usesSwift(context: self.context, settings: settings) {
-                        for arch in scope.evaluate(BuiltinMacros.ARCHS) {
-                            let scope = settings.globalScope.subscope(binding: BuiltinMacros.archCondition, to: arch)
+                        var architectures = scope.evaluate(BuiltinMacros.ARCHS)
+                        var processedArchitectures: Set<String> = []
+                        while !architectures.isEmpty {
+                            let originalArch = architectures.removeFirst()
+                            guard !processedArchitectures.contains(originalArch) else {
+                                continue
+                            }
+                            processedArchitectures.insert(originalArch)
+                            let scope = settings.globalScope.subscope(binding: BuiltinMacros.archCondition, to: originalArch)
+                            // Binding the architecture may change how we evaluate $(ARCHS). Ensure we process any new architectures.
+                            for potentiallyNewArch in scope.evaluate(BuiltinMacros.ARCHS) {
+                                if !processedArchitectures.contains(potentiallyNewArch) {
+                                    architectures.append(potentiallyNewArch)
+                                }
+                            }
+                            // Recompute arch as it will be interpolated in settings below, in case binding the architecture condition produced a value other than the original literal.
+                            let arch = scope.evaluate(BuiltinMacros.CURRENT_ARCH)
+                            if arch == "undefined_arch" {
+                                // If we end up with an undefined architecture here, the settings we use to compute the
+                                // AST path and additional linker args below will be incorrect. This state is undesirable,
+                                // but recoverable, so do not record these incorrect paths.
+                                // FIXME: The `settingsForProductReferenceTarget` call above should always find settings for a
+                                // concrete configured target. However, there appears to be an issue currently when a root-level target
+                                // with package dependencies uses non-standard architectures. We should remove the `settingsForProductReferenceTarget` once that issue is resolved, and then this check should no longer
+                                // be needed.
+                                if context.workspaceContext.userPreferences.enableDebugActivityLogs {
+                                    context.warning("Could not determine settings for \(referenceTarget.name) when computing Swift AST paths for \(context.configuredTarget?.target.name ?? "<unknown>")")
+                                }
+                                continue
+                            }
                             let moduleName = scope.evaluate(BuiltinMacros.SWIFT_MODULE_NAME)
-                            let objectFileDir = scope.evaluate(BuiltinMacros.PER_ARCH_OBJECT_FILE_DIR)
-                            swiftModulePaths[arch] = objectFileDir.join(moduleName + ".swiftmodule")
+                            let moduleFileDir = scope.evaluate(BuiltinMacros.PER_ARCH_MODULE_FILE_DIR)
+                            swiftModulePaths[arch] = moduleFileDir.join(moduleName + ".swiftmodule")
                             if scope.evaluate(BuiltinMacros.SWIFT_GENERATE_ADDITIONAL_LINKER_ARGS) {
-                                swiftModuleAdditionalLinkerArgResponseFilePaths[arch] = objectFileDir.join("\(moduleName)-linker-args.resp")
+                                swiftModuleAdditionalLinkerArgResponseFilePaths[arch] = moduleFileDir.join("\(moduleName)-linker-args.resp")
+                            }
+                        }
+
+                        // Check if we can fill in information for missing architectures using a compatible architecture.
+                        for (arch, moduleFileDir) in swiftModulePaths {
+                            if let archSpec = context.workspaceContext.core.specRegistry.getSpec(arch, domain: scope.evaluate(BuiltinMacros.PLATFORM_NAME)) as? ArchitectureSpec {
+                                for compatibilityArch in archSpec.compatibilityArchs {
+                                    if swiftModulePaths[compatibilityArch] == nil {
+                                        swiftModulePaths[compatibilityArch] = moduleFileDir
+                                    }
+                                }
+                            }
+                        }
+                        for (arch, moduleFileDir) in swiftModuleAdditionalLinkerArgResponseFilePaths {
+                            if let archSpec = context.workspaceContext.core.specRegistry.getSpec(arch, domain: scope.evaluate(BuiltinMacros.PLATFORM_NAME)) as? ArchitectureSpec {
+                                for compatibilityArch in archSpec.compatibilityArchs {
+                                    if swiftModuleAdditionalLinkerArgResponseFilePaths[compatibilityArch] == nil {
+                                        swiftModuleAdditionalLinkerArgResponseFilePaths[compatibilityArch] = moduleFileDir
+                                    }
+                                }
                             }
                         }
                     }
@@ -619,8 +667,8 @@ final class SourcesTaskProducer: FilesBasedBuildPhaseTaskProducerBase, FilesBase
     }
 
     func prepare() {
-        // CodeSigning in a monster... really, it is. Further, we don't actually have a model where we can perform proper pre-planning to determine what inputs will cause downstream outputs to end up in a particular location. Every source file has the potential to contribute some type of ouput that ends up in the wrapper.
-        // For example, every metal file creates a library that is embedded into the product wrapper. However, the build system doesn't actually *know* that, as the ouputs aren't really tracked in a way that the CodeSign task itself can depend on it.
+        // CodeSigning in a monster... really, it is. Further, we don't actually have a model where we can perform proper pre-planning to determine what inputs will cause downstream outputs to end up in a particular location. Every source file has the potential to contribute some type of output that ends up in the wrapper.
+        // For example, every metal file creates a library that is embedded into the product wrapper. However, the build system doesn't actually *know* that, as the outputs aren't really tracked in a way that the CodeSign task itself can depend on it.
         // What the build system does _know_, is that _all_ source files run tools that can potentially end up invalidating the code signature. Until we have a proper pre-planning (e.g. or dry-run) model (or a model that allows us to have dependencies on task producers), we need to be more conservative in our tracking of inputs, even if they can result in additional codesign work.
         // An additional note: if out output file, such as a metallib, is changed by something other than a source input, the codesign task will still not know about it, and that incremental build will fail to sign properly. That should be less likely to happen, but just goes to point out that we need to re-work how our codesign model works, in general.
 
@@ -769,7 +817,7 @@ final class SourcesTaskProducer: FilesBasedBuildPhaseTaskProducerBase, FilesBase
                 // Process all of the groups.
                 //
                 // FIXME: We should do this in parallel.
-                let buildFilesContext = BuildFilesProcessingContext(scope, belongsToPreferedArch: preferredArch == nil || preferredArch == arch, currentArchSpec: currentArchSpec)
+                let buildFilesContext = BuildFilesProcessingContext(scope, belongsToPreferredArch: preferredArch == nil || preferredArch == arch, currentArchSpec: currentArchSpec)
                 var perArchTasks: [any PlannedTask] = []
                 await groupAndAddTasksForFiles(self, buildFilesContext, scope, filterToAPIRules: isForAPI, filterToHeaderRules: isForHeaders, &perArchTasks, extraResolvedBuildFiles: {
                     var result: [(Path, FileTypeSpec, Bool)] = []
@@ -835,7 +883,7 @@ final class SourcesTaskProducer: FilesBasedBuildPhaseTaskProducerBase, FilesBase
                 let objectsInFrameworkPhase = librariesToLink.filter{ $0.kind == .object }
                 linkerInputNodes.append(contentsOf: objectsInFrameworkPhase.map{ $0.path }.map(context.createNode))
 
-                if !SWBFeatureFlag.enableLinkerInputsFromLibrarySpecifiers {
+                if !SWBFeatureFlag.enableLinkerInputsFromLibrarySpecifiers.value {
                     // If this flag isn't enabled we still want the dylib to be a dependency for this task.
                     // This is a fallback to add the dependency because if the feature flag is false we
                     // still want this to be a dependency. If the feature flag is turned on by default
@@ -1103,7 +1151,7 @@ final class SourcesTaskProducer: FilesBasedBuildPhaseTaskProducerBase, FilesBase
                 // Process all of the groups.
                 //
                 // FIXME: We should do this in parallel.
-                let buildFilesContext = BuildFilesProcessingContext(scope, belongsToPreferedArch: preferredArch == nil || preferredArch == arch, currentArchSpec: currentArchSpec)
+                let buildFilesContext = BuildFilesProcessingContext(scope, belongsToPreferredArch: preferredArch == nil || preferredArch == arch, currentArchSpec: currentArchSpec)
                 var perArchTasks: [any PlannedTask] = []
                 await groupAndAddTasksForFiles(self, buildFilesContext, scope, filterToAPIRules: isForAPI, filterToHeaderRules: isForHeaders, &perArchTasks, extraResolvedBuildFiles: {
                     if let packageTargetBundleAccessorResult {
@@ -1265,7 +1313,7 @@ final class SourcesTaskProducer: FilesBasedBuildPhaseTaskProducerBase, FilesBase
             }
             await appendGeneratedTasks(&tasks, usePhasedOrdering: false) { delegate in
                 let cbc = CommandBuildContext(producer: context, scope: scope, inputs: [], outputs: [preparedForIndexNode.path], commandOrderingInputs: prepareTargetForIndexInputs + moduleInputs)
-                context.writeFileSpec.constructFileTasks(cbc, delegate, ruleName: ProductPlan.preparedForIndexPreCompilationRuleName, contents: [], permissions: nil, preparesForIndexing: true, additionalTaskOrderingOptions: [])
+                context.writeFileSpec.constructFileTasks(cbc, delegate, ruleName: ProductPlan.preparedForIndexPreCompilationRuleName, contents: [], permissions: nil, forceWrite: true, preparesForIndexing: true, additionalTaskOrderingOptions: [])
             }
         }
 
@@ -1551,7 +1599,7 @@ final class SourcesTaskProducer: FilesBasedBuildPhaseTaskProducerBase, FilesBase
         // Compute the resources directory.
         let resourcesDir = buildFilesContext.resourcesDir.join(group.regionVariantPathComponent)
 
-        let cbc = CommandBuildContext(producer: context, scope: scope, inputs: group.files, isPreferredArch: buildFilesContext.belongsToPreferedArch, currentArchSpec: buildFilesContext.currentArchSpec, buildPhaseInfo: buildFilesContext.buildPhaseInfo(for: rule), resourcesDir: resourcesDir, tmpResourcesDir: buildFilesContext.tmpResourcesDir, unlocalizedResourcesDir: buildFilesContext.resourcesDir)
+        let cbc = CommandBuildContext(producer: context, scope: scope, inputs: group.files, isPreferredArch: buildFilesContext.belongsToPreferredArch, currentArchSpec: buildFilesContext.currentArchSpec, buildPhaseInfo: buildFilesContext.buildPhaseInfo(for: rule), resourcesDir: resourcesDir, tmpResourcesDir: buildFilesContext.tmpResourcesDir, unlocalizedResourcesDir: buildFilesContext.resourcesDir)
         await constructTasksForRule(rule, cbc, delegate)
     }
 
@@ -1703,8 +1751,8 @@ final class SourcesTaskProducer: FilesBasedBuildPhaseTaskProducerBase, FilesBase
                 NSBundle.mainBundle.bundleURL
             ];
 
-            for (NSURL* candiate in candidates) {
-                NSURL *bundlePath = [candiate URLByAppendingPathComponent:[NSString stringWithFormat:@"%@.bundle", bundleName]];
+            for (NSURL* candidate in candidates) {
+                NSURL *bundlePath = [candidate URLByAppendingPathComponent:[NSString stringWithFormat:@"%@.bundle", bundleName]];
 
                 NSBundle *bundle = [NSBundle bundleWithURL:bundlePath];
                 if (bundle != nil) {
@@ -1907,7 +1955,7 @@ final class SourcesTaskProducer: FilesBasedBuildPhaseTaskProducerBase, FilesBase
     /// `ENABLE_DEBUG_DYLIB` is set on the main target, we need to add the previews
     /// dylib to the list of libraries to link for the test target.
     ///
-    /// `TEST_HOST` and `BUNDLE_LOADER` in fluence the `hostTargetForTargets` mapping.
+    /// `TEST_HOST` and `BUNDLE_LOADER` influence the `hostTargetForTargets` mapping.
     /// So if this target is present in there, we have a host we need to check.
     ///
     /// If the host has `EXECUTABLE_DEBUG_DYLIB_PATH`, then it had the preview dylib
@@ -1967,7 +2015,7 @@ private extension Target {
         return (self as? StandardTarget)?.sourcesBuildPhase?.buildFiles.compactMap { try? context.resolveBuildFileReference($0).fileType }.filter { $0.conformsTo(context.getSpec("sourcecode.swift") as! FileTypeSpec) }.count ?? 0 > 0
     }
 
-    /// Check whether a target has atleast one asset catalog.
+    /// Check whether a target has at least one asset catalog.
     func hasAssetCatalog(scope: MacroEvaluationScope, context: TaskProducerContext, includeGenerated: Bool) -> Bool {
         guard let standardTarget = (self as? StandardTarget) else { return false }
         let buildPhases = [standardTarget.resourcesBuildPhase, standardTarget.sourcesBuildPhase].compactMap { $0 }

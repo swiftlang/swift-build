@@ -249,6 +249,8 @@ public struct XCFramework: Hashable, Sendable {
         /// - macos
         /// - tvos
         /// - watchos
+        ///
+        /// Note that a Mac Catalyst library will have a `platform` of 'ios' - not 'macos' - but a `platformVariant` of 'macabi'.
         public let supportedPlatform: String
 
         /// The listing of supported architectures.
@@ -503,6 +505,8 @@ extension XCFramework.Library: Hashable {
 // MARK: XCFramework (v1) Info.plist parsing.
 
 /// This is an internal representation of the plist structure for v1 of the XCFramework. This is used in order to completely decouple the parsing structure from the actual data model structure. Doing this gains us better ability to version the XCFrameworks, and provides us a better mechanism to catch parsing errors vs. validation errors; if we only used the data model, certain validation errors would be lost in the `Codable` translation.
+///
+/// - remark: See the `XCFramework` struct and its nested structs for documentation about the individual fields. This struct only documents details about archiving the contents, not the meaning of the contents.
 ///
 /// - remark: As time of writing this is the only version, and we can iterate on it as needed.  If we ever radically transform the format (rather than just adding and removing keys) then we may create a new struct for the reworked version.
 @_spi(Testing) public struct XCFrameworkInfoPlist_V1: Codable {

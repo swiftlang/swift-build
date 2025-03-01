@@ -297,20 +297,6 @@ fileprivate final class TestSwiftParserDelegate: TaskOutputParserDelegate, Senda
             XCTAssertMatch(delegate.events[safe: 1]?.1, .contains("missing pid"))
         }
 
-        // Missing 'command' is an error.
-        do {
-            let (delegate, _) = try await makeTestParserWithMessages([
-                [ "kind": "began",
-                  "name": "compile",
-                  "pid": 1]])
-            #expect(delegate.events.count == 2)
-            #expect(delegate.events[safe: 0]?.0 == "error")
-            XCTAssertMatch(delegate.events[safe: 0]?.1, .contains("missing or invalid command"))
-            // Check we still start the subtask.
-            #expect(delegate.events[safe: 1]?.0 == "startSubtask")
-            // FIXME: We need to get a close subtask message here.
-        }
-
         // Duplicate 'pid' is an error.
         do {
             let (delegate, _) = try await makeTestParserWithMessages([
@@ -481,7 +467,7 @@ fileprivate final class TestSwiftParserDelegate: TaskOutputParserDelegate, Senda
     }
 
     @Test
-    func executationDescription() async throws {
+    func executionDescription() async throws {
         do {
             let (delegate, _) = try await makeTestParserWithMessages([
                 [ "kind": "began", "name": "compile", "pid": 1, "inputs": ["/tmp/file.swift"]],

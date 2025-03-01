@@ -296,7 +296,7 @@ extension BuildPhaseTarget
             } else {
                 return false
             }
-        }) != true || SWBFeatureFlag.allowBuildPhaseFusionWithCustomShellScriptBuildRules else {
+        }) != true || SWBFeatureFlag.allowBuildPhaseFusionWithCustomShellScriptBuildRules.value else {
             // If the target has a shell script build rule, it may not be safe to parallelize if it specifies incorrect dependencies.
             return false
         }
@@ -307,7 +307,7 @@ extension BuildPhaseTarget
             return taskProducerContext.settings.globalScope.evaluate(BuiltinMacros.FUSE_BUILD_SCRIPT_PHASES)
         } else if proposedFusedPhase.allSatisfy({ $0 is CopyFilesBuildPhase }) {
             /// Don't attempt to run script phases in parallel with other phase types (bundles make dependency tracking tricky), but fuse consecutive copy phases if the feature flag is enabled.
-            return SWBFeatureFlag.allowCopyFilesBuildPhaseFusion
+            return SWBFeatureFlag.allowCopyFilesBuildPhaseFusion.value
         } else {
             return false
         }
@@ -413,7 +413,6 @@ extension StandardTarget
         let copyHeadersCompletionTasks = buildPhaseTaskProducers.compactMap({ ($0 as? SourcesTaskProducer)?.copyHeadersCompletionTask })
         createNewPhaseNode("ModuleMapTaskProducer")
         taskProducers.append(ModuleMapTaskProducer(taskProducerContext, phaseStartNodes: [setupEndPhaseNode], phaseEndNode: endPhaseNode, copyHeadersCompletionTasks: copyHeadersCompletionTasks))
-        let moduleMapProducerEndPhaseNode = endPhaseNode
         postprocessingTaskProducerInputNodes.append(endPhaseNode)
 
         createNewPhaseNode("SwiftPackageCopyFilesTaskProducer")

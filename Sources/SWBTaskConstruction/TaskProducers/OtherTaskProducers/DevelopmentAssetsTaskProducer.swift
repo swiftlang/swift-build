@@ -12,7 +12,6 @@
 
 import SWBCore
 import SWBUtil
-import SWBTaskConstruction
 
 final class DevelopmentAssetsTaskProducer: StandardTaskProducer, TaskProducer {
     func generateTasks() async -> [any PlannedTask] {

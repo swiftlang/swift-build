@@ -79,7 +79,7 @@ public final class BuildFile: ProjectModelItem {
     /// Whether to remove header from the file (directory), if copies.
     public let removeHeadersOnCopy: Bool
 
-    /// Whether to weak linkly, for linking build files.
+    /// Whether to link weakly, for linking build files.
     public let shouldLinkWeakly: Bool
 
     /// On Demand Resources asset tags

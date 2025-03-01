@@ -64,7 +64,7 @@ private struct AppIntentsLocalizationPayload: TaskPayload {
     }
 }
 
-final public class AppIntentsMetadataCompilerSpec: GenericCommandLineToolSpec, SpecIdentifierType {
+final public class AppIntentsMetadataCompilerSpec: GenericCommandLineToolSpec, SpecIdentifierType, @unchecked Sendable {
     public static let identifier = "com.apple.compilers.appintentsmetadata"
     public func shouldConstructAppIntentsMetadataTask(_ cbc: CommandBuildContext) -> Bool {
         return cbc.scope.evaluate(BuiltinMacros.CURRENT_VARIANT) == "normal" &&
@@ -93,7 +93,7 @@ final public class AppIntentsMetadataCompilerSpec: GenericCommandLineToolSpec, S
         var sourceFileListFiles = [String]()
         var swiftConstValuesFileListFiles = [String]()
         var metadataDependencyFileListFiles = [String]()
-        var staticMetadataDepdencyFileListFiles = [String]()
+        var staticMetadataDependencyFileListFiles = [String]()
 
         func constructFileList(path: Path, inputs: [FileToBuild]) {
             let fileListContents = OutputByteStream()
@@ -112,7 +112,7 @@ final public class AppIntentsMetadataCompilerSpec: GenericCommandLineToolSpec, S
         }
         let staticMetadataFileListPath = cbc.scope.evaluate(BuiltinMacros.LM_AUX_INTENTS_STATIC_METADATA_FILES_LIST_PATH)
         if !staticMetadataFileListPath.isEmpty {
-            staticMetadataDepdencyFileListFiles.append(staticMetadataFileListPath.str)
+            staticMetadataDependencyFileListFiles.append(staticMetadataFileListPath.str)
             allInputs.append(delegate.createNode(staticMetadataFileListPath))
         }
 
@@ -196,7 +196,7 @@ final public class AppIntentsMetadataCompilerSpec: GenericCommandLineToolSpec, S
             case BuiltinMacros.LM_INTENTS_METADATA_FILES_LIST_PATH:
                 return cbc.scope.table.namespace.parseLiteralStringList(metadataDependencyFileListFiles)
             case BuiltinMacros.LM_INTENTS_STATIC_METADATA_FILES_LIST_PATH:
-                return cbc.scope.table.namespace.parseLiteralStringList(staticMetadataDepdencyFileListFiles)
+                return cbc.scope.table.namespace.parseLiteralStringList(staticMetadataDependencyFileListFiles)
             case BuiltinMacros.LM_NO_APP_SHORTCUT_LOCALIZATION:
                 return noLocalizationFiles ? cbc.scope.table.namespace.parseLiteralString("YES") : cbc.scope.table.namespace.parseLiteralString("NO")
             default:

@@ -1159,7 +1159,7 @@ fileprivate struct DocumentationTaskConstructionTests: CoreBasedTests {
                 }
 
                 let headersInfoPath = frameworkBuildDir + "/Framework-extractapi-headers.json"
-                if !SWBFeatureFlag.enableClangExtractAPI {
+                if !SWBFeatureFlag.enableClangExtractAPI.value {
 
                     // Check the headers info file write task
                     try results.checkWriteAuxiliaryFileTask(.matchTarget(target), .matchRule(["WriteAuxiliaryFile", headersInfoPath])) {
@@ -1229,11 +1229,11 @@ fileprivate struct DocumentationTaskConstructionTests: CoreBasedTests {
                     // Check the `tapi extractapi` or the `clang -extract-api task
                     results.checkTask(
                         .matchTarget(target),
-                        .matchRule(["ExtractAPI", SWBFeatureFlag.enableClangExtractAPI ? symbolGraphPath : sdkdbOutputPath])
+                        .matchRule(["ExtractAPI", SWBFeatureFlag.enableClangExtractAPI.value ? symbolGraphPath : sdkdbOutputPath])
                     ) {
                         task in
 
-                        if SWBFeatureFlag.enableClangExtractAPI {
+                        if SWBFeatureFlag.enableClangExtractAPI.value {
                             task.checkCommandLineContains([
                                 "clang",
                                 "-extract-api"
@@ -1320,12 +1320,12 @@ fileprivate struct DocumentationTaskConstructionTests: CoreBasedTests {
                         task.checkCommandLineContains(["-fmodule-name=Framework"])
                         task.checkCommandLineContains(["--product-name=Framework"])
 
-                        if SWBFeatureFlag.enableClangExtractAPI {
+                        if SWBFeatureFlag.enableClangExtractAPI.value {
                             task.checkCommandLineContainsUninterrupted(["-x", "objective-c-header"])
                         }
 
                         task.checkInputs(contain: [
-                            SWBFeatureFlag.enableClangExtractAPI ? nil : .path(frameworkBuildDir + "/Framework-extractapi-headers.json"),
+                            SWBFeatureFlag.enableClangExtractAPI.value ? nil : .path(frameworkBuildDir + "/Framework-extractapi-headers.json"),
                             .namePattern(.and(.prefix("target-Framework-T-Framework-"), .suffix("--ModuleVerifierTaskProducer"))),
                             .namePattern(.and(.prefix("target-Framework-T-Framework-"), .suffix("--entry")))
                         ].compactMap({ $0 }))
@@ -1416,11 +1416,11 @@ fileprivate struct DocumentationTaskConstructionTests: CoreBasedTests {
                         }
 
                         task.checkOutputs([
-                            SWBFeatureFlag.enableClangExtractAPI ? .path(symbolGraphPath) : .path(sdkdbOutputPath)
+                            SWBFeatureFlag.enableClangExtractAPI.value ? .path(symbolGraphPath) : .path(sdkdbOutputPath)
                         ])
                     }
 
-                    if !SWBFeatureFlag.enableClangExtractAPI {
+                    if !SWBFeatureFlag.enableClangExtractAPI.value {
                         // Check the `sdkdb_to_symgraph` task
                         results.checkTask(.matchTarget(target), .matchRule(["ConvertSDKDBToSymbolGraph", sdkdbOutputPath])) {
                             task in

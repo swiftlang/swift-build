@@ -449,7 +449,7 @@ import SWBUtil
         ])
         #expect(heterogeneousPlistDict.deterministicDescription == "PLDict<[\"array\": PLArray<[\"foo\", \"bar\"]>, \"bool\": true, \"dict\": PLDict<[\"ack\": \"It's a\", \"bar\": \"trap!\"]>, \"double\": 5.3, \"int\": 6]>")
 
-        // Make sure we nestedly call deterministicDescription on arrays and dictionaries.
+        // Make sure we call deterministicDescription recursively on arrays and dictionaries.
         let nestedPlistDict: PropertyListItem = .plDict([
             "array": .plArray([
                 .plDict([

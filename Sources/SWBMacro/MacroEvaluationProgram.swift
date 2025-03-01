@@ -82,7 +82,7 @@ final class MacroEvaluationProgram: Serializable, Sendable {
 
         /// Instruction that evaluates a named macro by looking it up and executing its evaluation “program”.  The topmost subresult buffer (as pushed by the `.beginSubresult` instruction) is popped from the stack and used as a macro name to look the assigned value for the macro.  It is an internal error if the subresult stack is empty when this instruction is executed.  The lookup is performed in the context passed to the `lookupMacroInContext()` function.  If a value is found, it is evaluated into the subresult buffer that’s at the top of the stack after the name has been popped.  If there is no value for the named macro in the context, and `preserveOriginalIfUnresolved` is false, nothing is appended to the subresult buffer.  If `preserveOriginalIfUnresolved` is true, then the original spelling of the macro will be inserted.  If `asString` is true, or if the `alwaysEvalAsString` parameter passed to the invocation of the `execute()` method is true, the value associated with the macro is evaluated as a string regardless of whether its native form is a list or a string.  Otherwise (if neither of those booleans is true), it is evaluated as its native form.
         //
-        // FIXME: We should consider making the `preserveOriginalIfUnresolved` behavior deprecated, it is used rarely in practice and is mostly an accomodation to situations where the `$` is intended to be literal, but wasn't quoted, and it just happens to work because the trailing "macro name" is unlikely to be defined.
+        // FIXME: We should consider making the `preserveOriginalIfUnresolved` behavior deprecated, it is used rarely in practice and is mostly an accommodation to situations where the `$` is intended to be literal, but wasn't quoted, and it just happens to work because the trailing "macro name" is unlikely to be defined.
         case evalNamedMacro(asString: Bool, preserveOriginalIfUnresolved: Bool)
 
         /// Instruction that instruction that merges the topmost subresult buffer (as pushed by the `.beginSubresult` instruction) into the subresult buffer immediately below it.  It is an internal error if the subresult stack doesn’t contain at least two entries when this instruction is executed.
@@ -184,6 +184,7 @@ final class MacroEvaluationProgram: Serializable, Sendable {
         case base
         case suffix
         case standardizepath
+        case not
 
         /// Creates and returns a new retrieval operator with the given `name`.  Returns nil if the `name` is not a supported operator.
         init?(_ name: String) {
@@ -201,6 +202,7 @@ final class MacroEvaluationProgram: Serializable, Sendable {
             case "base": self = .base
             case "suffix": self = .suffix
             case "standardizepath": self = .standardizepath
+            case "not": self = .not
             default:
                 return nil
             }
@@ -241,6 +243,8 @@ final class MacroEvaluationProgram: Serializable, Sendable {
                 return Path(string).fileSuffix
             case .standardizepath:
                 return Path(string).normalize(removeDotDotFromRelativePath: false).str
+            case .not:
+                return string != "YES" ? "YES" : "NO"
             }
         }
     }
@@ -543,7 +547,7 @@ final class MacroEvaluationResultBuilder {
     /// Create a macro result builder.
     init() { }
 
-    /// If the “needs list element separator” flag has been set, this function adds a list separator for the index corresponding to the current end of the acculuator string, and clears the flag.  Otherwise, this function does nothing.  Clients never invoke this function directly — instead, they note the need for a list element separator and let it be created the next time anything is appended.
+    /// If the “needs list element separator” flag has been set, this function adds a list separator for the index corresponding to the current end of the accumulator string, and clears the flag.  Otherwise, this function does nothing.  Clients never invoke this function directly — instead, they note the need for a list element separator and let it be created the next time anything is appended.
     private func applyPendingListElementSeparatorIfNeeded() {
         // If the flag is set, we record the current end index of the accumulated string as the start index of the next element, and clear the flag.
         guard needsListElementSeparator else { return }

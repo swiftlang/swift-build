@@ -133,7 +133,7 @@ public protocol ProvisionalTaskValidationContext: AnyObject
 /// A create directory provisional task is used in creating the product structure.
 public final class CreateDirectoryProvisionalTask: ProvisionalTask {
 
-    /// If `true`, then the task for this provisional task will be nullified if there is another task which is producing this directory.  If `false`, then the task will never be disacarded for that reason.  We might want to nullify if, for example, the project is copying a folder reference into place for this directory.  However, if this directory task is going to be mutated - e.g. if it's the top-level product - then we don't want to nullify it, since we presently can't handle mutating an alternate task in this way.
+    /// If `true`, then the task for this provisional task will be nullified if there is another task which is producing this directory.  If `false`, then the task will never be discarded for that reason.  We might want to nullify if, for example, the project is copying a folder reference into place for this directory.  However, if this directory task is going to be mutated - e.g. if it's the top-level product - then we don't want to nullify it, since we presently can't handle mutating an alternate task in this way.
     let nullifyIfProducedByAnotherTask: Bool
 
     public init(identifier: String, mustBeDependedOn: Bool = true, nullifyIfProducedByAnotherTask: Bool) {

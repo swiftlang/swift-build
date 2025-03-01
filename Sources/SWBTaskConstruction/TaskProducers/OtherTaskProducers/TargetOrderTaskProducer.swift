@@ -39,7 +39,7 @@ final class TargetTaskInfo {
 
     /// A virtual node representing the start of scanning the target.
     ///
-    /// Any tasks involving scaning depend on this node having been built.
+    /// Any tasks involving scanning depend on this node having been built.
     let startScanningNode: any PlannedNode
 
     /// A virtual node representing the end of preparing modules or headers for dependent targets.
@@ -115,7 +115,7 @@ final class TargetOrderTaskProducer: StandardTaskProducer, TaskProducer {
             await appendGeneratedTasks(&context.preparedForIndexModuleContentTasks) { delegate in
                 let outputPath = preparedForIndexModuleNode.path
                 let cbc = CommandBuildContext(producer: context, scope: context.settings.globalScope, inputs: [], outputs: [outputPath])
-                context.writeFileSpec.constructFileTasks(cbc, delegate, ruleName: ProductPlan.preparedForIndexModuleContentRuleName, contents: [], permissions: nil, preparesForIndexing: true, additionalTaskOrderingOptions: [])
+                context.writeFileSpec.constructFileTasks(cbc, delegate, ruleName: ProductPlan.preparedForIndexModuleContentRuleName, contents: [], permissions: nil, forceWrite: true, preparesForIndexing: true, additionalTaskOrderingOptions: [])
             }
         }
     }
@@ -279,7 +279,7 @@ final class TargetOrderTaskProducer: StandardTaskProducer, TaskProducer {
         return true
     }()
 
-    /// Workhorse utility method for computing the input node for use for immediate dependend-on (upstream) targets of a target.
+    /// Workhorse utility method for computing the input node for use for immediate depended-on (upstream) targets of a target.
     /// - parameter lookup: A lookup method which takes a `ConfiguredTarget` and returns an input `PlannedNode`, or nil if there are no inputs.
     /// - returns: A tuple of synchronized lists of input `PlannedNode`s and their corresponding `ConfiguredTarget`s
     private func inputsForDependencies(_ lookup: (ConfiguredTarget, ConfiguredTarget) -> (any PlannedNode)?) -> (inputs: [any PlannedNode], resolvedTargetDependencies: [ResolvedTargetDependency]) {

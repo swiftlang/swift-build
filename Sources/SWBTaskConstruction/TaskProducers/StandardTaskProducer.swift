@@ -44,7 +44,8 @@ open class StandardTaskProducer {
     }
 
     /// Create a standard task producer.
-    package init(_ context: TaskProducerContext) {
+    /// Should be marked package, but that causes the compiler to generate an unused, infinitely recursive thunk.
+    public init(_ context: TaskProducerContext) {
         self.context = context
     }
 
@@ -107,7 +108,8 @@ open class PhasedTaskProducer: StandardTaskProducer {
     ///
     /// - phaseStartNode: A virtual node which should be used as an input for all tasks produced by the phase.
     /// - phaseEndNode: A virtual node which should have as inputs all tasks produced by the phase.
-    package init(_ context: TargetTaskProducerContext, phaseStartNodes: [any PlannedNode], phaseEndNode: any PlannedNode, phaseEndTask: (any PlannedTask)? = nil) {
+    /// Should be package instead of public, but this causes the compiler to generate an unused infinitely recursive thunk.
+    public init(_ context: TargetTaskProducerContext, phaseStartNodes: [any PlannedNode], phaseEndNode: any PlannedNode, phaseEndTask: (any PlannedTask)? = nil) {
         self.phaseStartNodes = phaseStartNodes
         self.phaseEndNode = phaseEndNode
         self.phaseEndTask = phaseEndTask ?? context.createPhaseEndTask(inputs: phaseStartNodes, output: phaseEndNode, mustPrecede: [context.targetEndTask])
@@ -151,7 +153,7 @@ open class PhasedTaskProducer: StandardTaskProducer {
     ///
     /// - Parameters:
     ///   - tasks: The task array to append to.
-    ///   - usePhasedOrdering: If true, the tasks are bound between the phase start and end, otherwise they will preceed the target end task.
+    ///   - usePhasedOrdering: If true, the tasks are bound between the phase start and end, otherwise they will precede the target end task.
     /// - Returns: The generated tasks and outputs.
     @discardableResult
     func appendGeneratedTasks<T>(_ tasks: inout [any PlannedTask], usePhasedOrdering: Bool, options: TaskOrderingOptions? = nil, body: (any TaskGenerationDelegate) async -> T) async -> (tasks: [any PlannedTask], outputs: [FileToBuild], result: T) {

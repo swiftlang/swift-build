@@ -184,11 +184,11 @@ fileprivate extension SWBUtil.UserDefaults {
 // - Found via SDKROOT=path where path is previously unseen in 1 and 2
 // - Supports only path lookup
 // - Discovers (and caches) new SDKs on demand
-public struct WorkspaceContextSDKRegistry: SDKRegistryLookup {
+public struct WorkspaceContextSDKRegistry: SDKRegistryLookup, Sendable {
     private var underlyingLookup: CascadingSDKRegistryLookup
 
     /// Allows lookup(...) to search multiple SDK registries in order.
-    private struct CascadingSDKRegistryLookup: SDKRegistryLookup {
+    private struct CascadingSDKRegistryLookup: SDKRegistryLookup, Sendable {
         let registries: [any SDKRegistryLookup]
 
         private func lookupInEach(f: (any SDKRegistryLookup) throws -> SDK?) rethrows -> SDK? {
@@ -263,22 +263,45 @@ public final class WorkspaceContext: Sendable {
     /// The registered user information.
     ///
     /// This includes the user account's info, the process environment, and some other details.
-    public var userInfo: UserInfo?
+    private let _userInfo: SWBMutex<UserInfo?>
+    public var userInfo: UserInfo? {
+        _userInfo.withLock { $0 }
+    }
+    public func updateUserInfo(_ value: UserInfo) {
+        _userInfo.withLock { $0 = value }
+    }
 
     /// The registered system information.
     ///
     /// This includes the OS version info, and the nafive architecture of the host machine.
-    public var systemInfo: SystemInfo?
+    private let _systemInfo: SWBMutex<SystemInfo?>
+    public var systemInfo: SystemInfo? {
+        _systemInfo.withLock { $0 }
+    }
+    public func updateSystemInfo(_ value: SystemInfo) {
+        _systemInfo.withLock { $0 = value }
+    }
 
     /// The registered user preferences.
     ///
     /// This includes standard configuration sourced from environment variables and user defaults.
-    public var userPreferences: UserPreferences = .default
+    private let _userPreferences: SWBMutex<UserPreferences>
+    public var userPreferences: UserPreferences {
+        _userPreferences.withLock { $0 }
+    }
+    public func updateUserPreferences(_ value: UserPreferences) {
+        _userPreferences.withLock { $0 = value }
+    }
 
     /// Helper object for cached workspace specific settings.
-    internal var workspaceSettings: WorkspaceSettings! = nil
-
-    internal private(set) var workspaceSettingsCache: WorkspaceSettingsCache! = nil
+    private let _workspaceSettings: UnsafeDelayedInitializationSendableWrapper<WorkspaceSettings>
+    private let _workspaceSettingsCache: UnsafeDelayedInitializationSendableWrapper<WorkspaceSettingsCache>
+    internal var workspaceSettings: WorkspaceSettings {
+        _workspaceSettings.value
+    }
+    internal var workspaceSettingsCache: WorkspaceSettingsCache {
+        _workspaceSettingsCache.value
+    }
 
     internal let macroConfigFileLoader: MacroConfigFileLoader
 
@@ -306,8 +329,14 @@ public final class WorkspaceContext: Sendable {
         self.xcframeworkCache = FileSystemSignatureBasedCache(fs: fs)
         self.macroConfigFileLoader = MacroConfigFileLoader(core: core, fs: fs)
         self.discoveredCommandLineToolSpecInfoCache = DiscoveredCommandLineToolSpecInfoCache(processExecutionCache: processExecutionCache)
-        self.workspaceSettings = WorkspaceSettings(self)
-        self.workspaceSettingsCache = WorkspaceSettingsCache(workspaceContext: self, macroConfigFileLoader: macroConfigFileLoader)
+        self._userInfo = .init(nil)
+        self._systemInfo = .init(nil)
+        self._userPreferences = .init(.default)
+        self._workspaceSettings = .init()
+        self._workspaceSettingsCache = .init()
+
+        self._workspaceSettings.initialize(to: WorkspaceSettings(self))
+        self._workspaceSettingsCache.initialize(to: WorkspaceSettingsCache(workspaceContext: self, macroConfigFileLoader: macroConfigFileLoader))
     }
 
     /// Get the cached header index info.
@@ -355,7 +384,12 @@ public final class WorkspaceContext: Sendable {
 
 extension FSProxy {
     private static var CreatedByBuildSystemAttribute: String {
+        #if os(Linux)
+        // On Linux, "the name [of an extended attribute] must be a null-terminated string prefixed by a namespace identifier and a dot character" and only the "user" namespace is available for unrestricted access.
+        "user.org.swift.swift-build.CreatedByBuildSystem"
+        #else
         "com.apple.xcode.CreatedByBuildSystem"
+        #endif
     }
 
     private static var CreatedByBuildSystemAttributeOnValue: String {

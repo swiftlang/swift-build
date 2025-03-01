@@ -20,7 +20,7 @@ import SWBLLBuild
 
 import SWBCore
 
-@Suite(.requireLLBuild(apiVersion: 12))
+@Suite(.requireLLBuild(apiVersion: 12), .requireXcode16())
 fileprivate struct SwiftDriverTests: CoreBasedTests {
     @Test(.requireSDKs(.macOS))
     func swiftDriverPlanning() async throws {
@@ -862,7 +862,7 @@ fileprivate struct SwiftDriverTests: CoreBasedTests {
             do {
                 let buildParameters = BuildParameters(configuration: "Debug",
                                                       commandLineOverrides: ["SWIFT_ENABLE_EXPLICIT_MODULES":"YES"])
-                // Ensure explicit moduels are enabled as per the default
+                // Ensure explicit modules are enabled as per the default
                 try await tester.fs.writeFileContents(blockListFilePath) { file in
                     file <<<
                             """
@@ -878,8 +878,8 @@ fileprivate struct SwiftDriverTests: CoreBasedTests {
             tester = try await BuildOperationTester(getCore(), testWorkspace, simulated: false)
             do {
                 // Add project name to the `KnownFailures` and ensure explicit modules are disabled despite the build setting enable
-                let buildParameters = try await BuildParameters(configuration: "Debug",
-                                                                commandLineOverrides: ["SWIFT_ENABLE_EXPLICIT_MODULES":"YES"])
+                let buildParameters = BuildParameters(configuration: "Debug",
+                                                      commandLineOverrides: ["SWIFT_ENABLE_EXPLICIT_MODULES":"YES"])
                 try await tester.fs.writeFileContents(blockListFilePath) { file in
                     file <<<
                             """
@@ -2367,7 +2367,7 @@ fileprivate struct SwiftDriverTests: CoreBasedTests {
                 results.checkError(.and(.prefix("\(SRCROOT.join("Sources/file2.swift").str):1:18:"), .contains("DoesAlsoNotExist")), failIfNotFound: false)
                 results.checkError(.prefix("Command SwiftEmitModule failed."), failIfNotFound: false)
 
-                if !SWBFeatureFlag.performOwnershipAnalysis {
+                if !SWBFeatureFlag.performOwnershipAnalysis.value {
                     results.checkErrors([
                         .contains("No such file or directory"),
                         .contains("No such file or directory"),
@@ -2463,7 +2463,7 @@ fileprivate struct SwiftDriverTests: CoreBasedTests {
                 results.checkError(.and(.prefix("\(SRCROOT.join("Sources/file2.swift").str):1:18:"), .contains("DoesAlsoNotExist")))
                 results.checkError(.prefix("Command SwiftCompile failed."))
 
-                if !SWBFeatureFlag.performOwnershipAnalysis {
+                if !SWBFeatureFlag.performOwnershipAnalysis.value {
                     results.checkErrors([
                         .contains("No such file or directory"),
                         .contains("No such file or directory"),
@@ -3514,6 +3514,7 @@ fileprivate struct SwiftDriverTests: CoreBasedTests {
                                             "ENABLE_PREVIEWS": "YES",
                                             "SWIFT_USE_INTEGRATED_DRIVER": useIntegratedDriver ? "YES" : "NO",
                                             "SWIFT_ENABLE_EXPLICIT_MODULES": useIntegratedDriver ? "YES" : "NO",
+                                            "_EXPERIMENTAL_SWIFT_EXPLICIT_MODULES": useIntegratedDriver ? "YES" : "NO",
                                             // Eager linking is not supported when using the driver binary.
                                             "EAGER_LINKING": "NO",
                                             "SWIFT_VALIDATE_CLANG_MODULES_ONCE_PER_BUILD_SESSION": "NO",
@@ -4370,7 +4371,6 @@ fileprivate struct SwiftDriverTests: CoreBasedTests {
                         ])
                 ])
 
-            let compilerPath = try await swiftCompilerPath
             var tester = try await BuildOperationTester(getCore(), testWorkspace, simulated: false)
             let cleanParameters = BuildParameters(action: .clean, configuration: "Debug")
             let cleanRequest = BuildRequest(parameters: cleanParameters, buildTargets: tester.workspace.projects[0].targets.map({ BuildRequest.BuildTargetInfo(parameters: cleanParameters, target: $0) }), continueBuildingAfterErrors: true, useParallelTargets: true, useImplicitDependencies: false, useDryRun: false)

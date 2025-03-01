@@ -104,20 +104,19 @@ final class CLIConnection {
     }
 
     fileprivate init(currentDirectory: Path? = nil) async throws {
+        #if os(Windows)
+        throw StubError.error("PTY not supported on Windows")
+        #else
         temporaryDirectory = try NamedTemporaryDirectory()
 
         // Allocate a PTY we can use to talk to the tool.
         var monitorFD = Int32(0)
         var sessionFD = Int32(0)
-        #if !os(Windows)
         if openpty(&monitorFD, &sessionFD, nil, nil, nil) != 0 {
             throw POSIXError(errno, context: "openpty")
         }
         _ = fcntl(monitorFD, F_SETFD, FD_CLOEXEC)
         _ = fcntl(sessionFD, F_SETFD, FD_CLOEXEC)
-        #else
-        throw StubError.error("PTY not supported on Windows")
-        #endif
 
         monitorHandle = FileHandle(fileDescriptor: monitorFD, closeOnDealloc: true)
         let sessionHandle = FileHandle(fileDescriptor: sessionFD, closeOnDealloc: true)
@@ -141,6 +140,7 @@ final class CLIConnection {
 
         outputStream = monitorHandle._bytes(on: .global())
         outputStreamIterator = outputStream.cliResponses.makeAsyncIterator()
+        #endif
     }
 
     func shutdown() async {
@@ -313,7 +313,7 @@ fileprivate func swiftRuntimePath() throws -> Path? {
     let name = "swiftCore.dll"
     return try name.withCString(encodedAs: CInterop.PlatformUnicodeEncoding.self) { wName in
         guard let handle = GetModuleHandleW(wName) else {
-            throw POSIXError(errno, context: "GetModuleHandleW", String(cString: name))
+            throw POSIXError(errno, context: "GetModuleHandleW", name)
         }
 
         var capacity = MAX_PATH

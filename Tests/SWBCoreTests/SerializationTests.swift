@@ -139,7 +139,7 @@ import SWBMacro
 
         let core = try await getCore()
         let context = try WorkspaceContext(core: core, workspace: testWorkspaceData.load(core), processExecutionCache: .sharedForTesting)
-        context.userInfo = UserInfo(user: "exampleUser", group: "exampleGroup", uid: 1234, gid:12345, home: Path("/Users/exampleUser"), environment: ["BAZ": "environment-$(inherited)"])
+        context.updateUserInfo(UserInfo(user: "exampleUser", group: "exampleGroup", uid: 1234, gid:12345, home: Path("/Users/exampleUser"), environment: ["BAZ": "environment-$(inherited)"]))
         let buildRequestContext = BuildRequestContext(workspaceContext: context)
 
         let testProject = context.workspace.projects[0]

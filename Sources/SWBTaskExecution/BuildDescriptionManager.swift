@@ -90,17 +90,17 @@ package final class BuildDescriptionManager: Sendable {
     private let inMemoryCachedBuildDescriptions: HeavyCache<BuildDescriptionSignature, BuildDescription>
 
     /// The last build plan request. Used to generate a diff of the current plan for debugging purposes.
-    private var lastBuildPlanRequest: BuildPlanRequest?
+    private let lastBuildPlanRequest: SWBMutex<BuildPlanRequest?> = .init(nil)
 
     /// The last build plan request for the workspace build description. Used to generate a diff of the current plan
     /// for debugging purposes.
-    private var lastIndexBuildPlanRequest: BuildPlanRequest?
+    private let lastIndexBuildPlanRequest: SWBMutex<BuildPlanRequest?> = .init(nil)
 
     /// The last workspace build description generated for the index arena.
     ///
     /// Separated from the regular cache as the index assumes that requests for build settings are fast once this is
     /// loaded, so it shouldn't ever be removed.
-    private var lastIndexWorkspaceDescription: BuildDescription?
+    private let lastIndexWorkspaceDescription: SWBMutex<BuildDescription?> = .init(nil)
 
     package init(fs: any FSProxy, buildDescriptionMemoryCacheEvictionPolicy: BuildDescriptionMemoryCacheEvictionPolicy, maxCacheSize: (inMemory: Int, onDisk: Int) = (4, 4)) {
         self.fs = fs
@@ -224,7 +224,7 @@ package final class BuildDescriptionManager: Sendable {
         }
 
         // Create the build description.
-        return try await BuildDescription.construct(workspace: buildGraph.workspaceContext.workspace, tasks: plan.tasks, path: path, signature: signature, buildCommand: planRequest.buildRequest.buildCommand, diagnostics: planningDiagnostics, indexingInfo: [], fs: fs, bypassActualTasks: bypassActualTasks, targetsBuildInParallel: buildGraph.targetsBuildInParallel, moduleSessionFilePath: planRequest.workspaceContext.getModuleSessionFilePath(planRequest.buildRequest.parameters), invalidationPaths: plan.invalidationPaths, recursiveSearchPathResults: plan.recursiveSearchPathResults, copiedPathMap: plan.copiedPathMap, rootPathsPerTarget: rootPathsPerTarget, moduleCachePathPerTarget: moduleCachePathPerTarget, staleFileRemovalIdentifierPerTarget: staleFileRemovalIdentifierPerTarget, settingsPerTarget: settingsPerTarget, delegate: delegate, targetDependencies: buildGraph.targetDependenciesByGuid, definingTargetsByModuleName: definingTargetsByModuleName, capturedBuildInfo: capturedBuildInfo, userPreferences: buildGraph.workspaceContext.userPreferences)
+        return try await BuildDescription.construct(workspace: buildGraph.workspaceContext.workspace, tasks: plan.tasks, path: path, signature: signature, buildCommand: planRequest.buildRequest.buildCommand, diagnostics: planningDiagnostics, indexingInfo: [], fs: fs, bypassActualTasks: bypassActualTasks, targetsBuildInParallel: buildGraph.targetsBuildInParallel, emitFrontendCommandLines: plan.emitFrontendCommandLines, moduleSessionFilePath: planRequest.workspaceContext.getModuleSessionFilePath(planRequest.buildRequest.parameters), invalidationPaths: plan.invalidationPaths, recursiveSearchPathResults: plan.recursiveSearchPathResults, copiedPathMap: plan.copiedPathMap, rootPathsPerTarget: rootPathsPerTarget, moduleCachePathPerTarget: moduleCachePathPerTarget, staleFileRemovalIdentifierPerTarget: staleFileRemovalIdentifierPerTarget, settingsPerTarget: settingsPerTarget, delegate: delegate, targetDependencies: buildGraph.targetDependenciesByGuid, definingTargetsByModuleName: definingTargetsByModuleName, capturedBuildInfo: capturedBuildInfo, userPreferences: buildGraph.workspaceContext.userPreferences)
     }
 
     /// Encapsulates the two ways `getNewOrCachedBuildDescription` can be called, whether we want to retrieve or create a build description based on a plan or whether we have an explicit build description ID that we want to retrieve and we don't need to create a new one.
@@ -291,8 +291,8 @@ package final class BuildDescriptionManager: Sendable {
 
     private func getCachedBuildDescription(request: BuildDescriptionRequest, signature: BuildDescriptionSignature, constructionDelegate: any BuildDescriptionConstructionDelegate) -> BuildDescription? {
         var description: BuildDescription?
-        if lastIndexWorkspaceDescription?.signature == signature {
-            description = lastIndexWorkspaceDescription
+        if let lastDescription = lastIndexWorkspaceDescription.withLock({ $0 }), lastDescription.signature == signature {
+            description = lastDescription
         } else if let inMemoryDescription = inMemoryCachedBuildDescriptions[signature] {
             description = inMemoryDescription
         } else {
@@ -350,7 +350,9 @@ package final class BuildDescriptionManager: Sendable {
             // Do this at elevated priority to ensure any cache evictions that insertion will perform are done promptly and don't delay other work.
             await _Concurrency.Task(priority: .userInitiated) {
                 if request.isIndexWorkspaceDescription {
-                    lastIndexWorkspaceDescription = buildDescription
+                    lastIndexWorkspaceDescription.withLock {
+                        $0 = buildDescription
+                    }
                 } else {
                     inMemoryCachedBuildDescriptions[signature] = buildDescription
                 }
@@ -443,11 +445,12 @@ package final class BuildDescriptionManager: Sendable {
 
 
         if messageShortening != .full || userPreferences.enableDebugActivityLogs {
-            constructionDelegate.updateProgress(statusMessage: "Attemping to load build description from disk", showInLog: request.workspaceContext.userPreferences.enableDebugActivityLogs)
+            constructionDelegate.updateProgress(statusMessage: "Attempting to load build description from disk", showInLog: request.workspaceContext.userPreferences.enableDebugActivityLogs)
         }
 
+        let taskActionRegistry = try await TaskActionRegistry(pluginManager: request.workspaceContext.core.pluginManager)
         do {
-            let onDiskDesc = try loadSerializedBuildDescription(onDiskPath, workspaceContext: request.workspaceContext, signature: signature)
+            let onDiskDesc = try loadSerializedBuildDescription(onDiskPath, workspaceContext: request.workspaceContext, signature: signature, taskActionRegistry: taskActionRegistry)
             if onDiskDesc.isValidFor(request: request, managerFS: fs) {
                 constructionDelegate.updateProgress(statusMessage: messageShortening == .full ? "Using on-disk description" : "Using build description from disk", showInLog: request.workspaceContext.userPreferences.enableDebugActivityLogs)
                 BuildDescriptionManager.descriptionsLoaded.increment()
@@ -463,8 +466,8 @@ package final class BuildDescriptionManager: Sendable {
         // Output the difference in signatures for debugging if we already had a build plan
         if request.workspaceContext.userPreferences.enableDebugActivityLogs,
            !request.isForIndex || request.isIndexWorkspaceDescription {
-            let lastBuildPlanRequest = request.isForIndex ? lastIndexBuildPlanRequest : lastBuildPlanRequest
-            if let planRequest = request.planRequest, let lastBuildPlanRequest {
+            let lastBuildPlanRequest = request.isForIndex ? lastIndexBuildPlanRequest.withLock({ $0 }) : lastBuildPlanRequest.withLock({ $0 })
+            if let planRequest = request.planRequest, let lastBuildPlanRequest = lastBuildPlanRequest {
                 do {
                     if let diff = try BuildDescriptionSignature.compareBuildDescriptionSignatures(planRequest, lastBuildPlanRequest, onDiskPath) {
                         constructionDelegate.emit(Diagnostic(behavior: .note, location: .unknown, data: DiagnosticData("New build description required because the signature changed"), childDiagnostics: [
@@ -478,9 +481,13 @@ package final class BuildDescriptionManager: Sendable {
             }
 
             if request.isForIndex {
-                self.lastIndexBuildPlanRequest = request.planRequest
+                self.lastIndexBuildPlanRequest.withLock {
+                    $0 = request.planRequest
+                }
             } else {
-                self.lastBuildPlanRequest = request.planRequest
+                self.lastBuildPlanRequest.withLock {
+                    $0 = request.planRequest
+                }
             }
         }
 
@@ -499,14 +506,14 @@ package final class BuildDescriptionManager: Sendable {
         // For performance measurement purposes, we have a user default to force serializing the build description synchronously. We also use synchronous build description serialization if explicitly asked, or if build debugging is enabled, so the build description is written out in time for us to save it to the copy-aside directory just after the build is started (see `BuildOperation.build()`).
         if useSynchronousBuildDescriptionSerialization || UserDefaults.useSynchronousBuildDescriptionSerialization || request.workspaceContext.userPreferences.enableBuildDebugging {
             await onDiskCacheAccessQueue.sync {
-                self.serializeBuildDescription(newDesc, request: request)
+                self.serializeBuildDescription(newDesc, request: request, taskActionRegistry: taskActionRegistry)
                 self.purgeOld(currentBuildDescriptionPath: newDesc.packagePath)
             }
         } else {
             onDiskCacheAccessQueue.async(qos: .background) { [weak newDesc] in
                 // Weak-capture newDesc so we don't potentially deinit a BuildDescription on a background (lowest!) QoS queue if it happens to be the last reference when this block is deallocated, since this block is run in the background out of band. This could result in elevated memory usage as slow build description deallocations pile up.
                 guard let newDesc else { return }
-                self.serializeBuildDescription(newDesc, request: request)
+                self.serializeBuildDescription(newDesc, request: request, taskActionRegistry: taskActionRegistry)
                 self.purgeOld(currentBuildDescriptionPath: newDesc.packagePath)
             }
         }
@@ -517,13 +524,17 @@ package final class BuildDescriptionManager: Sendable {
         return (buildDescription: newDesc, source: .new)
     }
 
-    private func serializeBuildDescription(_ buildDescription: BuildDescription, request: BuildPlanRequest) {
+    private func serializeBuildDescription(_ buildDescription: BuildDescription, request: BuildPlanRequest, taskActionRegistry: TaskActionRegistry) {
         // Serialize the build description.
-        let delegate = BuildDescriptionSerializerDelegate()
+        let delegate = BuildDescriptionSerializerDelegate(taskActionRegistry: taskActionRegistry)
         let taskStoreSerializer = MsgPackSerializer(delegate: delegate)
-        taskStoreSerializer.serialize(buildDescription.taskStore)
+        delegate.taskActionRegistry.withSerializationContext {
+            taskStoreSerializer.serialize(buildDescription.taskStore)
+        }
         let serializer = MsgPackSerializer(delegate: delegate)
-        serializer.serialize(buildDescription)
+        delegate.taskActionRegistry.withSerializationContext {
+            serializer.serialize(buildDescription)
+        }
 
         // Also get the target build graph's display representation.  In the future we would like to emit structured data (e.g. JSON) here instead, although perhaps with the display string embedded in it for human readability.
         let buildGraphString = request.buildGraph.dependencyGraphDiagnostic.formatLocalizedDescription(.debugWithoutBehaviorAndLocation)
@@ -549,15 +560,19 @@ package final class BuildDescriptionManager: Sendable {
     }
 
     /// Loads and returns a build description at the given path for a particular workspace. Throws a `DeserializerError` if it could not be read/deserialized.
-    private func loadSerializedBuildDescription(_ path: Path, workspaceContext: WorkspaceContext, signature: BuildDescriptionSignature) throws -> BuildDescription {
-        let delegate = BuildDescriptionDeserializerDelegate(workspace: workspaceContext.workspace, platformRegistry: workspaceContext.core.platformRegistry, sdkRegistry: workspaceContext.core.sdkRegistry, specRegistry: workspaceContext.core.specRegistry)
+    private func loadSerializedBuildDescription(_ path: Path, workspaceContext: WorkspaceContext, signature: BuildDescriptionSignature, taskActionRegistry: TaskActionRegistry) throws -> BuildDescription {
+        let delegate = BuildDescriptionDeserializerDelegate(workspace: workspaceContext.workspace, platformRegistry: workspaceContext.core.platformRegistry, sdkRegistry: workspaceContext.core.sdkRegistry, specRegistry: workspaceContext.core.specRegistry, taskActionRegistry: taskActionRegistry)
         let taskStoreContents = try fs.read(path.join("task-store.msgpack"))
         let taskStoreDeserializer = MsgPackDeserializer(taskStoreContents, delegate: delegate)
-        let taskStore: TaskStore = try taskStoreDeserializer.deserialize()
+        let taskStore: FrozenTaskStore = try delegate.taskActionRegistry.withSerializationContext {
+            try taskStoreDeserializer.deserialize()
+        }
         delegate.taskStore = taskStore
         let byteString = try fs.read(path.join("description.msgpack"))
         let deserializer = MsgPackDeserializer(byteString, delegate: delegate)
-        let buildDescription: BuildDescription = try deserializer.deserialize()
+        let buildDescription: BuildDescription = try delegate.taskActionRegistry.withSerializationContext {
+            try deserializer.deserialize()
+        }
 
         // Correctness check: If the signature of the description we deserialized is different from the one we expected, then something has gone wrong.
         guard buildDescription.signature == signature else {
@@ -771,8 +786,8 @@ extension BuildSystemTaskPlanningDelegate: TaskActionCreationDelegate {
         return FileCopyTaskAction(context)
     }
 
-    func createGenericCachingTaskAction(enableCacheDebuggingRemarks: Bool, enableTaskSandboxEnforcement: Bool, sandboxDirectory: Path, extraSandboxSubdirectories: [Path], developerDirectory: Path) -> any PlannedTaskAction {
-        return GenericCachingTaskAction(enableCacheDebuggingRemarks: enableCacheDebuggingRemarks, enableTaskSandboxEnforcement: enableTaskSandboxEnforcement, sandboxDirectory: sandboxDirectory, extraSandboxSubdirectories: extraSandboxSubdirectories, developerDirectory: developerDirectory)
+    func createGenericCachingTaskAction(enableCacheDebuggingRemarks: Bool, enableTaskSandboxEnforcement: Bool, sandboxDirectory: Path, extraSandboxSubdirectories: [Path], developerDirectory: Path, casOptions: CASOptions) -> any PlannedTaskAction {
+        return GenericCachingTaskAction(enableCacheDebuggingRemarks: enableCacheDebuggingRemarks, enableTaskSandboxEnforcement: enableTaskSandboxEnforcement, sandboxDirectory: sandboxDirectory, extraSandboxSubdirectories: extraSandboxSubdirectories, developerDirectory: developerDirectory, casOptions: casOptions)
     }
 
     func createInfoPlistProcessorTaskAction(_ contextPath: Path) -> any PlannedTaskAction {
@@ -849,6 +864,10 @@ extension BuildSystemTaskPlanningDelegate: TaskActionCreationDelegate {
 
     func createClangModuleVerifierInputGeneratorTaskAction() -> any PlannedTaskAction {
         return ClangModuleVerifierInputGeneratorTaskAction()
+    }
+
+    func createProcessSDKImportsTaskAction() -> any PlannedTaskAction {
+        return ProcessSDKImportsTaskAction()
     }
 }
 

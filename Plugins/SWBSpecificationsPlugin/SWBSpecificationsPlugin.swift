@@ -20,7 +20,7 @@ import Foundation
         let enumerator = FileManager.default.enumerator(at: target.directoryURL.repaired, includingPropertiesForKeys: nil)
         var inputs: [URL] = []
         while let url = enumerator?.nextObject() as? URL {
-            if ["xcspec", "xcbuildrules"].contains(url.pathExtension) {
+            if ["xcspec", "xcbuildrules", "strings"].contains(url.pathExtension) {
                 inputs.append(url)
             }
         }

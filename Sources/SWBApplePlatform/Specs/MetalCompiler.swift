@@ -123,7 +123,7 @@ fileprivate struct MetalTaskPayload: TaskPayload, Encodable {
     }
 }
 
-public final class MetalCompilerSpec : GenericCompilerSpec, SpecIdentifierType {
+public final class MetalCompilerSpec : GenericCompilerSpec, SpecIdentifierType, @unchecked Sendable {
     public static let identifier = "com.apple.compilers.metal"
 
     public override func constructTasks(_ cbc: CommandBuildContext, _ delegate: any TaskGenerationDelegate) async {
@@ -203,6 +203,6 @@ public final class MetalCompilerSpec : GenericCompilerSpec, SpecIdentifierType {
     override public var payloadType: (any TaskPayload.Type)? { return MetalTaskPayload.self }
 }
 
-public final class MetalLinkerSpec : GenericCompilerSpec, SpecIdentifierType {
+public final class MetalLinkerSpec : GenericCompilerSpec, SpecIdentifierType, @unchecked Sendable {
     public static let identifier = "com.apple.compilers.metal-linker"
 }

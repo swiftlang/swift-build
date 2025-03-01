@@ -67,7 +67,8 @@ private func constructTargetBuildGraph(for targetGUIDs: [TargetGUID], in workspa
                                                                  useImplicitDependencies: includeImplicitDependencies,
                                                                  useDryRun: false),
                                       buildRequestContext: buildRequestContext,
-                                      delegate: delegate)
+                                      delegate: delegate,
+                                      purpose: .dependencyGraph)
     if delegate.hasErrors {
         throw StubError.error("unable to get target build graph:\n" + delegate.diagnostics.map { $0.formatLocalizedDescription(.debug) }.joined(separator: "\n"))
     }

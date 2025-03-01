@@ -44,7 +44,6 @@ class MockDynamicTaskExecutionDelegate: DynamicTaskExecutionDelegate {
         singleUse: Bool,
         workingDirectory: Path,
         environment: EnvironmentBindings,
-        taskInputs: [ExecutionNode],
         forTarget: ConfiguredTarget?,
         priority: TaskPriority,
         showEnvironment: Bool,

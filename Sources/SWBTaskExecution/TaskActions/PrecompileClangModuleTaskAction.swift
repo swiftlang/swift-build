@@ -75,7 +75,7 @@ final public class PrecompileClangModuleTaskAction: TaskAction, BuildValueValida
     public override func taskSetup(_ task: any ExecutableTask, executionDelegate: any TaskExecutionDelegate, dynamicExecutionDelegate: any DynamicTaskExecutionDelegate) {
         let clangModuleDependencyGraph = dynamicExecutionDelegate.operationContext.clangModuleDependencyGraph
 
-        // If a precompile task action is executing, it is expected that the scanning action already happend, so the
+        // If a precompile task action is executing, it is expected that the scanning action already happened, so the
         // dependencies for this module should already be present in the ModuleDependencyGraph.
         let dependencyInfo: ClangModuleDependencyGraph.DependencyInfo
         do {
@@ -103,7 +103,6 @@ final public class PrecompileClangModuleTaskAction: TaskAction, BuildValueValida
                 singleUse: false,
                 workingDirectory: dependencyInfo.workingDirectory,
                 environment: task.environment,
-                taskInputs: [],
                 forTarget: task.forTarget,
                 priority: .preferred,
                 showEnvironment: task.showEnvironment,
@@ -159,7 +158,7 @@ final public class PrecompileClangModuleTaskAction: TaskAction, BuildValueValida
         }
         let commandLine = command.arguments
 
-        if executionDelegate.userPreferences.enableDebugActivityLogs {
+        if executionDelegate.userPreferences.enableDebugActivityLogs || executionDelegate.emitFrontendCommandLines {
             let commandString = UNIXShellCommandCodec(
                 encodingStrategy: .backslashes,
                 encodingBehavior: .fullCommandLine
@@ -216,7 +215,7 @@ final public class PrecompileClangModuleTaskAction: TaskAction, BuildValueValida
                         enableStrictCASErrors: key.casOptions!.enableStrictCASErrors
                     )
                 }
-            } else if result == .failed && !executionDelegate.userPreferences.enableDebugActivityLogs {
+            } else if result == .failed && !executionDelegate.userPreferences.enableDebugActivityLogs && !executionDelegate.emitFrontendCommandLines {
                 let commandString = UNIXShellCommandCodec(
                     encodingStrategy: .backslashes,
                     encodingBehavior: .fullCommandLine

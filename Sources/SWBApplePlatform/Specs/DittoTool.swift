@@ -12,7 +12,7 @@
 
 import SWBCore
 
-final class DittoToolSpec : CommandLineToolSpec, SpecIdentifierType {
+final class DittoToolSpec : CommandLineToolSpec, SpecIdentifierType, @unchecked Sendable {
     static let identifier = "com.apple.tools.ditto"
 
     required convenience init(_ parser: SpecParser, _ basedOnSpec: Spec?) {

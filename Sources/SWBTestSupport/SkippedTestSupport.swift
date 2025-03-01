@@ -70,6 +70,7 @@ extension KnownSDK {
     package static let linux: Self = "linux"
     package static let android: Self = "android"
     package static let qnx: Self = "qnx"
+    package static let wasi: Self = "wasi"
 }
 
 package final class ConditionTraitContext: CoreBasedTests, Sendable {
@@ -120,7 +121,7 @@ extension Trait where Self == Testing.ConditionTrait {
     }
 
     /// Constructs a condition trait that causes a test to be disabled if not running on the specified host OS.
-    /// - parameter when: An additional constraint to apply such that the host OS requirement is only applied if this parameer is _also_ true. Defaults to true.
+    /// - parameter when: An additional constraint to apply such that the host OS requirement is only applied if this parameter is _also_ true. Defaults to true.
     package static func requireHostOS(_ os: OperatingSystem, when condition: Bool = true) -> Self {
         enabled("This test requires a \(os) host OS.", { try ProcessInfo.processInfo.hostOperatingSystem() == os && condition })
     }
@@ -171,6 +172,12 @@ extension Trait where Self == Testing.ConditionTrait {
         }
     }
 
+    package static func requireSDKImports() -> Self {
+        enabled("Linker does not support SDK imports") {
+            return try await ConditionTraitContext.shared.supportsSDKImports
+        }
+    }
+
     package static func requireLocalFileSystem(_ sdks: RunDestinationInfo...) -> Self {
         disabled("macOS SDK is on a remote filesystem") {
             let core = try await ConditionTraitContext.shared.getCore()
@@ -213,6 +220,12 @@ extension Trait where Self == Testing.ConditionTrait {
             getEnvironmentVariable(key) == value
         }
     }
+
+    package static func skipIfEnvironmentVariableSet(key: String) -> Self {
+        disabled("environment sets '\(key)'") {
+            getEnvironmentVariable(key) != nil
+        }
+    }
 }
 
 // MARK: Condition traits for Xcode and SDK version requirements
@@ -242,6 +255,15 @@ extension Trait where Self == Testing.ConditionTrait {
         requireXcodeBuildVersions(in: try ProductBuildVersion(version)..., sourceLocation: sourceLocation)
     }
 
+    package static func requireXcode16(sourceLocation: SourceLocation = #_sourceLocation) -> Self {
+        enabled("Xcode version is not suitable", sourceLocation: sourceLocation, {
+            guard let installedVersion =  try? await InstalledXcode.currentlySelected().productBuildVersion() else {
+                return true
+            }
+            return installedVersion > (try ProductBuildVersion("16A242d"))
+        })
+    }
+
     /// Constructs a condition trait that causes a test to be disabled if not running against at least the given version of Xcode.
     package static func requireMinimumXcodeBuildVersion(_ version: ProductBuildVersion, sourceLocation: SourceLocation = #_sourceLocation) -> Self {
         requireXcodeBuildVersions(in: version..., sourceLocation: sourceLocation)
@@ -267,12 +289,12 @@ extension Trait where Self == Testing.ConditionTrait {
         })
     }
 
-    /// Constructs a condition trait that causes a test to be disabled if not running against a version of Xcode including the SDK which is equal to or newer than at least one of the given versions wihin the same release.
+    /// Constructs a condition trait that causes a test to be disabled if not running against a version of Xcode including the SDK which is equal to or newer than at least one of the given versions within the same release.
     package static func requireMinimumSDKBuildVersion(sdkName: String, requiredVersions: [String], sourceLocation: SourceLocation = #_sourceLocation) -> Self {
         requireMinimumSDKBuildVersion(sdkName: sdkName, requiredVersions: try requiredVersions.map { try ProductBuildVersion($0) }, sourceLocation: sourceLocation)
     }
 
-    /// Constructs a condition trait that causes a test to be disabled if not running against a version of Xcode including the SDK which is equal to or newer than at least one of the given versions wihin the same release.
+    /// Constructs a condition trait that causes a test to be disabled if not running against a version of Xcode including the SDK which is equal to or newer than at least one of the given versions within the same release.
     package static func requireMinimumSDKBuildVersion(sdkName: String, requiredVersions: @Sendable @autoclosure @escaping () throws -> [ProductBuildVersion], sourceLocation: SourceLocation = #_sourceLocation) -> Self {
         disabled("SDK build version is too old", sourceLocation: sourceLocation, {
             let sdkVersion = try await InstalledXcode.currentlySelected().productBuildVersion(sdkCanonicalName: sdkName)

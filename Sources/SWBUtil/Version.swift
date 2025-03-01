@@ -20,7 +20,7 @@ public struct Version: CustomStringConvertible, Sendable {
     /// The raw components that make up the version.
     public let rawValue: RawValue
 
-    /// Initialize a `Version` from the given `rawValue`. This is a convience form as there are no failable constructs for `Version`.
+    /// Initialize a `Version` from the given `rawValue`. This is a convenience form as there are no failable constructs for `Version`.
     public init(_ rawValue: RawValue) {
         self.rawValue = rawValue
     }

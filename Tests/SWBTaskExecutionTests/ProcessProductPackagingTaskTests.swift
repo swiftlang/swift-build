@@ -305,7 +305,7 @@ fileprivate struct ProcessProductEntitlementsTaskTests {
 fileprivate struct ProcessProductProvisioningProfileTaskTests {
     @Test
     func diagnostics() async {
-        func checkDiagnostics(_ commandLine: [String], errors: [String] = [], warnings: [String] = [], notes: [String] = [], sourceLocaction: SourceLocation = #_sourceLocation) async
+        func checkDiagnostics(_ commandLine: [String], errors: [String] = [], warnings: [String] = [], notes: [String] = [], sourceLocation: SourceLocation = #_sourceLocation) async
         {
             let action = ProcessProductProvisioningProfileTaskAction()
             let task = Task(forTarget: nil, ruleInfo: [], commandLine: commandLine, workingDirectory: Path(""), action: action)
@@ -320,10 +320,10 @@ fileprivate struct ProcessProductProvisioningProfileTaskTests {
                 outputDelegate: outputDelegate
             )
 
-            #expect(result == .failed, sourceLocation: sourceLocaction)
-            #expect(outputDelegate.errors == errors.map { "error: \($0)" }, sourceLocation: sourceLocaction)
-            #expect(outputDelegate.warnings == warnings.map { "warning: \($0)" }, sourceLocation: sourceLocaction)
-            #expect(outputDelegate.notes == notes.map { "note: \($0)" }, sourceLocation: sourceLocaction)
+            #expect(result == .failed, sourceLocation: sourceLocation)
+            #expect(outputDelegate.errors == errors.map { "error: \($0)" }, sourceLocation: sourceLocation)
+            #expect(outputDelegate.warnings == warnings.map { "warning: \($0)" }, sourceLocation: sourceLocation)
+            #expect(outputDelegate.notes == notes.map { "note: \($0)" }, sourceLocation: sourceLocation)
         }
 
         await checkDiagnostics([], errors: ["no input file specified", "missing required option: -o"])

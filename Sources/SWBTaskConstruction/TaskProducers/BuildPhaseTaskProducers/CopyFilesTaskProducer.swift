@@ -169,7 +169,7 @@ class CopyFilesTaskProducer: FilesBasedBuildPhaseTaskProducerBase, FilesBasedBui
 
         // FIXME: Merge the region variant.
 
-        let cbc = CommandBuildContext(producer: context, scope: scope, inputs: group.files, isPreferredArch: buildFilesContext.belongsToPreferedArch, buildPhaseInfo: buildFilesContext.buildPhaseInfo(for: rule), resourcesDir: dstFolder, unlocalizedResourcesDir: dstFolder)
+        let cbc = CommandBuildContext(producer: context, scope: scope, inputs: group.files, isPreferredArch: buildFilesContext.belongsToPreferredArch, buildPhaseInfo: buildFilesContext.buildPhaseInfo(for: rule), resourcesDir: dstFolder, unlocalizedResourcesDir: dstFolder)
         await constructTasksForRule(rule, cbc, delegate)
     }
 
@@ -241,7 +241,7 @@ class CopyFilesTaskProducer: FilesBasedBuildPhaseTaskProducerBase, FilesBasedBui
         let stripBitcode = scope.evaluate(BuiltinMacros.STRIP_BITCODE_FROM_COPIED_FILES) && codeSignAfterCopying
 
         // SUPPORT FOR MERGEABLE LIBRARIES
-        // If this file was built as mergeable, and either we are a merged binary which is merging or reeexporting that file (and embedding it, which is the step that we're setting up here), or we are embedding that merged/reexported binary product as well as this product, then we need to skip copying the product's binary.
+        // If this file was built as mergeable, and either we are a merged binary which is merging or re-exporting that file (and embedding it, which is the step that we're setting up here), or we are embedding that merged/reexported binary product as well as this product, then we need to skip copying the product's binary.
         // Note that we remove the binary even for the debug workflow, because the SourcesTaskProducer will copy only the binary part of the product into the merged product to mimic the actual merge workflow.
         // FIXME: At present only products of other targets in this build, and XCFrameworks, are supported here.
         var subpathsToExclude = [String]()
@@ -378,7 +378,7 @@ class CopyFilesTaskProducer: FilesBasedBuildPhaseTaskProducerBase, FilesBasedBui
                             }
                         default:
                             // These types do not support mergeable metadata.  This should have been caught at XCFramework creation time, but perhaps someone edited the XCFramework after creation.
-                            // In this case, we emit a warning and copy these items normally, withoutn stripping any mergeable metadata they may have.  We may refine this in the future.
+                            // In this case, we emit a warning and copy these items normally, without stripping any mergeable metadata they may have.  We may refine this in the future.
                             context.warning("XCFramework claims \(library.libraryType.libraryTypeName) contains mergeable metadata, which is not supported: \(resolvedBuildFile.absolutePath)")
                         }
                     }

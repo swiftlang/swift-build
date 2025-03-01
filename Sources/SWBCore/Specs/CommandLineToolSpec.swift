@@ -15,8 +15,8 @@ public import struct Foundation.Data
 public import class Foundation.JSONDecoder
 public import SWBMacro
 
-/// Describes the type and other characterstics of a single kind of input file accepted by a build tool.
-struct InputFileTypeDescriptor: Encodable {
+/// Describes the type and other characteristics of a single kind of input file accepted by a build tool.
+struct InputFileTypeDescriptor: Encodable, Sendable {
     /// Identifier of the file type — this is unbound until the build tool is used, since the particular file type any given identifier maps to can depend on the context.
     let identifier: String
     /// FIXME: There will be others, but for now the identifier is the only one we use.
@@ -60,7 +60,7 @@ public extension InputFileGroupingStrategy {
     }
 }
 
-/// A grouping strategy that groups all files in a build phase which matchn a given build rule into the same group.  For example, all files to be processed by the Swift compiler in a build phase will be passed to a single invocation of the compiler.
+/// A grouping strategy that groups all files in a build phase which match a given build rule into the same group.  For example, all files to be processed by the Swift compiler in a build phase will be passed to a single invocation of the compiler.
 @_spi(Testing) public final class AllInputFilesGroupingStrategy : InputFileGroupingStrategy, Encodable {
 
     /// Group identifier that’s returned for every path.
@@ -248,8 +248,8 @@ extension DiscoveredCommandLineToolSpecInfo {
     }
 }
 
-open class CommandLineToolSpec : PropertyDomainSpec, SpecType, TaskTypeDescription {
-    package enum CommandLineTemplateArg : Sendable{
+open class CommandLineToolSpec : PropertyDomainSpec, SpecType, TaskTypeDescription, @unchecked Sendable {
+    package enum CommandLineTemplateArg : Sendable {
         /// Placeholder for the dynamically computed executable path.
         //
         // FIXME: Note, this is only used by 'Ld.xcspec', there might be a simpler implementation.
@@ -327,7 +327,7 @@ open class CommandLineToolSpec : PropertyDomainSpec, SpecType, TaskTypeDescripti
     @_spi(Testing) public let outputs: [MacroStringExpression]?
 
     /// The additional environment variables to provide to instances of the tool.
-    let environmentVariables: [(String, MacroStringExpression)]?
+    @_spi(Testing) public let environmentVariables: [(String, MacroStringExpression)]?
 
     /// The path of the additional "generated Info.plist" content, if used.
     let generatedInfoPlistContent: MacroStringExpression?
@@ -509,7 +509,7 @@ open class CommandLineToolSpec : PropertyDomainSpec, SpecType, TaskTypeDescripti
             } else if let inherited = (basedOnSpec as? CommandLineToolSpec)?.outputs {
                 self.outputs = inherited
             } else {
-                // If the tool defined no outputs then force the definition of one using $(OutputPath). This correpsonds to the effective behavior of Xcode, which would implicitly create the output node when the spec asked for [output].
+                // If the tool defined no outputs then force the definition of one using $(OutputPath). This corresponds to the effective behavior of Xcode, which would implicitly create the output node when the spec asked for [output].
                 //
                 // FIXME: Force the specs to define this, instead of synthesizing it: <rdar://problem/24544779> [Swift Build] Stop synthesizing Outputs for generic command line tools
                 self.outputs = [parser.delegate.internalMacroNamespace.parseString("$(OutputPath)")]
@@ -547,7 +547,7 @@ open class CommandLineToolSpec : PropertyDomainSpec, SpecType, TaskTypeDescripti
         if let envVariables = parser.parseObject("EnvironmentVariables", inherited: false) {
             if case .plDict(let items) = envVariables {
                 var variables: [(String, MacroStringExpression)] = []
-                for (key,valueData) in items {
+                for (key,valueData) in items.sorted(by: \.0) {
                     guard case .plString(let value) = valueData else {
                         parser.error("invalid value for '\(key)' key in 'EnvironmentVariables' (expected string)")
                         continue
@@ -1408,7 +1408,7 @@ extension CommandLineToolSpec.RuleInfoTemplateArg: ExpressibleByStringLiteral {
     }
 }
 
-open class GenericCommandLineToolSpec : CommandLineToolSpec {
+open class GenericCommandLineToolSpec : CommandLineToolSpec, @unchecked Sendable {
     required public init(_ parser: SpecParser, _ basedOnSpec: Spec?) {
         super.init(parser, basedOnSpec, isGeneric: true)
     }
@@ -1417,7 +1417,7 @@ open class GenericCommandLineToolSpec : CommandLineToolSpec {
 /// A general-purpose output parser for scraping traditional POSIX-style diagnostics.  Output is passed through to the delegate as it is received, while diagnostic parsing is done line-by-line as each newline is encountered.
 open class GenericOutputParser : TaskOutputParser {
 
-    /// The delegate that's informed about ouput and diagnostics.
+    /// The delegate that's informed about output and diagnostics.
     public let delegate: any TaskOutputParserDelegate
 
     /// Workspace context associated with the output parser.
@@ -1470,7 +1470,7 @@ open class GenericOutputParser : TaskOutputParser {
         // Following that, there must be a diagnostic kind keyword or a basename
         // alias, and then a diagnostic.
         //
-        // We also retrict the leading indicator to not have any quote characters,
+        // We also restrict the leading indicator to not have any quote characters,
         // which helps filter out anything which looks like a diagnostic but is
         // appearing within a quoted string.
         self.diagnosticRegex = try! RegEx(pattern: "^([^'\"]+: +|[ \\t\\f\\p{Z}]*)(error|warning|note|notice|fixit|\(toolnameSubregex)): (.*)$")
@@ -1670,7 +1670,7 @@ fileprivate extension Diagnostic.FixIt {
 public func generateIndexOutputPath(from output: Path, basePath: Path) -> Path? {
     // We want the paths in the index store to be relocatable. This could be
     // relative, but use an absolute path instead to ensure no accidental
-    // absoluting by eg. the compilers.
+    // conversion to absolute by eg. the compilers.
     if let relative = output.relativeSubpath(from: basePath) {
         if let newPath = Path(relative).makeAbsolute(relativeTo: Path(Path.pathSeparatorString)) {
             return newPath

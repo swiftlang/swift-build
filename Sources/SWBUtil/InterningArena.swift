@@ -12,11 +12,13 @@
 
 public typealias ByteStringArena = InterningArena<ByteString>
 public typealias StringArena = InterningArena<String>
+public typealias FrozenByteStringArena = FrozenInterningArena<ByteString>
+public typealias FrozenStringArena = FrozenInterningArena<String>
 
 private let numberOfInternCalls = Statistic("InterningArena.numberOfInternCalls", "Number of calls to 'InterningArena.intern'")
 private let numberOfItemsInterned = Statistic("InterningArena.numberOfItemsInterned", "Number of items interned in InterningArenas")
 
-public class InterningArena<T: Hashable> {
+public final class InterningArena<T: Hashable> {
     public struct Handle: Hashable, Sendable {
         fileprivate let value: UInt32
 
@@ -24,21 +26,20 @@ public class InterningArena<T: Hashable> {
             self.value = value
         }
     }
-    private var uniquer: [T: Handle]? = [:]
+    private var uniquer: [T: Handle] = [:]
     private var items: [T] = []
 
     public init() {}
 
     public func intern(_ item: T) -> Handle {
-        assert(uniquer != nil, "api misuse: attempted to intern a string in a frozen arena")
         numberOfInternCalls.increment()
-        if let existingHandle = uniquer?[item] {
+        if let existingHandle = uniquer[item] {
             return existingHandle
         } else {
             numberOfItemsInterned.increment()
             let newHandle = Handle(value: UInt32(items.count))
             items.append(item)
-            uniquer?[item] = newHandle
+            uniquer[item] = newHandle
             return newHandle
         }
     }
@@ -47,10 +48,22 @@ public class InterningArena<T: Hashable> {
         return items[Int(handle.value)]
     }
 
-    public func freeze() {
-        uniquer = nil
+    public func freeze() -> FrozenInterningArena<T> {
+        return FrozenInterningArena(items: self.items)
     }
 }
 
 @available(*, unavailable)
 extension InterningArena: Sendable { }
+
+public final class FrozenInterningArena<T: Hashable & Sendable>: Sendable {
+    private let items: [T]
+
+    fileprivate init(items: [T]) {
+        self.items = items
+    }
+
+    public func lookup(handle: InterningArena<T>.Handle) -> T {
+        return items[Int(handle.value)]
+    }
+}

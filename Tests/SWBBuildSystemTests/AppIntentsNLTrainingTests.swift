@@ -18,7 +18,7 @@ import SWBTestSupport
 import SWBTaskExecution
 import SWBUtil
 
-@Suite
+@Suite(.requireXcode16())
 fileprivate struct AppIntentsNLTrainingTests: CoreBasedTests {
     let appShortcutsStringsFileName = "AppShortcuts.strings"
     let appIntentsSourceFileName = "source.swift"

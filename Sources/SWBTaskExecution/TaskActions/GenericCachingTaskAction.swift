@@ -21,38 +21,45 @@ public final class GenericCachingTaskAction: TaskAction {
         return "generic-caching"
     }
 
+    // We version this task action and include it in cache keys so that when the implementation changes, we have a mechanism to force invalidation.
+    static let version = 1
+
     let enableCacheDebuggingRemarks: Bool
     let enableTaskSandboxEnforcement: Bool
     let sandboxDirectory: Path
     let extraSandboxSubdirectories: [Path]
     let developerDirectory: Path
+    let casOptions: CASOptions
 
-    public init(enableCacheDebuggingRemarks: Bool, enableTaskSandboxEnforcement: Bool, sandboxDirectory: Path, extraSandboxSubdirectories: [Path], developerDirectory: Path) {
+    public init(enableCacheDebuggingRemarks: Bool, enableTaskSandboxEnforcement: Bool, sandboxDirectory: Path, extraSandboxSubdirectories: [Path], developerDirectory: Path, casOptions: CASOptions) {
         self.enableCacheDebuggingRemarks = enableCacheDebuggingRemarks
         self.enableTaskSandboxEnforcement = enableTaskSandboxEnforcement
         self.sandboxDirectory = sandboxDirectory
         self.extraSandboxSubdirectories = extraSandboxSubdirectories
         self.developerDirectory = developerDirectory
+        self.casOptions = casOptions
         super.init()
     }
 
     required init(from deserializer: any Deserializer) throws {
-        try deserializer.beginAggregate(6)
+        try deserializer.beginAggregate(7)
         self.enableCacheDebuggingRemarks = try deserializer.deserialize()
         self.enableTaskSandboxEnforcement = try deserializer.deserialize()
         self.sandboxDirectory = try deserializer.deserialize()
         self.extraSandboxSubdirectories = try deserializer.deserialize()
         self.developerDirectory = try deserializer.deserialize()
+        self.casOptions = try deserializer.deserialize()
         try super.init(from: deserializer)
     }
 
     public override func serialize<T>(to serializer: T) where T : Serializer {
-        serializer.beginAggregate(6)
+        serializer.beginAggregate(7)
         serializer.serialize(enableCacheDebuggingRemarks)
         serializer.serialize(enableTaskSandboxEnforcement)
         serializer.serialize(sandboxDirectory)
         serializer.serialize(extraSandboxSubdirectories)
         serializer.serialize(developerDirectory)
+        serializer.serialize(casOptions)
         super.serialize(to: serializer)
         serializer.endAggregate()
     }
@@ -68,6 +75,15 @@ public final class GenericCachingTaskAction: TaskAction {
             return .failed
         }
 
+        defer {
+            if cas.supportsPruning {
+                dynamicExecutionDelegate.operationContext.compilationCachingDataPruner.pruneCAS(cas,
+                                                                                                key: .init(path: casOptions.casPath, casOptions: casOptions),
+                                                                                                activityReporter: dynamicExecutionDelegate,
+                                                                                                fileSystem: executionDelegate.fs)
+            }
+        }
+
         // Ingest the inputs
         let cacheKey: CacheKey
         let keyObjectID: ToolchainDataID
@@ -75,7 +91,7 @@ public final class GenericCachingTaskAction: TaskAction {
             let inputIDs = try await task.inputPaths.concurrentMap(maximumParallelism: 10) {
                 try await CASFSNode.import(path: $0, fs: executionDelegate.fs, cas: cas)
             }
-            cacheKey = CacheKey(commandLine: task.commandLine, environmentBindings: task.environment, workingDirectory: task.workingDirectory, inputIDs: inputIDs)
+            cacheKey = CacheKey(commandLine: task.commandLine, environmentBindings: task.environment, workingDirectory: task.workingDirectory, version: Self.version, inputIDs: inputIDs)
             keyObjectID = try await cacheKey.store(in: cas)
             emitCacheDebuggingRemark("cache key: \(keyObjectID)")
 
@@ -283,21 +299,24 @@ fileprivate struct CacheKey {
     let commandLine: [CommandLineArgument]
     let environmentBindings: EnvironmentBindings
     let workingDirectory: Path
+    let version: Int
     let inputIDs: [ToolchainDataID]
 
-    init(commandLine: [CommandLineArgument], environmentBindings: EnvironmentBindings, workingDirectory: Path, inputIDs: [ToolchainDataID]) {
+    init(commandLine: [CommandLineArgument], environmentBindings: EnvironmentBindings, workingDirectory: Path, version: Int, inputIDs: [ToolchainDataID]) {
         self.commandLine = commandLine
         self.environmentBindings = environmentBindings
         self.workingDirectory = workingDirectory
         self.inputIDs = inputIDs
+        self.version = version
     }
 
     func store(in cas: ToolchainCAS) async throws -> ToolchainDataID {
         let serializer = MsgPackSerializer()
-        serializer.beginAggregate(3)
+        serializer.beginAggregate(4)
         serializer.serialize(commandLine)
         serializer.serialize(environmentBindings)
         serializer.serialize(workingDirectory)
+        serializer.serialize(version)
         serializer.endAggregate()
         return try await cas.store(object: .init(data: serializer.byteString, refs: inputIDs))
     }
@@ -307,11 +326,12 @@ fileprivate struct CacheKey {
             throw StubError.error("Could not load cached value")
         }
         let deserializer = MsgPackDeserializer(casObject.data)
-        try deserializer.beginAggregate(2)
+        try deserializer.beginAggregate(4)
         let commandLine: [CommandLineArgument] = try deserializer.deserialize()
         let environmentBindings: EnvironmentBindings = try deserializer.deserialize()
         let workingDirectory: Path = try deserializer.deserialize()
-        return CacheKey(commandLine: commandLine, environmentBindings: environmentBindings, workingDirectory: workingDirectory, inputIDs: casObject.refs)
+        let version: Int = try deserializer.deserialize()
+        return CacheKey(commandLine: commandLine, environmentBindings: environmentBindings, workingDirectory: workingDirectory, version: version, inputIDs: casObject.refs)
     }
 }
 

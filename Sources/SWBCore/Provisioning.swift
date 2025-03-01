@@ -27,7 +27,7 @@ public func wrappedBundleIdentifier(for bundleIdentifier: String) -> String {
 public func computeBundleIdentifier(from scope: MacroEvaluationScope, bundleIdentifierFromInfoPlist: MacroStringExpression) -> String {
     let productBundleIdentifier = scope.evaluate(BuiltinMacros.PRODUCT_BUNDLE_IDENTIFIER)
     if !productBundleIdentifier.isEmpty {
-        // When a test bundle is being signed **AND** that test bundle is being hosted in a test runner, then the bundle identifier should actualy match the test runner and **not** the test bundle.
+        // When a test bundle is being signed **AND** that test bundle is being hosted in a test runner, then the bundle identifier should actually match the test runner and **not** the test bundle.
         if scope.evaluate(BuiltinMacros.USES_XCTRUNNER) {
             return wrappedBundleIdentifier(for: productBundleIdentifier)
         }

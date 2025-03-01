@@ -108,7 +108,7 @@ public enum SandboxingOverride: Int, Serializable, Sendable, Codable {
 
 public final class ShellScriptBuildPhase: BuildPhase, @unchecked Sendable {
     public let name: String
-    // FIXME: This shoudl be a MacroExpressionSource
+    // FIXME: This should be a MacroExpressionSource
     public let shellPath: Path
     public let scriptContents: String
     public let originalObjectID: String

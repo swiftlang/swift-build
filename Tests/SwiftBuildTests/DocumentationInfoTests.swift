@@ -41,7 +41,6 @@ fileprivate struct DocumentationInfoTests: CoreBasedTests {
                 #expect(diagnostics.isEmpty)
                 let session = try result.get()
                 #expect(try await service.listSessions() == ["S0": "FOO"])
-                #expect(session != nil)
                 #expect(session.name == "FOO")
                 #expect(session.uid == "S0")
 

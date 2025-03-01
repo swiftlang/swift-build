@@ -401,12 +401,12 @@ import SWBMacro
                 }
 
                 // check that we get the right value for VERSION_INFO_STRING, which validates we parsed it correctly.
-                let VERSION_INFO_STRING = try #require(core.specRegistry.internalMacroNamespace.lookupMacroDeclaration("VERSION_INFO_STRING")) as! StringMacroDeclaration
+                let VERSION_INFO_STRING = try #require(core.specRegistry.internalMacroNamespace.lookupMacroDeclaration("VERSION_INFO_STRING") as? StringMacroDeclaration)
                 let result: String = settings.globalScope.evaluate(VERSION_INFO_STRING)
                 #expect(result == "\"@(#)PROGRAM:Foo  PROJECT:aProject-\"")
 
                 // check handle of empty default macro assignments inside list evaluation (rdar://problem/24786941).
-                #expect(settings.globalScope.evaluate(try #require(core.specRegistry.internalMacroNamespace.lookupMacroDeclaration("OTHER_LDFLAGS")) as! StringListMacroDeclaration) == ["-current_version", ""])
+                #expect(settings.globalScope.evaluate(try #require(core.specRegistry.internalMacroNamespace.lookupMacroDeclaration("OTHER_LDFLAGS") as? StringListMacroDeclaration)) == ["-current_version", ""])
 
                 // check target task overrides.
                 #expect(settings.globalScope.evaluate(BuiltinMacros.ACTION) == action.actionName)
@@ -593,7 +593,7 @@ import SWBMacro
         #expect(settings.tableForTesting.lookupMacro(BuiltinMacros.TARGET_BUILD_DIR)?.next?.next?.expression.stringRep == "$(CONFIGURATION_BUILD_DIR)$(TARGET_BUILD_SUBPATH)")
         #expect(settings.tableForTesting.lookupMacro(BuiltinMacros.CONFIGURATION_TEMP_DIR)?.next?.next?.expression.stringRep == nil)
 
-        // This setting is always overriden by the project defaults.
+        // This setting is always overridden by the project defaults.
         #expect(settings.tableForTesting.lookupMacro(BuiltinMacros.CONFIGURATION_BUILD_DIR)?.next?.next?.expression.stringRep == nil)
 
         // Check that the correct build system defaults are exported (should be the native ones).
@@ -790,7 +790,7 @@ import SWBMacro
                            expectedExcludedFileNames: ["docs/*", "/tmp/Workspace/aProject/AppTarget/Preview Resources/*"])
         }
 
-        // However, if DEPLOYMENT_LOCATION is explicitely set to NO, development assets should not be excluded
+        // However, if DEPLOYMENT_LOCATION is explicitly set to NO, development assets should not be excluded
         for action in [BuildAction.analyze, .clean, .build] {
             try await test(buildSettings: ["DEVELOPMENT_ASSET_PATHS": "'AppTarget/Preview Resources'",
                                            "EXCLUDED_SOURCE_FILE_NAMES": "$(inherited) docs/*"],
@@ -998,8 +998,8 @@ import SWBMacro
                 ])
             }
 
-            class TestDataDelegate : SDKRegistryDelegate {
-                var namespace: MacroNamespace
+            final class TestDataDelegate : SDKRegistryDelegate {
+                let namespace: MacroNamespace
                 let pluginManager: PluginManager
                 private let _diagnosticsEngine = DiagnosticsEngine()
                 init(_ namespace: MacroNamespace, pluginManager: PluginManager) {
@@ -1113,7 +1113,7 @@ import SWBMacro
     }
 
     /// Tests that the recommended deployment target build settings have been properly set.
-    @Test
+    @Test(.requireXcode16())
     func recommendedDeploymentTargets() async throws {
         let core = try await getCore()
         let workspace = try TestWorkspace(
@@ -1331,6 +1331,44 @@ import SWBMacro
         }
     }
 
+    /// Validate that setting `VALID_ARCHS` to `arm64` doesn't remove `arm64e` from `ARCHS` because `arm64` is marked as a compatibility architecture of `arm64e`. This only occurs if `__POPULATE_COMPATIBILITY_ARCH_MAP` is on.
+    @Test(.requireSDKs(.iOS))
+    func compatArchs() async throws {
+        let core = try await getCore()
+
+        let testWorkspace = try TestWorkspace(
+            "Workspace",
+            projects: [
+                TestProject(
+                    "aProject",
+                    groupTree: TestGroup(
+                        "SomeFiles",
+                        children: []),
+                    buildConfigurations: [
+                        TestBuildConfiguration(
+                            "Config1", buildSettings: [
+                                "ARCHS": "arm64 arm64e",
+                                "SDKROOT": "iphoneos",
+                                "VALID_ARCHS": "arm64",
+                                "__POPULATE_COMPATIBILITY_ARCH_MAP": "YES",
+                            ])
+                    ],
+                    targets: [TestStandardTarget("Target")]
+                )
+            ]
+        ).load(core)
+
+        let context = try await contextForTestData(testWorkspace, core: core)
+        let buildRequestContext = BuildRequestContext(workspaceContext: context)
+        let testProject = context.workspace.projects[0]
+
+        let parameters = BuildParameters(action: .build, configuration: "Debug")
+        let settings = Settings(workspaceContext: context, buildRequestContext: buildRequestContext, parameters: parameters, project: testProject, target: testProject.targets[0])
+
+        // If arm64e didn't have arm64 in its CompatibilityArchitectures list in the xcspecs, this would only return arm64 due to the VALID_ARCHS build setting in the test project above.
+        #expect(settings.globalScope.evaluate(BuiltinMacros.ARCHS).sorted() == ["arm64", "arm64e"])
+    }
+
     func testArchPointerAuthentication(platform: String) async throws {
         func test(buildSettings: [String: String], expectedARCHS_STANDARD: [String], expectedErrors: [String] = [], sourceLocation: SourceLocation = #_sourceLocation) async throws {
             let workspace = try await TestWorkspace("Workspace",
@@ -1376,7 +1414,7 @@ import SWBMacro
                                        "ENABLE_POINTER_AUTHENTICATION": "YES"],
                        expectedARCHS_STANDARD: ["arm64", "arm64e"])
 
-        // explicitely opting out of pointer authentication does not add arm64e
+        // explicitly opting out of pointer authentication does not add arm64e
         try await test(buildSettings: ["SDKROOT": platform,
                                        "ENABLE_POINTER_AUTHENTICATION": "NO"],
                        expectedARCHS_STANDARD: ["arm64"])
@@ -2395,9 +2433,9 @@ import SWBMacro
                     ],
                 ])
             }
-            class TestDataDelegate : SDKRegistryDelegate {
-                var namespace: MacroNamespace
-                var pluginManager: PluginManager
+            final class TestDataDelegate : SDKRegistryDelegate {
+                let namespace: MacroNamespace
+                let pluginManager: PluginManager
                 private let _diagnosticsEngine = DiagnosticsEngine()
                 init(_ namespace: MacroNamespace, pluginManager: PluginManager) {
                     self.namespace = namespace
@@ -2867,6 +2905,7 @@ import SWBMacro
         #expect(settings.globalScope.evaluate(BuiltinMacros.EXECUTABLE_DEBUG_DYLIB_INSTALL_NAME) == "@rpath/MyOtherClient.debug.dylib")
         // But should be mapped to the original install name
         #expect(settings.globalScope.evaluate(BuiltinMacros.EXECUTABLE_DEBUG_DYLIB_MAPPED_INSTALL_NAME) == "@rpath/Target1.debug.dylib")
+        #expect(settings.globalScope.evaluate(BuiltinMacros.EXECUTABLE_DEBUG_DYLIB_MAPPED_PLATFORM) == "2")
         #expect(settings.globalScope.evaluate(BuiltinMacros.EXECUTABLE_BLANK_INJECTION_DYLIB_PATH).suffix(15) == "__preview.dylib")
     }
 
@@ -2972,7 +3011,7 @@ import SWBMacro
     }
 
     @Test(.requireSDKs(.iOS))
-    func previewsDisablingHardedRuntimeWithAdHocSigning() async throws {
+    func previewsDisablingHardenedRuntimeWithAdHocSigning() async throws {
         let testWorkspace = try await TestWorkspace(
             "Workspace",
             projects: [TestProject(
@@ -3002,7 +3041,7 @@ import SWBMacro
                                 "ENABLE_XOJIT_PREVIEWS": "YES",
                                 "CODE_SIGN_IDENTITY": "An Engineer",
 
-                                "ENABLE_HARDED_RUNTIME_EXPECTED": "YES",
+                                "ENABLE_HARDENED_RUNTIME_EXPECTED": "YES",
                             ]),
                         ],
                         buildPhases: [TestSourcesBuildPhase(["main.swift"])]
@@ -3021,7 +3060,7 @@ import SWBMacro
                                 "ENABLE_XOJIT_PREVIEWS": "YES",
                                 "CODE_SIGN_IDENTITY": "-",
 
-                                "ENABLE_HARDED_RUNTIME_EXPECTED": "NO",
+                                "ENABLE_HARDENED_RUNTIME_EXPECTED": "NO",
                             ]),
                         ],
                         buildPhases: [TestSourcesBuildPhase(["main.swift"])]
@@ -3034,7 +3073,7 @@ import SWBMacro
 
         let parameters = BuildParameters(action: .build, configuration: "Debug", overrides: [:])
 
-        let expectedMacro = try BuiltinMacros.namespace.declareBooleanMacro("ENABLE_HARDED_RUNTIME_EXPECTED")
+        let expectedMacro = try BuiltinMacros.namespace.declareBooleanMacro("ENABLE_HARDENED_RUNTIME_EXPECTED")
 
         for target in testProject.targets {
             let settings = Settings(
@@ -4236,7 +4275,7 @@ import SWBMacro
 
         let parameters = BuildParameters(action: .build, configuration: "Debug")
         for (target, version) in expectations {
-            let settings = Settings(workspaceContext: context, buildRequestContext: buildRequestContext, parameters: parameters, project: testProject, target: try #require(testWorkspace.target(for: target.guid)))
+            let settings = Settings(workspaceContext: context, buildRequestContext: buildRequestContext, parameters: parameters, project: testProject, target: testWorkspace.target(for: target.guid))
             let effectiveSwiftVersion = settings.globalScope.evaluate(BuiltinMacros.EFFECTIVE_SWIFT_VERSION)
             #expect(effectiveSwiftVersion == version)
         }
@@ -4588,8 +4627,6 @@ import SWBMacro
 
     @Test(.requireSDKs(.macOS))
     func activeRunDestination_ONLY_ACTIVE_ARCH_interaction() async throws {
-        let core = try await getCore()
-
         // Prefer the run destination's targetArchitecture
         try await testActiveRunDestination(
             extraBuildSettings: [

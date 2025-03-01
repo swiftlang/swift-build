@@ -190,6 +190,7 @@ import SWBMacro
         table.push(BuiltinMacros.SWIFT_TARGET_TRIPLE, core.specRegistry.internalMacroNamespace.parseString("$(CURRENT_ARCH)-apple-$(SWIFT_PLATFORM_TARGET_PREFIX)$(SWIFT_DEPLOYMENT_TARGET)$(LLVM_TARGET_TRIPLE_SUFFIX)"))
         table.push(BuiltinMacros.OBJECT_FILE_DIR, literal: Path.root.join("tmp/output/obj").str)
         table.push(BuiltinMacros.PER_ARCH_OBJECT_FILE_DIR, BuiltinMacros.namespace.parseString(Path.root.join("tmp/output/obj-normal/x86_64").str))
+        table.push(BuiltinMacros.PER_ARCH_MODULE_FILE_DIR, BuiltinMacros.namespace.parseString(Path.root.join("tmp/output/obj-normal/x86_64").str))
         table.push(BuiltinMacros.ENABLE_DEFAULT_SEARCH_PATHS, literal: true)
         table.push(BuiltinMacros.BUILT_PRODUCTS_DIR, literal: Path.root.join("tmp/output/sym").str)
         let builtProductsDirList = core.specRegistry.internalMacroNamespace.parseStringList("$(BUILT_PRODUCTS_DIR)")
@@ -347,6 +348,7 @@ import SWBMacro
         table.push(BuiltinMacros.SWIFT_TARGET_TRIPLE, core.specRegistry.internalMacroNamespace.parseString("$(CURRENT_ARCH)-apple-$(SWIFT_PLATFORM_TARGET_PREFIX)$(SWIFT_DEPLOYMENT_TARGET)$(LLVM_TARGET_TRIPLE_SUFFIX)"))
         table.push(BuiltinMacros.OBJECT_FILE_DIR, literal: "/tmp/output/obj")
         table.push(BuiltinMacros.PER_ARCH_OBJECT_FILE_DIR, BuiltinMacros.namespace.parseString("/tmp/output/obj-normal/x86_64"))
+        table.push(BuiltinMacros.PER_ARCH_MODULE_FILE_DIR, BuiltinMacros.namespace.parseString("/tmp/output/obj-normal/x86_64"))
         table.push(BuiltinMacros.ENABLE_DEFAULT_SEARCH_PATHS, literal: true)
         table.push(BuiltinMacros.BUILT_PRODUCTS_DIR, literal: "/tmp/output/sym")
         let builtProductsDirList = core.specRegistry.internalMacroNamespace.parseStringList("$(BUILT_PRODUCTS_DIR)")
@@ -529,6 +531,7 @@ import SWBMacro
         table.push(BuiltinMacros.SWIFT_TARGET_TRIPLE, core.specRegistry.internalMacroNamespace.parseString("$(CURRENT_ARCH)-apple-$(SWIFT_PLATFORM_TARGET_PREFIX)$(SWIFT_DEPLOYMENT_TARGET)$(LLVM_TARGET_TRIPLE_SUFFIX)"))
         table.push(BuiltinMacros.OBJECT_FILE_DIR, literal: "/tmp/output/obj")
         table.push(BuiltinMacros.PER_ARCH_OBJECT_FILE_DIR, BuiltinMacros.namespace.parseString("/tmp/output/obj-normal/x86_64"))
+        table.push(BuiltinMacros.PER_ARCH_MODULE_FILE_DIR, BuiltinMacros.namespace.parseString("/tmp/output/obj-normal/x86_64"))
         table.push(BuiltinMacros.ENABLE_DEFAULT_SEARCH_PATHS, literal: true)
         table.push(BuiltinMacros.BUILT_PRODUCTS_DIR, literal: "/tmp/output/sym")
         let builtProductsDirList = core.specRegistry.internalMacroNamespace.parseStringList("$(BUILT_PRODUCTS_DIR)")
@@ -644,8 +647,8 @@ import SWBMacro
 
         // Create the mock table.
         var table = MacroValueAssignmentTable(namespace: core.specRegistry.internalMacroNamespace)
-        table.push(core.specRegistry.internalMacroNamespace.lookupMacroDeclaration("STRIP_STYLE") as! EnumMacroDeclaration<StripStyle>, literal: .debugging)
-        table.push(core.specRegistry.internalMacroNamespace.lookupMacroDeclaration("STRIPFLAGS") as! StringListMacroDeclaration, literal: ["-foo", "-bar"])
+        table.push(try #require(core.specRegistry.internalMacroNamespace.lookupMacroDeclaration("STRIP_STYLE") as? EnumMacroDeclaration<StripStyle>), literal: .debugging)
+        table.push(try #require(core.specRegistry.internalMacroNamespace.lookupMacroDeclaration("STRIPFLAGS") as? StringListMacroDeclaration), literal: ["-foo", "-bar"])
 
         let producer = try MockCommandProducer(core: core, productTypeIdentifier: "com.apple.product-type.framework", platform: "macosx")
         let delegate = try CapturingTaskGenerationDelegate(producer: producer, userPreferences: .defaultForTesting)
@@ -692,7 +695,7 @@ import SWBMacro
 
         do {
             var table = MacroValueAssignmentTable(namespace: core.specRegistry.internalMacroNamespace)
-            table.push(core.specRegistry.internalMacroNamespace.lookupMacroDeclaration("DSYMUTIL_VERBOSE") as! BooleanMacroDeclaration, literal: false)
+            table.push(try #require(core.specRegistry.internalMacroNamespace.lookupMacroDeclaration("DSYMUTIL_VERBOSE") as? BooleanMacroDeclaration), literal: false)
             table.push(BuiltinMacros.DWARF_DSYM_FOLDER_PATH, literal: Path.root.join("tmp").str)
             table.push(BuiltinMacros.DWARF_DSYM_FILE_NAME, literal: "output.dSYM")
 
@@ -715,7 +718,7 @@ import SWBMacro
 
         do {
             var table = MacroValueAssignmentTable(namespace: core.specRegistry.internalMacroNamespace)
-            table.push(core.specRegistry.internalMacroNamespace.lookupMacroDeclaration("DSYMUTIL_VERBOSE") as! BooleanMacroDeclaration, literal: true)
+            table.push(try #require(core.specRegistry.internalMacroNamespace.lookupMacroDeclaration("DSYMUTIL_VERBOSE") as? BooleanMacroDeclaration), literal: true)
             table.push(BuiltinMacros.DWARF_DSYM_FOLDER_PATH, literal: "/tmp")
             table.push(BuiltinMacros.DWARF_DSYM_FILE_NAME, literal: "output.dSYM")
 
@@ -789,7 +792,7 @@ import SWBMacro
         table.push(BuiltinMacros.CLANG_WARN_STRICT_PROTOTYPES, literal: "")
 
         // Override CLANG_DEBUG_MODULES, to be independent of recent changes to the Clang.xcspec.
-        table.push(core.specRegistry.internalMacroNamespace.lookupMacroDeclaration("CLANG_DEBUG_MODULES") as! BooleanMacroDeclaration, literal: false)
+        table.push(try #require(core.specRegistry.internalMacroNamespace.lookupMacroDeclaration("CLANG_DEBUG_MODULES") as? BooleanMacroDeclaration), literal: false)
 
         // Turn off response files, so we can directly check arguments
         table.push(BuiltinMacros.CLANG_USE_RESPONSE_FILE, literal: false)
@@ -896,7 +899,7 @@ import SWBMacro
         table.push(BuiltinMacros.CLANG_WARN_STRICT_PROTOTYPES, literal: "")
 
         // Override CLANG_DEBUG_MODULES, to be independent of recent changes to the Clang.xcspec.
-        table.push(core.specRegistry.internalMacroNamespace.lookupMacroDeclaration("CLANG_DEBUG_MODULES") as! BooleanMacroDeclaration, literal: false)
+        table.push(try #require(core.specRegistry.internalMacroNamespace.lookupMacroDeclaration("CLANG_DEBUG_MODULES") as? BooleanMacroDeclaration), literal: false)
 
         // Turn off response files, so we can directly check arguments
         table.push(BuiltinMacros.CLANG_USE_RESPONSE_FILE, literal: false)
@@ -1110,7 +1113,7 @@ import SWBMacro
         let core = try await getCore()
         let clangSpec = try core.specRegistry.getSpec("com.apple.compilers.llvm.clang.1_0") as CommandLineToolSpec
         let mockFileType = try core.specRegistry.getSpec("sourcecode.cpp.cpp") as FileTypeSpec
-        let langStandardMacro = core.specRegistry.internalMacroNamespace.lookupMacroDeclaration("CLANG_CXX_LANGUAGE_STANDARD") as! StringMacroDeclaration
+        let langStandardMacro = try #require(core.specRegistry.internalMacroNamespace.lookupMacroDeclaration("CLANG_CXX_LANGUAGE_STANDARD") as? StringMacroDeclaration)
 
         let macroFlagMapping = [
             "c++0x": ["-std=c++11"],
@@ -1219,8 +1222,8 @@ import SWBMacro
         var table = MacroValueAssignmentTable(namespace: core.specRegistry.internalMacroNamespace)
         table.push(BuiltinMacros.arch, literal: "x86_64")
         table.push(BuiltinMacros.variant, literal: "normal")
-        table.push(core.specRegistry.internalMacroNamespace.lookupMacroDeclaration("LD_RUNPATH_SEARCH_PATHS") as! StringListMacroDeclaration, literal: ["rpath1"])
-        table.push(core.specRegistry.internalMacroNamespace.lookupMacroDeclaration("LD_EXPORT_SYMBOLS") as! BooleanMacroDeclaration, literal: true)
+        table.push(try #require(core.specRegistry.internalMacroNamespace.lookupMacroDeclaration("LD_RUNPATH_SEARCH_PATHS") as? StringListMacroDeclaration), literal: ["rpath1"])
+        table.push(try #require(core.specRegistry.internalMacroNamespace.lookupMacroDeclaration("LD_EXPORT_SYMBOLS") as? BooleanMacroDeclaration), literal: true)
         try table.push(core.specRegistry.internalMacroNamespace.declareStringMacro("DYNAMIC_LIBRARY_EXTENSION") as StringMacroDeclaration, literal: "dylib")
         try table.push(core.specRegistry.internalMacroNamespace.declareBooleanMacro("_DISCOVER_COMMAND_LINE_LINKER_INPUTS") as BooleanMacroDeclaration, literal: true)
         try table.push(core.specRegistry.internalMacroNamespace.declareBooleanMacro("_DISCOVER_COMMAND_LINE_LINKER_INPUTS_INCLUDE_WL") as BooleanMacroDeclaration, literal: true)
@@ -1280,7 +1283,7 @@ import SWBMacro
             "-framework", "Foo_normal_search", "-Xlinker", "-reexport_framework", "-Xlinker", "Foo_reexport_search", "-Xlinker", "-merge_framework", "-Xlinker", "Foo_merge_search", "-Xlinker", "-no_merge_framework", "-Xlinker", "Foo_reexport_merge_search", "-weak_framework", "Foo_weak_search", Path.root.join("tmp/Foo_normal_abs.framework/Foo_normal_abs").str, "-Xlinker", "-reexport_library", "-Xlinker", Path.root.join("tmp/Foo_reexport_abs.framework/Foo_reexport_abs").str, "-Xlinker", "-merge_library", "-Xlinker", Path.root.join("tmp/Foo_merge_abs.framework/Foo_merge_abs").str, "-Xlinker", "-no_merge_library", "-Xlinker", Path.root.join("tmp/Foo_reexport_merge_abs.framework/Foo_reexport_merge_abs").str, "-weak_library", Path.root.join("tmp/Foo_weak_abs.framework/Foo_weak_abs").str,
             "-o", Path.root.join("tmp/obj/normal/x86_64/output").str])
         // FIXME: The input here should really be the link file list.
-        if SWBFeatureFlag.enableLinkerInputsFromLibrarySpecifiers {
+        if SWBFeatureFlag.enableLinkerInputsFromLibrarySpecifiers.value {
             task.checkInputs([
                 .path(Path.root.join("tmp/obj/normal/x86_64/file1.o").str),
                 .path(Path.root.join("usr/lib/libfoo_normal_abs.a").str),
@@ -1400,7 +1403,7 @@ import SWBMacro
         table.push(BuiltinMacros.variant, literal: "normal")
         table.push(BuiltinMacros.MACH_O_TYPE, literal: "dylib")
 
-        // Construst data we can re-use across the tests.
+        // Construct data we can re-use across the tests.
         let producer = try MockCommandProducer(core: core, productTypeIdentifier: "com.apple.product-type.framework", platform: "macosx")
         let mockFileType: FileTypeSpec = try core.specRegistry.getSpec("file")
 
@@ -1468,7 +1471,8 @@ import SWBMacro
 
         // Create the mock table.
         var table = MacroValueAssignmentTable(namespace: core.specRegistry.internalMacroNamespace)
-        table.push(core.specRegistry.internalMacroNamespace.lookupMacroDeclaration("LIBTOOL") as! PathMacroDeclaration, literal: "libtool")
+        table.push(try #require(core.specRegistry.internalMacroNamespace.lookupMacroDeclaration("LIBTOOL") as? PathMacroDeclaration), literal: "libtool")
+        table.push(BuiltinMacros.LIBTOOL_USE_RESPONSE_FILE, literal: true)
         table.push(BuiltinMacros.arch, literal: "x86_64")
         table.push(BuiltinMacros.variant, literal: "normal")
 
@@ -1588,7 +1592,7 @@ import SWBMacro
         let linkerSpec: LinkerSpec = try core.specRegistry.getSpec() as LdLinkerSpec
         let clangSpec = try core.specRegistry.getSpec("com.apple.compilers.llvm.clang.1_0") as CommandLineToolSpec
         let objcFileTypeSpec = try core.specRegistry.getSpec("sourcecode.c.objc") as FileTypeSpec
-        let macroName = core.specRegistry.internalMacroNamespace.lookupMacroDeclaration("LLVM_LTO") as! StringMacroDeclaration
+        let macroName = try #require(core.specRegistry.internalMacroNamespace.lookupMacroDeclaration("LLVM_LTO") as? StringMacroDeclaration)
 
         let macroValues = [
             "",
@@ -1842,10 +1846,10 @@ import SWBMacro
         let core = try await getCore()
         let clangSpec = try core.specRegistry.getSpec("com.apple.compilers.llvm.clang.1_0") as CommandLineToolSpec
         let mockFileType = try core.specRegistry.getSpec("sourcecode.cpp.cpp") as FileTypeSpec
-        let enableCompileCache = core.specRegistry.internalMacroNamespace.lookupMacroDeclaration("CLANG_ENABLE_COMPILE_CACHE") as! EnumMacroDeclaration<CompilationCachingSetting>
-        let enablePrefixMap = core.specRegistry.internalMacroNamespace.lookupMacroDeclaration("CLANG_ENABLE_PREFIX_MAPPING") as! BooleanMacroDeclaration
-        let prefixMaps = core.specRegistry.internalMacroNamespace.lookupMacroDeclaration("CLANG_OTHER_PREFIX_MAPPINGS") as! StringListMacroDeclaration
-        let devDir = core.specRegistry.internalMacroNamespace.lookupMacroDeclaration("DEVELOPER_DIR") as! PathMacroDeclaration
+        let enableCompileCache = try #require(core.specRegistry.internalMacroNamespace.lookupMacroDeclaration("CLANG_ENABLE_COMPILE_CACHE") as? EnumMacroDeclaration<CompilationCachingSetting>)
+        let enablePrefixMap = try #require(core.specRegistry.internalMacroNamespace.lookupMacroDeclaration("CLANG_ENABLE_PREFIX_MAPPING") as? BooleanMacroDeclaration)
+        let prefixMaps = try #require(core.specRegistry.internalMacroNamespace.lookupMacroDeclaration("CLANG_OTHER_PREFIX_MAPPINGS") as? StringListMacroDeclaration)
+        let devDir = try #require(core.specRegistry.internalMacroNamespace.lookupMacroDeclaration("DEVELOPER_DIR") as? PathMacroDeclaration)
 
         func test(caching: Bool, prefixMapping: Bool, extraMaps: [String], completion: ([String]) throws -> Void) async throws {
             var table = MacroValueAssignmentTable(namespace: core.specRegistry.internalMacroNamespace)
@@ -1896,10 +1900,10 @@ import SWBMacro
         let swiftSpec = try core.specRegistry.getSpec("com.apple.xcode.tools.swift.compiler") as CompilerSpec
 
         let mockFileType = try core.specRegistry.getSpec("sourcecode.swift") as FileTypeSpec
-        let enableCompileCache = core.specRegistry.internalMacroNamespace.lookupMacroDeclaration("SWIFT_ENABLE_COMPILE_CACHE") as! EnumMacroDeclaration<CompilationCachingSetting>
-        let enablePrefixMap = core.specRegistry.internalMacroNamespace.lookupMacroDeclaration("SWIFT_ENABLE_PREFIX_MAPPING") as! BooleanMacroDeclaration
-        let prefixMaps = core.specRegistry.internalMacroNamespace.lookupMacroDeclaration("SWIFT_OTHER_PREFIX_MAPPINGS") as! StringListMacroDeclaration
-        let devDir = core.specRegistry.internalMacroNamespace.lookupMacroDeclaration("DEVELOPER_DIR") as! PathMacroDeclaration
+        let enableCompileCache = try #require(core.specRegistry.internalMacroNamespace.lookupMacroDeclaration("SWIFT_ENABLE_COMPILE_CACHE") as? EnumMacroDeclaration<CompilationCachingSetting>)
+        let enablePrefixMap = try #require(core.specRegistry.internalMacroNamespace.lookupMacroDeclaration("SWIFT_ENABLE_PREFIX_MAPPING") as? BooleanMacroDeclaration)
+        let prefixMaps = try #require(core.specRegistry.internalMacroNamespace.lookupMacroDeclaration("SWIFT_OTHER_PREFIX_MAPPINGS") as? StringListMacroDeclaration)
+        let devDir = try #require(core.specRegistry.internalMacroNamespace.lookupMacroDeclaration("DEVELOPER_DIR") as? PathMacroDeclaration)
 
         func test(caching: Bool, prefixMapping: Bool, extraMaps: [String], completion: ([String]) throws -> Void) async throws {
             // Create the mock table.
@@ -1980,7 +1984,7 @@ import SWBMacro
         }
     }
 
-    final class ThingToolSpec: GenericCommandLineToolSpec, SpecIdentifierType {
+    final class ThingToolSpec: GenericCommandLineToolSpec, SpecIdentifierType, @unchecked Sendable {
         static let identifier = "com.apple.compilers.thing_processor"
 
         override public func discoveredCommandLineToolSpecInfo(_ producer: any CommandProducer, _ scope: MacroEvaluationScope, _ delegate: any CoreClientTargetDiagnosticProducingDelegate) async -> (any DiscoveredCommandLineToolSpecInfo)? {

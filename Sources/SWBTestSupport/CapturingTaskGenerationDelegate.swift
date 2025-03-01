@@ -27,7 +27,7 @@ package class CapturingTaskGenerationDelegate: TaskGenerationDelegate, CoreClien
     package let userPreferences: UserPreferences
     let sharedIntermediateNodes = Registry<String, (any PlannedNode, any Sendable)>()
 
-    package init(producer: any CommandProducer, userPreferences: UserPreferences) throws {
+    public init(producer: any CommandProducer, userPreferences: UserPreferences) throws {
         self.producer = producer
         self.userPreferences = userPreferences
         self.diagnosticContext = DiagnosticContextData(target: nil)
@@ -156,8 +156,8 @@ extension CapturingTaskGenerationDelegate: TaskActionCreationDelegate {
         return FileCopyTaskAction(context)
     }
 
-    package func createGenericCachingTaskAction(enableCacheDebuggingRemarks: Bool, enableTaskSandboxEnforcement: Bool, sandboxDirectory: Path, extraSandboxSubdirectories: [Path], developerDirectory: Path) -> any PlannedTaskAction {
-        return GenericCachingTaskAction(enableCacheDebuggingRemarks: enableCacheDebuggingRemarks, enableTaskSandboxEnforcement: enableTaskSandboxEnforcement, sandboxDirectory: sandboxDirectory, extraSandboxSubdirectories: extraSandboxSubdirectories, developerDirectory: developerDirectory)
+    package func createGenericCachingTaskAction(enableCacheDebuggingRemarks: Bool, enableTaskSandboxEnforcement: Bool, sandboxDirectory: Path, extraSandboxSubdirectories: [Path], developerDirectory: Path, casOptions: CASOptions) -> any PlannedTaskAction {
+        return GenericCachingTaskAction(enableCacheDebuggingRemarks: enableCacheDebuggingRemarks, enableTaskSandboxEnforcement: enableTaskSandboxEnforcement, sandboxDirectory: sandboxDirectory, extraSandboxSubdirectories: extraSandboxSubdirectories, developerDirectory: developerDirectory, casOptions: casOptions)
     }
 
     package func createInfoPlistProcessorTaskAction(_ contextPath: Path) -> any PlannedTaskAction {
@@ -234,5 +234,9 @@ extension CapturingTaskGenerationDelegate: TaskActionCreationDelegate {
 
     package func createClangModuleVerifierInputGeneratorTaskAction() -> any PlannedTaskAction {
         return ClangModuleVerifierInputGeneratorTaskAction()
+    }
+
+    package func createProcessSDKImportsTaskAction() -> any PlannedTaskAction {
+        return ProcessSDKImportsTaskAction()
     }
 }

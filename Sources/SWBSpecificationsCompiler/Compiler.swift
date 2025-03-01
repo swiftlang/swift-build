@@ -32,8 +32,9 @@ struct Main {
                         if FileManager.default.fileExists(atPath: outputFile) {
                             try FileManager.default.removeItem(atPath: outputFile)
                         }
-                        try PropertyListSerialization.propertyList(from: Data(contentsOf: URL(fileURLWithPath: inputFile)), options: [], format: nil)
                         var inputData = try Data(contentsOf: URL(fileURLWithPath: inputFile))
+                        unifdef(&inputData)
+                        try PropertyListSerialization.propertyList(from: inputData, options: [], format: nil)
                         inputData.removeAll(where: { $0 == Character("\r").asciiValue }) // normalize newlines for Windows
                         try inputData.write(to: URL(fileURLWithPath: outputFile), options: .atomic)
                     }
@@ -44,5 +45,28 @@ struct Main {
             try? FileHandle.standardError.write(contentsOf: Data("error: \(error)\n".utf8))
             exit(EXIT_FAILURE)
         }
+    }
+
+    /// Performs some very basic stripping of `#if` directives from xcspec files in case they contain them.
+    ///
+    /// In this build step we are not actually going to read the values and conditionally include the inner spec portions.
+    /// Instead, we will just remove the `#if` lines themselves, which can be needed in certain build configurations that may contain them.
+    private static func unifdef(_ data: inout Data) {
+        // This manual processing guarantees consistency across all platforms, where unifdef may not be universally available.
+
+        let string = String(decoding: data, as: UTF8.self)
+
+        var newLines = [String]()
+        string.enumerateLines { line, _ in
+            let trimmedLine = line.trimmingCharacters(in: .whitespaces)
+            let isPreprocessorLine = trimmedLine.hasPrefix("#if ") || trimmedLine.hasPrefix("#elif ") || trimmedLine == "#else" || trimmedLine == "#endif"
+            if !isPreprocessorLine {
+                newLines.append(line)
+            }
+        }
+
+        let newString = newLines.joined(separator: "\n")
+
+        data = Data(newString.utf8)
     }
 }

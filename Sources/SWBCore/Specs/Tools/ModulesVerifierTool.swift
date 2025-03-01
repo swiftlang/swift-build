@@ -12,7 +12,7 @@
 
 public import SWBUtil
 
-public final class ModulesVerifierToolSpec : GenericCommandLineToolSpec, SpecIdentifierType {
+public final class ModulesVerifierToolSpec : GenericCommandLineToolSpec, SpecIdentifierType, @unchecked Sendable {
     public static let identifier = "com.apple.build-tools.modules-verifier"
 
     override public func constructTasks(_ cbc: CommandBuildContext, _ delegate: any TaskGenerationDelegate) async {

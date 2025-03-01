@@ -91,7 +91,7 @@ fileprivate struct XCFrameworkTaskConstructionTests: CoreBasedTests {
 
             try results.checkTarget("App") { target in
                 results.checkNoDiagnostics()
-                // Validate that the compile tas has the include path, which is simply the default of "-I\(SRCROOT)/build/Debug/include". Also ensure there are no unexpecte items.
+                // Validate that the compile tas has the include path, which is simply the default of "-I\(SRCROOT)/build/Debug/include". Also ensure there are no unexpected items.
                 try results.checkTask(.matchTarget(target), .matchRuleType("CompileC")) { task in
                     // There needs to be a strong dependency on the XCFramework processing.
                     results.checkTaskFollows(task, antecedent: try #require(processSupportXCFrameworkTask))
@@ -200,7 +200,7 @@ fileprivate struct XCFrameworkTaskConstructionTests: CoreBasedTests {
                     processSupportXCFrameworkTask = task
                 }
 
-                // Validate that the compile tas has the include path, which is simply the default of "-I\(SRCROOT)/build/Debug/include". Also ensure there are no unexpecte items.
+                // Validate that the compile tas has the include path, which is simply the default of "-I\(SRCROOT)/build/Debug/include". Also ensure there are no unexpected items.
                 try results.checkTask(.matchTarget(target), .matchRuleType("CompileC")) { task in
                     // There needs to be a strong dependency on the XCFramework processing.
                     results.checkTaskFollows(task, antecedent: try #require(processSupportXCFrameworkTask))
@@ -235,7 +235,7 @@ fileprivate struct XCFrameworkTaskConstructionTests: CoreBasedTests {
                     processSupportXCFrameworkTask = task
                 }
 
-                // Validate that the compile tas has the include path, which is simply the default of "-I\(SRCROOT)/build/Debug/include". Also ensure there are no unexpecte items.
+                // Validate that the compile tas has the include path, which is simply the default of "-I\(SRCROOT)/build/Debug/include". Also ensure there are no unexpected items.
                 try results.checkTask(.matchTarget(target), .matchRuleType("CompileC")) { task in
                     // There needs to be a strong dependency on the XCFramework processing.
                     results.checkTaskFollows(task, antecedent: try #require(processSupportXCFrameworkTask))
@@ -332,7 +332,7 @@ fileprivate struct XCFrameworkTaskConstructionTests: CoreBasedTests {
             try results.checkTarget("App") { target in
                 results.checkNoDiagnostics()
 
-                // Validate that the compile tas has the include path, which is simply the default of "-I\(SRCROOT)/build/Debug/include". Also ensure there are no unexpecte items.
+                // Validate that the compile tas has the include path, which is simply the default of "-I\(SRCROOT)/build/Debug/include". Also ensure there are no unexpected items.
                 try results.checkTask(.matchTarget(target), .matchRuleType("CompileC")) { task in
                     // There needs to be a strong dependency on the XCFramework processing.
                     results.checkTaskFollows(task, antecedent: try #require(processSupportXCFrameworkTask))
@@ -370,6 +370,8 @@ fileprivate struct XCFrameworkTaskConstructionTests: CoreBasedTests {
                     "CODE_SIGN_IDENTITY": "-",
                     "ARCHS": "x86_64",
                     "INFOPLIST_FILE": "Info.plist",
+                    "SWIFT_ENABLE_EXPLICIT_MODULES": "NO",
+                    "_EXPERIMENTAL_SWIFT_EXPLICIT_MODULES": "NO",
                     "SWIFT_VERSION": "5",
                     "SWIFT_EXEC": swiftCompilerPath.str,
                 ]),

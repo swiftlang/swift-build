@@ -19,7 +19,7 @@ public struct DiscoveredIiGToolSpecInfo: DiscoveredCommandLineToolSpecInfo {
     public var toolVersion: Version?
 }
 
-public final class IIGCompilerSpec: GenericCompilerSpec, SpecIdentifierType {
+public final class IIGCompilerSpec: GenericCompilerSpec, SpecIdentifierType, @unchecked Sendable {
     public static let identifier = "com.apple.compilers.iig"
 
     public override var supportsInstallHeaders: Bool {

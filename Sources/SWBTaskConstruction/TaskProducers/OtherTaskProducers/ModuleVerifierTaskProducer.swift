@@ -320,7 +320,7 @@ final class ModuleVerifierTaskProducer: PhasedTaskProducer, TaskProducer {
 
     private func shouldRunModuleVerifier() -> (builtin: Bool, external: Bool) {
         let scope = context.settings.globalScope
-        guard SWBFeatureFlag.enableModuleVerifierTool ?? scope.evaluate(BuiltinMacros.ENABLE_MODULE_VERIFIER) else {
+        guard SWBFeatureFlag.enableModuleVerifierTool.value ?? scope.evaluate(BuiltinMacros.ENABLE_MODULE_VERIFIER) else {
             return (false, false)
         }
 

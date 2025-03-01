@@ -18,7 +18,7 @@ import SWBBuildSystem
 import SWBCore
 import SWBTestSupport
 
-@Suite(.disabled(if: getEnvironmentVariable("CI")?.isEmpty == false, "tests run too slowly in CI"))
+@Suite(.disabled(if: getEnvironmentVariable("CI")?.isEmpty == false, "tests run too slowly in CI"), .requireXcode16())
 fileprivate struct GenericTaskCachingTests: CoreBasedTests {
     @Test(.requireSDKs(.macOS), .requireHostOS(.macOS))
     func realityToolCachingBasics() async throws {
@@ -258,6 +258,74 @@ fileprivate struct GenericTaskCachingTests: CoreBasedTests {
             try await tester.checkBuild(buildCommand: BuildCommand.cleanBuildFolder(style: .regular), body: { _ in })
 
             try localFS.remove(SRCROOT.join("Assets.xcassets/foo.txt"))
+
+            try await tester.checkBuild(parameters: BuildParameters(configuration: "Debug", overrides: ["CCHROOT": tmpDir.join("cchroot").str]), runDestination: .macOS) { results in
+                results.checkTaskExists(.matchRuleType("CompileAssetCatalogVariant"))
+                results.checkRemark(.prefix("replaying cache hit"))
+                results.checkNoErrors()
+            }
+        }
+    }
+
+    @Test(.requireSDKs(.macOS), .requireHostOS(.macOS))
+    func repeatedReplay() async throws {
+        try await withTemporaryDirectory { tmpDir in
+            let testProject = TestProject(
+                "aProject",
+                sourceRoot: tmpDir,
+                groupTree: TestGroup(
+                    "SomeFiles",
+                    children: [
+                        TestFile("Assets.xcassets"),
+                    ]),
+                buildConfigurations: [
+                    TestBuildConfiguration(
+                        "Debug",
+                        buildSettings: [
+                            "SDKROOT": "macosx",
+                            "CODE_SIGNING_ALLOWED": "NO",
+                            "GENERATE_INFOPLIST_FILE": "YES",
+                            "PRODUCT_NAME": "$(TARGET_NAME)",
+                            "VERSIONING_SYSTEM": "apple-generic",
+                            "DSTROOT": tmpDir.join("dstroot").str,
+                            "ENABLE_GENERIC_TASK_CACHING": "YES",
+                            "GENERIC_TASK_CACHE_ENABLE_DIAGNOSTIC_REMARKS": "YES",
+                            "COMPILATION_CACHE_LIMIT_SIZE": "1"
+                        ]),
+                ],
+                targets: [
+                    TestStandardTarget(
+                        "FrameworkTarget",
+                        type: .framework,
+                        buildPhases: [
+                            TestResourcesBuildPhase([
+                                TestBuildFile("Assets.xcassets"),
+                            ]),
+                        ]
+                    ),
+                ])
+
+            let core = try await getCore()
+            let tester = try await BuildOperationTester(core, testProject, simulated: false)
+            let SRCROOT = tester.workspace.projects[0].sourceRoot
+            try await localFS.writeAssetCatalog(SRCROOT.join("Assets.xcassets"))
+
+            // Repeated replay of the task in incremental builds should successfully place outputs
+            try await tester.checkBuild(parameters: BuildParameters(configuration: "Debug", overrides: ["CCHROOT": tmpDir.join("cchroot").str]), runDestination: .macOS) { results in
+                results.checkTaskExists(.matchRuleType("CompileAssetCatalogVariant"))
+                results.checkRemark(.prefix("caching result"))
+                results.checkNoErrors()
+            }
+
+            try tester.fs.touch(SRCROOT.join("Assets.xcassets"))
+
+            try await tester.checkBuild(parameters: BuildParameters(configuration: "Debug", overrides: ["CCHROOT": tmpDir.join("cchroot").str]), runDestination: .macOS) { results in
+                results.checkTaskExists(.matchRuleType("CompileAssetCatalogVariant"))
+                results.checkRemark(.prefix("replaying cache hit"))
+                results.checkNoErrors()
+            }
+
+            try tester.fs.touch(SRCROOT.join("Assets.xcassets"))
 
             try await tester.checkBuild(parameters: BuildParameters(configuration: "Debug", overrides: ["CCHROOT": tmpDir.join("cchroot").str]), runDestination: .macOS) { results in
                 results.checkTaskExists(.matchRuleType("CompileAssetCatalogVariant"))

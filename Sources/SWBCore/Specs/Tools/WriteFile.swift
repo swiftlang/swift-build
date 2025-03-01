@@ -12,7 +12,7 @@
 
 public import SWBUtil
 
-public final class WriteFileSpec: CommandLineToolSpec, SpecImplementationType {
+public final class WriteFileSpec: CommandLineToolSpec, SpecImplementationType, @unchecked Sendable {
     public static let identifier = "com.apple.build-tools.write-file"
 
     public class func construct(registry: SpecRegistry, proxy: SpecProxy) -> Spec {
@@ -25,11 +25,11 @@ public final class WriteFileSpec: CommandLineToolSpec, SpecImplementationType {
         fatalError("unexpected direct invocation")
     }
 
-    @discardableResult public func constructFileTasks(_ cbc: CommandBuildContext, _ delegate: any TaskGenerationDelegate, ruleName: String? = nil, contents: ByteString, permissions: Int?, diagnostics: [AuxiliaryFileTaskActionContext.Diagnostic] = [], logContents: Bool = false, preparesForIndexing: Bool, additionalTaskOrderingOptions: TaskOrderingOptions) -> Path {
+    @discardableResult public func constructFileTasks(_ cbc: CommandBuildContext, _ delegate: any TaskGenerationDelegate, ruleName: String? = nil, contents: ByteString, permissions: Int?, forceWrite: Bool = false, diagnostics: [AuxiliaryFileTaskActionContext.Diagnostic] = [], logContents: Bool = false, preparesForIndexing: Bool, additionalTaskOrderingOptions: TaskOrderingOptions) -> Path {
         let fileContentsPath = delegate.recordAttachment(contents: contents)
         let outputNode = delegate.createNode(cbc.output)
         let execDescription = resolveExecutionDescription(cbc, delegate)
-        let action = delegate.taskActionCreationDelegate.createAuxiliaryFileTaskAction(AuxiliaryFileTaskActionContext(output: outputNode.path, input: fileContentsPath, permissions: permissions, diagnostics: diagnostics, logContents: logContents))
+        let action = delegate.taskActionCreationDelegate.createAuxiliaryFileTaskAction(AuxiliaryFileTaskActionContext(output: outputNode.path, input: fileContentsPath, permissions: permissions, forceWrite: forceWrite, diagnostics: diagnostics, logContents: logContents))
         let ruleName = ruleName ?? "WriteAuxiliaryFile"
         delegate.createTask(type: self, ruleInfo: [ruleName, outputNode.path.str], commandLine: ["write-file", outputNode.path.str], environment: EnvironmentBindings(), workingDirectory: cbc.producer.defaultWorkingDirectory, inputs: cbc.commandOrderingInputs, outputs: [ outputNode ], mustPrecede: [], action: action, execDescription: execDescription, preparesForIndexing: preparesForIndexing, enableSandboxing: enableSandboxing, additionalTaskOrderingOptions: additionalTaskOrderingOptions, priority: .unblocksDownstreamTasks)
         return fileContentsPath

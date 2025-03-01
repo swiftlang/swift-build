@@ -26,7 +26,7 @@ extension SpecParser {
 }
 
 /// Base class for all spec types.
-open class Spec {
+open class Spec: @unchecked Sendable {
     class var typeName: String {
         preconditionFailure("subclass responsibility")
     }
@@ -55,8 +55,10 @@ open class Spec {
         return result
     }
 
-    /// The spec proxy.
-    @_spi(Testing) public weak var proxy: SpecProxy?
+    /// The spec proxy information.
+    @_spi(Testing) public let proxyPath: Path
+    @_spi(Testing) public let proxyDomain: String
+    @_spi(Testing) public let proxyIdentifier: String
 
     /// The domain of the spec.
     public let domain: String
@@ -71,7 +73,9 @@ open class Spec {
     public let name: String
 
     init(_ registry: SpecRegistry, _ proxy: SpecProxy) {
-        self.proxy = proxy
+        self.proxyPath = proxy.path
+        self.proxyDomain = proxy.domain
+        self.proxyIdentifier = proxy.identifier
         self.basedOnSpec = nil
         self.name = proxy.identifier
         self.domain = proxy.domain
@@ -79,7 +83,9 @@ open class Spec {
     }
 
     required public init(_ parser: SpecParser, _ basedOnSpec: Spec?) {
-        self.proxy = parser.proxy
+        self.proxyPath = parser.proxy.path
+        self.proxyDomain = parser.proxy.domain
+        self.proxyIdentifier = parser.proxy.identifier
         self.basedOnSpec = basedOnSpec
         self.name = parser.parseString("Name") ?? parser.proxy.identifier
         self.domain = parser.proxy.domain
@@ -126,7 +132,7 @@ extension Spec: CustomStringConvertible {
     }
 }
 
-public class ArchitectureSpec : Spec, SpecType {
+public final class ArchitectureSpec : Spec, SpecType, @unchecked Sendable {
     class public override var typeName: String {
         return "Architecture"
     }
@@ -237,12 +243,11 @@ public class ArchitectureSpec : Spec, SpecType {
         parser.parseBool("ListInEnum")
         parser.parseString("PerArchBuildSettingName")
         parser.parseString("SortNumber")
-        parser.parseString("UserVisisbleName")
         super.init(parser, basedOnSpec)
     }
 }
 
-public class ProjectOverridesSpec : Spec, SpecType {
+public final class ProjectOverridesSpec : Spec, SpecType, @unchecked Sendable {
     class public override var typeName: String {
         return "ProjectOverrides"
     }
@@ -264,7 +269,7 @@ public class ProjectOverridesSpec : Spec, SpecType {
     }
 }
 
-public class FileTypeSpec : Spec, SpecType {
+public class FileTypeSpec : Spec, SpecType, @unchecked Sendable {
     class public override var typeName: String {
         return "FileType"
     }
@@ -363,7 +368,7 @@ public class FileTypeSpec : Spec, SpecType {
     }
 }
 
-public class PackageTypeSpec : Spec, SpecType {
+public final class PackageTypeSpec : Spec, SpecType, @unchecked Sendable {
     class public override var typeName: String {
         return "PackageType"
     }
@@ -404,7 +409,7 @@ public class PackageTypeSpec : Spec, SpecType {
     }
 
     /// Structure which encapsulates information about a product directory which we might want to create early in building a target.
-    public struct ProductStructureDirectoryInfo {
+    public struct ProductStructureDirectoryInfo: Sendable {
         public let buildSetting: PathMacroDeclaration
         public let dontCreateIfProducedByAnotherTask: Bool
 
@@ -437,7 +442,7 @@ public class PackageTypeSpec : Spec, SpecType {
     ]
 }
 
-public class PlatformSpec : Spec, SpecType {
+public final class PlatformSpec : Spec, SpecType, @unchecked Sendable {
     class public override var typeName: String {
         return "Platform"
     }
@@ -446,13 +451,13 @@ public class PlatformSpec : Spec, SpecType {
     }
 }
 
-public class BuildSettingsSpec : PropertyDomainSpec, SpecType {
+public final class BuildSettingsSpec : PropertyDomainSpec, SpecType, @unchecked Sendable {
     class public override var typeName: String {
         return "BuildSettings"
     }
 }
 
-public class BuildSystemSpec : PropertyDomainSpec, SpecType {
+public final class BuildSystemSpec : PropertyDomainSpec, SpecType, @unchecked Sendable {
     class public override var typeName: String {
         return "BuildSystem"
     }
@@ -461,7 +466,7 @@ public class BuildSystemSpec : PropertyDomainSpec, SpecType {
     }
 }
 
-public class BuildPhaseSpec : Spec, SpecType {
+public final class BuildPhaseSpec : Spec, SpecType, @unchecked Sendable {
     class public override var typeName: String {
         return "BuildPhase"
     }

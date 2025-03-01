@@ -133,7 +133,7 @@ fileprivate struct ObjectiveCSymbolExtractorTests: CoreBasedTests {
                     // Does this build support extract-api for C++?
                     // - Clang supports C++ extract-api
                     // - AND the IDEDocumentationEnableClangExtractAPI feature flag is enabled.
-                    let supportsPlusPlus = clangFeatures.has(.extractAPISupportsCPlusPlus) && SWBFeatureFlag.enableClangExtractAPI
+                    let supportsPlusPlus = clangFeatures.has(.extractAPISupportsCPlusPlus) && SWBFeatureFlag.enableClangExtractAPI.value
 
                     // Should this build skip the extract-api task? It should if:
                     // - shouldSkip is not false (this build is not using private C++ headers from a framework)
@@ -157,11 +157,11 @@ fileprivate struct ObjectiveCSymbolExtractorTests: CoreBasedTests {
 
                             results.checkTask(
                                 .matchTarget(target),
-                                .matchRule([ "ExtractAPI", SWBFeatureFlag.enableClangExtractAPI ? symbolGraphFile : sdkdbFile ])
+                                .matchRule([ "ExtractAPI", SWBFeatureFlag.enableClangExtractAPI.value ? symbolGraphFile : sdkdbFile ])
                             ) { task in
                                 // For testing clang extract-api, also check the proper
                                 // -x command line option is passed to clang
-                                if SWBFeatureFlag.enableClangExtractAPI {
+                                if SWBFeatureFlag.enableClangExtractAPI.value {
                                     if shouldSkip && (withPlusPlusFile || !withHeaderBuildPhase) {
                                         task.checkCommandLineContainsUninterrupted(["-x", "objective-c++-header"])
                                         task.checkCommandLineContains(["-std=c++23", "-fchar8_t"])
@@ -171,7 +171,7 @@ fileprivate struct ObjectiveCSymbolExtractorTests: CoreBasedTests {
                                 }
                             }
 
-                            if !SWBFeatureFlag.enableClangExtractAPI {
+                            if !SWBFeatureFlag.enableClangExtractAPI.value {
                                 results.checkTaskExists(.matchTarget(target), .matchRule(["ConvertSDKDBToSymbolGraph", sdkdbFile]))
                             }
                         }
@@ -285,11 +285,11 @@ fileprivate struct ObjectiveCSymbolExtractorTests: CoreBasedTests {
                             .matchTarget(target),
                             .matchRule([
                                 "ExtractAPI",
-                                SWBFeatureFlag.enableClangExtractAPI ? symbolGraphFile : sdkdbFile
+                                SWBFeatureFlag.enableClangExtractAPI.value ? symbolGraphFile : sdkdbFile
                             ])
                         )
 
-                        if !SWBFeatureFlag.enableClangExtractAPI {
+                        if !SWBFeatureFlag.enableClangExtractAPI.value {
                             results.checkTaskExists(.matchTarget(target), .matchRule(["ConvertSDKDBToSymbolGraph", sdkdbFile]))
                         }
                     }
@@ -515,7 +515,7 @@ fileprivate struct ObjectiveCSymbolExtractorTests: CoreBasedTests {
                             .matchTarget(target),
                             .matchRule([
                                 "ExtractAPI",
-                                SWBFeatureFlag.enableClangExtractAPI ? symbolGraphFile : sdkdbFile
+                                SWBFeatureFlag.enableClangExtractAPI.value ? symbolGraphFile : sdkdbFile
                             ])
                         ) { task in
                             let headerTaskOrderingInputPaths = task.inputs
@@ -550,7 +550,7 @@ fileprivate struct ObjectiveCSymbolExtractorTests: CoreBasedTests {
                             .matchTarget(target),
                             .matchRule([
                                 "ExtractAPI",
-                                SWBFeatureFlag.enableClangExtractAPI ? symbolGraphFile : sdkdbFile
+                                SWBFeatureFlag.enableClangExtractAPI.value ? symbolGraphFile : sdkdbFile
                             ])
                         ) { task in
                             let headerTaskOrderingInputPaths = task.inputs
@@ -568,7 +568,7 @@ fileprivate struct ObjectiveCSymbolExtractorTests: CoreBasedTests {
                             ])
                         }
 
-                        if !SWBFeatureFlag.enableClangExtractAPI {
+                        if !SWBFeatureFlag.enableClangExtractAPI.value {
                             results.checkTaskExists(.matchTarget(target), .matchRule(["ConvertSDKDBToSymbolGraph", sdkdbFile]))
                         }
                     }
@@ -744,7 +744,7 @@ fileprivate struct ObjectiveCSymbolExtractorTests: CoreBasedTests {
                             .matchTarget(target),
                             .matchRule([
                                 "ExtractAPI",
-                                SWBFeatureFlag.enableClangExtractAPI ? symbolGraphFile : sdkdbFile
+                                SWBFeatureFlag.enableClangExtractAPI.value ? symbolGraphFile : sdkdbFile
                             ])) { task in
                                 task.checkCommandLineContains([
                                     // Check custom MODULEMAP_PATH values. This would for example be the generated module map.
@@ -753,12 +753,12 @@ fileprivate struct ObjectiveCSymbolExtractorTests: CoreBasedTests {
                                     "-fmodule-map-file=/tmp/Test/aProject/build/Debug/SwiftSubDependency.framework/Versions/A/Modules/module.modulemap"
                                 ])
 
-                                if SWBFeatureFlag.enableClangExtractAPI && clangFeatures.has(.extractAPIIgnores) {
+                                if SWBFeatureFlag.enableClangExtractAPI.value && clangFeatures.has(.extractAPIIgnores) {
                                     task.checkCommandLineContains(["--extract-api-ignores=\(compatibilitySymbolsFile.str)"])
                                 }
                             }
 
-                        if !SWBFeatureFlag.enableClangExtractAPI {
+                        if !SWBFeatureFlag.enableClangExtractAPI.value {
                             results.checkTaskExists(.matchTarget(target), .matchRule(["ConvertSDKDBToSymbolGraph", sdkdbFile]))
                         }
                     }
@@ -770,7 +770,7 @@ fileprivate struct ObjectiveCSymbolExtractorTests: CoreBasedTests {
         }
     }
 
-    @Test(.requireSDKs(.macOS), .enabled(if: SWBFeatureFlag.enableClangExtractAPI))
+    @Test(.requireSDKs(.macOS), .enabled(if: SWBFeatureFlag.enableClangExtractAPI.value))
     func cXXFilesAreIgnoredWhenCXXSupportIsDisabled() async throws {
         // This test only applies to clang base symbol graph generation
         try await withTemporaryDirectory { sourceRoot in
@@ -909,14 +909,14 @@ fileprivate struct ObjectiveCSymbolExtractorTests: CoreBasedTests {
 struct ObjectiveCSymbolExtractorImplementationSelector {
     static func runWithTapi(test: () async throws -> Void) async throws {
         try await UserDefaults.withEnvironment(["IDEDocumentationEnableClangExtractAPI": "0"]) {
-            #expect(!SWBFeatureFlag.enableClangExtractAPI, "Feature flag was not properly set!")
+            #expect(!SWBFeatureFlag.enableClangExtractAPI.value, "Feature flag was not properly set!")
             try await test()
         }
     }
 
     static func runWithClang(test: () async throws -> Void) async throws {
         try await UserDefaults.withEnvironment(["IDEDocumentationEnableClangExtractAPI": "1"]) {
-            #expect(SWBFeatureFlag.enableClangExtractAPI, "Feature flag was not properly set!")
+            #expect(SWBFeatureFlag.enableClangExtractAPI.value, "Feature flag was not properly set!")
             try await test()
         }
     }

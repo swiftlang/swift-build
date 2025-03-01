@@ -25,7 +25,7 @@ private extension MacroValueAssignmentTable {
     }
 }
 
-/// A lightweight parameterized “view” of a MacroValueAssignmentTable, allowing clients to evaluate macro expressions under a particular set of conditions.  In the future a MacroEvaluationScope will also bind conditions to affect the values that are found in the table.  Unlike many of the other classes in the macro evaluation subsystem, MacroEvaluationScope is a prominent class from a client perspective — after declaring macros, parsing macro expressions, and creating macro-to-expression tables, all actual evalution occurs through a MacroEvaluationScope.
+/// A lightweight parameterized “view” of a MacroValueAssignmentTable, allowing clients to evaluate macro expressions under a particular set of conditions.  In the future a MacroEvaluationScope will also bind conditions to affect the values that are found in the table.  Unlike many of the other classes in the macro evaluation subsystem, MacroEvaluationScope is a prominent class from a client perspective — after declaring macros, parsing macro expressions, and creating macro-to-expression tables, all actual evaluation occurs through a MacroEvaluationScope.
 public final class MacroEvaluationScope: Serializable, Sendable {
     static let evaluations = Statistic("MacroEvaluationScope.evaluations",
         "The number of evaluation requests.")
@@ -45,7 +45,7 @@ public final class MacroEvaluationScope: Serializable, Sendable {
     /// Convenience accessor to get the namespace for the scope's table, so clients can perform parsing of things they want to evaluate.
     public var namespace: MacroNamespace { return table.namespace }
 
-    /// Mapping of condition parameters to values (affects lookup of conditional macro value assignments in `table`).  The values are an array to accomodate fallback conditional values spplied by base SDKs.
+    /// Mapping of condition parameters to values (affects lookup of conditional macro value assignments in `table`).  The values are an array to accommodate fallback conditional values supplied by base SDKs.
     public let conditionParameterValues: [MacroConditionParameter: [String]]
 
     /// Cache of evaluated string values.
@@ -92,12 +92,12 @@ public final class MacroEvaluationScope: Serializable, Sendable {
 
     /// Evaluate the given string expression and return the result.
     ///
-    /// - Parameter lookup: If provided, this closure will be invoked for each initial macro lookup to potentionally supply an alternate expression to evaluate.
+    /// - Parameter lookup: If provided, this closure will be invoked for each initial macro lookup to potentially supply an alternate expression to evaluate.
     public func evaluate(_ expr: MacroStringExpression, lookup: ((MacroDeclaration) -> MacroExpression?)? = nil) -> String {
         // FIXME: We should be able to leverage the cache within the macro evaluation context for expressions: <rdar://problem/31108515> Fix expression evaluation to not bypass scope evaluation cache
         MacroEvaluationScope.exprEvaluations.increment()
 
-        // If the expressoin is a literal, return it immediately.
+        // If the expression is a literal, return it immediately.
         if let literal = expr.asLiteralString {
             return literal
         }
@@ -110,7 +110,7 @@ public final class MacroEvaluationScope: Serializable, Sendable {
 
     /// Evaluate the given macro as a string (regardless of type) and return the result.
     ///
-    /// - Parameter lookup: If provided, this closure will be invoked for each initial macro lookup to potentionally supply an alternate expression to evaluate.
+    /// - Parameter lookup: If provided, this closure will be invoked for each initial macro lookup to potentially supply an alternate expression to evaluate.
     public func evaluateAsString<T: MacroDeclaration>(_ macro: T, lookup: ((MacroDeclaration) -> MacroExpression?)? = nil) -> String {
         MacroEvaluationScope.evaluations.increment()
 
@@ -147,14 +147,14 @@ public final class MacroEvaluationScope: Serializable, Sendable {
 
     /// Evaluate the given boolean macro and return the result.
     ///
-    /// - Parameter lookup: If provided, this closure will be invoked for each initial macro lookup to potentionally supply an alternate expression to evaluate.
+    /// - Parameter lookup: If provided, this closure will be invoked for each initial macro lookup to potentially supply an alternate expression to evaluate.
     public func evaluate(_ macro: BooleanMacroDeclaration, lookup: ((MacroDeclaration) -> MacroExpression?)? = nil) -> Bool {
         return evaluateAsString(macro, lookup: lookup).boolValue
     }
 
     /// Evaluate the given string macro and return the result.
     ///
-    /// - Parameter lookup: If provided, this closure will be invoked for each initial macro lookup to potentionally supply an alternate expression to evaluate.
+    /// - Parameter lookup: If provided, this closure will be invoked for each initial macro lookup to potentially supply an alternate expression to evaluate.
     /// - Parameter default: If provided, this value is returned if the macro evaluates to an empty string.
     public func evaluate(_ macro: StringMacroDeclaration, lookup: ((MacroDeclaration) -> MacroExpression?)? = nil, default: String = "") -> String {
         let value = evaluateAsString(macro, lookup: lookup)
@@ -172,21 +172,21 @@ public final class MacroEvaluationScope: Serializable, Sendable {
 
     /// Evaluate the given enumeration macro and return the result.
     ///
-    /// - Parameter lookup: If provided, this closure will be invoked for each initial macro lookup to potentionally supply an alternate expression to evaluate.
+    /// - Parameter lookup: If provided, this closure will be invoked for each initial macro lookup to potentially supply an alternate expression to evaluate.
     @_disfavoredOverload public func evaluate<T: EnumerationMacroType>(_ macro: EnumMacroDeclaration<T>, lookup: ((MacroDeclaration) -> MacroExpression?)? = nil) -> T? {
         return T(rawValue: evaluateAsString(macro, lookup: lookup))
     }
 
     /// Evaluate the given enumeration macro and return the result.
     ///
-    /// - Parameter lookup: If provided, this closure will be invoked for each initial macro lookup to potentionally supply an alternate expression to evaluate.
+    /// - Parameter lookup: If provided, this closure will be invoked for each initial macro lookup to potentially supply an alternate expression to evaluate.
     public func evaluate<T: EnumerationMacroType>(_ macro: EnumMacroDeclaration<T>, lookup: ((MacroDeclaration) -> MacroExpression?)? = nil) -> T {
         return T(rawValue: evaluateAsString(macro, lookup: lookup)) ?? T.defaultValue
     }
 
     /// Evaluate the given string list macro expression and return the result.
     ///
-    /// - Parameter lookup: If provided, this closure will be invoked for each initial macro lookup to potentionally supply an alternate expression to evaluate.
+    /// - Parameter lookup: If provided, this closure will be invoked for each initial macro lookup to potentially supply an alternate expression to evaluate.
     public func evaluate(_ expr: MacroStringListExpression, lookup: ((MacroDeclaration) -> MacroExpression?)? = nil) -> Array<String> {
         // FIXME: We should be able to leverage the cache within the macro evaluation context for expressions: <rdar://problem/31108515> Fix expression evaluation to not bypass scope evaluation cache
         MacroEvaluationScope.exprEvaluations.increment()
@@ -199,7 +199,7 @@ public final class MacroEvaluationScope: Serializable, Sendable {
 
     /// Evaluate the given string list macro and return the result.
     ///
-    /// - Parameter lookup: If provided, this closure will be invoked for each initial macro lookup to potentionally supply an alternate expression to evaluate.
+    /// - Parameter lookup: If provided, this closure will be invoked for each initial macro lookup to potentially supply an alternate expression to evaluate.
     public func evaluate(_ macro: StringListMacroDeclaration, lookup: ((MacroDeclaration) -> MacroExpression?)? = nil) -> [String] {
         MacroEvaluationScope.evaluations.increment()
 
@@ -322,7 +322,7 @@ final class MacroEvaluationContext {
     /// Macro declaration to which this context refers, if any; the outermost evaluation context of a macro expression evaluation won’t have one, for example.
     let macro: MacroDeclaration?
 
-    /// Value whose expression is being evaluted in this context, if any; this is to support recursive macro references, of which `$(inherited)` is a special case.
+    /// Value whose expression is being evaluated in this context, if any; this is to support recursive macro references, of which `$(inherited)` is a special case.
     let value: MacroValueAssignment?
 
     /// If provided, a closure used to resolve macro declarations to overriding expressions, which implicitly take precedence over all values in the scope.

@@ -233,7 +233,7 @@ import SWBTestSupport
         let X = try namespace.declareStringMacro("X")
         let Y = try namespace.declareStringMacro("Y")
 
-        // Push down several values that use inheritance in its different forms, alteranting between X and Y.
+        // Push down several values that use inheritance in its different forms, alternating between X and Y.
         table.push(X, literal: "a")
         table.push(Y, literal: "b")
         table.push(X, namespace.parseString("($(Y))"))
@@ -310,6 +310,7 @@ import SWBTestSupport
         let nonStandardAbsPath = try namespace.declareStringMacro("NON_STANDARD_ABS_PATH")
         let nonStandardRelPath = try namespace.declareStringMacro("NON_STANDARD_REL_PATH")
         let quoteString = try namespace.declareStringMacro("QUOTE_STRING")
+        let bestBool = try namespace.declareBooleanMacro("BEST")
 
         // Push down some value assignments.
         table.push(simpleString, literal: "This")
@@ -319,6 +320,7 @@ import SWBTestSupport
         table.push(nonStandardAbsPath, literal: "//foo/./bar/")
         table.push(nonStandardRelPath, literal: "foo/../bar/./baz/")
         table.push(quoteString, literal: "foo bar \" ' \\")
+        table.push(bestBool, literal: false)
 
         // Create a macro evaluation scope for testing.
         let scope = MacroEvaluationScope(table: table)
@@ -338,6 +340,7 @@ import SWBTestSupport
         #expect(scope.evaluate(namespace.parseString("$(SIMPLE_STRING:upper)")) == "THIS")
         #expect(scope.evaluate(namespace.parseString("$(SIMPLE_STRING:lower)")) == "this")
         #expect(scope.evaluate(namespace.parseString("$(QUOTE_STRING:quote)")) == "foo\\ bar\\ \\\"\\ \\'\\ \\\\")
+        #expect(scope.evaluate(namespace.parseString("$(BEST:not)")) == "YES")
     }
 
     @Test
@@ -684,7 +687,7 @@ import SWBTestSupport
             #expect(scope.evaluate(stringExpr) == expectedStringValue)
         }
 
-        // Test evalating various strings both as string lists and as strings.
+        // Test evaluating various strings both as string lists and as strings.
         try checkStringListEvaluatedAsString("LEADING_TRAILING_SPACES", "   $(X)    ", ["x"], "   x    ")
         try checkStringListEvaluatedAsString("LEADING_TRAILING_WHITESPACE", "\n  $(X)\n\n\n", ["x"], "\n  x\n\n\n")
         try checkStringListEvaluatedAsString("LEADING_TRAILING_ESCAPES", "\\a$(X)\\b", ["axb"], "\\ax\\b")

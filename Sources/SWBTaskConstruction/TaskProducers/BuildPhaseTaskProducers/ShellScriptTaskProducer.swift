@@ -66,7 +66,7 @@ final class ShellScriptTaskProducer: PhasedTaskProducer, TaskProducer, ShellBase
         // This is to provide a fallback to prevent any unexpected side-effects this close to shipping...
         guard scope.evaluate(BuiltinMacros.ENABLE_ADDITIONAL_CODESIGN_INPUT_TRACKING) else { return }
 
-        // Due to the free-form nature of how script outputs can be formed, it can be problematic to blanketly add these as doing so can trigger cycles from downstream targets.
+        // Due to the free-form nature of how script outputs can be formed, it can be problematic to blanket add these as doing so can trigger cycles from downstream targets.
         guard scope.evaluate(BuiltinMacros.ENABLE_ADDITIONAL_CODESIGN_INPUT_TRACKING_FOR_SCRIPT_OUTPUTS) else { return }
 
         // There is no reason to process any files if we're not building into a wrapper.
@@ -124,11 +124,11 @@ final class ShellScriptTaskProducer: PhasedTaskProducer, TaskProducer, ShellBase
 
                 // <rdar://problem/41126633> TCI: Changes to script phases not detected when input file is a directory
                 // This is an experiment to see if we can simply treat all of the inputs as a directory node. This will be hidden behind a default that we can toggle.
-                let legacyCondition = considerAllPathsDirectories && (SWBFeatureFlag.treatScriptInputsAsDirectoryNodes || scope.evaluate(BuiltinMacros.USE_RECURSIVE_SCRIPT_INPUTS_IN_SCRIPT_PHASES))
+                let legacyCondition = considerAllPathsDirectories && (SWBFeatureFlag.treatScriptInputsAsDirectoryNodes.value || scope.evaluate(BuiltinMacros.USE_RECURSIVE_SCRIPT_INPUTS_IN_SCRIPT_PHASES))
 
                 let modernCondition = scope.evaluate(BuiltinMacros.ALLOW_DISJOINTED_DIRECTORIES_AS_DEPENDENCIES)
 
-                if (SWBFeatureFlag.performOwnershipAnalysis && modernCondition) || legacyCondition {
+                if (SWBFeatureFlag.performOwnershipAnalysis.value && modernCondition) || legacyCondition {
                     exportedPaths.append(context.createDirectoryTreeNode(path, excluding: []))
                 } else {
                     exportedPaths.append(context.createNode(path))
@@ -161,8 +161,8 @@ final class ShellScriptTaskProducer: PhasedTaskProducer, TaskProducer, ShellBase
         // Create the set of resolved paths and export the proper variables to the script environment.
         var inputs = exportPaths(&environment, shellScriptBuildPhase.inputFilePaths, prefix: "SCRIPT_INPUT_FILE", considerAllPathsDirectories: true)
         let inputFileLists = exportPaths(&environment, shellScriptBuildPhase.inputFileListPaths, prefix: "SCRIPT_INPUT_FILE_LIST", considerAllPathsDirectories: true)
-        var outputs = exportPaths(&environment, shellScriptBuildPhase.outputFilePaths, prefix: "SCRIPT_OUTPUT_FILE", considerAllPathsDirectories: SWBFeatureFlag.performOwnershipAnalysis)
-        let outputFileLists = exportPaths(&environment, shellScriptBuildPhase.outputFileListPaths, prefix: "SCRIPT_OUTPUT_FILE_LIST", considerAllPathsDirectories: SWBFeatureFlag.performOwnershipAnalysis)
+        var outputs = exportPaths(&environment, shellScriptBuildPhase.outputFilePaths, prefix: "SCRIPT_OUTPUT_FILE", considerAllPathsDirectories: SWBFeatureFlag.performOwnershipAnalysis.value)
+        let outputFileLists = exportPaths(&environment, shellScriptBuildPhase.outputFileListPaths, prefix: "SCRIPT_OUTPUT_FILE_LIST", considerAllPathsDirectories: SWBFeatureFlag.performOwnershipAnalysis.value)
 
         // Lastly, we need to inspect the contents of the file lists and append their paths accordingly.
         await handleFileLists(&tasks, &inputs, &outputs, &environment, scope, inputFileLists, outputFileLists)

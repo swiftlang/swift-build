@@ -426,7 +426,7 @@ fileprivate struct ModuleMapTaskConstructionTests: CoreBasedTests {
                 // There are some more tie breakers in the code but they're arbitrary and we don't
                 // really care which umbrella looking header gets used.
                 // 1. x.h is preferred over y.H.
-                // 2. When all else fails, lexigraphic order is used.
+                // 2. When all else fails, lexicographic order is used.
 
                 // Don't add Swift contents to the module if the Objective-C compatibility header isn't generated.
                 TestStandardTarget(

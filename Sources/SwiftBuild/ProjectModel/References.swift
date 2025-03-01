@@ -16,7 +16,7 @@ import SWBProtocol
 extension ProjectModel {
     // MARK: - References
 
-    /// Base enum for all items in the group hierarhcy.
+    /// Base enum for all items in the group hierarchy.
     public enum Reference: Sendable, Hashable {
         /// Determines the base path for a reference's relative path.
         public enum RefPathBase: String, Sendable, Hashable, Codable {

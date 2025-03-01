@@ -16,7 +16,7 @@ import SWBProtocol
 import SWBTestSupport
 import SWBUtil
 
-@Suite
+@Suite(.requireXcode16())
 fileprivate struct UnitTestTaskConstructionTests: CoreBasedTests {
 
     // MARK: Framework test target
@@ -48,6 +48,8 @@ fileprivate struct UnitTestTaskConstructionTests: CoreBasedTests {
                         "CODE_SIGN_IDENTITY": "",
                         "PRODUCT_NAME": "$(TARGET_NAME)",
                         "SDKROOT": "macosx",
+                        "SWIFT_ENABLE_EXPLICIT_MODULES": "NO",
+                        "_EXPERIMENTAL_SWIFT_EXPLICIT_MODULES": "NO",
                         "SWIFT_VERSION": swiftVersion,
                         "TAPI_EXEC": tapiToolPath.str,
                     ]),
@@ -333,6 +335,8 @@ fileprivate struct UnitTestTaskConstructionTests: CoreBasedTests {
                         "CODE_SIGN_IDENTITY": "-",
                         "CODE_SIGN_ENTITLEMENTS": "Entitlements.plist",
                         "SDKROOT": "macosx",
+                        "SWIFT_ENABLE_EXPLICIT_MODULES": "NO",
+                        "_EXPERIMENTAL_SWIFT_EXPLICIT_MODULES": "NO",
                         "SWIFT_EXEC": swiftCompilerPath.str,
                         "SWIFT_VERSION": swiftVersion,
                         "TAPI_EXEC": tapiToolPath.str,
@@ -856,7 +860,7 @@ fileprivate struct UnitTestTaskConstructionTests: CoreBasedTests {
 
     /// Test task construction for a unit test target for watchOS.  Both debug and install builds are tested for the device, and a debug build is tested for the simulator.
     ///
-    /// This test is primarily intended to validate some pecularities of building for watchOS.
+    /// This test is primarily intended to validate some peculiarities of building for watchOS.
     @Test(.requireSDKs(.watchOS))
     func applicationUnitTestTarget_watchOS() async throws {
 
@@ -2129,6 +2133,8 @@ fileprivate struct UnitTestTaskConstructionTests: CoreBasedTests {
                     buildSettings: [
                         "PRODUCT_NAME": "$(TARGET_NAME)",
                         "SDKROOT": "macosx",
+                        "SWIFT_ENABLE_EXPLICIT_MODULES": "NO",
+                        "_EXPERIMENTAL_SWIFT_EXPLICIT_MODULES": "NO",
                         "SWIFT_VERSION": swiftVersion,
                     ]),
             ],

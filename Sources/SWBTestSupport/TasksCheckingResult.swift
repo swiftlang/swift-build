@@ -263,7 +263,7 @@ extension CommandLineCheckable {
 
     // We presently don't have a method to check that a command line does not contain an array of strings in a non-contiguous block.
 
-    /// Checks that the receiver's command line does not contain the given strings as a continguous block.
+    /// Checks that the receiver's command line does not contain the given strings as a contiguous block.
     package func checkCommandLineDoesNotContainUninterrupted(_ strings: [String], sourceLocation: SourceLocation = #_sourceLocation) {
         if _commandLineAsStrings.contains(strings) {
             Issue.record("found sequence '\(strings)' in command line: \(_commandLineAsStrings.quotedDescription)", sourceLocation: sourceLocation)

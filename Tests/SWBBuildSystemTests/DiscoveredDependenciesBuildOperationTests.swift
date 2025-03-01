@@ -133,7 +133,7 @@ fileprivate struct DiscoveredDependenciesBuildOperationTests: CoreBasedTests {
 
             // Check the initial build.
             try await tester.checkBuild(persistent: true, serial: true) { results in
-                results.consumeTasksMatchingRuleTypes(["Gate", "MkDir", "WriteAuxiliaryFile", "SymLink", "CreateBuildDirectory", "ProcessInfoPlistFile", "RegisterExecutionPolicyException", "ClangStatCache", "SwiftExplicitDependencyCompileModuleFromInterface", "SwiftExplicitDependencyGeneratePcm"])
+                results.consumeTasksMatchingRuleTypes(["Gate", "MkDir", "WriteAuxiliaryFile", "SymLink", "CreateBuildDirectory", "ProcessInfoPlistFile", "RegisterExecutionPolicyException", "ClangStatCache", "SwiftExplicitDependencyCompileModuleFromInterface", "SwiftExplicitDependencyGeneratePcm", "ProcessSDKImports"])
 
                 checkDriverContainerTasks(results)
 
@@ -149,7 +149,7 @@ fileprivate struct DiscoveredDependenciesBuildOperationTests: CoreBasedTests {
                     #expect(tasks.count == 2)
                 }
 
-                if SWBFeatureFlag.enableEagerLinkingByDefault {
+                if SWBFeatureFlag.enableEagerLinkingByDefault.value {
                     results.checkTasks(.matchRuleType("GenerateTAPI")) { tasks in
                         #expect(tasks.count == 2)
                     }
@@ -194,7 +194,7 @@ fileprivate struct DiscoveredDependenciesBuildOperationTests: CoreBasedTests {
                 results.checkTaskExists(.matchTargetName("Dep"), .matchRuleType("SwiftDriver Compilation Requirements"))
                 results.checkTaskExists(.matchTargetName("Dep"), .matchRuleType("SwiftDriver"))
 
-                if SWBFeatureFlag.enableEagerLinkingByDefault {
+                if SWBFeatureFlag.enableEagerLinkingByDefault.value {
                     results.checkTasks(.matchRuleType("GenerateTAPI")) { tasks in
                         #expect(tasks.count == 1)
                     }
@@ -214,6 +214,7 @@ fileprivate struct DiscoveredDependenciesBuildOperationTests: CoreBasedTests {
 
                 results.checkTasks(.matchRuleType("ExtractAppIntentsMetadata")) { _ in }
                 results.checkTasks(.matchRuleType("ClangStatCache")) { _ in }
+                results.checkTasks(.matchRuleType("ProcessSDKImports")) { _ in }
                 results.checkNoTask()
             }
 
@@ -231,7 +232,7 @@ fileprivate struct DiscoveredDependenciesBuildOperationTests: CoreBasedTests {
             try await tester.checkBuild(persistent: true, serial: true) { results in
                 // We should rebuild Dep, recopy its .swiftmodule, rebuild the client, and relink both.
                 //
-                // FIXME: Why doesn't this trigger the bug where we sometiems stat the module ahead of when it is needed? That was the purpose of this test so we need to get this to fail more before we fix it.
+                // FIXME: Why doesn't this trigger the bug where we sometimes stat the module ahead of when it is needed? That was the purpose of this test so we need to get this to fail more before we fix it.
                 results.consumeTasksMatchingRuleTypes(["Gate"])
 
                 checkDriverContainerTasks(results)
@@ -244,7 +245,7 @@ fileprivate struct DiscoveredDependenciesBuildOperationTests: CoreBasedTests {
                     #expect(tasks.count == 2)
                 }
 
-                if SWBFeatureFlag.enableEagerLinkingByDefault {
+                if SWBFeatureFlag.enableEagerLinkingByDefault.value {
                     results.checkTasks(.matchRuleType("GenerateTAPI")) { tasks in
                         #expect(tasks.count == 1)
                     }
@@ -266,6 +267,7 @@ fileprivate struct DiscoveredDependenciesBuildOperationTests: CoreBasedTests {
 
                 results.checkTasks(.matchRuleType("ExtractAppIntentsMetadata")) { _ in }
                 results.checkTasks(.matchRuleType("ClangStatCache")) { _ in }
+                results.checkTasks(.matchRuleType("ProcessSDKImports")) { _ in }
 
                 results.checkNoTask()
             }

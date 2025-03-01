@@ -61,6 +61,7 @@
             // Input file lists
             {   Name = __INPUT_FILE_LIST_PATH__;
                 Type = Path;
+                Condition = "$(LIBTOOL_USE_RESPONSE_FILE)";
                 DefaultValue = "$(LINK_FILE_LIST_$(variant)_$(arch))";      // this is set up for us as a read-only property
                 CommandLineFlag = "-filelist";
                 IsInputDependency = Yes;
@@ -104,6 +105,11 @@
                 DefaultValue = "$(OBJECT_FILE_DIR_$(CURRENT_VARIANT))/$(CURRENT_ARCH)/$(PRODUCT_NAME)_libtool_dependency_info.dat";
             },
 
+            {
+                Name = "LIBTOOL_USE_RESPONSE_FILE";
+                Type = Boolean;
+                DefaultValue = YES;
+            },
         );
     }
 )

@@ -303,11 +303,10 @@ fileprivate struct MsgPackSerializationPerfTests: PerfTests {
             for _ in 1...iterations
             {
                 let sz = self.serializeCustomElementHierarchy(log)
-                #expect(sz != nil)
                 if !didEmitSerializedSize
                 {
                     let mb = Float64(sz.byteString.bytes.count) / (1000.0 * 1000.0)
-                    print("Serialized \(mb) megabytes")
+                    perfPrint("Serialized \(mb) megabytes")
                     didEmitSerializedSize = true
                 }
             }
@@ -323,7 +322,7 @@ fileprivate struct MsgPackSerializationPerfTests: PerfTests {
         let sz = serializeCustomElementHierarchy(log)
 
         let mb = Float64(sz.byteString.bytes.count) / (1000.0 * 1000.0)
-        print("Will deserialize \(mb) megabytes")
+        perfPrint("Will deserialize \(mb) megabytes")
 
         try await measure {
             for _ in 1...iterations {

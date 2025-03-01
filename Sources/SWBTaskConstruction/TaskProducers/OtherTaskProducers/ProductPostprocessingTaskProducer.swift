@@ -15,7 +15,7 @@ import SWBUtil
 import SWBMacro
 
 /// Returns an array of build variant-macro evaluation scope pairs for the given scope for a list of build variants.
-/// - parameter scope: The base scope for which to return the varianted subscropes.
+/// - parameter scope: The base scope for which to return the varianted subscopes.
 /// - parameter variants: If non-nil, then the subscopes for the given variants will be returned.  If nil, then subscopes for the values of `$(BUILD_VARIANTS)` evaluated in the given scope will be returned.
 private func perVariantSubscopes(_ scope: MacroEvaluationScope, variants: [String]? = nil) -> [(variant: String, scope: MacroEvaluationScope)] {
     let effectiveVariants = variants ?? scope.evaluate(BuiltinMacros.BUILD_VARIANTS)
@@ -242,7 +242,7 @@ final class ProductPostprocessingTaskProducer: PhasedTaskProducer, TaskProducer 
 
             // <rdar://problem/45465505> Enable hierarchical layout in SYMROOT of copied-aside products by default
             let output: Path
-            if SWBFeatureFlag.useHierarchicalBuiltProductsDir || SWBFeatureFlag.useHierarchicalLayoutForCopiedAsideProducts || scope.evaluate(BuiltinMacros.USE_HIERARCHICAL_LAYOUT_FOR_COPIED_ASIDE_PRODUCTS) {
+            if SWBFeatureFlag.useHierarchicalBuiltProductsDir.value || SWBFeatureFlag.useHierarchicalLayoutForCopiedAsideProducts.value || scope.evaluate(BuiltinMacros.USE_HIERARCHICAL_LAYOUT_FOR_COPIED_ASIDE_PRODUCTS) {
                 // Since a build might have multiple targets which generate the same product name, we want to avoid collisions when computing the destination here.  So for installed products we place them at their INSTALL_PATH relative to the SYMROOT, and for uninstalled products we place them at $(SYMROOT)/UninstalledProducts/$(PROJECT_NAME)/$(TARGET_NAME).
                 if scope.evaluate(BuiltinMacros.SKIP_INSTALL) || scope.evaluate(BuiltinMacros.INSTALL_PATH).isEmpty {
                     output = buildDir.join("UninstalledProducts").join(context.settings.project?.name).join(context.settings.target?.name).join(fullProductName)
@@ -488,7 +488,7 @@ final class ProductPostprocessingTaskProducer: PhasedTaskProducer, TaskProducer 
             // FIXME: This is very gross, we currently only have access to the scope here, so we can't use the actual product type object. However, we will hopefully replace all of this logic by eliminating the
             let productType = ProductTypeIdentifier(subscope.evaluate(BuiltinMacros.PRODUCT_TYPE))
 
-            // TAPI will only be run when the output is a dylib. Swift static library may schdule installAPI phase to generate a swiftmodule.
+            // TAPI will only be run when the output is a dylib. Swift static library may schedule installAPI phase to generate a swiftmodule.
             if productType.supportsInstallAPI && (shouldUseInstallAPI(subscope, settings) || stubAPIDestination(subscope, settings) == .builtProduct) {
                 let tapiOutputPath = Path(subscope.evaluate(BuiltinMacros.TAPI_OUTPUT_PATH))
                 paths.append((tapiOutputPath, subscope, false, false, false))
@@ -637,7 +637,7 @@ final class ProductPostprocessingTaskProducer: PhasedTaskProducer, TaskProducer 
         }
     }
 
-    // The entry point for adding in the product registration tasks for 'buid' commands.
+    // The entry point for adding in the product registration tasks for 'build' commands.
     private func addProductRegistrationTasks(_ scope: MacroEvaluationScope, _ tasks: inout [any PlannedTask]) async {
         guard scope.evaluate(BuiltinMacros.BUILD_COMPONENTS).contains("build") else {
             return
@@ -873,7 +873,7 @@ func addCommonInstallAPITasks(_ producer: PhasedTaskProducer, _ scope: MacroEval
                               phaseEndTask: any PlannedTask, jsonPath: Path?, destination: InstallAPIDestination) async -> [any PlannedTask] {
     let buildComponents = scope.evaluate(BuiltinMacros.BUILD_COMPONENTS)
     var dependencyInputs = headerDependencyInputs
-    // Only add dSYM depenedency iff this the task is installAPI verification.
+    // Only add dSYM dependency iff this the task is installAPI verification.
     let tapiReadDSYM = scope.evaluate(BuiltinMacros.TAPI_READ_DSYM) && scope.evaluate(BuiltinMacros.DEBUG_INFORMATION_FORMAT) == "dwarf-with-dsym"
     if buildComponents.contains("build") && !(destination == .eagerLinkingTBDDir) && tapiReadDSYM {
         let dsymBundle = scope.evaluate(BuiltinMacros.DWARF_DSYM_FOLDER_PATH)

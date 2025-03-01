@@ -141,6 +141,11 @@ fileprivate struct PreOverridesSettings {
 
         table.push(BuiltinMacros.DIAGNOSE_MISSING_TARGET_DEPENDENCIES, literal: .yes)
 
+        // This is a hack to allow more tests to run in Swift CI when using older Xcode versions.
+        if core.xcodeProductBuildVersion < (try! ProductBuildVersion("16A242d")) {
+            table.push(BuiltinMacros.LM_SKIP_METADATA_EXTRACTION, BuiltinMacros.namespace.parseString("YES"))
+        }
+
         // Add the "calculated" settings.
         addCalculatedUniversalDefaults(&table)
 
@@ -359,7 +364,7 @@ fileprivate struct PreOverridesSettings {
 }
 
 /// This class stores settings tables which are cached by the WorkspaceContext.
-final class WorkspaceSettings {
+final class WorkspaceSettings: Sendable {
     unowned let workspaceContext: WorkspaceContext
 
     var core: Core {
@@ -373,11 +378,11 @@ final class WorkspaceSettings {
         self.workspaceContext = workspaceContext
     }
 
-    struct BuiltinSettingsInfoKey: Hashable {
+    struct BuiltinSettingsInfoKey: Hashable, Sendable {
         let targetType: TargetType?
         let domain: String
     }
-    struct BuiltinSettingsInfo {
+    struct BuiltinSettingsInfo: Sendable {
         /// The actual settings.
         let table: MacroValueAssignmentTable
 
@@ -388,7 +393,7 @@ final class WorkspaceSettings {
         let errors: [String]
     }
 
-    private var builtinSettingsInfoCache = Registry<BuiltinSettingsInfoKey, BuiltinSettingsInfo>()
+    private let builtinSettingsInfoCache = Registry<BuiltinSettingsInfoKey, BuiltinSettingsInfo>()
 
     func builtinSettingsInfo(forTargetType targetType: TargetType?, domain: String) -> BuiltinSettingsInfo {
         return builtinSettingsInfoCache.getOrInsert(BuiltinSettingsInfoKey(targetType: targetType, domain: domain)) {
@@ -543,7 +548,7 @@ final class WorkspaceSettings {
         // Enable the integrated driver
         table.push(BuiltinMacros.SWIFT_USE_INTEGRATED_DRIVER, literal: true)
 
-        if SWBFeatureFlag.enableEagerLinkingByDefault {
+        if SWBFeatureFlag.enableEagerLinkingByDefault.value {
             table.push(BuiltinMacros.EAGER_LINKING, literal: true)
         }
 
@@ -553,28 +558,28 @@ final class WorkspaceSettings {
         // Do not add arm64e to ARCHS_STANDARD by default
         table.push(BuiltinMacros.ENABLE_POINTER_AUTHENTICATION, literal: false)
 
-        // Enable additional codesign tracking by default, but opt-out of scripts phases as their outputs are free-form, and thus have the potential to introduce cycles in the build some circumstances. If that does happen, these build settings provide a relief valve while projects authors figure out how to break the cycle they are introducing (or how we break the target dependencies more granualarly).
+        // Enable additional codesign tracking by default, but opt-out of scripts phases as their outputs are free-form, and thus have the potential to introduce cycles in the build some circumstances. If that does happen, these build settings provide a relief valve while projects authors figure out how to break the cycle they are introducing (or how we break the target dependencies more granularly).
         table.push(BuiltinMacros.ENABLE_ADDITIONAL_CODESIGN_INPUT_TRACKING, literal: true)
         table.push(BuiltinMacros.ENABLE_ADDITIONAL_CODESIGN_INPUT_TRACKING_FOR_SCRIPT_OUTPUTS, literal: true)
 
         /// <rdar://problem/59862065> Remove EnableInstallHeadersFiltering after validation
-        if SWBFeatureFlag.enableInstallHeadersFiltering {
+        if SWBFeatureFlag.enableInstallHeadersFiltering.value {
             table.push(BuiltinMacros.EXPERIMENTAL_ALLOW_INSTALL_HEADERS_FILTERING, literal: true)
         }
 
-        if SWBFeatureFlag.enableClangExplicitModulesByDefault {
+        if SWBFeatureFlag.enableClangExplicitModulesByDefault.value {
             table.push(BuiltinMacros._EXPERIMENTAL_CLANG_EXPLICIT_MODULES, literal: true)
         }
 
-        if SWBFeatureFlag.enableSwiftExplicitModulesByDefault {
+        if SWBFeatureFlag.enableSwiftExplicitModulesByDefault.value {
             table.push(BuiltinMacros._EXPERIMENTAL_SWIFT_EXPLICIT_MODULES, literal: .enabled)
         }
 
-        if SWBFeatureFlag.enableClangCachingByDefault {
+        if SWBFeatureFlag.enableClangCachingByDefault.value {
             table.push(BuiltinMacros.CLANG_ENABLE_COMPILE_CACHE, literal: .enabled)
         }
 
-        if SWBFeatureFlag.enableSwiftCachingByDefault {
+        if SWBFeatureFlag.enableSwiftCachingByDefault.value {
             table.push(BuiltinMacros.SWIFT_ENABLE_COMPILE_CACHE, literal: .enabled)
         }
 
@@ -769,7 +774,7 @@ public final class Settings: PlatformBuildContext, Sendable {
 
     public static func targetPlatformSpecializationEnabled(scope: MacroEvaluationScope) -> Bool {
         return scope.evaluate(BuiltinMacros.ALLOW_TARGET_PLATFORM_SPECIALIZATION) ||
-            SWBFeatureFlag.allowTargetPlatformSpecialization
+            SWBFeatureFlag.allowTargetPlatformSpecialization.value
     }
 
     public var enableBuildRequestOverrides: Bool {
@@ -1010,7 +1015,7 @@ extension WorkspaceContext {
             }
 
             // Add the platform search paths.
-            for path in platform?.executableSearchPaths ?? [] {
+            for path in platform?.executableSearchPaths.paths ?? [] {
                 paths.append(path)
             }
 
@@ -1190,7 +1195,7 @@ private class SettingsBuilder {
         /// The sparse SDKs to use.
         let sparseSDKs: [SDK]
 
-        /// The SDK and platform values before they were overriden by the active run destination.
+        /// The SDK and platform values before they were overridden by the active run destination.
         ///
         /// We use these to decide if we want to include the TOOLCHAINS from the SDK settings.
         fileprivate let preOverrides: PreOverridesSettings
@@ -1677,7 +1682,7 @@ private class SettingsBuilder {
             sdkroot = createScope(effectiveTargetConfig, sdkToUse: sdk).evaluate(BuiltinMacros.SDKROOT).str
 
             // We will replace SDKROOT values of "auto" here if the run destination is compatible.
-            let usesReplacableAutomaticSDKRoot: Bool
+            let usesReplaceableAutomaticSDKRoot: Bool
             if sdkroot == "auto", let activePlatform = parameters.activeRunDestination?.platform {
                 let destinationIsMacCatalyst = parameters.activeRunDestination?.sdkVariant == MacCatalystInfo.sdkVariantName
 
@@ -1686,15 +1691,15 @@ private class SettingsBuilder {
                 let runDestinationIsSupported = supportedPlatforms.contains(activePlatform)
                 let supportsMacCatalyst = Settings.supportsMacCatalyst(scope: scope, core: core)
                 if destinationIsMacCatalyst && supportsMacCatalyst {
-                    usesReplacableAutomaticSDKRoot = true
+                    usesReplaceableAutomaticSDKRoot = true
                 }
                 else {
-                    usesReplacableAutomaticSDKRoot = runDestinationIsSupported
+                    usesReplaceableAutomaticSDKRoot = runDestinationIsSupported
                 }
             } else {
-                usesReplacableAutomaticSDKRoot = false
+                usesReplaceableAutomaticSDKRoot = false
             }
-            if usesReplacableAutomaticSDKRoot, let activeSDK = parameters.activeRunDestination?.sdk {
+            if usesReplaceableAutomaticSDKRoot, let activeSDK = parameters.activeRunDestination?.sdk {
                 sdkroot = activeSDK
             }
 
@@ -1707,7 +1712,7 @@ private class SettingsBuilder {
             if let s = sdk {
                 // Evaluate the SDK variant, if there is one.
                 let sdkVariantName: String
-                if usesReplacableAutomaticSDKRoot, let activeSDKVariant = parameters.activeRunDestination?.sdkVariant {
+                if usesReplaceableAutomaticSDKRoot, let activeSDKVariant = parameters.activeRunDestination?.sdkVariant {
                     sdkVariantName = activeSDKVariant
                 } else {
                     sdkVariantName = createScope(effectiveTargetConfig, sdkToUse: s).evaluate(BuiltinMacros.SDK_VARIANT)
@@ -2026,7 +2031,7 @@ private class SettingsBuilder {
         var table = MacroValueAssignmentTable(namespace: core.specRegistry.internalMacroNamespace)
         let scope = createScope(sdkToUse: sdk)
 
-        // FIXME: Previously, both of these were handled with dynamic property expressions, so they could be pushed in the same place as Xcode in the tierless model, and as a way to ensure the definition matched the intent. However, we move this until later and then do it in a manner close to what Xcode does, and if it suffices then we may want to stick with it just to avoid the complexity of dynamic expressions (which are tracked by: <rdar://problem/22981068> Add support for "dynamic" macro expressions).
+        // FIXME: Previously, both of these were handled with dynamic property expressions, so they could be pushed in the same place as Xcode in the tier-less model, and as a way to ensure the definition matched the intent. However, we move this until later and then do it in a manner close to what Xcode does, and if it suffices then we may want to stick with it just to avoid the complexity of dynamic expressions (which are tracked by: <rdar://problem/22981068> Add support for "dynamic" macro expressions).
 
         // If there is no INSTALL_PATH, then SKIP_INSTALL is set to YES.
         if scope.evaluate(BuiltinMacros.INSTALL_PATH).isEmpty {
@@ -2299,10 +2304,15 @@ private class SettingsBuilder {
         // subtypes in all cases (x86_64h, arm64e, etc.). Also, NXGetLocalArchInfo is not guaranteed to include the CPU_ARCH_ABI64 mask in its returned cputype
         // (for example on a non-Haswell CPU we get a general x86 CPU subtype which won't infer 64-bit like Haswell does), so we manually add the mask if the CPU is 64-bit capable.
         let fallbackArch = "undefined_arch"
-        platformTable.push(BuiltinMacros.NATIVE_ARCH_ACTUAL, literal: Architecture.host.stringValue ?? fallbackArch)
-        platformTable.push(BuiltinMacros.NATIVE_ARCH_32_BIT, literal: Architecture.host.as32bit.stringValue ?? fallbackArch)
-        platformTable.push(BuiltinMacros.NATIVE_ARCH_64_BIT, literal: Architecture.host.as64bit.stringValue ?? fallbackArch)
-        platformTable.push(BuiltinMacros.NATIVE_ARCH, literal: Architecture.host.stringValue ?? fallbackArch)
+        if core.hostOperatingSystem == .macOS {
+            platformTable.push(BuiltinMacros.NATIVE_ARCH_ACTUAL, literal: Architecture.host.stringValue ?? fallbackArch)
+            platformTable.push(BuiltinMacros.NATIVE_ARCH_32_BIT, literal: Architecture.host.as32bit.stringValue ?? fallbackArch)
+            platformTable.push(BuiltinMacros.NATIVE_ARCH_64_BIT, literal: Architecture.host.as64bit.stringValue ?? fallbackArch)
+            platformTable.push(BuiltinMacros.NATIVE_ARCH, literal: Architecture.host.stringValue ?? fallbackArch)
+        } else {
+            platformTable.push(BuiltinMacros.NATIVE_ARCH_ACTUAL, literal: Architecture.hostStringValue ?? fallbackArch)
+            platformTable.push(BuiltinMacros.NATIVE_ARCH, literal: Architecture.hostStringValue ?? fallbackArch)
+        }
 
         // Add the platform deployment target defaults, for real platforms.
         //
@@ -2468,6 +2478,11 @@ private class SettingsBuilder {
 
             sdkTable.push(BuiltinMacros.LINK_OBJC_RUNTIME, literal: variant.isMacCatalyst ? true : localFS.exists(sdk.path.join(variant.systemPrefix, preserveRoot: true).join("usr/lib/libobjc.tbd")))
 
+            // Add ObjC ARC support for Apple platforms.
+            if let project, project.isPackage, variant.llvmTargetTripleVendor == "apple" {
+                sdkTable.push(BuiltinMacros.CLANG_ENABLE_OBJC_ARC, literal: true)
+            }
+
             if let llvmTargetTripleVendor = variant.llvmTargetTripleVendor {
                 sdkTable.push(BuiltinMacros.LLVM_TARGET_TRIPLE_VENDOR, literal: llvmTargetTripleVendor)
             }
@@ -2514,6 +2529,7 @@ private class SettingsBuilder {
 
             sdkTable.push(BuiltinMacros.DYNAMIC_LIBRARY_EXTENSION, literal: imageFormat.dynamicLibraryExtension)
             sdkTable.push(BuiltinMacros.PLATFORM_REQUIRES_SWIFT_AUTOLINK_EXTRACT, literal: imageFormat.requiresSwiftAutolinkExtract)
+            sdkTable.push(BuiltinMacros.PLATFORM_REQUIRES_SWIFT_MODULEWRAP, literal: imageFormat.requiresSwiftModulewrap)
         }
 
         // Add additional SDK default settings.
@@ -3311,7 +3327,7 @@ private class SettingsBuilder {
                         //
                         // The net result is the linker writes the actual path into the load command of the
                         // stub executor so it can be found at runtime, but the debug dylib has an actual
-                        // identity as the specified client name. It therefore can succesfully link against
+                        // identity as the specified client name. It therefore can successfully link against
                         // libraries with allowable client restrictions of the same name.
                         table.push(
                             BuiltinMacros.EXECUTABLE_DEBUG_DYLIB_INSTALL_NAME,
@@ -3320,6 +3336,18 @@ private class SettingsBuilder {
                         table.push(
                             BuiltinMacros.EXECUTABLE_DEBUG_DYLIB_MAPPED_INSTALL_NAME,
                             table.namespace.parseString("@rpath/$(EXECUTABLE_NAME).debug.dylib")
+                        )
+
+                        let sdkVariant = sdk?.variant(for: scope.evaluate(BuiltinMacros.SDK_VARIANT))
+                        let platform = sdk?.targetBuildVersionPlatform(sdkVariant: sdkVariant)
+
+                        // Platform version identifiers used in `$ld$previous` mappings.
+                        // Unknown values are specified with `0`.
+                        let appleLDPreviousPlatform = platform?.rawValue ?? 0
+
+                        table.push(
+                            BuiltinMacros.EXECUTABLE_DEBUG_DYLIB_MAPPED_PLATFORM,
+                            table.namespace.parseLiteralString("\(appleLDPreviousPlatform)")
                         )
                     }
                     else {
@@ -3492,7 +3520,7 @@ private class SettingsBuilder {
         // specific DriverKit suffixed SDK to the platform-neutral DriverKit suffixed SDK ("driverkit.foo")
         // making the concrete SDK resolution ambiguous again. Thus without considering aliases, we could end up
         // changing the SDKROOT of a target configured with driverkit.macosx.foo back to driverkit.foo,
-        // and if the run destination were NOT macOS, we could end up changing the platformness of the SDK.
+        // and if the run destination were NOT macOS, we could end up changing the platform-ness of the SDK.
         guard newSDKCanonicalName != targetSDK.canonicalName && !targetSDK.aliases.contains(newSDKCanonicalName) else {
             return
         }
@@ -3880,7 +3908,7 @@ private class SettingsBuilder {
 
         table.push(BuiltinMacros.ACTION, literal: parameters.action.actionName)
         table.push(BuiltinMacros.BUILD_COMPONENTS, literal: parameters.action.buildComponents)
-        if parameters.action.isInstallAction || SWBFeatureFlag.useHierarchicalBuiltProductsDir {
+        if parameters.action.isInstallAction || SWBFeatureFlag.useHierarchicalBuiltProductsDir.value {
             table.push(BuiltinMacros.DEPLOYMENT_LOCATION, literal: true)
         }
         if parameters.action.isInstallAction {
@@ -4054,8 +4082,8 @@ private class SettingsBuilder {
         table.push(BuiltinMacros.ARCHS, literal: effectiveArchs.removingDuplicates())
 
         // The set of Swift module-only architectures should be a set of valid architectures that's disjoint from the
-        // set of effective archtectures. We don't necessarily care about these architectures being deprecated as this
-        // setting will primarily be used to support building Swift modules for deprected (or at least unsupported)
+        // set of effective architectures. We don't necessarily care about these architectures being deprecated as this
+        // setting will primarily be used to support building Swift modules for deprecated (or at least unsupported)
         // architectures.
         let originalModuleOnlyArchs = scope.evaluate(BuiltinMacros.SWIFT_MODULE_ONLY_ARCHS)
         let moduleOnlyArchs = onlyActiveArchApplied ? [] : originalModuleOnlyArchs
@@ -4177,6 +4205,15 @@ private class SettingsBuilder {
             table.push(BuiltinMacros.SYSTEM_FRAMEWORK_SEARCH_PATHS, BuiltinMacros.namespace.parseStringList(["$(inherited)", "$(TEST_FRAMEWORK_SEARCH_PATHS$(TEST_BUILD_STYLE))"]))
             table.push(BuiltinMacros.LIBRARY_SEARCH_PATHS, BuiltinMacros.namespace.parseStringList(["$(inherited)", "$(TEST_LIBRARY_SEARCH_PATHS$(TEST_BUILD_STYLE))"]))
             table.push(BuiltinMacros.SWIFT_INCLUDE_PATHS, BuiltinMacros.namespace.parseStringList(["$(inherited)", "$(TEST_LIBRARY_SEARCH_PATHS$(TEST_BUILD_STYLE))"]))
+
+            // If the toolchain contains a copy of Swift Testing, prefer it.
+            let toolchainPath = Path(scope.evaluateAsString(BuiltinMacros.TOOLCHAIN_DIR))
+            if let toolchain = core.toolchainRegistry.toolchains.first(where: { $0.path == toolchainPath }) {
+                let platformName = scope.evaluate(BuiltinMacros.PLATFORM_NAME)
+                if let testingLibrarySearchPath = toolchain.testingLibrarySearchPath(forPlatformNamed: platformName) {
+                    table.push(BuiltinMacros.TEST_LIBRARY_SEARCH_PATHS, BuiltinMacros.namespace.parseStringList(["$(inherited)", testingLibrarySearchPath.str]))
+                }
+            }
 
             if scope.evaluate(BuiltinMacros.ENABLE_PRIVATE_TESTING_SEARCH_PATHS) {
                 table.push(BuiltinMacros.SYSTEM_FRAMEWORK_SEARCH_PATHS, BuiltinMacros.namespace.parseStringList(["$(inherited)", "$(TEST_PRIVATE_FRAMEWORK_SEARCH_PATHS$(TEST_BUILD_STYLE))"]))
@@ -4807,7 +4844,7 @@ private class SettingsBuilder {
             analyzeExcludedLocalizationFiles(inLevelWithTable: settings.table, scope: levelScope, name: settings.level, generalScope: scope)
         }
 
-        // Diagnose unknown specialization options on targets. This is a warning and not an error so that if we introduce a new option, using it will not necesarily break compatibility with older Xcodes.
+        // Diagnose unknown specialization options on targets. This is a warning and not an error so that if we introduce a new option, using it will not necessarily break compatibility with older Xcodes.
         if target != nil {
             let unknownSpecializationOptions = Set(scope.evaluate(BuiltinMacros.SPECIALIZATION_SDK_OPTIONS)).subtracting(["internal"])
             if !unknownSpecializationOptions.isEmpty {
@@ -4857,7 +4894,7 @@ private class SettingsBuilder {
                 // If values is empty then we emit a warning if the setting is defined at all.
                 let assignedValue = scope.evaluateAsString(setting)
                 if !assignedValue.isEmpty {
-                    let explanation = explanation ?? "This setting is not suppported."
+                    let explanation = explanation ?? "This setting is not supported."
                     warnings.append("\(setting.name) is set to '\(assignedValue)': \(explanation)")
                 }
             }

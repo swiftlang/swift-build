@@ -16,6 +16,14 @@ import Foundation
 #if os(Windows)
 import WinSDK
 
+private var KF_FLAG_DEFAULT: DWORD {
+    DWORD(WinSDK.KF_FLAG_DEFAULT.rawValue)
+}
+
+private func SUCCEEDED(_ hr: HRESULT) -> Bool {
+    hr >= 0
+}
+
 private func _url(for id: KNOWNFOLDERID) -> URL? {
     var pszPath: PWSTR?
     let hr: HRESULT = withUnsafePointer(to: id) { id in

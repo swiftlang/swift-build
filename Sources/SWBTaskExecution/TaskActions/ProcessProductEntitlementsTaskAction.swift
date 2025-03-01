@@ -254,7 +254,7 @@ public final class ProcessProductEntitlementsTaskAction: TaskAction
 //        let input = task.workingDirectory.join(options.inputPath)     // Not presently used
         let output = task.workingDirectory.join(options.outputPath)
 
-        // Updating entitlements is not something that is actively encouraged or supported, however, this is a compatability pain point for certain projects that we need to maintain some ability to do this. A better approach is to plumb this through the system so that we can track this as a proper dependency mechanism, potentially through our virtual task producers... however, until then, we enable this functionality for those existing clients.
+        // Updating entitlements is not something that is actively encouraged or supported, however, this is a compatibility pain point for certain projects that we need to maintain some ability to do this. A better approach is to plumb this through the system so that we can track this as a proper dependency mechanism, potentially through our virtual task producers... however, until then, we enable this functionality for those existing clients.
 
         // Also, we never modify the signed entitlements when building for simulators and ENTITLEMENTS_DESTINATION is __entitlements, since those are only expected to contain get-task-allow; see rdar://55324156.
         let entitlementsVariantToModify: EntitlementsVariant = scope.evaluate(BuiltinMacros.ENTITLEMENTS_DESTINATION) == .entitlementsSection ? .simulated : .signed

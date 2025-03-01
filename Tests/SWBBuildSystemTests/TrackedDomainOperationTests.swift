@@ -25,7 +25,7 @@ import SWBTaskExecution
 import SWBUtil
 import SWBTestSupport
 
-@Suite
+@Suite(.requireXcode16())
 fileprivate struct TrackedDomainOperationTests: CoreBasedTests {
     @Test(.requireSDKs(.macOS))
     func basicTrackedDomainAggregation() async throws {
@@ -209,7 +209,7 @@ fileprivate struct TrackedDomainOperationTests: CoreBasedTests {
                     """
             }
 
-            // Write a basebones Info.plist file.
+            // Write a barebones Info.plist file.
             try await tester.fs.writePlist(testWorkspace.sourceRoot.join("TestProject/Info.plist"), .plDict([
                 "CFBundleDevelopmentRegion": .plString("en"),
                 "CFBundleExecutable": .plString("$(EXECUTABLE_NAME)"),
@@ -505,7 +505,7 @@ fileprivate struct TrackedDomainOperationTests: CoreBasedTests {
                     """
             }
 
-            // Write a basebones Info.plist file.
+            // Write a barebones Info.plist file.
             try await tester.fs.writePlist(testWorkspace.sourceRoot.join("TestProject/Info.plist"), .plDict([
                 "CFBundleDevelopmentRegion": .plString("en"),
                 "CFBundleExecutable": .plString("$(EXECUTABLE_NAME)"),

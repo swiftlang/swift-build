@@ -199,7 +199,7 @@ fileprivate struct UnitTestBuildOperationTests: CoreBasedTests {
                 return
             }
 
-            // Check tbhat the app sign task runs after the test targets' end gate tasks.
+            // Check that the app sign task runs after the test targets' end gate tasks.
             results.check(event: .taskHadEvent(testOneGateTask, event: .completed), precedes: .taskHadEvent(appSignTask, event: .started))
             results.check(event: .taskHadEvent(testTwoGateTask, event: .completed), precedes: .taskHadEvent(appSignTask, event: .started))
 
@@ -607,7 +607,7 @@ fileprivate struct UnitTestBuildOperationTests: CoreBasedTests {
             // Validate a null build.
             try await tester.checkBuild(parameters: params, schemeCommand: .test, persistent: true, signableTargets: signableTargets) { results in
                 // Check that no tasks ran.
-                if SWBFeatureFlag.performOwnershipAnalysis {
+                if SWBFeatureFlag.performOwnershipAnalysis.value {
                     results.consumeTasksMatchingRuleTypes(["ClangStatCache"])
                     results.checkNoTask()
                 } else {

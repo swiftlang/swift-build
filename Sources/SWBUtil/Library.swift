@@ -43,7 +43,7 @@ public enum Library: Sendable {
         #else
         let flags = RTLD_LAZY
         #endif
-        guard let handle = path.withPlatformString({ dlopen($0, flags) }) else {
+        guard let handle = path.withPlatformString({ (p: UnsafePointer<CChar>) in dlopen(p, flags) }) else {
             #if os(Android)
             throw LibraryOpenError(message: String(cString: dlerror()!))
             #else

@@ -17,7 +17,7 @@ import SWBBuildSystem
 import SWBCore
 import SWBTestSupport
 
-@Suite
+@Suite(.requireXcode16())
 fileprivate struct HeadermapModuleCompatibilityTests: CoreBasedTests {
     @Test(.requireSDKs(.macOS))
     func implicitDependency() async throws {

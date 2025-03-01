@@ -141,14 +141,10 @@ fileprivate struct ModuleVerifierTaskConstructionTests: CoreBasedTests {
             FRAMEWORK_SEARCH_PATHS = /XCCONFIG_PATH
             """)
 
-        // A regular build will just build the currect architecture.
+        // A regular build will just build the correct architecture.
         await tester.checkBuild(BuildParameters(configuration: "Debug", commandLineOverrides: ["OTHER_CFLAGS": "-DCLI_FLAG"], environmentConfigOverridesPath: xcconfig), fs: fs) { results in
             let arch = results.runDestinationTargetArchitecture
             results.checkNoDiagnostics()
-
-            for task in results.uncheckedTasks {
-                print(task.ruleInfo)
-            }
 
             results.checkTarget(targetName) { target in
                 results.checkTasks(.matchRuleType("VerifyModuleC")) {tasks in
@@ -363,13 +359,9 @@ fileprivate struct ModuleVerifierTaskConstructionTests: CoreBasedTests {
                 ])
             let tester = try await TaskConstructionTester(getCore(), testProject)
 
-            // A regular build will just build the currect architecture.
+            // A regular build will just build the correct architecture.
             await tester.checkBuild() { results in
                 results.checkNoDiagnostics()
-
-                for task in results.uncheckedTasks {
-                    print(task.ruleInfo)
-                }
 
                 results.checkTarget(targetName) { target in
                     results.checkTask(.matchRuleType("VerifyModuleC")) { task in
@@ -465,13 +457,9 @@ fileprivate struct ModuleVerifierTaskConstructionTests: CoreBasedTests {
                 ])
             let tester = try await TaskConstructionTester(getCore(), testProject)
 
-            // A regular build will just build the currect architecture.
+            // A regular build will just build the correct architecture.
             await tester.checkBuild() { results in
                 results.checkNoDiagnostics()
-
-                for task in results.uncheckedTasks {
-                    print(task.ruleInfo)
-                }
 
                 results.checkTarget(targetName) { target in
                     results.checkTasks(.matchRuleType("VerifyModuleC")) { tasks in
@@ -586,13 +574,9 @@ fileprivate struct ModuleVerifierTaskConstructionTests: CoreBasedTests {
                 ])
             let tester = try await TaskConstructionTester(getCore(), testProject)
 
-            // A regular build will just build the currect architecture.
+            // A regular build will just build the correct architecture.
             await tester.checkBuild() { results in
                 results.checkNoDiagnostics()
-
-                for task in results.uncheckedTasks {
-                    print(task.ruleInfo)
-                }
 
                 results.checkTarget(targetName) { target in
                     results.checkTask(.matchRuleType("VerifyModuleC")) { task in
@@ -654,14 +638,10 @@ fileprivate struct ModuleVerifierTaskConstructionTests: CoreBasedTests {
         let tester = try await TaskConstructionTester(getCore(), testProject)
         let SRCROOT = tester.workspace.projects[0].sourceRoot.str
 
-        // A regular build will just build the currect architecture.
+        // A regular build will just build the correct architecture.
         await tester.checkBuild() { results in
             let arch = results.runDestinationTargetArchitecture
             results.checkNoDiagnostics()
-
-            for task in results.uncheckedTasks {
-                print(task.ruleInfo)
-            }
 
             results.checkTarget(targetName) { target in
                 results.checkTasks(.matchRuleType("VerifyModuleC")) {tasks in
@@ -727,7 +707,7 @@ fileprivate struct ModuleVerifierTaskConstructionTests: CoreBasedTests {
         let tester = try TaskConstructionTester(core, testProject)
         let SRCROOT = tester.workspace.projects[0].sourceRoot.str
 
-        // A regular build will just build the currect architecture.
+        // A regular build will just build the correct architecture.
         await tester.checkBuild() { results in
             let arch = results.runDestinationTargetArchitecture
             results.checkNoDiagnostics()

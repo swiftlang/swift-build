@@ -13,7 +13,7 @@
 public import SWBUtil
 import SWBMacro
 
-public final class ProcessXCFrameworkLibrarySpec: CommandLineToolSpec, SpecImplementationType {
+public final class ProcessXCFrameworkLibrarySpec: CommandLineToolSpec, SpecImplementationType, @unchecked Sendable {
     public static let identifier: String = "com.apple.build-tasks.process-xcframework-library"
 
     public class func construct(registry: SpecRegistry, proxy: SpecProxy) -> Spec {

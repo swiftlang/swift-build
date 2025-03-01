@@ -47,7 +47,7 @@ public protocol SwiftGlobalExplicitDependencyGraph : AnyObject {
 }
 
 /// Keeps track of all of the explicit module dependency build jobs as depended on by individual target builds
-private struct GlobalExplicitDepependencyTracker {
+private struct GlobalExplicitDependencyTracker {
     /// Maps a SwiftDriverJob's UniqueID to its index in this store
     private var uniqueIndexMap: [Int: Int] = [:]
 
@@ -61,7 +61,7 @@ private struct GlobalExplicitDepependencyTracker {
                                                  producerMap: inout [Path: LibSwiftDriver.JobKey]) throws -> Set<LibSwiftDriver.JobKey> {
         // Filter out "new" unique jobs and populate the `producerMap`
         var jobKeys: Set<LibSwiftDriver.JobKey> = []
-        var jobKeyIndeces: [(Int, LibSwiftDriver.JobIndex)] = []
+        var jobKeyIndices: [(Int, LibSwiftDriver.JobIndex)] = []
         for (index, job) in jobs.enumerated() {
             guard case let .explicitModule(uniqueID) = job.kind else {
                 throw StubError.error("Unexpected job in explicit module builds: \(job.descriptionForLifecycle).")
@@ -73,13 +73,13 @@ private struct GlobalExplicitDepependencyTracker {
             } else {
                 trackerIndex = nextIndex
                 nextIndex = nextIndex + 1
-                jobKeyIndeces.append((index, trackerIndex))
+                jobKeyIndices.append((index, trackerIndex))
             }
             try LibSwiftDriver.PlannedBuild.addProducts(of: job, index: .explicitDependencyJob(trackerIndex), knownJobs: [], to: &producerMap)
         }
 
         // Once the producerMap has been populated, create the actual PlannedDriverJobs
-        for (jobIndex, trackerIndex) in jobKeyIndeces {
+        for (jobIndex, trackerIndex) in jobKeyIndices {
             let job = jobs[jobIndex]
             guard case let .explicitModule(uniqueID) = job.kind else {
                 throw StubError.error("Unexpected job in explicit module builds: \(job.descriptionForLifecycle).")
@@ -120,7 +120,7 @@ public final class SwiftModuleDependencyGraph: SwiftGlobalExplicitDependencyGrap
 
     private let registryQueue = SWBQueue(label: "SwiftModuleDependencyGraph", autoreleaseFrequency: .workItem)
     private var registry: [String: LibSwiftDriver] = [:]
-    private var globalExplicitDepependencyTracker = GlobalExplicitDepependencyTracker()
+    private var globalExplicitDependencyTracker = GlobalExplicitDependencyTracker()
 
     public init() {}
 
@@ -186,12 +186,8 @@ public final class SwiftModuleDependencyGraph: SwiftGlobalExplicitDependencyGrap
 
     /// Get the CASDatabases from the casOptions
     public func getCASDatabases(casOptions: CASOptions?, compilerLocation: LibSwiftDriver.CompilerLocation) throws -> SwiftCASDatabases? {
-        #if canImport(SwiftDriver, _version: "1.103.1")
         guard let casOpts = casOptions else { return nil }
         return try createCASDatabases(casOptions: casOpts, compilerLocation: compilerLocation)
-        #else
-        return nil
-        #endif
     }
 
     private func register(key: String, driver: LibSwiftDriver) {
@@ -203,35 +199,35 @@ public final class SwiftModuleDependencyGraph: SwiftGlobalExplicitDependencyGrap
     public func addExplicitDependencyBuildJobs(_ jobs: [SwiftDriverJob], workingDirectory: Path,
                                                producerMap: inout [Path: LibSwiftDriver.JobKey]) throws -> Set<LibSwiftDriver.JobKey> {
         try registryQueue.blocking_sync {
-            try globalExplicitDepependencyTracker.addExplicitDependencyBuildJobs(jobs, workingDirectory: workingDirectory, producerMap: &producerMap)
+            try globalExplicitDependencyTracker.addExplicitDependencyBuildJobs(jobs, workingDirectory: workingDirectory, producerMap: &producerMap)
         }
     }
     public func getExplicitDependencyBuildJobs(for keys: [LibSwiftDriver.JobKey]) -> [LibSwiftDriver.PlannedBuild.PlannedSwiftDriverJob] {
         registryQueue.blocking_sync {
-            globalExplicitDepependencyTracker.getExplicitDependencyBuildJobs(for: keys)
+            globalExplicitDependencyTracker.getExplicitDependencyBuildJobs(for: keys)
         }
     }
     public func plannedExplicitDependencyBuildJob(for key: LibSwiftDriver.JobKey) -> LibSwiftDriver.PlannedBuild.PlannedSwiftDriverJob? {
         registryQueue.blocking_sync {
-            globalExplicitDepependencyTracker.plannedExplicitDependencyBuildJob(for: key)
+            globalExplicitDependencyTracker.plannedExplicitDependencyBuildJob(for: key)
         }
     }
     public func explicitDependencies(for job: LibSwiftDriver.PlannedBuild.PlannedSwiftDriverJob) -> [LibSwiftDriver.PlannedBuild.PlannedSwiftDriverJob] {
         registryQueue.blocking_sync {
-            globalExplicitDepependencyTracker.explicitDependencies(for: job)
+            globalExplicitDependencyTracker.explicitDependencies(for: job)
         }
     }
 
     public var isEmpty: Bool {
         registryQueue.blocking_sync {
-            globalExplicitDepependencyTracker.plannedExplicitDependencyJobs.isEmpty
+            globalExplicitDependencyTracker.plannedExplicitDependencyJobs.isEmpty
         }
     }
 
     public func generatePrecompiledModulesReport(in directory: Path, fs: any FSProxy) async throws -> String {
         // Collect DependencyInfo of every module built during the current build.
         var jobsByModuleID: [String: [SwiftDriverJob]] = [:]
-        for job in globalExplicitDepependencyTracker.plannedExplicitDependencyJobs {
+        for job in globalExplicitDependencyTracker.plannedExplicitDependencyJobs {
             let qualifier: String
             switch job.driverJob.ruleInfoType {
             case "CompileModuleFromInterface":
@@ -467,13 +463,11 @@ public final class LibSwiftDriver {
         let key = SwiftModuleDependencyGraph.OracleRegistryKey(compilerLocation: compilerLocation, casOpts: casOptions)
         let oracle = graph?.oracleRegistry.getOrInsert(key, { InterModuleDependencyOracle() })
         self.driver = try Driver(args: commandLine, env: env, diagnosticsOutput: .engine(diagnosticsEngine), executor: executor, compilerExecutableDir: compilerExecutableDir, interModuleDependencyOracle: oracle)
-#if canImport(SwiftDriver, _version: "1.103.1")
         if let scanOracle = oracle, let scanLib = try driver.getSwiftScanLibPath() {
             // Errors instantiating the scanner are potentially recoverable, so suppress them here. Truly fatal errors
             // will be diagnosed later.
-            try? scanOracle.verifyOrCreateScannerInstance(fileSystem: fileSystem, swiftScanLibPath: scanLib)
+            try? scanOracle.verifyOrCreateScannerInstance(swiftScanLibPath: scanLib)
         }
-#endif
     }
 
     private func run(dryRun: Bool = false) -> (success: Bool, diagnostics: [SWBUtil.Diagnostic], jobs: [Job]) {
@@ -585,7 +579,6 @@ extension LibSwiftDriver {
 
 // MARK: Wrappers for SwiftDriver CAS types
 
-#if canImport(SwiftDriver, _version: "1.103.1")
 extension SwiftModuleDependencyGraph {
     /// Create the CASDatabases from CASOptions
     private func createCASDatabases(casOptions: CASOptions, compilerLocation: LibSwiftDriver.CompilerLocation) throws -> SwiftCASDatabases {
@@ -639,7 +632,7 @@ public final class SwiftCachedCompilation {
     }
 }
 
-/// SwiftCachedOuput wraps CachedOutput from SwiftDriver
+/// SwiftCachedOutput wraps CachedOutput from SwiftDriver
 public final class SwiftCachedOutput {
     let cachedOutput: CachedOutput
 
@@ -713,62 +706,15 @@ public final class SwiftCASDatabases {
         return try await cas.download(with: id)
     }
 }
-#else
-public final class SwiftCachedCompilation {
-    public func getOutputs() throws -> [SwiftCachedOutput] {
-        return []
-    }
-    public func makeGlobal() async throws {}
-
-    public func makeGlobal(_ callback: @escaping (Swift.Error?) -> Void) {}
-}
-public final class SwiftCachedOutput {
-    public let casID: String = ""
-    public let kindName: String = ""
-    public let isMaterialized: Bool = false
-}
-public final class SwiftCacheReplayInstance {}
-public final class SwiftCacheReplayResult {
-    public func getStdOut() throws -> String {
-        return ""
-    }
-    public func getStdErr() throws -> String {
-        return ""
-    }
-}
-public final class SwiftCASDatabases {
-    public func queryCacheKey(_ key: String, globally: Bool) async throws -> SwiftCachedCompilation? {
-        return nil
-    }
-    public func queryLocalCacheKey(_ key: String) throws -> SwiftCachedCompilation? {
-        return nil
-    }
-
-    public func createReplayInstance(cmd: [String]) throws -> SwiftCacheReplayInstance {
-        return SwiftCacheReplayInstance()
-    }
-
-    public func replayCompilation(instance: SwiftCacheReplayInstance, compilation: SwiftCachedCompilation) throws -> SwiftCacheReplayResult {
-        return SwiftCacheReplayResult()
-    }
-    public func download(with id: String) async throws -> Bool {
-        return true
-    }
-}
-#endif
 
 extension SWBUtil.Diagnostic {
     fileprivate static func build(from other: TSCBasic.Diagnostic) -> Self {
         let location: SWBUtil.Diagnostic.Location
-        #if canImport(SwiftDriver, _version: 1.111)
         if let scannerLocation = other.location as? ScannerDiagnosticSourceLocation {
             location = .path(Path(scannerLocation.bufferIdentifier), line: scannerLocation.lineNumber, column: scannerLocation.columnNumber)
         } else {
             location = .unknown
         }
-        #else
-        location = .unknown
-        #endif
         return SWBUtil.Diagnostic(behavior: .build(from: other.behavior), location: location, data: DiagnosticData(other.message.text, component: .swiftCompilerError))
     }
 }

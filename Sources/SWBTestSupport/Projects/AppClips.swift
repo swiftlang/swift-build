@@ -11,7 +11,7 @@
 //===----------------------------------------------------------------------===//
 
 package import SWBUtil
-package import SWBProtocol
+private import SWBProtocol
 
 extension TestProject {
     package static func appClip(sourceRoot: Path, fs: (any FSProxy)? = nil, appClipPlatformFilters: Set<PlatformFilter> = PlatformFilter.iOSFilters, appClipSupportsMacCatalyst: Bool = false, appDeploymentTarget: String? = nil) async throws -> TestProject {

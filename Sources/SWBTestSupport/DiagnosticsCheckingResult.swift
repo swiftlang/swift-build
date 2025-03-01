@@ -191,5 +191,10 @@ package func _filterDiagnostic(message: String) -> String? {
         return nil
     }
 
+    // Workaround: rdar://141686644
+    if message.contains("In-process dependency scan query failed due to incompatible libSwiftScan") {
+        return nil
+    }
+
     return message
 }

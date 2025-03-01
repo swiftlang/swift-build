@@ -165,7 +165,6 @@ fileprivate struct EagerLinkingTests: CoreBasedTests {
     func objCLinkerInputsReadyDependsOnLipo() async throws {
         let tester = try await TaskConstructionTester(getCore(), objcTestProject)
         try await tester.checkBuild(BuildParameters(configuration: "Debug", activeRunDestination: .anyMac, overrides: ["ARCHS": "arm64 x86_64"])) { results in
-            print(results)
             let linkBTask = try #require(results.getTask(.matchTargetName("B"), .matchRuleItem("Ld"), .matchRuleItem("x86_64")))
             let linkBTask2 = try #require(results.getTask(.matchTargetName("B"), .matchRuleItem("Ld"), .matchRuleItem("x86_64")))
             let lipoBTask = try #require(results.getTask(.matchTargetName("B"), .matchRuleType("CreateUniversalBinary")))

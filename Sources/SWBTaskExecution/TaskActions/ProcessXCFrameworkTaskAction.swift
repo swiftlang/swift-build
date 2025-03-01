@@ -107,7 +107,7 @@ public final class ProcessXCFrameworkTaskAction: TaskAction {
                 return .failed
             }
 
-            // Provide a friendly message up-front if the given library is not found within the XCFramwork. This can occur when the Info.plist for an XCFramework points to a supported platform, but the corresponding library entry is incorrect or points to a location that does not exist on disk.
+            // Provide a friendly message up-front if the given library is not found within the XCFramework. This can occur when the Info.plist for an XCFramework points to a supported platform, but the corresponding library entry is incorrect or points to a location that does not exist on disk.
             let rootPathToLibrary = path.join(library.libraryIdentifier)
             let copyLibraryFromPath = rootPathToLibrary.join(library.libraryPath)
             if !fs.exists(copyLibraryFromPath) {

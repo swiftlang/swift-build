@@ -26,3 +26,6 @@ xcuserdata
 /.full-build
 /.swiftpm
 Package.resolved
+
+# Ignore docc preview build dir
+*/.docc-build/

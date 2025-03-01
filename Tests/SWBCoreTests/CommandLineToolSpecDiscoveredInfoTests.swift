@@ -168,7 +168,7 @@ import Testing
         }
     }
 
-    @Test(.skipHostOS(.windows))
+    @Test(.skipHostOS(.windows), .requireSystemPackages(apt: "libtool", yum: "libtool"))
     func discoveredLibtoolSpecInfo() async throws {
         try await withSpec(LibtoolLinkerSpec.self, .deferred) { (info: DiscoveredLibtoolLinkerToolSpecInfo) in
             #expect(info.toolPath.basename == "libtool")

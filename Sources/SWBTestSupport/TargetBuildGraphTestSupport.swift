@@ -67,9 +67,9 @@ package struct TargetGraphFactory: Sendable {
     let workspaceContext: WorkspaceContext
     let buildRequest: BuildRequest
     let buildRequestContext: BuildRequestContext
-    let delegate: any TargetDependencyResolverDelegate
+    let delegate: EmptyTargetDependencyResolverDelegate
 
-    package init(workspaceContext: WorkspaceContext, buildRequest: BuildRequest, buildRequestContext: BuildRequestContext, delegate: any TargetDependencyResolverDelegate) {
+    package init(workspaceContext: WorkspaceContext, buildRequest: BuildRequest, buildRequestContext: BuildRequestContext, delegate: EmptyTargetDependencyResolverDelegate) {
         self.workspaceContext = workspaceContext
         self.buildRequest = buildRequest
         self.buildRequestContext = buildRequestContext

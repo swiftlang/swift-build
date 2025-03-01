@@ -103,7 +103,7 @@ fileprivate enum CoreMLIndexingInfo: Serializable, SourceFileIndexingInfo, Encod
     }
 }
 
-public final class CoreMLCompilerSpec : GenericCompilerSpec, SpecIdentifierType {
+public final class CoreMLCompilerSpec : GenericCompilerSpec, SpecIdentifierType, @unchecked Sendable {
     public static let identifier = "com.apple.compilers.coreml"
 
     public override var supportsInstallHeaders: Bool {

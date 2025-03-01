@@ -27,7 +27,7 @@ import SWBUtil
 fileprivate struct IndexBuildOperationTests: CoreBasedTests {
     static let excludedStartTaskTypes = Set(["Gate", "CreateBuildDirectory", ProductPlan.preparedForIndexPreCompilationRuleName, ProductPlan.preparedForIndexModuleContentRuleName, "ClangStatCache", "SwiftExplicitDependencyCompileModuleFromInterface", "SwiftExplicitDependencyGeneratePcm"])
 
-    @Test(.requireSDKs(.macOS))
+    @Test(.requireSDKs(.macOS), .requireXcode16())
     func legacyPrebuild() async throws {
         try await withTemporaryDirectory { tmpDirPath in
             let testWorkspace = try await TestWorkspace(
@@ -163,6 +163,13 @@ fileprivate struct IndexBuildOperationTests: CoreBasedTests {
                 results.checkTask(.matchRule(["WriteAuxiliaryFile", "\(tmpDirPath.str)/Test/aProject/build/aProject.build/Debug/FwkTarget.build/FwkTarget.DependencyMetadataFileList"])) { _ in }
                 results.checkTask(.matchRule(["WriteAuxiliaryFile", "\(tmpDirPath.str)/Test/aProject/build/aProject.build/Debug/AppTarget.build/AppTarget.DependencyStaticMetadataFileList"])) { _ in }
                 results.checkTask(.matchRule(["WriteAuxiliaryFile", "\(tmpDirPath.str)/Test/aProject/build/aProject.build/Debug/FwkTarget.build/FwkTarget.DependencyStaticMetadataFileList"])) { _ in }
+
+                let sdkImportsEnabled = results.buildRequestContext.getCachedSettings(parameters, target: try #require(buildTargets.first).target).globalScope.evaluate(BuiltinMacros.ENABLE_SDK_IMPORTS)
+                if try await supportsSDKImports, sdkImportsEnabled {
+                    // SDK imports create a resource file, but since we don't actually link here, we're not producing it.
+                    results.checkTask(.matchRule(["MkDir", "\(tmpDirPath.str)/Test/aProject/build/Debug/FwkTarget.framework/Versions/A/Resources"])) { _ in }
+                    results.checkTask(.matchRule(["SymLink", "\(tmpDirPath.str)/Test/aProject/build/Debug/FwkTarget.framework/Resources", "Versions/Current/Resources"])) { _ in }
+                }
 
                 results.checkNoTask()
             }
@@ -402,7 +409,7 @@ fileprivate struct IndexBuildOperationTests: CoreBasedTests {
                     results.checkTaskExists(.matchRule(["MkDir", "\(productsRoot)/Debug/FwkTarget.framework/Versions/A"]))
                     results.checkTaskExists(.matchRule(["MkDir", "\(productsRoot)/Debug/FwkTarget.framework/Versions/A/Headers"]))
                     results.checkTaskExists(.matchRule(["MkDir", "\(productsRoot)/Debug/FwkTarget.framework/Versions/A/PrivateHeaders"]))
-                    if SWBFeatureFlag.enableDefaultInfoPlistTemplateKeys {
+                    if SWBFeatureFlag.enableDefaultInfoPlistTemplateKeys.value {
                         results.checkTaskExists(.matchRule(["MkDir", "\(productsRoot)/Debug/FwkTarget.framework/Versions/A/Resources"]))
                     }
 
@@ -417,7 +424,7 @@ fileprivate struct IndexBuildOperationTests: CoreBasedTests {
                     results.checkTaskExists(.matchRule(["SymLink", "\(productsRoot)/Debug/FwkTarget.framework/Headers", "Versions/Current/Headers"]))
                     results.checkTaskExists(.matchRule(["SymLink", "\(productsRoot)/Debug/FwkTarget.framework/PrivateHeaders", "Versions/Current/PrivateHeaders"]))
                     results.checkTaskExists(.matchRule(["SymLink", "\(productsRoot)/Debug/FwkTarget.framework/Modules", "Versions/Current/Modules"]))
-                    if SWBFeatureFlag.enableDefaultInfoPlistTemplateKeys {
+                    if SWBFeatureFlag.enableDefaultInfoPlistTemplateKeys.value {
                         results.checkTaskExists(.matchRule(["SymLink", "\(productsRoot)/Debug/FwkTarget.framework/Resources", "Versions/Current/Resources"]))
                     }
                     results.checkTaskExists(.matchRule(["SymLink", "\(productsRoot)/Debug/FwkTarget.framework/Versions/Current", "A"]))
@@ -1100,6 +1107,12 @@ fileprivate struct IndexBuildOperationTests: CoreBasedTests {
                 results.checkError(.contains("PhaseScriptExecution failed"))
                 results.checkTask(.matchRuleType("SwiftDriver GenerateModule"), .matchTargetName(frameTarget.name)) { _ in }
                 let (_, resultInfo) = try #require(results.getPreparedForIndexResultInfo().only)
+                if tester.fs.fileSystemMode != .checksumOnly {
+                    // Make sure the timestamp has been updated. This is important
+                    // since clients rely on the timestamp changing when
+                    // preparation has changed.
+                    #expect(currPrepareResult.timestamp < resultInfo.timestamp)
+                }
                 currPrepareResult = resultInfo
             }
 
@@ -1113,6 +1126,9 @@ fileprivate struct IndexBuildOperationTests: CoreBasedTests {
                 results.checkTask(.matchRuleType("SwiftDriver GenerateModule"), .matchTargetName(frameTarget.name)) { _ in }
 
                 let (_, resultInfo) = try #require(results.getPreparedForIndexResultInfo().only)
+                if tester.fs.fileSystemMode != .checksumOnly {
+                    #expect(currPrepareResult.timestamp < resultInfo.timestamp)
+                }
                 currPrepareResult = resultInfo
             }
 
@@ -1125,6 +1141,9 @@ fileprivate struct IndexBuildOperationTests: CoreBasedTests {
                 results.checkError(.contains("PhaseScriptExecution failed"))
                 results.checkTask(.matchRuleType("SwiftDriver GenerateModule"), .matchTargetName(superframeTarget.name)) { _ in }
                 let (_, resultInfo) = try #require(results.getPreparedForIndexResultInfo().only)
+                if tester.fs.fileSystemMode != .checksumOnly {
+                    #expect(currPrepareResult.timestamp == resultInfo.timestamp)
+                }
                 #expect(currPrepareResult == resultInfo)
             }
 
@@ -1137,6 +1156,9 @@ fileprivate struct IndexBuildOperationTests: CoreBasedTests {
                 results.checkError(.contains("PhaseScriptExecution failed"))
 
                 let (_, resultInfo) = try #require(results.getPreparedForIndexResultInfo().only)
+                if tester.fs.fileSystemMode != .checksumOnly {
+                    #expect(currPrepareResult.timestamp < resultInfo.timestamp)
+                }
                 currPrepareResult = resultInfo
             }
         }
@@ -1459,7 +1481,7 @@ fileprivate struct IndexBuildOperationTests: CoreBasedTests {
 
             try await checkBuild(macosFramework, .macOS, discriminator: "macos", matchingTarget: macosFramework)
             try await checkBuild(iosFramework, .iOS, discriminator: "iphoneos", matchingTarget: iosFramework)
-            // No run destination match, macos because it's lexographically-first
+            // No run destination match, macos because it's lexicographically-first
             try await checkBuild(macosFramework, .watchOS, discriminator: "macos", matchingTarget: macosFramework)
             try await checkBuild(iosFramework, .watchOS, discriminator: "macos", matchingTarget: macosFramework)
         }
@@ -1657,10 +1679,10 @@ fileprivate struct IndexBuildOperationTests: CoreBasedTests {
 
             try await tester.fs.writeFileContents(SRCROOT.join("test.swift")) { $0 <<< "// test.swift" }
 
-            let arena = ArenaInfo.indexBuildArena(derivedDataRoot: tester.workspace.path.dirname)
-
-            try await tester.checkIndexBuild(prepareTargets: [app.guid], persistent: true) { results in
+            let arena = try await tester.checkIndexBuild(prepareTargets: [app.guid], persistent: true) { results in
+                let arena = try #require(results.buildRequest.parameters.arena)
                 #expect(tester.fs.exists(arena.buildProductsPath))
+                return arena
             }
 
             let buildRequest = BuildRequest(parameters: BuildParameters(action: .indexBuild, configuration: nil, arena: arena), buildTargets: [], continueBuildingAfterErrors: true, useParallelTargets: true, useImplicitDependencies: true, useDryRun: false, buildCommand: .cleanBuildFolder(style: .regular))

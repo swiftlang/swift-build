@@ -59,7 +59,7 @@ final class SanitizerTaskProducer: PhasedTaskProducer, TaskProducer {
         // Sanitizer tasks are generated only if this product type supports embedding the libraries.
         guard context.settings.productType?.canEmbedCompilerSanitizerLibraries ?? false else { return [] }
 
-        // Determine the macro evaluation scopes to consider when determing whether to embed each sanitizer.
+        // Determine the macro evaluation scopes to consider when determining whether to embed each sanitizer.
         // For most build actions, consider the subscopes for all build variants, but skip this for the "install"
         // action and only consider the non-variant conditionalized scope. This is because
         // these sanitizer dylibs are much less useful in "install" scenarios since Xcode does not facilitate using them.
@@ -92,7 +92,7 @@ final class SanitizerTaskProducer: PhasedTaskProducer, TaskProducer {
     private func embedCompilerSanitizerLibrary(sanitizer: Sanitizer, delegate: any TaskGenerationDelegate, scope: MacroEvaluationScope) async {
         let sanitizerName = sanitizer.name
 
-        // Sanitizers 2.0 do not require dylibs to be embeded in the the target path.
+        // Sanitizers 2.0 do not require dylibs to be embedded in the the target path.
         if sanitizerName == "Address" && scope.evaluate(BuiltinMacros.ENABLE_SYSTEM_SANITIZERS) {
             return
         }
@@ -101,7 +101,7 @@ final class SanitizerTaskProducer: PhasedTaskProducer, TaskProducer {
         }
 
         // The sanitizer libraries are bundled with the clang in the toolchain we're using.  Moreover, there is a separate library for each platform, and it lives in a directory based on the version of the clang in that platform.
-        // So, we have to do some pathematics to compute the location of the library.  Fortunately, we can ask the clang specification to be used for the its version.
+        // So, we have to do some path calculations to compute the location of the library.  Fortunately, we can ask the clang specification to be used for the its version.
         guard let clangInfo = try? await context.clangSpec.discoveredCommandLineToolSpecInfo(context, scope, delegate, forLanguageOfFileType: nil), !clangInfo.toolPath.isEmpty else {
             context.error("Could not find path to clang binary to locate \(sanitizerName) Sanitizer library")
             return

@@ -78,6 +78,10 @@ fileprivate struct DsymGenerationBuildOperationTests: CoreBasedTests {
                 results.checkTask(.matchRuleType("GenerateTAPI")) { _ in }
                 results.checkTask(.matchRuleType("GenerateDSYMFile")) { _ in }
                 results.checkTask(.matchRuleType("Strip")) { _ in }
+                let sdkImportsEnabled = results.buildRequestContext.getCachedSettings(debug, target: try #require(tester.workspace.projects.first?.targets.first)).globalScope.evaluate(BuiltinMacros.ENABLE_SDK_IMPORTS)
+                if try await supportsSDKImports, sdkImportsEnabled {
+                    results.checkTask(.matchRuleType("ProcessSDKImports")) { _ in }
+                }
                 results.checkNoTask()
             }
 

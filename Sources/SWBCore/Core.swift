@@ -28,7 +28,7 @@ public protocol CoreDelegate: DiagnosticProducingDelegate, Sendable {
 }
 
 public extension CoreDelegate {
-    var enableOptimizationRemarksParsing: Bool { return SWBFeatureFlag.enableOptimizationRemarksParsing }
+    var enableOptimizationRemarksParsing: Bool { return SWBFeatureFlag.enableOptimizationRemarksParsing.value }
 }
 
 /// This object wraps access to all of the core objects which are loaded as part of Xcode, such as the build system specifications.
@@ -133,10 +133,11 @@ public final class Core: Sendable {
     /// The configured delegate.
     @_spi(Testing) public let delegate: any CoreDelegate
 
-    // registryDelegate is an implicitly-unwrapped optional var because the delegate refers to the core which creates it, and making it a let property would violate the initialization constraints.
-    //
+    let _registryDelegate: UnsafeDelayedInitializationSendableWrapper<CoreRegistryDelegate> = .init()
     /// The self-referencing delegate to convey information about the core to registry subsystems.
-    private(set) var registryDelegate: CoreRegistryDelegate! = nil
+    var registryDelegate: CoreRegistryDelegate {
+        _registryDelegate.value
+    }
 
     /// The host operating system.
     public let hostOperatingSystem: OperatingSystem
@@ -233,7 +234,7 @@ public final class Core: Sendable {
             return toolchainPaths
         }()
 
-        self.registryDelegate = CoreRegistryDelegate(core: self)
+        _registryDelegate.initialize(to: CoreRegistryDelegate(core: self))
     }
 
     /// The shared core settings object.
@@ -243,7 +244,7 @@ public final class Core: Sendable {
 
     /// The list of plugin search paths.
     @_spi(Testing) public lazy var pluginPaths: [Path] = {
-        #if SWIFT_PACKAGE
+        #if USE_STATIC_PLUGIN_INITIALIZATION
         // In a package context, plugins are statically linked into the build system.
         return []
         #else
@@ -305,6 +306,7 @@ public final class Core: Sendable {
 
         // Search the default location first (unless directed not to), then search any extra locations we've been passed.
         var searchPaths: [Path]
+        let fs = localFS
         if let onlySearchAdditionalPlatformPaths = getEnvironmentVariable("XCODE_ONLY_EXTRA_PLATFORM_FOLDERS"), onlySearchAdditionalPlatformPaths.boolValue {
             searchPaths = []
         }
@@ -323,7 +325,7 @@ public final class Core: Sendable {
             }
         }
         searchPaths += UserDefaults.additionalPlatformSearchPaths
-        return PlatformRegistry(delegate: self.registryDelegate, searchPaths: searchPaths, hostOperatingSystem: hostOperatingSystem)
+        return PlatformRegistry(delegate: self.registryDelegate, searchPaths: searchPaths, hostOperatingSystem: hostOperatingSystem, fs: fs)
     }()
 
     @PluginExtensionSystemActor public var loadedPluginPaths: [Path] {
@@ -521,7 +523,7 @@ public final class Core: Sendable {
             return allSpecs.map { spec in
                 SpecDump(
                     spec: spec.identifier,
-                    path: spec.proxy?.path.str,
+                    path: spec.proxyPath.str,
                     options: spec.flattenedBuildOptions.values.sorted(by: \.name).map { option in
                         .init(name: option.name, displayName: option.localizedName != option.name ? option.localizedName : nil, categoryName: option.localizedCategoryName, description: option.localizedDescription)
                 })
@@ -539,10 +541,6 @@ public final class Core: Sendable {
             result += "\(toolchain)\n"
         }
         return result
-    }
-
-    public func appleSystemFrameworkNames() throws -> Set<String> {
-        Set(sdkRegistry.allSDKs.flatMap { sdk in sdk.knownFrameworkNames })
     }
 
     public func productTypeSupportsMacCatalyst(productTypeIdentifier: String) throws -> Bool {

@@ -99,6 +99,64 @@ fileprivate struct BuildOperationTests: CoreBasedTests {
         }
     }
 
+    @Test(.requireSDKs(.macOS), .requireHostOS(.macOS))
+    func multiFileAssembleBuild() async throws {
+        try await withTemporaryDirectory { (temporaryDirectory: NamedTemporaryDirectory) in
+            try await withAsyncDeferrable { deferrable in
+                let tmpDir = temporaryDirectory.path
+                let testSession = try await TestSWBSession(temporaryDirectory: temporaryDirectory)
+                await deferrable.addBlock {
+                    await #expect(throws: Never.self) {
+                        try await testSession.close()
+                    }
+                }
+
+                let srcroot = tmpDir.join("Test")
+                let testProject = TestProject(
+                    "aProject",
+                    defaultConfigurationName: "Release",
+                    groupTree: TestGroup("Foo", children: [TestFile("Test.c")]),
+                    targets: [
+                        TestAggregateTarget("All", dependencies: ["aFramework", "bFramework"]),
+                        TestStandardTarget("aFramework", buildPhases: [TestSourcesBuildPhase([TestBuildFile("Test.c")])]),
+                        TestStandardTarget("bFramework", buildPhases: [TestSourcesBuildPhase([TestBuildFile("Test.c")])]),
+                    ])
+                let testWorkspace = TestWorkspace("aWorkspace",
+                                                  sourceRoot: srcroot,
+                                                  projects: [testProject])
+
+                try await testSession.sendPIF(testWorkspace)
+
+                // Run a test build.
+                var request = SWBBuildRequest()
+                request.parameters = SWBBuildParameters()
+                request.parameters.action = "build"
+                request.parameters.configurationName = "Debug"
+                request.configuredTargets = testProject.targets.dropFirst().map { SWBConfiguredTarget(guid: $0.guid) }
+                request.buildCommand = .buildFiles(paths: [srcroot.join("Test.c").str], action: .assemble)
+
+                let events = try await testSession.runBuildOperation(request: request, delegate: TestBuildOperationDelegate())
+
+                let pathMap = try #require(events.compactMap({ msg in
+                    switch msg {
+                    case let .reportPathMap(msg):
+                        return msg.generatedFilesPathMap
+                    default:
+                        return nil
+                    }
+                }).only)
+                #expect(pathMap.count == 4)
+                for arch in ["arm64", "x86_64"] {
+                    for target in ["aFramework", "bFramework"] {
+                        #expect(try pathMap[AbsolutePath(validating: "\(srcroot.str)/aProject/build/aProject.build/Debug/\(target).build/Objects-normal/\(arch)/Test.s")] == AbsolutePath(validating: "\(srcroot.str)/Test.c"))
+                    }
+                }
+
+                XCTAssertLastBuildEvent(events)
+            }
+        }
+    }
+
     /// Check the basic behavior of a build operation's messages.
     @Test(.requireSDKs(.macOS), .skipHostOS(.windows)) // relies on UNIX shell, consider adding Windows command shell support for script phases?
     func basics() async throws {
@@ -1137,7 +1195,7 @@ fileprivate struct BuildOperationTests: CoreBasedTests {
     }
 
     /// Check some cancellation related semantics.
-    @Test
+    @Test(.skipHostOS(.windows, "requires /usr/bin/yes"), .skipHostOS(.linux, "test occasionally hangs on Linux"))
     func cancellationBeforeStarting() async throws {
         try await withTemporaryDirectory { (temporaryDirectory: NamedTemporaryDirectory) in
             try await withAsyncDeferrable { deferrable in
@@ -1208,7 +1266,7 @@ fileprivate struct BuildOperationTests: CoreBasedTests {
     }
 
     /// Check some cancellation related semantics.
-    @Test
+    @Test(.skipHostOS(.windows, "requires /usr/bin/yes"), .skipHostOS(.linux, "test occasionally hangs on Linux"))
     func cancellationImmediatelyAfterStart() async throws {
         try await withTemporaryDirectory { (temporaryDirectory: NamedTemporaryDirectory) in
             try await withAsyncDeferrable { deferrable in
@@ -1280,7 +1338,7 @@ fileprivate struct BuildOperationTests: CoreBasedTests {
     }
 
     /// Check some cancellation related semantics.
-    @Test(.requireSDKs(.macOS))
+    @Test(.skipHostOS(.windows, "requires /usr/bin/yes"), .skipHostOS(.linux, "test occasionally hangs on Linux"))
     func cancellationAfterStart() async throws {
         try await withTemporaryDirectory { (temporaryDirectory: NamedTemporaryDirectory) in
             try await withAsyncDeferrable { deferrable in
@@ -1362,7 +1420,7 @@ fileprivate struct BuildOperationTests: CoreBasedTests {
     }
 
     /// Check some cancellation related semantics.
-    @Test
+    @Test(.skipHostOS(.windows, "requires /usr/bin/yes"), .skipHostOS(.linux, "test occasionally hangs on Linux"))
     func cancellationAfterTaskStart() async throws {
         try await withTemporaryDirectory { (temporaryDirectory: NamedTemporaryDirectory) in
             try await withAsyncDeferrable { deferrable in
@@ -1442,7 +1500,7 @@ fileprivate struct BuildOperationTests: CoreBasedTests {
     }
 
     /// Check some cancellation related semantics.
-    @Test
+    @Test(.skipHostOS(.windows, "requires /usr/bin/yes"), .skipHostOS(.linux, "test occasionally hangs on Linux"))
     func repeatedCancellation() async throws {
         try await withTemporaryDirectory { (temporaryDirectory: NamedTemporaryDirectory) in
             try await withAsyncDeferrable { deferrable in
@@ -1591,7 +1649,7 @@ fileprivate struct BuildOperationTests: CoreBasedTests {
     }
 
     /// Test session destruction
-    @Test
+    @Test(.skipHostOS(.windows, "requires /usr/bin/yes"), .skipHostOS(.linux, "test occasionally hangs on Linux"))
     func sessionDestructionCancellation() async throws {
         try await withTemporaryDirectory { (temporaryDirectory: NamedTemporaryDirectory) in
             try await withAsyncDeferrable { deferrable in

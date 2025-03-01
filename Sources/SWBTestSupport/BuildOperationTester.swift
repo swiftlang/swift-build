@@ -60,28 +60,13 @@ extension BuildRequest {
     }
 }
 
-extension TaskResult: @retroactive Equatable {
-    package static func == (lhs: TaskResult, rhs: TaskResult) -> Bool {
-        switch (lhs, rhs) {
-        case let (.exit(exitStatus1, metrics1), .exit(exitStatus2, metrics2)):
-            return exitStatus1 == exitStatus2 && metrics1 == metrics2
-        case (.failedSetup, .failedSetup):
-            return true
-        case (.skipped, .skipped):
-            return true
-        default:
-            return false
-        }
-    }
-}
-
 package protocol BuildRequestCheckingResult {
     var buildRequest: BuildRequest { get }
     var core: Core { get }
 }
 
 extension BuildRequestCheckingResult {
-    /// The target architecture of the run destination in the build request.  Returns `undefined_arch` if the build request has no run destination, or the run destination has no target archotecture.
+    /// The target architecture of the run destination in the build request.  Returns `undefined_arch` if the build request has no run destination, or the run destination has no target architecture.
     package var runDestinationTargetArchitecture: String {
         return buildRequest.parameters.activeRunDestination?.targetArchitecture ?? "undefined_arch"
     }
@@ -239,7 +224,7 @@ package final class BuildOperationTester {
         }
     }
 
-    /// Describes a single event which ocurred as a part of a task, during the build.
+    /// Describes a single event which occurred as a part of a task, during the build.
     package enum TaskEvent: Hashable, Equatable, CustomStringConvertible, Sendable {
 
         /// The task was started.
@@ -1273,9 +1258,9 @@ package final class BuildOperationTester {
         let workspaceContext = WorkspaceContext(core: core, workspace: workspace, fs: self.fs, processExecutionCache: .sharedForTesting)
 
         // Configure fake user and system info.
-        workspaceContext.userInfo = self.userInfo
-        workspaceContext.systemInfo = self.systemInfo
-        workspaceContext.userPreferences = self.userPreferences
+        workspaceContext.updateUserInfo(self.userInfo)
+        workspaceContext.updateSystemInfo(self.systemInfo)
+        workspaceContext.updateUserPreferences(self.userPreferences)
 
         return workspaceContext
     }()
@@ -1304,8 +1289,6 @@ package final class BuildOperationTester {
             "ALWAYS_SEARCH_USER_PATHS": "NO",
             // Temporarily force each tester to use its own stat cache dir. rdar://104356237 (Clang-stat-cache should write to a temporary file and rename into place to avoid races generating the cache)
             "SDK_STAT_CACHE_DIR": workspace.path.dirname.str,
-            // This is slow, and not relevant for the vast majority of tests.
-            "DISABLE_SDK_METADATA_PARSING": "YES",
         ]
 
         // If we have a run destination, then we default ONLY_ACTIVE_ARCH to YES. This means when they build with a non-generic run destination, that run destination's architecture will be used rather than building universal.
@@ -1315,7 +1298,7 @@ package final class BuildOperationTester {
         }
 
         // Initial code to enable the proper setting overrides for when specialization is enabled. This is only a partial implementation for early testing.
-        let specializationEnabled = SWBFeatureFlag.allowTargetPlatformSpecialization
+        let specializationEnabled = SWBFeatureFlag.allowTargetPlatformSpecialization.value
         if let destination = runDestination, specializationEnabled {
             overrides["SDKROOT"] = destination.sdk
             if let variant = destination.sdkVariant {
@@ -1335,7 +1318,7 @@ package final class BuildOperationTester {
             }
         }
 
-        // Add overrides from the parameters we were passed, which will supercede the default overrides above.
+        // Add overrides from the parameters we were passed, which will supersede the default overrides above.
         overrides.addContents(of: parameters.overrides)
 
         // Create and return the effective parameters.
@@ -1556,29 +1539,78 @@ package final class BuildOperationTester {
         try await checkBuild(name, parameters: parameters, runDestination: runDestination, buildRequest: inputBuildRequest, buildCommand: buildCommand, schemeCommand: schemeCommand, persistent: persistent, serial: serial, buildOutputMap: buildOutputMap, signableTargets: signableTargets, signableTargetInputs: signableTargetInputs, clientDelegate: clientDelegate, sourceLocation: sourceLocation, body: body)
     }
 
+    package static func buildRequestForIndexOperation(
+        workspace: Workspace,
+        buildTargets: [any TestTarget]? = nil,
+        prepareTargets: [String]? = nil,
+        workspaceOperation: Bool? = nil,
+        runDestination: RunDestinationInfo? = nil,
+        sourceLocation: SourceLocation = #_sourceLocation
+    ) throws -> BuildRequest {
+        let workspaceOperation = workspaceOperation ?? (buildTargets == nil)
+
+        // If this is an operation on the entire workspace (rather than for a specific target/package), then
+        // we will end up configuring for all platforms - do not pass a run destination. Use the provided (or a
+        // reasonable default) otherwise.
+        let buildDestination: RunDestinationInfo?
+        if workspaceOperation {
+            buildDestination = nil
+        } else {
+            buildDestination = runDestination ?? RunDestinationInfo.macOS
+        }
+
+        let arena = ArenaInfo.indexBuildArena(derivedDataRoot: workspace.path.dirname)
+        let overrides: [String: String] = ["ONLY_ACTIVE_ARCH": "YES", "ALWAYS_SEARCH_USER_PATHS": "NO"]
+        let buildRequestParameters = BuildParameters(action: .indexBuild, configuration: "Debug", activeRunDestination: buildDestination, overrides: overrides, arena: arena)
+
+        let buildRequestTargets: [BuildRequest.BuildTargetInfo]
+        if let buildTargets {
+            buildRequestTargets = try buildTargets.map { BuildRequest.BuildTargetInfo(parameters: buildRequestParameters, target: try #require(workspace.target(for: $0.guid), sourceLocation: sourceLocation)) }
+        } else {
+            buildRequestTargets = workspace.projects.flatMap { project in
+                // The workspace description excludes packages so that we don't end up configuring every target for every
+                // platform.
+                if workspaceOperation && project.isPackage {
+                    return [BuildRequest.BuildTargetInfo]()
+                }
+                return project.targets.compactMap { target in
+                    if target.type == .aggregate {
+                        return nil
+                    }
+                    return BuildRequest.BuildTargetInfo(parameters: buildRequestParameters, target: target)
+                }
+            }
+        }
+
+        let targetsToPrepare = try prepareTargets?.map { try #require(workspace.target(for: $0)) }
+        return BuildRequest(parameters: buildRequestParameters, buildTargets: buildRequestTargets, dependencyScope: .workspace, continueBuildingAfterErrors: true, useParallelTargets: true, useImplicitDependencies: true, useDryRun: false, buildCommand: .prepareForIndexing(buildOnlyTheseTargets: targetsToPrepare, enableIndexBuildArena: true))
+
+    }
+
     /// Construct 'prepare' index build operation, and test the result.
-    package func checkIndexBuild(
+    package func checkIndexBuild<T>(
         prepareTargets: [String],
-        derivedDataRoot: Path? = nil,
+        workspaceOperation: Bool = true,
         runDestination: RunDestinationInfo? = nil,
         persistent: Bool = false,
         sourceLocation: SourceLocation = #_sourceLocation,
-        body: (BuildResults) throws -> Void
-    ) async throws {
-        let arena = ArenaInfo.indexBuildArena(derivedDataRoot: derivedDataRoot ?? workspace.path.dirname)
-        let overrides: [String: String] = ["ONLY_ACTIVE_ARCH": "YES", "ALWAYS_SEARCH_USER_PATHS": "NO"]
-        let targetsToPrepare = prepareTargets.map{ workspace.target(for: $0)! }
-        // Using 'macOS' as default run-destination; run-destination does not matter for an index build description since it configures targets for all supported platforms.
-        let parameters = BuildParameters(action: .indexBuild, configuration: "Debug", activeRunDestination: .macOS, overrides: overrides, arena: arena)
-        let buildTargets = workspace.allTargets.compactMap{ $0.type == .aggregate ? nil : BuildRequest.BuildTargetInfo(parameters: parameters, target: $0) }
-        let buildRequest = BuildRequest(parameters: parameters, buildTargets: buildTargets, dependencyScope: .workspace, continueBuildingAfterErrors: true, useParallelTargets: true, useImplicitDependencies: true, useDryRun: false, buildCommand: .prepareForIndexing(buildOnlyTheseTargets: targetsToPrepare, enableIndexBuildArena: true))
+        body: (BuildResults) throws -> T
+    ) async throws -> T {
+        let buildRequest = try Self.buildRequestForIndexOperation(
+            workspace: workspace,
+            prepareTargets: prepareTargets,
+            workspaceOperation: workspaceOperation,
+            runDestination: runDestination,
+            sourceLocation: sourceLocation
+        )
 
-        // Use the provided run-destination for the build operation.
+        // The build request may have no run destination (for a workspace description), but we always build for a
+        // specific target.
         let runDestination = runDestination ?? RunDestinationInfo.macOS
-        let operationParameters = parameters.replacing(activeRunDestination: runDestination, activeArchitecture: nil)
+        let operationParameters = buildRequest.parameters.replacing(activeRunDestination: runDestination, activeArchitecture: nil)
         let operationBuildRequest = buildRequest.with(parameters: operationParameters, buildTargets: [])
 
-        try await checkBuild(buildRequest: buildRequest, operationBuildRequest: operationBuildRequest, persistent: persistent, sourceLocation: sourceLocation, body: body, performBuild: { await $0.buildWithTimeout() })
+        return try await checkBuild(buildRequest: buildRequest, operationBuildRequest: operationBuildRequest, persistent: persistent, sourceLocation: sourceLocation, body: body, performBuild: { await $0.buildWithTimeout() })
     }
 
     package struct BuildGraphResult: Sendable {
@@ -1646,15 +1678,23 @@ package final class BuildOperationTester {
     }
 
     package func checkIndexBuildGraph(
-        targets: [any TestTarget], activeRunDestination: RunDestinationInfo = .macOS,
+        targets: [any TestTarget]? = nil,
+        workspaceOperation: Bool? = nil,
+        activeRunDestination: RunDestinationInfo? = nil,
         graphTypes: [TargetGraphFactory.GraphType] = [.dependency],
         sourceLocation: SourceLocation = #_sourceLocation,
         body: (BuildGraphResult) throws -> Void
     ) async throws {
-        // `activeRunDestination` only matters for packages, so a default of `.macOS` is fine everywhere else
-        let buildParameters = BuildParameters(action: .indexBuild, configuration: "Debug", activeRunDestination: activeRunDestination)
-        let buildTargets = try targets.map { BuildRequest.BuildTargetInfo(parameters: buildParameters, target: try #require(self.workspace.target(for: $0.guid), sourceLocation: sourceLocation)) }
-        let buildRequest = BuildRequest(parameters: buildParameters, buildTargets: buildTargets, dependencyScope: .workspace, continueBuildingAfterErrors: true, useParallelTargets: true, useImplicitDependencies: true, useDryRun: false, buildCommand: .prepareForIndexing(buildOnlyTheseTargets: nil, enableIndexBuildArena: true))
+        let workspaceOperation = workspaceOperation ?? (targets == nil)
+
+        let buildRequest = try Self.buildRequestForIndexOperation(
+            workspace: workspace,
+            buildTargets: targets,
+            workspaceOperation: workspaceOperation,
+            runDestination: activeRunDestination,
+            sourceLocation: sourceLocation
+        )
+
         let buildRequestContext = BuildRequestContext(workspaceContext: workspaceContext)
         let delegate = EmptyTargetDependencyResolverDelegate(workspace: workspaceContext.workspace)
 
@@ -2191,7 +2231,7 @@ extension BuildKey {
     }
 }
 
-extension Registry: @retroactive BuildSystemCache where Key == Path, Value == SystemCacheEntry {
+extension Registry: BuildSystemCache where Key == Path, Value == SystemCacheEntry {
     package func clearCachedBuildSystem(for key: Path) {
         _ = removeValue(forKey: key)
     }

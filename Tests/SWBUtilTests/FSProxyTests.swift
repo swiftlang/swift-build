@@ -544,64 +544,67 @@ import SWBTestSupport
         }
     }
 
-    @Test(.requireHostOS(.macOS))
+    @Test(.skipHostOS(.windows))
     func extendedAttributesSupport() throws {
         try withTemporaryDirectory { (tmpDir: Path) in
+            // Many filesystems on other platforms (e.g. various non-ext4 temporary filesystems on Linux) don't support xattrs and will return ENOTSUP.
+            // In particular, tmpfs doesn't support xattrs on Linux unless `CONFIG_TMPFS_XATTR` is enabled in the kernel config.
+            if try ProcessInfo.processInfo.hostOperatingSystem() == .linux {
+                do {
+                    try localFS.setExtendedAttribute(tmpDir, key: "user.test", value: [])
+                } catch let error as SWBUtil.POSIXError where error.code == ENOTSUP {
+                    return
+                }
+            }
+
             let testDataPath = tmpDir.join("test-data.txt")
             try localFS.write(testDataPath, contents: ByteString("best-data"))
 
-            try localFS.setExtendedAttribute(testDataPath, key: "attr.empty", value: [])
-            #expect(try localFS.getExtendedAttribute(testDataPath, key: "attr.empty") == [])
+            try localFS.setExtendedAttribute(testDataPath, key: "user.attr.empty", value: [])
+            #expect(try localFS.getExtendedAttribute(testDataPath, key: "user.attr.empty") == [])
 
-            try localFS.setExtendedAttribute(testDataPath, key: "attr.binary", value: [0x01, 0x02, 0x03])
-            #expect(try localFS.getExtendedAttribute(testDataPath, key: "attr.binary") == [0x01, 0x02, 0x03])
+            try localFS.setExtendedAttribute(testDataPath, key: "user.attr.binary", value: [0x01, 0x02, 0x03])
+            #expect(try localFS.getExtendedAttribute(testDataPath, key: "user.attr.binary") == [0x01, 0x02, 0x03])
 
-            try localFS.setExtendedAttribute(testDataPath, key: "attr.binary", value: [0x00, 0x01, 0x02, 0x03])
-            #expect(try localFS.getExtendedAttribute(testDataPath, key: "attr.binary") == [0x00, 0x01, 0x02, 0x03])
+            try localFS.setExtendedAttribute(testDataPath, key: "user.attr.binary", value: [0x00, 0x01, 0x02, 0x03])
+            #expect(try localFS.getExtendedAttribute(testDataPath, key: "user.attr.binary") == [0x00, 0x01, 0x02, 0x03])
 
-            try localFS.setExtendedAttribute(testDataPath, key: "attr.string", value: "true")
-            #expect(try localFS.getExtendedAttribute(testDataPath, key: "attr.string") == "true")
+            try localFS.setExtendedAttribute(testDataPath, key: "user.attr.string", value: "true")
+            #expect(try localFS.getExtendedAttribute(testDataPath, key: "user.attr.string") == "true")
 
-            // String.utf8CString *includes* the trailing null byte
-#if canImport(Darwin)
-            #expect(setxattr(testDataPath.str, "attr.string", "true", "true".utf8CString.count, 0, 0) == 0)
-#elseif !os(Windows)
-            #expect(setxattr(testDataPath.str, "attr.string", "true", "true".utf8CString.count, 0) == 0)
-#endif
-            #expect(try localFS.getExtendedAttribute(testDataPath, key: "attr.string") == "true\0")
-            #expect(try localFS.getExtendedAttribute(testDataPath, key: "attr.string") != "true")
+            try localFS.setExtendedAttribute(testDataPath, key: "user.attr.string", value: "true\0")
+            #expect(try localFS.getExtendedAttribute(testDataPath, key: "user.attr.string") == "true\0")
+            #expect(try localFS.getExtendedAttribute(testDataPath, key: "user.attr.string") != "true")
 
-            // String.utf8CString *includes* the trailing null byte
-#if canImport(Darwin)
-            #expect(setxattr(testDataPath.str, "attr.string", "tr\0ue", "tr\0ue".utf8CString.count, 0, 0) == 0)
-#elseif !os(Windows)
-            #expect(setxattr(testDataPath.str, "attr.string", "tr\0ue", "tr\0ue".utf8CString.count, 0) == 0)
-#endif
-            #expect(try localFS.getExtendedAttribute(testDataPath, key: "attr.string") == "tr\0ue\0")
-            #expect(try localFS.getExtendedAttribute(testDataPath, key: "attr.string") != "tr\0ue")
+            try localFS.setExtendedAttribute(testDataPath, key: "user.attr.string", value: "tr\0ue\0")
+            #expect(try localFS.getExtendedAttribute(testDataPath, key: "user.attr.string") == "tr\0ue\0")
+            #expect(try localFS.getExtendedAttribute(testDataPath, key: "user.attr.string") != "tr\0ue")
 
-            try localFS.setExtendedAttribute(testDataPath, key: "attr.string", value: "tr\0ue")
-            #expect(try localFS.getExtendedAttribute(testDataPath, key: "attr.string") == "tr\0ue")
+            try localFS.setExtendedAttribute(testDataPath, key: "user.attr.string", value: "tr\0ue")
+            #expect(try localFS.getExtendedAttribute(testDataPath, key: "user.attr.string") == "tr\0ue")
 
-            try localFS.setExtendedAttribute(testDataPath, key: "attr.binaryString", value: [0x00, 0x01, 0x02, 0x03])
-            #expect(try localFS.getExtendedAttribute(testDataPath, key: "attr.binaryString") == "\u{0}\u{1}\u{2}\u{3}")
+            try localFS.setExtendedAttribute(testDataPath, key: "user.attr.binaryString", value: [0x00, 0x01, 0x02, 0x03])
+            #expect(try localFS.getExtendedAttribute(testDataPath, key: "user.attr.binaryString") == "\u{0}\u{1}\u{2}\u{3}")
 
-            try localFS.setExtendedAttribute(testDataPath, key: "attr.binaryString", value: "\u{0}\u{1}\u{2}\u{3}")
-            #expect(try localFS.getExtendedAttribute(testDataPath, key: "attr.binaryString") == [0x00, 0x01, 0x02, 0x03])
+            try localFS.setExtendedAttribute(testDataPath, key: "user.attr.binaryString", value: "\u{0}\u{1}\u{2}\u{3}")
+            #expect(try localFS.getExtendedAttribute(testDataPath, key: "user.attr.binaryString") == [0x00, 0x01, 0x02, 0x03])
 
-            // Test that the growth of the default-sized 4kb buffer in getExtendedAttribute is covered and works
-            let largeData = ByteString([UInt8](repeating: 0xff, count: 8193))
-            try localFS.setExtendedAttribute(testDataPath, key: "attr.large", value: largeData)
-            #expect(try localFS.getExtendedAttribute(testDataPath, key: "attr.large") == largeData)
+            if try ProcessInfo.processInfo.hostOperatingSystem() == .macOS {
+                // Test that the growth of the default-sized 4kb buffer in getExtendedAttribute is covered and works. This is macOS-specific behavior. For the record, on Linux, "ext2/3/4 and btrfs impose much smaller limits, requiring all the attributes (names and values) of one file to fit in one "filesystem block" (usually 4 KiB)".
+                let largeData = ByteString([UInt8](repeating: 0xff, count: 8193))
+                try localFS.setExtendedAttribute(testDataPath, key: "user.attr.large", value: largeData)
+                #expect(try localFS.getExtendedAttribute(testDataPath, key: "user.attr.large") == largeData)
 
-            // Attribute name is too long
-            #expect {
-                try localFS.getExtendedAttribute(testDataPath, key: String(repeating: "hello", count: 100))
-            } throws: { error in
-                error as? SWBUtil.POSIXError == POSIXError(ENAMETOOLONG, context: "getxattr", testDataPath.str, String(repeating: "hello", count: 100))
+                // Attribute name is too long
+                // On Linux, lgetxattr keeps returning ERANGE when the name is out of range, leading to infinite allocation attempt, not sure about the best way to handle this.
+                #expect {
+                    try localFS.getExtendedAttribute(testDataPath, key: String(repeating: "hello", count: 100))
+                } throws: { error in
+                    error as? SWBUtil.POSIXError == POSIXError(ENAMETOOLONG, context: "getxattr", testDataPath.str, String(repeating: "hello", count: 100))
+                }
             }
 
-            #expect(try localFS.getExtendedAttribute(testDataPath, key: "attr.missing") == nil)
+            #expect(try localFS.getExtendedAttribute(testDataPath, key: "user.attr.missing") == nil)
         }
     }
 
@@ -1277,7 +1280,7 @@ import SWBTestSupport
 ///
 /// - Parameters:
 ///   - fs: The filesystem to test on.
-///   - basePath: The path at which the temporary file strucutre should be created.
+///   - basePath: The path at which the temporary file structure should be created.
 private func removeFileTreeTester(fs: any FSProxy, basePath path: Path, sourceLocation: SourceLocation = #_sourceLocation) {
     // Test removing folders.
     let folders = path.join("foo/bar/baz")

@@ -96,7 +96,6 @@ open class SwiftDriverJobSchedulingTaskAction: TaskAction {
                                                             singleUse: true,
                                                             workingDirectory: task.workingDirectory,
                                                             environment: task.environment,
-                                                            taskInputs: [],
                                                             forTarget: task.forTarget,
                                                             priority: .unblocksDownstreamTasks,
                                                             showEnvironment: task.showEnvironment,
@@ -259,7 +258,7 @@ open class SwiftDriverJobSchedulingTaskAction: TaskAction {
             } else {
                 // Other jobs are reported as skipped/up-to-date in the usual way.
                 let taskKey = SwiftDriverJobTaskKey(identifier: driverPayload.uniqueID, variant: driverPayload.variant, arch: driverPayload.architecture, driverJobKey: job.key, driverJobSignature: job.driverJob.signature, isUsingWholeModuleOptimization: driverPayload.isUsingWholeModuleOptimization, compilerLocation: driverPayload.compilerLocation, casOptions: driverPayload.casOptions)
-                let dynamicTask = DynamicTask(toolIdentifier: SwiftDriverJobTaskAction.toolIdentifier, taskKey: .swiftDriverJob(taskKey), workingDirectory: task.workingDirectory, environment: task.environment, taskInputs: [], target: task.forTarget, showEnvironment: task.showEnvironment)
+                let dynamicTask = DynamicTask(toolIdentifier: SwiftDriverJobTaskAction.toolIdentifier, taskKey: .swiftDriverJob(taskKey), workingDirectory: task.workingDirectory, environment: task.environment, target: task.forTarget, showEnvironment: task.showEnvironment)
                 let subtask = try spec.buildExecutableTask(dynamicTask: dynamicTask, context: dynamicExecutionDelegate.operationContext)
                 outputDelegate.subtaskUpToDate(subtask)
             }
@@ -310,7 +309,6 @@ open class SwiftDriverJobSchedulingTaskAction: TaskAction {
                 singleUse: true,
                 workingDirectory: plannedJob.workingDirectory,
                 environment: task.environment,
-                taskInputs: plannedJob.driverJob.inputs.map({ ExecutionNode(identifier: $0.str) }),
                 forTarget: isExplicitDependencyBuildJob ? nil : task.forTarget,
                 priority: plannedJob.driverJob.categorizer.priority,
                 showEnvironment: task.showEnvironment,

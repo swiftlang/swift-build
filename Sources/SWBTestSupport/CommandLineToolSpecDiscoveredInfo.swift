@@ -53,7 +53,7 @@ extension CoreBasedTests {
     }
 }
 
-final class ToolSpecCapturingTaskGenerationDelegate: CapturingTaskGenerationDelegate {
+private class ToolSpecCapturingTaskGenerationDelegate: CapturingTaskGenerationDelegate {
     let result: ExternalToolResult
 
     init(producer: any CommandProducer, userPreferences: UserPreferences, result: ExternalToolResult) throws {

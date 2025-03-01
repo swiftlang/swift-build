@@ -134,12 +134,14 @@
                 IsInputDependency = Yes;
             },
             {
-                Name = "LD_EXPORT_GLOBAL_SYMBOLS";
-                Type = Boolean;
-                DefaultValue = NO;
+                Name = "ALTERNATE_LINKER";
+                Type = String;
+                DefaultValue = "lld-link";
                 CommandLineArgs = {
-                    YES = ();
-                    NO = ();
+                    "" = ();
+                    "<<otherwise>>" = (
+                        "-fuse-ld=$(value)"
+                    );
                 };
             },
         );

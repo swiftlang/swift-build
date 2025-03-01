@@ -456,7 +456,7 @@ public final class IncrementalPIFLoader {
                     return
                 }
 
-                // Otherwise, if there was an error loading the cached object then force it to be explicitly transferred (this still might fail when the actual loading is attemped).
+                // Otherwise, if there was an error loading the cached object then force it to be explicitly transferred (this still might fail when the actual loading is attempted).
             }
 
             // Otherwise, we need the client to provide the object.
@@ -562,7 +562,7 @@ public final class IncrementalPIFLoader {
             do {
                 try fs.setCreatedByBuildSystemAttribute(path)
             } catch {
-                print("Couldn't set atribute on intermediates directory: \(error.localizedDescription)")
+                print("Couldn't set attribute on intermediates directory: \(error.localizedDescription)")
             }
         }
 

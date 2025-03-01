@@ -276,7 +276,7 @@ extension Diagnostic {
     public init?(_ remark: OptimizationRemark, workingDirectory: Path) {
         guard let debugLoc = remark.debugLoc else { return nil } // skip if no debug location
         let path = Path(debugLoc.sourceFilePath)
-        // Paths can be both asbolute and relative to the working directory.
+        // Paths can be both absolute and relative to the working directory.
         let absolutePath = path.makeAbsolute(relativeTo: workingDirectory) ?? path
         self.init(behavior: .remark, location: .path(absolutePath, line: Int(debugLoc.sourceLine), column: Int(debugLoc.sourceColumn)), data: DiagnosticData(remark.message))
     }

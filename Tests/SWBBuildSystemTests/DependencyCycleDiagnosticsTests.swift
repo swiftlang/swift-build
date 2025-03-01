@@ -216,6 +216,8 @@ fileprivate struct DependencyCycleDiagnosticsTests: CoreBasedTests {
                         #expect(formattedOutput?.hasPrefix("Target 'A-foo-bar': LinkAssetCatalog") == true)
                     case "LinkAssetCatalogSignature":
                         #expect(formattedOutput?.hasPrefix("Target 'A-foo-bar': LinkAssetCatalogSignature") == true)
+                    case "ProcessSDKImports":
+                        #expect(formattedOutput == "Target 'A-foo-bar' has process command with output '\(tmpDir.str)/build/aProject.build/Debug/A-foo-bar.build/Objects-normal/x86_64/A_normal_x86_64_sdk_imports.json'")
                     default:
                         Issue.record("unhandled rule info: \(task.ruleInfo)")
                     }
@@ -761,7 +763,7 @@ fileprivate struct DependencyCycleDiagnosticsTests: CoreBasedTests {
             // This should always work, because the module map for the downstream dependency won't have been laid down.
             try await tester.checkBuild(persistent: true) { results in
                 // Check we ran the appropriate tasks.
-                results.consumeTasksMatchingRuleTypes(["SymLink", "MkDir", "WriteAuxiliaryFile", "Gate", "CreateBuildDirectory", "ProcessInfoPlistFile", "RegisterExecutionPolicyException", "ClangStatCache", "PrecompileModule"])
+                results.consumeTasksMatchingRuleTypes(["SymLink", "MkDir", "WriteAuxiliaryFile", "Gate", "CreateBuildDirectory", "ProcessInfoPlistFile", "RegisterExecutionPolicyException", "ClangStatCache", "PrecompileModule", "ProcessSDKImports"])
 
                 results.checkTasks(.matchRuleType("ScanDependencies")) { tasks in
                     #expect(tasks.count == 2)

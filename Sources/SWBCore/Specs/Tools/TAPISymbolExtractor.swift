@@ -14,7 +14,7 @@ import Foundation
 public import SWBUtil
 public import SWBMacro
 
-final public class TAPISymbolExtractor: GenericCompilerSpec, GCCCompatibleCompilerCommandLineBuilder, SpecIdentifierType {
+final public class TAPISymbolExtractor: GenericCompilerSpec, GCCCompatibleCompilerCommandLineBuilder, SpecIdentifierType, @unchecked Sendable {
     public static let identifier = "com.apple.compilers.documentation.objc-symbol-extract"
 
     /// Return whether or not this documentation build should include a task for symbol extraction.
@@ -34,7 +34,7 @@ final public class TAPISymbolExtractor: GenericCompilerSpec, GCCCompatibleCompil
     // - This build is using clang and not TAPI (check the IDEDocumentationEnableClangExtractAPI feature flag)
     // - The installed version of clang actually supports it
     static private func supportsPlusPlus(cbc: CommandBuildContext, clangCompilerInfo: (any DiscoveredCommandLineToolSpecInfo)?) -> Bool {
-        guard SWBFeatureFlag.enableClangExtractAPI, let clangCompilerInfo else {
+        guard SWBFeatureFlag.enableClangExtractAPI.value, let clangCompilerInfo else {
             return false
         }
         return clangCompilerInfo.hasFeature(DiscoveredClangToolSpecInfo.FeatureFlag.extractAPISupportsCPlusPlus.rawValue)
@@ -54,7 +54,7 @@ final public class TAPISymbolExtractor: GenericCompilerSpec, GCCCompatibleCompil
         return await hasPlusPlusHeaders(cbc)
     }
 
-    // Which -x option should this task pass along to clang for the extract-api commnand?
+    // Which -x option should this task pass along to clang for the extract-api command?
     static private func clangHeaderOption(cbc: CommandBuildContext) async -> String {
         return await shouldBuildInCXXMode(cbc: cbc) ? "objective-c++-header" : "objective-c-header"
     }

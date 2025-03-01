@@ -12,7 +12,7 @@
 
 public import SWBUtil
 
-public final class SymlinkToolSpec : CommandLineToolSpec, SpecIdentifierType {
+public final class SymlinkToolSpec : CommandLineToolSpec, SpecIdentifierType, @unchecked Sendable {
     public static let identifier = "com.apple.tools.symlink"
 
     override public func constructTasks(_ cbc: CommandBuildContext, _ delegate: any TaskGenerationDelegate) async {

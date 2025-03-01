@@ -177,6 +177,7 @@ public struct DiscoveredLdLinkerToolSpecInfo: DiscoveredCommandLineToolSpecInfo 
     let undefinedSymbolCountLimit = 100
 
     override func parseLine<S: Collection>(_ lineBytes: S) -> Bool where S.Element == UInt8 {
+
         // Create a string that we can examine.  Use the non-failable constructor, so that we are robust against potentially invalid UTF-8.
         let lineString = String(decoding: lineBytes, as: Unicode.UTF8.self)
 
@@ -213,13 +214,7 @@ public struct DiscoveredLdLinkerToolSpecInfo: DiscoveredCommandLineToolSpecInfo 
             let behavior = Diagnostic.Behavior(name: severity) ?? .note
             let message = match[3].prefix(1).localizedCapitalized + match[3].dropFirst()
             let diagnostic = Diagnostic(behavior: behavior, location: .unknown, data: DiagnosticData(message), appendToOutputStream: false)
-
-            // Emit a modified diagnostic for missing frameworks that match the names of Apple SDK frameworks known to not be present in the current platform SDK.
-            if let configuredTarget = task.forTarget, let target = workspaceContext.workspace.target(for: configuredTarget.target.guid), let settings = buildRequestContext.getCachedSettings(configuredTarget.parameters, target: target) as Settings?, !settings.globalScope.evaluate(BuiltinMacros.DISABLE_SDK_METADATA_PARSING), let sdk = settings.sdk, let newDiagnostic = Diagnostic.missingFrameworkDiagnostic(forDiagnostic: diagnostic, settings: settings, infoLookup: workspaceContext.core, sdk: sdk, sdkVariant: settings.sdkVariant, missingFrameworkNames: workspaceContext.core.sdkRegistry.knownUnavailableFrameworksForSDK(sdk, sdkVariant: settings.sdkVariant), frameworkReplacementInfo: workspaceContext.core.sdkRegistry.frameworkReplacementInfoForSDK(sdk, sdkVariant: settings.sdkVariant), diagnosticMessageRegexes: [LdLinkerOutputParser.frameworkNotFoundRegEx, LdLinkerOutputParser.newFrameworkNotFoundRegEx], context: .linker) {
-                delegate.diagnosticsEngine.emit(newDiagnostic)
-            } else {
-                delegate.diagnosticsEngine.emit(diagnostic)
-            }
+            delegate.diagnosticsEngine.emit(diagnostic)
         }
         return true
     }
@@ -235,7 +230,7 @@ public struct DiscoveredLdLinkerToolSpecInfo: DiscoveredCommandLineToolSpecInfo 
     }
 }
 
-public final class LdLinkerSpec : GenericLinkerSpec, SpecIdentifierType {
+public final class LdLinkerSpec : GenericLinkerSpec, SpecIdentifierType, @unchecked Sendable {
     public static let identifier = "com.apple.pbx.linkers.ld"
 
     public override func computeExecutablePath(_ cbc: CommandBuildContext) -> String {
@@ -291,9 +286,10 @@ public final class LdLinkerSpec : GenericLinkerSpec, SpecIdentifierType {
         // NOTE: For swift.org toolchains, we always add the search paths to the Swift SDK location as the overlays do not have the install name set. This also works when `SWIFT_USE_DEVELOPMENT_TOOLCHAIN_RUNTIME=YES` as `DYLD_LIBRARY_PATH` is used to override these settings during debug time. If users wish to use the development runtime while not debugging, they need to manually set their rpaths as this is not a supported configuration.
         // Also, if the deployment target does not support Swift in the OS, the rpath entries need to be added as well.
         // And, if the deployment target does not support Swift Concurrency natively, then the rpath needs to be added as well so that the shim library can find the real implementation. Note that we assume `true` in the case where `supportsSwiftInTheOS` is `nil` as we don't have the platform data to make the correct choice; so fallback to existing behavior.
+        // The all above discussion is only relevant for platforms that support Swift in the OS.
         let supportsSwiftConcurrencyNatively = cbc.producer.platform?.supportsSwiftConcurrencyNatively(cbc.scope, forceNextMajorVersion: false, considerTargetDeviceOSVersion: false) ?? true
         let shouldEmitRPathForSwiftConcurrency = UserDefaults.allowRuntimeSearchPathAdditionForSwiftConcurrency && !supportsSwiftConcurrencyNatively
-        if (cbc.producer.platform?.supportsSwiftInTheOS(cbc.scope, forceNextMajorVersion: true, considerTargetDeviceOSVersion: false) != true || cbc.producer.toolchains.usesSwiftOpenSourceToolchain || shouldEmitRPathForSwiftConcurrency) && isUsingSwift {
+        if (cbc.producer.platform?.supportsSwiftInTheOS(cbc.scope, forceNextMajorVersion: true, considerTargetDeviceOSVersion: false) != true || cbc.producer.toolchains.usesSwiftOpenSourceToolchain || shouldEmitRPathForSwiftConcurrency) && isUsingSwift && cbc.producer.platform?.minimumOSForSwiftInTheOS != nil {
                 // NOTE: For swift.org toolchains, this is fine as `DYLD_LIBRARY_PATH` is used to override these settings.
             let swiftABIVersion =  await (cbc.producer.swiftCompilerSpec.discoveredCommandLineToolSpecInfo(cbc.producer, cbc.scope, delegate) as? DiscoveredSwiftCompilerToolSpecInfo)?.swiftABIVersion
                 runpathSearchPaths.insert( swiftABIVersion.flatMap { "/usr/lib/swift-\($0)" } ?? "/usr/lib/swift", at: 0)
@@ -304,7 +300,7 @@ public final class LdLinkerSpec : GenericLinkerSpec, SpecIdentifierType {
 
     override public func constructLinkerTasks(_ cbc: CommandBuildContext, _ delegate: any TaskGenerationDelegate, libraries: [LibrarySpecifier], usedTools: [CommandLineToolSpec: Set<FileTypeSpec>]) async {
         // Validate that OTHER_LDFLAGS doesn't contain flags for constructs which we have dedicated settings for. This should be expanded over time.
-        let dyldEnvDiagnosticBehavior: Diagnostic.Behavior = SWBFeatureFlag.useStrictLdEnvironmentBuildSetting ? .error : .warning
+        let dyldEnvDiagnosticBehavior: Diagnostic.Behavior = SWBFeatureFlag.useStrictLdEnvironmentBuildSetting.value ? .error : .warning
         let originalLdFlags = cbc.scope.evaluate(BuiltinMacros.OTHER_LDFLAGS)
         enumerateLinkerCommandLine(arguments: originalLdFlags) { arg, value in
             switch arg {
@@ -365,7 +361,7 @@ public final class LdLinkerSpec : GenericLinkerSpec, SpecIdentifierType {
         // Add the library arguments.
         let libraryArgs = LdLinkerSpec.computeLibraryArgs(libraries, scope: cbc.scope)
         specialArgs += libraryArgs.args
-        if SWBFeatureFlag.enableLinkerInputsFromLibrarySpecifiers {
+        if SWBFeatureFlag.enableLinkerInputsFromLibrarySpecifiers.value {
             inputPaths += libraryArgs.inputs
         }
 
@@ -395,7 +391,7 @@ public final class LdLinkerSpec : GenericLinkerSpec, SpecIdentifierType {
             delegate.declareGeneratedInfoPlistContent(infoPlistContent)
         }
 
-        // Add flags to emity dependency info.
+        // Add flags to emit dependency info.
         let dependencyInfo = await self.dependencyData(cbc: cbc, delegate: delegate, outputs: &outputs)
 
         // FIXME: Honor LD_QUITE_LINKER_ARGUMENTS_FOR_COMPILER_DRIVER == NO ?
@@ -535,10 +531,11 @@ public final class LdLinkerSpec : GenericLinkerSpec, SpecIdentifierType {
                 // Aliasing a known symbol to this `$ld$previous` symbol is sufficient.
                 let ldFlagsForAllowableClientOverride: [String]
                 if let mappedInstallName = cbc.scope.evaluate(BuiltinMacros.EXECUTABLE_DEBUG_DYLIB_MAPPED_INSTALL_NAME).nilIfEmpty {
+                    let platform = cbc.scope.evaluate(BuiltinMacros.EXECUTABLE_DEBUG_DYLIB_MAPPED_PLATFORM)
                     ldFlagsForAllowableClientOverride = [
                         "-Xlinker", "-alias",
                         "-Xlinker", "___debug_main_executable_dylib_entry_point",
-                        "-Xlinker", "$ld$previous$\(mappedInstallName)$$1$1.0$9999.0$$",
+                        "-Xlinker", "$ld$previous$\(mappedInstallName)$$\(platform)$1.0$9999.0$$",
                     ]
                 } else {
                     ldFlagsForAllowableClientOverride = []
@@ -554,6 +551,24 @@ public final class LdLinkerSpec : GenericLinkerSpec, SpecIdentifierType {
 
         // Generate the command line.
         var commandLine = commandLineFromTemplate(cbc, delegate, optionContext: optionContext, specialArgs: specialArgs, lookup: lookup).map(\.asString)
+
+        // Add flags to emit SDK imports info.
+        let sdkImportsInfoFile = cbc.scope.evaluate(BuiltinMacros.LD_SDK_IMPORTS_FILE)
+        let supportsSDKImportsFeature = (try? optionContext?.toolVersion >= .init("1164")) == true
+        var usesLDClassic = cbc.scope.evaluate(BuiltinMacros.CURRENT_ARCH) == "armv7k"
+        enumerateLinkerCommandLine(arguments: commandLine) { arg, value in
+            switch arg {
+            case "-ld_classic": usesLDClassic = true
+            case "-r": usesLDClassic = true
+            default: break
+            }
+        }
+        if !usesLDClassic, supportsSDKImportsFeature, !sdkImportsInfoFile.isEmpty, cbc.scope.evaluate(BuiltinMacros.ENABLE_SDK_IMPORTS), cbc.producer.isApplePlatform {
+            commandLine.insert(contentsOf: ["-Xlinker", "-sdk_imports", "-Xlinker", sdkImportsInfoFile.str, "-Xlinker", "-sdk_imports_each_object"], at: commandLine.count - 2) // This preserves the assumption that the last argument is the linker output which a few tests make.
+            outputs.append(delegate.createNode(sdkImportsInfoFile))
+
+            await cbc.producer.processSDKImportsSpec.createTasks(CommandBuildContext(producer: cbc.producer, scope: cbc.scope, inputs: []), delegate, ldSDKImportsPath: sdkImportsInfoFile)
+        }
 
         // Select the driver to use based on the input file types, replacing the value computed by commandLineFromTemplate().
         let usedCXX = usedTools.values.contains(where: { $0.contains(where: { $0.languageDialect?.isPlusPlus ?? false }) })
@@ -572,7 +587,7 @@ public final class LdLinkerSpec : GenericLinkerSpec, SpecIdentifierType {
         // If we are linking Swift and build for debugging, pass the right .swiftmodule file for the current architecture to the
         // linker. This is needed so that debugging these modules works correctly. Note that `swiftModulePaths` will be empty for
         // anything but static archives and object files, because dynamic libraries and frameworks do not require this.
-        if isLinkUsingSwift && cbc.scope.evaluate(BuiltinMacros.GCC_GENERATE_DEBUGGING_SYMBOLS) {
+        if isLinkUsingSwift && cbc.scope.evaluate(BuiltinMacros.GCC_GENERATE_DEBUGGING_SYMBOLS) && !cbc.scope.evaluate(BuiltinMacros.PLATFORM_REQUIRES_SWIFT_MODULEWRAP) {
             for library in libraries {
                 if let swiftModulePath = library.swiftModulePaths[cbc.scope.evaluate(BuiltinMacros.CURRENT_ARCH)] {
                     commandLine += ["-Xlinker", "-add_ast_path", "-Xlinker", swiftModulePath.str]
@@ -653,7 +668,7 @@ public final class LdLinkerSpec : GenericLinkerSpec, SpecIdentifierType {
 
         // Add dependencies on any directories in our input search paths for which the build system is creating those directories.
         let ldSearchPaths = Set(cbc.scope.evaluate(BuiltinMacros.FRAMEWORK_SEARCH_PATHS) + cbc.scope.evaluate(BuiltinMacros.LIBRARY_SEARCH_PATHS))
-        let otherInputs = delegate.buildDirectories.compactMap { path in ldSearchPaths.contains(path.str) ? delegate.createBuildDirectoryNode(absolutePath: path) : nil } + cbc.commandOrderingInputs
+        let otherInputs = delegate.buildDirectories.sorted().compactMap { path in ldSearchPaths.contains(path.str) ? delegate.createBuildDirectoryNode(absolutePath: path) : nil } + cbc.commandOrderingInputs
 
         // Create the task.
         delegate.createTask(type: self, dependencyData: dependencyInfo, payload: payload, ruleInfo: defaultRuleInfo(cbc, delegate), commandLine: commandLine, environment: environment, workingDirectory: cbc.producer.defaultWorkingDirectory, inputs: inputs + otherInputs, outputs: outputs, action: delegate.taskActionCreationDelegate.createDeferredExecutionTaskActionIfRequested(userPreferences: cbc.producer.userPreferences), execDescription: resolveExecutionDescription(cbc, delegate), enableSandboxing: enableSandboxing)
@@ -738,7 +753,7 @@ public final class LdLinkerSpec : GenericLinkerSpec, SpecIdentifierType {
         // Add the library arguments.
         let libraryArgs = LdLinkerSpec.computeLibraryArgs(libraries, scope: cbc.scope)
         specialArgs += libraryArgs.args
-        if SWBFeatureFlag.enableLinkerInputsFromLibrarySpecifiers {
+        if SWBFeatureFlag.enableLinkerInputsFromLibrarySpecifiers.value {
             inputPaths += libraryArgs.inputs
         }
 
@@ -949,14 +964,14 @@ public final class LdLinkerSpec : GenericLinkerSpec, SpecIdentifierType {
         let argPrefix = "-Xlinker"
 
         // Args without parameters
-        for arg in ["-dynamiclib", "-bundle", "-r", "-fembed-bitcode-marker", "-dead_strip", "-nostdlib"] {
+        for arg in ["-dynamiclib", "-bundle", "-r", "-fembed-bitcode-marker", "-dead_strip", "-nostdlib", "-rdynamic"] {
             while let index = commandLine.firstIndex(of: arg) {
                 commandLine.remove(at: index)
             }
         }
 
         // Args without parameters (-Xlinker-prefixed, e.g. -Xlinker)
-        for arg in ["-bitcode_verify", "-export_dynamic"] {
+        for arg in ["-bitcode_verify", "-export_dynamic", "-sdk_imports_each_object"] {
             while let index = commandLine.firstIndex(of: arg) {
                 guard index > 0, commandLine[index - 1] == argPrefix else { break }
                 commandLine.removeSubrange(index - 1 ... index)
@@ -975,7 +990,7 @@ public final class LdLinkerSpec : GenericLinkerSpec, SpecIdentifierType {
         }
 
         // Args with a parameter (-Xlinker-prefixed, e.g. -Xlinker arg -Xlinker param)
-        for arg in ["-object_path_lto", "-add_ast_path", "-dependency_info", "-map", "-order_file", "-bitcode_symbol_map", "-final_output", "-allowable_client"] {
+        for arg in ["-object_path_lto", "-add_ast_path", "-dependency_info", "-map", "-order_file", "-bitcode_symbol_map", "-final_output", "-allowable_client", "-sdk_imports"] {
             while let index = commandLine.firstIndex(of: arg) {
                 guard index > 0,
                     index + 2 < commandLine.count,
@@ -1021,7 +1036,47 @@ public final class LdLinkerSpec : GenericLinkerSpec, SpecIdentifierType {
         guard let payload = task.payload as? LdLinkerTaskPayload else { return [] }
         guard let previewPayload = payload.previewPayload else { return [] }
 
-        return [TaskGeneratePreviewInfoOutput(architecture: previewPayload.architecture, buildVariant: previewPayload.buildVariant, commandLine: Array(task.commandLineAsStrings), input: Path(""), output: payload.outputPath, type: .Ld)]
+        var commandLine = Array(task.commandLineAsStrings)
+
+        let argPrefix = "-Xlinker"
+
+        // Args without parameters
+        for arg in [
+            "-sdk_imports_each_object"
+        ] {
+            while let index = commandLine.firstIndex(of: arg) {
+                guard index > 0, commandLine[index - 1] == argPrefix else { break }
+                commandLine.removeSubrange(index - 1 ... index)
+            }
+        }
+
+        // Args with a parameter (-Xlinker-prefixed, e.g. -Xlinker arg -Xlinker param)
+        for arg in [
+            "-sdk_imports"
+        ] {
+            while let index = commandLine.firstIndex(of: arg) {
+                guard index > 0,
+                    index + 2 < commandLine.count,
+                    commandLine[index - 1] == argPrefix,
+                    commandLine[index + 1] == argPrefix
+                    else {
+                        break
+                }
+
+                commandLine.removeSubrange(index - 1 ... index + 2)
+            }
+        }
+
+        return [
+            TaskGeneratePreviewInfoOutput(
+                architecture: previewPayload.architecture,
+                buildVariant: previewPayload.buildVariant,
+                commandLine: commandLine,
+                input: Path(""),
+                output: payload.outputPath,
+                type: .Ld
+            )
+        ]
     }
 
     private func computeLinkerPath(_ cbc: CommandBuildContext, usedCXX: Bool) -> Path {
@@ -1219,75 +1274,51 @@ public final class LdLinkerSpec : GenericLinkerSpec, SpecIdentifierType {
 
     override public func discoveredCommandLineToolSpecInfo(_ producer: any CommandProducer, _ scope: MacroEvaluationScope, _ delegate: any CoreClientTargetDiagnosticProducingDelegate) async -> (any DiscoveredCommandLineToolSpecInfo)? {
         let alternateLinker = scope.evaluate(BuiltinMacros.ALTERNATE_LINKER)
-
-        let linkerPath = if alternateLinker != "" { Path(alternateLinker) } else { Path("ld") }
-
-        // Create the cache key.  This is just the path to the ld linker we would invoke if we were invoking the linker directly.
+        // The ALTERNATE_LINKER is the 'name' of the linker not the executable name, clang will find the linker binary based on name passed via -fuse-ld, but we need to discover
+        // its properties by executing the actual binary. There is a common filename when the linker is not "ld" across all platforms using "ld.<ALTERNAME_LINKER>(.exe)"
+        // macOS (Xcode SDK)
+        // -----------------
+        // ld
+        // ld-classic
+        //
+        // macOS (Open Source)
+        // -----------
+        // ld.lld -> lld
+        // ld64.lld -> lld
+        // lld
+        // lld-link -> lld
+        //
+        // Linux
+        // ------
+        // /usr/bin/ld -> aarch64-linux-gnu-ld
+        // /usr/bin/ld.bfd -> aarch64-linux-gnu-ld.bfd
+        // /usr/bin/ld.gold -> aarch64-linux-gnu-ld.gold
+        // /usr/bin/ld.lld -> lld
+        // /usr/bin/ld64.lld -> lld
+        // /usr/bin/lld
+        // /usr/bin/lld-link -> lld
+        // /usr/bin/gold -> aarch64-linux-gnu-gold
+        //
+        // Windows
+        // -------
+        // ld.lld.exe
+        // ld64.lld.exe
+        // lld-link.exe
+        // lld.exe
+        // link.exe //In Visual Studio
+        //
+        // Note: On Linux you cannot invoke the llvm linker by the direct name for determining the version,
+        // you need to use ld.<ALTERNATE_LINKER>
+        var linkerPath = Path("ld")
+        if alternateLinker != "" && alternateLinker != "ld" {
+            linkerPath = Path(producer.hostOperatingSystem.imageFormat.executableName(basename: "ld.\(alternateLinker)"))
+        }
+        // Create the cache key.  This is just the path to the linker we would invoke if we were invoking the linker directly.
         guard let toolPath = producer.executableSearchPaths.lookup(linkerPath) else {
             return nil
         }
 
-        do {
-            do {
-                let commandLine = [toolPath.str, "-version_details"]
-                return try await producer.discoveredCommandLineToolSpecInfo(delegate, nil, commandLine, { executionResult in
-                    let gnuLD = [
-                        #/GNU ld version (?<version>[\d.]+)-.*/#,
-                        #/GNU ld \(GNU Binutils.*\) (?<version>[\d.]+)/#,
-                    ]
-                    if let match = try gnuLD.compactMap({ try $0.firstMatch(in: String(decoding: executionResult.stdout, as: UTF8.self)) }).first {
-                        return DiscoveredLdLinkerToolSpecInfo(linker: .gnuld, toolPath: toolPath, toolVersion: try Version(String(match.output.version)), architectures: Set())
-                    }
-
-                    let goLD = [
-                        #/GNU gold version (?<version>[\d.]+)-.*/#,
-                        #/GNU gold \(GNU Binutils.*\) (?<version>[\d.]+)/#,
-                    ]
-                    if let match = try goLD.compactMap({ try $0.firstMatch(in: String(decoding: executionResult.stdout, as: UTF8.self)) }).first {
-                        return DiscoveredLdLinkerToolSpecInfo(linker: .gold, toolPath: toolPath, toolVersion: try Version(String(match.output.version)), architectures: Set())
-                    }
-                    
-                    struct LDVersionDetails: Decodable {
-                        let version: Version
-                        let architectures: Set<String>
-                    }
-
-                    let details: LDVersionDetails
-                    do {
-                        details = try JSONDecoder().decode(LDVersionDetails.self, from: executionResult.stdout)
-                    } catch {
-                        throw CommandLineOutputJSONParsingError(commandLine: commandLine, data: executionResult.stdout)
-                    }
-                    
-                    return DiscoveredLdLinkerToolSpecInfo(linker: .ld64, toolPath: toolPath, toolVersion: details.version, architectures: details.architectures)
-                })
-            } catch let e as CommandLineOutputJSONParsingError {
-                let vCommandLine = [toolPath.str, "-v"]
-                return try await producer.discoveredCommandLineToolSpecInfo(delegate, nil, vCommandLine, { executionResult in
-                    let lld = [
-                        #/LLD (?<version>[\d.]+) .*/#,
-                    ]
-                    if let match = try lld.compactMap({ try $0.firstMatch(in: String(decoding: executionResult.stdout, as: UTF8.self)) }).first {
-                        return DiscoveredLdLinkerToolSpecInfo(linker: .lld, toolPath: toolPath, toolVersion: try Version(String(match.output.version)), architectures: Set())
-                    }
-
-                    let versionCommandLine = [toolPath.str, "--version"]
-                    return try await producer.discoveredCommandLineToolSpecInfo(delegate, nil, versionCommandLine, { executionResult in
-                        let lld = [
-                            #/LLD (?<version>[\d.]+) .*/#,
-                        ]
-                        if let match = try lld.compactMap({ try $0.firstMatch(in: String(decoding: executionResult.stdout, as: UTF8.self)) }).first {
-                            return DiscoveredLdLinkerToolSpecInfo(linker: .lld, toolPath: toolPath, toolVersion: try Version(String(match.output.version)), architectures: Set())
-                        }
-                    
-                        throw e
-                    })
-                })
-            }
-        } catch {
-            delegate.error(error)
-            return nil
-        }
+        return await discoveredLinkerToolsInfo(producer, delegate, at: toolPath)
     }
 }
 
@@ -1370,7 +1401,7 @@ public struct DiscoveredLibtoolLinkerToolSpecInfo: DiscoveredCommandLineToolSpec
     public let toolVersion: Version?
 }
 
-public final class LibtoolLinkerSpec : GenericLinkerSpec, SpecIdentifierType {
+public final class LibtoolLinkerSpec : GenericLinkerSpec, SpecIdentifierType, @unchecked Sendable {
     public static let identifier = "com.apple.pbx.linkers.libtool"
 
     override public var payloadType: (any TaskPayload.Type)? { return LibtoolLinkerTaskPayload.self }
@@ -1419,17 +1450,22 @@ public final class LibtoolLinkerSpec : GenericLinkerSpec, SpecIdentifierType {
 
     override public func constructLinkerTasks(_ cbc: CommandBuildContext, _ delegate: any TaskGenerationDelegate, libraries: [LibrarySpecifier], usedTools: [CommandLineToolSpec: Set<FileTypeSpec>]) async {
         var inputPaths = cbc.inputs.map({ $0.absolutePath })
+        var specialArgs = [String]()
 
-        // Define the linker file list.
-        let fileListPath = cbc.scope.evaluate(BuiltinMacros.__INPUT_FILE_LIST_PATH__)
-        if !fileListPath.isEmpty {
-            let contents = cbc.inputs.map({ return $0.absolutePath.strWithPosixSlashes + "\n" }).joined(separator: "")
-            cbc.producer.writeFileSpec.constructFileTasks(CommandBuildContext(producer: cbc.producer, scope: cbc.scope, inputs: [], output: fileListPath), delegate, contents: ByteString(encodingAsUTF8: contents), permissions: nil, preparesForIndexing: false, additionalTaskOrderingOptions: [.immediate, .ignorePhaseOrdering])
-            inputPaths.append(fileListPath)
+        if cbc.scope.evaluate(BuiltinMacros.LIBTOOL_USE_RESPONSE_FILE) {
+            // Define the linker file list.
+            let fileListPath = cbc.scope.evaluate(BuiltinMacros.__INPUT_FILE_LIST_PATH__)
+            if !fileListPath.isEmpty {
+                let contents = cbc.inputs.map({ return $0.absolutePath.strWithPosixSlashes + "\n" }).joined(separator: "")
+                cbc.producer.writeFileSpec.constructFileTasks(CommandBuildContext(producer: cbc.producer, scope: cbc.scope, inputs: [], output: fileListPath), delegate, contents: ByteString(encodingAsUTF8: contents), permissions: nil, preparesForIndexing: false, additionalTaskOrderingOptions: [.immediate, .ignorePhaseOrdering])
+                inputPaths.append(fileListPath)
+            }
+        } else {
+            specialArgs.append(contentsOf: cbc.inputs.map { $0.absolutePath.str })
+            inputPaths.append(contentsOf: cbc.inputs.map { $0.absolutePath })
         }
 
         // Add arguments for the contents of the Link Binaries build phase.
-        var specialArgs = [String]()
         specialArgs.append(contentsOf: libraries.flatMap { specifier -> [String] in
             let basename = specifier.path.basename
 
@@ -1488,7 +1524,7 @@ public final class LibtoolLinkerSpec : GenericLinkerSpec, SpecIdentifierType {
 
         var outputs: [any PlannedNode] = [delegate.createNode(cbc.output)] + cbc.commandOrderingOutputs
 
-        // Add flags to emity dependency info.
+        // Add flags to emit dependency info.
         var dependencyInfo: DependencyDataStyle?
         let dependencyInfoFile = cbc.scope.evaluate(BuiltinMacros.LIBTOOL_DEPENDENCY_INFO_FILE)
         if !dependencyInfoFile.isEmpty {
@@ -1578,6 +1614,74 @@ public final class LibtoolLinkerSpec : GenericLinkerSpec, SpecIdentifierType {
                 type: .Ld
             )
         ]
+    }
+}
+
+/// Consults the global cache of discovered info for the linker at `toolPath` and returns it, creating it if necessary.
+///
+/// This is global and public because it is used by `SWBTaskExecution` and `CoreBasedTests`, which is the basis of many of our tests (so caching this info across tests is desirable).
+public func discoveredLinkerToolsInfo(_ producer: any CommandProducer, _ delegate: any CoreClientTargetDiagnosticProducingDelegate, at toolPath: Path) async -> (any DiscoveredCommandLineToolSpecInfo)? {
+    do {
+        do {
+            let commandLine = [toolPath.str, "-version_details"]
+            return try await producer.discoveredCommandLineToolSpecInfo(delegate, nil, commandLine, { executionResult in
+                let gnuLD = [
+                    #/GNU ld version (?<version>[\d.]+)-.*/#,
+                    #/GNU ld \(GNU Binutils.*\) (?<version>[\d.]+)/#,
+                ]
+                if let match = try gnuLD.compactMap({ try $0.firstMatch(in: String(decoding: executionResult.stdout, as: UTF8.self)) }).first {
+                    return DiscoveredLdLinkerToolSpecInfo(linker: .gnuld, toolPath: toolPath, toolVersion: try Version(String(match.output.version)), architectures: Set())
+                }
+
+                let goLD = [
+                    #/GNU gold version (?<version>[\d.]+)-.*/#,
+                    #/GNU gold \(GNU Binutils.*\) (?<version>[\d.]+)/#, // Ubuntu "GNU gold (GNU Binutils for Ubuntu 2.38) 1.16", Debian "GNU gold (GNU Binutils for Debian 2.40) 1.16"
+                    #/GNU gold \(version .*\) (?<version>[\d.]+)/#,     // Fedora "GNU gold (version 2.40-14.fc39) 1.16", RHEL "GNU gold (version 2.35.2-54.el9) 1.16", Amazon "GNU gold (version 2.29.1-31.amzn2.0.1) 1.14"
+                ]
+                if let match = try goLD.compactMap({ try $0.firstMatch(in: String(decoding: executionResult.stdout, as: UTF8.self)) }).first {
+                    return DiscoveredLdLinkerToolSpecInfo(linker: .gold, toolPath: toolPath, toolVersion: try Version(String(match.output.version)), architectures: Set())
+                }
+
+                struct LDVersionDetails: Decodable {
+                    let version: Version
+                    let architectures: Set<String>
+                }
+
+                let details: LDVersionDetails
+                do {
+                    details = try JSONDecoder().decode(LDVersionDetails.self, from: executionResult.stdout)
+                } catch {
+                    throw CommandLineOutputJSONParsingError(commandLine: commandLine, data: executionResult.stdout)
+                }
+
+                return DiscoveredLdLinkerToolSpecInfo(linker: .ld64, toolPath: toolPath, toolVersion: details.version, architectures: details.architectures)
+            })
+        } catch let e as CommandLineOutputJSONParsingError {
+            let vCommandLine = [toolPath.str, "-v"]
+            return try await producer.discoveredCommandLineToolSpecInfo(delegate, nil, vCommandLine, { executionResult in
+                let lld = [
+                    #/LLD (?<version>[\d.]+).*/#,
+                ]
+                if let match = try lld.compactMap({ try $0.firstMatch(in: String(decoding: executionResult.stdout, as: UTF8.self)) }).first {
+                    return DiscoveredLdLinkerToolSpecInfo(linker: .lld, toolPath: toolPath, toolVersion: try Version(String(match.output.version)), architectures: Set())
+                }
+
+                let versionCommandLine = [toolPath.str, "--version"]
+                return try await producer.discoveredCommandLineToolSpecInfo(delegate, nil, versionCommandLine, { executionResult in
+                    let lld = [
+                        #/LLD (?<version>[\d.]+).*/#,
+                    ]
+                    if let match = try lld.compactMap({ try $0.firstMatch(in: String(decoding: executionResult.stdout, as: UTF8.self)) }).first {
+                        return DiscoveredLdLinkerToolSpecInfo(linker: .lld, toolPath: toolPath, toolVersion: try Version(String(match.output.version)), architectures: Set())
+                    }
+
+                    throw e
+                })
+            })
+        }
+    } catch {
+        delegate.error(error)
+        return nil
     }
 }
 

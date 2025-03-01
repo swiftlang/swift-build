@@ -12,8 +12,23 @@
 
 import protocol Foundation.LocalizedError
 public import SWBUtil
+public import SWBMacro
 
 public struct CASOptions: Hashable, Serializable, Encodable, Sendable {
+
+    enum Errors: Error, CustomStringConvertible {
+        case invalidSizeLimit(sizeLimitString: String, origin: String)
+        case invalidPercentLimit(percentLimitString: String)
+
+        var description: String {
+            switch self {
+            case .invalidSizeLimit(sizeLimitString: let sizeLimitString, origin: let origin):
+                return "invalid \(origin): '\(sizeLimitString)'"
+            case .invalidPercentLimit(percentLimitString: let percentLimitString):
+                return "invalid COMPILATION_CACHE_LIMIT_PERCENT: '\(percentLimitString)'"
+            }
+        }
+    }
 
     public enum SizeLimitingStrategy: Hashable, Serializable, Encodable, Sendable {
         /// Cache directory is removed after the build is finished.
@@ -89,7 +104,7 @@ public struct CASOptions: Hashable, Serializable, Encodable, Sendable {
             return size * mb
         case "G": // gigabytes
             return size * gb
-        case "T": // terrabytes
+        case "T": // terabytes
             return size * tb
         default:
             return nil
@@ -155,69 +170,82 @@ public struct CASOptions: Hashable, Serializable, Encodable, Sendable {
         self.limitingStrategy = try deserializer.deserialize()
     }
 
-    public static func createFromBuildContext(
-        _ cbc: CommandBuildContext,
-        _ language: GCCCompatibleLanguageDialect,
-        _ delegate: any TaskGenerationDelegate
-    ) -> CASOptions {
+    public enum Purpose {
+        case generic
+        case compiler(GCCCompatibleLanguageDialect)
+    }
+
+    public static func create(
+        _ scope: MacroEvaluationScope,
+        _ purpose: Purpose
+    ) throws -> CASOptions {
         func isLanguageSupportedForRemoteCaching() -> Bool {
-            let supportedLangs = cbc.scope.evaluate(BuiltinMacros.COMPILATION_CACHE_REMOTE_SUPPORTED_LANGUAGES)
-            // If no specific list of languages is provided then all languages are supported.
-            guard !supportedLangs.isEmpty else { return true }
-            return supportedLangs.contains(language.dialectNameForCompilerCommandLineArgument)
+            switch purpose {
+            case .compiler(let language):
+                let supportedLangs = scope.evaluate(BuiltinMacros.COMPILATION_CACHE_REMOTE_SUPPORTED_LANGUAGES)
+                // If no specific list of languages is provided then all languages are supported.
+                guard !supportedLangs.isEmpty else { return true }
+                // If we're  not compiling a specific language, assume support.
+                return supportedLangs.contains(language.dialectNameForCompilerCommandLineArgument)
+            case .generic:
+                return true
+            }
         }
 
         let casPath: Path
         let pluginPath: Path?
         let remoteServicePath: Path?
-        let enableIntegratedCacheQueries = cbc.scope.evaluate(BuiltinMacros.COMPILATION_CACHE_ENABLE_INTEGRATED_QUERIES)
-        let enableDiagnosticRemarks = cbc.scope.evaluate(BuiltinMacros.COMPILATION_CACHE_ENABLE_DIAGNOSTIC_REMARKS)
-        let enableStrictCASErrors = cbc.scope.evaluate(BuiltinMacros.COMPILATION_CACHE_ENABLE_STRICT_CAS_ERRORS)
-        let enableDetachedKeyQueries = cbc.scope.evaluate(BuiltinMacros.COMPILATION_CACHE_ENABLE_DETACHED_KEY_QUERIES)
-        if cbc.scope.evaluate(BuiltinMacros.COMPILATION_CACHE_ENABLE_PLUGIN) {
-            casPath = Path(cbc.scope.evaluate(BuiltinMacros.COMPILATION_CACHE_CAS_PATH)).join("plugin")
-            pluginPath = Path(cbc.scope.evaluate(BuiltinMacros.COMPILATION_CACHE_PLUGIN_PATH))
-            let remoteServicePathSetting = Path(cbc.scope.evaluate(BuiltinMacros.COMPILATION_CACHE_REMOTE_SERVICE_PATH))
+        let enableIntegratedCacheQueries = scope.evaluate(BuiltinMacros.COMPILATION_CACHE_ENABLE_INTEGRATED_QUERIES)
+        let enableDiagnosticRemarks = scope.evaluate(BuiltinMacros.COMPILATION_CACHE_ENABLE_DIAGNOSTIC_REMARKS)
+        let enableStrictCASErrors = scope.evaluate(BuiltinMacros.COMPILATION_CACHE_ENABLE_STRICT_CAS_ERRORS)
+        let enableDetachedKeyQueries = scope.evaluate(BuiltinMacros.COMPILATION_CACHE_ENABLE_DETACHED_KEY_QUERIES)
+        if scope.evaluate(BuiltinMacros.COMPILATION_CACHE_ENABLE_PLUGIN) {
+            casPath = Path(scope.evaluate(BuiltinMacros.COMPILATION_CACHE_CAS_PATH)).join("plugin")
+            pluginPath = Path(scope.evaluate(BuiltinMacros.COMPILATION_CACHE_PLUGIN_PATH))
+            let remoteServicePathSetting = Path(scope.evaluate(BuiltinMacros.COMPILATION_CACHE_REMOTE_SERVICE_PATH))
             if !remoteServicePathSetting.isEmpty && isLanguageSupportedForRemoteCaching() {
                 remoteServicePath = remoteServicePathSetting
             } else {
                 remoteServicePath = nil
             }
         } else {
-            casPath = Path(cbc.scope.evaluate(BuiltinMacros.COMPILATION_CACHE_CAS_PATH)).join("builtin")
+            switch purpose {
+            case .compiler:
+                casPath = Path(scope.evaluate(BuiltinMacros.COMPILATION_CACHE_CAS_PATH)).join("builtin")
+            case .generic:
+                casPath = Path(scope.evaluate(BuiltinMacros.COMPILATION_CACHE_CAS_PATH)).join("generic")
+            }
             pluginPath = nil
             remoteServicePath = nil
         }
 
-        let limitingStrategy: CASOptions.SizeLimitingStrategy = {
-            guard cbc.scope.evaluate(BuiltinMacros.COMPILATION_CACHE_KEEP_CAS_DIRECTORY) else {
+        let limitingStrategy: CASOptions.SizeLimitingStrategy = try {
+            guard scope.evaluate(BuiltinMacros.COMPILATION_CACHE_KEEP_CAS_DIRECTORY) else {
                 return .discarded
             }
 
-            func parseSizeLimit(_ sizeLimitStr: String, origin: String) -> CASOptions.SizeLimitingStrategy {
+            func parseSizeLimit(_ sizeLimitStr: String, origin: String) throws -> CASOptions.SizeLimitingStrategy {
                 guard let sizeLimit = CASOptions.parseSizeLimit(sizeLimitStr) else {
-                    delegate.error("invalid \(origin): '\(sizeLimitStr)'")
-                    return .default
+                    throw Errors.invalidSizeLimit(sizeLimitString: sizeLimitStr, origin: origin)
                 }
                 return .maxSizeBytes(sizeLimit > 0 ? sizeLimit : nil)
             }
 
-            let sizeLimitStr = cbc.scope.evaluate(BuiltinMacros.COMPILATION_CACHE_LIMIT_SIZE)
+            let sizeLimitStr = scope.evaluate(BuiltinMacros.COMPILATION_CACHE_LIMIT_SIZE)
             if !sizeLimitStr.isEmpty {
-                return parseSizeLimit(sizeLimitStr, origin: "COMPILATION_CACHE_LIMIT_SIZE")
+                return try parseSizeLimit(sizeLimitStr, origin: "COMPILATION_CACHE_LIMIT_SIZE")
             }
 
-            let percentLimitStr = cbc.scope.evaluate(BuiltinMacros.COMPILATION_CACHE_LIMIT_PERCENT)
+            let percentLimitStr = scope.evaluate(BuiltinMacros.COMPILATION_CACHE_LIMIT_PERCENT)
             if !percentLimitStr.isEmpty {
                 guard let percent = Int(percentLimitStr) else {
-                    delegate.error("invalid COMPILATION_CACHE_LIMIT_PERCENT: '\(percentLimitStr)'")
-                    return .default
+                    throw Errors.invalidPercentLimit(percentLimitString: percentLimitStr)
                 }
                 return .maxPercentageOfAvailableSpace(percent)
             }
 
             if let sizeLimitDefault = UserDefaults.compilationCachingDiskSizeLimit {
-                return parseSizeLimit(sizeLimitDefault, origin: "CompilationCachingDiskSizeLimit default")
+                return try parseSizeLimit(sizeLimitDefault, origin: "CompilationCachingDiskSizeLimit default")
             }
 
             return .default

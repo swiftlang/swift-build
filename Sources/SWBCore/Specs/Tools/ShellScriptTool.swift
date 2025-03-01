@@ -12,7 +12,7 @@
 
 public import SWBUtil
 
-public final class ShellScriptToolSpec : CommandLineToolSpec, SpecIdentifierType {
+public final class ShellScriptToolSpec : CommandLineToolSpec, SpecIdentifierType, @unchecked Sendable {
     public static let identifier = "com.apple.commands.shell-script"
 
     override public func constructTasks(_ cbc: CommandBuildContext, _ delegate: any TaskGenerationDelegate) async {

@@ -23,7 +23,7 @@ In debug builds:
 * When those target dependency products are embedded in either the merged binary product, or into a product containing the merged binary product, then their binaries will not be included in the embedded copy. (I.e., same as the release case.)
 * Those target dependency products will also be copied into a special location in the merged binary product, but containing only their binary, and the merged binary product will have an additional `@rpath` into that location.
 
-The goal of the debug workflow is to imitate the release workflow, but without the additional cost of creating the mergeable metadata and performing the merge of all of the libraries. This could someday change if the overhead of that work is determined to be small enough. This imitiative behavior is intended to prevent developers from accidentally adding a dependency in their project to one of the mergeable libraries, and then wonder why that dependency causes the app to crash in release builds because the mergeable library is missing (since its content was merged into the merged binary).
+The goal of the debug workflow is to imitate the release workflow, but without the additional cost of creating the mergeable metadata and performing the merge of all of the libraries. This could someday change if the overhead of that work is determined to be small enough. This imitative behavior is intended to prevent developers from accidentally adding a dependency in their project to one of the mergeable libraries, and then wonder why that dependency causes the app to crash in release builds because the mergeable library is missing (since its content was merged into the merged binary).
 
 ## Implementation
 

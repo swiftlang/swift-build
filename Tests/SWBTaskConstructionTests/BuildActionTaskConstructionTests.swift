@@ -16,7 +16,7 @@ import SWBCore
 
 import SWBTestSupport
 
-@Suite
+@Suite(.requireXcode16())
 fileprivate struct BuildActionTaskConstructionTests: CoreBasedTests {
     @Test(.requireSDKs(.macOS))
     func installApi() async throws {

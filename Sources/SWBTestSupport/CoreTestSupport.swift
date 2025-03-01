@@ -10,17 +10,19 @@
 //
 //===----------------------------------------------------------------------===//
 
-package import Foundation
+private import Foundation
 @_spi(Testing) package import SWBCore
 package import SWBUtil
 import SWBTaskConstruction
+import SWBTaskExecution
 
-#if SWIFT_PACKAGE
+#if USE_STATIC_PLUGIN_INITIALIZATION
 private import SWBAndroidPlatform
 private import SWBApplePlatform
 private import SWBGenericUnixPlatform
 private import SWBQNXPlatform
 private import SWBUniversalPlatform
+private import SWBWebAssemblyPlatform
 private import SWBWindowsPlatform
 #endif
 
@@ -48,7 +50,24 @@ extension Core {
         // When this code is being loaded directly via unit tests, find the running Xcode path.
         //
         // This is a "well known" launch parameter set in Xcode's schemes.
-        let developerPath = getEnvironmentVariable("XCODE_DEVELOPER_DIR_PATH").map(Path.init)
+        let developerPath: Path?
+        if let xcodeDeveloperDirPath = getEnvironmentVariable("XCODE_DEVELOPER_DIR_PATH").map(Path.init) {
+            developerPath = xcodeDeveloperDirPath
+        } else {
+            // In the context of auto-generated package schemes, try to infer the active Xcode.
+            let potentialDeveloperPath = getEnvironmentVariable("PATH")?.components(separatedBy: String(Path.pathEnvironmentSeparator)).first.map(Path.init)?.dirname.dirname
+            let versionInfo = potentialDeveloperPath?.dirname.join("version.plist")
+            if let versionInfo = versionInfo, (try? PropertyList.fromPath(versionInfo, fs: localFS))?.dictValue?["ProjectName"] == "IDEApplication" {
+                developerPath = potentialDeveloperPath
+            } else {
+                developerPath = nil
+            }
+        }
+
+        // Unset variables which may interfere with testing in Swift CI
+        for variable in ["SWIFT_EXEC", "SWIFT_DRIVER_SWIFT_FRONTEND_EXEC", "SWIFT_DRIVER_SWIFT_EXEC"] {
+            try POSIX.unsetenv(variable)
+        }
 
         // When this code is being loaded directly via unit tests *and* we detect the products directory we are running in is for Xcode, then we should run using inferior search paths.
         let inferiorProductsPath: Path? = self.inferiorProductsPath()
@@ -73,14 +92,17 @@ extension Core {
             pluginManager.registerExtensionPoint(DiagnosticToolingExtensionPoint())
             pluginManager.registerExtensionPoint(SDKVariantInfoExtensionPoint())
             pluginManager.registerExtensionPoint(FeatureAvailabilityExtensionPoint())
+            pluginManager.registerExtensionPoint(TaskActionExtensionPoint())
 
             pluginManager.register(BuiltinSpecsExtension(), type: SpecificationsExtensionPoint.self)
+
+            pluginManager.register(BuiltinTaskActionsExtension(), type: TaskActionExtensionPoint.self)
 
             for path in pluginPaths {
                 pluginManager.load(at: path)
             }
 
-            #if SWIFT_PACKAGE
+            #if USE_STATIC_PLUGIN_INITIALIZATION
             if !skipLoadingPluginsNamed.contains("com.apple.dt.SWBAndroidPlatformPlugin") {
                 SWBAndroidPlatform.initializePlugin(pluginManager)
             }
@@ -95,6 +117,9 @@ extension Core {
             }
             if !skipLoadingPluginsNamed.contains("com.apple.dt.SWBUniversalPlatformPlugin") {
                 SWBUniversalPlatform.initializePlugin(pluginManager)
+            }
+            if !skipLoadingPluginsNamed.contains("com.apple.dt.SWBWebAssemblyPlatformPlugin") {
+                SWBWebAssemblyPlatform.initializePlugin(pluginManager)
             }
             if !skipLoadingPluginsNamed.contains("com.apple.dt.SWBWindowsPlatformPlugin") {
                 SWBWindowsPlatform.initializePlugin(pluginManager)

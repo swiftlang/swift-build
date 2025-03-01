@@ -17,14 +17,25 @@ import Foundation
 struct LaunchXcode: CommandPlugin {
     func performCommand(context: PluginContext, arguments: [String]) async throws {
         #if !os(macOS)
-        print("This command is only supported on macOS")
-        return
+        throw LaunchXcodeError.unsupportedPlatform
         #else
-        let buildResult = try packageManager.build(.all(includingTests: false), parameters: .init(echoLogs: true))
+        var args = ArgumentExtractor(arguments)
+        var configuration: PackageManager.BuildConfiguration = .debug
+        // --release
+        if args.extractFlag(named: "release") > 0 {
+            configuration = .release
+        } else {
+            // --configuration release
+            let configurationOptions = args.extractOption(named: "configuration")
+            if configurationOptions.contains("release") {
+                configuration = .release
+            }
+        }
+
+        let buildResult = try packageManager.build(.all(includingTests: false), parameters: .init(configuration: configuration, echoLogs: true))
         guard buildResult.succeeded else { return }
         guard let buildServiceURL = buildResult.builtArtifacts.map({ $0.url }).filter({ $0.lastPathComponent == "SWBBuildServiceBundle" }).first else {
-            print("Failed to determine path to built SWBBuildServiceBundle")
-            return
+            throw LaunchXcodeError.buildServiceURLNotFound
         }
 
         print("Launching Xcode...")
@@ -35,9 +46,26 @@ struct LaunchXcode: CommandPlugin {
         process.standardError = nil
         try await process.run()
         if process.terminationStatus != 0 {
-            print("Launching Xcode failed, did you remember to pass `--disable-sandbox`?")
+            throw LaunchXcodeError.launchFailed
         }
         #endif
+    }
+}
+
+enum LaunchXcodeError: Error, CustomStringConvertible {
+    case unsupportedPlatform
+    case buildServiceURLNotFound
+    case launchFailed
+
+    var description: String {
+        switch self {
+        case .unsupportedPlatform:
+            return "This command is only supported on macOS"
+        case .buildServiceURLNotFound:
+            return "Failed to determine path to built SWBBuildServiceBundle"
+        case .launchFailed:
+            return "Launching Xcode failed, did you remember to pass `--disable-sandbox`?"
+        }
     }
 }
 

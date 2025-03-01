@@ -203,6 +203,24 @@
                 CommandLineFlag = "-module-alias";
             },
             {
+                Name = "SWIFT_WARNINGS_AS_WARNINGS_GROUPS";
+                Type = StringList;
+                DefaultValue = "";
+                Category = BuildOptions;
+                DisplayName = "Diagnostic Groups Remain Warnings";
+                Description = "Specify diagnostic groups that should remain warnings (format: '<group>')";
+                CommandLineFlag = "-Wwarning";
+            },
+            {
+                Name = "SWIFT_WARNINGS_AS_ERRORS_GROUPS";
+                Type = StringList;
+                DefaultValue = "";
+                Category = BuildOptions;
+                DisplayName = "Diagnostic Groups Treated as Errors";
+                Description = "Specify diagnostic groups that should be treated as errors (format: '<group>')";
+                CommandLineFlag = "-Werror";
+            },
+            {
                 Name = "SWIFT_OBJC_BRIDGING_HEADER";
                 Type = String;
                 DefaultValue = "";
@@ -545,6 +563,19 @@
             },
 
             {
+                Name = "SWIFT_STRICT_MEMORY_SAFETY";
+                Type = Boolean;
+                DefaultValue = "NO";
+                CommandLineArgs = {
+                    YES = ( "-strict-memory-safety" );
+                    NO = ();
+                };
+                DisplayName = "Strict Memory Safety";
+                Category = "Language";
+                Description = "Enable strict memory safety checking. This will produce warnings for each use of an unsafe language construct or API that isn't acknowledged with `unsafe` or `@unsafe`.";
+            },
+
+            {
                 Name = "SWIFT_ENABLE_BARE_SLASH_REGEX";
                 Type = Boolean;
                 DefaultValue = "YES";
@@ -668,6 +699,48 @@
                 DisplayName = "Region Based Isolation";
                 Category = "Upcoming Features";
                 Description = "Enable passing non-Sendable values over isolation boundaries when there's no possibility of concurrent access. This is always enabled when in the Swift 6 language mode.";
+            },
+
+            {
+                Name = "SWIFT_UPCOMING_FEATURE_DYNAMIC_ACTOR_ISOLATION";
+                Type = Boolean;
+                DefaultValue = "$(SWIFT_UPCOMING_FEATURE_6_0)";
+                Condition = "$(EFFECTIVE_SWIFT_VERSION) == '4' || $(EFFECTIVE_SWIFT_VERSION) == '4.2' || $(EFFECTIVE_SWIFT_VERSION) == '5'";
+                CommandLineArgs = {
+                    YES = ( "-enable-upcoming-feature", "DynamicActorIsolation" );
+                    NO  = ();
+                };
+                DisplayName = "Dynamic Actor Isolation";
+                Category = "Upcoming Features";
+                Description = "Enable actor isolation checking at runtime for synchronous isolated functions. This is always enabled when in the Swift 6 language mode.";
+            },
+
+            {
+                Name = "SWIFT_UPCOMING_FEATURE_NONFROZEN_ENUM_EXHAUSTIVITY";
+                Type = Boolean;
+                DefaultValue = "$(SWIFT_UPCOMING_FEATURE_6_0)";
+                Condition = "$(EFFECTIVE_SWIFT_VERSION) == '4' || $(EFFECTIVE_SWIFT_VERSION) == '4.2' || $(EFFECTIVE_SWIFT_VERSION) == '5'";
+                CommandLineArgs = {
+                    YES = ( "-enable-upcoming-feature", "NonfrozenEnumExhaustivity" );
+                    NO  = ();
+                };
+                DisplayName = "Nonfrozen Enum Exhaustivity";
+                Category = "Upcoming Features";
+                Description = "Enable errors when switching over nonfrozen enums without an `@unknown default` case. This is always enabled when in the Swift 6 language mode.";
+            },
+
+            {
+                Name = "SWIFT_UPCOMING_FEATURE_GLOBAL_ACTOR_ISOLATED_TYPES_USABILITY";
+                Type = Boolean;
+                DefaultValue = "$(SWIFT_UPCOMING_FEATURE_6_0)";
+                Condition = "$(EFFECTIVE_SWIFT_VERSION) == '4' || $(EFFECTIVE_SWIFT_VERSION) == '4.2' || $(EFFECTIVE_SWIFT_VERSION) == '5'";
+                CommandLineArgs = {
+                    YES = ( "-enable-upcoming-feature", "GlobalActorIsolatedTypesUsability" );
+                    NO  = ();
+                };
+                DisplayName = "Global-Actor-Isolated Types Usability";
+                Category = "Upcoming Features";
+                Description = "Enable new concurrency checking rules for global-actor-isolated types. This is always enabled when in the Swift 6 language mode.";
             },
 
             // Upcoming Swift "next" features

@@ -94,7 +94,7 @@ fileprivate struct InstallLocTaskConstructionTests: CoreBasedTests {
                 results.checkTask(.matchTarget(target), .matchRule(["CopyStringsFile", "/tmp/aProject.dst/Applications/App.app/Contents/Resources/de.lproj/Intents.strings", "/tmp/Test/aProject/Sources/de.lproj/Intents.strings"])) { _ in }
                 results.checkTask(.matchTarget(target), .matchRule(["CopyStringsFile", "/tmp/aProject.dst/Applications/App.app/Contents/Resources/ja.lproj/Intents.strings", "/tmp/Test/aProject/Sources/ja.lproj/Intents.strings"])) { _ in }
                 results.checkTask(.matchTarget(target), .matchRule(["CompileStoryboard", "/tmp/Test/aProject/Sources/Base.lproj/Main.storyboard"])) { _ in }
-                if SWBFeatureFlag.enableDefaultInfoPlistTemplateKeys {
+                if SWBFeatureFlag.enableDefaultInfoPlistTemplateKeys.value {
                     results.checkTask(.matchTarget(target), .matchRule(["WriteAuxiliaryFile", "/tmp/Test/aProject/build/aProject.build/Debug/App.build/empty.plist"])) { _ in }
                     results.checkTask(.matchTarget(target), .matchRule(["ProcessInfoPlistFile", "/tmp/aProject.dst/Applications/App.app/Contents/Info.plist", "/tmp/Test/aProject/build/aProject.build/Debug/App.build/empty.plist"])) { _ in }
                 }
@@ -1779,7 +1779,7 @@ fileprivate struct InstallLocTaskConstructionTests: CoreBasedTests {
         }
     }
 
-    @Test(.requireSDKs(.iOS))
+    @Test(.requireSDKs(.iOS), .requireXcode16())
     func installLocSSUAppIntents() async throws {
         let testProject = TestProject(
             "aProject",
@@ -1890,7 +1890,7 @@ fileprivate struct InstallLocTaskConstructionTests: CoreBasedTests {
 
                     results.checkNoDiagnostics()
                 }
-                if SWBFeatureFlag.enableDefaultInfoPlistTemplateKeys {
+                if SWBFeatureFlag.enableDefaultInfoPlistTemplateKeys.value {
                     results.checkTask(.matchTarget(target), .matchRule(["WriteAuxiliaryFile", "/tmp/Test/aProject/build/aProject.build/Debug/App.build/empty.plist"])) { _ in }
                     results.checkTask(.matchTarget(target), .matchRule(["ProcessInfoPlistFile", "/tmp/aProject.dst/Applications/App.app/Contents/Info.plist", "/tmp/Test/aProject/build/aProject.build/Debug/App.build/empty.plist"])) { _ in }
                 }

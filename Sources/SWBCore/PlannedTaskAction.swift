@@ -42,13 +42,15 @@ public struct AuxiliaryFileTaskActionContext {
     public let output: Path
     public let input: Path
     public let permissions: Int?
+    public let forceWrite: Bool
     public let diagnostics: [Diagnostic]
     public let logContents: Bool
 
-    public init(output: Path, input: Path, permissions: Int?, diagnostics: [Diagnostic], logContents: Bool) {
+    public init(output: Path, input: Path, permissions: Int?, forceWrite: Bool, diagnostics: [Diagnostic], logContents: Bool) {
         self.output = output
         self.input = input
         self.permissions = permissions
+        self.forceWrite = forceWrite
         self.diagnostics = diagnostics
         self.logContents = logContents
     }
@@ -72,14 +74,16 @@ public struct InfoPlistProcessorTaskActionContext: PlatformBuildContext, Seriali
     public var sdk: SDK?
     public var sdkVariant: SDKVariant?
     public var cleanupRequiredArchitectures: [String]
+    public var clientLibrariesForCodelessBundle: [String]
 
-    public init(scope: MacroEvaluationScope, productType: ProductTypeSpec?, platform: Platform?, sdk: SDK?, sdkVariant: SDKVariant?, cleanupRequiredArchitectures: [String]) {
+    public init(scope: MacroEvaluationScope, productType: ProductTypeSpec?, platform: Platform?, sdk: SDK?, sdkVariant: SDKVariant?, cleanupRequiredArchitectures: [String], clientLibrariesForCodelessBundle: [String] = []) {
         self.scope = scope
         self.productType = productType
         self.platform = platform
         self.sdk = sdk
         self.sdkVariant = sdkVariant
         self.cleanupRequiredArchitectures = cleanupRequiredArchitectures
+        self.clientLibrariesForCodelessBundle = clientLibrariesForCodelessBundle
     }
 
     public var targetBuildVersionPlatforms: Set<BuildVersion.Platform>? {
@@ -87,7 +91,7 @@ public struct InfoPlistProcessorTaskActionContext: PlatformBuildContext, Seriali
     }
 
     public func serialize<T: Serializer>(to serializer: T) {
-        serializer.beginAggregate(7)
+        serializer.beginAggregate(8)
         serializer.serialize(scope)
         serializer.serialize(platform?.identifier)
         serializer.serialize(sdk?.canonicalName)
@@ -95,6 +99,7 @@ public struct InfoPlistProcessorTaskActionContext: PlatformBuildContext, Seriali
         serializer.serialize(productType?.identifier)
         serializer.serialize(productType?.domain)
         serializer.serialize(cleanupRequiredArchitectures)
+        serializer.serialize(clientLibrariesForCodelessBundle)
         serializer.endAggregate()
     }
 
@@ -103,7 +108,7 @@ public struct InfoPlistProcessorTaskActionContext: PlatformBuildContext, Seriali
         // Get the platform registry to use to look up the platform from the deserializer's delegate.
         guard let delegate = deserializer.delegate as? (any InfoPlistProcessorTaskActionContextDeserializerDelegate) else { throw DeserializerError.invalidDelegate("delegate must be a BuildDescriptionDeserializerDelegate") }
 
-        try deserializer.beginAggregate(7)
+        try deserializer.beginAggregate(8)
         let scope: MacroEvaluationScope = try deserializer.deserialize()
 
         let platformIdentifier: String? = try deserializer.deserialize()
@@ -156,8 +161,9 @@ public struct InfoPlistProcessorTaskActionContext: PlatformBuildContext, Seriali
         }()
 
         let cleanupRequiredArchitectures: [String] = try deserializer.deserialize()
+        let clientLibrariesForCodelessBundle: [String] = try deserializer.deserialize()
 
-        self = InfoPlistProcessorTaskActionContext(scope: scope, productType: productType, platform: platform, sdk: sdk, sdkVariant: sdkVariant, cleanupRequiredArchitectures: cleanupRequiredArchitectures)
+        self = InfoPlistProcessorTaskActionContext(scope: scope, productType: productType, platform: platform, sdk: sdk, sdkVariant: sdkVariant, cleanupRequiredArchitectures: cleanupRequiredArchitectures, clientLibrariesForCodelessBundle: clientLibrariesForCodelessBundle)
     }
 }
 
@@ -310,7 +316,7 @@ public protocol TaskActionCreationDelegate
     func createDeferredExecutionTaskAction() -> any PlannedTaskAction
     func createEmbedSwiftStdLibTaskAction() -> any PlannedTaskAction
     func createFileCopyTaskAction(_ context: FileCopyTaskActionContext) -> any PlannedTaskAction
-    func createGenericCachingTaskAction(enableCacheDebuggingRemarks: Bool, enableTaskSandboxEnforcement: Bool, sandboxDirectory: Path, extraSandboxSubdirectories: [Path], developerDirectory: Path) -> any PlannedTaskAction
+    func createGenericCachingTaskAction(enableCacheDebuggingRemarks: Bool, enableTaskSandboxEnforcement: Bool, sandboxDirectory: Path, extraSandboxSubdirectories: [Path], developerDirectory: Path, casOptions: CASOptions) -> any PlannedTaskAction
     func createInfoPlistProcessorTaskAction(_ contextPath: Path) -> any PlannedTaskAction
     func createMergeInfoPlistTaskAction() -> any PlannedTaskAction
     func createLinkAssetCatalogTaskAction() -> any PlannedTaskAction
@@ -331,6 +337,7 @@ public protocol TaskActionCreationDelegate
     func createValidateDevelopmentAssetsTaskAction() -> any PlannedTaskAction
     func createSignatureCollectionTaskAction() -> any PlannedTaskAction
     func createClangModuleVerifierInputGeneratorTaskAction() -> any PlannedTaskAction
+    func createProcessSDKImportsTaskAction() -> any PlannedTaskAction
 }
 
 extension TaskActionCreationDelegate {

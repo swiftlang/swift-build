@@ -74,7 +74,7 @@ These test methods are normally placed in a test class derived from `XCTestCase`
 
 ## Evaluation
 
-The next phase invoves building the project, which requires setting up a test harness which operates on the project or workspace set up in the previous section, and allows operations to be performed on it.
+The next phase involves building the project, which requires setting up a test harness which operates on the project or workspace set up in the previous section, and allows operations to be performed on it.
 
 For task construction tests, create a `TaskConstructionTester`:
 

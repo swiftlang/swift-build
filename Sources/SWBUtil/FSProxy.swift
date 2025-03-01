@@ -123,7 +123,7 @@ public enum FileSystemMode: Sendable {
 ///
 /// This protocol is used to allow one part of the codebase to interact with a natural filesystem interface, while still allowing clients to transparently substitute a virtual file system or redirect file system operations.
 ///
-/// NOTE: All of these APIs are sychnronous and could block.
+/// NOTE: All of these APIs are synchronous and could block.
 //
 // FIXME: This API needs error handling support.
 //
@@ -759,7 +759,10 @@ class LocalFS: FSProxy, @unchecked Sendable {
 
     func listExtendedAttributes(_ path: Path) throws -> [String] {
         #if os(Windows)
-        // no xattrs on Windows
+        // Implement ADS on Windows? See also https://github.com/swiftlang/swift-foundation/issues/1166
+        return []
+        #elseif os(OpenBSD)
+        // OpenBSD no longer supports extended attributes
         return []
         #else
         #if canImport(Darwin)
@@ -797,7 +800,9 @@ class LocalFS: FSProxy, @unchecked Sendable {
 
     func setExtendedAttribute(_ path: Path, key: String, value: ByteString) throws {
         #if os(Windows)
-        // no xattrs on Windows
+        // Implement ADS on Windows? See also https://github.com/swiftlang/swift-foundation/issues/1166
+        #elseif os(OpenBSD)
+        // OpenBSD no longer supports extended attributes
         #else
         try value.bytes.withUnsafeBufferPointer { buf throws -> Void in
             #if canImport(Darwin)
@@ -814,7 +819,11 @@ class LocalFS: FSProxy, @unchecked Sendable {
 
     func getExtendedAttribute(_ path: Path, key: String) throws -> ByteString? {
         #if os(Windows)
-        return nil // no xattrs on Windows
+        // Implement ADS on Windows? See also https://github.com/swiftlang/swift-foundation/issues/1166
+        return nil
+        #elseif os(OpenBSD)
+        // OpenBSD no longer supports extended attributes
+        return nil
         #else
         var bufferSize = 4096
         repeat {
@@ -1070,7 +1079,7 @@ public class PseudoFS: FSProxy, @unchecked Sendable {
 
     public let fileSystemMode: FileSystemMode
 
-    /// The root filesytem.
+    /// The root filesystem.
     private var root: Node
 
     public init(ignoreFileSystemDeviceInodeChanges: Bool = UserDefaults.ignoreFileSystemDeviceInodeChanges) {
@@ -1542,7 +1551,7 @@ fileprivate extension stat {
     }
 }
 
-extension timespec: @retroactive Equatable {
+extension timespec: Equatable {
     public static func ==(lhs: timespec, rhs: timespec) -> Bool {
         return lhs.tv_sec == rhs.tv_sec && lhs.tv_nsec == rhs.tv_nsec
     }

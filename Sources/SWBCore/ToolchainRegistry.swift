@@ -18,6 +18,7 @@ import Foundation
 /// Delegate protocol used to report diagnostics.
 @_spi(Testing) public protocol ToolchainRegistryDelegate: DiagnosticProducingDelegate {
     var pluginManager: PluginManager { get }
+    var platformRegistry: PlatformRegistry? { get }
 }
 
 /// Some problems are reported as either errors or warnings depending on if we're loading a built-in toolchain or an external toolchain
@@ -70,7 +71,10 @@ public final class Toolchain: Hashable, Sendable {
     /// The fallback search paths for libraries.
     public let fallbackLibrarySearchPaths: StackedSearchPath
 
-    package init(_ identifier: String, _ displayName: String, _ version: Version, _ aliases: Set<String>, _ path: Path, _ frameworkPaths: [String], _ libraryPaths: [String], _ defaultSettings: [String: PropertyListItem], _ overrideSettings: [String: PropertyListItem], _ defaultSettingsWhenPrimary: [String: PropertyListItem], executableSearchPaths: [Path], fs: any FSProxy) {
+    /// The names of the platforms for which this toolchain contains testing libraries.
+    public let testingLibraryPlatformNames: Set<String>
+
+    package init(_ identifier: String, _ displayName: String, _ version: Version, _ aliases: Set<String>, _ path: Path, _ frameworkPaths: [String], _ libraryPaths: [String], _ defaultSettings: [String: PropertyListItem], _ overrideSettings: [String: PropertyListItem], _ defaultSettingsWhenPrimary: [String: PropertyListItem], executableSearchPaths: [Path], testingLibraryPlatformNames: Set<String>, fs: any FSProxy) {
         self.identifier = identifier
         self.version = version
 
@@ -97,9 +101,10 @@ public final class Toolchain: Hashable, Sendable {
             paths: librarySearchPaths,
             fs: fs
         )
+        self.testingLibraryPlatformNames = testingLibraryPlatformNames
     }
 
-    convenience init(_ path: Path, operatingSystem: OperatingSystem, fs: any FSProxy, pluginManager: PluginManager) async throws {
+    convenience init(_ path: Path, operatingSystem: OperatingSystem, fs: any FSProxy, pluginManager: PluginManager, platformRegistry: PlatformRegistry?) async throws {
         let data: PropertyListItem
 
         do {
@@ -113,8 +118,9 @@ public final class Toolchain: Hashable, Sendable {
             data = try PropertyList.fromPath(toolchainInfoPath, fs: fs)
         } catch {
             if path.fileExtension != "xctoolchain" && operatingSystem == .windows {
-                // Windows toolchains do not have any metadata files that define a version, so the version needs to be derived from the path.
+                // Windows toolchains do not have any metadata files that define a version (ToolchainInfo.plist is only present in Swift 6.2+ toolchains), so the version needs to be derived from the path.
                 // Use the directory name to scrape the semantic version from.
+                // This branch can be removed once we no longer need to work with toolchains older than Swift 6.2.
                 let pattern = #/^(?<major>0|[1-9][0-9]*)\.(?<minor>0|[1-9][0-9]*)\.(?<patch>0|[1-9][0-9]*)(-(0|[1-9A-Za-z-][0-9A-Za-z-]*)(\.[0-9A-Za-z-]+)*)?(\+[0-9A-Za-z-]+(\.[0-9A-Za-z-]+)*)?$/#
                 guard let match = try pattern.wholeMatch(in: path.basename) else {
                     throw StubError.error("Unable to extract version from toolchain directory name in \(path.str)")
@@ -273,6 +279,7 @@ public final class Toolchain: Hashable, Sendable {
             defaultSettingsWhenPrimary = settingsItems
         }
         defaultSettingsWhenPrimary["TOOLCHAIN_DIR"] = .plString(path.str)
+        defaultSettingsWhenPrimary["TOOLCHAIN_VERSION"] = .plString(version.description)
 
         var executableSearchPaths = [
             path.join("usr").join("bin"),
@@ -287,8 +294,18 @@ public final class Toolchain: Hashable, Sendable {
             path.join("usr").join("libexec")
         ])
 
+        // Testing library platform names
+        let testingLibrarySearchDir = path.join("usr").join("lib").join("swift")
+        let testingLibraryPlatformNames: Set<String> = if let platformRegistry, fs.exists(testingLibrarySearchDir) {
+            Set(try fs.listdir(testingLibrarySearchDir).filter {
+                platformRegistry.lookup(name: $0) != nil && fs.exists(testingLibrarySearchDir.join($0).join("testing"))
+            })
+        } else {
+            []
+        }
+
         // Construct the toolchain
-        self.init(identifier, displayName, version, aliases, path, frameworkSearchPaths, librarySearchPaths, defaultSettings, overrideSettings, defaultSettingsWhenPrimary, executableSearchPaths: executableSearchPaths, fs: fs)
+        self.init(identifier, displayName, version, aliases, path, frameworkSearchPaths, librarySearchPaths, defaultSettings, overrideSettings, defaultSettingsWhenPrimary, executableSearchPaths: executableSearchPaths, testingLibraryPlatformNames: testingLibraryPlatformNames, fs: fs)
     }
 
     public func hash(into hasher: inout Hasher) {
@@ -366,6 +383,14 @@ public final class Toolchain: Hashable, Sendable {
 
         return Version(numbers)
     }
+
+    func testingLibrarySearchPath(forPlatformNamed platformName: String) -> Path? {
+        if testingLibraryPlatformNames.contains(platformName) {
+            path.join("usr").join("lib").join("swift").join(platformName).join("testing")
+        } else {
+            nil
+        }
+    }
 }
 
 extension Toolchain: CustomStringConvertible {
@@ -389,6 +414,7 @@ extension Array where Element == Toolchain {
 /// The ToolchainRegistry manages the set of registered toolchains.
 public final class ToolchainRegistry: @unchecked Sendable {
     let fs: any FSProxy
+    let hostOperatingSystem: OperatingSystem
 
     /// The map of toolchains by identifier.
     @_spi(Testing) public private(set) var toolchainsByIdentifier = Dictionary<String, Toolchain>()
@@ -402,6 +428,7 @@ public final class ToolchainRegistry: @unchecked Sendable {
 
     @_spi(Testing) public init(delegate: any ToolchainRegistryDelegate, searchPaths: [(Path, strict: Bool)], fs: any FSProxy, hostOperatingSystem: OperatingSystem) async {
         self.fs = fs
+        self.hostOperatingSystem = hostOperatingSystem
 
         for (path, strict) in searchPaths {
             if !strict && !fs.exists(path) {
@@ -440,10 +467,23 @@ public final class ToolchainRegistry: @unchecked Sendable {
             return
         }
 
-        if let swift = StackedSearchPath(environment: ProcessInfo.processInfo.cleanEnvironment, fs: fs).lookup(Path("swift")), fs.exists(swift) && swift.normalize().str.hasSuffix("/usr/bin/swift") {
-            let path = swift.dirname.dirname.dirname
-            let llvmDirectories = try fs.listdir(Path("/usr/lib")).filter { $0.hasPrefix("llvm-") }.sorted().reversed()
-            try register(Toolchain(Self.defaultToolchainIdentifier, "Default", Version(), [], path, [], llvmDirectories.map { "/usr/lib/\($0)/lib" } + ["/usr/lib64"], [:], [:], [:], executableSearchPaths: [path.join("usr").join("bin"), path.join("usr").join("local").join("bin"),  path.join("usr").join("libexec")], fs: fs))
+        if let swift = StackedSearchPath(environment: ProcessInfo.processInfo.cleanEnvironment, fs: fs).lookup(Path("swift")), fs.exists(swift) {
+            let hasUsrBin = swift.normalize().str.hasSuffix("/usr/bin/swift")
+            let hasUsrLocalBin = swift.normalize().str.hasSuffix("/usr/local/bin/swift")
+            let path: Path
+            switch (hasUsrBin, hasUsrLocalBin) {
+            case (true, false):
+                path = swift.dirname.dirname.dirname
+            case (false, true):
+                path = swift.dirname.dirname.dirname.dirname
+            case (false, false):
+                return
+            case (true, true):
+                preconditionFailure()
+            }
+            let llvmDirectories = try Array(fs.listdir(Path("/usr/lib")).filter { $0.hasPrefix("llvm-") }.sorted().reversed())
+            let llvmDirectoriesLocal = try Array(fs.listdir(Path("/usr/local")).filter { $0.hasPrefix("llvm") }.sorted().reversed())
+            try register(Toolchain(Self.defaultToolchainIdentifier, "Default", Version(), [], path, [], llvmDirectories.map { "/usr/lib/\($0)/lib" } + llvmDirectoriesLocal.map { "/usr/local/\($0)/lib" } + ["/usr/lib64"], [:], [:], [:], executableSearchPaths: [path.join("usr").join("bin"), path.join("usr").join("local").join("bin"),  path.join("usr").join("libexec")], testingLibraryPlatformNames: [], fs: fs))
         }
     }
 
@@ -461,7 +501,7 @@ public final class ToolchainRegistry: @unchecked Sendable {
             guard toolchainPath.basenameWithoutSuffix != "swift-latest" else { continue }
 
             do {
-                let toolchain = try await Toolchain(toolchainPath, operatingSystem: operatingSystem, fs: fs, pluginManager: delegate.pluginManager)
+                let toolchain = try await Toolchain(toolchainPath, operatingSystem: operatingSystem, fs: fs, pluginManager: delegate.pluginManager, platformRegistry: delegate.platformRegistry)
                 try register(toolchain)
             } catch let err {
                 delegate.issue(strict: strict, toolchainPath, "failed to load toolchain: \(err)")
@@ -491,8 +531,20 @@ public final class ToolchainRegistry: @unchecked Sendable {
     /// Look up the toolchain with the given identifier.
     public func lookup(_ identifier: String) -> Toolchain? {
         let lowercasedIdentifier = identifier.lowercased()
-        let identifier = ["default", "xcode"].contains(lowercasedIdentifier) ? ToolchainRegistry.defaultToolchainIdentifier : identifier
-        return toolchainsByIdentifier[identifier] ?? toolchainsByAlias[lowercasedIdentifier]
+        if hostOperatingSystem == .macOS {
+            if ["default", "xcode"].contains(lowercasedIdentifier) {
+                return toolchainsByIdentifier[ToolchainRegistry.defaultToolchainIdentifier] ?? toolchainsByAlias[lowercasedIdentifier]
+            } else {
+                return toolchainsByIdentifier[identifier] ?? toolchainsByAlias[lowercasedIdentifier]
+            }
+        } else {
+            // On non-Darwin, assume if there is only one registered toolchain, it is the default.
+            if ["default", "xcode"].contains(lowercasedIdentifier) || identifier == ToolchainRegistry.defaultToolchainIdentifier {
+                return toolchainsByIdentifier[ToolchainRegistry.defaultToolchainIdentifier] ?? toolchainsByAlias[lowercasedIdentifier] ?? toolchainsByIdentifier.values.only
+            } else {
+                return toolchainsByIdentifier[identifier] ?? toolchainsByAlias[lowercasedIdentifier]
+            }
+        }
     }
 
     public var defaultToolchain: Toolchain? {

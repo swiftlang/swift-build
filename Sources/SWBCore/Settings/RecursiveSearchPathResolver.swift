@@ -131,7 +131,7 @@ public final class RecursiveSearchPathResolver: Sendable {
 
     /// The maximum number of arguments to generate.
     ///
-    /// This is arbitary, and just to limit the traversal in corner cases.
+    /// This is arbitrary, and just to limit the traversal in corner cases.
     public static let maximumNumberOfEntries = 1024
 
     /// The file system the resolver uses.

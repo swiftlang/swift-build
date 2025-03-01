@@ -12,7 +12,7 @@
 
 import SWBUtil
 
-public final class GenerateAppPlaygroundAssetCatalog: GenericCommandLineToolSpec, SpecIdentifierType {
+public final class GenerateAppPlaygroundAssetCatalog: GenericCommandLineToolSpec, SpecIdentifierType, @unchecked Sendable {
     public static let identifier: String = "com.apple.tools.generate-app-playground-asset-catalog"
 
     public override func createTaskAction(_ cbc: CommandBuildContext, _ delegate: any TaskGenerationDelegate) -> (any PlannedTaskAction)? {

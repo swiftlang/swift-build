@@ -26,9 +26,8 @@ public final class SwiftCachingKeyQueryTaskAction: TaskAction {
         super.init()
     }
 
-    /// Network task so avoid blocking or being restricted by the execution lanes.
     override public var shouldExecuteDetached: Bool {
-        return true
+        return key.casOptions.enableDetachedKeyQueries
     }
 
     override public func performTaskAction(

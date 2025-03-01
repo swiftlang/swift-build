@@ -1,0 +1,44 @@
+//===----------------------------------------------------------------------===//
+//
+// This source file is part of the Swift open source project
+//
+// Copyright (c) 2025 Apple Inc. and the Swift project authors
+// Licensed under Apache License v2.0 with Runtime Library Exception
+//
+// See http://swift.org/LICENSE.txt for license information
+// See http://swift.org/CONTRIBUTORS.txt for the list of Swift project authors
+//
+//===----------------------------------------------------------------------===//
+
+(
+    {
+        Domain = webassembly;
+        Identifier = "com.apple.compilers.llvm.clang.1_0";
+        Type = Compiler;
+        BasedOn = "generic-unix:com.apple.compilers.llvm.clang.1_0";
+    },
+    {
+        Domain = webassembly;
+        Identifier = "com.apple.compilers.llvm.clang.1_0.compiler";
+        Type = Compiler;
+        BasedOn = "generic-unix:com.apple.compilers.llvm.clang.1_0";
+    },
+    {
+        Domain = webassembly;
+        Identifier = "com.apple.compilers.llvm.clang.1_0.astbuilder";
+        Type = Compiler;
+        BasedOn = "generic-unix:com.apple.compilers.llvm.clang.1_0.astbuilder";
+    },
+    {
+        Domain = webassembly;
+        Identifier = "com.apple.compilers.llvm.clang.1_0.analyzer";
+        Type = Compiler;
+        BasedOn = "generic-unix:com.apple.compilers.llvm.clang.1_0.analyzer";
+    },
+    {
+        Domain = webassembly;
+        Identifier = "com.apple.xcode.tools.swift.compiler";
+        Type = Compiler;
+        BasedOn = "generic-unix:com.apple.xcode.tools.swift.compiler";
+    },
+)

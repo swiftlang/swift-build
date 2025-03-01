@@ -23,20 +23,16 @@ import SWBMacro
         let namespace = MacroNamespace(debugDescription: "test")
 
         let firstBoolDecl = try namespace.declareBooleanMacro("SomeBooleanMacro")
-        #expect(firstBoolDecl != nil)
         #expect(firstBoolDecl.type == .boolean)
 
         let repeatedBoolDecl = try namespace.declareBooleanMacro("SomeBooleanMacro")
-        #expect(repeatedBoolDecl != nil)
         #expect(repeatedBoolDecl.type == .boolean)
         #expect(repeatedBoolDecl === firstBoolDecl)
 
         var didCatchExpectedException: Bool = false
         do {
-            let collidingStringDecl = try namespace.declareStringMacro("SomeBooleanMacro")
-            #expect(collidingStringDecl == nil)
-        }
-        catch {
+            _ = try namespace.declareStringMacro("SomeBooleanMacro")
+        } catch {
             didCatchExpectedException = true
         }
         #expect(didCatchExpectedException)
@@ -48,27 +44,21 @@ import SWBMacro
         let namespace = MacroNamespace(debugDescription: "test")
 
         let booleanDecl = try namespace.declareBooleanMacro("BooleanMacro")
-        #expect(booleanDecl != nil)
         #expect(booleanDecl.type == .boolean)
 
         let stringDecl = try namespace.declareStringMacro("StringMacro")
-        #expect(stringDecl != nil)
         #expect(stringDecl.type == .string)
 
         let stringListDecl = try namespace.declareStringListMacro("StringListMacro")
-        #expect(stringListDecl != nil)
         #expect(stringListDecl.type == .stringList)
 
         let userDefinedDecl = try namespace.declareUserDefinedMacro("UserDefinedMacro")
-        #expect(userDefinedDecl != nil)
         #expect(userDefinedDecl.type == .userDefined)
 
         let pathDecl = try namespace.declarePathMacro("PathMacro")
-        #expect(pathDecl != nil)
         #expect(pathDecl.type == .path)
 
         let pathListDecl = try namespace.declarePathListMacro("PathListMacro")
-        #expect(pathListDecl != nil)
         #expect(pathListDecl.type == .pathList)
 
         var diags1 = Array<MacroExpressionDiagnostic>()
@@ -95,7 +85,7 @@ import SWBMacro
 
 
     @Test
-    func macroExpressionEquatableness() {
+    func macroExpressionEquality() {
         let namespace = MacroNamespace(debugDescription: "test")
 
         let expr1 = namespace.parseString("something")
@@ -114,21 +104,18 @@ import SWBMacro
     func macroNamespaceInheritance() throws {
         let lowerNamespace = MacroNamespace(debugDescription: "lower")
 
-        // Declarate a string macro in the lower namespace.
+        // Declare a string macro in the lower namespace.
         let lowerStringDecl = try lowerNamespace.declareStringMacro("StringMacro")
-        #expect(lowerStringDecl != nil)
         #expect(lowerStringDecl.type == .string)
 
         // Create the middle of the three namespaces, and make sure we can see the string macro declaration from the lower namespace.
         let middleNamespace = MacroNamespace(parent: lowerNamespace, debugDescription: "middle")
         let middleStringDecl = try middleNamespace.declareStringMacro("StringMacro")
-        #expect(middleStringDecl != nil)
         #expect(middleStringDecl.type == .string)
         #expect(middleStringDecl === lowerStringDecl)
 
         // Also declare a string list macro in the middle namespace.
         let middleStringListDecl = try middleNamespace.declareStringListMacro("StringListMacro")
-        #expect(middleStringListDecl != nil)
         #expect(middleStringListDecl.type == .stringList)
 
         // Make sure we cannot reach the middle-namespace string list macro declaration if we do the lookup from the lower namespace.
@@ -138,19 +125,16 @@ import SWBMacro
         // Create the upper of the three namespaces, and make sure we can see the string macro declaration from the lower namespace.
         let upperNamespace = MacroNamespace(parent: middleNamespace, debugDescription: "upper")
         let upperStringDecl = try upperNamespace.declareStringMacro("StringMacro")
-        #expect(upperStringDecl != nil)
         #expect(upperStringDecl.type == .string)
         #expect(upperStringDecl === lowerStringDecl)
 
         // Make sure we can also see the string list macro declaration from the middle namespace.
         let upperStringListDecl = try upperNamespace.declareStringListMacro("StringListMacro")
-        #expect(upperStringListDecl != nil)
         #expect(upperStringListDecl.type == .stringList)
         #expect(upperStringListDecl === middleStringListDecl)
 
         // Make sure we can also declare a boolean macro in the upper namespace.
         let upperBooleanDecl = try upperNamespace.declareBooleanMacro("BooleanMacro")
-        #expect(upperBooleanDecl != nil)
         #expect(upperBooleanDecl.type == .boolean)
 
         // Make sure we cannot reach the upper-namespace boolean macro declaration if we do the lookup from either the lower or the middle namespace.
@@ -161,7 +145,6 @@ import SWBMacro
 
         // Make sure we can also declare a path macro in the upper namespace.
         let upperPathDecl = try upperNamespace.declarePathMacro("PathMacro")
-        #expect(upperPathDecl != nil)
         #expect(upperPathDecl.type == .path)
 
         // Make sure we cannot reach the upper-namespace path macro declaration if we do the lookup from either the lower or the middle namespace.
@@ -173,7 +156,6 @@ import SWBMacro
 
         // Make sure we can also declare a path macro in the upper namespace.
         let upperPathListDecl = try upperNamespace.declarePathListMacro("PathListMacro")
-        #expect(upperPathListDecl != nil)
         #expect(upperPathListDecl.type == .pathList)
 
         // Make sure we cannot reach the upper-namespace path list macro declaration if we do the lookup from either the lower or the middle namespace.

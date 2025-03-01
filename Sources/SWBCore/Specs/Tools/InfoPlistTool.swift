@@ -12,7 +12,7 @@
 
 public import SWBUtil
 
-public final class InfoPlistToolSpec : GenericCommandLineToolSpec, SpecIdentifierType {
+public final class InfoPlistToolSpec : GenericCommandLineToolSpec, SpecIdentifierType, @unchecked Sendable {
     public static let identifier = "com.apple.tools.info-plist-utility"
 
     public override func constructTasks(_ cbc: CommandBuildContext, _ delegate: any TaskGenerationDelegate) async {
@@ -20,7 +20,7 @@ public final class InfoPlistToolSpec : GenericCommandLineToolSpec, SpecIdentifie
         fatalError("unexpected direct invocation")
     }
 
-    public func constructInfoPlistTasks(_ cbc: CommandBuildContext, _ delegate: any TaskGenerationDelegate, generatedPkgInfoFile: Path? = nil, additionalContentFilePaths: [Path] = [], requiredArch: String? = nil, appPrivacyContentFiles: [Path] = []) async {
+    public func constructInfoPlistTasks(_ cbc: CommandBuildContext, _ delegate: any TaskGenerationDelegate, generatedPkgInfoFile: Path? = nil, additionalContentFilePaths: [Path] = [], requiredArch: String? = nil, appPrivacyContentFiles: [Path] = [], clientLibrariesForCodelessBundle: [String] = []) async {
         let input = cbc.input
         let inputPath = input.absolutePath
         let outputPath = cbc.output
@@ -108,7 +108,7 @@ public final class InfoPlistToolSpec : GenericCommandLineToolSpec, SpecIdentifie
 
         commandLine += ["-o", outputPath.str]
 
-        let context = InfoPlistProcessorTaskActionContext(scope: cbc.scope, productType: cbc.producer.productType, platform: cbc.producer.platform, sdk: cbc.producer.sdk, sdkVariant: cbc.producer.sdkVariant, cleanupRequiredArchitectures: cleanupArchs.sorted())
+        let context = InfoPlistProcessorTaskActionContext(scope: cbc.scope, productType: cbc.producer.productType, platform: cbc.producer.platform, sdk: cbc.producer.sdk, sdkVariant: cbc.producer.sdkVariant, cleanupRequiredArchitectures: cleanupArchs.sorted(), clientLibrariesForCodelessBundle: clientLibrariesForCodelessBundle)
         let inputs = [inputPath] + effectiveAdditionalContentFilePaths + appPrivacyContentFiles
         let serializer = MsgPackSerializer()
         serializer.serialize(context)

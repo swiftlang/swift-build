@@ -584,7 +584,7 @@ package final class BuildOperation: BuildSystemOperation {
                 if let buildOnlyTheseOutputs = buildOutputMap?.keys {
                     // Build selected outputs, the build fails if one operation failed.
                     result = await _Concurrency.Task.detachNewThread(name: "llb_buildsystem_build_node") {
-                        !buildOnlyTheseOutputs.map({ system.build(node: $0) }).contains(false)
+                        !buildOnlyTheseOutputs.map({ return system.build(node: Path($0).strWithPosixSlashes) }).contains(false)
                     }
                 } else if let buildOnlyTheseNodes = nodesToBuild {
                     // Build selected nodes, the build fails if one operation failed.
@@ -656,7 +656,7 @@ package final class BuildOperation: BuildSystemOperation {
             }
         }
 
-        if SWBFeatureFlag.enableCacheMetricsLogs {
+        if SWBFeatureFlag.enableCacheMetricsLogs.value {
             adaptor.withActivity(ruleInfo: "CacheMetrics", executionDescription: "Report cache metrics", signature: "cache_metrics", target: nil, parentActivity: nil) { activity in
                 struct AllCounters: Encodable {
                     var global: [String: Double] = [:]
@@ -738,11 +738,15 @@ package final class BuildOperation: BuildSystemOperation {
             struct SwiftDataTraceEntry: Codable {
                 let buildDescriptionSignature: String
                 let isTargetParallelizationEnabled: Bool
+                let name: String
+                let path: String
             }
             do {
                 let traceEntry  = SwiftDataTraceEntry(
                     buildDescriptionSignature: buildDescription.signature.asString,
-                    isTargetParallelizationEnabled: request.useParallelTargets
+                    isTargetParallelizationEnabled: request.useParallelTargets,
+                    name: workspace.name,
+                    path: workspace.path.str
                 )
                 let encoder = JSONEncoder(outputFormatting: .sortedKeys)
                 try fs.append(swiftBuildTraceFilePath, contents: ByteString(encoder.encode(traceEntry)) + "\n")
@@ -898,6 +902,10 @@ extension BuildOperation: TaskExecutionDelegate {
     package var namespace: MacroNamespace {
         workspace.userNamespace
     }
+
+    package var emitFrontendCommandLines: Bool {
+        buildDescription.emitFrontendCommandLines
+    }
 }
 
 // BuildOperation uses reference semantics.
@@ -976,7 +984,6 @@ private struct OperatorSystemAdaptorDynamicContext: DynamicTaskExecutionDelegate
         singleUse: Bool,
         workingDirectory: Path,
         environment: EnvironmentBindings = EnvironmentBindings(),
-        taskInputs: [ExecutionNode],
         forTarget: ConfiguredTarget?,
         priority: TaskPriority,
         showEnvironment: Bool = false,
@@ -987,7 +994,6 @@ private struct OperatorSystemAdaptorDynamicContext: DynamicTaskExecutionDelegate
             taskKey: taskKey,
             workingDirectory: workingDirectory,
             environment: environment,
-            taskInputs: taskInputs,
             target: forTarget,
             showEnvironment: showEnvironment
         )
@@ -1078,16 +1084,17 @@ private class InProcessCommand: SWBLLBuild.ExternalCommand, SWBLLBuild.ExternalD
         return signature
     }
 
+    // temporary for compatibility
     var depedencyDataFormat: SWBLLBuild.DependencyDataFormat {
+        dependencyDataFormat
+    }
+
+    var dependencyDataFormat: SWBLLBuild.DependencyDataFormat {
         switch task.dependencyData {
         case .makefile?, .makefiles?:
             return .makefile
         case .makefileIgnoringSubsequentOutputs:
-            #if canImport(llbuild, _version: 23000.0.6)
             return .makefileIgnoringSubsequentOutputs
-            #else
-            return .makefile
-            #endif
         case .dependencyInfo?:
             return .dependencyinfo
         case .none:
@@ -1343,16 +1350,27 @@ internal final class OperationSystemAdaptor: SWBLLBuild.BuildSystemDelegate, Act
         self.buildOutputDelegate = buildOutputDelegate
         self._progressStatistics = BuildOperation.ProgressStatistics(numCommandsLowerBound: operation.buildDescription.targetTaskCounts.values.reduce(0, { $0 + $1 }))
         self.core = core
-        self.dynamicOperationContext = DynamicTaskOperationContext(core: core, definingTargetsByModuleName: operation.buildDescription.definingTargetsByModuleName, cas: Self.setupCAS(core: core, operation: operation))
+        let cas: ToolchainCAS?
+        do {
+            cas = try Self.setupCAS(core: core, operation: operation)
+        } catch {
+            buildOutputDelegate.error(error.localizedDescription)
+            cas = nil
+        }
+        self.dynamicOperationContext = DynamicTaskOperationContext(core: core, definingTargetsByModuleName: operation.buildDescription.definingTargetsByModuleName, cas: cas)
         self.queue = SWBQueue(label: "SWBBuildSystem.OperationSystemAdaptor.queue", qos: operation.request.qos, autoreleaseFrequency: .workItem)
     }
 
-    private static func setupCAS(core: Core, operation: BuildOperation) -> ToolchainCAS? {
+    private static func setupCAS(core: Core, operation: BuildOperation) throws -> ToolchainCAS? {
         let settings = operation.requestContext.getCachedSettings(operation.request.parameters)
-        let cachePath = Path(settings.globalScope.evaluate(BuiltinMacros.COMPILATION_CACHE_CAS_PATH)).join("swiftbuild")
-        guard let casPlugin = core.lookupCASPlugin() else { return nil }
-        guard let cas = try? casPlugin.createCAS(path: cachePath, options: [:]) else { return nil }
-        return cas
+        let casOptions = try CASOptions.create(settings.globalScope, .generic)
+        let casPlugin: ToolchainCASPlugin?
+        if let pluginPath = casOptions.pluginPath {
+            casPlugin = try? ToolchainCASPlugin(dylib: pluginPath)
+        } else {
+            casPlugin = core.lookupCASPlugin()
+        }
+        return try? casPlugin?.createCAS(path: casOptions.casPath, options: [:])
     }
 
     /// Reset the operation for a new build.
@@ -1439,7 +1457,7 @@ internal final class OperationSystemAdaptor: SWBLLBuild.BuildSystemDelegate, Act
             self.validateTargetCompletion(buildSucceeded: buildSucceeded)
 
             // If the build failed, make sure we flush any pending incremental build records.
-            // Usually, driver instances are cleaned up and write out their incremental build records when a target finishes building. However, this won't necesarily be the case if the build fails. Ensure we write out any pending records before tearing down the graph so we don't use a stale record on a subsequent build.
+            // Usually, driver instances are cleaned up and write out their incremental build records when a target finishes building. However, this won't necessarily be the case if the build fails. Ensure we write out any pending records before tearing down the graph so we don't use a stale record on a subsequent build.
             if !buildSucceeded {
                 self.dynamicOperationContext.swiftModuleDependencyGraph.cleanUpForAllKeys()
             }
@@ -1481,7 +1499,7 @@ internal final class OperationSystemAdaptor: SWBLLBuild.BuildSystemDelegate, Act
     ///
     /// - returns: The active delegate, or nil if not found.
     func getActiveOutputDelegate(_ command: Command) -> (any TaskOutputDelegate)? {
-        // FIXME: This is a very bad idea, doing a sync against the response queue is introducing artifical latency when an in-process command needs to wait for the response queue to flush. However, we also can't simply move to a decoupled lock, because we don't want the command to start reporting output before it has been fully reported as having started. We need to move in-process task to another model.
+        // FIXME: This is a very bad idea, doing a sync against the response queue is introducing artificial latency when an in-process command needs to wait for the response queue to flush. However, we also can't simply move to a decoupled lock, because we don't want the command to start reporting output before it has been fully reported as having started. We need to move in-process task to another model.
         return queue.blocking_sync {
             self.commandOutputDelegates[command]
         }
@@ -2047,7 +2065,7 @@ internal final class OperationSystemAdaptor: SWBLLBuild.BuildSystemDelegate, Act
 
             missingoutputs: do {
                 // NOTE: We shouldn't enable this by default because some critical tasks declare outputs which they don't always produce (specifically CompileAssetCatalog and Assets.car, and CodeSign and _CodeSignature).
-                if !SWBFeatureFlag.enableValidateDependenciesOutputs {
+                if !SWBFeatureFlag.enableValidateDependenciesOutputs.value {
                     break missingoutputs
                 }
 

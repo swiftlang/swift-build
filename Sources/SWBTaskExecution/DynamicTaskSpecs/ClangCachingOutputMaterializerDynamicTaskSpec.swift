@@ -71,7 +71,6 @@ final class ClangCachingOutputMaterializerDynamicTaskSpec: DynamicTaskSpec {
             workingDirectory: dynamicTask.workingDirectory,
             showEnvironment: dynamicTask.showEnvironment,
             execDescription: "Clang caching materialize \(outputName) from \(casID)",
-            executionInputs: dynamicTask.taskInputs,
             priority: .network,
             isDynamic: true
         )

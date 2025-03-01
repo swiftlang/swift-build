@@ -108,7 +108,7 @@ public final class MacroExpressionParser {
         let markIdx = currIdx
         while isAtWhitespace { advance() }
 
-        // If directed to capture the whitespace as a list separator, then we do so - *except* that if the whitespace is at the end of the string, then we don't treat it as a list sepatror.
+        // If directed to capture the whitespace as a list separator, then we do so - *except* that if the whitespace is at the end of the string, then we don't treat it as a list separator.
         if parseAsListSeparator && !isAtEnd {
             delegate.foundListElementSeparator(utf8[markIdx ..< currIdx], parser: self)
         }
@@ -118,7 +118,7 @@ public final class MacroExpressionParser {
     }
 
 
-    /// Private function that parses an entire substitution subexpresson, including its delimiters (if any).  This function expects to be called with the cursor positioned at the `$` character that starts the subexpression (this is asserted).  If `alwaysEvalAsString` is true, the delegate will be informed that this subexpression should always evaluate as a string — if it is false, then it should evaluate as either a string or a string list, depending on circumstances.  This does not affect parsing, but the delegate is expected to record this flag to use during macro expression evaluation.  This is used to pass down context about whether or not, for example, a particular subsitution expression occurs inside quotes.  The parser’s delegate methods are invoked as the expression is parsed — this includes methods for detecting warnings and errors.  In accordance with historical semantics, parsing tries to recover after errors, so that as many errors as possible can be detected in one parse.
+    /// Private function that parses an entire substitution subexpresson, including its delimiters (if any).  This function expects to be called with the cursor positioned at the `$` character that starts the subexpression (this is asserted).  If `alwaysEvalAsString` is true, the delegate will be informed that this subexpression should always evaluate as a string — if it is false, then it should evaluate as either a string or a string list, depending on circumstances.  This does not affect parsing, but the delegate is expected to record this flag to use during macro expression evaluation.  This is used to pass down context about whether or not, for example, a particular substitution expression occurs inside quotes.  The parser’s delegate methods are invoked as the expression is parsed — this includes methods for detecting warnings and errors.  In accordance with historical semantics, parsing tries to recover after errors, so that as many errors as possible can be detected in one parse.
     private func parseSubstitutionSubexpression(alwaysEvalAsString: Bool) {
         // We expect to be called with the cursor positioned at the ‘$’ that starts the substitution expression (this is a private method and that assumption is part of our documented contract).
         precondition(currChar == UInt8(ascii: "$"))
@@ -531,7 +531,7 @@ private func isValidOperatorNameChar(_ chOpt: UInt8?) -> Bool {
 }
 
 
-/// Encapsulates the callbacks that a macro expression parser invokes during a parse.  All methods are optional.  Separating the actions into a protocol allows the macro expression parser to be used for a variety of tasks, and makes it easier to test and profie.  The parser is passed to each of the delegate methods, and its `position` property can be used to access the current index in the original string.  The parser is as lenient as possible, and tries to recover from errors as well as possible in order to preserve the Xcode semantics.  The delegate is guaranteed to see the entire contents of the input string, regardless of how many errors are discovered (some of that contents might be misparsed as literals after errors have been found, however).
+/// Encapsulates the callbacks that a macro expression parser invokes during a parse.  All methods are optional.  Separating the actions into a protocol allows the macro expression parser to be used for a variety of tasks, and makes it easier to test and profile.  The parser is passed to each of the delegate methods, and its `position` property can be used to access the current index in the original string.  The parser is as lenient as possible, and tries to recover from errors as well as possible in order to preserve the Xcode semantics.  The delegate is guaranteed to see the entire contents of the input string, regardless of how many errors are discovered (some of that contents might be misparsed as literals after errors have been found, however).
 public protocol MacroExpressionParserDelegate {
     typealias Input = MacroExpressionParser.Input
 
@@ -553,7 +553,7 @@ public protocol MacroExpressionParserDelegate {
     /// Invoked for each “retrieval” operator found inside a macro substitution expression of the form `$(XYZ)`.  The operator name is always non-empty.  This callback function is always invoked with the parser’s cursor positioned immediately after the operator name.
     func foundRetrievalOperator(_ operatorName: Input, parser: MacroExpressionParser)
 
-    /// Invoked at the start of a “replacement” operator found inside a macro substitution expression of the form `$(XYZ)`.  The operator name is always non-empty.  This call is always balanced by a later call to `foundEndOfReplacementOperator()`.  This callback function is always invoked with the parser’s cursor positioned immediately after the `=` character that follows the operator name; this is the same as the start position of the replacement operatand subexpression.
+    /// Invoked at the start of a “replacement” operator found inside a macro substitution expression of the form `$(XYZ)`.  The operator name is always non-empty.  This call is always balanced by a later call to `foundEndOfReplacementOperator()`.  This callback function is always invoked with the parser’s cursor positioned immediately after the `=` character that follows the operator name; this is the same as the start position of the replacement operand subexpression.
     func foundStartOfReplacementOperator(_ operatorName: Input, parser: MacroExpressionParser)
 
     /// Invoked at the end of a “replacement” operator found inside a macro substitution expression of the form `$(XYZ)`.  This call always balances an earlier call to `foundStartOfReplacementOperator()`.  The same operator name is passed in both calls.  This callback function is always invoked with the parser’s cursor positioned immediately after the operand expression.  Note that if the operand expression is empty, the `foundEndOfReplacementOperator()` call will occur immediately after the `foundStartOfReplacementOperator()` call, and the cursor position will be unchanged between the two.

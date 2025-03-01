@@ -134,8 +134,8 @@ extension BuildRequestContext {
         }
     }
 
-    /// Compute output paths for a list of source files in a specific target.
-    public func computeOutputPaths(for inputPaths: [Path], workspace: Workspace, target: BuildRequest.BuildTargetInfo, command: BuildCommand, parameters: BuildParameters? = nil) -> [String] {
+    /// Compute output paths for a source file in a specific target. There may be multiple results if the build is a multi-arch build.
+    public func computeOutputPaths(for inputPath: Path, workspace: Workspace, target: BuildRequest.BuildTargetInfo, command: BuildCommand, parameters: BuildParameters? = nil) -> [String] {
         let settings = getCachedSettings(parameters ?? target.parameters, target: target.target)
         let effectiveArchs = settings.globalScope.evaluate(BuiltinMacros.ARCHS)
 
@@ -149,7 +149,7 @@ extension BuildRequestContext {
 
         let currentPlatformFilter = PlatformFilter(settings.globalScope)
 
-        // FIXME: It is a bit unfortunate that we need to compute all this for the `uniquingSuffix` behaviour.
+        // FIXME: It is a bit unfortunate that we need to compute all this for the `uniquingSuffix` behavior.
         var sourceCodeFileToBuildableReference = [Path:Reference]()
         if let target = target.target as? StandardTarget {
             if let buildableReferences = try! target.sourcesBuildPhase?.buildFiles.compactMap({ (buildFile) -> Reference? in
@@ -166,7 +166,8 @@ extension BuildRequestContext {
         let sourceCodeBasenames = sourceCodeFileToBuildableReference.keys.map { $0.basenameWithoutSuffix }
         return usedArchs.map({ arch in
             let lookup = { return $0 == BuiltinMacros.CURRENT_ARCH ? settings.globalScope.namespace.parseLiteralString(arch) : nil }
-            return inputPaths.map { file in
+            do {
+                let file = inputPath
                 let ref = sourceCodeFileToBuildableReference[file]
                 let specLookupContext = SpecLookupCtxt(specRegistry: workspaceContext.core.specRegistry, platform: settings.platform)
                 let input: FileToBuild
@@ -184,7 +185,7 @@ extension BuildRequestContext {
                 }
                 return outputDir.join(file.basenameWithoutSuffix).str + "\(uniquingSuffix)\(outputSuffix)"
             }
-        }).reduce([], +)
+        })
     }
 
     /// Given the targets configured for multiple platforms, select the most appropriate one for the index service to use.

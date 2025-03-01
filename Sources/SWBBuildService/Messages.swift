@@ -104,7 +104,7 @@ private struct AppleSystemFrameworkNamesHandler: MessageHandler {
         guard let buildService = request.service as? BuildService else {
             throw StubError.error("service object is not of type BuildService")
         }
-        return try await StringListResponse(Array(buildService.sharedCore(developerPath: message.effectiveDeveloperPath).appleSystemFrameworkNames()))
+        return try await StringListResponse([])
     }
 }
 
@@ -249,7 +249,7 @@ private struct SetSessionSystemInfoMsg: MessageHandler {
         }
 
         // Update the workspace context.
-        workspaceContext.systemInfo = SystemInfo(operatingSystemVersion: message.operatingSystemVersion, productBuildVersion: message.productBuildVersion, nativeArchitecture: message.nativeArchitecture)
+        workspaceContext.updateSystemInfo(SystemInfo(operatingSystemVersion: message.operatingSystemVersion, productBuildVersion: message.productBuildVersion, nativeArchitecture: message.nativeArchitecture))
 
         return VoidResponse()
     }
@@ -264,7 +264,7 @@ private struct SetSessionUserInfoMsg: MessageHandler {
 
         // Update the workspace context.
         let env = try await EnvironmentExtensionPoint.additionalEnvironmentVariables(pluginManager: workspaceContext.core.pluginManager, fs: workspaceContext.fs)
-        workspaceContext.userInfo = try await UserInfo(user: message.user, group: message.group, uid: message.uid, gid: message.gid, home: Path(message.home), processEnvironment: message.processEnvironment, buildSystemEnvironment: message.buildSystemEnvironment).addingPlatformDefaults(from: env)
+        workspaceContext.updateUserInfo(try await UserInfo(user: message.user, group: message.group, uid: message.uid, gid: message.gid, home: Path(message.home), processEnvironment: message.processEnvironment, buildSystemEnvironment: message.buildSystemEnvironment).addingPlatformDefaults(from: env))
 
         return VoidResponse()
     }
@@ -277,13 +277,13 @@ private struct SetSessionUserPreferencesMsg: MessageHandler {
             throw MsgParserError.missingWorkspaceContext
         }
 
-        workspaceContext.userPreferences = UserPreferences(
+        workspaceContext.updateUserPreferences(UserPreferences(
             enableDebugActivityLogs: message.enableDebugActivityLogs,
             enableBuildDebugging: message.enableBuildDebugging,
             enableBuildSystemCaching: message.enableBuildSystemCaching,
             activityTextShorteningLevel: message.activityTextShorteningLevel,
             usePerConfigurationBuildLocations: message.usePerConfigurationBuildLocations,
-            allowsExternalToolExecution: message.allowsExternalToolExecution ?? UserPreferences.allowsExternalToolExecutionDefaultValue
+            allowsExternalToolExecution: message.allowsExternalToolExecution ?? UserPreferences.allowsExternalToolExecutionDefaultValue)
         )
 
         return VoidResponse()
@@ -1027,47 +1027,15 @@ extension MessageHandler {
             do {
                 var responses: [PreviewInfoMessagePayload] = []
 
-                for targetID in message.targetIDs {
-                    do {
-                        let output = try await session.buildDescriptionManager.generatePreviewInfo(
-                            workspaceContext: workspaceContext,
-                            buildRequest: buildRequest,
-                            buildRequestContext: buildRequestContext,
-                            delegate: operation,
-                            targetID: targetID,
-                            input: message.generatePreviewInfoInput
-                        )
-                        responses.append(contentsOf: output.map{ $0.asMessagePayload() })
-                    }
-                    catch let e as PreviewInfoErrors {
-                        switch e {
-                        case .noBuildDescription, .failedToGetTargetBuildGraph, .cancelled:
-                            // Always propagate these errors.
-                            throw e
-                        case .unableToFindTarget:
-                            if message.targetIDs.count == 1 {
-                                // Only propagate this error if this isn't a batch call. Batch requests for target
-                                // descriptions are made from a set of buildables, and some may not be filtered out
-                                // by platform. So we don't want the inability to find targets to fail the entire
-                                // batched request.
-                                //
-                                // Xcode Previews already handles noticing when buildables don't receive any target
-                                // descriptions and notes this in its diagnostics in case something goes wrong.
-                                //
-                                // This restores the original behavior Xcode Previews had where it would ignore single
-                                // failures for single description requests. This is also an improvement because it
-                                // only ignores failure to find target errors in a batch call, letting other errors
-                                // abort the entire request since something fundamentally unrecoverable happened in
-                                // those cases.
-                                //
-                                // Ideally, we'd emit a "result-like" enum of success or failure for each preview
-                                // info, but that would require a much larger rethink of the call stack across
-                                // multiple component boundaries.
-                                throw e
-                            }
-                        }
-                    }
-                }
+                let output = try await session.buildDescriptionManager.generatePreviewInfo(
+                    workspaceContext: workspaceContext,
+                    buildRequest: buildRequest,
+                    buildRequestContext: buildRequestContext,
+                    delegate: operation,
+                    targetIDs: message.targetIDs,
+                    input: message.generatePreviewInfoInput
+                )
+                responses.append(contentsOf: output.map{ $0.asMessagePayload() })
 
                 return PreviewInfoResponse(
                     targetIDs: message.targetIDs,
@@ -1256,7 +1224,7 @@ final package class BuildDependencyInfoOperation: InfoOperation, TargetDependenc
 ///
 /// Presently this involves getting the target build phase for the request, and then for each target extracting configuration info as well as relevant inputs and outputs that target declares.
 ///
-/// In the future this could perform a full task construction and examine the individual tasks to get a more complete set of information, but that apporach is hypothetical at this time.
+/// In the future this could perform a full task construction and examine the individual tasks to get a more complete set of information, but that approach is hypothetical at this time.
 private struct DumpBuildDependencyInfoMsg: MessageHandler {
     fileprivate static let serializationQueue = ActorLock()
 

@@ -544,7 +544,7 @@ package final class TaskConstructionTester {
                             break
                         }
                     }
-                    // Note that the cycle reported here flows *downstream* (from producer task to output).  This is the reverse of the order in which cycles emitted by llbuild are printed (which shows the output first and then its producer task).  I don't remeber why I did it this way.
+                    // Note that the cycle reported here flows *downstream* (from producer task to output).  This is the reverse of the order in which cycles emitted by llbuild are printed (which shows the output first and then its producer task).  I don't remember why I did it this way.
                     Issue.record("dependency cycle found: \(cycle)", sourceLocation: sourceLocation)
                     return
                 }
@@ -638,7 +638,7 @@ package final class TaskConstructionTester {
                 return (try minimumDistance(from: Ref(origin), to: Ref(predecessor), successors: _successors))
             }
 
-            /// Compute the shortest path from a task to a potential precessor and return the list of nodes.
+            /// Compute the shortest path from a task to a potential predecessor and return the list of nodes.
             ///
             /// This will *not* include edges which traverse mutated nodes.
             func shortestPath(from origin: any PlannedTask, to predecessor: any PlannedTask) throws -> [Ref<any PlannedTask>]? {
@@ -781,7 +781,7 @@ package final class TaskConstructionTester {
         if runDestination != nil {
             overrides["ONLY_ACTIVE_ARCH"] = "YES"
         }
-        // Add overrides from the parameters we were passed, which will supercede the default overrides above.
+        // Add overrides from the parameters we were passed, which will supersede the default overrides above.
         overrides.addContents(of: parameters.overrides)
 
         // Create and return the effective parameters.
@@ -824,9 +824,9 @@ package final class TaskConstructionTester {
         let workspaceContext = WorkspaceContext(core: core, workspace: workspace, fs: fs, processExecutionCache: .sharedForTesting)
 
         // Configure fake user and system info.
-        workspaceContext.userInfo = UserInfo(user: "exampleUser", group: "exampleGroup", uid: 1234, gid:12345, home: Path("/Users/whoever"), environment: processEnvironment)
-        workspaceContext.systemInfo = systemInfo ?? SystemInfo(operatingSystemVersion: Version(99, 98, 97), productBuildVersion: "99A98", nativeArchitecture: "x86_64")
-        workspaceContext.userPreferences = userPreferences ?? UserPreferences.defaultForTesting
+        workspaceContext.updateUserInfo(UserInfo(user: "exampleUser", group: "exampleGroup", uid: 1234, gid:12345, home: Path("/Users/whoever"), environment: processEnvironment))
+        workspaceContext.updateSystemInfo(systemInfo ?? SystemInfo(operatingSystemVersion: Version(99, 98, 97), productBuildVersion: "99A98", nativeArchitecture: "x86_64"))
+        workspaceContext.updateUserPreferences(userPreferences ?? UserPreferences.defaultForTesting)
 
         // Create a build request.
         let buildRequest: BuildRequest
@@ -989,39 +989,23 @@ extension TaskConstructionTester: Sendable { }
 extension TaskConstructionTester.PlanningResults: Sendable { }
 
 extension TaskConstructionTester {
-    package func buildParametersForIndexOperation(
-        runDestination: RunDestinationInfo? = nil,
-        arena: ArenaInfo? = nil
-    ) -> BuildParameters {
-        let arena = arena ?? ArenaInfo.indexBuildArena(derivedDataRoot: workspace.path.dirname.join("DerivedData"))
-        let overrides: [String: String] = ["ONLY_ACTIVE_ARCH": "YES", "ALWAYS_SEARCH_USER_PATHS": "NO"]
-        let runDestination = runDestination ?? RunDestinationInfo.macOS
-        let buildParameters = BuildParameters(action: .indexBuild, configuration: "Debug", activeRunDestination: runDestination, overrides: overrides, arena: arena)
-        return buildParameters
-    }
-
     /// Construct the tasks for an index build operation, and test the result.
     package func checkIndexBuild(
         targets: [any TestTarget]? = nil,
+        workspaceOperation: Bool? = nil,
         runDestination: RunDestinationInfo? = nil,
-        arena: ArenaInfo? = nil,
         systemInfo: SystemInfo? = nil,
         sourceLocation: SourceLocation = #_sourceLocation,
         body: (PlanningResults) throws -> Void
     ) async throws {
-        let buildParameters = buildParametersForIndexOperation(
-            runDestination: runDestination
+        let workspaceOperation = workspaceOperation ?? (targets == nil)
+        let buildRequest = try BuildOperationTester.buildRequestForIndexOperation(
+            workspace: workspace,
+            buildTargets: targets,
+            workspaceOperation: workspaceOperation,
+            runDestination: runDestination,
+            sourceLocation: sourceLocation
         )
-
-        let buildTargets: [BuildRequest.BuildTargetInfo]
-        if let targets {
-            buildTargets = try targets.map { BuildRequest.BuildTargetInfo(parameters: buildParameters, target: try #require(self.workspace.target(for: $0.guid), sourceLocation: sourceLocation)) }
-        } else {
-            buildTargets = workspace.allTargets.compactMap{ $0.type == .aggregate ? nil : BuildRequest.BuildTargetInfo(parameters: buildParameters, target: $0) }
-        }
-
-        let buildRequest = BuildRequest(parameters: buildParameters, buildTargets: buildTargets, dependencyScope: .workspace, continueBuildingAfterErrors: true, useParallelTargets: true, useImplicitDependencies: true, useDryRun: false, buildCommand: .prepareForIndexing(buildOnlyTheseTargets: nil, enableIndexBuildArena: true))
-
         return try await checkBuild(buildRequest: buildRequest, systemInfo: systemInfo, sourceLocation: sourceLocation, body: body)
     }
 }
@@ -1214,7 +1198,7 @@ package extension PlannedTaskInputsOutputs {
     }
 
     private func checkNodes(nodes: [any PlannedNode], name: String, contain patterns: [NodePattern], sourceLocation: SourceLocation = #_sourceLocation) {
-        #expect(nodes.count >= patterns.count, "too many patterns (\(patterns.count) > \(nodes.count)) for \(name)", sourceLocation: sourceLocation)
+        #expect(nodes.count >= patterns.count, "too many patterns for \(name) (\(nodes) vs \(patterns))", sourceLocation: sourceLocation)
         if nodes.count >= patterns.count {
             for pattern in patterns {
                 var foundPattern = false

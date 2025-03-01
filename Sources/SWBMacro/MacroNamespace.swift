@@ -263,7 +263,7 @@ public final class MacroNamespace: CustomDebugStringConvertible, Encodable, Send
     }
     private func _parseLiteralString(_ string: String, allowSubstitutionPrefix: Bool) -> MacroStringExpression {
 #if DEBUG
-        // We make it an error in debug builds to try and parse '$(' as a literal unless we've explicitly specified it's ok. Otherwise, it is almost certainly (but not necessarily) a programatic error if it ever does.
+        // We make it an error in debug builds to try and parse '$(' as a literal unless we've explicitly specified it's ok. Otherwise, it is almost certainly (but not necessarily) a programmatic error if it ever does.
         if !allowSubstitutionPrefix, string.contains("$(") {
             fatalError("pushing literal string containing a possible macro reference: \(string)')")
         }
@@ -278,7 +278,7 @@ public final class MacroNamespace: CustomDebugStringConvertible, Encodable, Send
     public func parseLiteralStringList(_ strings: [String]) -> MacroStringListExpression {
 #if DEBUG
         for string in strings {
-            // We make it an error in debug builds to try and parse '$(' as a literal. This never comes up in our test suite, and it is almost certainly (but not necessarily) a programatic error when if it ever does.
+            // We make it an error in debug builds to try and parse '$(' as a literal. This never comes up in our test suite, and it is almost certainly (but not necessarily) a programmatic error when if it ever does.
             if string.contains("$(") {
                 fatalError("pushing literal string containing a possible macro reference: \(string)')")
             }
@@ -450,7 +450,7 @@ public final class MacroNamespace: CustomDebugStringConvertible, Encodable, Send
     }
 
     // FIXME: We should eliminate this if possible, as it is rather inefficient, but it is widely used in Settings construction.
-    // This was orignally part of Settings but was moved here to be available elsewhere.
+    // This was originally part of Settings but was moved here to be available elsewhere.
     //
     /// Parse a table of settings in a manner consistent with their definitions.
     ///

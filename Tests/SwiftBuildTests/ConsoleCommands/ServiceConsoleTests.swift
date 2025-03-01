@@ -37,12 +37,7 @@ fileprivate struct ServiceConsoleTests {
             let output = String(decoding: data, as: UTF8.self)
 
             // Verify there were no errors.
-            #if os(Linux)
-            // something with terminal echo is different on macOS vs Linux
-            #expect(output == "swbuild> \n")
-            #else
-            #expect(output == String.newline)
-            #endif
+            #expect(output == "swbuild> \(String.newline)")
 
             // Assert the tool exited successfully.
             await #expect(try promise.value == .exit(0))
@@ -54,15 +49,17 @@ fileprivate struct ServiceConsoleTests {
         // Test against command line arguments.
         let executionResult = try await Process.getOutput(url: try CLIConnection.swiftbuildToolURL, arguments: ["isAlive"], environment: CLIConnection.environment)
 
+        let output = String(decoding: executionResult.stdout, as: UTF8.self)
+        
         // Verify there were no errors.
-        #expect(String(decoding: executionResult.stdout, as: UTF8.self) == "is alive? yes" + String.newline)
+        #expect(output == "is alive? yes\(String.newline)")
 
         // Assert the tool exited successfully.
         #expect(executionResult.exitStatus == .exit(0))
     }
 
     /// Test that the build service shuts down if the host dies.
-    @Test(.skipHostOS(.windows)) // PTY not supported on Windows
+    @Test(.skipHostOS(.windows, "PTY not supported on Windows"))
     func serviceShutdown() async throws {
         try await withCLIConnection { cli in
             // Find the service pid.
@@ -100,7 +97,7 @@ fileprivate struct ServiceConsoleTests {
     }
 
     /// Tests that the serializedDiagnostics console command is able to print human-readable serialized diagnostics from a .dia file.
-    @Test(.skipHostOS(.windows)) // PTY not supported on Windows
+    @Test(.skipHostOS(.windows, "PTY not supported on Windows"))
     func dumpSerializedDiagnostics() async throws {
         // Generate and compile a C source file that will generate a compiler warning.
         try await withTemporaryDirectory { tmp in
@@ -121,11 +118,19 @@ fileprivate struct ServiceConsoleTests {
     }
 }
 
+#if os(Windows)
+private var SYNCHRONIZE: DWORD {
+    DWORD(WinSDK.SYNCHRONIZE)
+}
+
+extension HANDLE: @retroactive @unchecked Sendable {}
+#endif
+
 extension Processes {
     fileprivate static func exitPromise(pid: pid_t) throws -> Promise<Void, any Error> {
         let promise = Promise<Void, any Error>()
         #if os(Windows)
-        guard let proc = OpenProcess(DWORD(SYNCHRONIZE), false, DWORD(pid)) else {
+        guard let proc: HANDLE = OpenProcess(SYNCHRONIZE, false, DWORD(pid)) else {
             throw StubError.error("OpenProcess failed with error \(GetLastError())")
         }
         defer { CloseHandle(proc) }

@@ -81,13 +81,13 @@ package final class GlobalProductPlan: GlobalTargetInfoProvider
     }
 
     /// Maps targets to the set of macro implementations they should load when compiling Swift code.
-    let swiftMacroImplementationDescriptorsByTarget: [ConfiguredTarget: Set<SwiftMacroImplementationDescriptor>]
+    package private(set) var swiftMacroImplementationDescriptorsByTarget: [ConfiguredTarget: Set<SwiftMacroImplementationDescriptor>]
 
     /// The set of targets which must build during prepare-for-indexing.
-    package let targetsRequiredToBuildForIndexing: Set<ConfiguredTarget>
+    package private(set) var targetsRequiredToBuildForIndexing: Set<ConfiguredTarget>
 
     /// The set of targets which need to build a swiftmodule during installAPI
-    package let targetsWhichShouldBuildModulesDuringInstallAPI: Set<ConfiguredTarget>?
+    package private(set) var targetsWhichShouldBuildModulesDuringInstallAPI: Set<ConfiguredTarget>?
 
     /// All targets in the product plan.
     /// - remark: This property is preferred over the `TargetBuildGraph` in the `BuildPlanRequest` as it performs additional computations for Swift packages.
@@ -162,6 +162,9 @@ package final class GlobalProductPlan: GlobalTargetInfoProvider
     /// A map from targets to the the target which produces the nearest enclosing product.
     let targetToProducingTargetForNearestEnclosingProduct: [ConfiguredTarget: ConfiguredTarget]
 
+    /// A map of `MH_BUNDLE` targets to any clients of that target.
+    let clientsOfBundlesByTarget: [ConfiguredTarget:[ConfiguredTarget]]
+
     private static let dynamicMachOTypes = ["mh_execute", "mh_dylib", "mh_bundle"]
 
     // Checks that we have either been passed a configuration override for packages or we are building Debug/Release.
@@ -196,6 +199,18 @@ package final class GlobalProductPlan: GlobalTargetInfoProvider
         self.recursiveSearchPathResolver = RecursiveSearchPathResolver(fs: planRequest.workspaceContext.fs)
         self.xcframeworkContext = XCFrameworkContext(workspaceContext: planRequest.workspaceContext, buildRequestContext: planRequest.buildRequestContext)
         self.buildDirectories = BuildDirectoryContext()
+
+        var clientsOfBundlesByTarget = [ConfiguredTarget:[ConfiguredTarget]]()
+        let bundleTargets = Set(planRequest.buildGraph.allTargets.filter {
+            let settings = planRequest.buildRequestContext.getCachedSettings($0.parameters, target: $0.target)
+            return settings.globalScope.evaluate(BuiltinMacros.MACH_O_TYPE) == "mh_bundle"
+        })
+        for configuredTarget in planRequest.buildGraph.allTargets {
+            for match in bundleTargets.intersection(planRequest.buildGraph.dependencies(of: configuredTarget)) {
+                clientsOfBundlesByTarget[match, default: []].append(configuredTarget)
+            }
+        }
+        self.clientsOfBundlesByTarget = clientsOfBundlesByTarget
 
         var directlyLinkedDependenciesByTarget = [ConfiguredTarget:OrderedSet<LinkedDependency>]()
         var impartedBuildPropertiesByTarget = [ConfiguredTarget:[ImpartedBuildProperties]]()
@@ -661,7 +676,7 @@ package final class GlobalProductPlan: GlobalTargetInfoProvider
         }
     }
 
-    // Checks whether we have any duplicated occurences of the same package product in the graph.
+    // Checks whether we have any duplicated occurrences of the same package product in the graph.
     func checkForDiamondProblemsInPackageProductLinkage(dependenciesByTarget: [ConfiguredTarget:OrderedSet<LinkedDependency>], diagnosticDelegate: any TargetDiagnosticProducingDelegate) -> Int {
         func emitError(for name: String, targetName: String, andOther: String, conflicts: Bool = false) {
             if errorComponentsList.insert(ErrorComponents(name: name, targetName: targetName, andOther: andOther, conflicts: conflicts)).inserted {
@@ -787,6 +802,17 @@ package final class GlobalProductPlan: GlobalTargetInfoProvider
                     let impartedBuildProperties = self.impartedBuildPropertiesByTarget[matchingTarget]
                     self.impartedBuildPropertiesByTarget.removeValue(forKey: matchingTarget)
                     self.impartedBuildPropertiesByTarget[dynamicConfiguredTarget] = impartedBuildProperties
+
+                    let descriptors = self.swiftMacroImplementationDescriptorsByTarget.removeValue(forKey: matchingTarget)
+                    self.swiftMacroImplementationDescriptorsByTarget[dynamicConfiguredTarget] = descriptors
+
+                    if self.targetsRequiredToBuildForIndexing.remove(matchingTarget) != nil {
+                        self.targetsRequiredToBuildForIndexing.insert(dynamicConfiguredTarget)
+                    }
+
+                    if self.targetsWhichShouldBuildModulesDuringInstallAPI?.remove(matchingTarget) != nil {
+                        self.targetsWhichShouldBuildModulesDuringInstallAPI?.insert(dynamicConfiguredTarget)
+                    }
                 }
             }
 

@@ -1305,7 +1305,7 @@ struct LibclangWrapper {
     LibclangWrapper(std::string path)
         : path(path),
 #ifdef _WIN32
-          handle(LoadLibraryW(std::wstring_convert<std::codecvt_utf8<wchar_t>>().from_bytes(path).c_str())),
+          handle(nullptr),
 #elif defined(__APPLE__)
           // Use RTLD_LOCAL/RTLD_FIRST because we may load more than one copy of libclang, and we don't want to mix and match symbols from more than one library in one wrapper instance.
           handle(dlopen(path.c_str(), RTLD_LAZY | RTLD_LOCAL | RTLD_FIRST)),
@@ -1313,6 +1313,14 @@ struct LibclangWrapper {
           handle(dlopen(path.c_str(), RTLD_LAZY | RTLD_LOCAL)),
 #endif
           isLeaked(false), hasRequiredAPI(true), hasDependencyScanner(true), hasStructuredScanningDiagnostics(true), hasCAS(true) {
+#if defined(_WIN32)
+        DWORD cchLength = MultiByteToWideChar(CP_UTF8, MB_ERR_INVALID_CHARS, path.c_str(), -1, nullptr, 0);
+        std::unique_ptr<wchar_t[]> wszPath(new wchar_t[cchLength]);
+        if (!MultiByteToWideChar(CP_UTF8, MB_ERR_INVALID_CHARS, path.c_str(), -1, wszPath.get(), cchLength))
+            return;
+        handle = LoadLibraryW(wszPath.get());
+#endif
+
         if (!handle) return;
 
 #define LOOKUP(name) ({                                 \

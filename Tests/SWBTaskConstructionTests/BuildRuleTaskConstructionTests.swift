@@ -111,7 +111,7 @@ fileprivate struct BuildRuleTaskConstructionTests: CoreBasedTests {
     }
 
     // Build a command line tool, that uses custom build rules, to validate
-    // input and ouptut file lists.
+    // input and output file lists.
     @Test(.requireSDKs(.host))
     func customBuildRulesInputAndOutputFileList() async throws {
         let testProject = TestProject(
@@ -309,7 +309,7 @@ fileprivate struct BuildRuleTaskConstructionTests: CoreBasedTests {
         }
     }
 
-    /// Test some special behavors in custom build rules, including:
+    /// Test some special behaviors in custom build rules, including:
     /// - That a custom build rule can define flags to be passed to the tool which processes its output files.
     /// - Rules with multiple file patterns.
     /// - Rules matching header files.
@@ -533,7 +533,7 @@ fileprivate struct BuildRuleTaskConstructionTests: CoreBasedTests {
         }
     }
 
-    /// Test some special behavors in custom build rules and files existing in your project.
+    /// Test some special behaviors in custom build rules and files existing in your project.
     @Test(.requireSDKs(.macOS))
     func multipleFileProcessedError() async throws {
         let srcroot = Path("/var/tmp/aProject")

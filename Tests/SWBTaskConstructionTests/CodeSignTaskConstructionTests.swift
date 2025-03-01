@@ -457,7 +457,7 @@ fileprivate struct CodeSignTaskConstructionTests: CoreBasedTests {
                             TestFile("resource.txt"),
                             TestFile("other.txt"),
                             TestFile("nope.txt"),
-                            // This is a special handling issue due to the inablity to have inputs that do not actually exist on disk. See TaskProducer.addAdditionalCodeSignInput for more info.
+                            // This is a special handling issue due to the inability to have inputs that do not actually exist on disk. See TaskProducer.addAdditionalCodeSignInput for more info.
                             TestFile("doesnotexist.txt"),
                             TestFile("Info.plist"),
 
@@ -1019,7 +1019,7 @@ fileprivate struct CodeSignTaskConstructionTests: CoreBasedTests {
         let testWorkspace = TestWorkspace("aWorkspace", projects: [testProject])
         let tester = try await TaskConstructionTester(getCore(), testWorkspace)
 
-        // Check --launch-constraint-self is passsed when the build setting is configured
+        // Check --launch-constraint-self is passed when the build setting is configured
         await tester.checkBuild(BuildParameters(action: .install, configuration: "Release", activeRunDestination: .macOS, overrides: ["LAUNCH_CONSTRAINT_SELF": "/tmp/SelfLaunchConstraint.plist"])) { results in
             results.checkTarget("Tool") { target in
                 results.checkTask(.matchTarget(target), .matchRuleType("CodeSign")) { task in
@@ -1028,7 +1028,7 @@ fileprivate struct CodeSignTaskConstructionTests: CoreBasedTests {
             }
         }
 
-        // Check --launch-constraint-parent is passsed when the build setting is configured
+        // Check --launch-constraint-parent is passed when the build setting is configured
         await tester.checkBuild(BuildParameters(action: .install, configuration: "Release", activeRunDestination: .macOS, overrides: ["LAUNCH_CONSTRAINT_PARENT": "/tmp/ParentLaunchConstraint.plist"])) { results in
             results.checkTarget("Tool") { target in
                 results.checkTask(.matchTarget(target), .matchRuleType("CodeSign")) { task in
@@ -1038,7 +1038,7 @@ fileprivate struct CodeSignTaskConstructionTests: CoreBasedTests {
         }
 
 
-        // Check --launch-constraint-responsible is passsed when the build setting is configured
+        // Check --launch-constraint-responsible is passed when the build setting is configured
         await tester.checkBuild(BuildParameters(action: .install, configuration: "Release", activeRunDestination: .macOS, overrides: ["LAUNCH_CONSTRAINT_RESPONSIBLE": "/tmp/ResponsibleLaunchConstraint.plist"])) { results in
             results.checkTarget("Tool") { target in
                 results.checkTask(.matchTarget(target), .matchRuleType("CodeSign")) { task in
@@ -1047,7 +1047,7 @@ fileprivate struct CodeSignTaskConstructionTests: CoreBasedTests {
             }
         }
 
-        // Check that all launch constraint arguments are passsed when the build settings are configured
+        // Check that all launch constraint arguments are passed when the build settings are configured
         await tester.checkBuild(BuildParameters(action: .install, configuration: "Release", activeRunDestination: .macOS, overrides: ["LAUNCH_CONSTRAINT_SELF": "/tmp/SelfLaunchConstraint.plist", "LAUNCH_CONSTRAINT_PARENT": "/tmp/ParentLaunchConstraint.plist", "LAUNCH_CONSTRAINT_RESPONSIBLE": "/tmp/ResponsibleLaunchConstraint.plist"])) { results in
             results.checkTarget("Tool") { target in
                 results.checkTask(.matchTarget(target), .matchRuleType("CodeSign")) { task in
@@ -1091,7 +1091,7 @@ fileprivate struct CodeSignTaskConstructionTests: CoreBasedTests {
         let testWorkspace = TestWorkspace("aWorkspace", projects: [testProject])
         let tester = try await TaskConstructionTester(getCore(), testWorkspace)
 
-        // Check --library-constraint is passsed when the build setting is configured on macOS 14
+        // Check --library-constraint is passed when the build setting is configured on macOS 14
         await tester.checkBuild(BuildParameters(action: .install, configuration: "Release", activeRunDestination: .macOS, overrides: ["LIBRARY_LOAD_CONSTRAINT": "/tmp/LibraryLoadConstraint.plist"]), systemInfo: SystemInfo(operatingSystemVersion: Version(14), productBuildVersion: "99A98", nativeArchitecture: "arm64")) { results in
             results.checkTarget("Tool") { target in
                 results.checkTask(.matchTarget(target), .matchRuleType("CodeSign")) { task in
@@ -1100,7 +1100,7 @@ fileprivate struct CodeSignTaskConstructionTests: CoreBasedTests {
             }
         }
 
-        // Check --library-constraint is *not* passsed when the build setting is configured on macOS 13
+        // Check --library-constraint is *not* passed when the build setting is configured on macOS 13
         await tester.checkBuild(BuildParameters(action: .install, configuration: "Release", activeRunDestination: .macOS, overrides: ["LIBRARY_LOAD_CONSTRAINT": "/tmp/LibraryLoadConstraint.plist"]), systemInfo: SystemInfo(operatingSystemVersion: Version(13), productBuildVersion: "99A98", nativeArchitecture: "arm64")) { results in
             results.checkTarget("Tool") { target in
                 results.checkTask(.matchTarget(target), .matchRuleType("CodeSign")) { task in

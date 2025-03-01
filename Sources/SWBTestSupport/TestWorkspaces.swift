@@ -140,7 +140,7 @@ package final class TestFile: TestInternalStructureItem, CustomStringConvertible
     private let sourceTree: TestSourceTree
     private let expectedSignature: String?
 
-    /// We use stable GUIDs for file references, since they are indirected to.
+    /// We use stable GUIDs for file references, since they are referenced indirectly.
     ///
     /// Test projects are expected to not have collisions in these.
     package var guid: String {
@@ -1543,8 +1543,8 @@ package final class WorkspaceTestHelper: Sendable {
         self.core = core
         self.workspace = workspace
         self.workspaceContext = WorkspaceContext(core: core, workspace: workspace, processExecutionCache: .sharedForTesting)
-        self.workspaceContext.userInfo = UserInfo(user: "exampleUser", group: "exampleGroup", uid: 1234, gid:12345, home: Path("/Users/exampleUser"), environment: [:])
-        self.workspaceContext.systemInfo = SystemInfo(operatingSystemVersion: Version(99, 98, 97), productBuildVersion: "99A98", nativeArchitecture: "x86_64")
+        self.workspaceContext.updateUserInfo(UserInfo(user: "exampleUser", group: "exampleGroup", uid: 1234, gid:12345, home: Path("/Users/exampleUser"), environment: [:]))
+        self.workspaceContext.updateSystemInfo(SystemInfo(operatingSystemVersion: Version(99, 98, 97), productBuildVersion: "99A98", nativeArchitecture: "x86_64"))
     }
 
     /// The project in the workspace, if there is only one.

@@ -910,7 +910,7 @@ fileprivate struct SwiftModuleOnlyTaskConstructionTests: CoreBasedTests {
                     if tpc.isZippered {
                         try checkPlatform(
                             tpc.secondaryPlatform,
-                            deploymentTarget: try #require(tpc.zipperedModuleOnlyDeploymentTarget))
+                            deploymentTarget: tpc.zipperedModuleOnlyDeploymentTarget)
                     }
                 }
             }

@@ -72,6 +72,7 @@ import SWBMacro
     }
 
     private func parseTestSpec<T : SpecType>(_ type: T.Type, _ specData: [String: PropertyListItem], _ baseSpec: Spec? = nil, namespace: MacroNamespace? = nil) async throws -> (T, [String], [String]) {
+        let core = try await getCore()
         // Create a mock proxy for the data.
         var identifier = "test"
         if let value = specData["Identifier"] {
@@ -79,8 +80,10 @@ import SWBMacro
                 identifier = ident
             }
         }
-        let proxy = SpecProxy(identifier: identifier, domain: "", path: Path("test.xcspec"), type: type, classType: nil, basedOn: baseSpec?.proxy?.specifierString, data: specData, localizedStrings: nil)
-        proxy.basedOnProxy = baseSpec?.proxy
+        let proxy = SpecProxy(identifier: identifier, domain: "", path: Path("test.xcspec"), type: type, classType: nil, basedOn: baseSpec.map { "'\($0.proxyDomain):\($0.proxyIdentifier)'" }, data: specData, localizedStrings: nil)
+        if let baseSpec {
+            proxy.basedOnProxy = core.specRegistry.lookupProxy(baseSpec.proxyIdentifier, domain: baseSpec.proxyDomain)
+        }
 
         let delegate = await TestDataDelegate(namespace: namespace)
         let specResult = type.parseSpec(delegate, proxy, baseSpec)
@@ -104,12 +107,13 @@ import SWBMacro
         let superSpec = core.specRegistry.getSpec("sourcecode.c")!
         #expect(spec.basedOnSpec === superSpec)
 
-        // Validate that we loaded specs from IDE pugins.
+        // Validate that we loaded specs from IDE plugins.
         #expect(core.specRegistry.getSpec("com.apple.product-type.bundle", domain: "embedded") != nil)
 
         // Validate use of default proxy as fallback for based on references.
         let staticFramework = core.specRegistry.getSpec("com.apple.product-type.framework.static", domain: "macosx")!
-        #expect(staticFramework.proxy?.basedOn == "com.apple.product-type.framework")
+        let staticFrameworkProxy = core.specRegistry.lookupProxy(staticFramework.proxyIdentifier, domain: staticFramework.proxyDomain)
+        #expect(staticFrameworkProxy?.basedOn == "com.apple.product-type.framework")
         #expect(staticFramework.basedOnSpec! === core.specRegistry.getSpec("com.apple.product-type.framework", domain: "macosx")!)
 
         // Validate that we respect domain composition.
@@ -884,6 +888,13 @@ import SWBMacro
         XCTAssertMatch(errors[0], .prefix("unexpected item: \"arm64e\" while parsing key Architectures"))
     }
 
+    @Test
+    func environmentVariableConsistentOrdering() async throws {
+        let core = try await getCore()
+        let migSpec: CompilerSpec = try core.specRegistry.getSpec("com.apple.compilers.mig") as CompilerSpec
+        #expect(migSpec.environmentVariables?.map({ $0.0 }) == ["DEVELOPER_DIR", "SDKROOT", "TOOLCHAINS"])
+    }
+
     /// Test that loading concrete compiler specs in our Xcode install work as expected.
     @Test
     func concreteCompilerSpecLoading() async throws {
@@ -896,15 +907,16 @@ import SWBMacro
         #expect(core.specRegistry.getSpec("com.apple.build-tasks.copy-png-file")! is GenericCompilerSpec)
 
         // Validate that we properly fetch the Class field from the base spec.
-        let analyzerSpec = core.specRegistry.getSpec("com.apple.compilers.llvm.clang.1_0.analyzer")! as! CompilerSpec
+        let analyzerSpec = try core.specRegistry.getSpec("com.apple.compilers.llvm.clang.1_0.analyzer") as CompilerSpec
         #expect(analyzerSpec is ClangCompilerSpec)
-        #expect(core.specRegistry.getSpec("com.apple.compilers.llvm.clang.1_0.analyzer", domain:"iphoneos")! is ClangCompilerSpec)
+        let analyzerSpecIPhone = try #require(core.specRegistry.getSpec("com.apple.compilers.llvm.clang.1_0.analyzer", domain: "iphoneos"))
+        #expect(analyzerSpecIPhone is ClangCompilerSpec)
 
         // Validate that we parse other properties from the base spec.
-        let clangSpec = core.specRegistry.getSpec("com.apple.compilers.llvm.clang.1_0")! as! CompilerSpec
+        let clangSpec = try core.specRegistry.getSpec("com.apple.compilers.llvm.clang.1_0") as CompilerSpec
         #expect(clangSpec.execDescription == clangCompilerSpec.execDescription)
 
-        // Validate overriden class loading.
+        // Validate overridden class loading.
         let codesignSpec = core.specRegistry.getSpec("com.apple.build-tools.codesign")
         #expect(codesignSpec is CodesignToolSpec)
 

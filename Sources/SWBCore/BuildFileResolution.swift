@@ -46,7 +46,7 @@ extension BuildFileResolution {
         } else {
             // FIXME: A more reliable fallback might be to use GlobalProductPlan.productPathsToProducingTargets (where GlobalProductPlan conforms to TargetInfoProvider) if the absolute path of the product reference in this context were passed in.
             // If the reference is a product reference, then we want to use the settings for the configured target which produced it in this build, as it may have been built for a different platform and so we need to look up its information in the context of that platform.
-            // FIXME: This is potentially janky since there's no inherent guarantee that this configured target exists in the build graph, but I think in practice it should work?
+            // FIXME: This is potentially unsound since there's no inherent guarantee that this configured target exists in the build graph, but I think in practice it should work?
             let potentialSettings = globalTargetInfoProvider.getTargetSettings(ConfiguredTarget(parameters: parameters, target: productRefTarget))
             // If the `productRefTarget` needs specialization, we need to override `SDKROOT`.
             // FIXME: Ideally, we would be in a position where we can just use the right configured target here.

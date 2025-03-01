@@ -124,7 +124,7 @@ public enum PIF {
         }
     }
 
-    /// Abstract base class for all items in the group hierarhcy.
+    /// Abstract base class for all items in the group hierarchy.
     public class Reference {
         public let id: String
 
@@ -1023,6 +1023,8 @@ public enum PIF {
         public var SWIFT_INSTALL_OBJC_HEADER: String?
         public var SWIFT_LOAD_BINARY_MACROS: [String]?
         public var SWIFT_MODULE_ALIASES: [String]?
+        public var SWIFT_WARNINGS_AS_WARNINGS_GROUPS: [String]?
+        public var SWIFT_WARNINGS_AS_ERRORS_GROUPS: [String]?
         public var SWIFT_OBJC_INTERFACE_HEADER_NAME: String?
         public var SWIFT_OBJC_INTERFACE_HEADER_DIR: String?
         public var SWIFT_OPTIMIZATION_LEVEL: String?
@@ -1102,7 +1104,7 @@ public extension Array where Element == PIF.BuildSettings.Platform {
     }
 }
 
-/// Repesents a filetype recognized by the Xcode build system.
+/// Represents a filetype recognized by the Xcode build system.
 public struct SwiftBuildFileType: Sendable {
     public var fileTypes: Set<String>
     public var fileTypeIdentifier: String

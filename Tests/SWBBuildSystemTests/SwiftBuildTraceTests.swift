@@ -71,7 +71,8 @@ fileprivate struct SwiftBuildTraceTests: CoreBasedTests {
                 }
 
                 let trace = try tester.fs.read(tmpDirPath.join(".SWIFTBUILD_TRACE")).asString
-                #expect(try #/\{\"buildDescriptionSignature\":\".*\",\"isTargetParallelizationEnabled\":true\}\n\{\"buildDescriptionSignature\":\".*\",\"isTargetParallelizationEnabled\":true\}\n/#.wholeMatch(in: trace) != nil)
+                print(trace)
+                #expect(try #/\{\"buildDescriptionSignature\":\".*\",\"isTargetParallelizationEnabled\":true,\"name\":\"Test\",\"path\":\".*\"\}\n\{\"buildDescriptionSignature\":\".*\",\"isTargetParallelizationEnabled\":true,\"name\":\"Test\",\"path\":\".*\"\}\n/#.wholeMatch(in: trace) != nil)
             }
         }
     }

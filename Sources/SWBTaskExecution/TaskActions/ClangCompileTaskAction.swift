@@ -146,7 +146,6 @@ public final class ClangCompileTaskAction: TaskAction, BuildValueValidatingTaskA
                 singleUse: true,
                 workingDirectory: dependencyInfo.workingDirectory,
                 environment: task.environment,
-                taskInputs: [],
                 forTarget: nil,
                 priority: .preferred,
                 showEnvironment: task.showEnvironment,
@@ -212,7 +211,7 @@ public final class ClangCompileTaskAction: TaskAction, BuildValueValidatingTaskA
         let commandLines = dependencyInfo.commands.map{$0.arguments}
 
         // By default, don't print the frontend command lines, to avoid introducing too much noise in the log.
-        if executionDelegate.userPreferences.enableDebugActivityLogs {
+        if executionDelegate.userPreferences.enableDebugActivityLogs || executionDelegate.emitFrontendCommandLines {
             for commandLine in commandLines {
                 let commandString = UNIXShellCommandCodec(
                     encodingStrategy: .backslashes,
@@ -234,7 +233,7 @@ public final class ClangCompileTaskAction: TaskAction, BuildValueValidatingTaskA
                 )
 
                 let casKey = ClangCachingPruneDataTaskKey(
-                    libclangPath: explicitModulesPayload.libclangPath,
+                    path: explicitModulesPayload.libclangPath,
                     casOptions: casOptions
                 )
                 dynamicExecutionDelegate.operationContext.compilationCachingDataPruner.pruneCAS(
@@ -289,7 +288,7 @@ public final class ClangCompileTaskAction: TaskAction, BuildValueValidatingTaskA
                     continue
                 default:
                     // Emit the frontend command which failed, unless we have debugging enabled and printed it already
-                    if !executionDelegate.userPreferences.enableDebugActivityLogs {
+                    if !executionDelegate.userPreferences.enableDebugActivityLogs && !executionDelegate.emitFrontendCommandLines {
                         let commandString = UNIXShellCommandCodec(
                             encodingStrategy: .backslashes,
                             encodingBehavior: .fullCommandLine
@@ -345,7 +344,6 @@ public final class ClangCompileTaskAction: TaskAction, BuildValueValidatingTaskA
                 singleUse: true,
                 workingDirectory: Path(""),
                 environment: .init(),
-                taskInputs: [],
                 forTarget: nil,
                 priority: .network,
                 showEnvironment: false,

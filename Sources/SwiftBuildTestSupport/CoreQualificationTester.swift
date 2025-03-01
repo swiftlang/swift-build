@@ -83,7 +83,7 @@ final package class CoreQualificationTester: Sendable {
                 try loggedEvents.append(String(decoding: JSONEncoder(outputFormatting: [.sortedKeys, .withoutEscapingSlashes]).encode(event), as: UTF8.self))
             }
 
-            // TODO: <rdar://59432231> Longer term, we should find a way to share code with BuildOperationTester, which has a number of APIs for building up a human readable build transscript.
+            // TODO: <rdar://59432231> Longer term, we should find a way to share code with BuildOperationTester, which has a number of APIs for building up a human readable build transcript.
             //activity.attach(name: "Event Log", plistObject: loggedEvents)
             //activity.attach(name: "Diagnostics", plistObject: diagnostics.map { $0.description })
             //activity.attach(name: "Output", string: events.allOutput().bytes.unsafeStringValue)

@@ -925,7 +925,7 @@ extension PropertyListSerialization {
 
         /// This is a shim NSDictionary implementation which we use to vend a stable (sorted key order) view of an underlying dictionary.
         ///
-        /// This is *NOT* intended to be a general purpose NSDictionary subclass, it is only intended to be used with property list serialiation.
+        /// This is *NOT* intended to be a general purpose NSDictionary subclass, it is only intended to be used with property list serialization.
         final class SWBStablePropertyListDictionary: NSDictionary {
             private var dictionary = NSDictionary()
             private var orderedKeys = NSArray()

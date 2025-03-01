@@ -128,6 +128,6 @@ struct QNXToolchainRegistryExtension: ToolchainRegistryExtension {
             return []
         }
 
-        return [Toolchain("qnx", "QNX", Version(0, 0, 0), [], toolchainPath, [], [], [:], [:], [:], executableSearchPaths: [toolchainPath.join("usr").join("bin")], fs: fs)]
+        return [Toolchain("qnx", "QNX", Version(0, 0, 0), [], toolchainPath, [], [], [:], [:], [:], executableSearchPaths: [toolchainPath.join("usr").join("bin")], testingLibraryPlatformNames: [], fs: fs)]
     }
 }

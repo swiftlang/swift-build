@@ -34,7 +34,7 @@ public import struct Foundation.Data
 public import struct Foundation.UUID
 
 public enum SwiftABIVersion: Equatable, Hashable, Sendable {
-    /// For compatiblity, we still need to deal with the unstable ABI for Swift <5.
+    /// For compatibility, we still need to deal with the unstable ABI for Swift <5.
     case unstable(Int)
 
     /// All future version of Swift >= 5 will use a stable ABI.
@@ -154,7 +154,7 @@ public struct BuildVersion: Equatable, Hashable, Sendable {
     /// The minimum OS version supported.
     public let minOSVersion: Version
 
-    /// The SDK version that is targetted.
+    /// The SDK version that is targeted.
     public let sdkVersion: Version
 }
 
@@ -192,7 +192,7 @@ extension Set where Element == BuildVersion.Platform {
         case 2 where self == [.macOS, .macCatalyst]:
             return "macOS (zippered)"
         default:
-            // Multiple load commands (except the zippered case above) is defined as an invalid Mach-O, but historically many developers have used `lipo` to form "universal" static libraries for device and simlator platforms, and this is very common so make sure to show a good diagnostic for it.
+            // Multiple load commands (except the zippered case above) is defined as an invalid Mach-O, but historically many developers have used `lipo` to form "universal" static libraries for device and simulator platforms, and this is very common so make sure to show a good diagnostic for it.
             return sorted(by: \.rawValue).map { $0.displayName(infoLookup: infoLookup) }.joined(separator: " + ")
         }
     }
@@ -205,7 +205,7 @@ public protocol BinaryDataType {
     init()
 }
 
-/// Providesa  protocol for working with binary data that can be read from.
+/// Provides a protocol for working with binary data that can be read from.
 public protocol BinaryData {
     /// Reads the binary data at the given offset.
     func read<T: BinaryDataType>(from offset: Int) throws -> T
@@ -440,7 +440,7 @@ public enum BinaryReaderError: Error, CustomStringConvertible {
     /// Expresses an out-of-range error while attempting to read a structure from the binary data.
     case invalidRead(startingAt: Int, type: Any.Type, typeSize: Int, dataSize: Int)
 
-    /// Expressess an error while attempting to seek within the binary data.
+    /// Expresses an error while attempting to seek within the binary data.
     case invalidSeek(cursor: BinaryReader.Cursor, numberOfBytes: Int)
 
     /// Output a friendly description of the error.
@@ -584,7 +584,7 @@ public protocol MachOFatHeader {
     func offset(byteSwappedIfNeeded swap: Bool) -> UInt64
     func size(byteSwappedIfNeeded swap: Bool) -> UInt64
 
-    // The reserved field is intentially left missing from here for fat_arch_64.
+    // The reserved field is intentionally left missing from here for fat_arch_64.
 
     var structSize: Int { get }
 }
@@ -634,7 +634,7 @@ public protocol MachOHeader {
     var sizeofcmds: UInt32 { get }
     var flags: UInt32 { get }
 
-    // The reserved field is intentially left missing from here for mach_header_64.
+    // The reserved field is intentionally left missing from here for mach_header_64.
 
     var structSize: Int { get }
 }
@@ -866,7 +866,7 @@ public final class MachO {
                 }
                 return (slices, linkage)
             } catch MachOError.staticArchive {
-                // Since we've encounted a potential static archive, attempt to re-read it and implicitly unwrap its slices.
+                // Since we've encountered a potential static archive, attempt to re-read it and implicitly unwrap its slices.
                 let archive = try StaticArchive(reader: BinaryReader(data: reader.data, startingAt: 0))
                 return (try archive.machOs().flatMap { try $0.slices() }, .static)
             }
@@ -882,7 +882,7 @@ public final class MachO {
     /// in turn each contains a series of Mach-O object files.
     ///
     /// If the root file is a thin Mach-O file, the `MachO` object will
-    /// simply contain a single `Slice` reprenting the thin Mach-O file itself.
+    /// simply contain a single `Slice` representing the thin Mach-O file itself.
     public struct Slice {
         private let reader: BinaryReader
         private let header: Header

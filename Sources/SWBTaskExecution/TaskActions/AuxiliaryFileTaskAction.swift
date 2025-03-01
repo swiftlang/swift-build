@@ -45,11 +45,23 @@ public final class AuxiliaryFileTaskAction: TaskAction {
         }
 
         do {
-            let contents = try executionDelegate.fs.read(context.input)
-            if context.logContents {
-                outputDelegate.emitOutput(contents)
+            if context.forceWrite {
+                // If we're forcing a write, remove and then write regardless of content.
+                if context.logContents {
+                    let contents = try executionDelegate.fs.read(context.input)
+                    outputDelegate.emitOutput(contents)
+                }
+                try? executionDelegate.fs.remove(context.output)
+                try executionDelegate.fs.copy(context.input, to: context.output)
+                try executionDelegate.fs.touch(context.output)
+            } else {
+                // Otherwise read the content and check to see if it has changed.
+                let contents = try executionDelegate.fs.read(context.input)
+                if context.logContents {
+                    outputDelegate.emitOutput(contents)
+                }
+                _ = try executionDelegate.fs.writeIfChanged(context.output, contents: contents)
             }
-            _ = try executionDelegate.fs.writeIfChanged(context.output, contents: contents)
         } catch {
             outputDelegate.emitError("unable to write file '\(context.output.str)': \(error.localizedDescription)")
             return .failed
@@ -70,10 +82,11 @@ public final class AuxiliaryFileTaskAction: TaskAction {
     // MARK: Serialization
 
     public override func serialize<T: Serializer>(to serializer: T) {
-        serializer.serializeAggregate(6) {
+        serializer.serializeAggregate(7) {
             serializer.serialize(context.output)
             serializer.serialize(context.input)
             serializer.serialize(context.permissions)
+            serializer.serialize(context.forceWrite)
             serializer.serialize(context.diagnostics)
             serializer.serialize(context.logContents)
             super.serialize(to: serializer)
@@ -81,23 +94,25 @@ public final class AuxiliaryFileTaskAction: TaskAction {
     }
 
     public required init(from deserializer: any Deserializer) throws {
-        try deserializer.beginAggregate(6)
+        try deserializer.beginAggregate(7)
         let output: Path = try deserializer.deserialize()
         let input: Path = try deserializer.deserialize()
         let permissions: Int? = try deserializer.deserialize()
+        let forceWrite: Bool = try deserializer.deserialize()
         let diagnostics: [AuxiliaryFileTaskActionContext.Diagnostic] = try deserializer.deserialize()
         let logContents: Bool = try deserializer.deserialize()
-        self.context = AuxiliaryFileTaskActionContext(output: output, input: input, permissions: permissions, diagnostics: diagnostics, logContents: logContents)
+        self.context = AuxiliaryFileTaskActionContext(output: output, input: input, permissions: permissions, forceWrite: forceWrite, diagnostics: diagnostics, logContents: logContents)
         try super.init(from: deserializer)
     }
 
     public override func computeInitialSignature() -> ByteString {
         let serializer = MsgPackSerializer()
-        serializer.serializeAggregate(6) {
+        serializer.serializeAggregate(7) {
             serializer.serialize(context.output)
             // We must not serialize the entire path of the 'input', because it will include the build description ID, which may change in cases when this task should not be invalidated.
             serializer.serialize(context.input.basename)
             serializer.serialize(context.permissions)
+            serializer.serialize(context.forceWrite)
             serializer.serialize(context.diagnostics)
             serializer.serialize(context.logContents)
             super.serialize(to: serializer)
@@ -108,7 +123,7 @@ public final class AuxiliaryFileTaskAction: TaskAction {
     }
 }
 
-extension AuxiliaryFileTaskActionContext.Diagnostic: @retroactive Serializable {
+extension AuxiliaryFileTaskActionContext.Diagnostic: Serializable {
     public func serialize<T: Serializer>(to serializer: T) {
         serializer.beginAggregate(2)
         switch kind {

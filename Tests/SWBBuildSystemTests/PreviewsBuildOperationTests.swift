@@ -19,7 +19,7 @@ import SWBProtocol
 import SWBCore
 @_spi(Testing) import SWBBuildService
 
-@Suite
+@Suite(.requireXcode16())
 fileprivate struct PreviewsBuildOperationTests: CoreBasedTests {
     @Test(.requireSDKs(.iOS))
     func previewXOJITBuilds() async throws {
@@ -85,6 +85,7 @@ fileprivate struct PreviewsBuildOperationTests: CoreBasedTests {
                 "ASSETCATALOG_FILTER_FOR_DEVICE_OS_VERSION": core.loadSDK(.iOSSimulator).defaultDeploymentTarget,
                 "ASSETCATALOG_FILTER_FOR_THINNING_DEVICE_CONFIGURATION": "iPhone15,2",
                 "BUILD_ACTIVE_RESOURCES_ONLY": "YES",
+                "ENABLE_SDK_IMPORTS": "NO",
                 "TARGET_DEVICE_IDENTIFIER": "DB9FA063-8DA7-41C1-835E-EC616E6AF448",
                 "TARGET_DEVICE_MODEL": "iPhone15,2",
                 "TARGET_DEVICE_OS_VERSION": core.loadSDK(.iOSSimulator).defaultDeploymentTarget,
@@ -149,7 +150,7 @@ fileprivate struct PreviewsBuildOperationTests: CoreBasedTests {
                             "-L\(srcRoot.str)/build/Debug-iphonesimulator",
                             "-F\(srcRoot.str)/build/Debug-iphonesimulator",
                             "-Xlinker", "-rpath", "-Xlinker", "@executable_path",
-                            "-Xlinker", "-export_dynamic",
+                            "-rdynamic",
                             "-Xlinker", "-objc_abi_version", "-Xlinker", "2",
                             "-e", "___debug_blank_executor_main",
                             "-Xlinker", "-sectcreate", "-Xlinker", "__TEXT", "-Xlinker", "__debug_dylib", "-Xlinker", "\(srcRoot.str)/build/ProjectName.build/Debug-iphonesimulator/AppTarget.build/AppTarget-DebugDylibPath-normal-\(results.runDestinationTargetArchitecture).txt",
@@ -222,7 +223,13 @@ fileprivate struct PreviewsBuildOperationTests: CoreBasedTests {
                         #expect(targetPreviewInfo.targetDependencyInfo?.objectFileInputMap == [
                             "\(srcRoot.str)/build/ProjectName.build/Debug-iphonesimulator/AppTarget.build/Objects-normal/\(results.runDestinationTargetArchitecture)/main.o": Set(["\(srcRoot.str)/Sources/main.swift"])
                             ])
-                        XCTAssertEqualSequences(targetPreviewInfo.targetDependencyInfo?.linkCommandLine ?? [], ["\(core.developerPath.str)/Toolchains/XcodeDefault.xctoolchain/usr/bin/clang", "-Xlinker", "-reproducible", "-target", "\(results.runDestinationTargetArchitecture)-apple-ios\(core.loadSDK(.iOSSimulator).defaultDeploymentTarget)-simulator", "-dynamiclib", "-isysroot", core.loadSDK(.iOSSimulator).path.str, "-Os", "-Xlinker", "-warn_unused_dylibs", "-L\(srcRoot.str)/build/EagerLinkingTBDs/Debug-iphonesimulator", "-L\(srcRoot.str)/build/Debug-iphonesimulator", "-F\(srcRoot.str)/build/EagerLinkingTBDs/Debug-iphonesimulator", "-F\(srcRoot.str)/build/Debug-iphonesimulator", "-filelist", "\(srcRoot.str)/build/ProjectName.build/Debug-iphonesimulator/AppTarget.build/Objects-normal/\(results.runDestinationTargetArchitecture)/AppTarget.LinkFileList", "-install_name", "@rpath/AppTarget.debug.dylib", "-dead_strip", "-Xlinker", "-object_path_lto", "-Xlinker", "\(srcRoot.str)/build/ProjectName.build/Debug-iphonesimulator/AppTarget.build/Objects-normal/\(results.runDestinationTargetArchitecture)/AppTarget_lto.o", "-Xlinker", "-objc_abi_version", "-Xlinker", "2", "-Xlinker", "-dependency_info", "-Xlinker", "\(srcRoot.str)/build/ProjectName.build/Debug-iphonesimulator/AppTarget.build/Objects-normal/\(results.runDestinationTargetArchitecture)/AppTarget_dependency_info.dat", "-L\(core.developerPath.str)/Toolchains/XcodeDefault.xctoolchain/usr/lib/swift/iphonesimulator", "-L/usr/lib/swift", "-Xlinker", "-add_ast_path", "-Xlinker", "\(srcRoot.str)/build/ProjectName.build/Debug-iphonesimulator/AppTarget.build/Objects-normal/\(results.runDestinationTargetArchitecture)/AppTarget.swiftmodule", "-Xlinker", "-alias", "-Xlinker", "_main", "-Xlinker", "___debug_main_executable_dylib_entry_point", "-Xlinker", "-no_adhoc_codesign", "-o", "\(srcRoot.str)/build/Debug-iphonesimulator/AppTarget.app/AppTarget.debug.dylib"])
+                        var linkerCommandLine = targetPreviewInfo.targetDependencyInfo?.linkCommandLine ?? []
+                        for idx in linkerCommandLine.indices.reversed() {
+                            if linkerCommandLine[idx].hasSuffix("linker-args.resp") {
+                                linkerCommandLine.remove(at: idx)
+                            }
+                        }
+                        XCTAssertEqualSequences(linkerCommandLine, ["\(core.developerPath.str)/Toolchains/XcodeDefault.xctoolchain/usr/bin/clang", "-Xlinker", "-reproducible", "-target", "\(results.runDestinationTargetArchitecture)-apple-ios\(core.loadSDK(.iOSSimulator).defaultDeploymentTarget)-simulator", "-dynamiclib", "-isysroot", core.loadSDK(.iOSSimulator).path.str, "-Os", "-Xlinker", "-warn_unused_dylibs", "-L\(srcRoot.str)/build/EagerLinkingTBDs/Debug-iphonesimulator", "-L\(srcRoot.str)/build/Debug-iphonesimulator", "-F\(srcRoot.str)/build/EagerLinkingTBDs/Debug-iphonesimulator", "-F\(srcRoot.str)/build/Debug-iphonesimulator", "-filelist", "\(srcRoot.str)/build/ProjectName.build/Debug-iphonesimulator/AppTarget.build/Objects-normal/\(results.runDestinationTargetArchitecture)/AppTarget.LinkFileList", "-install_name", "@rpath/AppTarget.debug.dylib", "-dead_strip", "-Xlinker", "-object_path_lto", "-Xlinker", "\(srcRoot.str)/build/ProjectName.build/Debug-iphonesimulator/AppTarget.build/Objects-normal/\(results.runDestinationTargetArchitecture)/AppTarget_lto.o", "-Xlinker", "-objc_abi_version", "-Xlinker", "2", "-Xlinker", "-dependency_info", "-Xlinker", "\(srcRoot.str)/build/ProjectName.build/Debug-iphonesimulator/AppTarget.build/Objects-normal/\(results.runDestinationTargetArchitecture)/AppTarget_dependency_info.dat", "-L\(core.developerPath.str)/Toolchains/XcodeDefault.xctoolchain/usr/lib/swift/iphonesimulator", "-L/usr/lib/swift", "-Xlinker", "-add_ast_path", "-Xlinker", "\(srcRoot.str)/build/ProjectName.build/Debug-iphonesimulator/AppTarget.build/Objects-normal/\(results.runDestinationTargetArchitecture)/AppTarget.swiftmodule", "-Xlinker", "-alias", "-Xlinker", "_main", "-Xlinker", "___debug_main_executable_dylib_entry_point", "-Xlinker", "-no_adhoc_codesign", "-o", "\(srcRoot.str)/build/Debug-iphonesimulator/AppTarget.app/AppTarget.debug.dylib"])
                     }
                 }
 
@@ -370,6 +377,7 @@ fileprivate struct PreviewsBuildOperationTests: CoreBasedTests {
                 "ASSETCATALOG_FILTER_FOR_DEVICE_OS_VERSION": core.loadSDK(.iOSSimulator).defaultDeploymentTarget,
                 "ASSETCATALOG_FILTER_FOR_THINNING_DEVICE_CONFIGURATION": "iPhone15,2",
                 "BUILD_ACTIVE_RESOURCES_ONLY": "YES",
+                "ENABLE_SDK_IMPORTS": "NO",
                 "TARGET_DEVICE_IDENTIFIER": "DB9FA063-8DA7-41C1-835E-EC616E6AF448",
                 "TARGET_DEVICE_MODEL": "iPhone15,2",
                 "TARGET_DEVICE_OS_VERSION": core.loadSDK(.iOSSimulator).defaultDeploymentTarget,
@@ -442,7 +450,13 @@ fileprivate struct PreviewsBuildOperationTests: CoreBasedTests {
                             "\(srcRoot.str)/build/ProjectName.build/Debug-iphonesimulator/AppTarget.build/Objects-normal/\(results.runDestinationTargetArchitecture)/File2.o": Set(["\(srcRoot.str)/Sources/File2.swift"]),
                             "\(srcRoot.str)/build/ProjectName.build/Debug-iphonesimulator/AppTarget.build/Objects-normal/\(results.runDestinationTargetArchitecture)/File3.o": Set(["\(srcRoot.str)/Sources/File3.swift"]),
                         ])
-                        XCTAssertEqualSequences(targetPreviewInfo.targetDependencyInfo?.linkCommandLine ?? [], ["\(core.developerPath.str)/Toolchains/XcodeDefault.xctoolchain/usr/bin/clang", "-Xlinker", "-reproducible", "-target", "\(results.runDestinationTargetArchitecture)-apple-ios\(core.loadSDK(.iOSSimulator).defaultDeploymentTarget)-simulator", "-dynamiclib", "-isysroot", core.loadSDK(.iOSSimulator).path.str, "-Os", "-L\(srcRoot.str)/build/EagerLinkingTBDs/Debug-iphonesimulator", "-L\(srcRoot.str)/build/Debug-iphonesimulator", "-F\(srcRoot.str)/build/EagerLinkingTBDs/Debug-iphonesimulator", "-F\(srcRoot.str)/build/Debug-iphonesimulator", "-filelist", "\(srcRoot.str)/build/ProjectName.build/Debug-iphonesimulator/AppTarget.build/Objects-normal/\(results.runDestinationTargetArchitecture)/AppTarget.LinkFileList", "-install_name", "@rpath/AppTarget.debug.dylib", "-dead_strip", "-Xlinker", "-object_path_lto", "-Xlinker", "\(srcRoot.str)/build/ProjectName.build/Debug-iphonesimulator/AppTarget.build/Objects-normal/\(results.runDestinationTargetArchitecture)/AppTarget_lto.o", "-Xlinker", "-objc_abi_version", "-Xlinker", "2", "-Xlinker", "-dependency_info", "-Xlinker", "\(srcRoot.str)/build/ProjectName.build/Debug-iphonesimulator/AppTarget.build/Objects-normal/\(results.runDestinationTargetArchitecture)/AppTarget_dependency_info.dat", "-fobjc-link-runtime", "-L\(core.developerPath.str)/Toolchains/XcodeDefault.xctoolchain/usr/lib/swift/iphonesimulator", "-L/usr/lib/swift", "-Xlinker", "-add_ast_path", "-Xlinker", "\(srcRoot.str)/build/ProjectName.build/Debug-iphonesimulator/AppTarget.build/Objects-normal/\(results.runDestinationTargetArchitecture)/AppTarget.swiftmodule", "-Xlinker", "-alias", "-Xlinker", "_main", "-Xlinker", "___debug_main_executable_dylib_entry_point", "-Xlinker", "-no_adhoc_codesign", "-o", "\(srcRoot.str)/build/Debug-iphonesimulator/AppTarget.app/AppTarget.debug.dylib"])
+                        var linkerCommandLine = targetPreviewInfo.targetDependencyInfo?.linkCommandLine ?? []
+                        for idx in linkerCommandLine.indices.reversed() {
+                            if linkerCommandLine[idx].hasSuffix("linker-args.resp") {
+                                linkerCommandLine.remove(at: idx)
+                            }
+                        }
+                        XCTAssertEqualSequences(linkerCommandLine, ["\(core.developerPath.str)/Toolchains/XcodeDefault.xctoolchain/usr/bin/clang", "-Xlinker", "-reproducible", "-target", "\(results.runDestinationTargetArchitecture)-apple-ios\(core.loadSDK(.iOSSimulator).defaultDeploymentTarget)-simulator", "-dynamiclib", "-isysroot", core.loadSDK(.iOSSimulator).path.str, "-Os", "-L\(srcRoot.str)/build/EagerLinkingTBDs/Debug-iphonesimulator", "-L\(srcRoot.str)/build/Debug-iphonesimulator", "-F\(srcRoot.str)/build/EagerLinkingTBDs/Debug-iphonesimulator", "-F\(srcRoot.str)/build/Debug-iphonesimulator", "-filelist", "\(srcRoot.str)/build/ProjectName.build/Debug-iphonesimulator/AppTarget.build/Objects-normal/\(results.runDestinationTargetArchitecture)/AppTarget.LinkFileList", "-install_name", "@rpath/AppTarget.debug.dylib", "-dead_strip", "-Xlinker", "-object_path_lto", "-Xlinker", "\(srcRoot.str)/build/ProjectName.build/Debug-iphonesimulator/AppTarget.build/Objects-normal/\(results.runDestinationTargetArchitecture)/AppTarget_lto.o", "-Xlinker", "-objc_abi_version", "-Xlinker", "2", "-Xlinker", "-dependency_info", "-Xlinker", "\(srcRoot.str)/build/ProjectName.build/Debug-iphonesimulator/AppTarget.build/Objects-normal/\(results.runDestinationTargetArchitecture)/AppTarget_dependency_info.dat", "-fobjc-link-runtime", "-L\(core.developerPath.str)/Toolchains/XcodeDefault.xctoolchain/usr/lib/swift/iphonesimulator", "-L/usr/lib/swift", "-Xlinker", "-add_ast_path", "-Xlinker", "\(srcRoot.str)/build/ProjectName.build/Debug-iphonesimulator/AppTarget.build/Objects-normal/\(results.runDestinationTargetArchitecture)/AppTarget.swiftmodule", "-Xlinker", "-alias", "-Xlinker", "_main", "-Xlinker", "___debug_main_executable_dylib_entry_point", "-Xlinker", "-no_adhoc_codesign", "-o", "\(srcRoot.str)/build/Debug-iphonesimulator/AppTarget.app/AppTarget.debug.dylib"])
                     }
                 }
             }
@@ -500,7 +514,7 @@ fileprivate struct PreviewsBuildOperationTests: CoreBasedTests {
             try await tester.checkBuild(parameters: buildParameters, buildCommand: .build(style: .buildOnly, skipDependencies: false)) { results in
                 results.checkNoDiagnostics()
 
-                results.consumeTasksMatchingRuleTypes(["Copy", "CopySwiftLibs", "ExtractAppIntentsMetadata", "Gate", "GenerateDSYMFile", "MkDir", "CreateBuildDirectory", "WriteAuxiliaryFile", "ClangStatCache", "RegisterExecutionPolicyException", "AppIntentsSSUTraining", "ProcessInfoPlistFile", "Touch", "Validate", "LinkAssetCatalogSignature", "SwiftExplicitDependencyCompileModuleFromInterface", "SwiftExplicitDependencyGeneratePcm", "ConstructStubExecutorLinkFileList"])
+                results.consumeTasksMatchingRuleTypes(["Copy", "CopySwiftLibs", "ExtractAppIntentsMetadata", "Gate", "GenerateDSYMFile", "MkDir", "CreateBuildDirectory", "WriteAuxiliaryFile", "ClangStatCache", "RegisterExecutionPolicyException", "AppIntentsSSUTraining", "ProcessInfoPlistFile", "Touch", "Validate", "LinkAssetCatalogSignature", "SwiftExplicitDependencyCompileModuleFromInterface", "SwiftExplicitDependencyGeneratePcm", "ConstructStubExecutorLinkFileList", "ProcessSDKImports"])
                 results.consumeTasksMatchingRuleTypes(["SwiftCompile", "SwiftDriver", "SwiftDriver Compilation", "SwiftDriver Compilation Requirements", "SwiftEmitModule", "SwiftMergeGeneratedHeaders"])
                 results.consumeTasksMatchingRuleTypes(["GenerateDSYMFile"])
 
@@ -584,7 +598,7 @@ fileprivate struct PreviewsBuildOperationTests: CoreBasedTests {
                     #expect(entryPoint == ByteString(encodingAsUTF8: "_NSExtensionMain"))
                 }
 
-                results.consumeTasksMatchingRuleTypes(["Copy", "CopySwiftLibs", "ExtractAppIntentsMetadata", "Gate", "GenerateDSYMFile", "MkDir", "CreateBuildDirectory", "WriteAuxiliaryFile", "ClangStatCache", "RegisterExecutionPolicyException", "AppIntentsSSUTraining", "ProcessInfoPlistFile", "Touch", "Validate", "LinkAssetCatalogSignature", "ConstructStubExecutorLinkFileList"])
+                results.consumeTasksMatchingRuleTypes(["Copy", "CopySwiftLibs", "ExtractAppIntentsMetadata", "Gate", "GenerateDSYMFile", "MkDir", "CreateBuildDirectory", "WriteAuxiliaryFile", "ClangStatCache", "RegisterExecutionPolicyException", "AppIntentsSSUTraining", "ProcessInfoPlistFile", "Touch", "Validate", "LinkAssetCatalogSignature", "ConstructStubExecutorLinkFileList", "ProcessSDKImports"])
                 results.consumeTasksMatchingRuleTypes(["GenerateDSYMFile"])
                 results.consumeTasksMatchingRuleTypes(["SwiftCompile", "SwiftDriver", "SwiftDriver Compilation", "SwiftDriver Compilation Requirements", "SwiftEmitModule", "SwiftMergeGeneratedHeaders", "SwiftExplicitDependencyCompileModuleFromInterface", "SwiftExplicitDependencyGeneratePcm"])
 
@@ -599,7 +613,7 @@ fileprivate struct PreviewsBuildOperationTests: CoreBasedTests {
                             "-L\(srcRoot.str)/build/Debug-iphonesimulator",
                             "-F\(srcRoot.str)/build/Debug-iphonesimulator",
                             "-Xlinker", "-rpath", "-Xlinker", "@executable_path",
-                            "-Xlinker", "-export_dynamic",
+                            "-rdynamic",
                             "-Xlinker", "-objc_abi_version", "-Xlinker", "2",
                             "-e", "___debug_blank_executor_main",
                             "-Xlinker", "-sectcreate", "-Xlinker", "__TEXT", "-Xlinker", "__debug_dylib", "-Xlinker", "\(srcRoot.str)/build/ProjectName.build/Debug-iphonesimulator/AppExTarget.build/AppExTarget-DebugDylibPath-normal-\(results.runDestinationTargetArchitecture).txt",
@@ -989,7 +1003,14 @@ fileprivate struct PreviewsBuildOperationTests: CoreBasedTests {
             linkStyleArgs = ["-bundle", "-bundle_loader", linkAgainst.str]
         }
 
-        XCTAssertEqualSequences(previewInfo.thunkInfo?.linkCommandLine ?? [], [[
+        var linkerCommandLine = previewInfo.thunkInfo?.linkCommandLine ?? []
+        for idx in linkerCommandLine.indices.reversed() {
+            if linkerCommandLine[idx].hasSuffix("linker-args.resp") {
+                linkerCommandLine.remove(at: idx)
+            }
+        }
+
+        XCTAssertEqualSequences(linkerCommandLine, [[
             "\(core.developerPath.str)/Toolchains/XcodeDefault.xctoolchain/usr/bin/clang",
             "-Xlinker", "-reproducible",
             "-target", "\(arch)-apple-ios\(core.loadSDK(.iOS).defaultDeploymentTarget)",
@@ -1002,7 +1023,7 @@ fileprivate struct PreviewsBuildOperationTests: CoreBasedTests {
             "-fobjc-link-runtime",
             "-L\(core.developerPath.str)/Toolchains/XcodeDefault.xctoolchain/usr/lib/swift/iphoneos",
             "-L/usr/lib/swift",
-        ], explicitModuleBuild ? ["@\(srcRoot.str)/build/ProjectName.build/Debug-iphoneos/\(targetName).build/Objects-normal/\(arch)/\(targetName)-linker-args.resp"] : [], linkStyleArgs, [
+        ], linkStyleArgs, [
                 "\(srcRoot.str)/build/ProjectName.build/Debug-iphoneos/\(targetName).build/Objects-normal/\(arch)/main.selection.preview-thunk.o",
                 "-o", "\(srcRoot.str)/build/ProjectName.build/Debug-iphoneos/\(targetName).build/Objects-normal/\(arch)/main.selection.preview-thunk.dylib",
             ]].reduce([], +))

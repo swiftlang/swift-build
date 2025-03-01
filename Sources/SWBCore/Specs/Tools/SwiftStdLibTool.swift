@@ -13,7 +13,7 @@
 import SWBUtil
 public import SWBMacro
 
-public final class SwiftStdLibToolSpec : GenericCommandLineToolSpec, SpecIdentifierType {
+public final class SwiftStdLibToolSpec : GenericCommandLineToolSpec, SpecIdentifierType, @unchecked Sendable {
     public static let identifier = "com.apple.build-tools.swift-stdlib-tool"
 
     override public func constructTasks(_ cbc: CommandBuildContext, _ delegate: any TaskGenerationDelegate) async {

@@ -763,7 +763,7 @@ fileprivate struct TaskConstructionTests: CoreBasedTests {
                         sortedTasks[1].checkRuleInfo([.equal("MkDir"), .equal("\(SRCROOT)/build/Debug/AppCore.framework/Versions")])
                         sortedTasks[2].checkRuleInfo([.equal("MkDir"), .equal("\(SRCROOT)/build/Debug/AppCore.framework/Versions/A")])
                         sortedTasks[3].checkRuleInfo([.equal("MkDir"), .equal("\(SRCROOT)/build/Debug/AppCore.framework/Versions/A/Headers")])
-                        if SWBFeatureFlag.enableDefaultInfoPlistTemplateKeys {
+                        if SWBFeatureFlag.enableDefaultInfoPlistTemplateKeys.value {
                             sortedTasks[4].checkRuleInfo([.equal("MkDir"), .equal("\(SRCROOT)/build/Debug/AppCore.framework/Versions/A/Resources")])
                         }
 
@@ -772,7 +772,7 @@ fileprivate struct TaskConstructionTests: CoreBasedTests {
                         sortedTasks[1].checkCommandLine(["/bin/mkdir", "-p", "\(SRCROOT)/build/Debug/AppCore.framework/Versions"])
                         sortedTasks[2].checkCommandLine(["/bin/mkdir", "-p", "\(SRCROOT)/build/Debug/AppCore.framework/Versions/A"])
                         sortedTasks[3].checkCommandLine(["/bin/mkdir", "-p", "\(SRCROOT)/build/Debug/AppCore.framework/Versions/A/Headers"])
-                        if SWBFeatureFlag.enableDefaultInfoPlistTemplateKeys {
+                        if SWBFeatureFlag.enableDefaultInfoPlistTemplateKeys.value {
                             sortedTasks[4].checkCommandLine(["/bin/mkdir", "-p", "\(SRCROOT)/build/Debug/AppCore.framework/Versions/A/Resources"])
                         }
                     })
@@ -1785,7 +1785,7 @@ fileprivate struct TaskConstructionTests: CoreBasedTests {
                                                    "-o", targetObjectsPerArchBuildDir.join("Binary/\(libSupportFileName)").str
                                                   ])
                         case .linux:
-                            task.checkCommandLine(["ar", "rcs", targetBuildDir.join(libSupportFileName).str, "@\(targetObjectsPerArchBuildDir.join("Support.LinkFileList").str)"])
+                            task.checkCommandLine(["llvm-ar", "rcs", targetBuildDir.join(libSupportFileName).str, "@\(targetObjectsPerArchBuildDir.join("Support.LinkFileList").str)"])
                         case .windows:
                             task.checkCommandLine(["llvm-lib.exe",
                                                    "/out:\(architectures.count > 1 ? targetObjectsPerArchBuildDir.join("Binary/\(libSupportFileName)").str : targetBuildDir.join(libSupportFileName).str)",
@@ -1963,13 +1963,13 @@ fileprivate struct TaskConstructionTests: CoreBasedTests {
                         ], destinationSubfolder: .frameworks, onlyForDeployment: false),
                         // The destination here matches how the "XPCServices" popup in the build phase UI populates it.  See <rdar://problem/15366863>
                         TestCopyFilesBuildPhase([
-                            TestBuildFile("Servicible.xpc", codeSignOnCopy: true),
+                            TestBuildFile("Serviceable.xpc", codeSignOnCopy: true),
                         ], destinationSubfolder: .builtProductsDir, destinationSubpath: "$(CONTENTS_FOLDER_PATH)/XPCServices", onlyForDeployment: false),
                         TestCopyFilesBuildPhase([
                             TestBuildFile("Extending.appex", codeSignOnCopy: true),
                         ], destinationSubfolder: .plugins, onlyForDeployment: false),
                     ],
-                    dependencies: ["FwkTarget", "Servicible", "Extending"]
+                    dependencies: ["FwkTarget", "Serviceable", "Extending"]
                 ),
                 TestStandardTarget(
                     "FwkTarget",
@@ -1989,7 +1989,7 @@ fileprivate struct TaskConstructionTests: CoreBasedTests {
                     ]
                 ),
                 TestStandardTarget(
-                    "Servicible",
+                    "Serviceable",
                     type: .xpcService,
                     buildConfigurations: [
                         TestBuildConfiguration("Debug", buildSettings: [:]),
@@ -2035,9 +2035,9 @@ fileprivate struct TaskConstructionTests: CoreBasedTests {
                 results.checkTask(.matchTarget(target), .matchRuleType("CodeSign"), .matchRuleItem("\(SRCROOT)/build/Debug/FwkTarget.framework/Versions/A")) { task in
                 }
             }
-            results.checkTarget("Servicible") { target in
+            results.checkTarget("Serviceable") { target in
                 // There should be one codesign task.
-                results.checkTask(.matchTarget(target), .matchRuleType("CodeSign"), .matchRuleItem("\(SRCROOT)/build/Debug/Servicible.xpc")) { task in
+                results.checkTask(.matchTarget(target), .matchRuleType("CodeSign"), .matchRuleItem("\(SRCROOT)/build/Debug/Serviceable.xpc")) { task in
                 }
             }
             results.checkTarget("Extending") { target in
@@ -2053,9 +2053,9 @@ fileprivate struct TaskConstructionTests: CoreBasedTests {
                 }
 
                 // For the XPC service, there should be a copy task, and no signing task.
-                results.checkTask(.matchTarget(target), .matchRuleType("Copy"), .matchRuleItem("\(SRCROOT)/build/Debug/AppTarget.app/Contents/XPCServices/Servicible.xpc"), .matchRuleItem("\(SRCROOT)/build/Debug/Servicible.xpc")) { task in
+                results.checkTask(.matchTarget(target), .matchRuleType("Copy"), .matchRuleItem("\(SRCROOT)/build/Debug/AppTarget.app/Contents/XPCServices/Serviceable.xpc"), .matchRuleItem("\(SRCROOT)/build/Debug/Serviceable.xpc")) { task in
                 }
-                results.checkNoTask(.matchTarget(target), .matchRuleType("CodeSign"), .matchRuleItem("\(SRCROOT)/build/Debug/AppTarget.app/Contents/XPCServices/Servicible.xpc"))
+                results.checkNoTask(.matchTarget(target), .matchRuleType("CodeSign"), .matchRuleItem("\(SRCROOT)/build/Debug/AppTarget.app/Contents/XPCServices/Serviceable.xpc"))
 
                 // For the appex, there should be a copy task, no signing task, and a validation task.
                 results.checkTask(.matchTarget(target), .matchRuleType("Copy"), .matchRuleItem("\(SRCROOT)/build/Debug/AppTarget.app/Contents/PlugIns/Extending.appex"), .matchRuleItem("\(SRCROOT)/build/Debug/Extending.appex")) { task in
@@ -2237,7 +2237,7 @@ fileprivate struct TaskConstructionTests: CoreBasedTests {
             ])
         let tester = try await TaskConstructionTester(getCore(), testProject)
 
-        // Test a regular build.  Since `only-for-deplyment` is set, this should not result in any tasks.
+        // Test a regular build.  Since `only-for-deployment` is set, this should not result in any tasks.
         let buildParameters = BuildParameters(action: .build, configuration: "Debug", overrides: [:])
         await tester.checkBuild(buildParameters) { results in
             // We need to filter out boilerplate tasks such as `Gate` and `WriteAuxiliaryFile`, but there should be no others besides those.
@@ -2415,7 +2415,7 @@ fileprivate struct TaskConstructionTests: CoreBasedTests {
                     ])
                 }
 
-                // Ignore all Gate and build direcotry tasks.
+                // Ignore all Gate and build directory tasks.
                 results.checkTasks(.matchRuleType("Gate")) { _ in }
                 results.checkTasks(.matchRuleType("CreateBuildDirectory")) { _ in }
 
@@ -2661,7 +2661,7 @@ fileprivate struct TaskConstructionTests: CoreBasedTests {
         }
     }
 
-    // Test vaguaries of build variant handling.
+    // Test vagaries of build variant handling.
     @Test(.requireSDKs(.macOS))
     func buildVariants() async throws {
         let variants = ["normal", "debug"]
@@ -4406,8 +4406,8 @@ fileprivate struct TaskConstructionTests: CoreBasedTests {
 
         // Marshal the workspace into a build request from which we can create a product plan.
         let workspaceContext = WorkspaceContext(core: core, workspace: workspace, processExecutionCache: .sharedForTesting)
-        workspaceContext.userInfo = UserInfo(user: "exampleUser", group: "exampleGroup", uid: 1234, gid:12345, home: Path("/Users/exampleUser"), environment: [:])
-        workspaceContext.systemInfo = SystemInfo(operatingSystemVersion: Version(99, 98, 97), productBuildVersion: "99A98", nativeArchitecture: "x86_64")
+        workspaceContext.updateUserInfo(UserInfo(user: "exampleUser", group: "exampleGroup", uid: 1234, gid:12345, home: Path("/Users/exampleUser"), environment: [:]))
+        workspaceContext.updateSystemInfo(SystemInfo(operatingSystemVersion: Version(99, 98, 97), productBuildVersion: "99A98", nativeArchitecture: "x86_64"))
 
         let project = workspace.projects[0]
         let parameters = BuildParameters(configuration: "Debug")
@@ -5212,7 +5212,7 @@ fileprivate struct TaskConstructionTests: CoreBasedTests {
         let tester = try TaskConstructionTester(core, project)
         let SRCROOT = tester.workspace.projects[0].sourceRoot.str
 
-        // We need to construct a csutom build request because `PACKAGE_BUILD_DYNAMICALLY` only works in the per-target parameters.
+        // We need to construct a custom build request because `PACKAGE_BUILD_DYNAMICALLY` only works in the per-target parameters.
         let targets = tester.workspace.projects[0].targets.map({ BuildRequest.BuildTargetInfo(parameters: buildParameters.replacing(activeRunDestination: destination, activeArchitecture: nil), target: $0) })
         let buildRequest = BuildRequest(parameters: buildParameters.replacing(activeRunDestination: destination, activeArchitecture: nil), buildTargets: targets, continueBuildingAfterErrors: false, useParallelTargets: true, useImplicitDependencies: true, useDryRun: false)
 
@@ -8585,6 +8585,54 @@ fileprivate struct TaskConstructionTests: CoreBasedTests {
                     results.checkTask(.matchTarget(target), .matchRuleType("Ld")) { task in
                         task.checkCommandLineMatches(["-w"])
                     }
+                }
+            }
+        }
+    }
+
+    @Test(.requireSDKs(.host))
+    func deterministicBuildDirectoryInputOrdering() async throws {
+        try await withTemporaryDirectory { tmpDir in
+            let testProject = try await TestPackageProject(
+                "aProject",
+                sourceRoot: tmpDir,
+                groupTree: TestGroup(
+                    "SomeFiles",
+                    children: [
+                        TestFile("main.swift"),
+                    ]),
+                buildConfigurations: [
+                    TestBuildConfiguration("Debug", buildSettings: [
+                        "PRODUCT_NAME": "$(TARGET_NAME)",
+                        "SWIFT_EXEC": swiftCompilerPath.str,
+                        "SWIFT_VERSION": try await swiftVersion,
+                        "SUPPORTED_PLATFORMS": "$(HOST_PLATFORM)",
+                        "SDKROOT": "$(HOST_PLATFORM)",
+                        "LIBRARY_SEARCH_PATHS": "$(inherited) $(BUILT_PRODUCTS_DIR)/PackageFrameworks"
+                    ]),
+                ],
+                targets: [
+                    TestStandardTarget(
+                        "swifttool", type: .commandLineTool,
+                        buildConfigurations: [
+                            TestBuildConfiguration("Debug", buildSettings: [
+                                "PRODUCT_NAME": "$(TARGET_NAME)",
+                            ]),
+                        ],
+                        buildPhases: [
+                            TestSourcesBuildPhase(["main.swift"]),
+                        ],
+                        dependencies: []
+                    ),
+                ])
+            let tester = try await TaskConstructionTester(getCore(), testProject)
+            try await tester.checkBuild(BuildParameters(action: .install, configuration: "Debug"), runDestination: .host) { results in
+                try results.checkTask(.matchRuleType("Ld")) { task in
+                    results.checkNoDiagnostics()
+                    let debugIndex = try #require(task.inputs.firstIndex { $0.path.basename.hasPrefix("Debug") })
+                    let packageFrameworksIndex = try #require(task.inputs.firstIndex { $0.path.basename == "PackageFrameworks" })
+                    // Ensure the build directory input order is stable
+                    #expect(debugIndex < packageFrameworksIndex)
                 }
             }
         }

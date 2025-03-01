@@ -20,7 +20,7 @@ import SWBCore
 
 @Suite(.requireHostOS(.macOS))
 fileprivate struct DeferredExecutionTests: CoreBasedTests {
-    @Test(.requireSDKs(.macOS), arguments: [true, false])
+    @Test(.requireSDKs(.macOS), .requireXcode16(), arguments: [true, false])
     func testDeferredExecution(isOn: Bool) async throws {
         try await withTemporaryDirectory { tmpDir in
             let fs: any FSProxy = localFS
@@ -43,9 +43,14 @@ fileprivate struct DeferredExecutionTests: CoreBasedTests {
                         "ONLY_ACTIVE_ARCH": "YES",
                         "SDKROOT": "macosx",
                         "SWIFT_VERSION": "5.0",
+                        // Disable explicit modules here so we generate a consistent number of swift-frontend invocations that doesn't depend on the structure of the SDK
+                        "SWIFT_ENABLE_EXPLICIT_MODULES": "NO",
+                        "_EXPERIMENTAL_SWIFT_EXPLICIT_MODULES": "NO",
 
                         // TAPI can't read the "world's smallest dylib", so don't run that
                         "GENERATE_INTERMEDIATE_TEXT_BASED_STUBS": "NO",
+                        // Since we don't get the linker's SDK imports output here, skip it.
+                        "ENABLE_SDK_IMPORTS": "NO",
                     ])
                 ],
                 targets: [
@@ -182,7 +187,7 @@ fileprivate func withConfirmations(invert: Bool, _ body: (_ assetCatalogExpectat
             try await confirmation("Clang deferred execution requested", expectedCount: expectedCount) { clangExpectation in
                 try await confirmation("Swift deferred execution requested", expectedCount: swiftExpectedCount) { swiftExpectation in
                     try await confirmation("Linker deferred execution requested", expectedCount: expectedCount) { linkerExpectation in
-                        try await confirmation("Touch deferred exeucution requested", expectedCount: expectedCount) { touchExpectation in
+                        try await confirmation("Touch deferred execution requested", expectedCount: expectedCount) { touchExpectation in
                             try await confirmation("derq deferred execution requested", expectedCount: expectedCount) { derqExpectation in
                                 try await body(assetCatalogExpectation, codeSignExpectation, clangExpectation, swiftExpectation, linkerExpectation, touchExpectation, derqExpectation)
                             }

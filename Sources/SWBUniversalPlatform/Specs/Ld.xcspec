@@ -359,8 +359,7 @@
                 DefaultValue = NO;
                 CommandLineArgs = {
                     YES = (
-                        "-Xlinker",
-                        "-export_dynamic",
+                        "-rdynamic",
                     );
                     NO = ();
                 };
@@ -562,6 +561,13 @@
                     );
                 };
                 DependencyDataFormat = dependencyInfo;
+            },
+
+            // SDK Imports file
+            {
+                Name = "LD_SDK_IMPORTS_FILE";
+                Type = Path;
+                DefaultValue = "$(OBJECT_FILE_DIR_$(CURRENT_VARIANT))/$(CURRENT_ARCH)/$(PRODUCT_NAME)_$(CURRENT_VARIANT)_$(CURRENT_ARCH)_sdk_imports.json";
             },
 
             // Allowable Clients

@@ -810,23 +810,6 @@ public final class SwiftCommandOutputParser: TaskOutputParser {
                     return error("invalid pid \(pid) (already in use)")
             }
 
-            // Harvest the task information.
-            // The "command_executable" and "command_arguments" keys are preferred going forward,
-            // though we still parse the "command" key for backwards comaptibility.
-            let command: [String]
-            if case let .plString(exec)? = contents["command_executable"],
-                case let .plArray(rawArgs)? = contents["command_arguments"],
-                case let args = rawArgs.compactMap({ $0.stringValue }),
-                args.count == rawArgs.count {
-                command = [exec] + args
-            } else if case let .plString(value)? = contents["command"],
-                let commandArgs = try? commandDecoder.decode(value) {
-                command = commandArgs
-            } else {
-                error("missing or invalid command")
-                command = []
-            }
-
             // Compute the title.
             let title = computeSubtaskTitle(name, onlyInput, inputCount)
 
@@ -931,18 +914,8 @@ public final class SwiftCommandOutputParser: TaskOutputParser {
             // Don't try to read diagnostics if the process exited with an uncaught signal as they were almost certainly not written in this case.
             let serializedDiagnosticsPaths = subtask.nonEmptyDiagnosticsPaths(fs: workspaceContext.fs)
             if !serializedDiagnosticsPaths.isEmpty {
-                let serializedDiagnostics = serializedDiagnosticsPaths.flatMap { path in
+                for path in serializedDiagnosticsPaths {
                     subtask.delegate.processSerializedDiagnostics(at: path, workingDirectory: workingDirectory, workspaceContext: workspaceContext)
-                }
-
-                // Emit an additional diagnostic for missing frameworks that match the names of Apple SDK frameworks known to not be present in the current platform SDK.
-                if let configuredTarget = task?.forTarget {
-                    // Due to rdar://53726633, the actual target instance needs to be re-fetched instead of used directly, when retrieving the settings.
-                    if let target = workspaceContext.workspace.target(for: configuredTarget.target.guid), let settings = buildRequestContext.getCachedSettings(configuredTarget.parameters, target: target) as Settings?, !settings.globalScope.evaluate(BuiltinMacros.DISABLE_SDK_METADATA_PARSING), let sdk = settings.sdk {
-                        DiagnosticsEngine.generateMissingFrameworkDiagnostics(usingSerializedDiagnostics: serializedDiagnostics, settings: settings, infoLookup: workspaceContext.core, sdk: sdk, sdkVariant: settings.sdkVariant, missingFrameworkNames: workspaceContext.core.sdkRegistry.knownUnavailableFrameworksForSDK(sdk, sdkVariant: settings.sdkVariant), frameworkDeprecationInfo: workspaceContext.core.sdkRegistry.frameworkReplacementInfoForSDK(sdk, sdkVariant: settings.sdkVariant), diagnosticMessageRegexes: [SwiftCommandOutputParser.noSuchModuleRegEx], context: .swiftCompiler) { originalDiagnostic, newDiagnostic in
-                            subtask.delegate.diagnosticsEngine.emit(newDiagnostic)
-                        }
-                    }
                 }
             }
 
@@ -1121,7 +1094,7 @@ public struct SwiftMacroImplementationDescriptor: Hashable, Comparable, Sendable
     }
 }
 
-public final class SwiftCompilerSpec : CompilerSpec, SpecIdentifierType, SwiftDiscoveredCommandLineToolSpecInfo {
+public final class SwiftCompilerSpec : CompilerSpec, SpecIdentifierType, SwiftDiscoveredCommandLineToolSpecInfo, @unchecked Sendable {
     @_spi(Testing) public static let parallelismLevel = ProcessInfo.processInfo.activeProcessorCount
 
     public static let identifier = "com.apple.xcode.tools.swift.compiler"
@@ -1355,9 +1328,9 @@ public final class SwiftCompilerSpec : CompilerSpec, SpecIdentifierType, SwiftDi
     }
 
     static func getSwiftModuleFilePathInternal(_ scope: MacroEvaluationScope, _ mode: SwiftCompilationMode) -> Path {
-        let objectFileDir = scope.evaluate(BuiltinMacros.PER_ARCH_OBJECT_FILE_DIR)
+        let moduleFileDir = scope.evaluate(BuiltinMacros.PER_ARCH_MODULE_FILE_DIR)
         let moduleName = scope.evaluate(BuiltinMacros.SWIFT_MODULE_NAME)
-        return objectFileDir.join(moduleName + ".swiftmodule").appendingFileNameSuffix(mode.moduleBaseNameSuffix)
+        return moduleFileDir.join(moduleName + ".swiftmodule").appendingFileNameSuffix(mode.moduleBaseNameSuffix)
     }
 
     static public func getSwiftModuleFilePath(_ scope: MacroEvaluationScope) -> Path {
@@ -1394,7 +1367,7 @@ public final class SwiftCompilerSpec : CompilerSpec, SpecIdentifierType, SwiftDi
 
         // rdar://122829880 (Turn off Swift explicit modules when c++ interop is enabled)
         guard scope.evaluate(BuiltinMacros.SWIFT_OBJC_INTEROP_MODE) != "objcxx" && !scope.evaluate(BuiltinMacros.OTHER_SWIFT_FLAGS).contains("-cxx-interoperability-mode=default") else {
-            return false
+            return scope.evaluate(BuiltinMacros._SWIFT_EXPLICIT_MODULES_ALLOW_CXX_INTEROP)
         }
 
         // If a blocklist is provided in the toolchain, use it to determine the default for the current project
@@ -1637,7 +1610,7 @@ public final class SwiftCompilerSpec : CompilerSpec, SpecIdentifierType, SwiftDi
                 let typeStr = cbc.scope.evaluate(BuiltinMacros.PRODUCT_TYPE)
                 let productType = ProductTypeIdentifier(typeStr)
 
-                // For some targets, a tbd can be emitted to allow donwstream targets to begin linking earlier.
+                // For some targets, a tbd can be emitted to allow downstream targets to begin linking earlier.
                 let supportsTBDEmissionForEagerLinking = cbc.producer.supportsEagerLinking(scope: cbc.scope)
 
                 // InstallAPI support requires explicit opt-in and a compatible product type.
@@ -1813,18 +1786,24 @@ public final class SwiftCompilerSpec : CompilerSpec, SpecIdentifierType, SwiftDi
             }
 
             // Add caching related configurations.
-            let casOptions = isCachingEnabled ? CASOptions.createFromBuildContext(cbc, .other(dialectName: "swift"), delegate) : nil
-            if let casOpts = casOptions {
-                args.append("-cache-compile-job")
-                args += ["-cas-path", casOpts.casPath.str]
-                if let pluginPath = casOpts.pluginPath {
-                    args += ["-cas-plugin-path", pluginPath.str]
+            let casOptions: CASOptions?
+            do {
+                casOptions = isCachingEnabled ? (try CASOptions.create(cbc.scope, .compiler(.other(dialectName: "swift")))) : nil
+                if let casOpts = casOptions {
+                    args.append("-cache-compile-job")
+                    args += ["-cas-path", casOpts.casPath.str]
+                    if let pluginPath = casOpts.pluginPath {
+                        args += ["-cas-plugin-path", pluginPath.str]
+                    }
+                    // If the integrated cache queries is enabled, the remote service is handled by build system and no need to pass to compiler
+                    if !casOpts.enableIntegratedCacheQueries && casOpts.hasRemoteCache,
+                       let remoteService = casOpts.remoteServicePath {
+                        args += ["-cas-plugin-option", "remote-service-path=" + remoteService.str]
+                    }
                 }
-                // If the integrated cache queries is enabled, the remote service is handled by build system and no need to pass to compiler
-                if !casOpts.enableIntegratedCacheQueries && casOpts.hasRemoteCache,
-                   let remoteService = casOpts.remoteServicePath {
-                    args += ["-cas-plugin-option", "remote-service-path=" + remoteService.str]
-                }
+            } catch {
+                delegate.error(error.localizedDescription)
+                casOptions = nil
             }
 
             // Instruct the compiler to serialize diagnostics.
@@ -2104,7 +2083,7 @@ public final class SwiftCompilerSpec : CompilerSpec, SpecIdentifierType, SwiftDi
             // Pass in access notes if present.
             // "Access notes" are YAML files to override attributes on Swift declarations in this module.
             // We want to be able to add an access note for a particular target without changing anything in the project itself, including the project file. So instead of setting SWIFT_ACCESS_NOTES_PATH only in targets that have an access note, SWIFT_ACCESS_NOTES_PATH can be set by default in SDKs that contain access notes.
-            // But that means SWIFT_ACCESS_NOTES_PATH is often set in targets which don't actually have a corresponding access note. A nonexistent access note is not an error--in fact, it's the most common case. Swift Build must threfore check not only whether SWIFT_ACCESS_NOTES_PATH is non-empty, but also whether there is a file at the path it specifies, before it knows whether to pass the path to the compiler.
+            // But that means SWIFT_ACCESS_NOTES_PATH is often set in targets which don't actually have a corresponding access note. A nonexistent access note is not an error--in fact, it's the most common case. Swift Build must therefore check not only whether SWIFT_ACCESS_NOTES_PATH is non-empty, but also whether there is a file at the path it specifies, before it knows whether to pass the path to the compiler.
             // This special case only covers nonexistent files. Other errors (e.g. bad permissions, directory instead of file, parse errors) will be diagnosed by the compiler, so Swift Build doesn't check for them.
             let accessNotesPath = Path(cbc.scope.evaluate(BuiltinMacros.SWIFT_ACCESS_NOTES_PATH))
             if !accessNotesPath.isEmpty && delegate.fileExists(at: accessNotesPath) {
@@ -2137,6 +2116,11 @@ public final class SwiftCompilerSpec : CompilerSpec, SpecIdentifierType, SwiftDi
                 }
                 return (inputs, outputs)
             }()
+
+            if cbc.scope.evaluate(BuiltinMacros.PLATFORM_REQUIRES_SWIFT_MODULEWRAP) && cbc.scope.evaluate(BuiltinMacros.GCC_GENERATE_DEBUGGING_SYMBOLS) {
+                let moduleWrapOutput = Path(moduleFilePath.withoutSuffix + ".o")
+                moduleOutputPaths.append(moduleWrapOutput)
+            }
 
             // Add const metadata outputs to extra compilation outputs
             if await supportConstSupplementaryMetadata(cbc, delegate, compilationMode: compilationMode) {
@@ -2974,10 +2958,10 @@ public final class SwiftCompilerSpec : CompilerSpec, SpecIdentifierType, SwiftDi
             // be a source-less target which just contains object files in it's framework phase.
             let currentPlatformFilter = PlatformFilter(scope)
             let containsSources = (producer.configuredTarget?.target as? StandardTarget)?.sourcesBuildPhase?.buildFiles.filter { currentPlatformFilter.matches($0.platformFilters) }.isEmpty == false
-            if containsSources && inputFileTypes.contains(where: { $0.conformsTo(identifier: "sourcecode.swift") }) && scope.evaluate(BuiltinMacros.GCC_GENERATE_DEBUGGING_SYMBOLS) {
+            if containsSources && inputFileTypes.contains(where: { $0.conformsTo(identifier: "sourcecode.swift") }) && scope.evaluate(BuiltinMacros.GCC_GENERATE_DEBUGGING_SYMBOLS) && !scope.evaluate(BuiltinMacros.PLATFORM_REQUIRES_SWIFT_MODULEWRAP) {
                 let moduleName = scope.evaluate(BuiltinMacros.SWIFT_MODULE_NAME)
-                let objectFileDir = scope.evaluate(BuiltinMacros.PER_ARCH_OBJECT_FILE_DIR)
-                let moduleFilePath = objectFileDir.join(moduleName + ".swiftmodule")
+                let moduleFileDir = scope.evaluate(BuiltinMacros.PER_ARCH_MODULE_FILE_DIR)
+                let moduleFilePath = moduleFileDir.join(moduleName + ".swiftmodule")
                 args += [["-Xlinker", "-add_ast_path", "-Xlinker", moduleFilePath.str]]
                 if scope.evaluate(BuiltinMacros.SWIFT_GENERATE_ADDITIONAL_LINKER_ARGS) {
                     args += [["@\(Path(moduleFilePath.appendingFileNameSuffix("-linker-args").withoutSuffix + ".resp").str)"]]
@@ -3248,6 +3232,9 @@ public final class SwiftCompilerSpec : CompilerSpec, SpecIdentifierType, SwiftDi
             // Avoids emitting the `.d`` file
             "-emit-dependencies",
 
+            // Avoids overwriting localized strings for the transformed source file.
+            "-emit-localized-strings",
+
             // Previews doesn't need a `.swiftmodule` for the thunk
             "-emit-module",
 
@@ -3336,6 +3323,7 @@ public final class SwiftCompilerSpec : CompilerSpec, SpecIdentifierType, SwiftDi
             "-emit-module-interface-path",
             "-emit-private-module-interface-path",
             "-emit-package-module-interface-path",
+            "-emit-localized-strings-path",
             "-pch-output-dir",
         ] {
             removeWithParameter(arg)

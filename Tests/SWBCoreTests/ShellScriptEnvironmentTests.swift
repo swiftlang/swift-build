@@ -157,7 +157,7 @@ import SWBTestSupport
     }
 
     /// Test that default and overriding build settings defined in a toolchain are exported.
-    @Test
+    @Test(.requireHostOS(.macOS), .skipIfEnvironmentVariableSet(key: "EXTERNAL_TOOLCHAINS_DIR"))
     func exportingToolchainSettings() async throws {
         try await withTemporaryDirectory { tmpDirPath in
             // Toolchains are only loaded from the localFS, so we can't use a PseudoFS here.

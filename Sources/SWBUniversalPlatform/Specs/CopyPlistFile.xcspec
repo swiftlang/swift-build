@@ -49,7 +49,7 @@
                     {   Value = "binary";
                         CommandLineArgs = ("--convert", "binary1");
                     },
-                    {   Value = "Binary";   // deprecated -- backwards compatability
+                    {   Value = "Binary";   // deprecated -- backwards compatibility
                         CommandLineArgs = ("--convert", "binary1");
                     },
                 );

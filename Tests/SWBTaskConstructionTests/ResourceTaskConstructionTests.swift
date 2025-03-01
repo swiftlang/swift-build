@@ -885,7 +885,7 @@ fileprivate struct ResourcesTaskConstructionTests: CoreBasedTests {
                     ])
                 }
 
-                if SWBFeatureFlag.enableDefaultInfoPlistTemplateKeys {
+                if SWBFeatureFlag.enableDefaultInfoPlistTemplateKeys.value {
                     // There should be a process Info.plist task.
                     results.checkTask(.matchTarget(target), .matchRuleType("ProcessInfoPlistFile")) { _ in }
                 }
@@ -1608,7 +1608,7 @@ fileprivate struct ResourcesTaskConstructionTests: CoreBasedTests {
                     task.checkRuleInfo(["CpResource", "/tmp/Test/aProject/build/Debug/CoreFoo.framework/Versions/A/Resources/Bar.fake-xcspec-twostep", "/tmp/Test/aProject/build/aProject.build/Debug/CoreFoo.build/DerivedSources/Bar.fake-xcspec-twostep"])
                 }
 
-                // We should not have any other CpResource or RuleScriptExeuction tasks.
+                // We should not have any other CpResource or RuleScriptExecution tasks.
                 results.checkNoTask(.matchRuleType("RuleScriptExecution"))
                 results.checkNoTask(.matchRuleType("CpResource"))
             }
@@ -1674,7 +1674,7 @@ fileprivate struct ResourcesTaskConstructionTests: CoreBasedTests {
                     task.checkRuleInfo(["Copy", "\(SRCROOT)/build/Debug/CoreFoo.framework/Versions/A/Resources/Bar.fake-twostep", "\(SRCROOT)/build/aProject.build/Debug/CoreFoo.build/DerivedSources/Bar.fake-twostep"])
                 }
 
-                // We should not have any other CpResource or RuleScriptExeuction tasks.
+                // We should not have any other CpResource or RuleScriptExecution tasks.
                 results.checkNoTask(.matchRuleType("RuleScriptExecution"))
                 results.checkNoTask(.matchRuleType("CpResource"))
             }
