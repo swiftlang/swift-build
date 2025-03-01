@@ -127,6 +127,9 @@ public struct ProvisioningTaskInputsSourceData: Serializable, Equatable, Sendabl
     public init(from deserializer: any Deserializer) throws {
         let count = try deserializer.beginAggregate(20...22)
         self.configurationName = try deserializer.deserialize()
+        if count >= 21 {
+            _ = try deserializer.deserialize() as Bool  // Deprecated field, kept for compatibility
+        }
         self.provisioningProfileSupport = count >= 21 ? try deserializer.deserialize() : .unsupported
         self.provisioningProfileSpecifier = try deserializer.deserialize()
         self.provisioningProfileUUID = try deserializer.deserialize()
@@ -154,6 +157,7 @@ public struct ProvisioningTaskInputsSourceData: Serializable, Equatable, Sendabl
     public func serialize<T: Serializer>(to serializer: T) {
         serializer.serializeAggregate(21) {
             serializer.serialize(configurationName)
+            serializer.serialize(false) // Deprecated field, kept for compatibility
             serializer.serialize(provisioningProfileSupport)
             serializer.serialize(provisioningProfileSpecifier)
             serializer.serialize(provisioningProfileUUID)

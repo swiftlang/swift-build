@@ -47,7 +47,7 @@ extension ProvisioningSourceData: Encodable, Decodable {
 
 extension ProvisioningSourceData: PendingSerializableCodable {
     public func legacySerialize<T: Serializer>(to serializer: T) {
-        serializer.serializeAggregate(4) {
+        serializer.serializeAggregate(3) {
             serializer.serialize(configurationName)
             serializer.serialize(provisioningStyle)
             serializer.serialize(bundleIdentifierFromInfoPlist)
@@ -55,9 +55,12 @@ extension ProvisioningSourceData: PendingSerializableCodable {
     }
 
     public init(fromLegacy deserializer: any Deserializer) throws {
-        let count = try deserializer.beginAggregate(4...5)
+        let count = try deserializer.beginAggregate(3...5)
         self.configurationName = try deserializer.deserialize()
         self.provisioningStyle = try deserializer.deserialize()
+        if count > 3 {
+            _ = try deserializer.deserialize() as Bool          // appIDHasFeaturesEnabled
+        }
         if count > 4 {
             _ = try deserializer.deserialize() as String        // legacyTeamID
         }

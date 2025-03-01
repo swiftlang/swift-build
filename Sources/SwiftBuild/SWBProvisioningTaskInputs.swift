@@ -28,11 +28,6 @@ public enum SWBProvisioningProfileSupport: Sendable {
 public struct SWBProvisioningTaskInputsSourceData: Sendable {
     public let configurationName: String
 
-    @available(*, deprecated, message: "It will need to remain as a deprecated property to maintain ABI compatibility.")
-    public var appIDHasFeaturesEnabled: Bool {
-        return false
-    }
-
     public let provisioningProfileSupport: SWBProvisioningProfileSupport
     public let provisioningProfileSpecifier: String
     public let provisioningProfileUUID: String
