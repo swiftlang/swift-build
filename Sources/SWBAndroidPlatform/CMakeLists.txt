@@ -37,3 +37,5 @@ target_link_libraries(SWBAndroidPlatform PUBLIC
   SWBUtil)
 target_sources(SWBAndroidPlatform PRIVATE
   "${CMAKE_CURRENT_BINARY_DIR}/resource_bundle_accessor.swift")
+SwiftBuild_Bundle(MODULE SWBAndroidPlatform FILES
+  Android.xcspec)

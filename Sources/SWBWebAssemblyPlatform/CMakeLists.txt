@@ -36,3 +36,8 @@ target_link_libraries(SWBWebAssemblyPlatform PUBLIC
   SWBUtil)
 target_sources(SWBWebAssemblyPlatform PRIVATE
   "${CMAKE_CURRENT_BINARY_DIR}/resource_bundle_accessor.swift")
+SwiftBuild_Bundle(MODULE SWBWebAssemblyPlatform FILES
+  WasmCompile.xcspec
+  WasmLd.xcspec
+  WasmLibtool.xcspec
+  WebAssembly.xcspec)

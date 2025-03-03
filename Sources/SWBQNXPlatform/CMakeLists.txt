@@ -37,3 +37,7 @@ target_link_libraries(SWBQNXPlatform PUBLIC
   SWBUtil)
 target_sources(SWBQNXPlatform PRIVATE
   "${CMAKE_CURRENT_BINARY_DIR}/resource_bundle_accessor.swift")
+SwiftBuild_Bundle(MODULE SWBQNXPlatform FILES
+  QNX.xcspec
+  QNXCompile.xcspec
+  QNXLibtool.xcspec)
