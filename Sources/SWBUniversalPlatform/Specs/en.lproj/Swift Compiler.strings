@@ -55,5 +55,5 @@
 "[SWIFT_OBJC_INTEROP_MODE]-value-[objcxx]" = "C++ / Objective-C++";
 "[SWIFT_OBJC_INTEROP_MODE]-value-[objc]" = "C / Objective-C";
 
-"[_EXPERIMENTAL_SWIFT_EXPLICIT_MODULES]-value-[YES]" = "Yes";
-"[_EXPERIMENTAL_SWIFT_EXPLICIT_MODULES]-value-[NO]" = "No";
+"[SWIFT_ENABLE_EXPLICIT_MODULES]-value-[YES]" = "Yes";
+"[SWIFT_ENABLE_EXPLICIT_MODULES]-value-[NO]" = "No";
