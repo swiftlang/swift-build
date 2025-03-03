@@ -43,3 +43,9 @@ set_property(GLOBAL APPEND PROPERTY SWIFTBUILD_EXPORTS SWBGenericUnixPlatform)
 
 install(TARGETS SWBGenericUnixPlatform
     ARCHIVE DESTINATION "${SwiftBuild_INSTALL_LIBDIR}")
+
+SwiftBuild_Bundle(MODULE SWBGenericUnixPlatform FILES
+  Unix.xcspec
+  UnixCompile.xcspec
+  UnixLd.xcspec
+  UnixLibtool.xcspec)

@@ -45,3 +45,8 @@ set_property(GLOBAL APPEND PROPERTY SWIFTBUILD_EXPORTS SWBQNXPlatform)
 
 install(TARGETS SWBQNXPlatform
     ARCHIVE DESTINATION "${SwiftBuild_INSTALL_LIBDIR}")
+
+SwiftBuild_Bundle(MODULE SWBQNXPlatform FILES
+  QNX.xcspec
+  QNXCompile.xcspec
+  QNXLibtool.xcspec)

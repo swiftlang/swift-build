@@ -45,3 +45,6 @@ set_property(GLOBAL APPEND PROPERTY SWIFTBUILD_EXPORTS SWBAndroidPlatform)
 
 install(TARGETS SWBAndroidPlatform
     ARCHIVE DESTINATION "${SwiftBuild_INSTALL_LIBDIR}")
+
+SwiftBuild_Bundle(MODULE SWBAndroidPlatform FILES
+  Android.xcspec)

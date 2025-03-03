@@ -44,3 +44,9 @@ set_property(GLOBAL APPEND PROPERTY SWIFTBUILD_EXPORTS SWBWebAssemblyPlatform)
 
 install(TARGETS SWBWebAssemblyPlatform
     ARCHIVE DESTINATION "${SwiftBuild_INSTALL_LIBDIR}")
+
+SwiftBuild_Bundle(MODULE SWBWebAssemblyPlatform FILES
+  WasmCompile.xcspec
+  WasmLd.xcspec
+  WasmLibtool.xcspec
+  WebAssembly.xcspec)

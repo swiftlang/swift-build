@@ -46,3 +46,9 @@ set_property(GLOBAL APPEND PROPERTY SWIFTBUILD_EXPORTS SWBWindowsPlatform)
 
 install(TARGETS SWBWindowsPlatform
     ARCHIVE DESTINATION "${SwiftBuild_INSTALL_LIBDIR}")
+
+SwiftBuild_Bundle(MODULE SWBWindowsPlatform FILES
+  Windows.xcspec
+  WindowsCompile.xcspec
+  WindowsLd.xcspec
+  WindowsLibtool.xcspec)
