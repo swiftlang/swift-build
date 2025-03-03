@@ -912,7 +912,7 @@
                 DefaultValue = YES;
             },
             {
-                Name = "_EXPERIMENTAL_SWIFT_EXPLICIT_MODULES";
+                Name = "SWIFT_ENABLE_EXPLICIT_MODULES";
                 Type = Enumeration;
                 Values = (
                     YES,

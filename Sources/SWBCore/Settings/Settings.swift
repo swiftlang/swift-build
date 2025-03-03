@@ -568,11 +568,11 @@ final class WorkspaceSettings: Sendable {
         }
 
         if SWBFeatureFlag.enableClangExplicitModulesByDefault.value {
-            table.push(BuiltinMacros._EXPERIMENTAL_CLANG_EXPLICIT_MODULES, literal: true)
+            table.push(BuiltinMacros.CLANG_ENABLE_EXPLICIT_MODULES, literal: true)
         }
 
         if SWBFeatureFlag.enableSwiftExplicitModulesByDefault.value {
-            table.push(BuiltinMacros._EXPERIMENTAL_SWIFT_EXPLICIT_MODULES, literal: .enabled)
+            table.push(BuiltinMacros.SWIFT_ENABLE_EXPLICIT_MODULES, literal: .enabled)
         }
 
         if SWBFeatureFlag.enableClangCachingByDefault.value {
