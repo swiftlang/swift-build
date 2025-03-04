@@ -179,7 +179,7 @@ private func setupMacroEvaluationScope(_ settings: [MacroDeclaration:String] = [
                                 TestSourcesBuildPhase(["aClass.m"]),
                             ],
                             provisioningSourceData: [
-                                ProvisioningSourceData(configurationName: "Debug", appIDHasFeaturesEnabled: false, provisioningStyle: .automatic, bundleIdentifierFromInfoPlist: "AppTarget"),
+                                ProvisioningSourceData(configurationName: "Debug", provisioningStyle: .automatic, bundleIdentifierFromInfoPlist: "AppTarget"),
                             ]
                         )
                     ]

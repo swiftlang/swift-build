@@ -27,7 +27,7 @@ public enum SWBProvisioningProfileSupport: Sendable {
 /// Source data for computing provisioning task inputs, to be passed from SwiftBuild.framework to clients.
 public struct SWBProvisioningTaskInputsSourceData: Sendable {
     public let configurationName: String
-    public let appIDHasFeaturesEnabled: Bool
+
     public let provisioningProfileSupport: SWBProvisioningProfileSupport
     public let provisioningProfileSpecifier: String
     public let provisioningProfileUUID: String
@@ -50,7 +50,6 @@ public struct SWBProvisioningTaskInputsSourceData: Sendable {
 
     init(_ sourceData: ProvisioningTaskInputsSourceData) throws {
         self.configurationName = sourceData.configurationName
-        self.appIDHasFeaturesEnabled = sourceData.appIDHasFeaturesEnabled
         switch sourceData.provisioningProfileSupport {
         case .unsupported:
             self.provisioningProfileSupport = .unsupported

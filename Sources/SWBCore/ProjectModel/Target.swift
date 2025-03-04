@@ -582,7 +582,7 @@ public final class StandardTarget: BuildPhaseTarget, @unchecked Sendable
         // If any configurations didn't have provisioning source data objects, then create default ones for those configurations.
         for configurationName in configurationNames
         {
-            let sourceData = ProvisioningSourceData(configurationName: configurationName, appIDHasFeaturesEnabled: false, provisioningStyle: .automatic, bundleIdentifierFromInfoPlist: "")
+            let sourceData = ProvisioningSourceData(configurationName: configurationName, provisioningStyle: .automatic, bundleIdentifierFromInfoPlist: "")
             provisioningSourceData.append(sourceData)
         }
     }
@@ -596,7 +596,7 @@ public final class StandardTarget: BuildPhaseTarget, @unchecked Sendable
                 // Override the provisioning style using $(CODE_SIGN_STYLE), if defined.
                 // FIXME: If $(CODE_SIGN_STYLE) evaluates to an unexpected value, we should emit an error somewhere.
                 if let codeSignStyleValue = scope?.evaluate(BuiltinMacros.CODE_SIGN_STYLE), !codeSignStyleValue.isEmpty, let codeSignStyle = ProvisioningStyle.fromString(codeSignStyleValue) {
-                    return ProvisioningSourceData(configurationName: sourceData.configurationName, appIDHasFeaturesEnabled: sourceData.appIDHasFeaturesEnabled, provisioningStyle: codeSignStyle, bundleIdentifierFromInfoPlist: sourceData.bundleIdentifierFromInfoPlist)
+                    return ProvisioningSourceData(configurationName: sourceData.configurationName, provisioningStyle: codeSignStyle, bundleIdentifierFromInfoPlist: sourceData.bundleIdentifierFromInfoPlist)
                 }
                 return sourceData
             }

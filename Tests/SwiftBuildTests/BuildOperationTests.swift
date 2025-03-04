@@ -1027,7 +1027,7 @@ fileprivate struct BuildOperationTests: CoreBasedTests {
                         TestHeadersBuildPhase([TestBuildFile("foo.h")]),
                     ],
                     provisioningSourceData: [
-                        ProvisioningSourceData(configurationName: "Debug", appIDHasFeaturesEnabled: false, provisioningStyle: .automatic, bundleIdentifierFromInfoPlist: "AppTarget"),
+                        ProvisioningSourceData(configurationName: "Debug", provisioningStyle: .automatic, bundleIdentifierFromInfoPlist: "AppTarget"),
                     ]
                 )
                 let testProject = TestProject(
