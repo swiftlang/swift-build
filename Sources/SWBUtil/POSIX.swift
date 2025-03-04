@@ -15,17 +15,22 @@ import SWBLibc
 public import protocol Foundation.LocalizedError
 
 #if os(Windows)
-#if canImport(System)
-import System
-#else
-import SystemPackage
-#endif
+public import Foundation
+
+private func strerror(_ code: CInt) -> String {
+    withUnsafeTemporaryAllocation(of: CChar.self, capacity: 95) {
+        guard strerror_s($0.baseAddress, $0.count, code) == 0 else {
+            return "unknown error"
+        }
+        return String(cString: $0.baseAddress!)
+    }
+}
 #endif
 
 public enum POSIX: Sendable {
     public static func getenv(_ name: String) throws -> String? {
         #if os(Windows)
-        try name.withCString(encodedAs: CInterop.PlatformUnicodeEncoding.self) { wName in
+        try name.withCString(encodedAs: UTF16.self) { wName in
             let dwLength: DWORD = GetEnvironmentVariableW(wName, nil, 0)
             if dwLength == 0 {
                 if GetLastError() == ERROR_ENVVAR_NOT_FOUND {
@@ -36,7 +41,7 @@ public enum POSIX: Sendable {
             return try withUnsafeTemporaryAllocation(of: WCHAR.self, capacity: Int(dwLength)) {
                 switch GetEnvironmentVariableW(wName, $0.baseAddress!, DWORD($0.count)) {
                 case dwLength - 1:
-                    return String(decodingCString: $0.baseAddress!, as: CInterop.PlatformUnicodeEncoding.self)
+                    return String(decodingCString: $0.baseAddress!, as: UTF16.self)
                 case 0 where GetLastError() == ERROR_ENVVAR_NOT_FOUND:
                     return nil
                 default:
@@ -54,13 +59,13 @@ public enum POSIX: Sendable {
         let valueString = String(cString: value)
         #if os(Windows)
         if overwrite == 0 {
-            if nameString.withCString(encodedAs: CInterop.PlatformUnicodeEncoding.self, { GetEnvironmentVariableW($0, nil, 0) }) == 0 && GetLastError() != ERROR_ENVVAR_NOT_FOUND {
+            if nameString.withCString(encodedAs: UTF16.self, { GetEnvironmentVariableW($0, nil, 0) }) == 0 && GetLastError() != ERROR_ENVVAR_NOT_FOUND {
                 throw POSIXError(errno, context: "GetEnvironmentVariableW", nameString)
             }
             return
         }
-        guard nameString.withCString(encodedAs: CInterop.PlatformUnicodeEncoding.self, { nameWString in
-            valueString.withCString(encodedAs: CInterop.PlatformUnicodeEncoding.self, { valueWString in
+        guard nameString.withCString(encodedAs: UTF16.self, { nameWString in
+            valueString.withCString(encodedAs: UTF16.self, { valueWString in
                 SetEnvironmentVariableW(nameWString, valueWString)
             })
         }) else {
@@ -77,7 +82,7 @@ public enum POSIX: Sendable {
     public static func unsetenv(_ name: UnsafePointer<CChar>) throws {
         let nameString = String(cString: name)
         #if os(Windows)
-        guard nameString.withCString(encodedAs: CInterop.PlatformUnicodeEncoding.self, { SetEnvironmentVariableW($0, nil) }) else {
+        guard nameString.withCString(encodedAs: UTF16.self, { SetEnvironmentVariableW($0, nil) }) else {
             throw POSIXError(errno, context: "SetEnvironmentVariableW", nameString)
         }
         #else
@@ -105,7 +110,11 @@ public struct POSIXError: Error, LocalizedError, CustomStringConvertible, Equata
     }
 
     public var description: String {
+        #if os(Windows)
+        let end = "\(strerror(code)) (\(code))"
+        #else
         let end = "\(String(cString: strerror(code))) (\(code))"
+        #endif
         if let context {
             return "\(context)(\(arguments.joined(separator: ", "))): \(end)"
         }

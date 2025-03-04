@@ -324,7 +324,7 @@ public final class VariantGroup: GroupTreeReference, BuildFileRepresentable, @un
 
 
 /// A ProductReference represents the product of a StandardTarget object.  It acts as a placeholder so that product can be represented in other targets, but it contains no meaningful information itself; rather, it vends information about itself by querying its target for that information.  A ProductReference object is not part of a product's group tree and has no parent property; rather, it is owned by and has an unowned backpointer to its target.
-public final class ProductReference: Reference, BuildFileRepresentable
+public final class ProductReference: Reference, BuildFileRepresentable, @unchecked Sendable
 {
     /// The name of this reference - primarily for debugging purposes.
     public let name: String
