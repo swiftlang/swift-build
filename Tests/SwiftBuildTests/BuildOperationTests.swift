@@ -1195,7 +1195,7 @@ fileprivate struct BuildOperationTests: CoreBasedTests {
     }
 
     /// Check some cancellation related semantics.
-    @Test(.skipHostOS(.windows, "requires /usr/bin/yes"), .skipHostOS(.linux, "test occasionally hangs on Linux"))
+    @Test(.requireSDKs(.host), .skipHostOS(.windows, "requires /usr/bin/yes"), .skipHostOS(.linux, "test occasionally hangs on Linux"))
     func cancellationBeforeStarting() async throws {
         try await withTemporaryDirectory { (temporaryDirectory: NamedTemporaryDirectory) in
             try await withAsyncDeferrable { deferrable in
@@ -1266,7 +1266,7 @@ fileprivate struct BuildOperationTests: CoreBasedTests {
     }
 
     /// Check some cancellation related semantics.
-    @Test(.skipHostOS(.windows, "requires /usr/bin/yes"), .skipHostOS(.linux, "test occasionally hangs on Linux"))
+    @Test(.requireSDKs(.host), .skipHostOS(.windows, "requires /usr/bin/yes"), .skipHostOS(.linux, "test occasionally hangs on Linux"))
     func cancellationImmediatelyAfterStart() async throws {
         try await withTemporaryDirectory { (temporaryDirectory: NamedTemporaryDirectory) in
             try await withAsyncDeferrable { deferrable in
@@ -1338,7 +1338,7 @@ fileprivate struct BuildOperationTests: CoreBasedTests {
     }
 
     /// Check some cancellation related semantics.
-    @Test(.skipHostOS(.windows, "requires /usr/bin/yes"), .skipHostOS(.linux, "test occasionally hangs on Linux"))
+    @Test(.requireSDKs(.host), .skipHostOS(.windows, "requires /usr/bin/yes"), .skipHostOS(.linux, "test occasionally hangs on Linux"))
     func cancellationAfterStart() async throws {
         try await withTemporaryDirectory { (temporaryDirectory: NamedTemporaryDirectory) in
             try await withAsyncDeferrable { deferrable in
@@ -1420,7 +1420,7 @@ fileprivate struct BuildOperationTests: CoreBasedTests {
     }
 
     /// Check some cancellation related semantics.
-    @Test(.skipHostOS(.windows, "requires /usr/bin/yes"), .skipHostOS(.linux, "test occasionally hangs on Linux"))
+    @Test(.requireSDKs(.host), .skipHostOS(.windows, "requires /usr/bin/yes"), .skipHostOS(.linux, "test occasionally hangs on Linux"))
     func cancellationAfterTaskStart() async throws {
         try await withTemporaryDirectory { (temporaryDirectory: NamedTemporaryDirectory) in
             try await withAsyncDeferrable { deferrable in
@@ -1500,7 +1500,7 @@ fileprivate struct BuildOperationTests: CoreBasedTests {
     }
 
     /// Check some cancellation related semantics.
-    @Test(.skipHostOS(.windows, "requires /usr/bin/yes"), .skipHostOS(.linux, "test occasionally hangs on Linux"))
+    @Test(.requireSDKs(.host), .skipHostOS(.windows, "requires /usr/bin/yes"), .skipHostOS(.linux, "test occasionally hangs on Linux"))
     func repeatedCancellation() async throws {
         try await withTemporaryDirectory { (temporaryDirectory: NamedTemporaryDirectory) in
             try await withAsyncDeferrable { deferrable in
@@ -1574,7 +1574,7 @@ fileprivate struct BuildOperationTests: CoreBasedTests {
     }
 
     /// Test that starting a build operation actually cancels indexing operations.
-    @Test(.requireHostOS(.macOS))
+    @Test(.requireSDKs(.host), .requireHostOS(.macOS))
     func indexingCancellation() async throws {
         try await withTemporaryDirectory { (temporaryDirectory: NamedTemporaryDirectory) in
             try await withAsyncDeferrable { deferrable in
@@ -1649,7 +1649,7 @@ fileprivate struct BuildOperationTests: CoreBasedTests {
     }
 
     /// Test session destruction
-    @Test(.skipHostOS(.windows, "requires /usr/bin/yes"), .skipHostOS(.linux, "test occasionally hangs on Linux"))
+    @Test(.requireSDKs(.host), .skipHostOS(.windows, "requires /usr/bin/yes"), .skipHostOS(.linux, "test occasionally hangs on Linux"))
     func sessionDestructionCancellation() async throws {
         try await withTemporaryDirectory { (temporaryDirectory: NamedTemporaryDirectory) in
             try await withAsyncDeferrable { deferrable in
