@@ -251,11 +251,6 @@ fileprivate struct LinkerTests: CoreBasedTests {
                         }
                     }
                 }
-                if runDestination == .windows {
-                    // Issue: Linker cannot find dependent library
-                    results.checkError(.contains("Linker command failed with exit code 1"))
-                    results.checkError(.contains("LNK1181: cannot open input file 'Library.lib'"))
-                }
                 results.checkNoDiagnostics()
             }
 
@@ -327,9 +322,6 @@ fileprivate struct LinkerTests: CoreBasedTests {
                             #expect(output.asString.contains(linkLinkerPath.str))
                         }
                     }
-                    //Issue: Linker cannot find dependent library
-                    results.checkError(.contains("Linker command failed with exit code 1"))
-                    results.checkError(.contains("LINK : fatal error LNK1181: cannot open input file 'Library.lib'"))
                     results.checkNoDiagnostics()
                 }
             }

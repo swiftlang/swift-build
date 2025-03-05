@@ -48,6 +48,7 @@
         Identifier = com.apple.product-type.library.static;
         BasedOn = default:com.apple.product-type.library.static;
         DefaultBuildProperties = {
+            EXECUTABLE_PREFIX = "";
             EXECUTABLE_EXTENSION = "lib";
             PUBLIC_HEADERS_FOLDER_PATH = "";
             PRIVATE_HEADERS_FOLDER_PATH = "";
