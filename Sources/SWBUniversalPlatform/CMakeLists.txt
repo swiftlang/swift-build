@@ -29,12 +29,12 @@ file(CONFIGURE
   ESCAPE_QUOTES @ONLY NEWLINE_STYLE LF)
 
 add_library(SWBUniversalPlatform STATIC
-  Specs/CopyPlistFile.swift
-  Specs/CopyStringsFile.swift
-  Specs/CppTool.swift
-  Specs/DiffTool.swift
-  Specs/LexCompiler.swift
-  Specs/YaccCompiler.swift
+  CopyPlistFile.swift
+  CopyStringsFile.swift
+  CppTool.swift
+  DiffTool.swift
+  LexCompiler.swift
+  YaccCompiler.swift
   Plugin.swift)
 target_link_libraries(SWBUniversalPlatform PUBLIC
   SWBCore

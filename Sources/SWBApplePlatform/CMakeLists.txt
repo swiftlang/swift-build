@@ -29,26 +29,26 @@ file(CONFIGURE
   ESCAPE_QUOTES @ONLY NEWLINE_STYLE LF)
 
 add_library(SWBApplePlatform STATIC
-  Specs/AssetCatalogCompiler.swift
-  Specs/CopyTiffFile.swift
-  Specs/CoreDataCompiler.swift
-  Specs/CoreMLCompiler.swift
-  Specs/DittoTool.swift
-  Specs/ExtensionPointsCompiler.swift
-  Specs/IIGCompiler.swift
-  Specs/InstrumentsPackageBuilderSpec.swift
-  Specs/IntentsCompiler.swift
-  Specs/InterfaceBuilderCompiler.swift
-  Specs/InterfaceBuilderShared.swift
-  Specs/MetalCompiler.swift
-  Specs/MiGCompiler.swift
-  Specs/OpenCLCompiler.swift
-  Specs/RealityAssetsCompilerSpec.swift
-  Specs/ReferenceObjectCompiler.swift
-  Specs/ResMergerLinkerSpec.swift
-  Specs/SceneKitToolSpec.swift
-  Specs/StoryboardLinker.swift
-  Specs/XCStringsCompiler.swift
+  AssetCatalogCompiler.swift
+  CopyTiffFile.swift
+  CoreDataCompiler.swift
+  CoreMLCompiler.swift
+  DittoTool.swift
+  ExtensionPointsCompiler.swift
+  IIGCompiler.swift
+  InstrumentsPackageBuilderSpec.swift
+  IntentsCompiler.swift
+  InterfaceBuilderCompiler.swift
+  InterfaceBuilderShared.swift
+  MetalCompiler.swift
+  MiGCompiler.swift
+  OpenCLCompiler.swift
+  RealityAssetsCompilerSpec.swift
+  ReferenceObjectCompiler.swift
+  ResMergerLinkerSpec.swift
+  SceneKitToolSpec.swift
+  StoryboardLinker.swift
+  XCStringsCompiler.swift
   ActoolInputFileGroupingStrategy.swift
   AssetCatalogCompilerOutputParser.swift
   CMakeLists.txt
