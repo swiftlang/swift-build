@@ -1744,7 +1744,7 @@ fileprivate struct TaskConstructionTests: CoreBasedTests {
                 let effectivePlatformName = results.builtProductsDirSuffix(target)
                 let targetBuildDir = Path("\(SRCROOT)/build/Debug\(effectivePlatformName)")
                 let targetObjectsPerArchBuildBaseDir = Path("\(SRCROOT)/build/aProject.build/Debug\(effectivePlatformName)/Support.build/Objects-normal/")
-                let libSupportFileName = "libSupport\(runDestination == .windows ? ".lib" : ".a")"
+                let libSupportFileName = runDestination == .windows ? "Support.lib" : "libSupport.a"
 
                 if versioningSupported {
                     results.checkTask(.matchTarget(target), .matchRuleType("WriteAuxiliaryFile"), .matchRuleItemBasename("Support_vers.c")) { _ in }
