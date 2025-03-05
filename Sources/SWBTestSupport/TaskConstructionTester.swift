@@ -120,6 +120,9 @@ package final class TaskConstructionTester {
         package func getDiagnosticMessage(_ pattern: StringPattern, kind: DiagnosticKind, checkDiagnostic: (Diagnostic) -> Bool) -> String? {
             for (target, targetDiagnostics) in diagnostics {
                 for (index, event) in targetDiagnostics.enumerated() {
+                    guard filterDiagnostic(message: event.formatLocalizedDescription(.debugWithoutBehavior)) != nil else {
+                        continue
+                    }
                     guard event.behavior == kind else {
                         continue
                     }
