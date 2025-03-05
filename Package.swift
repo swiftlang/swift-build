@@ -126,10 +126,8 @@ let package = Package(
                 "SWBLLBuild",
             ],
             exclude: ["CMakeLists.txt"],
-            swiftSettings: swiftSettings(languageMode: .v5),
-            plugins: [
-                .plugin(name: "SWBSpecificationsPlugin")
-            ]),
+            resources: [.process("Specs")],
+            swiftSettings: swiftSettings(languageMode: .v5)),
         .target(
             name: "SWBCSupport",
             publicHeadersPath: ".",
@@ -212,46 +210,44 @@ let package = Package(
             name: "SWBAndroidPlatform",
             dependencies: ["SWBCore", "SWBMacro", "SWBUtil"],
             exclude: ["CMakeLists.txt"],
+            resources: [.process("Specs")],
             swiftSettings: swiftSettings(languageMode: .v6)),
         .target(
             name: "SWBApplePlatform",
             dependencies: ["SWBCore", "SWBMacro", "SWBUtil", "SWBTaskConstruction"],
             exclude: ["CMakeLists.txt"],
+            resources: [.process("Specs")],
             swiftSettings: swiftSettings(languageMode: .v6)),
         .target(
             name: "SWBGenericUnixPlatform",
             dependencies: ["SWBCore", "SWBUtil"],
             exclude: ["CMakeLists.txt"],
+            resources: [.process("Specs")],
             swiftSettings: swiftSettings(languageMode: .v6)),
         .target(
             name: "SWBQNXPlatform",
             dependencies: ["SWBCore", "SWBMacro", "SWBUtil"],
             exclude: ["CMakeLists.txt"],
+            resources: [.process("Specs")],
             swiftSettings: swiftSettings(languageMode: .v6)),
         .target(
             name: "SWBUniversalPlatform",
             dependencies: ["SWBCore", "SWBMacro", "SWBUtil"],
             exclude: ["CMakeLists.txt"],
+            resources: [.process("Specs")],
             swiftSettings: swiftSettings(languageMode: .v6)),
         .target(
             name: "SWBWebAssemblyPlatform",
             dependencies: ["SWBCore", "SWBMacro", "SWBUtil"],
             exclude: ["CMakeLists.txt"],
+            resources: [.process("Specs")],
             swiftSettings: swiftSettings(languageMode: .v6)),
         .target(
             name: "SWBWindowsPlatform",
             dependencies: ["SWBCore", "SWBMacro", "SWBUtil"],
             exclude: ["CMakeLists.txt"],
+            resources: [.process("Specs")],
             swiftSettings: swiftSettings(languageMode: .v6)),
-
-        // Helper targets for SwiftPM
-        .executableTarget(
-            name: "SWBSpecificationsCompiler",
-            swiftSettings: swiftSettings(languageMode: .v6)),
-        .plugin(
-            name: "SWBSpecificationsPlugin",
-            capability: .buildTool(),
-            dependencies: ["SWBSpecificationsCompiler"]),
 
         // Test support
         .target(
@@ -421,12 +417,6 @@ for target in package.targets {
     // Add dependencies on "plugins" so they can be loaded in the build service and in tests, as we don't have true plugin targets.
     if ["SWBBuildService", "SWBTestSupport"].contains(target.name) {
         target.dependencies += pluginTargetNames.map { .target(name: $0) }
-    }
-
-    if pluginTargetNames.contains(target.name) {
-        target.plugins = (target.plugins ?? []) + [
-            .plugin(name: "SWBSpecificationsPlugin")
-        ]
     }
 }
 
