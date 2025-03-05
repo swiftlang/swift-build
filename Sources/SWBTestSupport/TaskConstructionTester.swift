@@ -765,7 +765,7 @@ package final class TaskConstructionTester {
         // Always start with some set of build parameters.
         let parameters = parameters ?? BuildParameters(configuration: "Debug")
 
-        // If the build parameters don't specify a run destination, but we were passed one, then use the one we were passed. (checkBuild() defaults this to .macOS.)
+        // If the build parameters don't specify a run destination, but we were passed one, then use the one we were passed. (checkBuild() defaults this to .host.)
         let runDestination = parameters.activeRunDestination ?? runDestination
 
         // Define a default set of overrides.
@@ -819,7 +819,7 @@ package final class TaskConstructionTester {
     /// Construct the tasks for the given build parameters, and test the result.
     /// - parameter runDestination: If the run destination in `parameter` is nil, then the value passed here will be used instead. Due to the defined default value, this means that tests build for macOS unless they specify otherwise.
     /// - parameter checkTaskGraphIntegrity: If `true` (the default), then the task graph's integrity will be checked, and test errors will be emitted for scenarios such as missing producers for nodes, and multiple producers for nodes.  A test may wish to pass `false` for this if it is deliberately constructing a bad task graph in order to examine the resulting errors.
-    package func checkBuild(_ inputParameters: BuildParameters? = nil, runDestination: SWBProtocol.RunDestinationInfo? = .macOS, targetName: String? = nil, buildRequest inputBuildRequest: BuildRequest? = nil, provisioningOverrides: ProvisioningTaskInputs? = nil, processEnvironment: [String: String] = [:], fs: any FSProxy = PseudoFS(), userPreferences: UserPreferences? = nil, clientDelegate: (any TaskPlanningClientDelegate)? = nil, checkTaskGraphIntegrity: Bool = true, useDefaultToolChainOverride: Bool = true, systemInfo: SystemInfo? = nil, sourceLocation: SourceLocation = #_sourceLocation, body: (PlanningResults) async throws -> Void) async rethrows {
+    package func checkBuild(_ inputParameters: BuildParameters? = nil, runDestination: SWBProtocol.RunDestinationInfo? = .host, targetName: String? = nil, buildRequest inputBuildRequest: BuildRequest? = nil, provisioningOverrides: ProvisioningTaskInputs? = nil, processEnvironment: [String: String] = [:], fs: any FSProxy = PseudoFS(), userPreferences: UserPreferences? = nil, clientDelegate: (any TaskPlanningClientDelegate)? = nil, checkTaskGraphIntegrity: Bool = true, useDefaultToolChainOverride: Bool = true, systemInfo: SystemInfo? = nil, sourceLocation: SourceLocation = #_sourceLocation, body: (PlanningResults) async throws -> Void) async rethrows {
         // For test stability we modify the build parameters we were passed.
         let parameters = effectiveBuildParameters(inputParameters ?? inputBuildRequest?.parameters, runDestination: runDestination, useDefaultToolChainOverride: useDefaultToolChainOverride)
 

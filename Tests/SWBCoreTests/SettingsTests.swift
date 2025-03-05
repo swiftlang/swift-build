@@ -1894,7 +1894,7 @@ import SWBMacro
     }
 
     /// Check the behavior of user defined settings, especially w.r.t. quoting rules.
-    @Test(.requireSDKs(.macOS))
+    @Test(.requireSDKs(.host))
     func userDefinedSettings() async throws {
         // Set up a trivial iOS project.
         let testWorkspace = try await TestWorkspace("Workspace",
@@ -1928,7 +1928,7 @@ import SWBMacro
     }
 
     // Test that we correctly normalize path of some special macros.
-    @Test(.requireSDKs(.macOS))
+    @Test(.requireSDKs(.host))
     func macroPathNormalization() async throws {
         let testWorkspace = try await TestWorkspace("Workspace",
                                                     projects: [
@@ -1957,8 +1957,8 @@ import SWBMacro
         }
 
         let scope = settings.globalScope
-        #expect(scope.evaluate(BuiltinMacros.SYMROOT) == Path("/tmp/Workspace/aProject/build"))
-        #expect(scope.evaluate(BuiltinMacros.DSTROOT) == Path("/tmp/Workspace/aProject/build/foo/bar/dst"))
+        #expect(scope.evaluate(BuiltinMacros.SYMROOT) == Path.root.join("/tmp/Workspace/aProject/build"))
+        #expect(scope.evaluate(BuiltinMacros.DSTROOT) == Path.root.join("/tmp/Workspace/aProject/build/foo/bar/dst"))
     }
 
     @Test(.requireSDKs(.tvOS))
@@ -3553,7 +3553,7 @@ import SWBMacro
     }
 
     /// Check the behavior of user defined settings, especially w.r.t. quoting rules.
-    @Test(.requireSDKs(.macOS))
+    @Test(.requireSDKs(.host))
     func buildDatabaseLocationOverride() async throws {
         // Set up a trivial macOS project.
         let testWorkspace = try await TestWorkspace("Workspace",
