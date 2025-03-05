@@ -206,5 +206,9 @@ package func _filterDiagnostic(message: String) -> String? {
         return nil
     }
 
+    if message.hasPrefix("Learn more about 'MemberImportVisibility' by visiting") {
+        return nil
+    }
+
     return message
 }
