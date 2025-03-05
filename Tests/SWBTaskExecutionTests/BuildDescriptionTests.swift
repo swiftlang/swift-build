@@ -330,7 +330,7 @@ fileprivate struct BuildDescriptionTests: CoreBasedTests {
     }
 
     /// Check that build descriptions recompute based on recursive search path changes.
-    @Test(.skipHostOS(.windows, "Path handling needs work for windows"))
+    @Test(.requireSDKs(.host))
     func recursiveSearchPathValidation() async throws {
         try await withTemporaryDirectory { tmpDirPath in
             try await withAsyncDeferrable { deferrable in
@@ -348,7 +348,7 @@ fileprivate struct BuildDescriptionTests: CoreBasedTests {
                                     buildSettings: [
                                         "USE_HEADERMAP": "NO",
                                         "ALWAYS_SEARCH_USER_PATHS": "NO",
-                                        "USER_HEADER_SEARCH_PATHS": "/User/**",
+                                        "USER_HEADER_SEARCH_PATHS": Path.root.join("User/**").strWithPosixSlashes,
                                         "CLANG_USE_RESPONSE_FILE": "NO"])],
                             targets: [
                                 TestStandardTarget(
@@ -390,16 +390,16 @@ fileprivate struct BuildDescriptionTests: CoreBasedTests {
                 do {
                     let fs = PseudoFS()
                     try fs.createDirectory(Path.root.join("User/Foo"), recursive: true)
-                    try await check(fs: fs, expected: ["/User", "/User/Foo"], expectedSource: .new)
-                    try await check(fs: fs, expected: ["/User", "/User/Foo"], expectedSource: .inMemoryCache)
+                    try await check(fs: fs, expected: [Path.root.join("/User").str, Path.root.join("/User/Foo").str], expectedSource: .new)
+                    try await check(fs: fs, expected: [Path.root.join("/User").str, Path.root.join("/User/Foo").str], expectedSource: .inMemoryCache)
                 }
 
                 // Check after adding a path.
                 do {
                     let fs = PseudoFS()
                     try fs.createDirectory(Path.root.join("User/Foo/Bar"), recursive: true)
-                    try await check(fs: fs, expected: ["/User", "/User/Foo", "/User/Foo/Bar"], expectedSource: .new)
-                    try await check(fs: fs, expected: ["/User", "/User/Foo", "/User/Foo/Bar"], expectedSource: .inMemoryCache)
+                    try await check(fs: fs, expected: [Path.root.join("/User").str, Path.root.join("/User/Foo").str, Path.root.join("/User/Foo/Bar").str], expectedSource: .new)
+                    try await check(fs: fs, expected: [Path.root.join("/User").str, Path.root.join("/User/Foo").str, Path.root.join("/User/Foo/Bar").str], expectedSource: .inMemoryCache)
                 }
             }
         }
