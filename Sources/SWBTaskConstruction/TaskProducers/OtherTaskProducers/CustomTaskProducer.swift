@@ -22,7 +22,14 @@ final class CustomTaskProducer: PhasedTaskProducer, TaskProducer {
             for customTask in context.configuredTarget?.target.customTasks ?? [] {
                 
                 let commandLine = customTask.commandLine.map { context.settings.globalScope.evaluate($0) }
-                let environment = EnvironmentBindings(customTask.environment.map { (context.settings.globalScope.evaluate($0.0), context.settings.globalScope.evaluate($0.1)) })
+                var environmentAssignments = computeScriptEnvironment(.shellScriptPhase, scope: context.settings.globalScope, settings: context.settings, workspaceContext: context.workspaceContext)
+                if context.workspaceContext.core.hostOperatingSystem != .macOS {
+                    environmentAssignments = environmentAssignments.filter { $0.key.lowercased() != "path" }
+                }
+                for (key, value) in customTask.environment {
+                    environmentAssignments[context.settings.globalScope.evaluate(key)] = context.settings.globalScope.evaluate(value)
+                }
+                let environment = EnvironmentBindings(environmentAssignments)
                 let workingDirectory = customTask.workingDirectory.map { Path(context.settings.globalScope.evaluate($0)).normalize() } ?? context.defaultWorkingDirectory
                 let inputPaths = customTask.inputFilePaths.map { Path(context.settings.globalScope.evaluate($0)).normalize() }
                 let inputs = inputPaths.map { delegate.createNode($0) }

@@ -179,4 +179,53 @@ fileprivate struct CustomTaskConstructionTests: CoreBasedTests {
             }
         }
     }
+
+    @Test(.requireSDKs(.host))
+    func customTaskInjectsShellScriptEnvironment() async throws {
+        let testProject = TestProject(
+            "aProject",
+            groupTree: TestGroup(
+                "SomeFiles", path: "Sources",
+                children: [
+                    TestFile("input.txt"),
+                    TestFile("main.c"),
+                ]),
+            buildConfigurations: [
+                TestBuildConfiguration(
+                    "Debug",
+                    buildSettings: [
+                        "GENERATE_INFOPLIST_FILE": "YES",
+                        "PRODUCT_NAME": "$(TARGET_NAME)",
+                        "SDKROOT": "auto",
+                        "MY_SETTING": "FOO",
+                    ]),
+            ],
+            targets: [
+                TestStandardTarget(
+                    "CoreFoo", type: .framework,
+                    buildPhases: [
+                        TestSourcesBuildPhase(["main.c"])
+                    ],
+                    customTasks: [
+                        TestCustomTask(
+                            commandLine: ["tool", "-foo", "-bar"],
+                            environment: ["ENVVAR": "VALUE"],
+                            workingDirectory: Path.root.join("working/directory").str,
+                            executionDescription: "My Custom Task",
+                            inputs: ["$(SRCROOT)/Sources/input.txt"],
+                            outputs: [Path.root.join("output").str],
+                            enableSandboxing: false,
+                            preparesForIndexing: false)
+                    ]
+                ),
+            ])
+        let tester = try await TaskConstructionTester(getCore(), testProject)
+        await tester.checkBuild(runDestination: .host) { results in
+            results.checkNoDiagnostics()
+
+            results.checkTask(.matchRule(["CustomTask", "My Custom Task"])) { task in
+                task.checkEnvironment(["ENVVAR": "VALUE", "MY_SETTING": "FOO"])
+            }
+        }
+    }
 }
