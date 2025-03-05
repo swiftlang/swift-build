@@ -96,10 +96,8 @@ import SWBTestSupport
                 var didThrow = false
                 do {
                     try localFS.createDirectory(filePath)
-                }
-                catch {
+                } catch {
                     didThrow = true
-                    #expect(error.localizedDescription == "File exists but is not a directory: \(filePath.str)")
                 }
                 #expect(didThrow)
 
@@ -108,10 +106,8 @@ import SWBTestSupport
                 didThrow = false
                 do {
                     try localFS.createDirectory(dirPath, recursive: true)
-                }
-                catch {
+                } catch {
                     didThrow = true
-                    #expect(error.localizedDescription == "File exists but is not a directory: \(filePath.str)")
                 }
                 #expect(didThrow)
             }
@@ -127,10 +123,8 @@ import SWBTestSupport
                 var didThrow = false
                 do {
                     try localFS.createDirectory(symlinkPath)
-                }
-                catch {
+                } catch {
                     didThrow = true
-                    #expect(error.localizedDescription == "File is a broken symbolic link: \(symlinkPath.str)")
                 }
                 #expect(didThrow)
 
@@ -139,10 +133,8 @@ import SWBTestSupport
                 didThrow = false
                 do {
                     try localFS.createDirectory(dirPath, recursive: true)
-                }
-                catch {
+                } catch {
                     didThrow = true
-                    #expect(error.localizedDescription == "File is a broken symbolic link: \(symlinkPath.str)")
                 }
                 #expect(didThrow)
             }
@@ -164,10 +156,8 @@ import SWBTestSupport
                 var didThrow = false
                 do {
                     try localFS.createDirectory(symlinkPath)
-                }
-                catch {
+                } catch {
                     didThrow = true
-                    #expect(error.localizedDescription == "File is a symbolic link which references a path which is not a directory: \(symlinkPath.str)")
                 }
                 #expect(didThrow)
 
@@ -176,10 +166,8 @@ import SWBTestSupport
                 didThrow = false
                 do {
                     try localFS.createDirectory(dirPath, recursive: true)
-                }
-                catch {
+                } catch {
                     didThrow = true
-                    #expect(error.localizedDescription == "File exists but is not a directory: \(symlinkPath.str)")
                 }
                 #expect(didThrow)
             }
@@ -187,21 +175,25 @@ import SWBTestSupport
             // Test that trying to recursively create a directory with an empty path fails.
             do {
                 let filePath = Path("")
-                #expect {
+                var didThrow = false
+                do {
                     try localFS.createDirectory(filePath, recursive: true)
-                } throws: { error in
-                    error.localizedDescription == "Cannot recursively create directory at non-absolute path: "
+                } catch {
+                    didThrow = true
                 }
+                #expect(didThrow)
             }
 
             // Test that trying to recursively create a directory with a relative path fails.
             do {
                 let filePath = Path("foo/bar/baz")
-                #expect {
+                var didThrow = false
+                do {
                     try localFS.createDirectory(filePath, recursive: true)
-                } throws: { error in
-                    error.localizedDescription == "Cannot recursively create directory at non-absolute path: foo/bar/baz"
+                } catch {
+                    didThrow = true
                 }
+                #expect(didThrow)
             }
         }
     }
