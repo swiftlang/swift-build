@@ -3076,6 +3076,10 @@ public final class SwiftCompilerSpec : CompilerSpec, SpecIdentifierType, SwiftDi
                 let emitModuleDependenciesFilePath = objectFileDir.join(masterSwiftBaseName + "-emit-module.d")
                 fileMapEntry.emitModuleDependencies = emitModuleDependenciesFilePath.str
 
+                // The PCH file path for generatePCH job.
+                let bridgingHeaderPCHPath = objectFileDir.join(masterSwiftBaseName + "-Bridging-header.pch")
+                fileMapEntry.pch = bridgingHeaderPCHPath.str
+
                 // Add the global entry to the map.
                 mapDict[""] = fileMapEntry
             }
@@ -3115,11 +3119,9 @@ public final class SwiftCompilerSpec : CompilerSpec, SpecIdentifierType, SwiftDi
                     fileMapEntry.constValues = objectFileDir.join(masterSwiftBaseName + ".swiftconstvalues").str
                 }
 
-                let objcBridgingHeaderPath = Path(cbc.scope.evaluate(BuiltinMacros.SWIFT_OBJC_BRIDGING_HEADER))
-                if !objcBridgingHeaderPath.isEmpty,
-                   await swiftExplicitModuleBuildEnabled(cbc.producer, cbc.scope, delegate) {
-                    fileMapEntry.pch = objectFileDir.join(masterSwiftBaseName + "-Bridging-header.pch").str
-                }
+                // The PCH file path for generatePCH job.
+                let bridgingHeaderPCHPath = objectFileDir.join(masterSwiftBaseName + "-Bridging-header.pch")
+                fileMapEntry.pch = bridgingHeaderPCHPath.str
 
                 // Add the global entry to the map.
                 mapDict[""] = fileMapEntry
