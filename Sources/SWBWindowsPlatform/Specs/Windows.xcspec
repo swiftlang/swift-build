@@ -45,13 +45,6 @@
     {
         Domain = windows;
         Type = ProductType;
-        Identifier = com.apple.product-type.application;
-        BasedOn = com.apple.product-type.tool;
-    },
-
-    {
-        Domain = windows;
-        Type = ProductType;
         Identifier = com.apple.product-type.library.static;
         BasedOn = default:com.apple.product-type.library.static;
         DefaultBuildProperties = {
