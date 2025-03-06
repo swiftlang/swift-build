@@ -319,34 +319,34 @@ public final class PlatformRegistry {
             })
     }
 
-    @_spi(Testing) public init(delegate: any PlatformRegistryDelegate, searchPaths: [Path], hostOperatingSystem: OperatingSystem, fs: any FSProxy) {
+    @_spi(Testing) public init(delegate: any PlatformRegistryDelegate, searchPaths: [Path], hostOperatingSystem: OperatingSystem, fs: any FSProxy) async {
         self.delegate = delegate
 
         for path in searchPaths {
-            registerPlatformsInDirectory(path, fs)
+            await registerPlatformsInDirectory(path, fs)
         }
 
         do {
             if hostOperatingSystem.createFallbackSystemToolchain {
-                try registerFallbackSystemPlatform(operatingSystem: hostOperatingSystem, fs: fs)
+                try await registerFallbackSystemPlatform(operatingSystem: hostOperatingSystem, fs: fs)
             }
         } catch {
             delegate.error(error)
         }
 
-        @preconcurrency @PluginExtensionSystemActor func platformInfoExtensions() -> [any PlatformInfoExtensionPoint.ExtensionProtocol] {
-            delegate.pluginManager.extensions(of: PlatformInfoExtensionPoint.self)
+        @preconcurrency @PluginExtensionSystemActor func platformInfoExtensions() async -> [any PlatformInfoExtensionPoint.ExtensionProtocol] {
+            return await delegate.pluginManager.extensions(of: PlatformInfoExtensionPoint.self)
         }
 
-        for platformExtension in platformInfoExtensions() {
+        for platformExtension in await platformInfoExtensions() {
             for (path, data) in platformExtension.additionalPlatforms() {
-                registerPlatform(path, .plDict(data), fs)
+                await registerPlatform(path, .plDict(data), fs)
             }
         }
     }
 
-    private func registerFallbackSystemPlatform(operatingSystem: OperatingSystem, fs: any FSProxy) throws {
-        try registerPlatform(Path("/"), .plDict(fallbackSystemPlatformSettings(operatingSystem: operatingSystem)), fs)
+    private func registerFallbackSystemPlatform(operatingSystem: OperatingSystem, fs: any FSProxy) async throws {
+        try await registerPlatform(Path("/"), .plDict(fallbackSystemPlatformSettings(operatingSystem: operatingSystem)), fs)
     }
 
     private func fallbackSystemPlatformSettings(operatingSystem: OperatingSystem) throws -> [String: PropertyListItem] {
@@ -413,7 +413,7 @@ public final class PlatformRegistry {
     }
 
     /// Register all platforms in the given directory.
-    private func registerPlatformsInDirectory(_ path: Path, _ fs: any FSProxy) {
+    private func registerPlatformsInDirectory(_ path: Path, _ fs: any FSProxy) async {
         for item in (try? localFS.listdir(path))?.sorted(by: <) ?? [] {
             let itemPath = path.join(item)
 
@@ -431,14 +431,14 @@ public final class PlatformRegistry {
                     // Silently skip loading the platform if it does not have an Info.plist at all.  (We will still error below if it has an Info.plist which is malformed.)
                     continue
                 }
-                registerPlatform(itemPath, infoPlist, fs)
+                await registerPlatform(itemPath, infoPlist, fs)
             } catch let err {
                 delegate.error(itemPath, "unable to load platform: 'Info.plist' was malformed: \(err)")
             }
         }
     }
 
-    private func registerPlatform(_ path: Path, _ data: PropertyListItem, _ fs: any FSProxy) {
+    private func registerPlatform(_ path: Path, _ data: PropertyListItem, _ fs: any FSProxy) async {
         // The data should always be a dictionary.
         guard case .plDict(var items) = data else {
             delegate.error(path, "unexpected platform data")
@@ -613,7 +613,7 @@ public final class PlatformRegistry {
             delegate.pluginManager.extensions(of: PlatformInfoExtensionPoint.self)
         }
 
-        for platformExtension in platformInfoExtensions() {
+        for platformExtension in await platformInfoExtensions() {
             if let value = platformExtension.preferredArchValue(for: name) {
                 preferredArchValue = value
             }
@@ -623,8 +623,8 @@ public final class PlatformRegistry {
             path.join("usr").join("bin"),
         ]
 
-        for platformExtension in platformInfoExtensions() {
-            executableSearchPaths.append(contentsOf: platformExtension.additionalPlatformExecutableSearchPaths(platformName: name, platformPath: path))
+        for platformExtension in await platformInfoExtensions() {
+            await executableSearchPaths.append(contentsOf: platformExtension.additionalPlatformExecutableSearchPaths(platformName: name, platformPath: path, fs: localFS))
         }
 
         executableSearchPaths.append(contentsOf: [

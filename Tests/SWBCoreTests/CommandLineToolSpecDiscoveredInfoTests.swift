@@ -168,6 +168,22 @@ import Testing
         }
     }
 
+    @Test(.requireHostOS(.windows))
+    func discoveredLdLinkerSpecInfoWindows() async throws {
+        try await withSpec(LdLinkerSpec.self, .deferred, platform: "windows") { (info: DiscoveredLdLinkerToolSpecInfo) in
+            #expect(!info.toolPath.isEmpty)
+            #expect(info.toolVersion != nil)
+            if let toolVersion = info.toolVersion {
+                #expect(toolVersion > Version(0, 0, 0))
+            }
+        }
+        try await withSpec(LdLinkerSpec.self, .result(status: .exit(0), stdout: Data("Microsoft (R) Incremental Linker Version 14.41.34120.0\n".utf8), stderr: Data()), platform: "windows") { (info: DiscoveredLdLinkerToolSpecInfo) in
+            #expect(!info.toolPath.isEmpty)
+            #expect(info.toolVersion == Version(14, 41, 34120))
+            #expect(info.architectures == Set())
+        }
+    }
+
     @Test(.skipHostOS(.windows), .requireSystemPackages(apt: "libtool", yum: "libtool"))
     func discoveredLibtoolSpecInfo() async throws {
         try await withSpec(LibtoolLinkerSpec.self, .deferred) { (info: DiscoveredLibtoolLinkerToolSpecInfo) in
