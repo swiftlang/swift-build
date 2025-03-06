@@ -3577,7 +3577,7 @@ import SWBMacro
     }
 
     /// Check the behavior of user defined settings, especially w.r.t. quoting rules.
-    @Test(.requireSDKs(.host))
+    @Test(.requireSDKs(.macOS))
     func buildDatabaseLocationOverride() async throws {
         // Set up a trivial macOS project.
         let testWorkspace = try await TestWorkspace("Workspace",
