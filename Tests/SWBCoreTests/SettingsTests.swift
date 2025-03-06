@@ -1911,8 +1911,7 @@ import SWBMacro
                                                     projects: [TestProject("aProject",
                                                                            groupTree: TestGroup("SomeFiles", children: []),
                                                                            targets: [
-                                                                            TestStandardTarget("Target1",
-                                                                                               type: .application,
+                                                                            TestStandardTarget("Target1", type: .commandLineTool,
                                                                                                buildConfigurations: [
                                                                                                 TestBuildConfiguration("Debug",
                                                                                                                        buildSettings: [
@@ -1946,9 +1945,7 @@ import SWBMacro
                                                         TestProject("aProject",
                                                                     groupTree: TestGroup("SomeFiles", children: []),
                                                                     targets: [
-                                                                        TestStandardTarget("Target1",
-                                                                                           type: .application,
-                                                                                           buildConfigurations: [
+                                                                        TestStandardTarget("Target1", type: .commandLineTool, buildConfigurations: [
                                                                             TestBuildConfiguration("Debug", buildSettings: [
                                                                                 "SYMROOT": "./build",
                                                                                 "DSTROOT": "build/foo/bar/something/../dst",
