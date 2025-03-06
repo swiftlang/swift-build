@@ -20,4 +20,4 @@ target_include_directories(SWBCSupport PUBLIC
   ${CMAKE_CURRENT_SOURCE_DIR})
 # TODO(compnerd) wire this up with `find_package`
 target_link_libraries(SWBCSupport PRIVATE
-  BlocksRuntime)
+  $<$<NOT:$<PLATFORM_ID:Darwin>>:BlocksRuntime>)

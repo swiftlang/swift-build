@@ -394,6 +394,13 @@ let package = Package(
                 verb: "run-xcodebuild",
                 description: "Run xcodebuild from the currently selected Xcode configured to use the just-built build service"
             ))
+        ),
+        .plugin(
+            name: "cmake-smoke-test",
+            capability: .command(intent: .custom(
+                verb: "cmake-smoke-test",
+                description: "Build Swift Build using CMake for validation purposes"
+            ))
         )
     ],
     swiftLanguageModes: [.v5, .v6],
