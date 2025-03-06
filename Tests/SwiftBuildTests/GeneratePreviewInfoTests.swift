@@ -202,7 +202,7 @@ fileprivate struct GeneratePreviewInfoTests: CoreBasedTests {
                     })
 
                     let info = try await testSession.session.generatePreviewTargetDependencyInfo(for: request, targetIDs: [appTarget.guid], delegate: delegate)
-                    #expect(try await info == [
+                    #expect(info == [
                         SWBPreviewTargetDependencyInfo(
                             sdkRoot: "iphoneos\(sdkVersion)",
                             sdkVariant: "iphoneos",
