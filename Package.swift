@@ -399,7 +399,7 @@ let package = Package(
             ))
         )
     ],
-    swiftLanguageModes: [.v6],
+    swiftLanguageModes: [.v5, .v6],
     cxxLanguageStandard: .cxx20
 )
 
