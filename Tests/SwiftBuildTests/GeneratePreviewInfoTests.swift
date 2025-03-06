@@ -164,8 +164,6 @@ fileprivate struct GeneratePreviewInfoTests: CoreBasedTests {
                         .anySequence,
                         "-Onone",
                         .anySequence,
-                        "-disable-modules-validate-system-headers",
-                        .anySequence,
                         "-module-name", "App",
                         "-target-sdk-version", "\(deploymentTarget)",
                         "-target-sdk-name", "iphoneos\(deploymentTarget)",

@@ -3241,20 +3241,13 @@ public final class SwiftCompilerSpec : CompilerSpec, SpecIdentifierType, SwiftDi
             // Preview thunks does not need this
             "-emit-objc-header",
 
-            // Stripping for completeness, but XOJIT Previews are already forced as `-Onone`.
-            // We add back `-Onone` below.
+            // Previews only work on unoptimized build products.
             "-O",
-            "-Onone",
             "-Osize",
 
             // _Very_ deprecated, but continuing to strip for backwards compatibility
             "-embed-bitcode",
             "-embed-bitcode-marker",
-
-            // Stripped for historical reasons. Previews can add it back if it needs debugging information.
-            "-g",
-            "-dwarf-version=4",
-            "-dwarf-version=5",
 
             // Previews does not use compiler output
             "-parseable-output",
@@ -3263,11 +3256,6 @@ public final class SwiftCompilerSpec : CompilerSpec, SpecIdentifierType, SwiftDi
             // Writes more intermediates that Previews does not need
             "-emit-const-values",
             "-save-temps",
-
-            "-explicit-module-build",
-
-            // Strip until builder SDKs include a swift-driver with this flag. Do not remove without also removing -clang-build-session-file.
-            "-validate-clang-modules-once"
         ] {
             while let index = commandLine.firstIndex(of: arg) {
                 commandLine.remove(at: index)
@@ -3275,8 +3263,20 @@ public final class SwiftCompilerSpec : CompilerSpec, SpecIdentifierType, SwiftDi
         }
         if payload.previewStyle == .dynamicReplacement {
             for arg in [
+                // Debug symbols aren't needed in dynamic replacement preview info.
+                "-g",
+
+                // We add back `-Onone` below in dynamic replacement.
+                "-Onone",
+
                 // Dynamic replacement thunks don't need this.
                 "-import-underlying-module",
+
+                // This property was always stripped in dynamic replacement.
+                "-explicit-module-build",
+
+                // Strip until builder SDKs include a swift-driver with this flag. Do not remove without also removing -clang-build-session-file.
+                "-validate-clang-modules-once"
             ] {
                 while let index = commandLine.firstIndex(of: arg) {
                     commandLine.remove(at: index)
@@ -3334,17 +3334,17 @@ public final class SwiftCompilerSpec : CompilerSpec, SpecIdentifierType, SwiftDi
         removeWithPrefix("-cache-compile-job")
         commandLine.append("-disable-bridging-pch")
 
-        for (arg, newValue) in [
-            // Previews needs a path to _a_ module cache so it has a place to store built modules.
-            ("-module-cache-path", previewPayload.moduleCacheDir.str)
-        ] {
-            removeWithParameter(arg)
-            if !newValue.isEmpty {
-                commandLine += [arg, newValue]
-            }
-        }
-
         if payload.previewStyle == .dynamicReplacement {
+            for (arg, newValue) in [
+                // Previews needs a path to _a_ module cache so it has a place to store built modules.
+                ("-module-cache-path", previewPayload.moduleCacheDir.str)
+            ] {
+                removeWithParameter(arg)
+                if !newValue.isEmpty {
+                    commandLine += [arg, newValue]
+                }
+            }
+
             for arg in [
                 // We want the objc header in XOJIT mode so ignore in dynamic replacement mode
                 "-import-objc-header",
@@ -3414,16 +3414,16 @@ public final class SwiftCompilerSpec : CompilerSpec, SpecIdentifierType, SwiftDi
                 "\(payload.moduleName)_PreviewReplacement_\(sourceFile.basenameWithoutSuffix)_\(thunkVariantSuffix)".mangledToC99ExtendedIdentifier(),
             ])
             commandLine.append("-parse-as-library")
+
+            // Faster thunk builds
+            commandLine.append("-Onone")
+
+            // Faster thunk builds
+            commandLine.append(contentsOf: [
+                "-Xfrontend",
+                "-disable-modules-validate-system-headers",
+                ])
         }
-
-        // Faster thunk builds
-        commandLine.append("-Onone")
-
-        // Faster thunk builds
-        commandLine.append(contentsOf: [
-            "-Xfrontend",
-            "-disable-modules-validate-system-headers",
-            ])
 
         // For XOJIT previews, we want the frontend (`swift-frontend`) invocation rather than the driver (`swiftc`) invocation, so ask libSwiftDriver for it and replace the command line with the result for propagation back to the request.
         if let driverPayload = payload.driverPayload, payload.previewStyle == .xojit {
