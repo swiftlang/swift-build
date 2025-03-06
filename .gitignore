@@ -19,6 +19,9 @@ xcuserdata
 /.build
 /Packages
 
+# Ignore indexing build dir.
+/.index-build
+
 # Ignore bootstrap build dir.
 /.xbuild
 /.DD
