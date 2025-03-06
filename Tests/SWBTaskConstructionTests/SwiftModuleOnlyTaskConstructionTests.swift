@@ -687,6 +687,7 @@ fileprivate struct SwiftModuleOnlyTaskConstructionTests: CoreBasedTests {
                 "diagnostics": .plString(archBuildDir.join("\(tpc.targetName)\(platformSuffix)-master.dia").str),
                 "emit-module-diagnostics": .plString(archBuildDir.join("\(tpc.targetName)\(platformSuffix)-master-emit-module.dia").str),
                 "emit-module-dependencies": .plString(archBuildDir.join("\(tpc.targetName)\(platformSuffix)-master-emit-module.d").str),
+                "pch": .plString(archBuildDir.join("\(tpc.targetName)\(platformSuffix)-master-Bridging-header.pch").str),
             ]))
         }
 

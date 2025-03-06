@@ -301,6 +301,7 @@ fileprivate struct SwiftTaskConstructionTests: CoreBasedTests {
                             "diagnostics": .plString("\(SRCROOT)/build/aProject.build/Debug/AppTarget.build/Objects-normal/x86_64/AppTarget-master.dia"),
                             "emit-module-diagnostics": .plString("\(SRCROOT)/build/aProject.build/Debug/AppTarget.build/Objects-normal/x86_64/AppTarget-master-emit-module.dia"),
                             "emit-module-dependencies": .plString("\(SRCROOT)/build/aProject.build/Debug/AppTarget.build/Objects-normal/x86_64/AppTarget-master-emit-module.d"),
+                            "pch": .plString("\(SRCROOT)/build/aProject.build/Debug/AppTarget.build/Objects-normal/x86_64/AppTarget-master-Bridging-header.pch"),
                         ]))
                     }
                     else {
