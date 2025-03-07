@@ -2951,20 +2951,18 @@ import SWBMacro
                                 "SWIFT_VERSION": "5",
                                 "SWIFT_OPTIMIZATION_LEVEL": "-O",
                                 "ENABLE_PREVIEWS_EXPECTED": "NO",
-                                "ENABLE_PREVIEWS_EXPECTED_REASON": "SWIFT_VERSION is set and SWIFT_OPTIMIZATION_LEVEL=-O, expected -Onone",
                             ]
                                                   )],
                         buildPhases: [TestSourcesBuildPhase(["main.swift"])]
                     ),
 
-                    // Should be off because no Swift version and should not LOG
+                    // Should be off because no Swift version
                     TestStandardTarget(
                         "Target-no-swift",
                         type: .application,
                         buildConfigurations: [
                             TestBuildConfiguration("Debug", buildSettings: [
                                 "ENABLE_PREVIEWS_EXPECTED": "NO",
-                                "ENABLE_PREVIEWS_EXPECTED_REASON": "",
                             ]
                                                   )],
                         buildPhases: [TestSourcesBuildPhase(["main.swift"])]
@@ -2976,24 +2974,16 @@ import SWBMacro
         let testProject = context.workspace.projects[0]
 
         let expectedMacro = try BuiltinMacros.namespace.declareBooleanMacro("ENABLE_PREVIEWS_EXPECTED")
-        let reasonMacro = try BuiltinMacros.namespace.declareStringMacro("ENABLE_PREVIEWS_EXPECTED_REASON")
 
         for testTarget in testProject.targets {
             let parameters = BuildParameters(action: .build, configuration: "Debug", overrides: [:])
             let settings = Settings(workspaceContext: context, buildRequestContext: buildRequestContext, parameters: parameters, project: testProject, target: testTarget)
             let actual = settings.globalScope.evaluate(BuiltinMacros.ENABLE_PREVIEWS)
-            let swiftEnabled = !settings.globalScope.evaluate(BuiltinMacros.SWIFT_VERSION).isEmpty
             let expected = settings.globalScope.evaluate(expectedMacro)
             #expect(actual == expected)
             if !expected {
-                let reason = settings.globalScope.evaluate(reasonMacro)
-                if swiftEnabled {
-                    #expect(settings.notes == ["Disabling previews because \(reason)"])
-                }
-                else {
-                    #expect(settings.notes == [])
-                    #expect(reason == "")
-                }
+                // We do not currently emit any reasons for diabling in the notes.
+                #expect(settings.notes == [])
             }
             else {
                 #expect(settings.notes == [])

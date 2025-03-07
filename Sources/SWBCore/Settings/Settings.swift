@@ -3165,10 +3165,8 @@ private class SettingsBuilder {
 
         var shouldLog: Bool {
             switch self {
-            case .swiftNotEnabled, .action:
+            case .swiftNotEnabled, .action, .swiftOptimizationLevel:
                 false
-            case .swiftOptimizationLevel:
-                true
             }
         }
 
