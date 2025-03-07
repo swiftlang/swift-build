@@ -124,6 +124,7 @@ private struct CreateSessionHandler: MessageHandler {
         let service = request.buildService
         let (core, diagnostics) = await service.sharedCore(
             developerPath: message.effectiveDeveloperPath,
+            resourceSearchPaths: message.resourceSearchPaths ?? [],
             inferiorProducts: message.inferiorProductsPath,
             environment: message.environment ?? [:]
         )

@@ -24,8 +24,8 @@ import Foundation
 }
 
 struct QNXPlatformSpecsExtension: SpecificationsExtension {
-    func specificationFiles() -> Bundle? {
-        .module
+    func specificationFiles(resourceSearchPaths: [Path]) -> Bundle? {
+        findResourceBundle(nameWhenInstalledInToolchain: "SwiftBuild_SWBQNXPlatform", resourceSearchPaths: resourceSearchPaths, defaultBundle: Bundle.module)
     }
 }
 

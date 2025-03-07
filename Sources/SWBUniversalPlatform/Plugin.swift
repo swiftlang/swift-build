@@ -35,12 +35,12 @@ struct UniversalPlatformSpecsExtension: SpecificationsExtension {
         ]
     }
 
-    func specificationFiles() -> Bundle? {
-        .module
+    func specificationFiles(resourceSearchPaths: [Path]) -> Bundle? {
+        findResourceBundle(nameWhenInstalledInToolchain: "SwiftBuild_SWBUniversalPlatform", resourceSearchPaths: resourceSearchPaths, defaultBundle: Bundle.module)
     }
 
     // Allow locating the sole remaining `.xcbuildrules` file.
-    func specificationSearchPaths() -> [URL] {
-        Bundle.module.resourceURL.map { [$0] } ?? []
+    func specificationSearchPaths(resourceSearchPaths: [Path]) -> [URL] {
+        findResourceBundle(nameWhenInstalledInToolchain: "SwiftBuild_SWBUniversalPlatform", resourceSearchPaths: resourceSearchPaths, defaultBundle: Bundle.module)?.resourceURL.map { [$0] } ?? []
     }
 }
