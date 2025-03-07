@@ -42,6 +42,7 @@ fileprivate struct LinkerTests: CoreBasedTests {
                                     "PRODUCT_NAME": "$(TARGET_NAME)",
                                     "SWIFT_VERSION": swiftVersion,
                                     "OTHER_LDFLAGS": "-not-a-real-flag",
+                                    "ARCHS" : "x86_64 aarch64"
                                 ])
                         ],
                         buildPhases: [
@@ -243,25 +244,22 @@ fileprivate struct LinkerTests: CoreBasedTests {
             let ldLinkerPath = try await self.ldPath
             let lldLinkerPath = try await self.lldPath
             let goldLinkerPath = try await self.goldPath
-            let linkLinkerPath = try await self.linkPath
-            let installedLinkerPaths = [lldLinkerPath, ldLinkerPath, goldLinkerPath, linkLinkerPath].compactMap { $0 }
+            let linkLinkerPathX86 = try await self.linkPath("x86_64")
+            let linkLinkerPathAarch64 = try await self.linkPath("aarch64")
+            var installedLinkerPaths = [ldLinkerPath, lldLinkerPath, goldLinkerPath, linkLinkerPathX86, linkLinkerPathAarch64].compactMap { $0 }
 
             // Default Linker
-            var parameters = BuildParameters(configuration: "Debug", overrides: ["ALTERNATE_LINKER": ""])
+            var parameters = BuildParameters(configuration: "Debug")
             try await tester.checkBuild(parameters: parameters, runDestination: .host) { results in
                 results.checkTask(.matchRuleType("Ld")) { task in
-                    results.checkTaskOutput(task) { taskOutput in
-                        results.checkTaskOutput(task) { output in
-                            // Expect that one of the installed linkers is used, we are not sure which one.
-                            if runDestination == .windows && Architecture.hostStringValue == "aarch64" {
-                                withKnownIssue("'clang' picks the wrong binary for link.exe using x86 version") {
-                                    // On windows aarch64 'clang' picks the wrong host architecture for link.exe, choosing "MSVC\14.41.34120\bin\Hostx86\arm64\link.exe"
-                                    #expect(installedLinkerPaths.map { $0.str }.contains(where: output.asString.replacingOccurrences(of: "\\\\", with: "\\").contains))
-                                }
-                            } else {
-                                #expect(installedLinkerPaths.map { $0.str }.contains(where: output.asString.replacingOccurrences(of: "\\\\", with: "\\").contains))
+                    results.checkTaskOutput(task) { output in
+                        if runDestination == .windows {
+                            // clang will choose to run lld-link rather than ld.lld.exe.
+                            if let lldLinkerPath {
+                                installedLinkerPaths.append(lldLinkerPath.dirname.join("lld-link"))
                             }
                         }
+                        #expect(installedLinkerPaths.map { $0.str }.contains(where: output.asString.replacingOccurrences(of: "\\\\", with: "\\").contains))
                     }
                 }
                 results.checkNoDiagnostics()
@@ -286,12 +284,6 @@ fileprivate struct LinkerTests: CoreBasedTests {
             if let lldLinkerPath {
                 parameters = BuildParameters(configuration: "Debug", overrides: ["ALTERNATE_LINKER": "lld"])
                 try await tester.checkBuild(parameters: parameters, runDestination: .host) { results in
-                    if runDestination == .windows {
-                        // Issue: Linker cannot find dependent library
-                        results.checkError(.contains("Linker command failed with exit code 1"))
-                        results.checkError(.contains("lld-link: error: could not open 'Library.lib'"))
-                    }
-
                     results.checkTask(.matchRuleType("Ld")) { task in
                         task.checkCommandLineContains(["-fuse-ld=lld"])
                         results.checkTaskOutput(task) { output in
@@ -324,22 +316,42 @@ fileprivate struct LinkerTests: CoreBasedTests {
             }
 
             // link.exe
-            if let linkLinkerPath {
-                parameters = BuildParameters(configuration: "Debug", overrides: ["ALTERNATE_LINKER": "link"])
+            if let linkLinkerPathX86 {
+                parameters = BuildParameters(configuration: "Debug", overrides: ["ARCHS": "x86_64", "ALTERNATE_LINKER": "link"])
                 try await tester.checkBuild(parameters: parameters, runDestination: .host) { results in
                     results.checkTask(.matchRuleType("Ld")) { task in
                         task.checkCommandLineContains(["-fuse-ld=link"])
                         results.checkTaskOutput(task) { output in
                             // Expect that the 'link' linker is called by clang
                             if runDestination == .windows && Architecture.hostStringValue == "aarch64" {
-                                withKnownIssue("'clang' picks the wrong binary for link.exe using Hostx86 version") {
-                                    // On windows aarch64 'clang' picks the wrong host architecture for link.exe, choosing "MSVC\14.41.34120\bin\Hostx86\arm64\link.exe"
-                                    #expect(output.asString.replacingOccurrences(of: "Hostx86", with: "Hostarm64").contains(linkLinkerPath.str))
+                                // On windows aarch64 'clang' picks the wrong host architecture for link.exe, choosing "MSVC\14.41.34120\bin\Hostx86\x64\link.exe"
+                                withKnownIssue("'clang' picks the wrong binary for link.exe using the Hostx86 version") {
+                                    #expect(output.asString.replacingOccurrences(of: "\\\\", with: "\\").contains(linkLinkerPathX86.str))
                                 }
                             } else {
-                                #expect(output.asString.replacingOccurrences(of: "\\\\", with: "\\").contains(linkLinkerPath.str))
+                                #expect(output.asString.replacingOccurrences(of: "\\\\", with: "\\").contains(linkLinkerPathX86.str))
                             }
                         }
+                    }
+                    results.checkNoDiagnostics()
+                }
+            }
+            if let linkLinkerPathAarch64 {
+                parameters = BuildParameters(configuration: "Debug", overrides: ["ARCHS": "aarch64", "ALTERNATE_LINKER": "link"])
+                try await tester.checkBuild(parameters: parameters, runDestination: .host) { results in
+                    results.checkTask(.matchRuleType("Ld")) { task in
+                        task.checkCommandLineContains(["-fuse-ld=link"])
+                         results.checkTaskOutput(task) { output in
+                            // Expect that the 'link' linker is called by clang
+                            if runDestination == .windows && Architecture.hostStringValue == "aarch64" {
+                                // On windows aarch64 'clang' picks the wrong host architecture for link.exe, choosing "MSVC\14.41.34120\bin\Hostx86\x64\link.exe"
+                                withKnownIssue("'clang' picks the wrong binary for link.exe using the Hostx86 version") {
+                                    #expect(output.asString.replacingOccurrences(of: "\\\\", with: "\\").contains(linkLinkerPathAarch64.str))
+                                }
+                            } else {
+                                #expect(output.asString.replacingOccurrences(of: "\\\\", with: "\\").contains(linkLinkerPathAarch64.str))
+                            }
+                         }
                     }
                     results.checkNoDiagnostics()
                 }

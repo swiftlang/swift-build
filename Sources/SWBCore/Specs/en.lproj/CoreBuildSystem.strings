@@ -423,6 +423,13 @@ You cannot create a PIE from `.o` files compiled with `-mdynamic-no-pic`. Using 
 "[LD_WARN_DUPLICATE_LIBRARIES]-name" = "Duplicate Libraries";
 "[LD_WARN_DUPLICATE_LIBRARIES]-description" = "Warn for linking the same library multiple times.";
 
+"[LD_MULTIARCH]-name" = "Multiple Architecture Supporte Linker";
+"[LD_MULTIARCH]-description" = "Linker supports linking multiple target architectures.";
+
+"[LD_MULTIARCH_PREFIX_MAP]-name" = "Linker subfolder architecture map";
+"[LD_MULTIARCH_PREFIX_MAP]-description" = "Mapping of architecture to subfolder. <arch>:<subfolder>";
+
+
 // Localization Settings
 
 "[Localization]-category" = "Localization";

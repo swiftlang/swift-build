@@ -16,6 +16,7 @@ import SWBProtocol
 import SWBTestSupport
 import SWBUtil
 import Testing
+import SWBMacro
 
 @Suite fileprivate struct CommandLineToolSpecDiscoveredInfoTests: CoreBasedTests {
     @Test(.skipHostOS(.windows, "Failed to obtain command line tool spec info but no errors were emitted"))
@@ -149,47 +150,134 @@ import Testing
         }
     }
 
-    @Test(.skipHostOS(.windows, "Failed to obtain command line tool spec info but no errors were emitted"))
+    // Linker tool discovery is a bit more complex as it afffected by the ALTERNATE_LINKER build setting.
+    func ldMacroTable() async throws ->  MacroValueAssignmentTable {
+            let core = try await getCore()
+            return MacroValueAssignmentTable(namespace: core.specRegistry.internalMacroNamespace)
+    }
+
+    @Test
     func discoveredLdLinkerSpecInfo() async throws {
-        try await withSpec(LdLinkerSpec.self, .deferred) { (info: DiscoveredLdLinkerToolSpecInfo) in
+        var table = try await ldMacroTable()
+        table.push(BuiltinMacros.LD_MULTIARCH, literal: true)
+        // Default Linker, just check we have one.
+        try await withSpec(LdLinkerSpec.self, .deferred, additionalTable: table) { (info: DiscoveredLdLinkerToolSpecInfo) in
             #expect(!info.toolPath.isEmpty)
             #expect(info.toolVersion != nil)
             if let toolVersion = info.toolVersion {
                 #expect(toolVersion > Version(0, 0, 0))
             }
+        }
+    }
+
+    @Test(.requireSDKs(.macOS))
+    func discoveredLdLinkerSpecInfo_macOS() async throws {
+        var table = try await ldMacroTable()
+        table.push(BuiltinMacros.LD_MULTIARCH, literal: true)
+        // Default Linker
+        try await withSpec(LdLinkerSpec.self, .deferred, additionalTable: table) { (info: DiscoveredLdLinkerToolSpecInfo) in
+            #expect(!info.toolPath.isEmpty)
+            #expect(info.toolVersion != nil)
+            if let toolVersion = info.toolVersion {
+                #expect(toolVersion > Version(0, 0, 0))
+            }
+            #expect(info.linker == .ld64)
             // rdar://112109825 (ld_prime only reports arm64 and arm64e architectures in ld -version_details)
             // let expectedArchs = Set(["armv7", "armv7k", "armv7s", "arm64", "arm64e", "i386", "x86_64"])
             // XCTAssertEqual(info.architectures.intersection(expectedArchs), expectedArchs)
             // XCTAssertFalse(info.architectures.contains("(tvOS)"))
         }
-
-        try await withSpec(LdLinkerSpec.self, .result(status: .exit(0), stdout: Data("GNU ld (GNU Binutils for Debian) 2.40\n".utf8), stderr: Data())) { (info: DiscoveredLdLinkerToolSpecInfo) in
-            #expect(!info.toolPath.isEmpty)
-            #expect(info.toolVersion == Version(2, 40))
-            #expect(info.architectures == Set())
-        }
-
-        try await withSpec(LdLinkerSpec.self, .result(status: .exit(0), stdout: Data("GNU ld version 2.29.1-31.amzn2.0.1\n".utf8), stderr: Data())) { (info: DiscoveredLdLinkerToolSpecInfo) in
-            #expect(!info.toolPath.isEmpty)
-            #expect(info.toolVersion == Version(2, 29, 1))
-            #expect(info.architectures == Set())
-        }
     }
-
-    @Test(.requireHostOS(.windows))
-    func discoveredLdLinkerSpecInfoWindows() async throws {
-        try await withSpec(LdLinkerSpec.self, .deferred, platform: "windows") { (info: DiscoveredLdLinkerToolSpecInfo) in
+    @Test(.requireSDKs(.linux))
+    func discoveredLdLinkerSpecInfo_Linux() async throws {
+        var table = try await ldMacroTable()
+        table.push(BuiltinMacros.LD_MULTIARCH, literal: true)
+        // Default Linker
+        try await withSpec(LdLinkerSpec.self, .deferred, additionalTable: table) { (info: DiscoveredLdLinkerToolSpecInfo) in
             #expect(!info.toolPath.isEmpty)
             #expect(info.toolVersion != nil)
             if let toolVersion = info.toolVersion {
                 #expect(toolVersion > Version(0, 0, 0))
             }
+            #expect(info.linker == .gnuld)
         }
-        try await withSpec(LdLinkerSpec.self, .result(status: .exit(0), stdout: Data("Microsoft (R) Incremental Linker Version 14.41.34120.0\n".utf8), stderr: Data()), platform: "windows") { (info: DiscoveredLdLinkerToolSpecInfo) in
+        try await withSpec(LdLinkerSpec.self, .result(status: .exit(0), stdout: Data("GNU ld (GNU Binutils for Debian) 2.40\n".utf8), stderr: Data()), additionalTable: table) { (info: DiscoveredLdLinkerToolSpecInfo) in
+            #expect(!info.toolPath.isEmpty)
+            #expect(info.toolVersion == Version(2, 40))
+            #expect(info.architectures == Set())
+        }
+
+        try await withSpec(LdLinkerSpec.self, .result(status: .exit(0), stdout: Data("GNU ld version 2.29.1-31.amzn2.0.1\n".utf8), stderr: Data()), additionalTable: table) { (info: DiscoveredLdLinkerToolSpecInfo) in
+            #expect(!info.toolPath.isEmpty)
+            #expect(info.toolVersion == Version(2, 29, 1))
+            #expect(info.architectures == Set())
+        }
+        // llvm-ld
+        table.push(BuiltinMacros.ALTERNATE_LINKER, literal: "lld")
+        try await withSpec(LdLinkerSpec.self, .deferred, additionalTable: table) { (info: DiscoveredLdLinkerToolSpecInfo) in
+            #expect(!info.toolPath.isEmpty)
+            #expect(info.toolVersion != nil)
+            if let toolVersion = info.toolVersion {
+                #expect(toolVersion > Version(0, 0, 0))
+            }
+            #expect(info.linker == .lld)
+        }
+        // gold
+        table.push(BuiltinMacros.ALTERNATE_LINKER, literal: "gold")
+        try await withSpec(LdLinkerSpec.self, .deferred, additionalTable: table) { (info: DiscoveredLdLinkerToolSpecInfo) in
+            #expect(!info.toolPath.isEmpty)
+            #expect(info.toolVersion != nil)
+            if let toolVersion = info.toolVersion {
+                #expect(toolVersion > Version(0, 0, 0))
+            }
+            #expect(info.linker == .gold)
+        }
+    }
+
+    @Test(.requireSDKs(.windows))
+    func discoveredLdLinkerSpecInfo_Windows() async throws {
+        var table = try await ldMacroTable()
+        table.push(BuiltinMacros.LD_MULTIARCH, literal: true)
+        try await withSpec(LdLinkerSpec.self, .deferred, platform: "windows", additionalTable: table) { (info: DiscoveredLdLinkerToolSpecInfo) in
+            #expect(!info.toolPath.isEmpty)
+            #expect(info.toolVersion != nil)
+            if let toolVersion = info.toolVersion {
+                #expect(toolVersion > Version(0, 0, 0))
+            }
+            #expect(info.linker == .lld)
+        }
+        try await withSpec(LdLinkerSpec.self, .result(status: .exit(0), stdout: Data("Microsoft (R) Incremental Linker Version 14.41.34120.0\n".utf8), stderr: Data()), platform: "windows", additionalTable: table) { (info: DiscoveredLdLinkerToolSpecInfo) in
             #expect(!info.toolPath.isEmpty)
             #expect(info.toolVersion == Version(14, 41, 34120))
             #expect(info.architectures == Set())
         }
+
+        // link.exe cannot be used for multipler architectures and requires a distinct link.exe for each target architecture
+        table.push(BuiltinMacros.ALTERNATE_LINKER, literal: "link")
+        table.push(BuiltinMacros.LD_MULTIARCH, literal: false)
+        table.push(BuiltinMacros.LD_MULTIARCH_PREFIX_MAP, literal: ["x86_64:x64", "aarch64:arm64", "arm64:arm64"])
+
+        // x86_64
+        table.push(BuiltinMacros.ARCHS, literal: ["x86_64"])
+        try await withSpec(LdLinkerSpec.self, .deferred, platform: "windows", additionalTable: table) { (info: DiscoveredLdLinkerToolSpecInfo) in
+            #expect(!info.toolPath.isEmpty)
+            #expect(info.toolVersion != nil)
+            if let toolVersion = info.toolVersion {
+                #expect(toolVersion > Version(0, 0, 0))
+            }
+            #expect(info.linker == .linkExe)
+        }
+
+        // // link aarch64
+        // table.push(BuiltinMacros.ARCHS, literal: ["aarch64"])
+        // try await withSpec(LdLinkerSpec.self, .deferred, platform: "windows", additionalTable: table) { (info: DiscoveredLdLinkerToolSpecInfo) in
+        //     #expect(!info.toolPath.isEmpty)
+        //     #expect(info.toolVersion != nil)
+        //     if let toolVersion = info.toolVersion {
+        //         #expect(toolVersion > Version(0, 0, 0))
+        //     }
+        //     #expect(info.linker == .linkExe)
+        // }
     }
 
     @Test(.skipHostOS(.windows), .requireSystemPackages(apt: "libtool", yum: "libtool"))

@@ -1273,7 +1273,6 @@ public final class LdLinkerSpec : GenericLinkerSpec, SpecIdentifierType, @unchec
     }
 
     override public func discoveredCommandLineToolSpecInfo(_ producer: any CommandProducer, _ scope: MacroEvaluationScope, _ delegate: any CoreClientTargetDiagnosticProducingDelegate) async -> (any DiscoveredCommandLineToolSpecInfo)? {
-        let alternateLinker = scope.evaluate(BuiltinMacros.ALTERNATE_LINKER)
         // The ALTERNATE_LINKER is the 'name' of the linker not the executable name, clang will find the linker binary based on name passed via -fuse-ld, but we need to discover
         // its properties by executing the actual binary. There is a common filename when the linker is not "ld" across all platforms using "ld.<ALTERNAME_LINKER>(.exe)"
         // macOS (Xcode SDK)
@@ -1309,9 +1308,43 @@ public final class LdLinkerSpec : GenericLinkerSpec, SpecIdentifierType, @unchec
         //
         // Note: On Linux you cannot invoke the llvm linker by the direct name for determining the version,
         // you need to use ld.<ALTERNATE_LINKER>
-        var linkerPath = producer.hostOperatingSystem == .windows ? Path("link") : Path("ld")
-        if alternateLinker != "" && alternateLinker != "ld" {
+        let alternateLinker = scope.evaluate(BuiltinMacros.ALTERNATE_LINKER)
+        let isLinkerMultiarch = scope.evaluate(BuiltinMacros.LD_MULTIARCH)
+
+        var linkerPath = producer.hostOperatingSystem == .windows ? Path("ld.lld") : Path("ld")
+        if alternateLinker != "" && alternateLinker != "ld" && alternateLinker != "link" {
             linkerPath = Path(producer.hostOperatingSystem.imageFormat.executableName(basename: "ld.\(alternateLinker)"))
+        } else if alternateLinker != "" {
+            linkerPath =  Path(alternateLinker)
+        }
+        // If the linker does not support multiple architectures update the path to include a subfolder based on the prefix map
+        // to find the architecture specific executable.
+        if !isLinkerMultiarch {
+            let archMap = scope.evaluate(BuiltinMacros.LD_MULTIARCH_PREFIX_MAP)
+            let archMappings = archMap.reduce(into: [String: String]()) { mappings, map in
+                let split = map.components(separatedBy: ":")
+                if !split.isEmpty {
+                    return mappings[split[0]] = split[1]
+                }
+            }
+            if archMappings.isEmpty {
+                delegate.error("LD_MULTIARCH is 'false', but no prefix mappings are present in LD_MULTIARCH_PREFIX_MAP")
+                return nil
+            }
+            // Linkers that don't support multiple architectures cannot support universal binaries, so ARCHS will
+            // contain the target architecture and can only be a single value.
+            let arch = scope.evaluate(BuiltinMacros.ARCHS)
+            if arch.count > 1 {
+                delegate.error("LD_MULTIARCH is 'false', but multiple ARCHS have been given, this is invalid")
+                return nil
+            }
+            if let prefix = archMappings[arch[0]] {
+                // Add in the target architecture prefix directory to path for search.
+                linkerPath = Path(prefix).join(linkerPath)
+            } else {
+                delegate.error("Could not find prefix mapping for \(arch[0]) in LD_MULTIARCH_PREFIX_MAP")
+                return nil
+            }
         }
         guard let toolPath = producer.executableSearchPaths.findExecutable(operatingSystem: producer.hostOperatingSystem, basename: linkerPath.str) else {
             return nil
