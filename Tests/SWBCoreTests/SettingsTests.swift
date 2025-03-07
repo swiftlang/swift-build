@@ -1967,8 +1967,8 @@ import SWBMacro
         }
 
         let scope = settings.globalScope
-        #expect(scope.evaluate(BuiltinMacros.SYMROOT) == Path.root.join("/tmp/Workspace/aProject/build"))
-        #expect(scope.evaluate(BuiltinMacros.DSTROOT) == Path.root.join("/tmp/Workspace/aProject/build/foo/bar/dst"))
+        #expect(scope.evaluate(BuiltinMacros.SYMROOT) == Path.root.join("tmp/Workspace/aProject/build"))
+        #expect(scope.evaluate(BuiltinMacros.DSTROOT) == Path.root.join("tmp/Workspace/aProject/build/foo/bar/dst"))
     }
 
     @Test(.requireSDKs(.tvOS))
