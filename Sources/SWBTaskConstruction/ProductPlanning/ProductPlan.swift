@@ -912,15 +912,16 @@ package final class GlobalProductPlan: GlobalTargetInfoProvider
     func expandedSearchPaths(for items: [String], relativeTo sourcePath: Path, scope: MacroEvaluationScope) -> [String] {
         var result = [String]()
         for item in items {
+            let item = Path(item)
             // Expand recursive header search paths, if present.
-            if item.hasSuffix("/**") {
+            if item.basename == "**" {
                 // Drop the recursive search marker and make absolute.
-                let item = Path(item).dirname
+                let item = item.dirname
                 let searchPath = sourcePath.join(item)
 
                 // Ignore any attempts to do a recursive search of root.
                 if searchPath.isRoot {
-                    result.append("/")
+                    result.append(Path.root.str)
                 } else {
                     let excludedPatterns = scope.evaluate(BuiltinMacros.EXCLUDED_RECURSIVE_SEARCH_PATH_SUBDIRECTORIES)
                     let includedPatterns = scope.evaluate(BuiltinMacros.INCLUDED_RECURSIVE_SEARCH_PATH_SUBDIRECTORIES)
@@ -941,7 +942,7 @@ package final class GlobalProductPlan: GlobalTargetInfoProvider
                     }
                 }
             } else {
-                result.append(item)
+                result.append(item.str)
             }
         }
         return result
