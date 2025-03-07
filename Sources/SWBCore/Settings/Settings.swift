@@ -348,7 +348,7 @@ fileprivate struct PreOverridesSettings {
 
             @preconcurrency @PluginExtensionSystemActor func searchPaths() -> [Path] {
                 core.pluginManager.extensions(of: SpecificationsExtensionPoint.self).flatMap { ext in
-                    ext.specificationSearchPaths().compactMap { try? $0.filePath }
+                    ext.specificationSearchPaths(resourceSearchPaths: core.resourceSearchPaths).compactMap { try? $0.filePath }
                 }.sorted()
             }
 
@@ -999,7 +999,7 @@ extension WorkspaceContext {
 
             @preconcurrency @PluginExtensionSystemActor func searchPaths() -> [Path] {
                 core.pluginManager.extensions(of: SpecificationsExtensionPoint.self).flatMap { ext in
-                    ext.specificationSearchPaths().compactMap { try? $0.filePath }
+                    ext.specificationSearchPaths(resourceSearchPaths: core.resourceSearchPaths).compactMap { try? $0.filePath }
                 }.sorted()
             }
 

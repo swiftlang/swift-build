@@ -50,7 +50,7 @@ public struct SpecificationsExtensionPoint: ExtensionPoint {
 
 public protocol SpecificationsExtension: Sendable {
     /// Returns the bundle containing the `.xcspec` files.
-    func specificationFiles() -> Bundle?
+    func specificationFiles(resourceSearchPaths: [Path]) -> Bundle?
     func specificationDomains() -> [String: [String]]
     func specificationTypes() -> [any SpecType.Type]
     func specificationClasses() -> [any SpecIdentifierType.Type]
@@ -58,15 +58,26 @@ public protocol SpecificationsExtension: Sendable {
     func specificationImplementations() -> [any SpecImplementationType.Type]
 
     /// Returns the search paths for two use cases: finding the sole remaining `.xcbuildrules` file, and finding executable scripts next to `.xcspec` files.
-    func specificationSearchPaths() -> [URL]
+    func specificationSearchPaths(resourceSearchPaths: [Path]) -> [URL]
 }
 
 extension SpecificationsExtension {
-    public func specificationFiles() -> Bundle? { nil }
+    public func specificationFiles(resourceSearchPaths: [Path]) -> Bundle? { nil }
     public func specificationDomains() -> [String: [String]] { [:] }
     public func specificationTypes() -> [any SpecType.Type] { [] }
     public func specificationClasses() -> [any SpecIdentifierType.Type] { [] }
     public func specificationClassesClassic() -> [any SpecClassType.Type] { [] }
     public func specificationImplementations() -> [any SpecImplementationType.Type] { [] }
-    public func specificationSearchPaths() -> [URL] { [] }
+    public func specificationSearchPaths(resourceSearchPaths: [Path]) -> [URL] { [] }
+
+    public func findResourceBundle(nameWhenInstalledInToolchain: String, resourceSearchPaths: [Path], defaultBundle: @autoclosure () -> Bundle?) -> Bundle? {
+        for searchPath in resourceSearchPaths {
+            for bundleBasename in ["\(nameWhenInstalledInToolchain).bundle", "\(nameWhenInstalledInToolchain).resources"] {
+                if let bundle = Bundle(path: searchPath.join(bundleBasename).str) {
+                    return bundle
+                }
+            }
+        }
+        return defaultBundle()
+    }
 }

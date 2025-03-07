@@ -157,7 +157,7 @@ package class BuildService: Service, @unchecked Sendable {
     /// Get a shared core instance.
     ///
     /// We use an explicit cache so that we can minimize the number of cores we load while still keeping a flexible public interface that doesn't require all clients to provide all possible required parameters for core initialization (which is useful for testing and debug purposes).
-    func sharedCore(developerPath: Path?, inferiorProducts: Path? = nil, environment: [String: String] = [:]) async -> (Core?, [Diagnostic]) {
+    func sharedCore(developerPath: Path?, resourceSearchPaths: [Path] = [], inferiorProducts: Path? = nil, environment: [String: String] = [:]) async -> (Core?, [Diagnostic]) {
         let key = CoreCacheKey(developerPath: developerPath, inferiorProducts: inferiorProducts, environment: environment)
         return await sharedCoreCacheLock.withLock {
             if let existing = sharedCoreCache[key] {
@@ -191,7 +191,7 @@ package class BuildService: Service, @unchecked Sendable {
                 }
             }
             let delegate = Delegate()
-            let (core, diagnostics) = await (Core.getInitializedCore(delegate, pluginManager: pluginManager, developerPath: developerPath, inferiorProductsPath: inferiorProducts, environment: environment, buildServiceModTime: buildServiceModTime, connectionMode: connectionMode), delegate.diagnostics)
+            let (core, diagnostics) = await (Core.getInitializedCore(delegate, pluginManager: pluginManager, developerPath: developerPath, resourceSearchPaths: resourceSearchPaths, inferiorProductsPath: inferiorProducts, environment: environment, buildServiceModTime: buildServiceModTime, connectionMode: connectionMode), delegate.diagnostics)
             delegate.freeze()
             sharedCoreCache[key] = (core, diagnostics)
             return (core, diagnostics)

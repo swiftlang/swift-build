@@ -2305,7 +2305,7 @@ fileprivate struct TaskConstructionTests: CoreBasedTests {
 
         @PluginExtensionSystemActor func pluginSearchPaths() -> [Path] {
             core.pluginManager.extensions(of: SpecificationsExtensionPoint.self).flatMap { ext in
-                ext.specificationSearchPaths().compactMap { try? $0.filePath }
+                ext.specificationSearchPaths(resourceSearchPaths: core.resourceSearchPaths).compactMap { try? $0.filePath }
             }.sorted()
         }
 

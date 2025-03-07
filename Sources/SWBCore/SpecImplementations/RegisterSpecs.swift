@@ -143,7 +143,7 @@ public struct BuiltinSpecsExtension: SpecificationsExtension {
         ]
     }
 
-    public func specificationFiles() -> Bundle? {
-        .module
+    public func specificationFiles(resourceSearchPaths: [SWBUtil.Path]) -> Bundle? {
+        findResourceBundle(nameWhenInstalledInToolchain: "SwiftBuild_SWBCore", resourceSearchPaths: resourceSearchPaths, defaultBundle: Bundle.module)
     }
 }

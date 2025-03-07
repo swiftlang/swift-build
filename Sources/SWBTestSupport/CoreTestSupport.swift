@@ -40,7 +40,7 @@ extension Core {
             developerPath = "/"
         }
         let delegate = TestingCoreDelegate()
-        return await (try Core(delegate: delegate, hostOperatingSystem: hostOperatingSystem, pluginManager: PluginManager(skipLoadingPluginIdentifiers: []), developerPath: developerPath, inferiorProductsPath: nil, additionalContentPaths: [], environment: [:], buildServiceModTime: Date(), connectionMode: .inProcess), delegate.diagnostics)
+        return await (try Core(delegate: delegate, hostOperatingSystem: hostOperatingSystem, pluginManager: PluginManager(skipLoadingPluginIdentifiers: []), developerPath: developerPath, resourceSearchPaths: [], inferiorProductsPath: nil, additionalContentPaths: [], environment: [:], buildServiceModTime: Date(), connectionMode: .inProcess), delegate.diagnostics)
     }
 
     /// Get an initialized Core suitable for testing.
