@@ -22,8 +22,8 @@ import Foundation
 }
 
 struct WebAssemblyPlatformSpecsExtension: SpecificationsExtension {
-    func specificationFiles() -> Bundle? {
-        .module
+    func specificationFiles(resourceSearchPaths: [Path]) -> Bundle? {
+        findResourceBundle(nameWhenInstalledInToolchain: "SwiftBuild_SWBWebAssemblyPlatform", resourceSearchPaths: resourceSearchPaths, defaultBundle: Bundle.module)
     }
 }
 

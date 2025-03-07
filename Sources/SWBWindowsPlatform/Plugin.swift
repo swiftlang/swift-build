@@ -20,8 +20,8 @@ import Foundation
 }
 
 struct WindowsPlatformSpecsExtension: SpecificationsExtension {
-    func specificationFiles() -> Bundle? {
-        .module
+    func specificationFiles(resourceSearchPaths: [Path]) -> Bundle? {
+        findResourceBundle(nameWhenInstalledInToolchain: "SwiftBuild_SWBWindowsPlatform", resourceSearchPaths: resourceSearchPaths, defaultBundle: Bundle.module)
     }
 }
 

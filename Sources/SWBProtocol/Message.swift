@@ -423,6 +423,7 @@ public struct CreateSessionRequest: RequestMessage, Equatable, SerializableCodab
 
     public let name: String
     public let developerPath: Path?
+    public let resourceSearchPaths: [Path]?
     public let appPath: Path?
     public let cachePath: Path?
     public let inferiorProductsPath: Path?
@@ -432,9 +433,14 @@ public struct CreateSessionRequest: RequestMessage, Equatable, SerializableCodab
         self.init(name: name, developerPath: developerPath, cachePath: cachePath, inferiorProductsPath: inferiorProductsPath, environment: nil)
     }
 
-    public init(name: String, developerPath: Path?, cachePath: Path?, inferiorProductsPath: Path?, environment: [String:String]?) {
+    public init(name: String, developerPath: Path?, cachePath: Path?, inferiorProductsPath: Path?, environment: [String:String]?) { // ABI Compatibility
+        self.init(name: name, developerPath: developerPath, resourceSearchPaths: [], cachePath: cachePath, inferiorProductsPath: inferiorProductsPath, environment: environment)
+    }
+
+    public init(name: String, developerPath: Path?, resourceSearchPaths: [Path], cachePath: Path?, inferiorProductsPath: Path?, environment: [String:String]?) {
         self.name = name
         self.developerPath = developerPath
+        self.resourceSearchPaths = resourceSearchPaths
         self.appPath = developerPath?.dirname.dirname
         self.cachePath = cachePath
         self.inferiorProductsPath = inferiorProductsPath
@@ -446,6 +452,7 @@ public struct CreateSessionRequest: RequestMessage, Equatable, SerializableCodab
         self.name = try deserializer.deserialize()
         self.appPath = try deserializer.deserialize()
         self.developerPath = count >= 5 ? try deserializer.deserialize() : appPath?.join("Contents").join("Developer")
+        self.resourceSearchPaths = []
         self.cachePath = try deserializer.deserialize()
         self.inferiorProductsPath = try deserializer.deserialize()
         self.environment = nil
