@@ -803,6 +803,8 @@ public final class BuiltinMacros {
     public static let LD_RUNPATH_SEARCH_PATHS = BuiltinMacros.declareStringListMacro("LD_RUNPATH_SEARCH_PATHS")
     public static let LD_SDK_IMPORTS_FILE = BuiltinMacros.declarePathMacro("LD_SDK_IMPORTS_FILE")
     public static let LD_WARN_UNUSED_DYLIBS = BuiltinMacros.declareBooleanMacro("LD_WARN_UNUSED_DYLIBS")
+    public static let LD_MULTIARCH = BuiltinMacros.declareBooleanMacro("LD_MULTIARCH")
+    public static let LD_MULTIARCH_PREFIX_MAP = BuiltinMacros.declareStringListMacro("LD_MULTIARCH_PREFIX_MAP")
     public static let LEX = BuiltinMacros.declarePathMacro("LEX")
     public static let LEXFLAGS = BuiltinMacros.declareStringListMacro("LEXFLAGS")
     public static let LIBRARIAN = BuiltinMacros.declareStringMacro("LIBRARIAN")
@@ -1858,6 +1860,8 @@ public final class BuiltinMacros {
         LD_RUNPATH_SEARCH_PATHS,
         LD_SDK_IMPORTS_FILE,
         LD_WARN_UNUSED_DYLIBS,
+        LD_MULTIARCH,
+        LD_MULTIARCH_PREFIX_MAP,
         LEGACY_DEVELOPER_DIR,
         LEX,
         LEXFLAGS,
