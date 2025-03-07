@@ -1149,6 +1149,11 @@ When `GENERATE_INFOPLIST_FILE` is enabled, sets the value of the [CFBundleIdenti
                 Category = "Linking - Warnings";
             },
             {
+                Name = "LD_MULTIARCH";
+                Type = Boolean;
+                DefaultValue = YES;
+            },
+            {
                 Name = "LIBRARY_SEARCH_PATHS";
                 Type = PathList;
                 Category = "Search Paths";
