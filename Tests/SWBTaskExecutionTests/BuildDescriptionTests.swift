@@ -390,16 +390,16 @@ fileprivate struct BuildDescriptionTests: CoreBasedTests {
                 do {
                     let fs = PseudoFS()
                     try fs.createDirectory(Path.root.join("User/Foo"), recursive: true)
-                    try await check(fs: fs, expected: [Path.root.join("/User").str, Path.root.join("/User/Foo").str], expectedSource: .new)
-                    try await check(fs: fs, expected: [Path.root.join("/User").str, Path.root.join("/User/Foo").str], expectedSource: .inMemoryCache)
+                    try await check(fs: fs, expected: [Path.root.join("User").str, Path.root.join("User/Foo").str], expectedSource: .new)
+                    try await check(fs: fs, expected: [Path.root.join("User").str, Path.root.join("User/Foo").str], expectedSource: .inMemoryCache)
                 }
 
                 // Check after adding a path.
                 do {
                     let fs = PseudoFS()
                     try fs.createDirectory(Path.root.join("User/Foo/Bar"), recursive: true)
-                    try await check(fs: fs, expected: [Path.root.join("/User").str, Path.root.join("/User/Foo").str, Path.root.join("/User/Foo/Bar").str], expectedSource: .new)
-                    try await check(fs: fs, expected: [Path.root.join("/User").str, Path.root.join("/User/Foo").str, Path.root.join("/User/Foo/Bar").str], expectedSource: .inMemoryCache)
+                    try await check(fs: fs, expected: [Path.root.join("User").str, Path.root.join("User/Foo").str, Path.root.join("User/Foo/Bar").str], expectedSource: .new)
+                    try await check(fs: fs, expected: [Path.root.join("User").str, Path.root.join("User/Foo").str, Path.root.join("User/Foo/Bar").str], expectedSource: .inMemoryCache)
                 }
             }
         }
