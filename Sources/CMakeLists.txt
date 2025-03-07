@@ -8,6 +8,21 @@ See http://swift.org/LICENSE.txt for license information
 See http://swift.org/CONTRIBUTORS.txt for Swift project authors
 ]]
 
+include(CMakeParseArguments)
+function(SwiftBuild_Bundle)
+  set(Options)
+  set(OneValueArguments MODULE)
+  set(MultiValueArguments FILES)
+  cmake_parse_arguments(PARSE_ARGV 0 BundleXCSpecs
+    "${Options}" "${OneValueArguments}" "${MultiValueArguments}")
+
+  add_custom_command(TARGET ${BundleXCSpecs_MODULE} POST_BUILD
+    COMMAND
+      ${CMAKE_COMMAND} -E make_directory "$<TARGET_PROPERTY:${BundleXCSpecs_MODULE},LOCATION>/SwiftBuild_${BundleXCSpecs_MODULE}.resources"
+    COMMAND
+      ${CMAKE_COMMAND} -E copy_if_different ${BundleXCSpecs_FILES} "$<TARGET_PROPERTY:${BundleXCSpecs_MODULE},LOCATION>/SwiftBuild_${BundleXCSpecs_MODULE}.resources/")
+endfunction()
+
 add_subdirectory(SWBCSupport)
 add_subdirectory(SWBCLibc)
 add_subdirectory(SWBLibc)
