@@ -1471,6 +1471,86 @@ fileprivate struct SwiftTaskConstructionTests: CoreBasedTests {
         }
     }
 
+    @Test(.requireSDKs(.macOS))
+    func swift4DisablesExplicitModules() async throws {
+        let testProject = try await TestProject(
+            "aProject",
+            groupTree: TestGroup(
+                "SomeFiles", path: "Sources",
+                children: [
+                    TestFile("main.swift"),
+                ]),
+            buildConfigurations: [
+                TestBuildConfiguration(
+                    "Debug",
+                    buildSettings: [
+                        "PRODUCT_NAME": "$(TARGET_NAME)",
+                        "SWIFT_ENABLE_EXPLICIT_MODULES": "YES",
+                    ]),
+            ],
+            targets: [
+                TestStandardTarget(
+                    "Exec", type: .commandLineTool,
+                    buildConfigurations: [
+                        TestBuildConfiguration("Debug",
+                                               buildSettings: [
+                                                "SWIFT_EXEC": swiftCompilerPath.str,
+                                               ]),
+                    ],
+                    buildPhases: [
+                        TestSourcesBuildPhase([
+                            "main.swift",
+                        ]),
+                    ])
+            ])
+        let tester = try await TaskConstructionTester(getCore(), testProject)
+
+        await tester.checkBuild(BuildParameters(configuration: "Debug", overrides: ["SWIFT_VERSION": "6.0"])) { results in
+            results.checkTarget("Exec") { target in
+                results.checkTask(.matchTarget(target), .matchRuleType("SwiftDriver Compilation Requirements")) { task in
+                    task.checkCommandLineContains(["-explicit-module-build"])
+                }
+            }
+            results.checkNoDiagnostics()
+        }
+
+        await tester.checkBuild(BuildParameters(configuration: "Debug", overrides: ["SWIFT_VERSION": "5.0"])) { results in
+            results.checkTarget("Exec") { target in
+                results.checkTask(.matchTarget(target), .matchRuleType("SwiftDriver Compilation Requirements")) { task in
+                    task.checkCommandLineContains(["-explicit-module-build"])
+                }
+            }
+            results.checkNoDiagnostics()
+        }
+
+        await tester.checkBuild(BuildParameters(configuration: "Debug", overrides: ["SWIFT_VERSION": "4.0"])) { results in
+            results.checkTarget("Exec") { target in
+                results.checkTask(.matchTarget(target), .matchRuleType("SwiftDriver Compilation Requirements")) { task in
+                    task.checkCommandLineDoesNotContain("-explicit-module-build")
+                }
+            }
+            results.checkNoDiagnostics()
+        }
+
+        await tester.checkBuild(BuildParameters(configuration: "Debug", overrides: ["SWIFT_VERSION": "4.2"])) { results in
+            results.checkTarget("Exec") { target in
+                results.checkTask(.matchTarget(target), .matchRuleType("SwiftDriver Compilation Requirements")) { task in
+                    task.checkCommandLineDoesNotContain("-explicit-module-build")
+                }
+            }
+            results.checkNoDiagnostics()
+        }
+
+        await tester.checkBuild(BuildParameters(configuration: "Debug", overrides: ["SWIFT_VERSION": "4.2", "_SWIFT_EXPLICIT_MODULES_ALLOW_BEFORE_SWIFT_5": "YES"])) { results in
+            results.checkTarget("Exec") { target in
+                results.checkTask(.matchTarget(target), .matchRuleType("SwiftDriver Compilation Requirements")) { task in
+                    task.checkCommandLineContains(["-explicit-module-build"])
+                }
+            }
+            results.checkNoDiagnostics()
+        }
+    }
+
     /// Check control of whether Swift module is copied for other targets to use.
     @Test(.requireSDKs(.macOS))
     func swiftModuleNotCopiedWhenAskedNotTo() async throws {
