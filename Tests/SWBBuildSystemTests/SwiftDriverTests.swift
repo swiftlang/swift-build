@@ -501,7 +501,7 @@ fileprivate struct SwiftDriverTests: CoreBasedTests {
                 }
 
                 results.checkTask(.matchTargetName("TargetA"), .matchRule(["SwiftCompile", "normal", "arm64", "Compiling file1.swift", SRCROOT.join("Sources/file1.swift").str])) { compileFile1Task in
-                    compileFile1Task.checkCommandLineMatches([.suffix("swift-frontend"), .anySequence, "-primary-file", .equal(SRCROOT.join("Sources/file1.swift").str), .anySequence, "-disable-implicit-swift-modules", .anySequence, "-import-objc-header", .regex(#/.*aProject/build/aProject.build/Debug/TargetA.build/Objects-normal/arm64/Bridging-Header-.*.pch/#), .anySequence, "-o", .suffix("file1.o")])
+                    compileFile1Task.checkCommandLineMatches([.suffix("swift-frontend"), .anySequence, "-primary-file", .equal(SRCROOT.join("Sources/file1.swift").str), .anySequence, "-disable-implicit-swift-modules", .anySequence, "-import-objc-header", .regex(#/.*aProject/build/aProject.build/Debug/TargetA.build/Objects-normal/arm64/.*.pch/#), .anySequence, "-o", .suffix("file1.o")])
                 }
 
             }
