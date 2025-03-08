@@ -1370,6 +1370,11 @@ public final class SwiftCompilerSpec : CompilerSpec, SpecIdentifierType, SwiftDi
             return scope.evaluate(BuiltinMacros._SWIFT_EXPLICIT_MODULES_ALLOW_CXX_INTEROP)
         }
 
+        // Disable explicit modules in the pre-Swift-5 language modes to avoid versioned API notes confusion.
+        guard let swiftVersion = try? Version(scope.evaluate(BuiltinMacros.SWIFT_VERSION)), swiftVersion >= Version(5) else {
+            return scope.evaluate(BuiltinMacros._SWIFT_EXPLICIT_MODULES_ALLOW_BEFORE_SWIFT_5)
+        }
+
         // If a blocklist is provided in the toolchain, use it to determine the default for the current project
         guard let explicitModuleBlocklist = await getExplicitModuleBlocklist(producer, scope, delegate) else {
             return buildSettingEnabled
