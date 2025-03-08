@@ -40,7 +40,7 @@ public final class Core: Sendable {
     /// Get a configured instance of the core.
     ///
     /// - returns: An initialized Core instance on which all discovery and loading will have been completed. If there are errors during that process, they will be logged to `stderr` and no instance will be returned. Otherwise, the initialized object is returned.
-    public static func getInitializedCore(_ delegate: any CoreDelegate, pluginManager: PluginManager, developerPath: Path? = nil, inferiorProductsPath: Path? = nil, extraPluginRegistration: @PluginExtensionSystemActor (_ pluginPaths: [Path]) -> Void = { _ in }, additionalContentPaths: [Path] = [], environment: [String:String] = [:], buildServiceModTime: Date, connectionMode: ServiceHostConnectionMode) async -> Core? {
+    public static func getInitializedCore(_ delegate: any CoreDelegate, pluginManager: PluginManager, developerPath: Path? = nil, resourceSearchPaths: [Path] = [], inferiorProductsPath: Path? = nil, extraPluginRegistration: @PluginExtensionSystemActor (_ pluginPaths: [Path]) -> Void = { _ in }, additionalContentPaths: [Path] = [], environment: [String:String] = [:], buildServiceModTime: Date, connectionMode: ServiceHostConnectionMode) async -> Core? {
         // Enable macro expression interning during loading.
         return await MacroNamespace.withExpressionInterningEnabled {
             let hostOperatingSystem: OperatingSystem
@@ -73,7 +73,7 @@ public final class Core: Sendable {
 
             let core: Core
             do {
-                core = try await Core(delegate: delegate, hostOperatingSystem: hostOperatingSystem, pluginManager: pluginManager, developerPath: resolvedDeveloperPath, inferiorProductsPath: inferiorProductsPath, additionalContentPaths: additionalContentPaths, environment: environment, buildServiceModTime: buildServiceModTime, connectionMode: connectionMode)
+                core = try await Core(delegate: delegate, hostOperatingSystem: hostOperatingSystem, pluginManager: pluginManager, developerPath: resolvedDeveloperPath, resourceSearchPaths: resourceSearchPaths, inferiorProductsPath: inferiorProductsPath, additionalContentPaths: additionalContentPaths, environment: environment, buildServiceModTime: buildServiceModTime, connectionMode: connectionMode)
             } catch {
                 delegate.error("\(error)")
                 return nil
@@ -147,6 +147,9 @@ public final class Core: Sendable {
     /// The path to the "Developer" directory.
     public let developerPath: Path
 
+    /// Additional search paths to be used when looking up resource bundles.
+    public let resourceSearchPaths: [Path]
+
     /// The path to the inferior Xcode build directory, if used.
     public let inferiorProductsPath: Path?
 
@@ -177,11 +180,12 @@ public final class Core: Sendable {
 
     public let connectionMode: ServiceHostConnectionMode
 
-    @_spi(Testing) public init(delegate: any CoreDelegate, hostOperatingSystem: OperatingSystem, pluginManager: PluginManager, developerPath: String, inferiorProductsPath: Path?, additionalContentPaths: [Path], environment: [String:String], buildServiceModTime: Date, connectionMode: ServiceHostConnectionMode) async throws {
+    @_spi(Testing) public init(delegate: any CoreDelegate, hostOperatingSystem: OperatingSystem, pluginManager: PluginManager, developerPath: String, resourceSearchPaths: [Path], inferiorProductsPath: Path?, additionalContentPaths: [Path], environment: [String:String], buildServiceModTime: Date, connectionMode: ServiceHostConnectionMode) async throws {
         self.delegate = delegate
         self.hostOperatingSystem = hostOperatingSystem
         self.pluginManager = pluginManager
         self.developerPath = Path(developerPath)
+        self.resourceSearchPaths = resourceSearchPaths
         self.inferiorProductsPath = inferiorProductsPath
         self.additionalContentPaths = additionalContentPaths
         self.buildServiceModTime = buildServiceModTime
@@ -402,7 +406,7 @@ public final class Core: Sendable {
 
         // Find all plugin provided specs.
         for ext in await self.pluginManager.extensions(of: SpecificationsExtensionPoint.self) {
-            if let bundle = ext.specificationFiles() {
+            if let bundle = ext.specificationFiles(resourceSearchPaths: resourceSearchPaths) {
                 for url in bundle.urls(forResourcesWithExtension: "xcspec", subdirectory: nil) ?? [] {
                     do {
                         try searchPaths.append(((url as URL).filePath, ""))

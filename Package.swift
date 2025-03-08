@@ -45,7 +45,7 @@ func swiftSettings(languageMode: SwiftLanguageMode) -> [SwiftSetting] {
 
             .swiftLanguageMode(.v5),
 
-            .define("USE_STATIC_PLUGIN_INITIALIZATION")
+            .define("USE_STATIC_PLUGIN_INITIALIZATION"),
         ]
     case .v6:
         return [
@@ -55,7 +55,7 @@ func swiftSettings(languageMode: SwiftLanguageMode) -> [SwiftSetting] {
 
             .swiftLanguageMode(.v6),
 
-            .define("USE_STATIC_PLUGIN_INITIALIZATION")
+            .define("USE_STATIC_PLUGIN_INITIALIZATION"),
         ]
     default:
         fatalError("unexpected language mode")

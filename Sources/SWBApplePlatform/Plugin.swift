@@ -98,8 +98,8 @@ struct ApplePlatformSpecsExtension: SpecificationsExtension {
         ]
     }
 
-    func specificationFiles() -> Bundle? {
-        .module
+    func specificationFiles(resourceSearchPaths: [Path]) -> Bundle? {
+        findResourceBundle(nameWhenInstalledInToolchain: "SwiftBuild_SWBApplePlatform", resourceSearchPaths: resourceSearchPaths, defaultBundle: Bundle.module)
     }
 
     func specificationDomains() -> [String : [String]] {
