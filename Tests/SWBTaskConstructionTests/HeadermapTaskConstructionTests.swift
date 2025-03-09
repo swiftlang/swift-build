@@ -405,6 +405,7 @@ fileprivate struct HeadermapTaskConstructionTests: CoreBasedTests {
             targets: [
                 TestStandardTarget(
                     "Application",
+                    type: .application,
                     buildConfigurations: [
                         buildConfiguration(withName: "ModulesOffVFSOffDefineModuleOff", extraSettings: [:]),
                         buildConfiguration(withName: "ModulesOnVFSOffDefineModuleOff", extraSettings: ["CLANG_ENABLE_MODULES": "YES"]),
@@ -505,6 +506,7 @@ fileprivate struct HeadermapTaskConstructionTests: CoreBasedTests {
             targets: [
                 TestStandardTarget(
                     "Application",
+                    type: .application,
                     buildConfigurations: [
                         TestBuildConfiguration("Default", buildSettings: [
                             "GENERATE_INFOPLIST_FILE": "YES",

@@ -24,7 +24,7 @@ import SWBCore
                 TestProject("testProject",
                             groupTree: TestGroup("root"),
                             targets: [
-                                TestStandardTarget("testTarget")
+                                TestStandardTarget("testTarget", type: .application)
                             ])
             ]).load(getCore())
 
@@ -45,7 +45,7 @@ import SWBCore
                 TestProject("testProject",
                             groupTree: TestGroup("root"),
                             targets: [
-                                TestStandardTarget("testTarget")
+                                TestStandardTarget("testTarget", type: .application)
                             ])
             ]).load(getCore())
 
@@ -64,7 +64,7 @@ import SWBCore
                 TestProject("testProject",
                             groupTree: TestGroup("root"),
                             targets: [
-                                TestStandardTarget("testTarget")
+                                TestStandardTarget("testTarget", type: .application)
                             ])
             ]).load(getCore())
 
@@ -97,7 +97,7 @@ import SWBCore
                             guid: "abcd",
                             groupTree: TestGroup("root"),
                             targets: [
-                                TestStandardTarget("testTarget")
+                                TestStandardTarget("testTarget", type: .application)
                             ])
             ]).load(getCore())
 
@@ -119,7 +119,7 @@ import SWBCore
                             guid: "abcd",
                             groupTree: TestGroup("root"),
                             targets: [
-                                TestStandardTarget("testTarget")
+                                TestStandardTarget("testTarget", type: .application)
                             ])
             ]).load(getCore())
 
@@ -148,12 +148,12 @@ import SWBCore
             projects: [
                 TestProject("projectA",
                             groupTree: TestGroup("whatever"),
-                            targets: [TestStandardTarget("targetA")]),
+                            targets: [TestStandardTarget("targetA", type: .application)]),
                 TestProject("testProject",
                             guid: "abcd",
                             groupTree: TestGroup("root"),
                             targets: [
-                                TestStandardTarget("testTarget")
+                                TestStandardTarget("testTarget", type: .application)
                             ])
             ]).load(getCore())
 
@@ -166,8 +166,8 @@ import SWBCore
                             targets: []),
                 TestProject("projectB",
                             groupTree: TestGroup("whatever"),
-                            targets: [TestStandardTarget("targetB"),
-                                      TestStandardTarget("targetC")])
+                            targets: [TestStandardTarget("targetB", type: .application),
+                                      TestStandardTarget("targetC", type: .application)])
             ]).load(getCore())
 
         let diff = workspace.diff(against: otherWorkspace)
@@ -194,7 +194,7 @@ import SWBCore
                                                  guid: "G1234",
                                                  children: [extraFile]),
                             targets: [
-                                TestStandardTarget("testTarget", guid: "efgh")
+                                TestStandardTarget("testTarget", guid: "efgh", type: .application)
                             ])
             ]).load(getCore())
 
@@ -205,7 +205,7 @@ import SWBCore
                             guid: "abcd",
                             groupTree: TestGroup("root", guid: "G1234"),
                             targets: [
-                                TestStandardTarget("testTarget", guid: "efgh")
+                                TestStandardTarget("testTarget", guid: "efgh", type: .application)
                             ])
             ]).load(getCore())
 
@@ -233,7 +233,7 @@ import SWBCore
                             guid: "abcd",
                             groupTree: TestGroup("root", guid: "G1234"),
                             targets: [
-                                TestStandardTarget("testTarget", guid: "efgh")
+                                TestStandardTarget("testTarget", guid: "efgh", type: .application)
                             ])
             ]).load(getCore())
 
@@ -246,7 +246,7 @@ import SWBCore
                                                  guid: "G1234",
                                                  children: [missingFile]),
                             targets: [
-                                TestStandardTarget("testTarget", guid: "efgh")
+                                TestStandardTarget("testTarget", guid: "efgh", type: .application)
                             ])
             ]).load(getCore())
 

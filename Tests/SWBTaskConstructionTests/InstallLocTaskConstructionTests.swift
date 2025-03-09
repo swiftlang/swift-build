@@ -60,6 +60,7 @@ fileprivate struct InstallLocTaskConstructionTests: CoreBasedTests {
             targets: [
                 TestStandardTarget(
                     "App",
+                    type: .application,
                     buildPhases: [
                         TestResourcesBuildPhase([
                             "foo.xib",
@@ -171,6 +172,7 @@ fileprivate struct InstallLocTaskConstructionTests: CoreBasedTests {
             targets: [
                 TestStandardTarget(
                     "Foo",
+                    type: .application,
                     buildPhases: [
                         TestResourcesBuildPhase([
                             "Foo.png",
@@ -242,6 +244,7 @@ fileprivate struct InstallLocTaskConstructionTests: CoreBasedTests {
             targets: [
                 TestStandardTarget(
                     "Watchable",
+                    type: .application,
                     buildConfigurations: [
                         TestBuildConfiguration("Release",
                                                buildSettings: [
@@ -426,6 +429,7 @@ fileprivate struct InstallLocTaskConstructionTests: CoreBasedTests {
             targets: [
                 TestStandardTarget(
                     "Bundlable",
+                    type: .application,
                     buildConfigurations: [
                         TestBuildConfiguration("Release",
                                                buildSettings: [
@@ -568,6 +572,7 @@ fileprivate struct InstallLocTaskConstructionTests: CoreBasedTests {
                 targets: [
                     TestStandardTarget(
                         "App",
+                        type: .application,
                         buildPhases: [
                             TestCopyFilesBuildPhase([
                                 "CoreFoo.framework",
@@ -672,6 +677,7 @@ fileprivate struct InstallLocTaskConstructionTests: CoreBasedTests {
             targets: [
                 TestStandardTarget(
                     "App",
+                    type: .application,
                     buildPhases: [
                         TestCopyFilesBuildPhase([
                             "CoreFoo.framework",
@@ -807,6 +813,7 @@ fileprivate struct InstallLocTaskConstructionTests: CoreBasedTests {
             targets: [
                 TestStandardTarget(
                     "App",
+                    type: .application,
                     buildPhases: [
                         TestCopyFilesBuildPhase([
                             "CoreFoo.framework",
@@ -917,6 +924,7 @@ fileprivate struct InstallLocTaskConstructionTests: CoreBasedTests {
                 targets: [
                     TestStandardTarget(
                         "App",
+                        type: .application,
                         buildPhases: [
                             TestCopyFilesBuildPhase([
                                 "CoreFoo.framework",
@@ -1064,6 +1072,7 @@ fileprivate struct InstallLocTaskConstructionTests: CoreBasedTests {
                 targets: [
                     TestStandardTarget(
                         "App",
+                        type: .application,
                         buildPhases: [
                             TestResourcesBuildPhase([
                                 "Settings.bundle"
@@ -1165,6 +1174,7 @@ fileprivate struct InstallLocTaskConstructionTests: CoreBasedTests {
                 targets: [
                     TestStandardTarget(
                         "App",
+                        type: .application,
                         buildPhases: [
                             TestCopyFilesBuildPhase(["Settings.bundle"], destinationSubfolder: .resources, onlyForDeployment: false),
                         ])
@@ -1264,6 +1274,7 @@ fileprivate struct InstallLocTaskConstructionTests: CoreBasedTests {
                 targets: [
                     TestStandardTarget(
                         "App",
+                        type: .application,
                         buildPhases: [
                             TestResourcesBuildPhase([
                                 "ReleaseSettings.bundle"
@@ -1341,6 +1352,7 @@ fileprivate struct InstallLocTaskConstructionTests: CoreBasedTests {
             targets: [
                 TestStandardTarget(
                     "App",
+                    type: .application,
                     buildPhases: [
                         TestShellScriptBuildPhase(name: "", shellPath: "/bin/bash", originalObjectID: "abc", contents: "env | sort", onlyForDeployment: false, emitEnvironment: true, alwaysOutOfDate: true)
                     ]
@@ -1496,6 +1508,7 @@ fileprivate struct InstallLocTaskConstructionTests: CoreBasedTests {
             targets: [
                 TestStandardTarget(
                     "App",
+                    type: .application,
                     buildPhases: [
                         TestCopyFilesBuildPhase([
                             "CoreFoo.framework",
@@ -1816,6 +1829,7 @@ fileprivate struct InstallLocTaskConstructionTests: CoreBasedTests {
             targets: [
                 TestStandardTarget(
                     "App",
+                    type: .application,
                     buildPhases: [
                         TestResourcesBuildPhase([
                             "AppShortcuts.strings",

@@ -537,6 +537,7 @@ fileprivate struct BuildOperationTests: CoreBasedTests {
                                 ]),
                             TestStandardTarget(
                                 "agg3",
+                                type: .application,
                                 buildConfigurations: [
                                     TestBuildConfiguration("Debug", buildSettings: ["BUILD_VARIANTS": "normal debug"])
                                 ],
@@ -3409,6 +3410,7 @@ That command depends on command in Target 'agg2' (project \'aProject\'): script 
                         targets: [
                             TestStandardTarget(
                                 "App",
+                                type: .application,
                                 buildPhases: [
                                     TestSourcesBuildPhase([TestBuildFile("App.c")]),
                                 ]),
@@ -4398,6 +4400,7 @@ That command depends on command in Target 'agg2' (project \'aProject\'): script 
                         targets: [
                             TestStandardTarget(
                                 "App",
+                                type: .application,
                                 buildPhases: [
                                     TestSourcesBuildPhase([
                                         "main.c",

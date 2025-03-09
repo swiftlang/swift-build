@@ -101,6 +101,7 @@ fileprivate struct TaskConstructionTests: CoreBasedTests {
                 targets: [
                     TestStandardTarget(
                         "AppTarget",
+                        type: .application,
                         buildConfigurations: [
                             TestBuildConfiguration("Debug", buildSettings: [
                                 "INFOPLIST_FILE": "Sources/Info.plist",
@@ -1948,6 +1949,7 @@ fileprivate struct TaskConstructionTests: CoreBasedTests {
             targets: [
                 TestStandardTarget(
                     "AppTarget",
+                    type: .application,
                     buildConfigurations: [
                         TestBuildConfiguration("Debug", buildSettings: [
                             "INFOPLIST_FILE": "Sources/Info.plist",
@@ -2983,6 +2985,7 @@ fileprivate struct TaskConstructionTests: CoreBasedTests {
             targets: [
                 TestStandardTarget(
                     "App",
+                    type: .application,
                     buildConfigurations: [
                         TestBuildConfiguration("Debug",
                                                buildSettings: [
@@ -4086,6 +4089,7 @@ fileprivate struct TaskConstructionTests: CoreBasedTests {
                 targets: [
                     TestStandardTarget(
                         targetName,
+                        type: .application,
                         buildConfigurations: [
                             TestBuildConfiguration("Debug"),
                         ],
@@ -4689,6 +4693,7 @@ fileprivate struct TaskConstructionTests: CoreBasedTests {
             targets: [
                 TestStandardTarget(
                     "AppTarget",
+                    type: .application,
                     buildConfigurations: [
                         TestBuildConfiguration("Debug", buildSettings: ["INFOPLIST_FILE": "Sources/Info.plist"]),
                         TestBuildConfiguration("Release", buildSettings: ["INFOPLIST_FILE": "Sources/Info.plist"]),
@@ -7660,6 +7665,7 @@ fileprivate struct TaskConstructionTests: CoreBasedTests {
             targets: [
                 TestStandardTarget(
                     "AppTarget",
+                    type: .application,
                     buildConfigurations: [
                         TestBuildConfiguration("Debug", buildSettings: [
                             "GENERATE_PKGINFO_FILE": "YES",
@@ -8338,6 +8344,7 @@ fileprivate struct TaskConstructionTests: CoreBasedTests {
                 targets: [
                     TestStandardTarget(
                         "AppTarget",
+                        type: .application,
                         buildConfigurations: [
                             TestBuildConfiguration("Debug", buildSettings: [
                                 "GENERATE_INFOPLIST_FILE": "YES"
@@ -8422,6 +8429,7 @@ fileprivate struct TaskConstructionTests: CoreBasedTests {
                 targets: [
                     TestStandardTarget(
                         "AppTarget",
+                        type: .application,
                         buildConfigurations: [
                             TestBuildConfiguration("Debug", buildSettings: [
                                 "GENERATE_INFOPLIST_FILE": "YES"
@@ -8500,6 +8508,7 @@ fileprivate struct TaskConstructionTests: CoreBasedTests {
                 targets: [
                     TestStandardTarget(
                         "AppTarget",
+                        type: .application,
                         buildConfigurations: [
                             TestBuildConfiguration("Debug", buildSettings: [
                                 "GENERATE_INFOPLIST_FILE": "YES"

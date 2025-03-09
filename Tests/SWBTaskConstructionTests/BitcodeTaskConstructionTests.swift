@@ -47,6 +47,7 @@ fileprivate struct BitcodeTaskConstructionTests: CoreBasedTests {
             targets: [
                 TestStandardTarget(
                     "AppTarget",
+                    type: .application,
                     buildConfigurations: [
                         TestBuildConfiguration("Debug", buildSettings: [
                             "INFOPLIST_FILE": "Info.plist",

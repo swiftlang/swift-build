@@ -52,7 +52,7 @@ fileprivate enum TargetPlatformSpecializationMode {
                                               projects: [TestProject("aProject",
                                                                      groupTree: TestGroup("SomeFiles"),
                                                                      targets: [
-                                                                        TestStandardTarget("anApp"),
+                                                                        TestStandardTarget("anApp", type: .application),
                                                                      ]
                                                                     )]
             ).load(core)
@@ -155,9 +155,9 @@ fileprivate enum TargetPlatformSpecializationMode {
                                           projects: [TestProject("aProject",
                                                                  groupTree: TestGroup("SomeFiles"),
                                                                  targets: [
-                                                                    TestStandardTarget("anApp", dependencies: ["aFramework"]),
-                                                                    TestStandardTarget("anotherApp", dependencies: ["aFramework"]),
-                                                                    TestStandardTarget("aFramework")])]).load(core)
+                                                                    TestStandardTarget("anApp", type: .application, dependencies: ["aFramework"]),
+                                                                    TestStandardTarget("anotherApp", type: .application, dependencies: ["aFramework"]),
+                                                                    TestStandardTarget("aFramework", type: .application)])]).load(core)
         let workspaceContext = WorkspaceContext(core: core, workspace: workspace, processExecutionCache: .sharedForTesting)
         let project = workspace.projects[0]
 
@@ -192,9 +192,9 @@ fileprivate enum TargetPlatformSpecializationMode {
                                           projects: [TestProject("aProject",
                                                                  groupTree: TestGroup("SomeFiles"),
                                                                  targets: [
-                                                                    TestStandardTarget("anApp", dependencies: ["aFramework"]),
-                                                                    TestStandardTarget("anotherApp", dependencies: ["aFramework"]),
-                                                                    TestStandardTarget("aFramework")])]).load(core)
+                                                                    TestStandardTarget("anApp", type: .application, dependencies: ["aFramework"]),
+                                                                    TestStandardTarget("anotherApp", type: .application, dependencies: ["aFramework"]),
+                                                                    TestStandardTarget("aFramework", type: .application)])]).load(core)
         let workspaceContext = WorkspaceContext(core: core, workspace: workspace, processExecutionCache: .sharedForTesting)
         let project = workspace.projects[0]
 
@@ -241,8 +241,8 @@ fileprivate enum TargetPlatformSpecializationMode {
                                           projects: [TestProject("aProject",
                                                                  groupTree: TestGroup("SomeFiles"),
                                                                  targets: [
-                                                                    TestStandardTarget("anApp", dependencies: ["aFramework", "Missing"]),
-                                                                    TestStandardTarget("aFramework"),
+                                                                    TestStandardTarget("anApp", type: .application, dependencies: ["aFramework", "Missing"]),
+                                                                    TestStandardTarget("aFramework", type: .application),
                                                                  ]
                                                                 )]
         ).load(core)
@@ -721,6 +721,7 @@ fileprivate enum TargetPlatformSpecializationMode {
                             targets: [
                                 TestStandardTarget(
                                     "Watchable",
+                                    type: .application,
                                     buildConfigurations: [
                                         TestBuildConfiguration(
                                             "Debug",
@@ -3188,8 +3189,8 @@ fileprivate enum TargetPlatformSpecializationMode {
                                           projects: [TestProject("aProject",
                                                                  groupTree: TestGroup("SomeFiles", children: [TestFile("aFramework.framework")]),
                                                                  targets: [
-                                                                    TestStandardTarget("anApp", buildPhases: [TestFrameworksBuildPhase(["aFramework.framework"])]),
-                                                                    TestStandardTarget("aFramework", productReferenceName: "aFramework.framework"),
+                                                                    TestStandardTarget("anApp", type: .application, buildPhases: [TestFrameworksBuildPhase(["aFramework.framework"])]),
+                                                                    TestStandardTarget("aFramework", type: .application, productReferenceName: "aFramework.framework"),
                                                                  ]
                                                                 )]
         ).load(core)
@@ -3241,6 +3242,7 @@ fileprivate enum TargetPlatformSpecializationMode {
                         ]),
                         TestStandardTarget(
                             "test0",
+                            type: .application,
                             buildConfigurations: [
                                 TestBuildConfiguration(
                                     "Debug",
@@ -3253,6 +3255,7 @@ fileprivate enum TargetPlatformSpecializationMode {
                         ),
                         TestStandardTarget(
                             "test1",
+                            type: .application,
                             buildConfigurations: [
                                 TestBuildConfiguration(
                                     "Debug",
@@ -3263,6 +3266,7 @@ fileprivate enum TargetPlatformSpecializationMode {
                         ),
                         TestStandardTarget(
                             "test2",
+                            type: .application,
                             buildConfigurations: [
                                 TestBuildConfiguration(
                                     "Debug",
@@ -3273,6 +3277,7 @@ fileprivate enum TargetPlatformSpecializationMode {
                         ),
                         TestStandardTarget(
                             "test3",
+                            type: .application,
                             buildConfigurations: [
                                 TestBuildConfiguration(
                                     "Debug",
@@ -3283,6 +3288,7 @@ fileprivate enum TargetPlatformSpecializationMode {
                         ),
                         TestStandardTarget(
                             "testDisabled",
+                            type: .application,
                             buildConfigurations: [
                                 TestBuildConfiguration(
                                     "Debug",
@@ -3294,10 +3300,10 @@ fileprivate enum TargetPlatformSpecializationMode {
                         ),
 
                         // Ensure that more than one target has the same "stem" ("Dynamic"), so that we don't get an ambiguous match including the framework from a -lDynamic argument.
-                        TestStandardTarget("aFramework", productReferenceName: "aFramework.framework"),
-                        TestStandardTarget("aFramework2", productReferenceName: "Dynamic.framework"),
-                        TestStandardTarget("aDynamicLib", productReferenceName: "libDynamic.dylib"),
-                        TestStandardTarget("aStaticLib", productReferenceName: "libStatic.a"),
+                        TestStandardTarget("aFramework", type: .application, productReferenceName: "aFramework.framework"),
+                        TestStandardTarget("aFramework2", type: .application, productReferenceName: "Dynamic.framework"),
+                        TestStandardTarget("aDynamicLib", type: .application, productReferenceName: "libDynamic.dylib"),
+                        TestStandardTarget("aStaticLib", type: .application, productReferenceName: "libStatic.a"),
                     ]
                 ),
             ]

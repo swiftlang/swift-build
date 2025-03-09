@@ -252,6 +252,7 @@ import SWBMacro
                                                                             ])],
                                                                          targets: [
                                                                             TestStandardTarget("Target1",
+                                                                                               type: .application,
                                                                                                buildConfigurations: [
                                                                                                 TestBuildConfiguration("Config1", buildSettings: [
                                                                                                     "BUILD_VARIANTS": "normal other",
@@ -433,6 +434,7 @@ import SWBMacro
                                                                      groupTree: TestGroup("SomeFiles", children: [TestFile("Mock.cpp")]),
                                                                      targets: [
                                                                         TestStandardTarget("Target1",
+                                                                                           type: .application,
                                                                                            buildConfigurations: [
                                                                                             TestBuildConfiguration("Debug",
                                                                                                                    buildSettings: [
@@ -479,6 +481,7 @@ import SWBMacro
                                                                            groupTree: TestGroup("SomeFiles", children: [TestFile("Mock.cpp")]),
                                                                            targets: [
                                                                             TestStandardTarget("Target1",
+                                                                                               type: .application,
                                                                                                buildConfigurations: [
                                                                                                 TestBuildConfiguration("Debug",
                                                                                                                        buildSettings: [
@@ -509,6 +512,7 @@ import SWBMacro
                                                                      ]),
                                                                      targets: [
                                                                         TestStandardTarget("macOSTarget",
+                                                                                           type: .application,
                                                                                            buildConfigurations: [
                                                                                             TestBuildConfiguration("Debug",
                                                                                                                    buildSettings: [
@@ -518,6 +522,7 @@ import SWBMacro
                                                                                                                    ])],
                                                                                            buildPhases: [TestSourcesBuildPhase(["Mock.cpp"])]),
                                                                         TestStandardTarget("iOSTarget",
+                                                                                           type: .application,
                                                                                            buildConfigurations: [
                                                                                             TestBuildConfiguration("Debug",
                                                                                                                    buildSettings: [
@@ -950,6 +955,7 @@ import SWBMacro
                                                                  ],
                                                                  targets: [
                                                                     TestStandardTarget("Target1",
+                                                                                       type: .application,
                                                                                        buildConfigurations: [
                                                                                         TestBuildConfiguration("Debug", buildSettings: [:]
                                                                                                               )],
@@ -1231,6 +1237,7 @@ import SWBMacro
                                                                     groupTree: TestGroup("SomeFiles", children: [TestFile("Mock.cpp")]),
                                                                     targets: [
                                                                         TestStandardTarget("Target1",
+                                                                                           type: .application,
                                                                                            buildConfigurations: [
                                                                                             TestBuildConfiguration("Debug",
                                                                                                                    buildSettings: [
@@ -1353,7 +1360,7 @@ import SWBMacro
                                 "__POPULATE_COMPATIBILITY_ARCH_MAP": "YES",
                             ])
                     ],
-                    targets: [TestStandardTarget("Target")]
+                    targets: [TestStandardTarget("Target", type: .application)]
                 )
             ]
         ).load(core)
@@ -1376,6 +1383,7 @@ import SWBMacro
                                                                            groupTree: TestGroup("SomeFiles", children: [TestFile("Mock.cpp")]),
                                                                            targets: [
                                                                             TestStandardTarget("Target1",
+                                                                                               type: .application,
                                                                                                buildConfigurations: [
                                                                                                 TestBuildConfiguration("Debug",
                                                                                                                        buildSettings: buildSettings)],
@@ -1606,6 +1614,7 @@ import SWBMacro
                                                                            groupTree: TestGroup("SomeFiles", children: [TestFile("Mock.cpp")]),
                                                                            targets: [
                                                                             TestStandardTarget("Target1",
+                                                                                               type: .application,
                                                                                                buildConfigurations: [
                                                                                                 TestBuildConfiguration("Debug",
                                                                                                                        buildSettings: [
@@ -1646,6 +1655,7 @@ import SWBMacro
                                                                            groupTree: TestGroup("SomeFiles", children: [TestFile("Mock.cpp")]),
                                                                            targets: [
                                                                             TestStandardTarget("Target1",
+                                                                                               type: .application,
                                                                                                buildConfigurations: [
                                                                                                 TestBuildConfiguration("Debug",
                                                                                                                        buildSettings: [
@@ -1902,6 +1912,7 @@ import SWBMacro
                                                                            groupTree: TestGroup("SomeFiles", children: []),
                                                                            targets: [
                                                                             TestStandardTarget("Target1",
+                                                                                               type: .application,
                                                                                                buildConfigurations: [
                                                                                                 TestBuildConfiguration("Debug",
                                                                                                                        buildSettings: [
@@ -1935,7 +1946,9 @@ import SWBMacro
                                                         TestProject("aProject",
                                                                     groupTree: TestGroup("SomeFiles", children: []),
                                                                     targets: [
-                                                                        TestStandardTarget("Target1", buildConfigurations: [
+                                                                        TestStandardTarget("Target1",
+                                                                                           type: .application,
+                                                                                           buildConfigurations: [
                                                                             TestBuildConfiguration("Debug", buildSettings: [
                                                                                 "SYMROOT": "./build",
                                                                                 "DSTROOT": "build/foo/bar/something/../dst",
@@ -1996,6 +2009,7 @@ import SWBMacro
                     targets: [
                         TestStandardTarget(
                             "Target",
+                            type: .application,
                             buildConfigurations: [
                                 TestBuildConfiguration(
                                     "Debug",
@@ -2072,6 +2086,7 @@ import SWBMacro
                             targets: [
                                 TestStandardTarget(
                                     "Target1",
+                                    type: .application,
                                     buildConfigurations: [
                                         TestBuildConfiguration(
                                             "Debug",
@@ -2275,6 +2290,7 @@ import SWBMacro
                                                                          ],
                                                                          targets: [
                                                                             TestStandardTarget("Target1",
+                                                                                               type: .application,
                                                                                                buildConfigurations: [
                                                                                                 TestBuildConfiguration("Debug", buildSettings: [
                                                                                                     "SDKROOT": "macosx",
@@ -2408,6 +2424,7 @@ import SWBMacro
                                                                      ],
                                                                      targets: [
                                                                         TestStandardTarget("Target1",
+                                                                                           type: .application,
                                                                                            buildConfigurations: [
                                                                                             TestBuildConfiguration("Debug", buildSettings: [
                                                                                                 "SDKROOT": "linuxB",
@@ -2511,6 +2528,7 @@ import SWBMacro
                                                                          ],
                                                                          targets: [
                                                                             TestStandardTarget("Target1",
+                                                                                               type: .application,
                                                                                                buildConfigurations: [
                                                                                                 TestBuildConfiguration("Debug", buildSettings: [
                                                                                                     "SDKROOT": "\(sdkPath.str)",
@@ -2581,6 +2599,7 @@ import SWBMacro
                                                                            ],
                                                                            targets: [
                                                                             TestStandardTarget("Target1",
+                                                                                               type: .application,
                                                                                                buildConfigurations: [
                                                                                                 TestBuildConfiguration("Debug", buildSettings: [
                                                                                                     "FRAMEWORK_SEARCH_PATHS": "$(inherited) onePath",
@@ -2657,6 +2676,7 @@ import SWBMacro
                                                                          ],
                                                                          targets: [
                                                                             TestStandardTarget("Target1",
+                                                                                               type: .application,
                                                                                                buildConfigurations: [
                                                                                                 TestBuildConfiguration("Debug", baseConfig: "TargetSettings.xcconfig", buildSettings: [
                                                                                                     "SDKROOT": "\(sdkPath.str)",
@@ -2709,6 +2729,7 @@ import SWBMacro
                                                                                ],
                                                                                targets: [
                                                                                 TestStandardTarget("Target1",
+                                                                                                   type: .application,
                                                                                                    buildConfigurations: [
                                                                                                     TestBuildConfiguration("Debug", buildSettings: [
                                                                                                         "SDKROOT": "bogus",
@@ -3102,6 +3123,7 @@ import SWBMacro
                                                                                     ])],
                                                                                   targets: [
                                                                                     TestStandardTarget("Target1",
+                                                                                                       type: .application,
                                                                                                        buildConfigurations: [
                                                                                                         TestBuildConfiguration("Config1", buildSettings: [
                                                                                                             "BUILD_VARIANTS": "normal other",
@@ -3229,6 +3251,7 @@ import SWBMacro
                 // Non-macCatalyst case: The effective macOS deployment target should be the one in the SDK.
                 (
                     TestStandardTarget("Target1",
+                                       type: .application,
                                        buildConfigurations: [
                                         TestBuildConfiguration("Debug", buildSettings: [
                                             "SDKROOT": "\(sdkPath.str)",
@@ -3246,6 +3269,7 @@ import SWBMacro
                 // macCatalyst case: The iOS deployment target should be the value from the macCatalyst target info, and the macOS deployment target should match it since we're building an unzippered target.
                 (
                     TestStandardTarget("Target2",
+                                       type: .application,
                                        buildConfigurations: [
                                         TestBuildConfiguration("Debug", buildSettings: [
                                             "SDKROOT": "\(sdkPath.str)",
@@ -3264,6 +3288,7 @@ import SWBMacro
                 // macCatalyst case: The iOS deployment target should be the value from the macCatalyst target info, and the macOS deployment target should match it since we're building an unzippered target.
                 (
                     TestStandardTarget("Target3",
+                                       type: .application,
                                        buildConfigurations: [
                                         TestBuildConfiguration("Debug", buildSettings: [
                                             "SDKROOT": "\(sdkPath.str)",
@@ -3283,6 +3308,7 @@ import SWBMacro
                 // Non-macCatalyst case: The effective macOS deployment target should be the one from the "trooper" SDK variant.
                 (
                     TestStandardTarget("Target4",
+                                       type: .application,
                                        buildConfigurations: [
                                         TestBuildConfiguration("Debug", buildSettings: [
                                             "SDKROOT": "\(sdkPath.str)",
@@ -3301,6 +3327,7 @@ import SWBMacro
                 // Non-macCatalyst case: The effective macOS deployment target should be the one defined in this target.
                 (
                     TestStandardTarget("Target5",
+                                       type: .application,
                                        buildConfigurations: [
                                         TestBuildConfiguration("Debug", buildSettings: [
                                             "SDKROOT": "\(sdkPath.str)",
@@ -3319,6 +3346,7 @@ import SWBMacro
                 // macCatalyst case: The iOS deployment target should be the value from the macCatalyst target info, and the macOS deployment target should match it since we're building an unzippered target.
                 (
                     TestStandardTarget("Target6",
+                                       type: .application,
                                        buildConfigurations: [
                                         TestBuildConfiguration("Debug", buildSettings: [
                                             "SDKROOT": "\(sdkPath.str)",
@@ -3338,6 +3366,7 @@ import SWBMacro
                 // macCatalyst case: The iOS deployment target should be the value from defined in the target, and the macOS deployment target should match it since we're building an unzippered target.
                 (
                     TestStandardTarget("Target7",
+                                       type: .application,
                                        buildConfigurations: [
                                         TestBuildConfiguration("Debug", buildSettings: [
                                             "SDKROOT": "\(sdkPath.str)",
@@ -3358,6 +3387,7 @@ import SWBMacro
                 // macCatalyst case: The iOS deployment target should be the value from defined in the target, and the macOS deployment target should match it since we're building an unzippered target.
                 (
                     TestStandardTarget("Target8",
+                                       type: .application,
                                        buildConfigurations: [
                                         TestBuildConfiguration("Debug", buildSettings: [
                                             "SDKROOT": "\(sdkPath.str)",
@@ -3377,6 +3407,7 @@ import SWBMacro
                 // Non-macCatalyst case: Since this is a zippered target, both the iOS and macOS deployment targets defined in the target should be preserved.
                 (
                     TestStandardTarget("Target9",
+                                       type: .application,
                                        buildConfigurations: [
                                         TestBuildConfiguration("Debug", buildSettings: [
                                             "SDKROOT": "\(sdkPath.str)",
@@ -3397,6 +3428,7 @@ import SWBMacro
                 // macCatalyst case: Since this is a zippered target, both the iOS and macOS deployment targets defined in the target should be preserved.
                 (
                     TestStandardTarget("Target10",
+                                       type: .application,
                                        buildConfigurations: [
                                         TestBuildConfiguration("Debug", buildSettings: [
                                             "SDKROOT": "\(sdkPath.str)",
@@ -3418,6 +3450,7 @@ import SWBMacro
                 // Non-macCatalyst case: Since this is a zippered target, the macOS deployment target defined in the target should be preserved, but the iOS deployment target should be set to the lower limit.
                 (
                     TestStandardTarget("Target11",
+                                       type: .application,
                                        buildConfigurations: [
                                         TestBuildConfiguration("Debug", buildSettings: [
                                             "SDKROOT": "\(sdkPath.str)",
@@ -3438,6 +3471,7 @@ import SWBMacro
                 // Non-macCatalyst case: Since this is a zippered target, the macOS deployment target defined in the target should be preserved, and the iOS deployment target should be derived from it.
                 (
                     TestStandardTarget("Target12",
+                                       type: .application,
                                        buildConfigurations: [
                                         TestBuildConfiguration("Debug", buildSettings: [
                                             "SDKROOT": "\(sdkPath.str)",
@@ -3551,6 +3585,7 @@ import SWBMacro
                                                                            groupTree: TestGroup("SomeFiles", children: []),
                                                                            targets: [
                                                                             TestStandardTarget("Target1",
+                                                                                               type: .application,
                                                                                                buildConfigurations: [
                                                                                                 TestBuildConfiguration("Debug",
                                                                                                                        buildSettings: [
@@ -3584,6 +3619,7 @@ import SWBMacro
                                                                            groupTree: TestGroup("SomeFiles", children: []),
                                                                            targets: [
                                                                             TestStandardTarget("Target1",
+                                                                                               type: .application,
                                                                                                buildConfigurations: [
                                                                                                 TestBuildConfiguration("Debug",
                                                                                                                        buildSettings: [
@@ -3701,6 +3737,7 @@ import SWBMacro
                                                                 ],
                                                                 targets: [
                                                                     TestStandardTarget("AppTarget",
+                                                                                       type: .application,
                                                                                        buildConfigurations: [
                                                                                         TestBuildConfiguration("Debug", buildSettings: [
                                                                                             "SDKROOT[sdk=iphoneos*]": "\(ios16_0Path.str)",
@@ -3835,6 +3872,7 @@ import SWBMacro
                                                                            groupTree: TestGroup("SomeFiles", children: [TestFile("Mock.cpp")]),
                                                                            targets: [
                                                                             TestStandardTarget("Target1",
+                                                                                               type: .application,
                                                                                                buildConfigurations: [
                                                                                                 TestBuildConfiguration("Debug",
                                                                                                                        buildSettings: [
@@ -3874,6 +3912,7 @@ import SWBMacro
                                                                            groupTree: TestGroup("SomeFiles", children: [TestFile("Mock.cpp")]),
                                                                            targets: [
                                                                             TestStandardTarget("Target1",
+                                                                                               type: .application,
                                                                                                buildConfigurations: [
                                                                                                 TestBuildConfiguration("Debug",
                                                                                                                        buildSettings: [
@@ -4098,6 +4137,7 @@ import SWBMacro
                     targets: [
                         TestStandardTarget(
                             "SomeTarget",
+                            type: .application,
                             buildConfigurations: [
                                 TestBuildConfiguration("Debug")
                             ])
@@ -4185,6 +4225,7 @@ import SWBMacro
                     targets: [
                         TestStandardTarget(
                             "SomeTarget",
+                            type: .application,
                             buildConfigurations: [
                                 TestBuildConfiguration(
                                     "Debug",
@@ -4358,6 +4399,7 @@ import SWBMacro
                                                                          ],
                                                                          targets: [
                                                                             TestStandardTarget("Target1",
+                                                                                               type: .application,
                                                                                                buildConfigurations: [
                                                                                                 TestBuildConfiguration("Config", baseConfig: "Target.xcconfig", buildSettings: [
                                                                                                     "CASCADING": "$(TARGET_SETTING) $(inherited)",
@@ -4775,6 +4817,7 @@ import SWBMacro
                 targets: [
                     TestStandardTarget(
                         "Target",
+                        type: .application,
                         buildConfigurations: [
                             TestBuildConfiguration(
                                 "Debug",
@@ -4807,6 +4850,7 @@ import SWBMacro
                 targets: [
                     TestStandardTarget(
                         "Target",
+                        type: .application,
                         buildConfigurations: [
                             TestBuildConfiguration(
                                 "Debug",
@@ -4859,6 +4903,7 @@ import SWBMacro
                 targets: [
                     TestStandardTarget(
                         "Target",
+                        type: .application,
                         buildConfigurations: [
                             TestBuildConfiguration(
                                 "Debug",
@@ -4892,6 +4937,7 @@ import SWBMacro
                 targets: [
                     TestStandardTarget(
                         "Target",
+                        type: .application,
                         buildConfigurations: [
                             TestBuildConfiguration(
                                 "Debug",
@@ -4925,6 +4971,7 @@ import SWBMacro
                 targets: [
                     TestStandardTarget(
                         "Target",
+                        type: .application,
                         buildConfigurations: [
                             TestBuildConfiguration(
                                 "Debug",
@@ -4955,7 +5002,9 @@ import SWBMacro
     func packagesAllowTestingSearchPathsAndBitcodeSimultaneously() async throws {
         let testWorkspace = try await TestWorkspace("Test", projects: [
             TestPackageProject("aPackageProject", groupTree: TestGroup("Sources", path: "Sources", children: [TestFile("best.swift"), TestFile("Info.plist"),]), targets: [
-                TestStandardTarget("Target", buildConfigurations: [
+                TestStandardTarget("Target",
+                                   type: .application,
+                                   buildConfigurations: [
                     TestBuildConfiguration("Debug", buildSettings: [
                         "ENABLE_TESTING_SEARCH_PATHS": "YES",
                         "INFOPLIST_FILE": "Sources/Info.plist",
@@ -4981,7 +5030,9 @@ import SWBMacro
     func catalystDoesNotBreakOnlyActiveArch() async throws {
         let testWorkspace = TestWorkspace("Test", projects: [
             TestProject("Project", groupTree: TestGroup("Sources", path: "Sources", children: [TestFile("best.swift")]), targets: [
-                TestStandardTarget("Target", buildConfigurations: [
+                TestStandardTarget("Target",
+                                   type: .application,
+                                   buildConfigurations: [
                     TestBuildConfiguration("Debug", buildSettings: [
                         "ONLY_ACTIVE_ARCH": "YES",
                         "SUPPORTS_MACCATALYST": "YES",
@@ -5035,6 +5086,7 @@ import SWBMacro
                     ],
                     targets: [
                         TestStandardTarget("TargetA",
+                                           type: .application,
                                            buildConfigurations: [
                                             TestBuildConfiguration("Debug", buildSettings: [
                                                 "CASCADING": "$(TARGET_SETTING) $(inherited)",
@@ -5047,6 +5099,7 @@ import SWBMacro
                                            ]
                                           ),
                         TestStandardTarget("TargetB",
+                                           type: .application,
                                            buildConfigurations: [
                                             TestBuildConfiguration("Debug", buildSettings: [
                                                 "CASCADING": "$(TARGET_SETTING) $(inherited)",
@@ -5441,7 +5494,7 @@ import SWBMacro
                         TestBuildConfiguration("Config1", baseConfig: "Test.xcconfig")
                     ],
                     targets: [
-                        TestStandardTarget("A")
+                        TestStandardTarget("A", type: .application)
                     ]),
                 TestProject(
                     "bProject",
@@ -5455,7 +5508,7 @@ import SWBMacro
                         TestBuildConfiguration("Config1", baseConfig: "Test.xcconfig")
                     ],
                     targets: [
-                        TestStandardTarget("B")
+                        TestStandardTarget("B", type: .application)
                     ])
             ]).load(getCore())
         let context = try await contextForTestData(testWorkspace, files: [

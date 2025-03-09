@@ -41,7 +41,9 @@ fileprivate struct SceneKitBuildOperationTests: CoreBasedTests {
                         ]),
                 ],
                 targets: [
-                    TestStandardTarget("App", buildPhases: [
+                    TestStandardTarget("App",
+                                       type: .application,
+                                       buildPhases: [
                         TestResourcesBuildPhase([
                             TestBuildFile("A.dae", decompress: false),
                             TestBuildFile("B.dae", decompress: true),

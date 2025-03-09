@@ -53,6 +53,7 @@ extension TestProject {
             targets: [
                 TestStandardTarget(
                     "Foo",
+                    type: .application,
                     buildConfigurations: [
                         TestBuildConfiguration("Debug", buildSettings: appBuildSettings)
                     ],

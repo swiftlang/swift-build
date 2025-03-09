@@ -44,6 +44,7 @@ fileprivate struct MacCatalystTests: CoreBasedTests {
                 targets: [
                     TestStandardTarget(
                         "Foo",
+                        type: .application,
                         buildConfigurations: [
                             TestBuildConfiguration("Debug", buildSettings: [
                                 "SUPPORTS_MACCATALYST": "YES",

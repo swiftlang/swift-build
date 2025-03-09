@@ -43,6 +43,7 @@ fileprivate struct GenerateAppPlaygroundAssetCatalogTaskConstructionTests: CoreB
             targets: [
                 TestStandardTarget(
                     "Foo",
+                    type: .application,
                     buildConfigurations: [
                         TestBuildConfiguration("Debug", buildSettings: [:]),
                     ],
@@ -85,6 +86,7 @@ fileprivate struct GenerateAppPlaygroundAssetCatalogTaskConstructionTests: CoreB
             targets: [
                 TestStandardTarget(
                     "Foo",
+                    type: .application,
                     buildConfigurations: [
                         TestBuildConfiguration("Debug", buildSettings: [:]),
                     ],
@@ -132,6 +134,7 @@ fileprivate struct GenerateAppPlaygroundAssetCatalogTaskConstructionTests: CoreB
             targets: [
                 TestStandardTarget(
                     "Foo",
+                    type: .application,
                     buildConfigurations: [
                         TestBuildConfiguration("Debug", buildSettings: [:]),
                     ],
@@ -191,6 +194,7 @@ fileprivate struct GenerateAppPlaygroundAssetCatalogTaskConstructionTests: CoreB
             targets: [
                 TestStandardTarget(
                     "Foo",
+                    type: .application,
                     buildConfigurations: [
                         TestBuildConfiguration("Debug", buildSettings: [:]),
                     ],

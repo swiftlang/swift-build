@@ -205,7 +205,7 @@ import SWBMacro
 
     @Test
     func productReference() throws {
-        let model = try TestStandardTarget("anApp").toProtocol()
+        let model = try TestStandardTarget("anApp", type: .application).toProtocol()
         let target = try #require(Target.create(model, pifLoader, signature: "Mock") as? StandardTarget)
 
         // Get the absolute path for the productreference and test it.

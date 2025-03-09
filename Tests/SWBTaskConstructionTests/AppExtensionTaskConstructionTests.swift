@@ -39,6 +39,7 @@ fileprivate struct AppExtensionTaskConstructionTests: CoreBasedTests {
             targets: [
                 TestStandardTarget(
                     "Foo",
+                    type: .application,
                     buildConfigurations: [
                         TestBuildConfiguration("Debug", buildSettings: [:])
                     ],

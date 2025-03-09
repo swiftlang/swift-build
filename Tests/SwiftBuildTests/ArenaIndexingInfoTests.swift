@@ -34,6 +34,7 @@ struct ArenaIndexingInfoTests: CoreBasedTests {
 
                 let macApp = TestStandardTarget(
                     "macApp",
+                    type: .application,
                     buildConfigurations: [
                         TestBuildConfiguration("Debug", buildSettings: [
                             "SDKROOT": "macosx",
@@ -155,6 +156,7 @@ struct ArenaIndexingInfoTests: CoreBasedTests {
 
                 let macApp = TestStandardTarget(
                     "macApp",
+                    type: .application,
                     buildConfigurations: [
                         TestBuildConfiguration("Debug", buildSettings: [
                             "SDKROOT": "macosx",
@@ -236,6 +238,7 @@ struct ArenaIndexingInfoTests: CoreBasedTests {
 
                 let appTarget1 = TestStandardTarget(
                     "AppTarget",
+                    type: .application,
                     buildConfigurations: [
                         TestBuildConfiguration("Debug",
                                                buildSettings: [
@@ -297,7 +300,9 @@ struct ArenaIndexingInfoTests: CoreBasedTests {
                 // Simulate adding a file to the existing target and send new PIF data.
 
                 let appTarget2 = TestStandardTarget(
-                    "AppTarget", guid: appTarget1.guid,
+                    "AppTarget",
+                    guid: appTarget1.guid,
+                    type: .application,
                     buildConfigurations: [
                         TestBuildConfiguration("Debug")
                     ],
@@ -370,6 +375,7 @@ struct ArenaIndexingInfoTests: CoreBasedTests {
 
                 let appTarget = TestStandardTarget(
                     "AppTarget",
+                    type: .application,
                     buildConfigurations: [
                         TestBuildConfiguration("Debug")
                     ],
@@ -422,6 +428,7 @@ struct ArenaIndexingInfoTests: CoreBasedTests {
                 let appTarget = TestStandardTarget(
                     "AppTarget",
                     guid: "Foo",
+                    type: .application,
                     buildConfigurations: [
                         TestBuildConfiguration("Debug")
                     ],

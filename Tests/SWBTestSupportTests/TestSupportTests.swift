@@ -56,7 +56,7 @@ import SWBUtil
                             ]),
                     ],
                     targets: [
-                        TestStandardTarget("TestTarget", buildPhases: [
+                        TestStandardTarget("TestTarget", type: .application, buildPhases: [
                             TestSourcesBuildPhase([
                                 TestBuildFile("test.c")
                             ])

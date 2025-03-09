@@ -23,8 +23,8 @@ import SWBCore
         let paths2: [Path] = [Path("")]
 
         let pifLoader = PIFLoader(data: .plArray([]), namespace: BuiltinMacros.namespace)
-        let target1 = try Target.create(TestStandardTarget("A").toProtocol(), pifLoader, signature: "MOCK1")
-        let target2 = try Target.create(TestStandardTarget("B").toProtocol(), pifLoader, signature: "MOCK2")
+        let target1 = try Target.create(TestStandardTarget("A", type: .application).toProtocol(), pifLoader, signature: "MOCK1")
+        let target2 = try Target.create(TestStandardTarget("B", type: .application).toProtocol(), pifLoader, signature: "MOCK2")
         let targets1 = [target1]
         let targets2 = [target2]
 

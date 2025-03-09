@@ -172,6 +172,7 @@ private func setupMacroEvaluationScope(_ settings: [MacroDeclaration:String] = [
                     targets: [
                         TestStandardTarget(
                             "AppTarget",
+                            type: .application,
                             buildConfigurations: [
                                 TestBuildConfiguration("Debug"),
                             ],
