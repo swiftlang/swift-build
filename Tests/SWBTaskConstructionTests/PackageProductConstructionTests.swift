@@ -149,7 +149,7 @@ fileprivate struct PackageProductConstructionTests: CoreBasedTests {
         let testWorkspace = TestWorkspace("aWorkspace", projects: [testProject, testPackage])
         let tester = try await TaskConstructionTester(getCore(), testWorkspace)
 
-        await tester.checkBuild(BuildParameters(action: .build, configuration: "Release"), targetName: "Tool") { results in
+        await tester.checkBuild(BuildParameters(action: .build, configuration: "Release"), runDestination: .macOS, targetName: "Tool") { results in
             results.checkWarning(.contains("missing target configuration for 'D' (in target 'D' from project 'aProject')"))
             results.checkNoDiagnostics()
             results.checkTarget("Tool") { target in
@@ -250,7 +250,7 @@ fileprivate struct PackageProductConstructionTests: CoreBasedTests {
         let testWorkspace = TestWorkspace("aWorkspace", projects: [testProject, testPackage])
         let tester = try await TaskConstructionTester(getCore(), testWorkspace)
 
-        await tester.checkBuild() { results in
+        await tester.checkBuild(runDestination: .macOS) { results in
             results.checkNoDiagnostics()
             results.checkTarget("DynamicJSON") { target in
                 results.checkTask(.matchTarget(target), .matchRuleType("Ld")) { task in
@@ -273,7 +273,7 @@ fileprivate struct PackageProductConstructionTests: CoreBasedTests {
                 "DEPLOYMENT_LOCATION": "YES",
             ])
 
-            await tester.checkBuild(parameters) { results in
+            await tester.checkBuild(parameters, runDestination: .macOS) { results in
                 results.checkNoDiagnostics()
 
                 results.checkTarget("DynamicJSON") { target in
@@ -294,7 +294,7 @@ fileprivate struct PackageProductConstructionTests: CoreBasedTests {
                 "ARCHS": "x86_64 x86_64h",
                 "VALID_ARCHS": "$(inherited) x86_64h",
             ]
-            await tester.checkBuild(BuildParameters(configuration: "Debug", activeRunDestination: .anyMac, overrides: overrides)) { results in
+            await tester.checkBuild(BuildParameters(configuration: "Debug", overrides: overrides), runDestination: .anyMac) { results in
                 results.checkNoDiagnostics()
                 results.checkTarget("SwiftyJSON") { target in
                     results.checkTask(.matchTarget(target), .matchRuleType("CreateUniversalBinary")) { task in
@@ -357,7 +357,7 @@ fileprivate struct PackageProductConstructionTests: CoreBasedTests {
             ])
         let tester = try await TaskConstructionTester(getCore(), testProject)
 
-        await tester.checkBuild() { results in
+        await tester.checkBuild(runDestination: .macOS) { results in
             results.checkNoDiagnostics()
             results.checkTarget("clib") { target in
                 results.checkWriteAuxiliaryFileTask(.matchTarget(target), .matchRuleType("WriteAuxiliaryFile"), .matchRuleItemBasename("test.modulemap")) { task, contents in
@@ -441,7 +441,7 @@ fileprivate struct PackageProductConstructionTests: CoreBasedTests {
         let testWorkspace = TestWorkspace("Test", projects: [testProject, testPackage])
         let tester = try await TaskConstructionTester(getCore(), testWorkspace)
 
-        await tester.checkBuild() { results in
+        await tester.checkBuild(runDestination: .macOS) { results in
             results.checkError("[targetIntegrity] The package product 'SwiftyJSON' cannot be used as a dependency of this target because it uses unsafe build flags. (in target 'tool' from project 'aProject')")
         }
     }
@@ -502,7 +502,7 @@ fileprivate struct PackageProductConstructionTests: CoreBasedTests {
         let tester = try await TaskConstructionTester(getCore(), testProject)
 
         for destination in [RunDestinationInfo.iOS, .macOS, .macCatalyst] {
-            await tester.checkBuild(BuildParameters(configuration: "Debug", activeRunDestination: destination)) { results in
+            await tester.checkBuild(runDestination: destination) { results in
                 results.checkNoDiagnostics()
                 results.checkTarget("SwiftJSONTests") { target in
                     results.checkTasks(.matchTarget(target), .matchRuleType("CompileSwiftSources")) { tasks in
@@ -612,25 +612,25 @@ fileprivate struct PackageProductConstructionTests: CoreBasedTests {
             ])
         let tester = try await TaskConstructionTester(getCore(), testProject)
 
-        await tester.checkBuild(BuildParameters(configuration: "Debug", activeRunDestination: .macOS)) { results in
+        await tester.checkBuild(runDestination: .macOS) { results in
             results.checkError("[targetIntegrity] The package product 'SwiftyJSONImpl' requires minimum platform version 11.0 for the macOS platform, but this target supports 10.13 (in target 'fmwk' from project 'aProject')")
             results.checkError("[targetIntegrity] The package product 'SwiftyJSON' requires minimum platform version 10.14 for the macOS platform, but this target supports 10.13 (in target 'fmwk' from project 'aProject')")
             results.checkNoDiagnostics()
         }
 
-        await tester.checkBuild(BuildParameters(configuration: "Debug", activeRunDestination: .iOS)) { results in
+        await tester.checkBuild(runDestination: .iOS) { results in
             results.checkError("[targetIntegrity] The package product 'SwiftyJSONImpl' requires minimum platform version 13.2 for the iOS platform, but this target supports 13.0 (in target 'fmwk' from project 'aProject')")
             results.checkError("[targetIntegrity] The package product 'SwiftyJSON' requires minimum platform version 13.2 for the iOS platform, but this target supports 13.0 (in target 'fmwk' from project 'aProject')")
             results.checkNoDiagnostics()
         }
 
-        await tester.checkBuild(BuildParameters(configuration: "Debug", activeRunDestination: .iOSSimulator)) { results in
+        await tester.checkBuild(runDestination: .iOSSimulator) { results in
             results.checkError("[targetIntegrity] The package product 'SwiftyJSONImpl' requires minimum platform version 13.2 for the iOS platform, but this target supports 13.0 (in target 'fmwk' from project 'aProject')")
             results.checkError("[targetIntegrity] The package product 'SwiftyJSON' requires minimum platform version 13.2 for the iOS platform, but this target supports 13.0 (in target 'fmwk' from project 'aProject')")
             results.checkNoDiagnostics()
         }
 
-        await tester.checkBuild(BuildParameters(configuration: "Debug", activeRunDestination: .macCatalyst)) { results in
+        await tester.checkBuild(runDestination: .macCatalyst) { results in
             results.checkError("[targetIntegrity] The package product 'SwiftyJSONImpl' requires minimum platform version 13.2 for the Mac Catalyst platform, but this target supports 13.1 (in target 'fmwk' from project 'aProject')")
             results.checkError("[targetIntegrity] The package product 'SwiftyJSON' requires minimum platform version 13.2 for the Mac Catalyst platform, but this target supports 13.1 (in target 'fmwk' from project 'aProject')")
             results.checkNoDiagnostics()
@@ -710,7 +710,7 @@ fileprivate struct PackageProductConstructionTests: CoreBasedTests {
         let workspace = TestWorkspace("Workspace", projects: [TestProject("aProject", groupTree: TestGroup("SomeFiles", children: [TestFile("best.c")]), targets: allTargets), package])
         let tester = try await TaskConstructionTester(getCore(), workspace)
 
-        await tester.checkBuild(BuildParameters(configuration: "Debug", activeRunDestination: .macOS, overrides: ["EXCLUDED_ARCHS": "i386 x86_64 armv7 armv7k arm64_32 arm64e"])) { results in
+        await tester.checkBuild(BuildParameters(configuration: "Debug", overrides: ["EXCLUDED_ARCHS": "i386 x86_64 armv7 armv7k arm64_32 arm64e"]), runDestination: .macOS) { results in
             results.checkNoDiagnostics()
 
             results.checkTasks(.matchRuleType("Ld")) { tasks in
@@ -800,7 +800,7 @@ fileprivate struct PackageProductConstructionTests: CoreBasedTests {
             ])
         let tester = try await TaskConstructionTester(getCore(), testProject)
 
-        await tester.checkBuild() { results in
+        await tester.checkBuild(runDestination: .macOS) { results in
             results.checkNoDiagnostics()
             results.checkTarget("SwiftyJSONTests") { target in
                 results.checkTask(.matchTarget(target), .matchRuleType("SwiftDriver Compilation")) { task in
@@ -849,7 +849,7 @@ fileprivate struct PackageProductConstructionTests: CoreBasedTests {
             ])
         let tester = try await TaskConstructionTester(getCore(), testProject)
 
-        await tester.checkBuild() { results in
+        await tester.checkBuild(runDestination: .macOS) { results in
             results.checkNoDiagnostics()
 
             results.checkTarget("foo") { target in
@@ -911,7 +911,7 @@ fileprivate struct PackageProductConstructionTests: CoreBasedTests {
             try "hello world".write(to: URL(fileURLWithPath: "\(sourceRoot.str)/best.txt"), atomically: true, encoding: .utf8)
         }
 
-        await tester.checkBuild() { results in
+        await tester.checkBuild(runDestination: .macOS) { results in
             results.checkNoDiagnostics()
             results.checkTarget("tool") { target in
                 results.checkWriteAuxiliaryFileTask(.matchTarget(target), .matchRuleType("WriteAuxiliaryFile"), .matchRuleItemBasename("embedded_resources.swift")) { task, contents in
@@ -1051,7 +1051,7 @@ fileprivate struct PackageProductConstructionTests: CoreBasedTests {
             ])
         let tester = try await TaskConstructionTester(getCore(), testProject)
 
-        await tester.checkBuild() { results in
+        await tester.checkBuild(runDestination: .macOS) { results in
             results.checkNoDiagnostics()
             results.checkTarget("tool") { target in
                 results.checkWriteAuxiliaryFileTask(.matchTarget(target), .matchRuleType("WriteAuxiliaryFile"), .matchRuleItemBasename("resource_bundle_accessor.swift")) { task, contents in
@@ -1174,7 +1174,7 @@ fileprivate struct PackageProductConstructionTests: CoreBasedTests {
             ])
         let tester = try await TaskConstructionTester(getCore(), testProject)
 
-        await tester.checkBuild() { results in
+        await tester.checkBuild(runDestination: .macOS) { results in
             results.checkNoDiagnostics()
             results.checkTarget("app") { target in
                 results.checkTask(.matchTarget(target), .matchRuleType("Copy"), .matchRuleItemBasename("FOO.bundle")) { task in
@@ -1254,7 +1254,7 @@ fileprivate struct PackageProductConstructionTests: CoreBasedTests {
             }
         }
 
-        await tester.checkBuild(clientDelegate: TestCoreDataCompilerTaskPlanningClientDelegate()) { results in
+        await tester.checkBuild(runDestination: .macOS, clientDelegate: TestCoreDataCompilerTaskPlanningClientDelegate()) { results in
             results.checkNoDiagnostics()
             results.checkTarget("SwiftyJSON") { target in
                 results.checkNoTask(.matchTarget(target), .matchRuleType("DataModelCompile"))

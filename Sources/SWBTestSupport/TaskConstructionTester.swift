@@ -766,7 +766,16 @@ package final class TaskConstructionTester {
         let parameters = parameters ?? BuildParameters(configuration: "Debug")
 
         // If the build parameters don't specify a run destination, but we were passed one, then use the one we were passed. (checkBuild() defaults this to .macOS.)
-        let runDestination = parameters.activeRunDestination ?? runDestination
+        let activeRunDestination: RunDestinationInfo? = switch (parameters.activeRunDestination, runDestination) {
+        case let (.some(lhs), (.some(rhs))):
+            preconditionFailure("Specified run destinations from both explicit build parameters and default destination: \(lhs), \(rhs)")
+        case let (.some(destination), nil):
+            destination
+        case let (nil, .some(destination)):
+            destination
+        case (nil, nil):
+            nil
+        }
 
         // Define a default set of overrides.
         var overrides = [
@@ -781,14 +790,14 @@ package final class TaskConstructionTester {
 
         // If we have a run destination, then we default ONLY_ACTIVE_ARCH to YES. This means when they build with a non-generic run destination, that run destination's architecture will be used rather than building universal.
         // If we don't have a run destination, then defaulting ONLY_ACTIVE_ARCH is probably the wrong thing to do.
-        if runDestination != nil {
+        if activeRunDestination != nil {
             overrides["ONLY_ACTIVE_ARCH"] = "YES"
         }
         // Add overrides from the parameters we were passed, which will supersede the default overrides above.
         overrides.addContents(of: parameters.overrides)
 
         // Create and return the effective parameters.
-        return BuildParameters(action: parameters.action, configuration: parameters.configuration, activeRunDestination: runDestination, activeArchitecture: parameters.activeArchitecture, overrides: overrides, commandLineOverrides: parameters.commandLineOverrides, commandLineConfigOverridesPath: parameters.commandLineConfigOverridesPath, commandLineConfigOverrides: parameters.commandLineConfigOverrides, environmentConfigOverridesPath: parameters.environmentConfigOverridesPath, environmentConfigOverrides: parameters.environmentConfigOverrides, arena: parameters.arena)
+        return BuildParameters(action: parameters.action, configuration: parameters.configuration, activeRunDestination: activeRunDestination, activeArchitecture: parameters.activeArchitecture, overrides: overrides, commandLineOverrides: parameters.commandLineOverrides, commandLineConfigOverridesPath: parameters.commandLineConfigOverridesPath, commandLineConfigOverrides: parameters.commandLineConfigOverrides, environmentConfigOverridesPath: parameters.environmentConfigOverridesPath, environmentConfigOverrides: parameters.environmentConfigOverrides, arena: parameters.arena)
     }
 
     /// Returns the effective build request to use for the build.
@@ -819,7 +828,7 @@ package final class TaskConstructionTester {
     /// Construct the tasks for the given build parameters, and test the result.
     /// - parameter runDestination: If the run destination in `parameter` is nil, then the value passed here will be used instead. Due to the defined default value, this means that tests build for macOS unless they specify otherwise.
     /// - parameter checkTaskGraphIntegrity: If `true` (the default), then the task graph's integrity will be checked, and test errors will be emitted for scenarios such as missing producers for nodes, and multiple producers for nodes.  A test may wish to pass `false` for this if it is deliberately constructing a bad task graph in order to examine the resulting errors.
-    package func checkBuild(_ inputParameters: BuildParameters? = nil, runDestination: SWBProtocol.RunDestinationInfo? = .macOS, targetName: String? = nil, buildRequest inputBuildRequest: BuildRequest? = nil, provisioningOverrides: ProvisioningTaskInputs? = nil, processEnvironment: [String: String] = [:], fs: any FSProxy = PseudoFS(), userPreferences: UserPreferences? = nil, clientDelegate: (any TaskPlanningClientDelegate)? = nil, checkTaskGraphIntegrity: Bool = true, useDefaultToolChainOverride: Bool = true, systemInfo: SystemInfo? = nil, sourceLocation: SourceLocation = #_sourceLocation, body: (PlanningResults) async throws -> Void) async rethrows {
+    package func checkBuild(_ inputParameters: BuildParameters? = nil, runDestination: SWBProtocol.RunDestinationInfo?, targetName: String? = nil, buildRequest inputBuildRequest: BuildRequest? = nil, provisioningOverrides: ProvisioningTaskInputs? = nil, processEnvironment: [String: String] = [:], fs: any FSProxy = PseudoFS(), userPreferences: UserPreferences? = nil, clientDelegate: (any TaskPlanningClientDelegate)? = nil, checkTaskGraphIntegrity: Bool = true, useDefaultToolChainOverride: Bool = true, systemInfo: SystemInfo? = nil, sourceLocation: SourceLocation = #_sourceLocation, body: (PlanningResults) async throws -> Void) async rethrows {
         // For test stability we modify the build parameters we were passed.
         let parameters = effectiveBuildParameters(inputParameters ?? inputBuildRequest?.parameters, runDestination: runDestination, useDefaultToolChainOverride: useDefaultToolChainOverride)
 
@@ -1009,7 +1018,7 @@ extension TaskConstructionTester {
             runDestination: runDestination,
             sourceLocation: sourceLocation
         )
-        return try await checkBuild(buildRequest: buildRequest, systemInfo: systemInfo, sourceLocation: sourceLocation, body: body)
+        return try await checkBuild(runDestination: runDestination, buildRequest: buildRequest, systemInfo: systemInfo, sourceLocation: sourceLocation, body: body)
     }
 }
 

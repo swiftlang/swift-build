@@ -4191,7 +4191,7 @@ import SWBMacro
         let buildRequestContext = BuildRequestContext(workspaceContext: context)
         let tester = try await TaskConstructionTester(getCore(), testWorkspace)
 
-        await tester.checkBuild() { results in
+        await tester.checkBuild(runDestination: .macOS) { results in
             results.checkNoDiagnostics()
             results.checkNote("A script phase disables sandboxing, forcing `EAGER_COMPILATION_ALLOW_SCRIPTS` to off (in target \'A\' from project \'aProject\')")
 

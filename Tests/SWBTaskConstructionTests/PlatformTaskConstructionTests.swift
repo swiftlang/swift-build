@@ -254,7 +254,7 @@ fileprivate struct PlatformTaskConstructionTests: CoreBasedTests {
         }
 
         // Check the debug build, for the simulator.
-        await tester.checkBuild(BuildParameters(configuration: "Debug", activeRunDestination: .iOSSimulator), fs: fs) { results in
+        await tester.checkBuild(runDestination: .iOSSimulator, fs: fs) { results in
             // Ignore tasks we don't want to specifically check.
             results.checkTasks(.matchRuleType("Gate")) { _ in }
             results.checkTasks(.matchRuleType("WriteAuxiliaryFile")) { _ in }
@@ -697,7 +697,7 @@ fileprivate struct PlatformTaskConstructionTests: CoreBasedTests {
         let macosOverrides = [
             "ARCHS": archs.joined(separator: " "),
         ]
-        await tester.checkBuild(BuildParameters(configuration: "Debug", activeRunDestination: .anyMacCatalyst, overrides: macosOverrides)) { results in
+        await tester.checkBuild(BuildParameters(configuration: "Debug", overrides: macosOverrides), runDestination: .anyMacCatalyst) { results in
             results.checkNoDiagnostics()
 
             // Match tasks we know we're not interested in.
@@ -769,7 +769,7 @@ fileprivate struct PlatformTaskConstructionTests: CoreBasedTests {
         let fs = PseudoFS()
         try fs.createDirectory(Path("/Users/whoever/Library/MobileDevice/Provisioning Profiles"), recursive: true)
         try fs.write(Path("/Users/whoever/Library/MobileDevice/Provisioning Profiles/8db0e92c-592c-4f06-bfed-9d945841b78d.mobileprovision"), contents: "profile")
-        await tester.checkBuild(BuildParameters(configuration: "Debug"), fs: fs) { results in
+        await tester.checkBuild(runDestination: .macOS, fs: fs) { results in
             results.checkNoDiagnostics()
 
             // Match tasks we know we're not interested in.
@@ -878,7 +878,7 @@ fileprivate struct PlatformTaskConstructionTests: CoreBasedTests {
         let SRCROOT = tester.workspace.projects[0].sourceRoot.str
 
         // Test with the public SDK.
-        await tester.checkBuild(BuildParameters(configuration: "Debug", activeRunDestination: .macCatalyst)) { results in
+        await tester.checkBuild(runDestination: .macCatalyst) { results in
             results.checkNoDiagnostics()
 
             // Match tasks we know we're not interested in.
@@ -1004,7 +1004,7 @@ fileprivate struct PlatformTaskConstructionTests: CoreBasedTests {
             ])
         let tester = try TaskConstructionTester(core, testProject)
 
-        await tester.checkBuild() { results in
+        await tester.checkBuild(runDestination: .macOS) { results in
             results.checkNoDiagnostics()
 
             results.checkTarget("MacTarget") { target in

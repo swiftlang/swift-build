@@ -87,7 +87,7 @@ fileprivate struct CompilationCachingTaskConstructionTests: CoreBasedTests {
         let testWorkspace = TestWorkspace("aWorkspace", projects: [testProject])
         let tester = try await TaskConstructionTester(getCore(), testWorkspace)
 
-        try await tester.checkBuild { results in
+        try await tester.checkBuild(runDestination: .macOS) { results in
             try results.checkTarget("Tool") { target in
                 try results.checkTask(.matchTarget(target), .matchRuleType("CompileC")) { task in
                     let casOpts = try #require((task.execTask.payload as? ClangTaskPayload)?.explicitModulesPayload?.casOptions)

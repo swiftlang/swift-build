@@ -126,7 +126,7 @@ extension CoreBasedTests {
 
             let filtersString = platformFilters.sorted().map { $0.platform + ($0.environment.nilIfEmpty.map { "-\($0)"} ?? "") }.joined(separator: ", ") // Just for test logging.
 
-            try await TaskConstructionTester(core, testWorkspace).checkBuild(BuildParameters(configuration: "Debug", activeRunDestination: runDestination), userPreferences: UserPreferences.defaultForTesting.with(enableDebugActivityLogs: true)) { results in
+            try await TaskConstructionTester(core, testWorkspace).checkBuild(BuildParameters(configuration: "Debug"), runDestination: runDestination, userPreferences: UserPreferences.defaultForTesting.with(enableDebugActivityLogs: true)) { results in
                 results.consumeTasksMatchingRuleTypes(["CreateBuildDirectory", "CreateUniversalBinary", "Gate", "GenerateDSYMFile", "Ld", "MkDir", "ProcessInfoPlistFile", "RegisterExecutionPolicyException", "RegisterWithLaunchServices", "SymLink", "Touch", "WriteAuxiliaryFile", "Validate"])
 
                 // We should always build this

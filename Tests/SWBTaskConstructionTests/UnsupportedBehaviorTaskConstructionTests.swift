@@ -131,7 +131,7 @@ fileprivate struct UnsupportedBehaviorTaskConstructionTests: CoreBasedTests {
         try await fs.writePlist(Path(SRCROOT).join("Entitlements.plist"), .plDict([:]))
 
         // Check a debug build for the device.
-        await tester.checkBuild(BuildParameters(configuration: "Debug", activeRunDestination: .iOS), fs: fs) { results in
+        await tester.checkBuild(runDestination: .iOS, fs: fs) { results in
             // For debugging convenience, consume all the Gate and build directory related tasks.
             results.checkTasks(.matchRuleType("Gate")) { _ in }
             results.checkTasks(.matchRuleType("CreateBuildDirectory")) { _ in }
@@ -169,7 +169,7 @@ fileprivate struct UnsupportedBehaviorTaskConstructionTests: CoreBasedTests {
         }
 
         // Check a debug build for the simulator.
-        await tester.checkBuild(BuildParameters(configuration: "Debug", activeRunDestination: .iOSSimulator), fs: fs) { results in
+        await tester.checkBuild(runDestination: .iOSSimulator, fs: fs) { results in
             // For debugging convenience, consume all the Gate and build directory related tasks.
             results.checkTasks(.matchRuleType("Gate")) { _ in }
             results.checkTasks(.matchRuleType("CreateBuildDirectory")) { _ in }
@@ -281,7 +281,7 @@ fileprivate struct UnsupportedBehaviorTaskConstructionTests: CoreBasedTests {
                     ]
                 ),
             ])
-        try await TaskConstructionTester(getCore(), testProject).checkBuild() { results in
+        try await TaskConstructionTester(getCore(), testProject).checkBuild(runDestination: .macOS) { results in
             results.checkNoDiagnostics()
 
             results.checkTask(.matchRuleType("Ld")) { task in

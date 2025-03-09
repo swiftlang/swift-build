@@ -61,7 +61,7 @@ fileprivate struct PreviewsTaskConstructionTests: CoreBasedTests {
             ])
         let tester = try TaskConstructionTester(core, testProject)
 
-        await tester.checkBuild(BuildParameters(configuration: "Debug", activeRunDestination: .anyMac)) { results in
+        await tester.checkBuild(runDestination: .anyMac) { results in
             results.checkNoDiagnostics()
 
             for arch in archs {
@@ -140,7 +140,7 @@ fileprivate struct PreviewsTaskConstructionTests: CoreBasedTests {
 
         // The localFS is used because we need a value for the swiftlang version in order for
         // -disable-previous-implementation-calls-in-dynamic-replacements to be inserted.
-        await tester.checkBuild(BuildParameters(configuration: "Debug", activeRunDestination: .anyMac), fs: localFS) { results in
+        await tester.checkBuild(runDestination: .anyMac, fs: localFS) { results in
             results.checkNoDiagnostics()
 
             for arch in archs {
@@ -342,7 +342,7 @@ fileprivate struct PreviewsTaskConstructionTests: CoreBasedTests {
         let fs = PseudoFS()
         try fs.writeSimulatedPreviewsJITStubExecutorLibraries(sdk: core.loadSDK(.iOSSimulator))
 
-        await tester.checkBuild(BuildParameters(configuration: "Debug", activeRunDestination: .iOSSimulator), fs: fs) { results in
+        await tester.checkBuild(runDestination: .iOSSimulator, fs: fs) { results in
             results.checkNoDiagnostics()
 
             results.checkTask(.matchRuleType("Ld"), .matchRuleItem("/tmp/Test/ProjectName/build/Debug-iphonesimulator/TargetName.app/TargetName.debug.dylib")) { task in
@@ -444,7 +444,7 @@ fileprivate struct PreviewsTaskConstructionTests: CoreBasedTests {
 
         // The localFS is used because we need a value for the swiftlang version in order for
         // -disable-previous-implementation-calls-in-dynamic-replacements to be inserted.
-        await tester.checkBuild(BuildParameters(configuration: "Debug", activeRunDestination: .anyMac), fs: localFS) { results in
+        await tester.checkBuild(runDestination: .anyMac, fs: localFS) { results in
             results.checkNoDiagnostics()
 
             for arch in archs {
@@ -549,7 +549,7 @@ fileprivate struct PreviewsTaskConstructionTests: CoreBasedTests {
 
         // The localFS is used because we need a value for the swiftlang version in order for
         // -disable-previous-implementation-calls-in-dynamic-replacements to be inserted.
-        await tester.checkBuild(BuildParameters(configuration: "Debug", activeRunDestination: .anyMac), fs: localFS) { results in
+        await tester.checkBuild(runDestination: .anyMac, fs: localFS) { results in
             results.checkNoDiagnostics()
 
             for arch in archs {
@@ -621,7 +621,7 @@ fileprivate struct PreviewsTaskConstructionTests: CoreBasedTests {
 
         // The localFS is used because we need a value for the swiftlang version in order for
         // -disable-previous-implementation-calls-in-dynamic-replacements to be inserted.
-        await tester.checkBuild(BuildParameters(configuration: "Debug", activeRunDestination: .anyMac), fs: localFS) { results in
+        await tester.checkBuild(runDestination: .anyMac, fs: localFS) { results in
             results.checkNoDiagnostics()
 
             for arch in archs {
@@ -692,7 +692,7 @@ fileprivate struct PreviewsTaskConstructionTests: CoreBasedTests {
 
         // The localFS is used because we need a value for the swiftlang version in order for
         // -disable-previous-implementation-calls-in-dynamic-replacements to be inserted.
-        await tester.checkBuild(BuildParameters(configuration: "Debug", activeRunDestination: .anyMac), fs: localFS) { results in
+        await tester.checkBuild(runDestination: .anyMac, fs: localFS) { results in
             results.checkNoDiagnostics()
 
             for arch in archs {
@@ -788,7 +788,7 @@ fileprivate struct PreviewsTaskConstructionTests: CoreBasedTests {
             let tester = try TaskConstructionTester(core, testProject)
 
             // Concrete iOS simulator destination with overrides for an iPhone 14 Pro
-            let buildParameters = BuildParameters(configuration: "Debug", activeRunDestination: .iOSSimulator, overrides: [
+            let buildParameters = BuildParameters(configuration: "Debug", overrides: [
                 "ASSETCATALOG_FILTER_FOR_DEVICE_MODEL": "iPhone15,2",
                 "ASSETCATALOG_FILTER_FOR_DEVICE_OS_VERSION": core.loadSDK(.iOSSimulator).defaultDeploymentTarget,
                 "ASSETCATALOG_FILTER_FOR_THINNING_DEVICE_CONFIGURATION": "iPhone15,2",
@@ -820,7 +820,7 @@ fileprivate struct PreviewsTaskConstructionTests: CoreBasedTests {
 
             let actoolPath = try await self.actoolPath
 
-            await tester.checkBuild(buildParameters, fs: fs, clientDelegate: ClientDelegate()) { results in
+            await tester.checkBuild(buildParameters, runDestination: .iOSSimulator, fs: fs, clientDelegate: ClientDelegate()) { results in
                 results.checkNoDiagnostics()
                 results.checkNoNotes()
 
@@ -973,7 +973,7 @@ fileprivate struct PreviewsTaskConstructionTests: CoreBasedTests {
             let core = try await self.getCore()
             let tester = try TaskConstructionTester(core, testProject)
 
-            let buildParameters = BuildParameters(configuration: "Debug", activeRunDestination: .iOSSimulator, overrides: [
+            let buildParameters = BuildParameters(configuration: "Debug", overrides: [
                 // XOJIT previews enabled, which should be passed when the workspace setting is on
                 "ENABLE_XOJIT_PREVIEWS": "YES",
                 "ENABLE_DEBUG_DYLIB": "YES",
@@ -995,7 +995,7 @@ fileprivate struct PreviewsTaskConstructionTests: CoreBasedTests {
             let fs = PseudoFS()
             try fs.writeSimulatedPreviewsJITStubExecutorLibraries(sdk: core.loadSDK(.iOSSimulator))
 
-            await tester.checkBuild(buildParameters, fs: fs, clientDelegate: ClientDelegate()) { results in
+            await tester.checkBuild(buildParameters, runDestination: .iOSSimulator, fs: fs, clientDelegate: ClientDelegate()) { results in
                 results.checkNoDiagnostics()
                 results.checkNoNotes()
 
@@ -1063,7 +1063,7 @@ fileprivate struct PreviewsTaskConstructionTests: CoreBasedTests {
             let core = try await self.getCore()
             let tester = try TaskConstructionTester(core, testProject)
 
-            let buildParameters = BuildParameters(configuration: "Debug", activeRunDestination: .iOSSimulator, overrides: [
+            let buildParameters = BuildParameters(configuration: "Debug", overrides: [
                 // XOJIT previews enabled, which should be passed when the workspace setting is on
                 "ENABLE_XOJIT_PREVIEWS": "YES",
                 "ENABLE_DEBUG_DYLIB": "YES",
@@ -1085,7 +1085,7 @@ fileprivate struct PreviewsTaskConstructionTests: CoreBasedTests {
             let fs = PseudoFS()
             try fs.writeSimulatedPreviewsJITStubExecutorLibraries(sdk: core.loadSDK(.iOSSimulator))
 
-            await tester.checkBuild(buildParameters, fs: fs, clientDelegate: ClientDelegate()) { results in
+            await tester.checkBuild(buildParameters, runDestination: .iOSSimulator, fs: fs, clientDelegate: ClientDelegate()) { results in
                 results.checkTasks(.matchRuleItemPattern(.prefix("Swift"))) { _ in }
                 results.consumeTasksMatchingRuleTypes(["Copy", "CopySwiftLibs", "ExtractAppIntentsMetadata", "Gate", "GenerateDSYMFile", "MkDir", "CreateBuildDirectory", "WriteAuxiliaryFile", "ClangStatCache", "RegisterExecutionPolicyException", "AppIntentsSSUTraining", "ProcessInfoPlistFile", "Touch", "Validate", "LinkAssetCatalogSignature", "CodeSign", "ProcessProductPackaging", "ProcessProductPackagingDER", "ConstructStubExecutorLinkFileList"])
 
@@ -1164,7 +1164,7 @@ fileprivate struct PreviewsTaskConstructionTests: CoreBasedTests {
             let core = try await self.getCore()
             let tester = try TaskConstructionTester(core, testProject)
 
-            let buildParameters = BuildParameters(configuration: "Debug", activeRunDestination: .iOSSimulator, overrides: [
+            let buildParameters = BuildParameters(configuration: "Debug", overrides: [
                 // XOJIT previews enabled, which should be passed when the workspace setting is on
                 "ENABLE_XOJIT_PREVIEWS": "YES",
                 "ENABLE_DEBUG_DYLIB": "YES",
@@ -1186,7 +1186,7 @@ fileprivate struct PreviewsTaskConstructionTests: CoreBasedTests {
             let fs = PseudoFS()
             try fs.writeSimulatedPreviewsJITStubExecutorLibraries(sdk: core.loadSDK(.iOSSimulator))
 
-            await tester.checkBuild(buildParameters, fs: fs, clientDelegate: ClientDelegate()) { results in
+            await tester.checkBuild(buildParameters, runDestination: .iOSSimulator, fs: fs, clientDelegate: ClientDelegate()) { results in
                 results.checkTask(.matchRule(["Ld", "\(srcRoot.str)/build/Debug-iphonesimulator/Tool", "normal"])) { task in
                     task.checkCommandLineContains([
                         "-Xlinker", "-rpath", "-Xlinker", "@executable_path",

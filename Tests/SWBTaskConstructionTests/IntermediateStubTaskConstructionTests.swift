@@ -48,7 +48,7 @@ fileprivate struct IntermediateStubTaskConstructionTests: CoreBasedTests {
             ])
         let core = try await getCore()
         let tester = try TaskConstructionTester(core, testProject)
-        await tester.checkBuild(BuildParameters(action: .build, configuration: "Debug")) { results in
+        await tester.checkBuild(BuildParameters(action: .build, configuration: "Debug"), runDestination: .macOS) { results in
             results.checkTask(.matchRuleType("GenerateTAPI")) { task in
                 task.checkInputs([.path("/tmp/Test/aProject/build/Debug/Fwk.framework/Versions/A/Fwk"),
                                   .namePattern(.suffix("-ProductPostprocessingTaskProducer")),
@@ -88,7 +88,7 @@ fileprivate struct IntermediateStubTaskConstructionTests: CoreBasedTests {
                     ]),
             ])
         let tester = try await TaskConstructionTester(getCore(), testProject)
-        await tester.checkBuild(BuildParameters(action: .build, configuration: "Debug")) { results in
+        await tester.checkBuild(BuildParameters(action: .build, configuration: "Debug"), runDestination: .macOS) { results in
             results.checkTask(.matchRule(["GenerateTAPI", "/tmp/Test/aProject/build/Debug/Fwk.framework/Versions/A/Fwk.tbd", "normal", "x86_64"])) { _ in }
             results.checkNoTask(.matchRuleType("GenerateTAPI"))
         }
@@ -122,7 +122,7 @@ fileprivate struct IntermediateStubTaskConstructionTests: CoreBasedTests {
                     ]),
             ])
         let tester = try await TaskConstructionTester(getCore(), testProject)
-        await tester.checkBuild(BuildParameters(action: .build, configuration: "Debug")) { results in
+        await tester.checkBuild(BuildParameters(action: .build, configuration: "Debug"), runDestination: .macOS) { results in
             results.checkNoTask(.matchRuleType("GenerateTAPI"))
         }
     }
@@ -156,7 +156,7 @@ fileprivate struct IntermediateStubTaskConstructionTests: CoreBasedTests {
                     ]),
             ])
         let tester = try await TaskConstructionTester(getCore(), testProject)
-        await tester.checkBuild(BuildParameters(action: .build, configuration: "Debug", activeRunDestination: .iOS)) { results in
+        await tester.checkBuild(BuildParameters(action: .build, configuration: "Debug"), runDestination: .iOS) { results in
             results.checkNoTask(.matchRuleType("GenerateTAPI"))
             results.checkWarning(.contains("Building with bitcode is deprecated"))
         }
@@ -190,7 +190,7 @@ fileprivate struct IntermediateStubTaskConstructionTests: CoreBasedTests {
                     ]),
             ])
         let tester = try await TaskConstructionTester(getCore(), testProject)
-        await tester.checkBuild(BuildParameters(action: .build, configuration: "Debug")) { results in
+        await tester.checkBuild(BuildParameters(action: .build, configuration: "Debug"), runDestination: .macOS) { results in
             results.checkTask(.matchRule(["GenerateTAPI", "/tmp/Test/aProject/build/Debug/Fwk.framework/Versions/A/Fwk.tbd"])) { _ in }
             results.checkNoTask(.matchRuleType("GenerateTAPI"))
         }
@@ -223,11 +223,11 @@ fileprivate struct IntermediateStubTaskConstructionTests: CoreBasedTests {
                     ]),
             ])
         let tester = try await TaskConstructionTester(getCore(), testProject)
-        await tester.checkBuild(BuildParameters(action: .build, configuration: "Debug", overrides: ["REEXPORTED_FRAMEWORK_NAMES": "Foundation"])) { results in
+        await tester.checkBuild(BuildParameters(action: .build, configuration: "Debug", overrides: ["REEXPORTED_FRAMEWORK_NAMES": "Foundation"]), runDestination: .macOS) { results in
             results.checkNoTask(.matchRuleType("GenerateTAPI"))
         }
 
-        await tester.checkBuild(BuildParameters(action: .build, configuration: "Debug", overrides: ["OTHER_LDFLAGS": "-reexport-lfoo"])) { results in
+        await tester.checkBuild(BuildParameters(action: .build, configuration: "Debug", overrides: ["OTHER_LDFLAGS": "-reexport-lfoo"]), runDestination: .macOS) { results in
             results.checkNoTask(.matchRuleType("GenerateTAPI"))
         }
     }

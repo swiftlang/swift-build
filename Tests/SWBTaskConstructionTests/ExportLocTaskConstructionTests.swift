@@ -67,7 +67,7 @@ fileprivate struct ExportLocTaskConstructionTests: CoreBasedTests {
         let tester = try await TaskConstructionTester(getCore(), testProject)
         let localizedStringsPath = "/tmp/StringsPath"
         let swiftFeatures = try await self.swiftFeatures
-        await tester.checkBuild(BuildParameters(action: .exportLoc, configuration: "Debug", overrides: ["SWIFT_EMIT_LOC_STRINGS": "YES", "STRINGSDATA_DIR": localizedStringsPath])) { results in
+        await tester.checkBuild(BuildParameters(action: .exportLoc, configuration: "Debug", overrides: ["SWIFT_EMIT_LOC_STRINGS": "YES", "STRINGSDATA_DIR": localizedStringsPath]), runDestination: .macOS) { results in
             results.checkTarget("AppTarget") { target in
                 results.checkTasks(.matchRuleType("WriteAuxiliaryFile")) { _ in }
                 results.checkTasks(.matchRuleType("CreateBuildDirectory")) { _ in }
@@ -106,7 +106,7 @@ fileprivate struct ExportLocTaskConstructionTests: CoreBasedTests {
         let testProject = try await getTestProject()
         let tester = try await TaskConstructionTester(getCore(), testProject)
         //Check normal build action and make sure that -emit-localized-strings and -emit-localized-strings-path flags aren't present
-        await tester.checkBuild(BuildParameters(action: .build, configuration: "Debug")) { results in
+        await tester.checkBuild(BuildParameters(action: .build, configuration: "Debug"), runDestination: .macOS) { results in
             results.checkTarget("AppTarget") { target in
                 results.checkTasks(.matchRuleType("WriteAuxiliaryFile")) { _ in }
                 results.checkTask(.matchRuleItem("ProcessInfoPlistFile")) { _ in }
@@ -145,7 +145,7 @@ fileprivate struct ExportLocTaskConstructionTests: CoreBasedTests {
         let tester = try await TaskConstructionTester(getCore(), testProject)
         let localizedStringsPath = "/tmp/StringsPath"
         let swiftFeatures = try await self.swiftFeatures
-        await tester.checkBuild(BuildParameters(action: .build, configuration: "Debug", overrides: ["SWIFT_EMIT_LOC_STRINGS": "YES", "STRINGSDATA_DIR": localizedStringsPath])) { results in
+        await tester.checkBuild(BuildParameters(action: .build, configuration: "Debug", overrides: ["SWIFT_EMIT_LOC_STRINGS": "YES", "STRINGSDATA_DIR": localizedStringsPath]), runDestination: .macOS) { results in
             results.checkTarget("AppTarget") { target in
                 results.checkTasks(.matchRuleType("WriteAuxiliaryFile")) { _ in }
                 results.checkTask(.matchRuleItem("ProcessInfoPlistFile")) { _ in }

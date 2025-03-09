@@ -116,7 +116,7 @@ fileprivate struct EagerLinkingTests: CoreBasedTests {
     @Test(.requireSDKs(.macOS))
     func objCTaskDependenciesEagerLinkingEnabled() async throws {
         let tester = try await TaskConstructionTester(getCore(), objcTestProject)
-        try await tester.checkBuild { results in
+        try await tester.checkBuild(runDestination: .macOS) { results in
             let compileATask = try #require(results.getTask(.matchTargetName("A"), .matchRuleItem("CompileC")))
             let linkATask = try #require(results.getTask(.matchTargetName("A"), .matchRuleItem("Ld")))
             let aStartLinking = try #require(results.getTask(.matchTargetName("A"), .matchRuleType("Gate"), .matchRuleItemPattern(.suffix("begin-linking"))))
@@ -164,7 +164,7 @@ fileprivate struct EagerLinkingTests: CoreBasedTests {
     @Test(.requireSDKs(.macOS))
     func objCLinkerInputsReadyDependsOnLipo() async throws {
         let tester = try await TaskConstructionTester(getCore(), objcTestProject)
-        try await tester.checkBuild(BuildParameters(configuration: "Debug", activeRunDestination: .anyMac, overrides: ["ARCHS": "arm64 x86_64"])) { results in
+        try await tester.checkBuild(BuildParameters(configuration: "Debug", overrides: ["ARCHS": "arm64 x86_64"]), runDestination: .anyMac) { results in
             let linkBTask = try #require(results.getTask(.matchTargetName("B"), .matchRuleItem("Ld"), .matchRuleItem("x86_64")))
             let linkBTask2 = try #require(results.getTask(.matchTargetName("B"), .matchRuleItem("Ld"), .matchRuleItem("x86_64")))
             let lipoBTask = try #require(results.getTask(.matchTargetName("B"), .matchRuleType("CreateUniversalBinary")))
@@ -227,7 +227,7 @@ fileprivate struct EagerLinkingTests: CoreBasedTests {
                 ])
             ])
         let tester = try await TaskConstructionTester(getCore(), project)
-        try await tester.checkBuild { results in
+        try await tester.checkBuild(runDestination: .macOS) { results in
             let compileATask = try #require(results.getTask(.matchTargetName("A"), .matchRuleItem("CompileC")))
             let linkATask = try #require(results.getTask(.matchTargetName("A"), .matchRuleItem("Ld")))
             let aStartLinking = try #require(results.getTask(.matchTargetName("A"), .matchRuleType("Gate"), .matchRuleItemPattern(.suffix("begin-linking"))))
@@ -277,14 +277,14 @@ fileprivate struct EagerLinkingTests: CoreBasedTests {
     @Test(.requireSDKs(.macOS))
     func eagerLinkingEnablementCriteria() async throws {
         let tester = try await TaskConstructionTester(getCore(), objcTestProject)
-        await tester.checkBuild(BuildParameters(configuration: "Debug", overrides: ["EAGER_LINKING": "NO"])) { results in
+        await tester.checkBuild(BuildParameters(configuration: "Debug", overrides: ["EAGER_LINKING": "NO"]), runDestination: .macOS) { results in
             results.checkWarning("target 'A' has both required and disabled eager linking (in target 'A' from project 'aProject')")
             results.checkWarning("target 'B' has both required and disabled eager linking (in target 'B' from project 'aProject')")
             results.checkWarning("target 'C' has both required and disabled eager linking (in target 'C' from project 'aProject')")
             results.checkWarning("target 'D' has both required and disabled eager linking (in target 'D' from project 'aProject')")
             results.checkNoDiagnostics()
         }
-        await tester.checkBuild(BuildParameters(configuration: "Debug", overrides: ["EAGER_COMPILATION_DISABLE": "YES"])) { results in
+        await tester.checkBuild(BuildParameters(configuration: "Debug", overrides: ["EAGER_COMPILATION_DISABLE": "YES"]), runDestination: .macOS) { results in
             results.checkWarning("target 'A' requires eager linking, but eager compilation is disabled (in target 'A' from project 'aProject')")
             results.checkWarning("target 'B' requires eager linking, but eager compilation is disabled (in target 'B' from project 'aProject')")
             results.checkWarning("target 'C' requires eager linking, but eager compilation is disabled (in target 'C' from project 'aProject')")
@@ -357,7 +357,7 @@ fileprivate struct EagerLinkingTests: CoreBasedTests {
             ])
         let tester = try await TaskConstructionTester(getCore(), testProject)
 
-        await tester.checkBuild(BuildParameters(action: .build, configuration: "Debug"), targetName: "Fwk") { results in
+        await tester.checkBuild(BuildParameters(action: .build, configuration: "Debug"), runDestination: .macOS, targetName: "Fwk") { results in
             results.checkTarget("Fwk") { target in
                 results.checkNoDiagnostics()
 
@@ -375,7 +375,7 @@ fileprivate struct EagerLinkingTests: CoreBasedTests {
         }
 
         // A DocC input in the compile sources phase shouldn't make the target ineligible for eager linking.
-        await tester.checkBuild(BuildParameters(action: .build, configuration: "Debug"), targetName: "DocumentedFwk") { results in
+        await tester.checkBuild(BuildParameters(action: .build, configuration: "Debug"), runDestination: .macOS, targetName: "DocumentedFwk") { results in
             results.checkTarget("DocumentedFwk") { target in
                 results.checkNoDiagnostics()
 
@@ -393,7 +393,7 @@ fileprivate struct EagerLinkingTests: CoreBasedTests {
         }
 
         // If the _vers.c file is being generated with exported symbols, don't try to emit a TBD.
-        await tester.checkBuild(BuildParameters(action: .build, configuration: "Debug", overrides: ["VERSIONING_SYSTEM": "apple-generic"]), targetName: "Fwk") { results in
+        await tester.checkBuild(BuildParameters(action: .build, configuration: "Debug", overrides: ["VERSIONING_SYSTEM": "apple-generic"]), runDestination: .macOS, targetName: "Fwk") { results in
             results.checkTarget("Fwk") { target in
                 results.checkNoDiagnostics()
                 results.checkTask(.matchRuleType("SwiftDriver Compilation Requirements"), .matchTarget(target)) { task in
@@ -402,7 +402,7 @@ fileprivate struct EagerLinkingTests: CoreBasedTests {
                 }
             }
         }
-        await tester.checkBuild(BuildParameters(action: .build, configuration: "Debug", overrides: ["VERSIONING_SYSTEM": "apple-generic", "VERSION_INFO_EXPORT_DECL": "static"]), targetName: "Fwk") { results in
+        await tester.checkBuild(BuildParameters(action: .build, configuration: "Debug", overrides: ["VERSIONING_SYSTEM": "apple-generic", "VERSION_INFO_EXPORT_DECL": "static"]), runDestination: .macOS, targetName: "Fwk") { results in
             results.checkTarget("Fwk") { target in
                 results.checkNoDiagnostics()
 
@@ -421,7 +421,7 @@ fileprivate struct EagerLinkingTests: CoreBasedTests {
         }
 
         // If archiving with full bitcode, don't emit a tbd.
-        await tester.checkBuild(BuildParameters(action: .archive, configuration: "Debug", overrides: ["ENABLE_BITCODE": "YES"]), targetName: "Fwk") { results in
+        await tester.checkBuild(BuildParameters(action: .archive, configuration: "Debug", overrides: ["ENABLE_BITCODE": "YES"]), runDestination: .macOS, targetName: "Fwk") { results in
             results.checkTarget("Fwk") { target in
                 results.checkNoDiagnostics()
                 results.checkTask(.matchRuleType("SwiftDriver Compilation Requirements"), .matchTarget(target)) { task in
@@ -432,7 +432,7 @@ fileprivate struct EagerLinkingTests: CoreBasedTests {
         }
 
         // An all-Swift app target should not emit a TBD, but the framework it links should.
-        await tester.checkBuild(BuildParameters(action: .build, configuration: "Debug"), targetName: "App") { results in
+        await tester.checkBuild(BuildParameters(action: .build, configuration: "Debug"), runDestination: .macOS, targetName: "App") { results in
             results.checkTarget("App") { target in
                 results.checkNoDiagnostics()
                 results.checkTask(.matchRuleType("SwiftDriver Compilation Requirements"), .matchTarget(target)) { task in
@@ -457,7 +457,7 @@ fileprivate struct EagerLinkingTests: CoreBasedTests {
             }
         }
         // A static library target should not emit a TBD
-        await tester.checkBuild(BuildParameters(action: .build, configuration: "Debug"), targetName: "StaticLib") { results in
+        await tester.checkBuild(BuildParameters(action: .build, configuration: "Debug"), runDestination: .macOS, targetName: "StaticLib") { results in
             results.checkTarget("StaticLib") { target in
                 results.checkNoDiagnostics()
                 results.checkTask(.matchRuleType("SwiftDriver Compilation Requirements"), .matchTarget(target)) { task in
@@ -467,7 +467,7 @@ fileprivate struct EagerLinkingTests: CoreBasedTests {
             }
         }
         // A static library target should not emit a TBD
-        await tester.checkBuild(BuildParameters(action: .build, configuration: "Debug"), targetName: "FwkLinkingStaticLib") { results in
+        await tester.checkBuild(BuildParameters(action: .build, configuration: "Debug"), runDestination: .macOS, targetName: "FwkLinkingStaticLib") { results in
             results.checkTarget("FwkLinkingStaticLib") { target in
                 results.checkNoDiagnostics()
                 results.checkTask(.matchRuleType("SwiftDriver Compilation Requirements"), .matchTarget(target)) { task in
@@ -481,7 +481,7 @@ fileprivate struct EagerLinkingTests: CoreBasedTests {
     @Test(.requireSDKs(.macOS))
     func swiftTaskDependenciesEagerLinkingEnabled() async throws {
         let tester = try await TaskConstructionTester(getCore(), swiftTestProject)
-        try await tester.checkBuild { results in
+        try await tester.checkBuild(runDestination: .macOS) { results in
             let compileATask = try #require(results.getTask(.matchTargetName("A"), .matchRuleItem("SwiftDriver Compilation")))
             let emitModuleATask = try #require(results.getTask(.matchTargetName("A"), .matchRuleItem("SwiftDriver Compilation Requirements")))
             let linkATask = try #require(results.getTask(.matchTargetName("A"), .matchRuleItem("Ld")))
@@ -602,7 +602,7 @@ fileprivate struct EagerLinkingTests: CoreBasedTests {
             ])
 
         let tester = try await TaskConstructionTester(getCore(), testProject)
-        try await tester.checkBuild { results in
+        try await tester.checkBuild(runDestination: .macOS) { results in
             let compileATask = try #require(results.getTask(.matchTargetName("A"), .matchRuleItem("SwiftDriver Compilation")))
             let emitModuleATask = try #require(results.getTask(.matchTargetName("A"), .matchRuleItem("SwiftDriver Compilation Requirements")))
             let linkATask = try #require(results.getTask(.matchTargetName("A"), .matchRuleItem("Ld")))

@@ -81,7 +81,7 @@ fileprivate struct BuildRuleTaskConstructionTests: CoreBasedTests {
         let SRCROOT = tester.workspace.projects[0].sourceRoot.str
 
         // Check the build.
-        await tester.checkBuild() { results in
+        await tester.checkBuild(runDestination: .macOS) { results in
             results.consumeTasksMatchingRuleTypes(["CodeSign", "CreateBuildDirectory", "Gate", "Ld", "GenerateTAPI", "MkDir", "ProcessInfoPlistFile", "ProcessProductPackaging", "ProcessProductPackagingDER", "RegisterExecutionPolicyException", "SymLink", "Touch", "WriteAuxiliaryFile"])
 
             results.checkTarget("SomeFwk") { target in
@@ -380,7 +380,7 @@ fileprivate struct BuildRuleTaskConstructionTests: CoreBasedTests {
         let tester = try await TaskConstructionTester(getCore(), testProject)
         let SRCROOT = tester.workspace.projects[0].sourceRoot.str
 
-        await tester.checkBuild(BuildParameters(configuration: "Debug")) { results in
+        await tester.checkBuild(runDestination: .macOS) { results in
             results.checkNoDiagnostics()
 
             // Check that the clang tasks which process the output of the .fake-lang task add the appropriate flags.
@@ -476,7 +476,7 @@ fileprivate struct BuildRuleTaskConstructionTests: CoreBasedTests {
         let tester = try await TaskConstructionTester(getCore(), testProject)
         let SRCROOT = tester.workspace.projects[0].sourceRoot.str
 
-        await tester.checkBuild(BuildParameters(action: .build, configuration: "Release")) { results in
+        await tester.checkBuild(BuildParameters(action: .build, configuration: "Release"), runDestination: .macOS) { results in
             results.checkError(.equal("shell script build rule for '\(SRCROOT)/Foo.fake-bar' must declare at least one output file (in target 'App' from project 'aProject')"))
         }
     }
@@ -518,7 +518,7 @@ fileprivate struct BuildRuleTaskConstructionTests: CoreBasedTests {
         let tester = try await TaskConstructionTester(getCore(), testProject)
         let SRCROOT = tester.workspace.projects[0].sourceRoot.str
 
-        await tester.checkBuild(BuildParameters(configuration: "Debug")) { results in
+        await tester.checkBuild(runDestination: .macOS) { results in
             results.checkTarget(targetName) { target in
                 // There should only be one task to process Multiple.fake-lang, since there are erroneously two build files for one file reference.
                 results.checkTask(.matchTarget(target), .matchRuleType("RuleScriptExecution"), .matchRuleItemBasename("Multiple.fake-lang")) { task in
@@ -573,7 +573,7 @@ fileprivate struct BuildRuleTaskConstructionTests: CoreBasedTests {
                 )])
         let tester = try await TaskConstructionTester(getCore(), testProject)
 
-        await tester.checkBuild(BuildParameters(configuration: "Debug")) { results in
+        await tester.checkBuild(runDestination: .macOS) { results in
             results.checkError(.equal("the file group with identifier '\(srcroot.str)/build/aProject.build/Debug/Tool.build/DerivedSources/error.c' has already been processed. (in target 'Tool' from project 'aProject')"))
             results.checkNoDiagnostics()
         }
@@ -621,7 +621,7 @@ fileprivate struct BuildRuleTaskConstructionTests: CoreBasedTests {
         let SRCROOT = tester.workspace.projects[0].sourceRoot.str
 
         // Check the build.
-        await tester.checkBuild() { results in
+        await tester.checkBuild(runDestination: .macOS) { results in
             results.consumeTasksMatchingRuleTypes(["CodeSign", "CreateBuildDirectory", "Gate", "Ld", "GenerateTAPI", "MkDir", "ProcessInfoPlistFile", "ProcessProductPackaging", "ProcessProductPackagingDER", "RegisterExecutionPolicyException", "SymLink", "Touch", "WriteAuxiliaryFile"])
 
             results.checkTarget("SomeFwk") { target in
@@ -677,7 +677,7 @@ fileprivate struct BuildRuleTaskConstructionTests: CoreBasedTests {
             ])
         let tester = try await TaskConstructionTester(getCore(), testProject)
 
-        await tester.checkBuild(BuildParameters(action: .build, configuration: "Debug"), fs: PseudoFS()) { results in
+        await tester.checkBuild(BuildParameters(action: .build, configuration: "Debug"), runDestination: .macOS, fs: PseudoFS()) { results in
             results.checkWarning(.equal("The file \"/tmp/Test/aProject/test.c\" cannot be processed by the Compile Sources build phase using the \"PBXCp\" rule. (in target 'App' from project 'aProject')"))
             results.checkNoDiagnostics()
         }

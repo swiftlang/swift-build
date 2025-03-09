@@ -318,7 +318,7 @@ fileprivate struct ClangTests: CoreBasedTests {
             ])
 
         let tester = try await TaskConstructionTester(getCore(), testProject)
-        await tester.checkBuild(BuildParameters(configuration: "Debug"), runDestination: .host) { results in
+        await tester.checkBuild(runDestination: .host) { results in
             results.checkTask(.matchRuleType("CompileC")) { task in
                 #expect(task.workingDirectory == workingDirectory)
             }

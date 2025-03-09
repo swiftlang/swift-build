@@ -65,7 +65,7 @@ fileprivate struct PostprocessingTaskConstructionTests: CoreBasedTests {
         let tester = try await TaskConstructionTester(getCore(), testProject)
 
         let installParameters = BuildParameters(action: .install, configuration: "Debug")
-        await tester.checkBuild(installParameters) { results in
+        await tester.checkBuild(installParameters, runDestination: .macOS) { results in
             results.checkNoDiagnostics()
 
             results.checkTarget("Library") { target in
@@ -180,7 +180,7 @@ fileprivate struct PostprocessingTaskConstructionTests: CoreBasedTests {
                 )
             ])
 
-        try await TaskConstructionTester(getCore(), testProject).checkBuild() { results in
+        try await TaskConstructionTester(getCore(), testProject).checkBuild(runDestination: .macOS) { results in
             results.checkNoDiagnostics()
 
             results.checkTarget("Application") { target in
@@ -272,7 +272,7 @@ fileprivate struct PostprocessingTaskConstructionTests: CoreBasedTests {
             ]
         )
 
-        try await TaskConstructionTester(getCore(), testProject).checkBuild() { results in
+        try await TaskConstructionTester(getCore(), testProject).checkBuild(runDestination: .macOS) { results in
             results.checkNoDiagnostics()
 
             for targetName in ["Library", "Framework", "Executable", "Application", "ApplicationExtension"] {
@@ -326,7 +326,7 @@ fileprivate struct PostprocessingTaskConstructionTests: CoreBasedTests {
             "sysctl-requirements": .plString("hw.optional.f16c == 1"),
         ]))
 
-        try await TaskConstructionTester(getCore(), testProject).checkBuild(fs: fs) { results in
+        try await TaskConstructionTester(getCore(), testProject).checkBuild(runDestination: .macOS, fs: fs) { results in
             results.checkNoDiagnostics()
 
             results.checkTask(.matchRule(["Copy", "/tmp/Test/aProject/build/Debug/ProductDefinition.plist", "/tmp/Test/aProject/prod.plist"])) { _ in }

@@ -71,7 +71,7 @@ fileprivate struct ProductTypesTests: CoreBasedTests {
         let fs = PseudoFS()
 
         let tester = try TaskConstructionTester(core, testWorkspace)
-        await tester.checkBuild(BuildParameters(action: .install, configuration: "Release"), fs: fs) { results in
+        await tester.checkBuild(BuildParameters(action: .install, configuration: "Release"), runDestination: .macOS, fs: fs) { results in
             results.consumeTasksMatchingRuleTypes(["CreateBuildDirectory", "WriteAuxiliaryFile", "Gate", "RegisterExecutionPolicyException", "SetOwnerAndGroup", "SetMode", "ProcessInfoPlistFile", "ProcessProductPackaging", "ProcessProductPackagingDER", "ProcessInfoPlist"])
 
             results.checkTarget("aFramework") { target in

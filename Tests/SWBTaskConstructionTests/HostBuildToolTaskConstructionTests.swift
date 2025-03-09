@@ -58,7 +58,7 @@ fileprivate struct HostBuildToolTaskConstructionTests: CoreBasedTests {
         let tester = try await TaskConstructionTester(getCore(), testWorkspace)
 
 
-        await tester.checkBuild(BuildParameters(configuration: "Debug"), runDestination: .anyMac, targetName: "Framework") { results in
+        await tester.checkBuild(runDestination: .anyMac, targetName: "Framework") { results in
             results.checkNoDiagnostics()
             results.checkTarget("Framework") { frameworkTarget in
                 results.checkTarget("HostTool") { hostTarget in
@@ -139,7 +139,7 @@ fileprivate struct HostBuildToolTaskConstructionTests: CoreBasedTests {
         let fs = PseudoFS()
         try fs.writeSimulatedProvisioningProfile(uuid: "8db0e92c-592c-4f06-bfed-9d945841b78d")
 
-        await tester.checkBuild(BuildParameters(configuration: "Debug"), runDestination: .anyMac, targetName: "Framework", fs: fs) { results in
+        await tester.checkBuild(runDestination: .anyMac, targetName: "Framework", fs: fs) { results in
             results.checkNoDiagnostics()
             results.checkTarget("Framework") { frameworkTarget in
                 results.checkTasks(.matchTarget(frameworkTarget), .matchRuleType("SwiftDriver Compilation")) { compileTasks in
@@ -164,7 +164,7 @@ fileprivate struct HostBuildToolTaskConstructionTests: CoreBasedTests {
             }
         }
 
-        await tester.checkBuild(BuildParameters(configuration: "Debug"), runDestination: .anyiOSDevice, targetName: "Framework", fs: fs) { results in
+        await tester.checkBuild(runDestination: .anyiOSDevice, targetName: "Framework", fs: fs) { results in
             results.checkNoDiagnostics()
             results.checkTarget("Framework") { frameworkTarget in
                 results.checkTasks(.matchTarget(frameworkTarget), .matchRuleType("SwiftDriver Compilation")) { compileTasks in
@@ -279,7 +279,7 @@ fileprivate struct HostBuildToolTaskConstructionTests: CoreBasedTests {
 
         let destinations: [RunDestinationInfo] = [.anyMac, .anyiOSDevice]
         for destination in destinations {
-            await tester.checkBuild(BuildParameters(configuration: "Debug", activeRunDestination: destination), targetName: "App", fs: fs) { results in
+            await tester.checkBuild(runDestination: destination, targetName: "App", fs: fs) { results in
                 results.checkNoDiagnostics()
 
                 // Framework and App compilation should both depend on and pass flags to load the macro plugin
@@ -376,7 +376,7 @@ fileprivate struct HostBuildToolTaskConstructionTests: CoreBasedTests {
 
         let destinations: [RunDestinationInfo] = [.anyMac, .anyiOSDevice]
         for destination in destinations {
-            await tester.checkBuild(BuildParameters(configuration: "Debug", activeRunDestination: destination), targetName: "App", fs: fs) { results in
+            await tester.checkBuild(runDestination: destination, targetName: "App", fs: fs) { results in
                 results.checkNoDiagnostics()
 
                 // Framework and App compilation should both depend on and pass flags to load the macro plugin
@@ -440,7 +440,7 @@ fileprivate struct HostBuildToolTaskConstructionTests: CoreBasedTests {
 
         let fs = PseudoFS()
 
-        await tester.checkBuild(BuildParameters(configuration: "Debug", activeRunDestination: .macOS), targetName: "HostTool", fs: fs) { results in
+        await tester.checkBuild(runDestination: .macOS, targetName: "HostTool", fs: fs) { results in
             results.checkNoDiagnostics()
 
             // Other targets should not pass the flag/have the input.

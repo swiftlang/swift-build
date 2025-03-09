@@ -62,7 +62,7 @@ fileprivate struct MasterObjectFileTests: CoreBasedTests {
         let SRCROOT = tester.workspace.projects[0].sourceRoot.str
 
         // Check a debug build.
-        await tester.checkBuild(BuildParameters(configuration: "Debug"), fs: localFS) { results in
+        await tester.checkBuild(runDestination: .macOS, fs: localFS) { results in
             // Ignore all tasks we don't want to check.
             results.checkTasks(.matchRuleType("Gate")) { _ in }
             results.checkTasks(.matchRuleType("WriteAuxiliaryFile")) { _ in }
@@ -91,7 +91,7 @@ fileprivate struct MasterObjectFileTests: CoreBasedTests {
         }
 
         // Check an install build with RETAIN_RAW_BINARIES.
-        await tester.checkBuild(BuildParameters(action: .install, configuration: "Debug", overrides: ["RETAIN_RAW_BINARIES": "YES"]), fs: localFS) { results in
+        await tester.checkBuild(BuildParameters(action: .install, configuration: "Debug", overrides: ["RETAIN_RAW_BINARIES": "YES"]), runDestination: .macOS, fs: localFS) { results in
             // Ignore all tasks we don't want to check.
             results.checkTasks(.matchRuleType("Gate")) { _ in }
             results.checkTasks(.matchRuleType("WriteAuxiliaryFile")) { _ in }
@@ -129,7 +129,7 @@ fileprivate struct MasterObjectFileTests: CoreBasedTests {
         }
 
         // Check an installapi build.
-        await tester.checkBuild(BuildParameters(action: .installAPI, configuration: "Debug"), fs: localFS) { results in
+        await tester.checkBuild(BuildParameters(action: .installAPI, configuration: "Debug"), runDestination: .macOS, fs: localFS) { results in
             // Ignore all tasks we don't want to check.
             results.checkTasks(.matchRuleType("Gate")) { _ in }
             results.checkTasks(.matchRuleType("WriteAuxiliaryFile")) { _ in }
@@ -193,7 +193,7 @@ fileprivate struct MasterObjectFileTests: CoreBasedTests {
         let SRCROOT = tester.workspace.projects[0].sourceRoot.str
 
         // Check a build for MacCatalyst.
-        await tester.checkBuild(BuildParameters(configuration: "Debug", activeRunDestination: .macCatalyst), fs: localFS) { results in
+        await tester.checkBuild(runDestination: .macCatalyst, fs: localFS) { results in
             // Ignore all tasks we don't want to check.
             results.checkTasks(.matchRuleType("Gate")) { _ in }
             results.checkTasks(.matchRuleType("WriteAuxiliaryFile")) { _ in }
@@ -263,7 +263,7 @@ fileprivate struct MasterObjectFileTests: CoreBasedTests {
         let SRCROOT = tester.workspace.projects[0].sourceRoot.str
 
         // Check a debug build.
-        await tester.checkBuild(BuildParameters(configuration: "Debug", activeRunDestination: .iOS), fs: localFS) { results in
+        await tester.checkBuild(runDestination: .iOS, fs: localFS) { results in
             // Ignore all tasks we don't want to check.
             results.checkTasks(.matchRuleType("Gate")) { _ in }
             results.checkTasks(.matchRuleType("WriteAuxiliaryFile")) { _ in }
@@ -344,7 +344,7 @@ fileprivate struct MasterObjectFileTests: CoreBasedTests {
         let SRCROOT = tester.workspace.projects[0].sourceRoot.str
 
         // Check a debug build.
-        await tester.checkBuild(BuildParameters(configuration: "Debug", activeRunDestination: .iOSSimulator), fs: localFS) { results in
+        await tester.checkBuild(runDestination: .iOSSimulator, fs: localFS) { results in
             // Ignore all tasks we don't want to check.
             results.checkTasks(.matchRuleType("Gate")) { _ in }
             results.checkTasks(.matchRuleType("WriteAuxiliaryFile")) { _ in }

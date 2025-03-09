@@ -50,7 +50,7 @@ fileprivate struct TaskOrderingTests: CoreBasedTests {
             ])
         let tester = try await TaskConstructionTester(getCore(), testProject)
 
-        await tester.checkBuild(BuildParameters(action: .install, configuration: "Release")) { results in
+        await tester.checkBuild(BuildParameters(action: .install, configuration: "Release"), runDestination: .macOS) { results in
             results.checkTask(.matchRuleType("Ld")) { task in
                 results.checkTaskFollows(task, .matchRuleType("CompileC"))
             }

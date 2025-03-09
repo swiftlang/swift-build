@@ -70,13 +70,13 @@ fileprivate struct ResourcesTaskConstructionTests: CoreBasedTests {
 
         let configuration = "Release"
 
-        await tester.checkBuild(BuildParameters(action: .installHeaders, configuration: configuration)) { results in
+        await tester.checkBuild(BuildParameters(action: .installHeaders, configuration: configuration), runDestination: .macOS) { results in
             results.checkTarget("App") { target in
                 results.checkNoTask(.matchTarget(target), .matchRuleType("Rez"))
             }
         }
 
-        await tester.checkBuild(BuildParameters(configuration: configuration), fs: fs) { results -> Void in
+        await tester.checkBuild(BuildParameters(configuration: configuration), runDestination: .macOS, fs: fs) { results -> Void in
             results.checkWarning(.equal("Build Carbon Resources build phases are no longer supported.  Rez source files should be moved to the Copy Bundle Resources build phase. (in target 'App' from project 'aProject')"))
 
             results.checkTarget("App") { target -> Void in
@@ -230,7 +230,7 @@ fileprivate struct ResourcesTaskConstructionTests: CoreBasedTests {
 
         let actoolPath = try await self.actoolPath
 
-        await tester.checkBuild { results in
+        await tester.checkBuild(runDestination: .macOS) { results in
             // Ignore all the auxiliary file tasks.
             results.checkTasks(.matchRuleType("WriteAuxiliaryFile")) { tasks in }
             // Ignore all the mkdir and touch tasks.
@@ -441,7 +441,7 @@ fileprivate struct ResourcesTaskConstructionTests: CoreBasedTests {
 
         let actoolPath = try await self.actoolPath
 
-        await tester.checkBuild { results in
+        await tester.checkBuild(runDestination: .macOS) { results in
             // Ignore all the auxiliary file tasks.
             results.checkTasks(.matchRuleType("WriteAuxiliaryFile")) { tasks in }
             // Ignore all the mkdir and touch tasks.
@@ -536,7 +536,7 @@ fileprivate struct ResourcesTaskConstructionTests: CoreBasedTests {
 
         let ibtoolPath = try await self.ibtoolPath
 
-        await tester.checkBuild { results in
+        await tester.checkBuild(runDestination: .macOS) { results in
             // Ignore all the auxiliary file tasks.
             results.checkTasks(.matchRuleType("WriteAuxiliaryFile")) { tasks in }
             // Ignore all the mkdir and touch tasks.
@@ -676,7 +676,7 @@ fileprivate struct ResourcesTaskConstructionTests: CoreBasedTests {
 
         let ibtoolPath = try await self.ibtoolPath
 
-        await tester.checkBuild { results in
+        await tester.checkBuild(runDestination: .macOS) { results in
             // Ignore all the auxiliary file tasks.
             results.checkTasks(.matchRuleType("WriteAuxiliaryFile")) { tasks in }
             // Ignore all the mkdir and touch tasks.
@@ -817,7 +817,7 @@ fileprivate struct ResourcesTaskConstructionTests: CoreBasedTests {
 
         let ibtoolPath = try await self.ibtoolPath
 
-        await tester.checkBuild { results in
+        await tester.checkBuild(runDestination: .macOS) { results in
             // Ignore all the auxiliary file tasks.
             results.checkTasks(.matchRuleType("WriteAuxiliaryFile")) { tasks in }
             // Ignore all the mkdir and touch tasks.
@@ -974,7 +974,7 @@ fileprivate struct ResourcesTaskConstructionTests: CoreBasedTests {
 
         let ibtoolPath = try await self.ibtoolPath
 
-        await tester.checkBuild { results in
+        await tester.checkBuild(runDestination: .macOS) { results in
             // Ignore all the auxiliary file tasks.
             results.checkTasks(.matchRuleType("WriteAuxiliaryFile")) { tasks in }
             // Ignore all the mkdir and touch tasks.
@@ -1196,7 +1196,7 @@ fileprivate struct ResourcesTaskConstructionTests: CoreBasedTests {
 
         let ibtoolPath = try await self.ibtoolPath
 
-        await tester.checkBuild { results in
+        await tester.checkBuild(runDestination: .macOS) { results in
             // Ignore all the auxiliary file tasks.
             results.checkTasks(.matchRuleType("WriteAuxiliaryFile")) { tasks in }
             // Ignore all the mkdir and touch tasks.
@@ -1356,7 +1356,7 @@ fileprivate struct ResourcesTaskConstructionTests: CoreBasedTests {
         let tester = try await TaskConstructionTester(getCore(), testProject)
         let SRCROOT = tester.workspace.projects[0].sourceRoot.str
 
-        await tester.checkBuild { results in
+        await tester.checkBuild(runDestination: .macOS) { results in
             // Ignore all the auxiliary file tasks.
             results.checkTasks(.matchRuleType("WriteAuxiliaryFile")) { tasks in }
             // Ignore all the mkdir and touch tasks.
@@ -1467,7 +1467,7 @@ fileprivate struct ResourcesTaskConstructionTests: CoreBasedTests {
 
         let ibtoolPath = try await self.ibtoolPath
 
-        await tester.checkBuild { results in
+        await tester.checkBuild(runDestination: .macOS) { results in
             results.checkTarget("App") { target in
                 // Check the xib compiles, in particular the output files.
                 results.checkTask(.matchTarget(target), .matchRule(["CompileXIB", "\(SRCROOT)/Sources/foo.xib"])) { task in
@@ -1604,7 +1604,7 @@ fileprivate struct ResourcesTaskConstructionTests: CoreBasedTests {
             ])
         let tester = try await TaskConstructionTester(getCore(), testProject)
 
-        await tester.checkBuild { results in
+        await tester.checkBuild(runDestination: .macOS) { results in
             results.checkTarget("CoreFoo") { target in
                 // We should have a RuleScriptExecution task to process directly into the Resources directory.
                 results.checkTask(.matchTarget(target), .matchRuleType("RuleScriptExecution"), .matchRuleItemBasename("Foo.fake-xcspec-direct")) { task in
@@ -1670,7 +1670,7 @@ fileprivate struct ResourcesTaskConstructionTests: CoreBasedTests {
         let tester = try await TaskConstructionTester(getCore(), testProject)
         let SRCROOT = tester.workspace.projects[0].sourceRoot.str
 
-        await tester.checkBuild { results in
+        await tester.checkBuild(runDestination: .macOS) { results in
             results.checkTarget("CoreFoo") { target in
                 // We should have a Debug task to process directly into framework.
                 results.checkTask(.matchTarget(target), .matchRuleType("CopyPNGFile"), .matchRuleItemBasename("Foo.png")) { task in
@@ -1771,7 +1771,7 @@ fileprivate struct ResourcesTaskConstructionTests: CoreBasedTests {
         let SRCROOT = tester.workspace.projects[0].sourceRoot.str
 
         // Check that setting VERSION_INFO_EXPORT_DECL to 'export' generates the expected file contents.
-        await tester.checkBuild(BuildParameters(configuration: "Debug", overrides: ["VERSION_INFO_EXPORT_DECL": "export"])) { results in
+        await tester.checkBuild(BuildParameters(configuration: "Debug", overrides: ["VERSION_INFO_EXPORT_DECL": "export"]), runDestination: .macOS) { results in
             // There should be a WriteAuxiliaryFile task to create the versioning file.
             results.checkWriteAuxiliaryFileTask(.matchRule(["WriteAuxiliaryFile", "\(SRCROOT)/build/aProject.build/Debug/AppTarget.build/DerivedSources/AppTarget_vers.c"])) { task, contents in
                 task.checkInputs([
@@ -1788,7 +1788,7 @@ fileprivate struct ResourcesTaskConstructionTests: CoreBasedTests {
         }
 
         // Check that setting VERSION_INFO_EXPORT_DECL to 'static' generates the expected file contents, omitting the 'extern' lines.
-        await tester.checkBuild(BuildParameters(configuration: "Debug", overrides: ["VERSION_INFO_EXPORT_DECL": "static"])) { results in
+        await tester.checkBuild(BuildParameters(configuration: "Debug", overrides: ["VERSION_INFO_EXPORT_DECL": "static"]), runDestination: .macOS) { results in
             // There should be a WriteAuxiliaryFile task to create the versioning file.
             results.checkWriteAuxiliaryFileTask(.matchRule(["WriteAuxiliaryFile", "\(SRCROOT)/build/aProject.build/Debug/AppTarget.build/DerivedSources/AppTarget_vers.c"])) { task, contents in
                 task.checkInputs([
@@ -1805,7 +1805,7 @@ fileprivate struct ResourcesTaskConstructionTests: CoreBasedTests {
         }
 
         // Check that setting apple-generic-hidden generates the expected file contents.
-        await tester.checkBuild(BuildParameters(configuration: "Debug", overrides: ["VERSIONING_SYSTEM": "apple-generic-hidden"])) { results in
+        await tester.checkBuild(BuildParameters(configuration: "Debug", overrides: ["VERSIONING_SYSTEM": "apple-generic-hidden"]), runDestination: .macOS) { results in
             // There should be a WriteAuxiliaryFile task to create the versioning file.
             results.checkWriteAuxiliaryFileTask(.matchRule(["WriteAuxiliaryFile", "\(SRCROOT)/build/aProject.build/Debug/AppTarget.build/DerivedSources/AppTarget_vers.c"])) { task, contents in
                 task.checkInputs([
@@ -1823,7 +1823,7 @@ fileprivate struct ResourcesTaskConstructionTests: CoreBasedTests {
 
         // Check that setting apple-generic-hidden works with VERSION_INFO_EXPORT_DECL and generates the expected file contents.
         await tester.checkBuild(BuildParameters(configuration: "Debug", overrides: ["VERSIONING_SYSTEM": "apple-generic-hidden",
-                                                                                    "VERSION_INFO_EXPORT_DECL": "somedeclattr"])) { results in
+                                                                                    "VERSION_INFO_EXPORT_DECL": "somedeclattr"]), runDestination: .macOS) { results in
             // There should be a WriteAuxiliaryFile task to create the versioning file.
             results.checkWriteAuxiliaryFileTask(.matchRule(["WriteAuxiliaryFile", "\(SRCROOT)/build/aProject.build/Debug/AppTarget.build/DerivedSources/AppTarget_vers.c"])) { task, contents in
                 task.checkInputs([
@@ -1867,7 +1867,7 @@ fileprivate struct ResourcesTaskConstructionTests: CoreBasedTests {
         let tester = try await TaskConstructionTester(getCore(), testProject)
 
         // Check behavior with dSYMs disabled.
-        await tester.checkBuild(BuildParameters(configuration: "Debug", overrides: ["DEBUG_INFORMATION_FORMAT": "dwarf"])) { results in
+        await tester.checkBuild(BuildParameters(configuration: "Debug", overrides: ["DEBUG_INFORMATION_FORMAT": "dwarf"]), runDestination: .macOS) { results in
             // There shouldn't be a dSYM task.
             results.checkNoTask(.matchRuleType("GenerateDSYMFile"))
 
@@ -1876,7 +1876,7 @@ fileprivate struct ResourcesTaskConstructionTests: CoreBasedTests {
         }
 
         // Check behavior with dSYMs enabled.
-        await tester.checkBuild(BuildParameters(configuration: "Debug", overrides: ["DEBUG_INFORMATION_FORMAT": "dwarf-with-dsym"])) { results in
+        await tester.checkBuild(BuildParameters(configuration: "Debug", overrides: ["DEBUG_INFORMATION_FORMAT": "dwarf-with-dsym"]), runDestination: .macOS) { results in
             // Check the expected dSYM task.
             results.checkTask(.matchRuleType("GenerateDSYMFile")) { task in
                 task.checkRuleInfo(["GenerateDSYMFile", "/tmp/Test/aProject/build/Debug/CoreFoo.framework.dSYM", "/tmp/Test/aProject/build/Debug/CoreFoo.framework/Versions/A/CoreFoo"])
@@ -1909,7 +1909,7 @@ fileprivate struct ResourcesTaskConstructionTests: CoreBasedTests {
         let tester = try await TaskConstructionTester(getCore(), testProject)
 
         // Check default behavior (should honor the flag).
-        await tester.checkBuild { results in
+        await tester.checkBuild(runDestination: .macOS) { results in
             results.checkTask(.matchRuleType("Copy"), .matchRuleItemBasename("Thing-1.txt")) { task in
                 task.checkRuleInfo(["Copy", "/tmp/Test/aProject/build/Debug/Thing-1.txt", "/tmp/Test/aProject/Sources/Thing-1.txt"])
                 task.checkCommandLine(["builtin-copy", "-exclude", ".DS_Store", "-exclude", "CVS", "-exclude", ".svn", "-exclude", ".git", "-exclude", ".hg", "-exclude", "Headers", "-exclude", "PrivateHeaders", "-exclude", "Modules", "-exclude", "*.tbd", "-strip-unsigned-binaries", "-strip-deterministic", "-strip-tool", "strip", "-resolve-src-symlinks", "-remove-static-executable", "/tmp/Test/aProject/Sources/Thing-1.txt", "/tmp/Test/aProject/build/Debug"])
@@ -1924,7 +1924,7 @@ fileprivate struct ResourcesTaskConstructionTests: CoreBasedTests {
         }
 
         // Check global disabling override.
-        await tester.checkBuild(BuildParameters(configuration: "Debug", overrides: ["REMOVE_HEADERS_FROM_EMBEDDED_BUNDLES": "NO"])) { results in
+        await tester.checkBuild(BuildParameters(configuration: "Debug", overrides: ["REMOVE_HEADERS_FROM_EMBEDDED_BUNDLES": "NO"]), runDestination: .macOS) { results in
             results.checkTask(.matchRuleType("Copy"), .matchRuleItemBasename("Thing-1.txt")) { task in
                 task.checkCommandLine(["builtin-copy", "-exclude", ".DS_Store", "-exclude", "CVS", "-exclude", ".svn", "-exclude", ".git", "-exclude", ".hg", "-strip-unsigned-binaries", "-strip-deterministic", "-strip-tool", "strip", "-resolve-src-symlinks", "-remove-static-executable", "/tmp/Test/aProject/Sources/Thing-1.txt", "/tmp/Test/aProject/build/Debug"])
             }
@@ -2005,7 +2005,7 @@ fileprivate struct ResourcesTaskConstructionTests: CoreBasedTests {
         let SRCROOT = tester.workspace.projects[0].sourceRoot.str
 
         // Check behavior when combining.
-        await tester.checkBuild(BuildParameters(configuration: "Debug", overrides: ["COMBINE_HIDPI_IMAGES": "YES", "APPLY_RULES_IN_COPY_FILES": "YES"])) { results in
+        await tester.checkBuild(BuildParameters(configuration: "Debug", overrides: ["COMBINE_HIDPI_IMAGES": "YES", "APPLY_RULES_IN_COPY_FILES": "YES"]), runDestination: .macOS) { results in
             // There should be an individual copy of each single image, using the appropriate tool.
             do {
                 let rule = "CopyPNGFile", name = "Single.png"
@@ -2105,7 +2105,7 @@ fileprivate struct ResourcesTaskConstructionTests: CoreBasedTests {
         }
 
         // Check behavior when not combining.
-        await tester.checkBuild(BuildParameters(configuration: "Debug", overrides: ["COMBINE_HIDPI_IMAGES": "NO"])) { results in
+        await tester.checkBuild(BuildParameters(configuration: "Debug", overrides: ["COMBINE_HIDPI_IMAGES": "NO"]), runDestination: .macOS) { results in
             // There should be a CopyPNGFile or CopyTiffFile task for each file, as appropriate.
             for name in ["Single.png", "Missing1x@2x.png", "Doubled.png", "Doubled@2x.png", "MixedType.png", "MixedType@2x.tiff"] {
                 let rule = Path(name).fileExtension == "png" ? "CopyPNGFile" : "CopyTiffFile"
@@ -2159,7 +2159,7 @@ fileprivate struct ResourcesTaskConstructionTests: CoreBasedTests {
         let tester = try await TaskConstructionTester(getCore(), testProject)
 
         // Check behavior when combining.
-        await tester.checkBuild(BuildParameters(configuration: "Debug", overrides: ["COMBINE_HIDPI_IMAGES": "YES"])) { results in
+        await tester.checkBuild(BuildParameters(configuration: "Debug", overrides: ["COMBINE_HIDPI_IMAGES": "YES"]), runDestination: .macOS) { results in
             // There should no no TIFF combining copy task for the double image.
             results.checkNoTask(.matchRuleType("TiffUtil"), .matchRuleItemBasename(".tiff"))
 
@@ -2201,7 +2201,7 @@ fileprivate struct ResourcesTaskConstructionTests: CoreBasedTests {
 
         let tester = try await TaskConstructionTester(getCore(), testProject)
 
-        await tester.checkBuild() { results in
+        await tester.checkBuild(runDestination: .macOS) { results in
             for variant in ["thinned", "unthinned"] {
                 results.checkTask(.matchRuleType("CompileAssetCatalogVariant"), .matchRuleItem(variant)) { task in
                     task.checkRuleInfo(["CompileAssetCatalogVariant", variant, "/tmp/Test/aProject/build/Debug/App.app/Contents/Resources", "/tmp/Test/aProject/Sources/A.xcassets", "/tmp/Test/aProject/Sources/B C.xcassets"])
@@ -2245,7 +2245,7 @@ fileprivate struct ResourcesTaskConstructionTests: CoreBasedTests {
 
         let tester = try await TaskConstructionTester(getCore(), testProject)
 
-        await tester.checkBuild() { results in
+        await tester.checkBuild(runDestination: .macOS) { results in
             for variant in ["thinned", "unthinned"] {
                 results.checkTask(.matchRuleType("CompileAssetCatalogVariant"), .matchRuleItem(variant)) { task in
                     task.checkRuleInfo(["CompileAssetCatalogVariant", variant, "/tmp/Test/aProject/build/Debug/App.app/Contents/Resources", "/tmp/Test/aProject/Sources/A.xcassets", "/tmp/Test/aProject/Sources/B.xcassets"])
@@ -2291,7 +2291,7 @@ fileprivate struct ResourcesTaskConstructionTests: CoreBasedTests {
         let tester = try await TaskConstructionTester(getCore(), testProject)
         let SRCROOT = tester.workspace.projects[0].sourceRoot.str
 
-        await tester.checkBuild() { results in
+        await tester.checkBuild(runDestination: .macOS) { results in
             results.checkTask(.matchRuleType("Process"), .matchRuleItemBasename("A.dae")) { task in
                 task.checkRuleInfo(["Process", "SceneKit", "document", "\(SRCROOT)/Sources/A.dae"])
                 task.checkCommandLineContains(["scntool", "--compress", "\(SRCROOT)/Sources/A.dae"])
@@ -2339,7 +2339,7 @@ fileprivate struct ResourcesTaskConstructionTests: CoreBasedTests {
         let tester = try await TaskConstructionTester(getCore(), testProject)
         let SRCROOT = tester.workspace.projects[0].sourceRoot.str
 
-        await tester.checkBuild() { results in
+        await tester.checkBuild(runDestination: .macOS) { results in
             results.checkTask(.matchRuleItemBasename("foo.d")) { task in
                 task.checkCommandLine(["/usr/sbin/dtrace", "-h", "-Dextra", "-s", "\(SRCROOT)/Sources/foo.d", "-o", "\(SRCROOT)/build/aProject.build/Debug/Framework.build/DerivedSources/foo.h"])
             }
@@ -2387,7 +2387,7 @@ fileprivate struct ResourcesTaskConstructionTests: CoreBasedTests {
         let tester = try await TaskConstructionTester(getCore(), testProject)
         let SRCROOT = tester.workspace.projects[0].sourceRoot.str
 
-        await tester.checkBuild { results in
+        await tester.checkBuild(runDestination: .macOS) { results in
             results.checkTask(.matchRule(["CopyStringsFile", "\(SRCROOT)/build/Debug/App.app/Contents/Resources/en.lproj/Localizable.strings", "\(SRCROOT)/Sources/en.lproj/Localizable.strings"])) { _ in }
             results.checkTask(.matchRule(["CopyStringsFile", "\(SRCROOT)/build/Debug/App.app/Contents/Resources/jp.lproj/Localizable.strings", "\(SRCROOT)/Sources/jp.lproj/Localizable.strings"])) { _ in }
             results.checkNoTask(.matchRuleType("CopyStringsFile"))
@@ -2437,7 +2437,7 @@ fileprivate struct ResourcesTaskConstructionTests: CoreBasedTests {
 
         let tester = try await TaskConstructionTester(getCore(), testProject)
 
-        await tester.checkBuild() { results in
+        await tester.checkBuild(runDestination: .macOS) { results in
             results.checkTask(.matchRule(["MkDir", "/tmp/Test/aProject/build/Debug/Framework.framework/Versions/A/Modules"])) { _ in }
             results.checkTask(.matchRule(["SymLink", "/tmp/Test/aProject/build/Debug/Framework.framework/Modules", "Versions/Current/Modules"])) { _ in }
             results.checkTask(.matchRule(["Copy", "/tmp/Test/aProject/build/Debug/Framework.framework/Modules/foo.txt", "/tmp/Test/aProject/Sources/foo.txt"])) { _ in }
@@ -2482,7 +2482,7 @@ fileprivate struct ResourcesTaskConstructionTests: CoreBasedTests {
         let tester = try await TaskConstructionTester(getCore(), testProject)
         let SRCROOT = tester.workspace.projects[0].sourceRoot.str
 
-        await tester.checkBuild { results in
+        await tester.checkBuild(runDestination: .macOS) { results in
             results.checkTarget("App") { target in
                 // There should be a task to process the .applescript file to the Resources folder.
                 results.checkTask(.matchTarget(target), .matchRule(["OSACompile", "\(SRCROOT)/Foo.applescript"])) { task in
@@ -2529,7 +2529,7 @@ fileprivate struct ResourcesTaskConstructionTests: CoreBasedTests {
                 ])
             let tester = try await TaskConstructionTester(getCore(), testProject)
 
-            await tester.checkBuild { results in
+            await tester.checkBuild(runDestination: .macOS) { results in
                 // There should be no OSACompile tasks.
                 results.checkNoTask(.matchRuleType("OSACompile"))
 
@@ -2567,7 +2567,7 @@ fileprivate struct ResourcesTaskConstructionTests: CoreBasedTests {
                 ])
             let tester = try await TaskConstructionTester(getCore(), testProject)
 
-            await tester.checkBuild { results in
+            await tester.checkBuild(runDestination: .macOS) { results in
                 // There should be no OSACompile tasks.
                 results.checkNoTask(.matchRuleType("OSACompile"))
 
@@ -2858,7 +2858,7 @@ fileprivate struct ResourcesTaskConstructionTests: CoreBasedTests {
         let tester = try await TaskConstructionTester(getCore(), testProject)
         let SRCROOT = tester.workspace.projects[0].sourceRoot.str
 
-        await tester.checkBuild { results in
+        await tester.checkBuild(runDestination: .macOS) { results in
             results.checkTarget("CoreFoo") { target in
                 // We should have a copy command to copy the Scripts folder into the Resources build phase.  And the checkBuild() logic will implicitly check that there isn't also a mkdir command for that directory.
                 results.checkTask(.matchTarget(target), .matchRuleType("CpResource"), .matchRuleItemBasename("Scripts")) { task in

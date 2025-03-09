@@ -112,7 +112,7 @@ fileprivate struct SignatureCollectionTaskConstructionTests: CoreBasedTests {
         let infoLookup = try await getCore()
         try await XCFrameworkTestSupport.writeXCFramework(goodiesXCFramework, fs: fs, path: goodiesXCFrameworkPath, infoLookup: infoLookup)
 
-        try await tester.checkBuild(BuildParameters(configuration: "Debug", activeRunDestination: .macOS, overrides: ["ENABLE_SIGNATURE_AGGREGATION": "YES"]), fs: fs) { results in
+        try await tester.checkBuild(BuildParameters(configuration: "Debug", overrides: ["ENABLE_SIGNATURE_AGGREGATION": "YES"]), runDestination: .macOS, fs: fs) { results in
             // NOTE: The signature collection pulls out the framework signature information **NOT** the xcframework signature info.
             try results.checkTask(.matchRuleType("SignatureCollection"), .matchRuleItemPattern(.contains("Goodies.xcframework"))) { task in
                 task.checkInputs(contain: [.pathPattern(.suffix("Goodies.xcframework"))])
@@ -143,7 +143,7 @@ fileprivate struct SignatureCollectionTaskConstructionTests: CoreBasedTests {
             results.checkNoDiagnostics()
         }
 
-        try await tester.checkBuild(BuildParameters(configuration: "Debug", activeRunDestination: .macCatalyst, overrides: ["ENABLE_SIGNATURE_AGGREGATION": "YES"]), fs: fs) { results in
+        try await tester.checkBuild(BuildParameters(configuration: "Debug", overrides: ["ENABLE_SIGNATURE_AGGREGATION": "YES"]), runDestination: .macCatalyst, fs: fs) { results in
             // NOTE: The signature collection pulls out the framework signature information **NOT** the xcframework signature info.
             try results.checkTask(.matchRuleType("SignatureCollection"), .matchRuleItemPattern(.contains("Goodies.xcframework"))) { task in
                 task.checkInputs(contain: [.pathPattern(.suffix("Goodies.xcframework"))])

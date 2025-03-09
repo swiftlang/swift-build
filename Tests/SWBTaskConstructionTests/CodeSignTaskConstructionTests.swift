@@ -54,7 +54,7 @@ fileprivate struct CodeSignTaskConstructionTests: CoreBasedTests {
         let tester = try await TaskConstructionTester(getCore(), testWorkspace)
 
         let provisioningOverrides = ProvisioningTaskInputs(keychainPath: "~/keychainPath")
-        await tester.checkBuild(BuildParameters(action: .install, configuration: "Release"), provisioningOverrides: provisioningOverrides) { results in
+        await tester.checkBuild(BuildParameters(action: .install, configuration: "Release"), runDestination: .macOS, provisioningOverrides: provisioningOverrides) { results in
             results.checkTarget("Tool") { target in
                 results.checkTask(.matchTarget(target), .matchRuleType("CodeSign")) { task in
                     task.checkCommandLineContains(["--keychain", "~/keychainPath"])
@@ -185,7 +185,7 @@ fileprivate struct CodeSignTaskConstructionTests: CoreBasedTests {
             try fs.write(Path(SRCROOT).join("ExternalDeep.bundle/Contents/MacOS/ExternalDeep"), contents: "binary")
 
             // Check the debug build.
-            await tester.checkBuild(BuildParameters(configuration: "Debug"), fs: fs) { results in
+            await tester.checkBuild(runDestination: .macOS, fs: fs) { results in
                 // There shouldn't be any task construction diagnostics.
                 results.checkNoDiagnostics()
 
@@ -513,7 +513,7 @@ fileprivate struct CodeSignTaskConstructionTests: CoreBasedTests {
         try fs.write(Path(SRCROOT).join("in3.xcfilelist"), contents: "$(SRCROOT)/input3.txt\n")
         try fs.write(Path(SRCROOT).join("out3.xcfilelist"), contents: "$(TARGET_BUILD_DIR)/Tool.app/Contents/Resources/out3.txt\n")
 
-        await tester.checkBuild(BuildParameters(configuration: "Debug"), fs: fs) { results in
+        await tester.checkBuild(runDestination: .macOS, fs: fs) { results in
             results.checkNoDiagnostics()
 
             results.checkTarget("Tool") { target in
@@ -569,7 +569,7 @@ fileprivate struct CodeSignTaskConstructionTests: CoreBasedTests {
         let tester = try await TaskConstructionTester(getCore(), testWorkspace)
 
         // Check that the dedicated build settings add the option flags.
-        await tester.checkBuild(BuildParameters(action: .install, configuration: "Release", activeRunDestination: .macOS, overrides: ["ENABLE_LIBRARY_VALIDATION": "YES", "ENABLE_HARDENED_RUNTIME": "YES", "CODE_SIGN_RESTRICT": "YES"])) { results in
+        await tester.checkBuild(BuildParameters(action: .install, configuration: "Release", overrides: ["ENABLE_LIBRARY_VALIDATION": "YES", "ENABLE_HARDENED_RUNTIME": "YES", "CODE_SIGN_RESTRICT": "YES"]), runDestination: .macOS) { results in
             results.checkTarget("macOSFramework") { target in
                 results.checkTask(.matchTarget(target), .matchRuleType("CodeSign")) { task in
                     task.checkCommandLineMatches(["/usr/bin/codesign", "--force", "--sign", "-", "-o", "library,restrict,runtime", "--entitlements", .suffix("macOSFramework.framework.xcent"), "--generate-entitlement-der", "/tmp/aProject.dst/Library/Frameworks/macOSFramework.framework/Versions/A"])
@@ -580,7 +580,7 @@ fileprivate struct CodeSignTaskConstructionTests: CoreBasedTests {
         }
 
         // Check that the dedicated build settings do not add the option flags.
-        await tester.checkBuild(BuildParameters(action: .install, configuration: "Release", activeRunDestination: .macOS, overrides: ["ENABLE_LIBRARY_VALIDATION": "NO", "ENABLE_HARDENED_RUNTIME": "NO", "CODE_SIGN_RESTRICT": "NO"])) { results in
+        await tester.checkBuild(BuildParameters(action: .install, configuration: "Release", overrides: ["ENABLE_LIBRARY_VALIDATION": "NO", "ENABLE_HARDENED_RUNTIME": "NO", "CODE_SIGN_RESTRICT": "NO"]), runDestination: .macOS) { results in
             results.checkTarget("macOSFramework") { target in
                 results.checkTask(.matchTarget(target), .matchRuleType("CodeSign")) { task in
                     task.checkCommandLineMatches(["/usr/bin/codesign", "--force", "--sign", "-", "--entitlements", .suffix("macOSFramework.framework.xcent"), "--generate-entitlement-der", "/tmp/aProject.dst/Library/Frameworks/macOSFramework.framework/Versions/A"])
@@ -591,7 +591,7 @@ fileprivate struct CodeSignTaskConstructionTests: CoreBasedTests {
         }
 
         // Check that the union of the dedicated build settings and flags in OTHER_CODE_SIGN_FLAGS adds the right options.
-        await tester.checkBuild(BuildParameters(action: .install, configuration: "Release", activeRunDestination: .macOS, overrides: ["ENABLE_LIBRARY_VALIDATION": "NO", "ENABLE_HARDENED_RUNTIME": "NO", "CODE_SIGN_RESTRICT": "YES", "OTHER_CODE_SIGN_FLAGS": "-o library,restrict"])) { results in
+        await tester.checkBuild(BuildParameters(action: .install, configuration: "Release", overrides: ["ENABLE_LIBRARY_VALIDATION": "NO", "ENABLE_HARDENED_RUNTIME": "NO", "CODE_SIGN_RESTRICT": "YES", "OTHER_CODE_SIGN_FLAGS": "-o library,restrict"]), runDestination: .macOS) { results in
             results.checkTarget("macOSFramework") { target in
                 results.checkTask(.matchTarget(target), .matchRuleType("CodeSign")) { task in
                     task.checkCommandLineMatches(["/usr/bin/codesign", "--force", "--sign", "-", "-o", "library,restrict", "--entitlements", .suffix("macOSFramework.framework.xcent"), "--generate-entitlement-der", "/tmp/aProject.dst/Library/Frameworks/macOSFramework.framework/Versions/A"])
@@ -602,7 +602,7 @@ fileprivate struct CodeSignTaskConstructionTests: CoreBasedTests {
         }
 
         // Check that OTHER_CODE_SIGN_FLAGS still adds the option flags even if the dedicated build settings are disabled.
-        await tester.checkBuild(BuildParameters(action: .install, configuration: "Release", activeRunDestination: .macOS, overrides: ["ENABLE_LIBRARY_VALIDATION": "NO", "ENABLE_HARDENED_RUNTIME": "NO", "CODE_SIGN_RESTRICT": "NO", "OTHER_CODE_SIGN_FLAGS": "-o library,restrict,runtime"])) { results in
+        await tester.checkBuild(BuildParameters(action: .install, configuration: "Release", overrides: ["ENABLE_LIBRARY_VALIDATION": "NO", "ENABLE_HARDENED_RUNTIME": "NO", "CODE_SIGN_RESTRICT": "NO", "OTHER_CODE_SIGN_FLAGS": "-o library,restrict,runtime"]), runDestination: .macOS) { results in
             results.checkTarget("macOSFramework") { target in
                 results.checkTask(.matchTarget(target), .matchRuleType("CodeSign")) { task in
                     task.checkCommandLineMatches(["/usr/bin/codesign", "--force", "--sign", "-", "-o", "library,restrict,runtime", "--entitlements", .suffix("macOSFramework.framework.xcent"), "--generate-entitlement-der", "/tmp/aProject.dst/Library/Frameworks/macOSFramework.framework/Versions/A"])
@@ -613,7 +613,7 @@ fileprivate struct CodeSignTaskConstructionTests: CoreBasedTests {
         }
 
         // Check that DISABLE_FREEFORM_CODE_SIGN_OPTION_FLAGS removes the flags added in OTHER_CODE_SIGN_FLAGS and emits warnings.
-        await tester.checkBuild(BuildParameters(action: .install, configuration: "Release", activeRunDestination: .macOS, overrides: ["ENABLE_LIBRARY_VALIDATION": "NO", "ENABLE_HARDENED_RUNTIME": "NO", "CODE_SIGN_RESTRICT": "NO", "OTHER_CODE_SIGN_FLAGS": "-o library,restrict,runtime", "DISABLE_FREEFORM_CODE_SIGN_OPTION_FLAGS": "YES"])) { results in
+        await tester.checkBuild(BuildParameters(action: .install, configuration: "Release", overrides: ["ENABLE_LIBRARY_VALIDATION": "NO", "ENABLE_HARDENED_RUNTIME": "NO", "CODE_SIGN_RESTRICT": "NO", "OTHER_CODE_SIGN_FLAGS": "-o library,restrict,runtime", "DISABLE_FREEFORM_CODE_SIGN_OPTION_FLAGS": "YES"]), runDestination: .macOS) { results in
             results.checkTarget("macOSFramework") { target in
                 results.checkTask(.matchTarget(target), .matchRuleType("CodeSign")) { task in
                     task.checkCommandLineMatches(["/usr/bin/codesign", "--force", "--sign", "-", "--entitlements", .suffix("macOSFramework.framework.xcent"), "--generate-entitlement-der", "/tmp/aProject.dst/Library/Frameworks/macOSFramework.framework/Versions/A"])
@@ -627,7 +627,7 @@ fileprivate struct CodeSignTaskConstructionTests: CoreBasedTests {
         }
 
         // Check that flags without a dedicated build setting are passed through as expected.
-        await tester.checkBuild(BuildParameters(action: .install, configuration: "Release", activeRunDestination: .macOS, overrides: ["ENABLE_LIBRARY_VALIDATION": "YES", "ENABLE_HARDENED_RUNTIME": "YES", "CODE_SIGN_RESTRICT": "YES", "OTHER_CODE_SIGN_FLAGS": "--options kill,hard,host,expires,linker-signed"])) { results in
+        await tester.checkBuild(BuildParameters(action: .install, configuration: "Release", overrides: ["ENABLE_LIBRARY_VALIDATION": "YES", "ENABLE_HARDENED_RUNTIME": "YES", "CODE_SIGN_RESTRICT": "YES", "OTHER_CODE_SIGN_FLAGS": "--options kill,hard,host,expires,linker-signed"]), runDestination: .macOS) { results in
             results.checkTarget("macOSFramework") { target in
                 results.checkTask(.matchTarget(target), .matchRuleType("CodeSign")) { task in
                     task.checkCommandLineMatches(["/usr/bin/codesign", "--force", "--sign", "-", "--options", "expires,hard,host,kill,library,linker-signed,restrict,runtime", "--entitlements", .suffix("macOSFramework.framework.xcent"), "--generate-entitlement-der", "/tmp/aProject.dst/Library/Frameworks/macOSFramework.framework/Versions/A"])
@@ -638,7 +638,7 @@ fileprivate struct CodeSignTaskConstructionTests: CoreBasedTests {
         }
 
         // Check that flags without a dedicated build setting are passed through as expected, in conjunction with DISABLE_FREEFORM_CODE_SIGN_OPTION_FLAGS removing disabled, known ones.
-        await tester.checkBuild(BuildParameters(action: .install, configuration: "Release", activeRunDestination: .macOS, overrides: ["ENABLE_LIBRARY_VALIDATION": "NO", "ENABLE_HARDENED_RUNTIME": "NO", "CODE_SIGN_RESTRICT": "YES", "OTHER_CODE_SIGN_FLAGS": "--options kill,hard,host,expires,linker-signed"])) { results in
+        await tester.checkBuild(BuildParameters(action: .install, configuration: "Release", overrides: ["ENABLE_LIBRARY_VALIDATION": "NO", "ENABLE_HARDENED_RUNTIME": "NO", "CODE_SIGN_RESTRICT": "YES", "OTHER_CODE_SIGN_FLAGS": "--options kill,hard,host,expires,linker-signed"]), runDestination: .macOS) { results in
             results.checkTarget("macOSFramework") { target in
                 results.checkTask(.matchTarget(target), .matchRuleType("CodeSign")) { task in
                     task.checkCommandLineMatches(["/usr/bin/codesign", "--force", "--sign", "-", "--options", "expires,hard,host,kill,linker-signed,restrict", "--entitlements", .suffix("macOSFramework.framework.xcent"), "--generate-entitlement-der", "/tmp/aProject.dst/Library/Frameworks/macOSFramework.framework/Versions/A"])
@@ -715,7 +715,7 @@ fileprivate struct CodeSignTaskConstructionTests: CoreBasedTests {
                 ]))
 
                 // Test that it does not get removed in a debug build.
-                try await tester.checkBuild(BuildParameters(action: action, configuration: "Config", activeRunDestination: .macOS, overrides: overrides), provisioningOverrides: provisioningOverrides, fs: fs) { results in
+                try await tester.checkBuild(BuildParameters(action: action, configuration: "Config", overrides: overrides), runDestination: .macOS, provisioningOverrides: provisioningOverrides, fs: fs) { results in
                     try results.checkTarget("App") { target in
                         try results.checkWriteAuxiliaryFileTask(.matchTarget(target), .matchRuleType("WriteAuxiliaryFile"), .matchRuleItemBasename("Entitlements.plist")) { task, contents in
                             guard let plist = try? PropertyList.fromBytes(contents.bytes) else {
@@ -803,7 +803,7 @@ fileprivate struct CodeSignTaskConstructionTests: CoreBasedTests {
                 "com.apple.security.app-sandbox": .plBool(appSandboxEntitlementValueOverride),
             ]))
 
-            await tester.checkBuild(BuildParameters(action: action, configuration: "Config", activeRunDestination: .macOS, overrides: overrides), provisioningOverrides: provisioningOverrides, fs: fs) { results in
+            await tester.checkBuild(BuildParameters(action: action, configuration: "Config", overrides: overrides), runDestination: .macOS, provisioningOverrides: provisioningOverrides, fs: fs) { results in
                 results.checkTarget("App") { target in
                     results.checkWriteAuxiliaryFileTask(.matchTarget(target), .matchRuleType("WriteAuxiliaryFile"), .matchRuleItemBasename("Entitlements.plist")) { _, _ in }
                     resultsCompletion(results)
@@ -893,7 +893,7 @@ fileprivate struct CodeSignTaskConstructionTests: CoreBasedTests {
         try await fs.writePlist(Path("/tmp/aWorkspace/aProject/Entitlements.plist"), .plDict([:]))
 
         // Check hardened runtime option is specified for non-simulator destinations.
-        await tester.checkBuild(BuildParameters(action: .install, configuration: "Release", activeRunDestination: .macCatalyst, overrides: ["ENABLE_HARDENED_RUNTIME": "YES"]), fs: fs) { results in
+        await tester.checkBuild(BuildParameters(action: .install, configuration: "Release", overrides: ["ENABLE_HARDENED_RUNTIME": "YES"]), runDestination: .macCatalyst, fs: fs) { results in
             results.checkTarget("App") { target in
                 results.checkTask(.matchTarget(target), .matchRuleType("CodeSign")) { task in
                     task.checkCommandLineMatches(["/usr/bin/codesign", "--force", "--sign", "3ACDE4E702E4", "-o", "runtime", "--entitlements", .suffix("App.app.xcent"), "--generate-entitlement-der", "/tmp/aProject.dst/Applications/App.app"])
@@ -901,7 +901,7 @@ fileprivate struct CodeSignTaskConstructionTests: CoreBasedTests {
                 results.checkNoDiagnostics()
             }
         }
-        await tester.checkBuild(BuildParameters(action: .install, configuration: "Release", activeRunDestination: .macCatalyst, overrides: ["OTHER_CODE_SIGN_FLAGS": "-o library,restrict,runtime"]), fs: fs) { results in
+        await tester.checkBuild(BuildParameters(action: .install, configuration: "Release", overrides: ["OTHER_CODE_SIGN_FLAGS": "-o library,restrict,runtime"]), runDestination: .macCatalyst, fs: fs) { results in
             results.checkTarget("App") { target in
                 results.checkTask(.matchTarget(target), .matchRuleType("CodeSign")) { task in
                     task.checkCommandLineMatches(["/usr/bin/codesign", "--force", "--sign", "3ACDE4E702E4", "-o", "library,restrict,runtime", "--entitlements", .suffix("App.app.xcent"), "--generate-entitlement-der", "/tmp/aProject.dst/Applications/App.app"])
@@ -909,7 +909,7 @@ fileprivate struct CodeSignTaskConstructionTests: CoreBasedTests {
                 results.checkNoDiagnostics()
             }
         }
-        await tester.checkBuild(BuildParameters(action: .install, configuration: "Release", activeRunDestination: .iOS, overrides: ["ENABLE_LIBRARY_VALIDATION": "YES", "ENABLE_HARDENED_RUNTIME": "YES", "CODE_SIGN_RESTRICT": "YES"]), fs: fs) { results in
+        await tester.checkBuild(BuildParameters(action: .install, configuration: "Release", overrides: ["ENABLE_LIBRARY_VALIDATION": "YES", "ENABLE_HARDENED_RUNTIME": "YES", "CODE_SIGN_RESTRICT": "YES"]), runDestination: .iOS, fs: fs) { results in
             results.checkTarget("App") { target in
                 results.checkTask(.matchTarget(target), .matchRuleType("CodeSign")) { task in
                     task.checkCommandLineMatches(["/usr/bin/codesign", "--force", "--sign", "105DE4E702E4", "-o", "library,restrict,runtime", "--entitlements", .suffix("App.app.xcent"), "--generate-entitlement-der", "/tmp/aProject.dst/Applications/App.app"])
@@ -917,7 +917,7 @@ fileprivate struct CodeSignTaskConstructionTests: CoreBasedTests {
                 results.checkNoDiagnostics()
             }
         }
-        await tester.checkBuild(BuildParameters(action: .install, configuration: "Release", activeRunDestination: .iOS, overrides: ["ENABLE_HARDENED_RUNTIME": "YES"]), fs: fs) { results in
+        await tester.checkBuild(BuildParameters(action: .install, configuration: "Release", overrides: ["ENABLE_HARDENED_RUNTIME": "YES"]), runDestination: .iOS, fs: fs) { results in
             results.checkTarget("App") { target in
                 results.checkTask(.matchTarget(target), .matchRuleType("CodeSign")) { task in
                     task.checkCommandLineMatches(["/usr/bin/codesign", "--force", "--sign", "105DE4E702E4", "-o", "runtime", "--entitlements", .suffix("App.app.xcent"), "--generate-entitlement-der", "/tmp/aProject.dst/Applications/App.app"])
@@ -925,7 +925,7 @@ fileprivate struct CodeSignTaskConstructionTests: CoreBasedTests {
                 results.checkNoDiagnostics()
             }
         }
-        await tester.checkBuild(BuildParameters(action: .install, configuration: "Release", activeRunDestination: .macOS, overrides: ["ENABLE_HARDENED_RUNTIME": "YES"]), fs: fs) { results in
+        await tester.checkBuild(BuildParameters(action: .install, configuration: "Release", overrides: ["ENABLE_HARDENED_RUNTIME": "YES"]), runDestination: .macOS, fs: fs) { results in
             results.checkTarget("macOSFramework") { target in
                 results.checkTask(.matchTarget(target), .matchRuleType("CodeSign")) { task in
                     task.checkCommandLineMatches(["/usr/bin/codesign", "--force", "--sign", "3ACDE4E702E4", "-o", "runtime", "--entitlements", .suffix("macOSFramework.framework.xcent"), "--generate-entitlement-der", "/tmp/aProject.dst/Library/Frameworks/macOSFramework.framework/Versions/A"])
@@ -933,7 +933,7 @@ fileprivate struct CodeSignTaskConstructionTests: CoreBasedTests {
                 results.checkNoDiagnostics()
             }
         }
-        await tester.checkBuild(BuildParameters(action: .install, configuration: "Release", activeRunDestination: .watchOS, overrides: ["ENABLE_HARDENED_RUNTIME": "YES"]), fs: fs) { results in
+        await tester.checkBuild(BuildParameters(action: .install, configuration: "Release", overrides: ["ENABLE_HARDENED_RUNTIME": "YES"]), runDestination: .watchOS, fs: fs) { results in
             results.checkTarget("watchOSFramework") { target in
                 results.checkTask(.matchTarget(target), .matchRuleType("CodeSign")) { task in
                     task.checkCommandLineMatches(["/usr/bin/codesign", "--force", "--sign", "105DE4E702E4", "-o", "runtime", "--entitlements", .suffix("watchOSFramework.framework.xcent"), "--generate-entitlement-der", "/tmp/aProject.dst/Library/Frameworks/watchOSFramework.framework"])
@@ -943,7 +943,7 @@ fileprivate struct CodeSignTaskConstructionTests: CoreBasedTests {
         }
 
         // Check hardened runtime option is ignored for unsupported (simulator) destinations.
-        await tester.checkBuild(BuildParameters(action: .install, configuration: "Release", activeRunDestination: .iOSSimulator, overrides: ["ENABLE_HARDENED_RUNTIME": "YES"]), fs: fs) { results in
+        await tester.checkBuild(BuildParameters(action: .install, configuration: "Release", overrides: ["ENABLE_HARDENED_RUNTIME": "YES"]), runDestination: .iOSSimulator, fs: fs) { results in
             results.checkTarget("App") { target in
                 results.checkTask(.matchTarget(target), .matchRuleType("CodeSign")) { task in
                     task.checkCommandLineMatches(["/usr/bin/codesign", "--force", "--sign", "105DE4E702E4", "--entitlements", .suffix("App.app.xcent"), "--generate-entitlement-der", "/tmp/aProject.dst/Applications/App.app"])
@@ -951,7 +951,7 @@ fileprivate struct CodeSignTaskConstructionTests: CoreBasedTests {
                 results.checkNoDiagnostics()
             }
         }
-        await tester.checkBuild(BuildParameters(action: .install, configuration: "Release", activeRunDestination: .iOSSimulator, overrides: ["ENABLE_LIBRARY_VALIDATION": "YES", "ENABLE_HARDENED_RUNTIME": "YES", "CODE_SIGN_RESTRICT": "YES"]), fs: fs) { results in
+        await tester.checkBuild(BuildParameters(action: .install, configuration: "Release", overrides: ["ENABLE_LIBRARY_VALIDATION": "YES", "ENABLE_HARDENED_RUNTIME": "YES", "CODE_SIGN_RESTRICT": "YES"]), runDestination: .iOSSimulator, fs: fs) { results in
             results.checkTarget("App") { target in
                 results.checkTask(.matchTarget(target), .matchRuleType("CodeSign")) { task in
                     task.checkCommandLineMatches(["/usr/bin/codesign", "--force", "--sign", "105DE4E702E4", "-o", "library,restrict", "--entitlements", .suffix("App.app.xcent"), "--generate-entitlement-der", "/tmp/aProject.dst/Applications/App.app"])
@@ -959,7 +959,7 @@ fileprivate struct CodeSignTaskConstructionTests: CoreBasedTests {
                 results.checkNoDiagnostics()
             }
         }
-        await tester.checkBuild(BuildParameters(action: .install, configuration: "Release", activeRunDestination: .iOSSimulator, overrides: ["OTHER_CODE_SIGN_FLAGS": "-o runtime"]), fs: fs) { results in
+        await tester.checkBuild(BuildParameters(action: .install, configuration: "Release", overrides: ["OTHER_CODE_SIGN_FLAGS": "-o runtime"]), runDestination: .iOSSimulator, fs: fs) { results in
             results.checkTarget("App") { target in
                 results.checkTask(.matchTarget(target), .matchRuleType("CodeSign")) { task in
                     task.checkCommandLineMatches(["/usr/bin/codesign", "--force", "--sign", "105DE4E702E4", "--entitlements", .suffix("App.app.xcent"), "--generate-entitlement-der", "/tmp/aProject.dst/Applications/App.app"])
@@ -967,7 +967,7 @@ fileprivate struct CodeSignTaskConstructionTests: CoreBasedTests {
                 results.checkNoDiagnostics()
             }
         }
-        await tester.checkBuild(BuildParameters(action: .install, configuration: "Release", activeRunDestination: .iOSSimulator, overrides: ["OTHER_CODE_SIGN_FLAGS": "-o library,restrict,runtime"]), fs: fs) { results in
+        await tester.checkBuild(BuildParameters(action: .install, configuration: "Release", overrides: ["OTHER_CODE_SIGN_FLAGS": "-o library,restrict,runtime"]), runDestination: .iOSSimulator, fs: fs) { results in
             results.checkTarget("App") { target in
                 results.checkTask(.matchTarget(target), .matchRuleType("CodeSign")) { task in
                     task.checkCommandLineMatches(["/usr/bin/codesign", "--force", "--sign", "105DE4E702E4", "-o", "library,restrict", "--entitlements", .suffix("App.app.xcent"), "--generate-entitlement-der", "/tmp/aProject.dst/Applications/App.app"])
@@ -975,7 +975,7 @@ fileprivate struct CodeSignTaskConstructionTests: CoreBasedTests {
                 results.checkNoDiagnostics()
             }
         }
-        await tester.checkBuild(BuildParameters(action: .install, configuration: "Release", activeRunDestination: .watchOSSimulator, overrides: ["ENABLE_HARDENED_RUNTIME": "YES"]), fs: fs) { results in
+        await tester.checkBuild(BuildParameters(action: .install, configuration: "Release", overrides: ["ENABLE_HARDENED_RUNTIME": "YES"]), runDestination: .watchOSSimulator, fs: fs) { results in
             results.checkTarget("watchOSFramework") { target in
                 results.checkTask(.matchTarget(target), .matchRuleType("CodeSign")) { task in
                     task.checkCommandLineMatches(["/usr/bin/codesign", "--force", "--sign", "105DE4E702E4", "--entitlements", .suffix("watchOSFramework.framework.xcent"), "--generate-entitlement-der", "/tmp/aProject.dst/Library/Frameworks/watchOSFramework.framework"])
@@ -1020,7 +1020,7 @@ fileprivate struct CodeSignTaskConstructionTests: CoreBasedTests {
         let tester = try await TaskConstructionTester(getCore(), testWorkspace)
 
         // Check --launch-constraint-self is passed when the build setting is configured
-        await tester.checkBuild(BuildParameters(action: .install, configuration: "Release", activeRunDestination: .macOS, overrides: ["LAUNCH_CONSTRAINT_SELF": "/tmp/SelfLaunchConstraint.plist"])) { results in
+        await tester.checkBuild(BuildParameters(action: .install, configuration: "Release", overrides: ["LAUNCH_CONSTRAINT_SELF": "/tmp/SelfLaunchConstraint.plist"]), runDestination: .macOS) { results in
             results.checkTarget("Tool") { target in
                 results.checkTask(.matchTarget(target), .matchRuleType("CodeSign")) { task in
                     task.checkCommandLineMatches(["/usr/bin/codesign", "--force", "--sign", "-", "--entitlements", .suffix("Tool.xcent"), "--generate-entitlement-der", "--launch-constraint-self", .suffix("SelfLaunchConstraint.plist"), "/tmp/aProject.dst/usr/local/bin/Tool"])
@@ -1029,7 +1029,7 @@ fileprivate struct CodeSignTaskConstructionTests: CoreBasedTests {
         }
 
         // Check --launch-constraint-parent is passed when the build setting is configured
-        await tester.checkBuild(BuildParameters(action: .install, configuration: "Release", activeRunDestination: .macOS, overrides: ["LAUNCH_CONSTRAINT_PARENT": "/tmp/ParentLaunchConstraint.plist"])) { results in
+        await tester.checkBuild(BuildParameters(action: .install, configuration: "Release", overrides: ["LAUNCH_CONSTRAINT_PARENT": "/tmp/ParentLaunchConstraint.plist"]), runDestination: .macOS) { results in
             results.checkTarget("Tool") { target in
                 results.checkTask(.matchTarget(target), .matchRuleType("CodeSign")) { task in
                     task.checkCommandLineMatches(["/usr/bin/codesign", "--force", "--sign", "-", "--entitlements", .suffix("Tool.xcent"), "--generate-entitlement-der", "--launch-constraint-parent", .suffix("ParentLaunchConstraint.plist"), "/tmp/aProject.dst/usr/local/bin/Tool"])
@@ -1039,7 +1039,7 @@ fileprivate struct CodeSignTaskConstructionTests: CoreBasedTests {
 
 
         // Check --launch-constraint-responsible is passed when the build setting is configured
-        await tester.checkBuild(BuildParameters(action: .install, configuration: "Release", activeRunDestination: .macOS, overrides: ["LAUNCH_CONSTRAINT_RESPONSIBLE": "/tmp/ResponsibleLaunchConstraint.plist"])) { results in
+        await tester.checkBuild(BuildParameters(action: .install, configuration: "Release", overrides: ["LAUNCH_CONSTRAINT_RESPONSIBLE": "/tmp/ResponsibleLaunchConstraint.plist"]), runDestination: .macOS) { results in
             results.checkTarget("Tool") { target in
                 results.checkTask(.matchTarget(target), .matchRuleType("CodeSign")) { task in
                     task.checkCommandLineMatches(["/usr/bin/codesign", "--force", "--sign", "-", "--entitlements", .suffix("Tool.xcent"), "--generate-entitlement-der", "--launch-constraint-responsible", .suffix("ResponsibleLaunchConstraint.plist"), "/tmp/aProject.dst/usr/local/bin/Tool"])
@@ -1048,7 +1048,7 @@ fileprivate struct CodeSignTaskConstructionTests: CoreBasedTests {
         }
 
         // Check that all launch constraint arguments are passed when the build settings are configured
-        await tester.checkBuild(BuildParameters(action: .install, configuration: "Release", activeRunDestination: .macOS, overrides: ["LAUNCH_CONSTRAINT_SELF": "/tmp/SelfLaunchConstraint.plist", "LAUNCH_CONSTRAINT_PARENT": "/tmp/ParentLaunchConstraint.plist", "LAUNCH_CONSTRAINT_RESPONSIBLE": "/tmp/ResponsibleLaunchConstraint.plist"])) { results in
+        await tester.checkBuild(BuildParameters(action: .install, configuration: "Release", overrides: ["LAUNCH_CONSTRAINT_SELF": "/tmp/SelfLaunchConstraint.plist", "LAUNCH_CONSTRAINT_PARENT": "/tmp/ParentLaunchConstraint.plist", "LAUNCH_CONSTRAINT_RESPONSIBLE": "/tmp/ResponsibleLaunchConstraint.plist"]), runDestination: .macOS) { results in
             results.checkTarget("Tool") { target in
                 results.checkTask(.matchTarget(target), .matchRuleType("CodeSign")) { task in
                     task.checkCommandLineMatches(["/usr/bin/codesign", "--force", "--sign", "-", "--entitlements", .suffix("Tool.xcent"), "--generate-entitlement-der", "--launch-constraint-self", .suffix("SelfLaunchConstraint.plist"), "--launch-constraint-parent", .suffix("ParentLaunchConstraint.plist"), "--launch-constraint-responsible", .suffix("ResponsibleLaunchConstraint.plist"), "/tmp/aProject.dst/usr/local/bin/Tool"])
@@ -1092,7 +1092,7 @@ fileprivate struct CodeSignTaskConstructionTests: CoreBasedTests {
         let tester = try await TaskConstructionTester(getCore(), testWorkspace)
 
         // Check --library-constraint is passed when the build setting is configured on macOS 14
-        await tester.checkBuild(BuildParameters(action: .install, configuration: "Release", activeRunDestination: .macOS, overrides: ["LIBRARY_LOAD_CONSTRAINT": "/tmp/LibraryLoadConstraint.plist"]), systemInfo: SystemInfo(operatingSystemVersion: Version(14), productBuildVersion: "99A98", nativeArchitecture: "arm64")) { results in
+        await tester.checkBuild(BuildParameters(action: .install, configuration: "Release", overrides: ["LIBRARY_LOAD_CONSTRAINT": "/tmp/LibraryLoadConstraint.plist"]), runDestination: .macOS, systemInfo: SystemInfo(operatingSystemVersion: Version(14), productBuildVersion: "99A98", nativeArchitecture: "arm64")) { results in
             results.checkTarget("Tool") { target in
                 results.checkTask(.matchTarget(target), .matchRuleType("CodeSign")) { task in
                     task.checkCommandLineMatches(["/usr/bin/codesign", "--force", "--sign", "-", "--entitlements", .suffix("Tool.xcent"), "--generate-entitlement-der", "--library-constraint", .suffix("LibraryLoadConstraint.plist"), "/tmp/aProject.dst/usr/local/bin/Tool"])
@@ -1101,7 +1101,7 @@ fileprivate struct CodeSignTaskConstructionTests: CoreBasedTests {
         }
 
         // Check --library-constraint is *not* passed when the build setting is configured on macOS 13
-        await tester.checkBuild(BuildParameters(action: .install, configuration: "Release", activeRunDestination: .macOS, overrides: ["LIBRARY_LOAD_CONSTRAINT": "/tmp/LibraryLoadConstraint.plist"]), systemInfo: SystemInfo(operatingSystemVersion: Version(13), productBuildVersion: "99A98", nativeArchitecture: "arm64")) { results in
+        await tester.checkBuild(BuildParameters(action: .install, configuration: "Release", overrides: ["LIBRARY_LOAD_CONSTRAINT": "/tmp/LibraryLoadConstraint.plist"]), runDestination: .macOS, systemInfo: SystemInfo(operatingSystemVersion: Version(13), productBuildVersion: "99A98", nativeArchitecture: "arm64")) { results in
             results.checkTarget("Tool") { target in
                 results.checkTask(.matchTarget(target), .matchRuleType("CodeSign")) { task in
                     task.checkCommandLineMatches(["/usr/bin/codesign", "--force", "--sign", "-", "--entitlements", .suffix("Tool.xcent"), "--generate-entitlement-der", "/tmp/aProject.dst/usr/local/bin/Tool"])

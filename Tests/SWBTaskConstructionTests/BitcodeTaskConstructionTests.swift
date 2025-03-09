@@ -90,7 +90,7 @@ fileprivate struct BitcodeTaskConstructionTests: CoreBasedTests {
         let SRCROOT = tester.workspace.projects[0].sourceRoot.str
 
         // Test building without bitcode.
-        await tester.checkBuild(BuildParameters(configuration: "Debug", activeRunDestination: .iOS, overrides: ["ENABLE_BITCODE": "NO", "BITCODE_GENERATION_MODE": "bitcode"])) { results in
+        await tester.checkBuild(BuildParameters(configuration: "Debug", overrides: ["ENABLE_BITCODE": "NO", "BITCODE_GENERATION_MODE": "bitcode"]), runDestination: .iOS) { results in
             results.checkTasks(.matchRuleType("Gate")) { _ in }
             results.checkTasks(.matchRuleType("CreateBuildDirectory")) { _ in }
 
@@ -128,7 +128,7 @@ fileprivate struct BitcodeTaskConstructionTests: CoreBasedTests {
         }
 
         // Test building with the bitcode marker.
-        await tester.checkBuild(BuildParameters(configuration: "Debug", activeRunDestination: .iOS, overrides: ["ENABLE_BITCODE": "YES", "BITCODE_GENERATION_MODE": "marker"])) { results in
+        await tester.checkBuild(BuildParameters(configuration: "Debug", overrides: ["ENABLE_BITCODE": "YES", "BITCODE_GENERATION_MODE": "marker"]), runDestination: .iOS) { results in
             results.checkTasks(.matchRuleType("Gate")) { _ in }
             results.checkTasks(.matchRuleType("CreateBuildDirectory")) { _ in }
 
@@ -169,7 +169,7 @@ fileprivate struct BitcodeTaskConstructionTests: CoreBasedTests {
         }
 
         // Test building with full bitcode.
-        await tester.checkBuild(BuildParameters(configuration: "Debug", activeRunDestination: .iOS, overrides: ["ENABLE_BITCODE": "YES", "BITCODE_GENERATION_MODE": "bitcode"])) { results in
+        await tester.checkBuild(BuildParameters(configuration: "Debug", overrides: ["ENABLE_BITCODE": "YES", "BITCODE_GENERATION_MODE": "bitcode"]), runDestination: .iOS) { results in
             results.checkTasks(.matchRuleType("Gate")) { _ in }
             results.checkTasks(.matchRuleType("CreateBuildDirectory")) { _ in }
 
@@ -270,7 +270,7 @@ fileprivate struct BitcodeTaskConstructionTests: CoreBasedTests {
 
         let tester = try await TaskConstructionTester(getCore(), testProject)
 
-        await tester.checkBuild(BuildParameters(configuration: "Debug", activeRunDestination: .iOS)) { results in
+        await tester.checkBuild(runDestination: .iOS) { results in
             results.checkWarning(.equal("Building with bitcode is deprecated. Please update your project and/or target settings to disable bitcode. (in target 'App' from project 'aProject')"))
             results.checkWarning(.equal("Building with bitcode is deprecated. Please update your project and/or target settings to disable bitcode. (in target 'Lib' from project 'aProject')"))
 

@@ -60,7 +60,7 @@ fileprivate struct ClangModulesTaskConstructionTests: CoreBasedTests {
 
             let core = try await getCore()
             let tester = try TaskConstructionTester(core, testProject)
-            await tester.checkBuild(BuildParameters(configuration: "Debug", activeRunDestination: .host), runDestination: .host) { results in
+            await tester.checkBuild(runDestination: .host) { results in
                 results.checkTask(.matchRuleType("CompileC"), .matchRuleItemPattern(.suffix("a.c"))) { compileTask in
                     compileTask.checkCommandLineContains(["-fmodules"])
                 }

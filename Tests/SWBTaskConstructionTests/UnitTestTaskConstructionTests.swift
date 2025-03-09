@@ -110,7 +110,7 @@ fileprivate struct UnitTestTaskConstructionTests: CoreBasedTests {
         try await fs.writePlist(baselineDir.join("Info.plist"), .plDict([:]))
         try await fs.writePlist(baselineDir.join("Some-Test-Data.plist"), .plDict([:]))
 
-        await tester.checkBuild(fs: fs) { results in
+        await tester.checkBuild(runDestination: .macOS, fs: fs) { results in
             // For debugging convenience, consume all the Gate and build directory tasks.
             results.checkTasks(.matchRuleType("Gate")) { _ in }
             results.checkTasks(.matchRuleType("CreateBuildDirectory")) { _ in }
@@ -422,7 +422,7 @@ fileprivate struct UnitTestTaskConstructionTests: CoreBasedTests {
         }
 
         // Check a debug build.
-        try await tester.checkBuild(fs: fs) { results in
+        try await tester.checkBuild(runDestination: .macOS, fs: fs) { results in
             // For debugging convenience, consume all the Gate and build directory related tasks.
             results.checkTasks(.matchRuleType("Gate")) { _ in }
             results.checkTasks(.matchRuleType("CreateBuildDirectory")) { _ in }
@@ -741,7 +741,7 @@ fileprivate struct UnitTestTaskConstructionTests: CoreBasedTests {
         }
 
         // Check an install build.
-        await tester.checkBuild(BuildParameters(action: .install, configuration: "Debug"), fs: fs) { results in
+        await tester.checkBuild(BuildParameters(action: .install, configuration: "Debug"), runDestination: .macOS, fs: fs) { results in
             // For debugging convenience, consume all the Gate and build directory tasks.
             results.checkTasks(.matchRuleType("Gate")) { _ in }
             results.checkTasks(.matchRuleType("CreateBuildDirectory")) { _ in }
@@ -1008,7 +1008,7 @@ fileprivate struct UnitTestTaskConstructionTests: CoreBasedTests {
         }
 
         // Check an install build for the device.
-        await tester.checkBuild(BuildParameters(action: .install, configuration: "Debug", activeRunDestination: .watchOS), fs: fs) { results in
+        await tester.checkBuild(BuildParameters(action: .install, configuration: "Debug"), runDestination: .watchOS, fs: fs) { results in
             // For debugging convenience, consume all the Gate tasks.
             results.checkTasks(.matchRuleType("Gate")) { _ in }
             // Ignore all build directory tasks
@@ -1069,7 +1069,7 @@ fileprivate struct UnitTestTaskConstructionTests: CoreBasedTests {
         }
 
         // Check a debug build for the simulator.
-        await tester.checkBuild(BuildParameters(action: .build, configuration: "Debug", activeRunDestination: .watchOSSimulator), fs: fs) { results in
+        await tester.checkBuild(BuildParameters(action: .build, configuration: "Debug"), runDestination: .watchOSSimulator, fs: fs) { results in
             // For debugging convenience, consume all the Gate tasks.
             results.checkTasks(.matchRuleType("Gate")) { _ in }
             // Ignore all build directory tasks
@@ -1241,9 +1241,9 @@ fileprivate struct UnitTestTaskConstructionTests: CoreBasedTests {
         let topLevelTargets = [tester.workspace.projects[0].targets[0], tester.workspace.projects[0].targets[2]]
 
         // Check a debug build for the device.
-        let deviceParameters = BuildParameters(action: .build, configuration: "Debug", activeRunDestination: .watchOS)
+        let deviceParameters = BuildParameters(action: .build, configuration: "Debug")
         let debugBuildRequest = BuildRequest(parameters: deviceParameters, buildTargets: topLevelTargets.map({ BuildRequest.BuildTargetInfo(parameters: deviceParameters, target: $0) }), continueBuildingAfterErrors: false, useParallelTargets: true, useImplicitDependencies: true, useDryRun: false)
-        try await tester.checkBuild(buildRequest: debugBuildRequest, fs: fs) { results in
+        try await tester.checkBuild(runDestination: .watchOS, buildRequest: debugBuildRequest, fs: fs) { results in
             // Ignore task types we don't plan to examine.
             results.consumeTasksMatchingRuleTypes(["Gate", "MkDir", "CreateBuildDirectory", "WriteAuxiliaryFile", "RegisterExecutionPolicyException"])
 
@@ -1344,9 +1344,9 @@ fileprivate struct UnitTestTaskConstructionTests: CoreBasedTests {
         }
 
         // Check an install build for the device.
-        let installParameters = BuildParameters(action: .install, configuration: "Debug", activeRunDestination: .watchOS)
+        let installParameters = BuildParameters(action: .install, configuration: "Debug")
         let installBuildRequest = BuildRequest(parameters: installParameters, buildTargets: topLevelTargets.map({ BuildRequest.BuildTargetInfo(parameters: deviceParameters, target: $0) }), continueBuildingAfterErrors: false, useParallelTargets: true, useImplicitDependencies: true, useDryRun: false)
-        try await tester.checkBuild(buildRequest: installBuildRequest, fs: fs) { results in
+        try await tester.checkBuild(runDestination: .watchOS, buildRequest: installBuildRequest, fs: fs) { results in
             // Ignore task types we don't plan to examine.
             results.consumeTasksMatchingRuleTypes(["Gate", "MkDir", "CreateBuildDirectory", "WriteAuxiliaryFile", "RegisterExecutionPolicyException"])
 
@@ -1431,9 +1431,9 @@ fileprivate struct UnitTestTaskConstructionTests: CoreBasedTests {
         }
 
         // Check a debug build for the simulator.
-        let simParameters = BuildParameters(action: .build, configuration: "Debug", activeRunDestination: .watchOSSimulator)
+        let simParameters = BuildParameters(action: .build, configuration: "Debug")
         let simBuildRequest = BuildRequest(parameters: simParameters, buildTargets: topLevelTargets.map({ BuildRequest.BuildTargetInfo(parameters: simParameters, target: $0) }), continueBuildingAfterErrors: false, useParallelTargets: true, useImplicitDependencies: true, useDryRun: false)
-        try await tester.checkBuild(buildRequest: simBuildRequest, fs: fs) { results in
+        try await tester.checkBuild(runDestination: .watchOSSimulator, buildRequest: simBuildRequest, fs: fs) { results in
             // Ignore task types we don't plan to examine.
             results.consumeTasksMatchingRuleTypes(["Gate", "MkDir", "CreateBuildDirectory", "WriteAuxiliaryFile", "RegisterExecutionPolicyException"])
 
@@ -1603,7 +1603,7 @@ fileprivate struct UnitTestTaskConstructionTests: CoreBasedTests {
         }
 
         // Check a debug build for macCatalyst
-        await tester.checkBuild(BuildParameters(configuration: "Debug", activeRunDestination: .macCatalyst), fs: fs) { results in
+        await tester.checkBuild(runDestination: .macCatalyst, fs: fs) { results in
 
             results.checkTarget("UnitTestTarget") { target in
                 let targetName = target.target.name
@@ -1764,7 +1764,7 @@ fileprivate struct UnitTestTaskConstructionTests: CoreBasedTests {
         let topLevelTargets = [tester.workspace.projects[0].targets[0], tester.workspace.projects[0].targets[3], tester.workspace.projects[0].targets[1], tester.workspace.projects[0].targets[2]]
         let deviceParameters = BuildParameters(action: .build, configuration: "Debug")
         let debugBuildRequest = BuildRequest(parameters: deviceParameters, buildTargets: topLevelTargets.map({ BuildRequest.BuildTargetInfo(parameters: deviceParameters, target: $0) }), continueBuildingAfterErrors: false, useParallelTargets: false, useImplicitDependencies: true, useDryRun: false)
-        try await tester.checkBuild(buildRequest: debugBuildRequest, fs: fs) { results in
+        try await tester.checkBuild(runDestination: .macOS, buildRequest: debugBuildRequest, fs: fs) { results in
             // Ignore task types we don't plan to examine.
             results.consumeTasksMatchingRuleTypes(["Gate", "MkDir", "CreateBuildDirectory", "WriteAuxiliaryFile", "RegisterExecutionPolicyException"])
 
@@ -1991,7 +1991,7 @@ fileprivate struct UnitTestTaskConstructionTests: CoreBasedTests {
         let topLevelTargets = [tester.workspace.projects[0].targets[0], tester.workspace.projects[0].targets[1]]
         let deviceParameters = BuildParameters(action: .build, configuration: "Debug")
         let debugBuildRequest = BuildRequest(parameters: deviceParameters, buildTargets: topLevelTargets.map({ BuildRequest.BuildTargetInfo(parameters: deviceParameters, target: $0) }), continueBuildingAfterErrors: false, useParallelTargets: false, useImplicitDependencies: true, useDryRun: false)
-        try await tester.checkBuild(buildRequest: debugBuildRequest, fs: fs) { results in
+        try await tester.checkBuild(runDestination: .macOS, buildRequest: debugBuildRequest, fs: fs) { results in
             // Ignore task types we don't plan to examine.
             results.consumeTasksMatchingRuleTypes(["Gate", "MkDir", "CreateBuildDirectory", "WriteAuxiliaryFile", "RegisterExecutionPolicyException"])
 
@@ -2201,7 +2201,7 @@ fileprivate struct UnitTestTaskConstructionTests: CoreBasedTests {
         try await fs.writeXCTRunnerApp(xctrunnerPath, archs: ["arm64", "arm64e", "x86_64"], platform: .macOS, infoLookup: core)
 
         // Check a debug build.
-        await tester.checkBuild(fs: fs) { results in
+        await tester.checkBuild(runDestination: .macOS, fs: fs) { results in
             // For debugging convenience, consume all the Gate tasks.
             results.checkTasks(.matchRuleType("Gate")) { _ in }
             // Ignore all build directory tasks
@@ -2534,7 +2534,7 @@ fileprivate struct UnitTestTaskConstructionTests: CoreBasedTests {
         }
 
         // Check an install build.
-        await tester.checkBuild(BuildParameters(action: .install, configuration: "Debug"), fs: fs) { results in
+        await tester.checkBuild(BuildParameters(action: .install, configuration: "Debug"), runDestination: .macOS, fs: fs) { results in
             // For debugging convenience, consume all the Gate tasks.
             results.checkTasks(.matchRuleType("Gate")) { _ in }
             // Ignore all build directory tasks
@@ -2810,7 +2810,7 @@ fileprivate struct UnitTestTaskConstructionTests: CoreBasedTests {
         try await fs.writeXCTRunnerApp(simXctrunnerPath, archs: ["x86_64"], platform: .iOSSimulator, infoLookup: core)
 
         // Check a debug build for the device.
-        await tester.checkBuild(fs: fs) { results in
+        await tester.checkBuild(runDestination: .macOS, fs: fs) { results in
             // For debugging convenience, consume all the Gate tasks.
             results.checkTasks(.matchRuleType("Gate")) { _ in }
             // Ignore all build directory tasks
@@ -2899,7 +2899,7 @@ fileprivate struct UnitTestTaskConstructionTests: CoreBasedTests {
         }
 
         // Check an install build for the device.
-        await tester.checkBuild(BuildParameters(action: .install, configuration: "Debug"), fs: fs) { results in
+        await tester.checkBuild(BuildParameters(action: .install, configuration: "Debug"), runDestination: .macOS, fs: fs) { results in
             // For debugging convenience, consume all the Gate tasks.
             results.checkTasks(.matchRuleType("Gate")) { _ in }
             // Ignore all build directory tasks
@@ -2993,7 +2993,7 @@ fileprivate struct UnitTestTaskConstructionTests: CoreBasedTests {
         }
 
         // Check a debug build for the simulator.
-        await tester.checkBuild(BuildParameters(action: .build, configuration: "Debug", activeRunDestination: .iOSSimulator), fs: fs) { results in
+        await tester.checkBuild(BuildParameters(action: .build, configuration: "Debug"), runDestination: .iOSSimulator, fs: fs) { results in
             // For debugging convenience, consume all the Gate tasks.
             results.checkTasks(.matchRuleType("Gate")) { _ in }
             // Ignore all build directory tasks
@@ -3079,7 +3079,7 @@ fileprivate struct UnitTestTaskConstructionTests: CoreBasedTests {
         }
 
         // Check a build for a pre-Swift-in-the-OS deployment target
-        await tester.checkBuild(BuildParameters(configuration: "Debug", overrides: ["IPHONEOS_DEPLOYMENT_TARGET": "12.0"]), fs: fs) { results in
+        await tester.checkBuild(BuildParameters(configuration: "Debug", overrides: ["IPHONEOS_DEPLOYMENT_TARGET": "12.0"]), runDestination: .macOS, fs: fs) { results in
             results.checkTarget("UITestTarget") { target in
 
                 // There should be a 'CopySwiftLibs' task that includes a reference to the libXCTestSwiftSupport.dylib executable.

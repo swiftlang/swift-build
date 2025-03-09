@@ -748,11 +748,9 @@ fileprivate struct SwiftModuleOnlyTaskConstructionTests: CoreBasedTests {
         let tester = try await TaskConstructionTester(getCore(), testProject)
         let sourceRoot = tester.workspace.projects[0].sourceRoot
 
-        let buildParameters = BuildParameters(
-            configuration: tpc.buildConfiguration,
-            activeRunDestination: tpc.activeRunDestination)
+        let buildParameters = BuildParameters(configuration: tpc.buildConfiguration)
 
-        try await tester.checkBuild(buildParameters) { results in
+        try await tester.checkBuild(buildParameters, runDestination: tpc.activeRunDestination) { results in
             do {
                 // Match tasks we know we're not interested in.
                 results.consumeTasksMatchingRuleTypes([
@@ -846,11 +844,9 @@ fileprivate struct SwiftModuleOnlyTaskConstructionTests: CoreBasedTests {
         let infoLookup = try await getCore()
 
         let tester = try await TaskConstructionTester(getCore(), testProject)
-        let buildParameters = BuildParameters(
-            configuration: tpc.buildConfiguration,
-            activeRunDestination: tpc.activeRunDestination)
+        let buildParameters = BuildParameters(configuration: tpc.buildConfiguration)
 
-        try await tester.checkBuild(buildParameters) { results in
+        try await tester.checkBuild(buildParameters, runDestination: tpc.activeRunDestination) { results in
             // Match tasks we know we're not interested in.
             results.consumeTasksMatchingRuleTypes([
                 "CompileSwift",
@@ -924,11 +920,9 @@ fileprivate struct SwiftModuleOnlyTaskConstructionTests: CoreBasedTests {
         let testProject = try await buildTestProject(testProjectConfig: tpc)
 
         let tester = try await TaskConstructionTester(getCore(), testProject)
-        let buildParameters = BuildParameters(
-            configuration: tpc.buildConfiguration,
-            activeRunDestination: tpc.activeRunDestination)
+        let buildParameters = BuildParameters(configuration: tpc.buildConfiguration)
 
-        await tester.checkBuild(buildParameters) { results in
+        await tester.checkBuild(buildParameters, runDestination: tpc.activeRunDestination) { results in
             // Match tasks we know we're not interested in.
             results.consumeTasksMatchingRuleTypes([
                 "CompileSwift",
