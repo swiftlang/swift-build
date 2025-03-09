@@ -500,6 +500,7 @@ fileprivate struct BuildRuleTaskConstructionTests: CoreBasedTests {
             targets: [
                 TestStandardTarget(
                     targetName,
+                    type: .application,
                     buildConfigurations: [
                         TestBuildConfiguration("Debug"),
                     ],

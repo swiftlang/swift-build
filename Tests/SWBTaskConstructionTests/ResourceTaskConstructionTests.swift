@@ -50,6 +50,7 @@ fileprivate struct ResourcesTaskConstructionTests: CoreBasedTests {
             targets: [
                 TestStandardTarget(
                     "App",
+                    type: .application,
                     buildConfigurations: [
                         TestBuildConfiguration("Release"),
                     ],
@@ -209,6 +210,7 @@ fileprivate struct ResourcesTaskConstructionTests: CoreBasedTests {
             targets: [
                 TestStandardTarget(
                     "App",
+                    type: .application,
                     buildConfigurations: [
                         TestBuildConfiguration("Debug",
                                                buildSettings: [
@@ -336,6 +338,7 @@ fileprivate struct ResourcesTaskConstructionTests: CoreBasedTests {
             targets: [
                 TestStandardTarget(
                     "App",
+                    type: .application,
                     buildConfigurations: [
                         TestBuildConfiguration("Debug",
                                                buildSettings: [
@@ -419,6 +422,7 @@ fileprivate struct ResourcesTaskConstructionTests: CoreBasedTests {
             targets: [
                 TestStandardTarget(
                     "App",
+                    type: .application,
                     buildConfigurations: [
                         TestBuildConfiguration("Debug",
                                                buildSettings: [
@@ -508,6 +512,7 @@ fileprivate struct ResourcesTaskConstructionTests: CoreBasedTests {
             targets: [
                 TestStandardTarget(
                     "App",
+                    type: .application,
                     buildConfigurations: [
                         TestBuildConfiguration("Debug",
                                                buildSettings: [
@@ -647,6 +652,7 @@ fileprivate struct ResourcesTaskConstructionTests: CoreBasedTests {
             targets: [
                 TestStandardTarget(
                     "App",
+                    type: .application,
                     buildConfigurations: [
                         TestBuildConfiguration("Debug",
                                                buildSettings: [
@@ -788,6 +794,7 @@ fileprivate struct ResourcesTaskConstructionTests: CoreBasedTests {
             targets: [
                 TestStandardTarget(
                     "App",
+                    type: .application,
                     buildConfigurations: [
                         TestBuildConfiguration("Debug",
                                                buildSettings: [
@@ -944,6 +951,7 @@ fileprivate struct ResourcesTaskConstructionTests: CoreBasedTests {
             targets: [
                 TestStandardTarget(
                     "App",
+                    type: .application,
                     buildConfigurations: [
                         TestBuildConfiguration("Debug",
                                                buildSettings: [
@@ -1163,6 +1171,7 @@ fileprivate struct ResourcesTaskConstructionTests: CoreBasedTests {
             targets: [
                 TestStandardTarget(
                     "App",
+                    type: .application,
                     buildConfigurations: [
                         TestBuildConfiguration("Debug",
                                                buildSettings: [
@@ -1325,6 +1334,7 @@ fileprivate struct ResourcesTaskConstructionTests: CoreBasedTests {
             targets: [
                 TestStandardTarget(
                     "App",
+                    type: .application,
                     buildConfigurations: [
                         TestBuildConfiguration("Debug",
                                                buildSettings: [
@@ -1430,6 +1440,7 @@ fileprivate struct ResourcesTaskConstructionTests: CoreBasedTests {
             targets: [
                 TestStandardTarget(
                     "App",
+                    type: .application,
                     buildConfigurations: [
                         TestBuildConfiguration("Debug",
                                                buildSettings: [
@@ -1965,7 +1976,7 @@ fileprivate struct ResourcesTaskConstructionTests: CoreBasedTests {
                     ]),
             ],
             targets: [
-                TestStandardTarget("App", buildPhases: [
+                TestStandardTarget("App", type: .application, buildPhases: [
                     TestResourcesBuildPhase([
                         // Single files which get copied rather than combined.
                         "Single.png",
@@ -2138,7 +2149,7 @@ fileprivate struct ResourcesTaskConstructionTests: CoreBasedTests {
                     ]),
             ],
             targets: [
-                TestStandardTarget("App", buildPhases: [
+                TestStandardTarget("App", type: .application, buildPhases: [
                     TestSourcesBuildPhase([
                         "Doubled@1x.png",
                         "Doubled@2x.png",
@@ -2180,7 +2191,7 @@ fileprivate struct ResourcesTaskConstructionTests: CoreBasedTests {
                     ]),
             ],
             targets: [
-                TestStandardTarget("App", buildPhases: [
+                TestStandardTarget("App", type: .application, buildPhases: [
                     TestResourcesBuildPhase([
                         "A.xcassets",
                         "B C.xcassets",
@@ -2224,7 +2235,7 @@ fileprivate struct ResourcesTaskConstructionTests: CoreBasedTests {
                     ]),
             ],
             targets: [
-                TestStandardTarget("App", buildPhases: [
+                TestStandardTarget("App", type: .application, buildPhases: [
                     TestSourcesBuildPhase([
                         "A.xcassets",
                         "B.xcassets",
@@ -2269,7 +2280,7 @@ fileprivate struct ResourcesTaskConstructionTests: CoreBasedTests {
                     ]),
             ],
             targets: [
-                TestStandardTarget("App", buildPhases: [
+                TestStandardTarget("App", type: .application, buildPhases: [
                     TestResourcesBuildPhase([
                         TestBuildFile("A.dae", decompress: false),
                         TestBuildFile("B.dae", decompress: true),
@@ -2364,6 +2375,7 @@ fileprivate struct ResourcesTaskConstructionTests: CoreBasedTests {
             targets: [
                 TestStandardTarget(
                     "App",
+                    type: .application,
                     buildPhases: [
                         TestResourcesBuildPhase([
                             "Localizable.strings",
@@ -2458,6 +2470,7 @@ fileprivate struct ResourcesTaskConstructionTests: CoreBasedTests {
             targets: [
                 TestStandardTarget(
                     "App",
+                    type: .application,
                     buildPhases: [
                         TestSourcesBuildPhase([
                             "main.m",
@@ -2506,6 +2519,7 @@ fileprivate struct ResourcesTaskConstructionTests: CoreBasedTests {
                 targets: [
                     TestStandardTarget(
                         "App",
+                        type: .application,
                         buildPhases: [
                             TestAppleScriptBuildPhase([
                                 "Foo.applescript",
@@ -2544,6 +2558,7 @@ fileprivate struct ResourcesTaskConstructionTests: CoreBasedTests {
                 targets: [
                     TestStandardTarget(
                         "App",
+                        type: .application,
                         buildPhases: [
                             TestAppleScriptBuildPhase([
                             ]),

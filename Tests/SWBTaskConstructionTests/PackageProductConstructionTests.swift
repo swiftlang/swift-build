@@ -896,6 +896,7 @@ fileprivate struct PackageProductConstructionTests: CoreBasedTests {
             targets: [
                 TestStandardTarget(
                     "tool",
+                    type: .application,
                     buildPhases: [
                         TestSourcesBuildPhase(["main.swift"]),
                         TestCopyFilesBuildPhase([TestBuildFile(.file("best.txt"), resourceRule: .embedInCode)], destinationSubfolder: .builtProductsDir),

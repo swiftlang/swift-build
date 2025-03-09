@@ -52,6 +52,7 @@ fileprivate struct IndexBuildOperationTests: CoreBasedTests {
                         targets: [
                             TestStandardTarget(
                                 "AppTarget",
+                                type: .application,
                                 buildConfigurations: [
                                     TestBuildConfiguration("Debug"),
                                 ],
@@ -264,6 +265,7 @@ fileprivate struct IndexBuildOperationTests: CoreBasedTests {
         try await withTemporaryDirectory { tmpDirPath in
             let appTarget = TestStandardTarget(
                 "AppTarget",
+                type: .application,
                 buildConfigurations: [
                     TestBuildConfiguration("Debug"),
                 ],
@@ -461,6 +463,7 @@ fileprivate struct IndexBuildOperationTests: CoreBasedTests {
         try await withTemporaryDirectory { tmpDirPath in
             let appTarget = TestStandardTarget(
                 "AppTarget",
+                type: .application,
                 buildConfigurations: [
                     TestBuildConfiguration("Debug", buildSettings: [
                         "SDKROOT": "iphonesimulator",
@@ -544,6 +547,7 @@ fileprivate struct IndexBuildOperationTests: CoreBasedTests {
         try await withTemporaryDirectory { tmpDirPath in
             let appTarget = TestStandardTarget(
                 "AppTarget",
+                type: .application,
                 buildConfigurations: [
                     TestBuildConfiguration("Debug")
                 ],
@@ -641,6 +645,7 @@ fileprivate struct IndexBuildOperationTests: CoreBasedTests {
 
             let macAppTarget = TestStandardTarget(
                 "macAppTarget",
+                type: .application,
                 buildConfigurations: [
                     TestBuildConfiguration("Debug", buildSettings: [
                         "SDKROOT": "macosx",
@@ -659,6 +664,7 @@ fileprivate struct IndexBuildOperationTests: CoreBasedTests {
 
             let iosAppTarget = TestStandardTarget(
                 "iOSAppTarget",
+                type: .application,
                 buildConfigurations: [
                     TestBuildConfiguration("Debug", buildSettings: [
                         "SDKROOT": "iphonesimulator",
@@ -761,6 +767,7 @@ fileprivate struct IndexBuildOperationTests: CoreBasedTests {
         try await withTemporaryDirectory { tmpDirPath async throws -> Void in
             let appTarget1 = TestStandardTarget(
                 "AppTarget1",
+                type: .application,
                 buildConfigurations: [
                     TestBuildConfiguration("Debug", buildSettings: [
                         "SDKROOT": "macosx",
@@ -782,6 +789,7 @@ fileprivate struct IndexBuildOperationTests: CoreBasedTests {
 
             let appTarget2 = TestStandardTarget(
                 "AppTarget2",
+                type: .application,
                 buildConfigurations: [
                     TestBuildConfiguration("Debug", buildSettings: [
                         "SDKROOT": "macosx",
@@ -1169,6 +1177,7 @@ fileprivate struct IndexBuildOperationTests: CoreBasedTests {
         try await withTemporaryDirectory { tmpDirPath async throws -> Void in
             let conflictTarget1 = TestStandardTarget(
                 "conflictApp",
+                type: .application,
                 buildConfigurations: [
                     TestBuildConfiguration("Debug", buildSettings: [
                         "SDKROOT": "macosx",
@@ -1184,6 +1193,7 @@ fileprivate struct IndexBuildOperationTests: CoreBasedTests {
 
             let conflictTarget2 = TestStandardTarget(
                 "conflictApp",
+                type: .application,
                 buildConfigurations: [
                     TestBuildConfiguration("Debug", buildSettings: [
                         "SDKROOT": "macosx",

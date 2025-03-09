@@ -47,6 +47,7 @@ fileprivate struct BuildPhaseFusionTests: CoreBasedTests {
                 targets: [
                     TestStandardTarget(
                         "AppTarget",
+                        type: .application,
                         buildPhases: [
                             TestSourcesBuildPhase(["SourceFile.swift"]),
                             TestShellScriptBuildPhase(name: "Scripty McScriptface", originalObjectID: "", outputs: ["/foo/foo.txt"]),
@@ -100,6 +101,7 @@ fileprivate struct BuildPhaseFusionTests: CoreBasedTests {
                 targets: [
                     TestStandardTarget(
                         "AppTarget",
+                        type: .application,
                         buildPhases: [
                             TestSourcesBuildPhase(["SourceFile.c"]),
                             TestResourcesBuildPhase(["Image.png"]),
@@ -154,6 +156,7 @@ fileprivate struct BuildPhaseFusionTests: CoreBasedTests {
                 targets: [
                     TestStandardTarget(
                         "AppTarget",
+                        type: .application,
                         buildPhases: [
                             TestSourcesBuildPhase(["SourceFile.c"]),
                             TestShellScriptBuildPhase(name: "Bad Script", originalObjectID: "A", contents: "", inputs: [], outputs: [], alwaysOutOfDate: true),
@@ -209,6 +212,7 @@ fileprivate struct BuildPhaseFusionTests: CoreBasedTests {
                 targets: [
                     TestStandardTarget(
                         "AppTarget",
+                        type: .application,
                         buildPhases: [
                             TestSourcesBuildPhase(["SourceFile.c"]),
                             TestShellScriptBuildPhase(name: "S1", originalObjectID: "S1", contents: "", inputs: [], outputs: ["foo"], alwaysOutOfDate: false),
@@ -320,6 +324,7 @@ fileprivate struct BuildPhaseFusionTests: CoreBasedTests {
                 targets: [
                     TestStandardTarget(
                         "AppTarget",
+                        type: .application,
                         buildPhases: [
                             TestSourcesBuildPhase(["SourceFile.c"]),
                             TestCopyFilesBuildPhase(["f1.txt"], destinationSubfolder: .resources, onlyForDeployment: false),
@@ -382,6 +387,7 @@ fileprivate struct BuildPhaseFusionTests: CoreBasedTests {
                 targets: [
                     TestStandardTarget(
                         "AppTarget",
+                        type: .application,
                         buildPhases: [
                             TestSourcesBuildPhase(["SourceFile.c"]),
                             TestResourcesBuildPhase(["Image.png"]),

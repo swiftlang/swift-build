@@ -258,9 +258,11 @@ import SWBTestSupport
     func projectReferences() throws {
         let testTargetA = TestStandardTarget(
             "aTarget",
+            type: .application,
             buildPhases: [TestSourcesBuildPhase(["foo.c"])])
         let testTargetB = TestStandardTarget(
             "bTarget",
+            type: .application,
             buildPhases: [TestSourcesBuildPhase(["bar.c"])])
         let testProject = TestProject(
             "aProject",
@@ -305,6 +307,7 @@ import SWBTestSupport
         // Load with a new project but shared targetA.
         let testTargetB2 = TestStandardTarget(
             "bTarget",
+            type: .application,
             buildPhases: [TestSourcesBuildPhase(["baz.c"])])
         let testProject2 = TestProject(
             "aProject",

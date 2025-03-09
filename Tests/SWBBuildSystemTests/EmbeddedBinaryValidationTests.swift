@@ -47,6 +47,7 @@ fileprivate struct EmbeddedBinaryValidationTests: CoreBasedTests {
                 targets: [
                     TestStandardTarget(
                         "AppTarget",
+                        type: .application,
                         buildPhases: [
                             TestSourcesBuildPhase([
                                 "AppSource.m",

@@ -411,6 +411,7 @@ fileprivate struct EntitlementsBuildOperationTests: CoreBasedTests {
                     targets: [
                         TestStandardTarget(
                             "App",
+                            type: .application,
                             buildPhases: [
                                 TestSourcesBuildPhase([
                                     "main.c",

@@ -1072,7 +1072,7 @@ package final class TestStandardTarget: TestInternalTarget, Sendable {
     private let approvedByUser: Bool
 
     /// Create a test target
-    package init(_ name: String, guid: String? = nil, type: TargetType = .application, buildConfigurations: [TestBuildConfiguration]? = nil, buildPhases: [any TestBuildPhase] = [], buildRules: [TestBuildRule] = [], customTasks: [TestCustomTask] = [], dependencies: [TestTargetDependency] = [], productReferenceName: String? = nil, predominantSourceCodeLanguage: SWBCore.StandardTarget.SourceCodeLanguage = .undefined, provisioningSourceData: [ProvisioningSourceData] = [], dynamicTargetVariantName: String? = nil, approvedByUser: Bool = true) {
+    package init(_ name: String, guid: String? = nil, type: TargetType, buildConfigurations: [TestBuildConfiguration]? = nil, buildPhases: [any TestBuildPhase] = [], buildRules: [TestBuildRule] = [], customTasks: [TestCustomTask] = [], dependencies: [TestTargetDependency] = [], productReferenceName: String? = nil, predominantSourceCodeLanguage: SWBCore.StandardTarget.SourceCodeLanguage = .undefined, provisioningSourceData: [ProvisioningSourceData] = [], dynamicTargetVariantName: String? = nil, approvedByUser: Bool = true) {
         self.name = name
         self.overriddenGuid = guid
         self.type = type

@@ -71,7 +71,7 @@ fileprivate struct PIFTests {
                     projects: [
                         TestProject("aProject",
                                     groupTree: TestGroup("foo"),
-                                    targets: [TestStandardTarget("aTarget")])
+                                    targets: [TestStandardTarget("aTarget", type: .application)])
                     ])
 
                 let testSession = try await TestSWBSession(temporaryDirectory: temporaryDirectory)
@@ -103,7 +103,7 @@ fileprivate struct PIFTests {
                     projects: [
                         TestProject("aProject",
                                     groupTree: TestGroup("foo"),
-                                    targets: [TestStandardTarget("aTarget")])
+                                    targets: [TestStandardTarget("aTarget", type: .application)])
                     ])
 
                 let testSession = try await TestSWBSession(temporaryDirectory: temporaryDirectory)

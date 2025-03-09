@@ -46,6 +46,7 @@ fileprivate struct ExportLocTaskConstructionTests: CoreBasedTests {
             targets: [
                 TestStandardTarget(
                     "AppTarget",
+                    type: .application,
                     buildConfigurations: [
                         TestBuildConfiguration("Debug", buildSettings: ["INFOPLIST_FILE": "AppTarget/Info.plist"])
                     ],

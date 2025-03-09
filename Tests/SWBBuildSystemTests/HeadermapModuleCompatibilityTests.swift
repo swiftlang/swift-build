@@ -51,6 +51,7 @@ fileprivate struct HeadermapModuleCompatibilityTests: CoreBasedTests {
                 targets: [
                     TestStandardTarget(
                         "Client-Default",
+                        type: .application,
                         buildConfigurations: [
                             // The default all-target-headers.hmap will make this setup fail.
                             TestBuildConfiguration("Debug", buildSettings: [
@@ -66,6 +67,7 @@ fileprivate struct HeadermapModuleCompatibilityTests: CoreBasedTests {
                         ]),
                     TestStandardTarget(
                         "Client-UseVFS",
+                        type: .application,
                         buildConfigurations: [
                             // Forcing HEADERMAP_USES_VFS will turn off all-target-headers.hmap,
                             // but its replacement all-non-framework-target-headers.hmap will
@@ -84,6 +86,7 @@ fileprivate struct HeadermapModuleCompatibilityTests: CoreBasedTests {
                         ]),
                     TestStandardTarget(
                         "Client-NoFrameworkEntries",
+                        type: .application,
                         buildConfigurations: [
                             // HEADERMAP_INCLUDES_FRAMEWORK_ENTRIES_FOR_TARGETS_NOT_BEING_BUILT
                             // will neuter all-non-framework-target-headers.hmap enough that this

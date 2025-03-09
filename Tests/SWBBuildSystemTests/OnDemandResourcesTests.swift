@@ -254,6 +254,7 @@ fileprivate struct OnDemandResourcesTests: CoreBasedTests {
                 targets: [
                     TestStandardTarget(
                         "App",
+                        type: .application,
                         buildPhases: [
                             TestResourcesBuildPhase([
                                 TestBuildFile("A.dat", assetTags: Set(["foo"])),
@@ -308,6 +309,7 @@ fileprivate struct OnDemandResourcesTests: CoreBasedTests {
                 targets: [
                     TestStandardTarget(
                         "App",
+                        type: .application,
                         buildPhases: [
                             TestResourcesBuildPhase([
                                 TestBuildFile("A.dat", assetTags: Set(["foo"])),
@@ -382,6 +384,7 @@ fileprivate struct OnDemandResourcesTests: CoreBasedTests {
             targets: [
                 TestStandardTarget(
                     "App",
+                    type: .application,
                     buildPhases: [
                         TestResourcesBuildPhase([
                             TestBuildFile("A.dat", assetTags: Set(["foo"])),
@@ -666,6 +669,7 @@ fileprivate struct OnDemandResourcesTests: CoreBasedTests {
                 targets: [
                     TestStandardTarget(
                         "App",
+                        type: .application,
                         buildPhases: [
                             TestResourcesBuildPhase([
                                 TestBuildFile("A.dat", assetTags: Set(["foo"])),
@@ -811,6 +815,7 @@ fileprivate struct OnDemandResourcesTests: CoreBasedTests {
                 targets: [
                     TestStandardTarget(
                         "App",
+                        type: .application,
                         buildPhases: [
                             TestResourcesBuildPhase([
                                 TestBuildFile("A.dat", assetTags: Set(["foo"])),
@@ -877,6 +882,7 @@ fileprivate struct OnDemandResourcesTests: CoreBasedTests {
                 targets: [
                     TestStandardTarget(
                         "App",
+                        type: .application,
                         buildPhases: [
                             TestResourcesBuildPhase([
                                 TestBuildFile("AssetPackManifest.plist"),
@@ -944,6 +950,7 @@ fileprivate struct OnDemandResourcesTests: CoreBasedTests {
                 targets: [
                     TestStandardTarget(
                         "App",
+                        type: .application,
                         buildPhases: [
                             TestResourcesBuildPhase([
                                 "Assets.xcassets",
@@ -1028,6 +1035,7 @@ fileprivate struct OnDemandResourcesTests: CoreBasedTests {
                 targets: [
                     TestStandardTarget(
                         "App",
+                        type: .application,
                         buildPhases: [
                             TestResourcesBuildPhase([
                                 TestBuildFile("A.dat", assetTags: Set(["foo"])),

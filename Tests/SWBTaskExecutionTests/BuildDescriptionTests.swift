@@ -747,7 +747,7 @@ fileprivate struct BuildDescriptionTests: CoreBasedTests {
     func serializable() async throws {
         try await withTemporaryDirectory { tmpDirPath -> Void in
             let core = try await getCore()
-            let testWorkspace = try TestWorkspace("SomeName", sourceRoot: tmpDirPath, projects: [.init("Project1", groupTree: TestGroup.init("Empty"), targets: [TestStandardTarget("Target1")])]).load(core)
+            let testWorkspace = try TestWorkspace("SomeName", sourceRoot: tmpDirPath, projects: [.init("Project1", groupTree: TestGroup.init("Empty"), targets: [TestStandardTarget("Target1", type: .application)])]).load(core)
             let workspaceContext = WorkspaceContext(core: core, workspace: testWorkspace, processExecutionCache: .sharedForTesting)
 
             let diagnostics: [ConfiguredTarget?: [Diagnostic]] = [

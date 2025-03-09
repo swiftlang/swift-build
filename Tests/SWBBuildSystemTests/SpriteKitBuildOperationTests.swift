@@ -39,7 +39,9 @@ fileprivate struct SpriteKitBuildOperationTests: CoreBasedTests {
                         ]),
                 ],
                 targets: [
-                    TestStandardTarget("App", buildPhases: [
+                    TestStandardTarget("App",
+                                       type: .application,
+                                       buildPhases: [
                         TestResourcesBuildPhase([
                             TestBuildFile("assets.atlas"),
                         ]),

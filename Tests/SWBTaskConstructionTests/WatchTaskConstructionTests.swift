@@ -72,6 +72,7 @@ fileprivate struct WatchTaskConstructionTests: CoreBasedTests {
             targets: [
                 TestStandardTarget(
                     "Watchable",
+                    type: .application,
                     buildConfigurations: [
                         TestBuildConfiguration("Debug",
                                                buildSettings: [
@@ -1272,6 +1273,7 @@ fileprivate struct WatchTaskConstructionTests: CoreBasedTests {
             targets: [
                 TestStandardTarget(
                     "Watchable",
+                    type: .application,
                     buildConfigurations: [
                         TestBuildConfiguration(
                             "Debug",

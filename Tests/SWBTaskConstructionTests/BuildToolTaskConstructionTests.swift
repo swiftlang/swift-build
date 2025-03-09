@@ -51,6 +51,7 @@ fileprivate struct BuildToolTaskConstructionTests: CoreBasedTests {
             targets: [
                 TestStandardTarget(
                     "AppTarget",
+                    type: .application,
                     buildPhases: [
                         // Whatever gets dragged into a Headers build phase will be unifdef'ed.
                         TestHeadersBuildPhase([
@@ -67,6 +68,7 @@ fileprivate struct BuildToolTaskConstructionTests: CoreBasedTests {
                     ]),
                 TestStandardTarget(
                     "CustomBuildRule",
+                    type: .application,
                     buildConfigurations: [
                         TestBuildConfiguration(
                             "Debug",
@@ -94,6 +96,7 @@ fileprivate struct BuildToolTaskConstructionTests: CoreBasedTests {
                     ]),
                 TestStandardTarget(
                     "NoApplyRules",
+                    type: .application,
                     buildConfigurations: [
                         TestBuildConfiguration(
                             "Debug",
@@ -170,6 +173,7 @@ fileprivate struct BuildToolTaskConstructionTests: CoreBasedTests {
                                                                ])],
                                       targets: [
                                         TestStandardTarget("AppTarget",
+                                                           type: .application,
                                                            buildPhases: [
                                                             TestSourcesBuildPhase([
                                                                 "SourceFile1.fake-ext",
@@ -2847,6 +2851,7 @@ fileprivate struct BuildToolTaskConstructionTests: CoreBasedTests {
             targets: [
                 TestStandardTarget(
                     "App",
+                    type: .application,
                     buildConfigurations: [
                         TestBuildConfiguration("Debug",
                                                buildSettings: [

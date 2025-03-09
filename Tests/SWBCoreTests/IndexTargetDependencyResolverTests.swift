@@ -24,6 +24,7 @@ import SWBUtil
 
         let macApp = TestStandardTarget(
             "macApp",
+            type: .application,
             buildConfigurations: [
                 TestBuildConfiguration("Debug", buildSettings: [
                     "SDKROOT": "macosx",
@@ -36,6 +37,7 @@ import SWBUtil
 
         let iosApp = TestStandardTarget(
             "iosApp",
+            type: .application,
             buildConfigurations: [
                 TestBuildConfiguration("Debug", buildSettings: [
                     "SDKROOT": "iphoneos",
@@ -48,6 +50,7 @@ import SWBUtil
 
         let macApp2 = TestStandardTarget(
             "macApp2",
+            type: .application,
             buildConfigurations: [
                 TestBuildConfiguration("Debug", buildSettings: [
                     "SDKROOT": "macosx",
@@ -64,6 +67,7 @@ import SWBUtil
 
         let iosApp2 = TestStandardTarget(
             "iosApp2",
+            type: .application,
             buildConfigurations: [
                 TestBuildConfiguration("Debug", buildSettings: [
                     "SDKROOT": "iphoneos",
@@ -164,6 +168,7 @@ import SWBUtil
 
         let macApp = TestStandardTarget(
             "macApp",
+            type: .application,
             buildConfigurations: [
                 TestBuildConfiguration("Debug", buildSettings: [
                     "SDKROOT": "macosx",
@@ -175,6 +180,7 @@ import SWBUtil
 
         let iosApp = TestStandardTarget(
             "iosApp",
+            type: .application,
             buildConfigurations: [
                 TestBuildConfiguration("Debug", buildSettings: [
                     "SDKROOT": "iphoneos",
@@ -477,6 +483,7 @@ import SWBUtil
 
         let macApp = TestStandardTarget(
             "macApp",
+            type: .application,
             buildConfigurations: [
                 TestBuildConfiguration("Debug", buildSettings: [
                     "SDKROOT": "macosx",
@@ -490,6 +497,7 @@ import SWBUtil
 
         let iosApp = TestStandardTarget(
             "iosApp",
+            type: .application,
             buildConfigurations: [
                 TestBuildConfiguration("Debug", buildSettings: [
                     "SDKROOT": "iphoneos",
@@ -503,6 +511,7 @@ import SWBUtil
 
         let macApp2 = TestStandardTarget(
             "macApp2",
+            type: .application,
             buildConfigurations: [
                 TestBuildConfiguration("Debug", buildSettings: [
                     "SDKROOT": "macosx",
@@ -515,6 +524,7 @@ import SWBUtil
 
         let iosApp2 = TestStandardTarget(
             "iosApp2",
+            type: .application,
             buildConfigurations: [
                 TestBuildConfiguration("Debug", buildSettings: [
                     "SDKROOT": "iphoneos",
@@ -612,6 +622,7 @@ import SWBUtil
         let core = try await getCore()
         let catalystAppTarget1 = TestStandardTarget(
             "catalystApp1",
+            type: .application,
             buildConfigurations: [
                 TestBuildConfiguration("Debug", buildSettings: [
                     "SDKROOT": "iphoneos",
@@ -627,6 +638,7 @@ import SWBUtil
 
         let catalystAppTarget2 = TestStandardTarget(
             "catalystApp2",
+            type: .application,
             buildConfigurations: [
                 TestBuildConfiguration("Debug", buildSettings: [
                     "SDKROOT": "iphoneos",
@@ -643,6 +655,7 @@ import SWBUtil
 
         let catalystAppTarget3 = TestStandardTarget(
             "catalystApp3",
+            type: .application,
             buildConfigurations: [
                 TestBuildConfiguration("Debug", buildSettings: [
                     "SDKROOT": "iphoneos",
@@ -659,6 +672,7 @@ import SWBUtil
 
         let osxAppTarget = TestStandardTarget(
             "osxApp",
+            type: .application,
             buildConfigurations: [
                 TestBuildConfiguration("Debug", buildSettings: [
                     "SDKROOT": "macosx",
@@ -673,6 +687,7 @@ import SWBUtil
 
         let osxAppTarget_iosmac = TestStandardTarget(
             "osxApp_iosmac",
+            type: .application,
             buildConfigurations: [
                 TestBuildConfiguration("Debug", buildSettings: [
                     "SDKROOT": "macosx",
@@ -844,6 +859,7 @@ import SWBUtil
 
         let macAppTarget = TestStandardTarget(
             "macAppTarget",
+            type: .application,
             buildConfigurations: [
                 TestBuildConfiguration("Debug", buildSettings: [
                     "SDKROOT": "macosx",
@@ -859,6 +875,7 @@ import SWBUtil
 
         let iosAppTarget = TestStandardTarget(
             "iOSAppTarget",
+            type: .application,
             buildConfigurations: [
                 TestBuildConfiguration("Debug", buildSettings: [
                     "SDKROOT": "iphoneos",
@@ -944,6 +961,7 @@ import SWBUtil
 
         let iosApp = TestStandardTarget(
             "iosApp",
+            type: .application,
             buildConfigurations: [
                 TestBuildConfiguration("Debug", buildSettings: [
                     "SDKROOT": "macosx",
@@ -990,6 +1008,7 @@ import SWBUtil
         func createTarget(name: String, sdkRoot: String, archs: String) -> any TestTarget {
             return TestStandardTarget(
                 name,
+                type: .application,
                 buildConfigurations: [
                     TestBuildConfiguration("Debug", buildSettings: [
                         "SDKROOT": sdkRoot,

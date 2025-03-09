@@ -347,6 +347,7 @@ fileprivate struct ShellScriptSandboxingTests: CoreBasedTests {
                             ),
                             TestStandardTarget(
                                 "TargetC",
+                                type: .application,
                                 buildPhases: [
                                     TestShellScriptBuildPhase(
                                         name: "TaskC",
@@ -371,6 +372,7 @@ fileprivate struct ShellScriptSandboxingTests: CoreBasedTests {
                             ),
                             TestStandardTarget(
                                 "TargetB",
+                                type: .application,
                                 buildPhases: [
                                     TestShellScriptBuildPhase(
                                         name: "TaskB",
@@ -399,6 +401,7 @@ fileprivate struct ShellScriptSandboxingTests: CoreBasedTests {
                             ),
                             TestStandardTarget(
                                 "TargetA",
+                                type: .application,
                                 buildPhases: [
                                     TestShellScriptBuildPhase(
                                         name: "TaskA",
@@ -567,6 +570,7 @@ fileprivate struct ShellScriptSandboxingTests: CoreBasedTests {
                             ),
                             TestStandardTarget(
                                 "TargetC",
+                                type: .application,
                                 buildPhases: [
                                     TestShellScriptBuildPhase(
                                         name: "TaskC",
@@ -588,6 +592,7 @@ fileprivate struct ShellScriptSandboxingTests: CoreBasedTests {
                             ),
                             TestStandardTarget(
                                 "TargetAB",
+                                type: .application,
                                 buildPhases: [
                                     TestShellScriptBuildPhase(
                                         name: "TaskAB",
@@ -861,6 +866,7 @@ fileprivate struct ShellScriptSandboxingTests: CoreBasedTests {
                             ),
                             TestStandardTarget(
                                 "TargetC",
+                                type: .application,
                                 buildPhases: [
                                     TestShellScriptBuildPhase(
                                         name: "TaskC",
@@ -877,6 +883,7 @@ fileprivate struct ShellScriptSandboxingTests: CoreBasedTests {
                             ),
                             TestStandardTarget(
                                 "TargetB",
+                                type: .application,
                                 buildPhases: [
                                     TestShellScriptBuildPhase(
                                         name: "TaskB",
@@ -973,6 +980,7 @@ fileprivate struct ShellScriptSandboxingTests: CoreBasedTests {
                             ),
                             TestStandardTarget(
                                 "TargetB",
+                                type: .application,
                                 buildPhases: [
                                     TestShellScriptBuildPhase(
                                         name: "TaskB",
@@ -992,6 +1000,7 @@ fileprivate struct ShellScriptSandboxingTests: CoreBasedTests {
                             ),
                             TestStandardTarget(
                                 "TargetA",
+                                type: .application,
                                 buildPhases: [
                                     TestShellScriptBuildPhase(
                                         name: "TaskA",
@@ -1012,6 +1021,7 @@ fileprivate struct ShellScriptSandboxingTests: CoreBasedTests {
                             ),
                             TestStandardTarget(
                                 "TargetC",
+                                type: .application,
                                 buildPhases: [
                                     TestShellScriptBuildPhase(
                                         name: "TaskC",
@@ -1937,6 +1947,7 @@ fileprivate struct ShellScriptSandboxingTests: CoreBasedTests {
                         targets: [
                             TestStandardTarget(
                                 "Calculate Checksum Target and a Very Very Very Very Very Very Very Very Very Very Very Very Very Very Very Very Very Long Description",
+                                type: .application,
                                 buildPhases: [
                                     TestSourcesBuildPhase([
                                         "raw.fake-neutral",

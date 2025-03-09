@@ -52,6 +52,7 @@ fileprivate struct OnDemandResourcesTaskConstructionTests: CoreBasedTests {
             targets: [
                 TestStandardTarget(
                     "App",
+                    type: .application,
                     buildPhases: [
                         TestResourcesBuildPhase([
                             TestBuildFile("A.dat", assetTags: Set(["foo"])),

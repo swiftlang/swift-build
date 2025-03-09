@@ -118,8 +118,8 @@ fileprivate struct BuildOperationTests: CoreBasedTests {
                     groupTree: TestGroup("Foo", children: [TestFile("Test.c")]),
                     targets: [
                         TestAggregateTarget("All", dependencies: ["aFramework", "bFramework"]),
-                        TestStandardTarget("aFramework", buildPhases: [TestSourcesBuildPhase([TestBuildFile("Test.c")])]),
-                        TestStandardTarget("bFramework", buildPhases: [TestSourcesBuildPhase([TestBuildFile("Test.c")])]),
+                        TestStandardTarget("aFramework", type: .application, buildPhases: [TestSourcesBuildPhase([TestBuildFile("Test.c")])]),
+                        TestStandardTarget("bFramework", type: .application, buildPhases: [TestSourcesBuildPhase([TestBuildFile("Test.c")])]),
                     ])
                 let testWorkspace = TestWorkspace("aWorkspace",
                                                   sourceRoot: srcroot,

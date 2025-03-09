@@ -24,6 +24,7 @@ import SWBUtil
 
         let appTarget = TestStandardTarget(
             "appTarget",
+            type: .application,
             buildConfigurations: [
                 TestBuildConfiguration("Debug", buildSettings: [
                     "SDKROOT": "macosx",
