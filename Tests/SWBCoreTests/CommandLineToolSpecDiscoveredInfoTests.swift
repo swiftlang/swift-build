@@ -67,6 +67,12 @@ import Testing
             #expect(info.clangVersion == nil)
             #expect(info.llvmVersion == Version(17))
         }
+
+        try await withSpec("com.apple.compilers.llvm.clang.1_0", .result(status: .exit(0), stdout: Data("#define __clang_version__ \"19.0.0 (https://android.googlesource.com/toolchain/llvm-project 97a699bf4812a18fb657c2779f5296a4ab2694d2)\"".utf8), stderr: Data())) { (info: DiscoveredClangToolSpecInfo) in
+            #expect(info.toolPath.basename == "clang")
+            #expect(info.clangVersion == nil)
+            #expect(info.llvmVersion == Version(19))
+        }
     }
 
     @Test
@@ -82,6 +88,8 @@ import Testing
 #if canImport(Darwin)
             if toolchain.identifier.hasPrefix("org.swift.") || toolchain.identifier.hasPrefix("org.swiftwasm.") {
                 #expect(info.clangVersion == nil, "Open Source toolchains are expected to NOT have a clang version")
+            } else if toolchain.identifier == "android" {
+                #expect(info.clangVersion == nil, "Android toolchains are expected to NOT have a clang version")
             } else {
                 #expect(info.clangVersion != nil, "Unable to find clang version for toolchain \(toolchain.identifier). Used clang at path \(clangPath.str).")
             }

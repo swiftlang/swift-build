@@ -678,8 +678,8 @@ fileprivate struct PackageProductConstructionTests: CoreBasedTests {
         let targets = allPlatforms.map { $0.name }.map {
             commandLineDynamicLibraryTarget(name: "\($0)Lib", buildSettings: ["SDKROOT": $0])
         }
-        let macCatalystTarget = commandLineDynamicLibraryTarget(name: "MacCatalystLib", buildSettings: ["SDKROOT": "macosx", "SDK_VARIANT": MacCatalystInfo.sdkVariantName])
-        let almostAllTargets = targets + [macCatalystTarget]
+        let macCatalystTarget = try ProcessInfo.processInfo.hostOperatingSystem() == .macOS ? commandLineDynamicLibraryTarget(name: "MacCatalystLib", buildSettings: ["SDKROOT": "macosx", "SDK_VARIANT": MacCatalystInfo.sdkVariantName]) : nil
+        let almostAllTargets = targets + (macCatalystTarget.map { [$0] } ?? [])
         let allTargets = [TestAggregateTarget("ALL", dependencies: almostAllTargets.map { $0.name })] + almostAllTargets.map { $0 as (any TestTarget) }
 
         let package = TestPackageProject("aPackage", groupTree: TestGroup("Package", children: [TestFile("test.c")]), targets: [
@@ -710,15 +710,15 @@ fileprivate struct PackageProductConstructionTests: CoreBasedTests {
         let workspace = TestWorkspace("Workspace", projects: [TestProject("aProject", groupTree: TestGroup("SomeFiles", children: [TestFile("best.c")]), targets: allTargets), package])
         let tester = try await TaskConstructionTester(getCore(), workspace)
 
-        await tester.checkBuild(BuildParameters(configuration: "Debug", overrides: ["EXCLUDED_ARCHS": "i386 x86_64 armv7 armv7k arm64_32 arm64e"]), runDestination: .macOS) { results in
+        await tester.checkBuild(BuildParameters(configuration: "Debug", overrides: ["EXCLUDED_ARCHS": "i386 i686 x86_64 armv7 armv7k arm64_32 arm64e riscv64"]), runDestination: .host) { results in
             results.checkNoDiagnostics()
 
             results.checkTasks(.matchRuleType("Ld")) { tasks in
                 let frameworkLinkerTasks = tasks.filter { $0.outputs.first?.path.basename.hasSuffix("Lib.dylib") == true || $0.outputs.first?.path.basename.hasSuffix("Lib.so") == true }
-                #expect(frameworkLinkerTasks.count == allPlatforms.count + 1)
+                #expect(frameworkLinkerTasks.count == allPlatforms.count + (macCatalystTarget != nil ? 1 : 0))
 
                 for platform in allPlatforms {
-                    let dylibSuffix = (platform.name == "linux") ? "so" : "dylib"
+                    let dylibSuffix = core.sdkRegistry.lookup(platform.name)?.defaultVariant?.llvmTargetTripleVendor == "apple" ? "dylib" : "so"
                     guard let input = findInput(for: "\(platform.name)Lib.\(dylibSuffix)", in: tasks) else {
                         return
                     }
@@ -730,11 +730,13 @@ fileprivate struct PackageProductConstructionTests: CoreBasedTests {
                     }
                 }
 
-                // Check package got specialized correctly for MacCatalyst.
-                guard let input = findInput(for: "MacCatalystLib.dylib", in: tasks) else {
-                    return // `findInput()` will already error if there's no matching task or input
+                if macCatalystTarget != nil {
+                    // Check package got specialized correctly for MacCatalyst.
+                    guard let input = findInput(for: "MacCatalystLib.dylib", in: tasks) else {
+                        return // `findInput()` will already error if there's no matching task or input
+                    }
+                    #expect(input.path.str.hasSuffix("Debug\(MacCatalystInfo.publicSDKBuiltProductsDirSuffix)/PackageLib.o"), "incorrect linker input path for MacCatalyst: \(input.path.str)")
                 }
-                #expect(input.path.str.hasSuffix("Debug\(MacCatalystInfo.publicSDKBuiltProductsDirSuffix)/PackageLib.o"), "incorrect linker input path for MacCatalyst: \(input.path.str)")
             }
         }
     }
