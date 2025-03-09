@@ -2083,7 +2083,7 @@ fileprivate struct TaskConstructionTests: CoreBasedTests {
         }
     }
 
-    @Test(.requireSDKs(.macOS))
+    @Test(.requireSDKs(.host), .skipHostOS(.windows, "not yet working"))
     func emptyTarget() async throws {
         let testProject = TestProject(
             "aProject",
@@ -2100,7 +2100,8 @@ fileprivate struct TaskConstructionTests: CoreBasedTests {
             "RETAIN_RAW_BINARIES": "YES",
             "INSTALL_USER": "root",
         ])
-        try await TaskConstructionTester(getCore(), testProject).checkBuild(parameters) { results in
+        let runDestination = RunDestinationInfo.host
+        try await TaskConstructionTester(getCore(), testProject).checkBuild(parameters, runDestination: runDestination) { results in
             // There should be no tasks.
             //
             // FIXME: This isn't true yet, we test for the absence of particular tasks.
@@ -2138,7 +2139,7 @@ fileprivate struct TaskConstructionTests: CoreBasedTests {
                             .namePattern(.prefix("CreateBuildDirectory-/tmp/aProject.dst")),
                             .namePattern(.prefix("CreateBuildDirectory-/tmp/Test/aProject/build")),
                             .namePattern(.prefix("CreateBuildDirectory-/tmp/Test/aProject/build")),
-                            .namePattern(.prefix("CreateBuildDirectory-/tmp/Test/aProject/build/Release/BuiltProducts")),
+                            .namePattern(.prefix("CreateBuildDirectory-/tmp/Test/aProject/build/Release\(runDestination.builtProductsDirSuffix)/BuiltProducts")),
                             .namePattern(.prefix("CreateBuildDirectory-/tmp/Test/aProject/build/EagerLinkingTBDs")),
                             .namePattern(.and(.prefix("target"), .suffix("-begin-compiling"))),
                         ])
@@ -2147,7 +2148,7 @@ fileprivate struct TaskConstructionTests: CoreBasedTests {
                             .namePattern(.prefix("CreateBuildDirectory-/tmp/aProject.dst")),
                             .namePattern(.prefix("CreateBuildDirectory-/tmp/Test/aProject/build")),
                             .namePattern(.prefix("CreateBuildDirectory-/tmp/Test/aProject/build")),
-                            .namePattern(.prefix("CreateBuildDirectory-/tmp/Test/aProject/build/Release/BuiltProducts")),
+                            .namePattern(.prefix("CreateBuildDirectory-/tmp/Test/aProject/build/Release\(runDestination.builtProductsDirSuffix)/BuiltProducts")),
                             .namePattern(.and(.prefix("target"), .suffix("-begin-compiling"))),
                         ])
                     }
@@ -2171,7 +2172,7 @@ fileprivate struct TaskConstructionTests: CoreBasedTests {
         }
     }
 
-    @Test(.requireSDKs(.macOS))
+    @Test(.requireSDKs(.host), .skipHostOS(.windows, "not yet working"))
     func emptySourcesTarget() async throws {
         let testProject = TestProject(
             "aProject",
@@ -2191,7 +2192,7 @@ fileprivate struct TaskConstructionTests: CoreBasedTests {
             ])
         let tester = try await TaskConstructionTester(getCore(), testProject)
 
-        let parameters = BuildParameters(action: .install, configuration: "Release", overrides: [
+        let parameters = BuildParameters(action: .install, configuration: "Release", activeRunDestination: .host, overrides: [
             "INSTALL_USER": "root",
         ])
         await tester.checkBuild(parameters) { results in
@@ -2210,7 +2211,7 @@ fileprivate struct TaskConstructionTests: CoreBasedTests {
         }
     }
 
-    @Test(.requireSDKs(.macOS))
+    @Test(.requireSDKs(.host), .skipHostOS(.windows, "not yet working"))
     func copyFilesOnlyOnDeploymentTarget() async throws {
         let testProject = TestProject(
             "aProject",
@@ -2239,7 +2240,7 @@ fileprivate struct TaskConstructionTests: CoreBasedTests {
 
         // Test a regular build.  Since `only-for-deployment` is set, this should not result in any tasks.
         let buildParameters = BuildParameters(action: .build, configuration: "Debug", overrides: [:])
-        await tester.checkBuild(buildParameters) { results in
+        await tester.checkBuild(buildParameters, runDestination: .host) { results in
             // We need to filter out boilerplate tasks such as `Gate` and `WriteAuxiliaryFile`, but there should be no others besides those.
             results.checkTasks(.matchRuleType("Gate")) { _ in }
             results.checkTasks(.matchRuleType("WriteAuxiliaryFile")) { _ in }
@@ -2258,7 +2259,7 @@ fileprivate struct TaskConstructionTests: CoreBasedTests {
         let installParameters = BuildParameters(action: .install, configuration: "Release", overrides: [
             "INSTALL_USER": "root",
         ])
-        await tester.checkBuild(installParameters) { results in
+        await tester.checkBuild(installParameters, runDestination: .host) { results in
             // We need to filter out boilerplate tasks such as `Gate` and `WriteAuxiliaryFile`.
             results.checkTasks(.matchRuleType("Gate")) { _ in }
             results.checkTasks(.matchRuleType("WriteAuxiliaryFile")) { _ in }
@@ -2275,7 +2276,7 @@ fileprivate struct TaskConstructionTests: CoreBasedTests {
         }
     }
 
-    @Test(.requireSDKs(.macOS))
+    @Test(.requireSDKs(.host), .skipHostOS(.windows, "not yet working"))
     func externalBuildTarget() async throws {
         let testProject = TestProject(
             "aProject",
@@ -2308,8 +2309,10 @@ fileprivate struct TaskConstructionTests: CoreBasedTests {
 
         let searchPaths = await pluginSearchPaths().map(\.str)
 
+        let runDestination = RunDestinationInfo.host
+
         // Check a debug build.
-        await tester.checkBuild(BuildParameters(configuration: "Release"), processEnvironment: ["PATH": "/usr/local/bin"]) { results in
+        await tester.checkBuild(BuildParameters(configuration: "Release"), runDestination: runDestination, processEnvironment: ["PATH": "/usr/local/bin"]) { results in
             results.checkTarget("External") { target in
                 // There should be one main task.
                 results.checkTask(.matchRuleType("ExternalBuildToolExecution")) { task in
@@ -2318,31 +2321,40 @@ fileprivate struct TaskConstructionTests: CoreBasedTests {
                     task.checkCommandLine(["fooBar", "this", "and", "that"])
                     #expect(task.workingDirectory == Path.root.join("tmp"))
 
-                    let developerPath = core.developerPath.str
+                    let developerPath = core.developerPath
 
                     // Check interesting environment variables.
                     task.checkEnvironment([
                         "ACTION": .equal(""),                                       // No ACTION is passed for a 'build' action.
-                        "TARGET_BUILD_DIR": .equal("\(SRCROOT)/build/Release"),
-                        "BUILT_PRODUCTS_DIR": .equal("\(SRCROOT)/build/Release"),
+                        "TARGET_BUILD_DIR": .equal("\(SRCROOT)/build/Release\(runDestination.builtProductsDirSuffix)"),
+                        "BUILT_PRODUCTS_DIR": .equal("\(SRCROOT)/build/Release\(runDestination.builtProductsDirSuffix)"),
                         // Check that we don't export SDK_VARIANT or macCatalyst settings.
                         "SDK_VARIANT": .none,
                         "IS_MACCATALYST": .none,
                     ])
 
-                    for path in searchPaths + [
-                        "\(developerPath)/Toolchains/XcodeDefault.xctoolchain/usr/bin",
-                        "\(developerPath)/Toolchains/XcodeDefault.xctoolchain/usr/local/bin",
-                        "\(developerPath)/Toolchains/XcodeDefault.xctoolchain/usr/libexec",
-                        "\(developerPath)/Platforms/MacOSX.platform/usr/bin",
-                        "\(developerPath)/Platforms/MacOSX.platform/usr/local/bin",
-                        "\(developerPath)/Platforms/MacOSX.platform/Developer/usr/bin",
-                        "\(developerPath)/Platforms/MacOSX.platform/Developer/usr/local/bin",
-                        "\(developerPath)/usr/bin",
-                        "\(developerPath)/usr/local/bin",
+                    let platformSearchPaths: [Path]
+                    switch runDestination.platform {
+                    case "macosx":
+                        platformSearchPaths = [
+                            developerPath.join("Toolchains/XcodeDefault.xctoolchain/usr/bin"),
+                            developerPath.join("Toolchains/XcodeDefault.xctoolchain/usr/local/bin"),
+                            developerPath.join("Toolchains/XcodeDefault.xctoolchain/usr/libexec"),
+                            developerPath.join("Platforms/MacOSX.platform/usr/bin"),
+                            developerPath.join("Platforms/MacOSX.platform/usr/local/bin"),
+                            developerPath.join("Platforms/MacOSX.platform/Developer/usr/bin"),
+                            developerPath.join("Platforms/MacOSX.platform/Developer/usr/local/bin"),
+                        ]
+                    default:
+                        platformSearchPaths = []
+                    }
+
+                    for path in searchPaths + platformSearchPaths.map(\.str) + [
+                        developerPath.join("usr/bin").str,
+                        developerPath.join("usr/local/bin").str,
                         "/usr/local/bin"
                     ] {
-                        #expect(task.environment.bindingsDictionary["PATH"]?.contains(path) == true)
+                        #expect(task.environment.bindingsDictionary["PATH"]?.contains(path) == true, "PATH environment variable did not contain entry: \(path)")
                     }
                 }
 
@@ -2362,7 +2374,7 @@ fileprivate struct TaskConstructionTests: CoreBasedTests {
         }
 
         // Check an install build.
-        await tester.checkBuild(BuildParameters(action: .install, configuration: "Release")) { results in
+        await tester.checkBuild(BuildParameters(action: .install, configuration: "Release"), runDestination: runDestination) { results in
             results.checkTarget("External") { target in
                 // There should be one main task.
                 results.checkTask(.matchRuleType("ExternalBuildToolExecution")) { task in
@@ -2375,7 +2387,7 @@ fileprivate struct TaskConstructionTests: CoreBasedTests {
                     task.checkEnvironment([
                         "ACTION": .equal("install"),
                         "TARGET_BUILD_DIR": .equal("/tmp/aProject.dst"),
-                        "BUILT_PRODUCTS_DIR": .equal("\(SRCROOT)/build/Release"),
+                        "BUILT_PRODUCTS_DIR": .equal("\(SRCROOT)/build/Release\(runDestination.builtProductsDirSuffix)"),
                         // Check that we don't export SDK_VARIANT or macCatalyst settings.
                         "SDK_VARIANT": .none,
                         "IS_MACCATALYST": .none,
@@ -2398,7 +2410,7 @@ fileprivate struct TaskConstructionTests: CoreBasedTests {
         }
 
         // Check an install build in which INSTALLED_PRODUCT_ASIDES is defined in the environment.
-        await tester.checkBuild(BuildParameters(action: .install, configuration: "Release"), processEnvironment: ["INSTALLED_PRODUCT_ASIDES": "YES"]) { results in
+        await tester.checkBuild(BuildParameters(action: .install, configuration: "Release"), runDestination: runDestination, processEnvironment: ["INSTALLED_PRODUCT_ASIDES": "YES"]) { results in
             results.checkTarget("External") { target in
                 // There should be one main task.
                 results.checkTask(.matchRuleType("ExternalBuildToolExecution")) { task in
@@ -2411,7 +2423,7 @@ fileprivate struct TaskConstructionTests: CoreBasedTests {
                     task.checkEnvironment([
                         "ACTION": .equal("install"),
                         "TARGET_BUILD_DIR": .equal("/tmp/aProject.dst"),
-                        "BUILT_PRODUCTS_DIR": .equal("\(SRCROOT)/build/Release/BuiltProducts"),
+                        "BUILT_PRODUCTS_DIR": .equal("\(SRCROOT)/build/Release\(runDestination.builtProductsDirSuffix)/BuiltProducts"),
                     ])
                 }
 
@@ -2431,7 +2443,7 @@ fileprivate struct TaskConstructionTests: CoreBasedTests {
         }
 
         // Check an install build in which SKIP_INSTALL is defined.
-        await tester.checkBuild(BuildParameters(action: .install, configuration: "SkipInstall")) { results in
+        await tester.checkBuild(BuildParameters(action: .install, configuration: "SkipInstall"), runDestination: runDestination) { results in
             results.checkTarget("External") { target in
                 // There should be one main task.
                 results.checkTask(.matchRuleType("ExternalBuildToolExecution")) { task in
@@ -2443,8 +2455,8 @@ fileprivate struct TaskConstructionTests: CoreBasedTests {
                     // Check interesting environment variables.
                     task.checkEnvironment([
                         "ACTION": .equal("install"),
-                        "TARGET_BUILD_DIR": .equal("\(SRCROOT)/build/UninstalledProducts/macosx"),
-                        "BUILT_PRODUCTS_DIR": .equal("\(SRCROOT)/build/SkipInstall"),
+                        "TARGET_BUILD_DIR": .equal("\(SRCROOT)/build/UninstalledProducts/\(runDestination.platform)"),
+                        "BUILT_PRODUCTS_DIR": .equal("\(SRCROOT)/build/SkipInstall\(runDestination.builtProductsDirSuffix)"),
                     ])
                 }
 
@@ -2464,7 +2476,7 @@ fileprivate struct TaskConstructionTests: CoreBasedTests {
         }
     }
 
-    @Test(.requireSDKs(.macOS))
+    @Test(.requireSDKs(.host), .skipHostOS(.windows, "not yet working"))
     func externalBuildTargetDependencies() async throws {
         let testProject = TestProject(
             "aProject",
@@ -2499,7 +2511,7 @@ fileprivate struct TaskConstructionTests: CoreBasedTests {
         let tester = try await TaskConstructionTester(getCore(), testProject)
 
         // Check a release build.
-        await tester.checkBuild(BuildParameters(configuration: "Release"), processEnvironment: ["PATH": "/usr/local/bin"]) { results in
+        await tester.checkBuild(BuildParameters(configuration: "Release"), runDestination: .host, processEnvironment: ["PATH": "/usr/local/bin"]) { results in
             results.checkTarget("EmptyTool") { target in
                 // Check that the EmptyTool target depends on the ExternalBuildToolExecution.
                 results.checkTask(.matchTarget(target), .matchRuleType("CompileC")) { compileTask in
@@ -2514,7 +2526,7 @@ fileprivate struct TaskConstructionTests: CoreBasedTests {
         }
     }
 
-    @Test(.requireSDKs(.macOS))
+    @Test(.requireSDKs(.macOS, "mig is Apple-only"))
     func outputFileProcessing() async throws {
         let testProject = try await TestProject(
             "aProject",
@@ -2574,7 +2586,7 @@ fileprivate struct TaskConstructionTests: CoreBasedTests {
         }
     }
 
-    @Test(.requireSDKs(.macOS))
+    @Test(.requireSDKs(.macOS, "multi-arch builds are Apple-specific"))
     func perArchIncludedSourceFileNames() async throws {
         let testProject = TestProject(
             "aProject",
