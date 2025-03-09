@@ -55,7 +55,7 @@ fileprivate struct SwiftABICheckerTaskConstructionTests: CoreBasedTests {
         let core = try await getCore()
         let tester = try TaskConstructionTester(core, testProject)
         // Check the `Debug` build.
-        await tester.checkBuild(BuildParameters(action: .build, configuration: "Debug", activeRunDestination: .anyiOSDevice)) { results in
+        await tester.checkBuild(BuildParameters(action: .build, configuration: "Debug"), runDestination: .anyiOSDevice) { results in
             results.checkNoDiagnostics()
             results.consumeTasksMatchingRuleTypes(["Gate", "SymLink", "CpHeader", "MkDir", "Touch"])
             results.checkTasks(.matchRuleType("SwiftDriver Compilation")) { #expect($0.count > 0) }
@@ -110,7 +110,7 @@ fileprivate struct SwiftABICheckerTaskConstructionTests: CoreBasedTests {
         let core = try await getCore()
         let tester = try TaskConstructionTester(core, testProject)
         // Check the `Debug` build.
-        await tester.checkBuild(BuildParameters(action: .build, configuration: "Debug", activeRunDestination: .anyiOSDevice)) { results in
+        await tester.checkBuild(BuildParameters(action: .build, configuration: "Debug"), runDestination: .anyiOSDevice) { results in
             results.checkNoDiagnostics()
             results.consumeTasksMatchingRuleTypes(["Gate", "SymLink", "CpHeader", "Touch"])
             results.checkTasks(.matchRuleType("SwiftDriver Compilation")) { #expect($0.count > 0) }
@@ -175,7 +175,7 @@ fileprivate struct SwiftABICheckerTaskConstructionTests: CoreBasedTests {
         try await fs.writeJSON(.root.join("tmp/mybaseline/ABI/arm64e-ios.json"), .plDict([:]))
 
         // Check the `Debug` build.
-        await tester.checkBuild(BuildParameters(action: .build, configuration: "Debug", activeRunDestination: .iOS), fs: fs) { results in
+        await tester.checkBuild(BuildParameters(action: .build, configuration: "Debug"), runDestination: .iOS, fs: fs) { results in
             results.checkNoDiagnostics()
             results.consumeTasksMatchingRuleTypes(["Gate", "SymLink", "CpHeader", "MkDir", "Touch"])
             results.checkTasks(.matchRuleType("SwiftDriver Compilation")) { #expect($0.count > 0) }
@@ -244,7 +244,7 @@ fileprivate struct SwiftABICheckerTaskConstructionTests: CoreBasedTests {
             ])
         let tester = try await TaskConstructionTester(getCore(), testProject)
         // Check the `Debug` build.
-        await tester.checkBuild(BuildParameters(action: .build, configuration: "Debug", activeRunDestination: .iOS)) { results in
+        await tester.checkBuild(BuildParameters(action: .build, configuration: "Debug"), runDestination: .iOS) { results in
             results.checkNoDiagnostics()
             // Check CheckSwiftABI is always after GenerateSwiftABIBaseline
             results.checkTasks(.matchRuleType("CheckSwiftABI")) { tasks in
@@ -292,7 +292,7 @@ fileprivate struct SwiftABICheckerTaskConstructionTests: CoreBasedTests {
             ])
         let tester = try await TaskConstructionTester(getCore(), testProject)
         // Check the `Debug` build.
-        await tester.checkBuild(BuildParameters(action: .build, configuration: "Debug", activeRunDestination: .iOS), fs: fs) { results in
+        await tester.checkBuild(BuildParameters(action: .build, configuration: "Debug"), runDestination: .iOS, fs: fs) { results in
             results.checkWarning(.prefix("cannot find Swift ABI baseline"))
         }
     }
@@ -334,7 +334,7 @@ fileprivate struct SwiftABICheckerTaskConstructionTests: CoreBasedTests {
             ])
         let tester = try await TaskConstructionTester(getCore(), testProject)
         // Check the `Debug` build.
-        await tester.checkBuild(BuildParameters(action: .build, configuration: "Debug", activeRunDestination: .iOS), fs: fs) { results in
+        await tester.checkBuild(BuildParameters(action: .build, configuration: "Debug"), runDestination: .iOS, fs: fs) { results in
             results.checkNoDiagnostics()
             results.checkTasks(.matchRuleType("SwiftDriver Compilation")) { tasks in
                 #expect(tasks.count > 0)

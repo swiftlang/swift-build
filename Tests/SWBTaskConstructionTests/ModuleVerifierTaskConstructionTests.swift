@@ -71,7 +71,7 @@ fileprivate struct ModuleVerifierTaskConstructionTests: CoreBasedTests {
                     ]),
             ])
         let tester = try await TaskConstructionTester(getCore(), testProject)
-        await tester.checkBuild(BuildParameters(action: .install, configuration: "Debug", activeRunDestination: .anyMac)) { results in
+        await tester.checkBuild(BuildParameters(action: .install, configuration: "Debug"), runDestination: .anyMac) { results in
             results.checkError("No standard in \"gnu11\" is valid for language objective-c++")
             results.checkWarning("Duplicate target architectures found - x86_64-apple-macos14.0-macabi, x86_64-apple-macos14.0-macabi")
             results.checkWarning("No matching target for target variant - arm64e-apple-macos14.0-macabi")
@@ -142,7 +142,7 @@ fileprivate struct ModuleVerifierTaskConstructionTests: CoreBasedTests {
             """)
 
         // A regular build will just build the correct architecture.
-        await tester.checkBuild(BuildParameters(configuration: "Debug", commandLineOverrides: ["OTHER_CFLAGS": "-DCLI_FLAG"], environmentConfigOverridesPath: xcconfig), fs: fs) { results in
+        await tester.checkBuild(BuildParameters(configuration: "Debug", commandLineOverrides: ["OTHER_CFLAGS": "-DCLI_FLAG"], environmentConfigOverridesPath: xcconfig), runDestination: .macOS, fs: fs) { results in
             let arch = results.runDestinationTargetArchitecture
             results.checkNoDiagnostics()
 
@@ -259,7 +259,7 @@ fileprivate struct ModuleVerifierTaskConstructionTests: CoreBasedTests {
         }
 
         // An install build will build all architectures, but invoke modules-verifier once with all of them specified.
-        await tester.checkBuild(BuildParameters(action: .install, configuration: "Debug", activeRunDestination: .anyMac)) { results in
+        await tester.checkBuild(BuildParameters(action: .install, configuration: "Debug"), runDestination: .anyMac) { results in
             results.checkNoDiagnostics()
 
             results.checkTarget(targetName) { target in
@@ -360,7 +360,7 @@ fileprivate struct ModuleVerifierTaskConstructionTests: CoreBasedTests {
             let tester = try await TaskConstructionTester(getCore(), testProject)
 
             // A regular build will just build the correct architecture.
-            await tester.checkBuild() { results in
+            await tester.checkBuild(runDestination: .macOS) { results in
                 results.checkNoDiagnostics()
 
                 results.checkTarget(targetName) { target in
@@ -458,7 +458,7 @@ fileprivate struct ModuleVerifierTaskConstructionTests: CoreBasedTests {
             let tester = try await TaskConstructionTester(getCore(), testProject)
 
             // A regular build will just build the correct architecture.
-            await tester.checkBuild() { results in
+            await tester.checkBuild(runDestination: .macOS) { results in
                 results.checkNoDiagnostics()
 
                 results.checkTarget(targetName) { target in
@@ -575,7 +575,7 @@ fileprivate struct ModuleVerifierTaskConstructionTests: CoreBasedTests {
             let tester = try await TaskConstructionTester(getCore(), testProject)
 
             // A regular build will just build the correct architecture.
-            await tester.checkBuild() { results in
+            await tester.checkBuild(runDestination: .macOS) { results in
                 results.checkNoDiagnostics()
 
                 results.checkTarget(targetName) { target in
@@ -639,7 +639,7 @@ fileprivate struct ModuleVerifierTaskConstructionTests: CoreBasedTests {
         let SRCROOT = tester.workspace.projects[0].sourceRoot.str
 
         // A regular build will just build the correct architecture.
-        await tester.checkBuild() { results in
+        await tester.checkBuild(runDestination: .macOS) { results in
             let arch = results.runDestinationTargetArchitecture
             results.checkNoDiagnostics()
 
@@ -708,7 +708,7 @@ fileprivate struct ModuleVerifierTaskConstructionTests: CoreBasedTests {
         let SRCROOT = tester.workspace.projects[0].sourceRoot.str
 
         // A regular build will just build the correct architecture.
-        await tester.checkBuild() { results in
+        await tester.checkBuild(runDestination: .macOS) { results in
             let arch = results.runDestinationTargetArchitecture
             results.checkNoDiagnostics()
 
@@ -760,7 +760,7 @@ fileprivate struct ModuleVerifierTaskConstructionTests: CoreBasedTests {
         }
 
         // An install build will build all architectures, but invoke modules-verifier once with all of them specified.
-        await tester.checkBuild(BuildParameters(action: .install, configuration: "Debug", activeRunDestination: .anyMac)) { results in
+        await tester.checkBuild(BuildParameters(action: .install, configuration: "Debug"), runDestination: .anyMac) { results in
             results.checkNoDiagnostics()
 
             results.checkTarget(targetName) { target in
@@ -824,7 +824,7 @@ fileprivate struct ModuleVerifierTaskConstructionTests: CoreBasedTests {
                                       ])
 
         let tester = try await TaskConstructionTester(getCore(), testProject)
-        await tester.checkBuild(targetName: targetName) { results in
+        await tester.checkBuild(runDestination: .macOS, targetName: targetName) { results in
             results.checkNoDiagnostics()
             results.checkTarget(targetName) { target in
                 results.checkNoDiagnostics()
@@ -882,7 +882,7 @@ fileprivate struct ModuleVerifierTaskConstructionTests: CoreBasedTests {
                                       ])
 
         let tester = try await TaskConstructionTester(getCore(), testProject)
-        await tester.checkBuild(targetName: targetName) { results in
+        await tester.checkBuild(runDestination: .macOS, targetName: targetName) { results in
             results.checkNoDiagnostics()
             results.checkTarget(targetName) { target in
                 results.checkNoDiagnostics()
@@ -970,7 +970,7 @@ extension ClangModuleVerifierTaskConstructionTestsProtocol {
             contents <<< "framework module Orange {}\n"
         }
 
-        await tester.checkBuild(targetName: targetName, fs: fs) { results in
+        await tester.checkBuild(runDestination: .macOS, targetName: targetName, fs: fs) { results in
             results.checkNoDiagnostics()
             results.checkTarget(targetName) { target in
                 let task = results.findOneMatchingTask([.matchTarget(target), .matchRuleType(verifierRuleName)])
@@ -1036,7 +1036,7 @@ extension ClangModuleVerifierTaskConstructionTestsProtocol {
 
         let tester = try await TaskConstructionTester(getCore(), testProject)
 
-        await tester.checkBuild(targetName: "B") { results in
+        await tester.checkBuild(runDestination: .macOS, targetName: "B") { results in
             results.checkNoDiagnostics()
 
             func noDependency(from task1: [TaskCondition], to task2: [TaskCondition], sourceLocation: SourceLocation = #_sourceLocation) {
@@ -1101,7 +1101,7 @@ extension ClangModuleVerifierTaskConstructionTestsProtocol {
         let tester = try await TaskConstructionTester(getCore(), testProject)
 
         for action in BuildAction.allCases.filter({ !$0.buildComponents.contains("build") }) {
-            await tester.checkBuild(BuildParameters(action: action, configuration: "Release")) { results in
+            await tester.checkBuild(BuildParameters(action: action, configuration: "Release"), runDestination: .macOS) { results in
                 results.checkNoDiagnostics()
                 results.checkTarget(targetName) { target in
                     // Check that we DO NOT have a modules verifier task.
@@ -1168,7 +1168,7 @@ extension ClangModuleVerifierTaskConstructionTestsProtocol {
         let tester = try await TaskConstructionTester(getCore(), testProject)
         let SRCROOT = tester.workspace.projects[0].sourceRoot.str
 
-        await tester.checkBuild(targetName: "BBB") { results in
+        await tester.checkBuild(runDestination: .macOS, targetName: "BBB") { results in
             results.checkNoDiagnostics()
 
             // Note checkTarget() removes the target from that list, but not all its tasks (which is what we want here)
@@ -1316,7 +1316,7 @@ extension ClangModuleVerifierTaskConstructionTestsProtocol {
         let tester = try await TaskConstructionTester(getCore(), testProject)
         let SRCROOT = tester.workspace.projects[0].sourceRoot.str
 
-        await tester.checkBuild(targetName: targetName) { results in
+        await tester.checkBuild(runDestination: .macOS, targetName: targetName) { results in
             results.checkNoDiagnostics()
             results.checkTarget(targetName) { target in
                 results.checkTask(.matchTarget(target), .matchRuleType(verifierInputRuleName)) { task in
@@ -1354,7 +1354,7 @@ extension ClangModuleVerifierTaskConstructionTestsProtocol {
         }
 
         // Make sure the right stuff happens for deployment postprocessing, i.e. an install build.
-        await tester.checkBuild(BuildParameters(action: .install, configuration: nil), targetName: targetName) { results in
+        await tester.checkBuild(BuildParameters(action: .install, configuration: nil), runDestination: .macOS, targetName: targetName) { results in
             results.checkNoDiagnostics()
             results.checkTarget(targetName) { target in
                 results.checkTask(.matchTarget(target), .matchRuleType(verifierInputRuleName)) { task in
@@ -1531,7 +1531,7 @@ extension ClangModuleVerifierTaskConstructionTestsProtocol {
 
         let SRCROOT = sourceRoot.str
 
-        await tester.checkBuild(targetName: "OutputFiles", fs: fs) { results in
+        await tester.checkBuild(runDestination: .macOS, targetName: "OutputFiles", fs: fs) { results in
             results.checkNote(.contains("'OutputToPrivateHeadersSubFolder' will be run during every build because it does not specify any outputs."), failIfNotFound: false)
             results.checkNoDiagnostics()
             results.checkTarget("OutputFiles") { target in
@@ -1570,7 +1570,7 @@ extension ClangModuleVerifierTaskConstructionTestsProtocol {
         }
 
         // Make sure the right stuff happens for deployment postprocessing, i.e. an install build.
-        await tester.checkBuild(BuildParameters(action: .install, configuration: nil), targetName: "OutputFiles", fs: fs) { results in
+        await tester.checkBuild(BuildParameters(action: .install, configuration: nil), runDestination: .macOS, targetName: "OutputFiles", fs: fs) { results in
             results.checkNote(.contains("'OutputToPrivateHeadersSubFolder' will be run during every build because it does not specify any outputs."), failIfNotFound: false)
             results.checkNoDiagnostics()
             results.checkTarget("OutputFiles") { target in
@@ -1589,7 +1589,7 @@ extension ClangModuleVerifierTaskConstructionTestsProtocol {
             }
         }
 
-        await tester.checkBuild(targetName: "NoOutputFiles", fs: fs) { results in
+        await tester.checkBuild(runDestination: .macOS, targetName: "NoOutputFiles", fs: fs) { results in
             results.checkWarning(.contains("'NoOutputFiles' will be run during every build because it does not specify any outputs."), failIfNotFound: false)
             results.checkNoDiagnostics()
             results.checkTarget("NoOutputFiles") { target in
@@ -1698,7 +1698,7 @@ extension ClangModuleVerifierTaskConstructionTestsProtocol {
         let SRCROOT = tester.workspace.projects[0].sourceRoot.str
 
         for targetName in ["NoObjCCompatibilityHeader", "ObjCCompatibilityHeaderNotInstalled"] {
-            await tester.checkBuild(targetName: targetName) { results in
+            await tester.checkBuild(runDestination: .macOS, targetName: targetName) { results in
                 results.checkWarning(.prefix("[targetIntegrity] DEFINES_MODULE was set, but no umbrella header could be found to generate the module map"))
                 results.checkNoDiagnostics()
                 results.checkTarget(targetName) { target in
@@ -1707,7 +1707,7 @@ extension ClangModuleVerifierTaskConstructionTestsProtocol {
             }
         }
 
-        await tester.checkBuild(targetName: "SwiftOnly") { results in
+        await tester.checkBuild(runDestination: .macOS, targetName: "SwiftOnly") { results in
             results.checkNoDiagnostics()
             results.checkTarget("SwiftOnly") { target in
                 results.checkTask(.matchTarget(target), .matchRuleType(verifierInputRuleName)) { task in
@@ -1728,7 +1728,7 @@ extension ClangModuleVerifierTaskConstructionTestsProtocol {
             }
         }
 
-        await tester.checkBuild(targetName: "ObjCAndSwift") { results in
+        await tester.checkBuild(runDestination: .macOS, targetName: "ObjCAndSwift") { results in
             results.checkNoDiagnostics()
             results.checkTarget("ObjCAndSwift") { target in
                 results.checkTask(.matchTarget(target), .matchRuleType(verifierInputRuleName)) { task in
@@ -1810,7 +1810,7 @@ extension ClangModuleVerifierTaskConstructionTestsProtocol {
         let tester = try await TaskConstructionTester(getCore(), testProject)
         let SRCROOT = tester.workspace.projects[0].sourceRoot.str
 
-        await tester.checkBuild(targetName: "Framework", clientDelegate: TestIntentsCompilerTaskPlanningClientDelegate()) { results in
+        await tester.checkBuild(runDestination: .macOS, targetName: "Framework", clientDelegate: TestIntentsCompilerTaskPlanningClientDelegate()) { results in
             results.checkNoDiagnostics()
             results.checkTarget("Framework") { target in
                 results.checkTask(.matchTarget(target), .matchRuleType(verifierInputRuleName)) { task in

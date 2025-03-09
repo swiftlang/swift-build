@@ -146,7 +146,7 @@ fileprivate struct XCStringsTaskConstructionTests: CoreBasedTests {
 
         let tester = try await TaskConstructionTester(getCore(), testProject)
 
-        await tester.checkBuild { results in
+        await tester.checkBuild(runDestination: .macOS) { results in
             results.checkNoDiagnostics()
 
             results.checkTarget("MyFramework") { target in
@@ -216,7 +216,7 @@ fileprivate struct XCStringsTaskConstructionTests: CoreBasedTests {
 
         let tester = try await TaskConstructionTester(getCore(), testProject)
 
-        await tester.checkBuild(clientDelegate: xcstringsTool) { results in
+        await tester.checkBuild(runDestination: .macOS, clientDelegate: xcstringsTool) { results in
             results.checkNoDiagnostics()
 
             results.checkTarget("MyFramework") { target in
@@ -311,7 +311,7 @@ fileprivate struct XCStringsTaskConstructionTests: CoreBasedTests {
 
         let tester = try await TaskConstructionTester(getCore(), testProject)
 
-        await tester.checkBuild(clientDelegate: xcstringsTool) { results in
+        await tester.checkBuild(runDestination: .macOS, clientDelegate: xcstringsTool) { results in
             results.checkNoDiagnostics()
 
             results.checkTarget("MyFramework") { target in
@@ -398,7 +398,7 @@ fileprivate struct XCStringsTaskConstructionTests: CoreBasedTests {
         let framework2 = BuildRequest.BuildTargetInfo(parameters: BuildParameters(configuration: "Debug"), target: tester.workspace.projects[0].targets[1])
         let buildRequest = BuildRequest(parameters: BuildParameters(configuration: "Debug"), buildTargets: [framework1, framework2], continueBuildingAfterErrors: false, useParallelTargets: true, useImplicitDependencies: false, useDryRun: false)
 
-        await tester.checkBuild(buildRequest: buildRequest, clientDelegate: xcstringsTool) { results in
+        await tester.checkBuild(runDestination: .macOS, buildRequest: buildRequest, clientDelegate: xcstringsTool) { results in
             // This situation caused a multiple commands produce error for the virtual output nodes of the UncompiledXCStrings Gates.
             // The nodes should be unique, at least by target/file pair.
             results.checkNoDiagnostics()
@@ -454,7 +454,7 @@ fileprivate struct XCStringsTaskConstructionTests: CoreBasedTests {
 
         let tester = try await TaskConstructionTester(getCore(), testProject)
 
-        await tester.checkBuild(clientDelegate: xcstringsTool) { results in
+        await tester.checkBuild(runDestination: .macOS, clientDelegate: xcstringsTool) { results in
             results.checkNoDiagnostics()
 
             results.checkTarget("MyFramework") { target in
@@ -527,7 +527,7 @@ fileprivate struct XCStringsTaskConstructionTests: CoreBasedTests {
 
         let tester = try await TaskConstructionTester(getCore(), testProject)
 
-        await tester.checkBuild(clientDelegate: xcstringsTool) { results in
+        await tester.checkBuild(runDestination: .macOS, clientDelegate: xcstringsTool) { results in
             results.checkNoDiagnostics()
 
             results.checkTarget("MyFramework") { target in
@@ -603,7 +603,7 @@ fileprivate struct XCStringsTaskConstructionTests: CoreBasedTests {
 
         let tester = try await TaskConstructionTester(getCore(), testProject)
 
-        await tester.checkBuild(clientDelegate: xcstringsTool) { results in
+        await tester.checkBuild(runDestination: .macOS, clientDelegate: xcstringsTool) { results in
             results.checkNoDiagnostics()
 
             results.checkTarget("MyFramework") { target in
@@ -679,7 +679,7 @@ fileprivate struct XCStringsTaskConstructionTests: CoreBasedTests {
 
         let tester = try await TaskConstructionTester(getCore(), testProject)
 
-        await tester.checkBuild(clientDelegate: xcstringsTool) { results in
+        await tester.checkBuild(runDestination: .macOS, clientDelegate: xcstringsTool) { results in
             // This is not a supported configuration.
             results.checkError(.and(.contains("Localizable.xcstrings cannot co-exist with other .strings or .stringsdict tables with the same name."), .prefix("/tmp/Test/Project/Sources/Localizable.xcstrings")))
         }
@@ -756,7 +756,7 @@ fileprivate struct XCStringsTaskConstructionTests: CoreBasedTests {
 
         let tester = try await TaskConstructionTester(getCore(), testProject)
 
-        await tester.checkBuild(clientDelegate: xcstringsTool) { results in
+        await tester.checkBuild(runDestination: .macOS, clientDelegate: xcstringsTool) { results in
             // This is not a supported configuration.
             results.checkError(.contains("Cannot have multiple Localizable.xcstrings files in same target."))
         }
@@ -852,7 +852,7 @@ fileprivate struct XCStringsTaskConstructionTests: CoreBasedTests {
         let target2 = BuildRequest.BuildTargetInfo(parameters: BuildParameters(configuration: "Debug"), target: tester.workspace.projects[0].targets[1])
         let buildRequest = BuildRequest(parameters: BuildParameters(configuration: "Debug"), buildTargets: [target1, target2], continueBuildingAfterErrors: false, useParallelTargets: true, useImplicitDependencies: false, useDryRun: false)
 
-        await tester.checkBuild(buildRequest: buildRequest, clientDelegate: xcstringsTool) { results in
+        await tester.checkBuild(runDestination: .macOS, buildRequest: buildRequest, clientDelegate: xcstringsTool) { results in
             // This is a perfectly supported configuration.
             results.checkNoDiagnostics()
 
@@ -922,7 +922,7 @@ fileprivate struct XCStringsTaskConstructionTests: CoreBasedTests {
 
         let tester = try await TaskConstructionTester(getCore(), testProject)
 
-        await tester.checkBuild(clientDelegate: xcstringsTool) { results in
+        await tester.checkBuild(runDestination: .macOS, clientDelegate: xcstringsTool) { results in
             // This is not a supported configuration.
             results.checkError(.contains("Localizable.xcstrings should not be inside an lproj directory."))
         }
@@ -989,7 +989,7 @@ fileprivate struct XCStringsTaskConstructionTests: CoreBasedTests {
 
         let tester = try await TaskConstructionTester(getCore(), testProject)
 
-        await tester.checkBuild(BuildParameters(action: .installLoc, configuration: "Release", activeRunDestination: .iOS, overrides: ["INSTALLLOC_LANGUAGE": "de"]), clientDelegate: xcstringsTool) { results in
+        await tester.checkBuild(BuildParameters(action: .installLoc, configuration: "Release", overrides: ["INSTALLLOC_LANGUAGE": "de"]), runDestination: .iOS, clientDelegate: xcstringsTool) { results in
             results.checkNoDiagnostics()
 
             results.checkTarget("MyFramework") { target in
@@ -1081,7 +1081,7 @@ fileprivate struct XCStringsTaskConstructionTests: CoreBasedTests {
 
         let tester = try await TaskConstructionTester(getCore(), testProject)
 
-        await tester.checkBuild(BuildParameters(action: .installLoc, configuration: "Release", activeRunDestination: .iOS, overrides: ["INSTALLLOC_LANGUAGE": "de ja"]), clientDelegate: xcstringsTool) { results in
+        await tester.checkBuild(BuildParameters(action: .installLoc, configuration: "Release", overrides: ["INSTALLLOC_LANGUAGE": "de ja"]), runDestination: .iOS, clientDelegate: xcstringsTool) { results in
             results.checkNoDiagnostics()
 
             results.checkTarget("MyFramework") { target in
@@ -1173,7 +1173,7 @@ fileprivate struct XCStringsTaskConstructionTests: CoreBasedTests {
 
         let tester = try await TaskConstructionTester(getCore(), testProject)
 
-        await tester.checkBuild(BuildParameters(action: .installLoc, configuration: "Release", activeRunDestination: .iOS, overrides: ["INSTALLLOC_LANGUAGE": "de"]), clientDelegate: xcstringsTool) { results in
+        await tester.checkBuild(BuildParameters(action: .installLoc, configuration: "Release", overrides: ["INSTALLLOC_LANGUAGE": "de"]), runDestination: .iOS, clientDelegate: xcstringsTool) { results in
             results.checkNoDiagnostics()
 
             results.checkTarget("MyFramework") { target in
@@ -1252,7 +1252,7 @@ fileprivate struct XCStringsTaskConstructionTests: CoreBasedTests {
 
         let tester = try await TaskConstructionTester(getCore(), testProject)
 
-        await tester.checkBuild(clientDelegate: xcstringsTool) { results in
+        await tester.checkBuild(runDestination: .macOS, clientDelegate: xcstringsTool) { results in
             results.checkNoDiagnostics()
 
             results.checkTarget("MyFramework") { target in
@@ -1375,7 +1375,7 @@ fileprivate struct XCStringsTaskConstructionTests: CoreBasedTests {
 
         let tester = try await TaskConstructionTester(getCore(), testProject)
 
-        await tester.checkBuild(clientDelegate: xcstringsTool) { results in
+        await tester.checkBuild(runDestination: .macOS, clientDelegate: xcstringsTool) { results in
             results.checkNoDiagnostics()
 
             results.checkTarget("MyFramework") { target in
@@ -1489,7 +1489,7 @@ fileprivate struct XCStringsTaskConstructionTests: CoreBasedTests {
 
         let tester = try await TaskConstructionTester(getCore(), testProject)
 
-        await tester.checkBuild(BuildParameters(action: .installLoc, configuration: "Release", overrides: ["INSTALLLOC_LANGUAGE": "fr"]), clientDelegate: xcstringsTool) { results in
+        await tester.checkBuild(BuildParameters(action: .installLoc, configuration: "Release", overrides: ["INSTALLLOC_LANGUAGE": "fr"]), runDestination: .macOS, clientDelegate: xcstringsTool) { results in
             results.checkNoDiagnostics()
 
             results.checkTarget("MyFramework") { target in
@@ -1519,7 +1519,7 @@ fileprivate struct XCStringsTaskConstructionTests: CoreBasedTests {
             }
         }
 
-        await tester.checkBuild(BuildParameters(action: .installLoc, configuration: "Release", overrides: ["INSTALLLOC_LANGUAGE": "fr de"]), clientDelegate: xcstringsTool) { results in
+        await tester.checkBuild(BuildParameters(action: .installLoc, configuration: "Release", overrides: ["INSTALLLOC_LANGUAGE": "fr de"]), runDestination: .macOS, clientDelegate: xcstringsTool) { results in
             results.checkNoDiagnostics()
 
             results.checkTarget("MyFramework") { target in
@@ -1611,7 +1611,7 @@ fileprivate struct XCStringsTaskConstructionTests: CoreBasedTests {
 
         let tester = try await TaskConstructionTester(getCore(), testProject)
 
-        await tester.checkBuild(clientDelegate: xcstringsTool) { results in
+        await tester.checkBuild(runDestination: .macOS, clientDelegate: xcstringsTool) { results in
             // This is not a supported configuration.
             results.checkError(.and(.contains("View.xcstrings cannot co-exist with other .strings or .stringsdict tables with the same name."), .prefix("/tmp/Test/Project/Sources/mul.lproj/View.xcstrings")))
         }
@@ -1673,7 +1673,7 @@ fileprivate struct XCStringsTaskConstructionTests: CoreBasedTests {
 
         let tester = try await TaskConstructionTester(getCore(), testProject)
 
-        await tester.checkBuild(clientDelegate: xcstringsTool) { results in
+        await tester.checkBuild(runDestination: .macOS, clientDelegate: xcstringsTool) { results in
             // This is not a supported configuration.
             results.checkError(.and(.contains("An IB file cannot provide its localizations via both a String Catalog and other overriding IB files."), .prefix("/tmp/Test/Project/Sources/Base.lproj/View.xib")))
         }

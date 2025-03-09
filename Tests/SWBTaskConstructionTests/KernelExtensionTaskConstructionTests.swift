@@ -52,7 +52,7 @@ fileprivate struct KernelExtensionTaskConstructionTests: CoreBasedTests {
         let tester = try await TaskConstructionTester(getCore(), testProject)
 
         for macro in ["$(ARCHS_STANDARD)", "$(ARCHS_STANDARD_64_BIT)", "$(ARCHS_STANDARD_INCLUDING_64_BIT)"] {
-            await tester.checkBuild(BuildParameters(configuration: "Debug", activeRunDestination: .anyMac, overrides: ["ARCHS": macro])) { results in
+            await tester.checkBuild(BuildParameters(configuration: "Debug", overrides: ["ARCHS": macro]), runDestination: .anyMac) { results in
                 results.checkNoDiagnostics()
                 results.checkTask(.matchRuleType("CompileC"), .matchRuleItem("arm64e")) { task in }
                 results.checkTask(.matchRuleType("CompileC"), .matchRuleItem("x86_64")) { task in }
@@ -95,7 +95,7 @@ fileprivate struct KernelExtensionTaskConstructionTests: CoreBasedTests {
             ])
         let tester = try await TaskConstructionTester(getCore(), testProject)
 
-        try await tester.checkBuild(BuildParameters(configuration: "Debug", activeRunDestination: .anyMac)) { results in
+        try await tester.checkBuild(runDestination: .anyMac) { results in
             results.checkNoDiagnostics()
 
             let writeTask: any PlannedTask = try results.checkTask(.matchRule(["WriteAuxiliaryFile", "/tmp/Test/aProject/build/aProject.build/Debug/aTarget.build/DerivedSources/KextTest_info.c"])) { task in task }
@@ -153,12 +153,12 @@ fileprivate struct KernelExtensionTaskConstructionTests: CoreBasedTests {
         let core = try await getCore()
         let tester = try TaskConstructionTester(core, testProject)
 
-        await tester.checkBuild(BuildParameters(configuration: "Debug")) { results in
+        await tester.checkBuild(runDestination: .macOS) { results in
             results.checkNoDiagnostics()
             results.checkTask(.matchRule(["WriteAuxiliaryFile", "/tmp/Test/aProject/build/aProject.build/Debug/aTarget.build/DerivedSources/KextTest_info.c"])) { _ in }
         }
 
-        await tester.checkBuild(BuildParameters(configuration: "Debug", overrides: ["GENERATE_KERNEL_MODULE_INFO_FILE": "NO"])) { results in
+        await tester.checkBuild(BuildParameters(configuration: "Debug", overrides: ["GENERATE_KERNEL_MODULE_INFO_FILE": "NO"]), runDestination: .macOS) { results in
             results.checkNoDiagnostics()
 
             let writeRule = ["WriteAuxiliaryFile", "/tmp/Test/aProject/build/aProject.build/Debug/aTarget.build/DerivedSources/KextTest_info.c"]
@@ -209,7 +209,7 @@ fileprivate struct KernelExtensionTaskConstructionTests: CoreBasedTests {
         let tester = try TaskConstructionTester(core, testProject)
 
         // Check the build.
-        await tester.checkBuild(BuildParameters(action: .install, configuration: "Release")) { results in
+        await tester.checkBuild(BuildParameters(action: .install, configuration: "Release"), runDestination: .macOS) { results in
             results.consumeTasksMatchingRuleTypes(["CodeSign", "CreateBuildDirectory", "Gate", "Ld", "MkDir", "ProcessInfoPlistFile", "ProcessProductPackaging", "RegisterExecutionPolicyException", "SetMode", "SetOwnerAndGroup", "SymLink", "Touch", "WriteAuxiliaryFile"])
 
             // Check there are no diagnostics.
@@ -262,7 +262,7 @@ fileprivate struct KernelExtensionTaskConstructionTests: CoreBasedTests {
         let SRCROOT = tester.workspace.projects[0].sourceRoot.str
 
         // Check the build.
-        await tester.checkBuild() { results in
+        await tester.checkBuild(runDestination: .macOS) { results in
             results.consumeTasksMatchingRuleTypes(["CodeSign", "CreateBuildDirectory", "Gate", "Ld", "MkDir", "ProcessInfoPlistFile", "ProcessProductPackaging", "ProcessProductPackagingDER", "RegisterExecutionPolicyException", "SymLink", "Touch", "WriteAuxiliaryFile"])
 
             results.checkTarget("SomeKext") { target in

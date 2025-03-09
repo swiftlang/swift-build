@@ -83,7 +83,7 @@ fileprivate struct BuildActionTaskConstructionTests: CoreBasedTests {
         let SRCROOT = tester.workspace.projects[0].sourceRoot.str
 
         // Check an installhdrs release build.
-        await tester.checkBuild(BuildParameters(action: .installAPI, configuration: "Release")) { results in
+        await tester.checkBuild(BuildParameters(action: .installAPI, configuration: "Release"), runDestination: .macOS) { results in
             results.checkTarget("FrameworkTarget") { target in
                 // There should be the expected number of mkdir and symlink tasks.
                 results.checkTasks(.matchTarget(target), .matchRuleType("MkDir"), body: { tasks in
@@ -142,7 +142,7 @@ fileprivate struct BuildActionTaskConstructionTests: CoreBasedTests {
         let overrides = [
             "INSTALLAPI_COPY_PHASE": "YES",
         ]
-        await tester.checkBuild(BuildParameters(action: .installAPI, configuration: "Release", overrides: overrides)) { results in
+        await tester.checkBuild(BuildParameters(action: .installAPI, configuration: "Release", overrides: overrides), runDestination: .macOS) { results in
             results.checkTarget("FrameworkTarget") { target in
                 // There should be the expected number of mkdir and symlink tasks.
                 results.checkTasks(.matchTarget(target), .matchRuleType("MkDir"), body: { tasks in
@@ -316,7 +316,7 @@ fileprivate struct BuildActionTaskConstructionTests: CoreBasedTests {
         let parameters = BuildParameters(action: .installAPI, configuration: "Release")
         let buildTargets = tester.workspace.allTargets.map({ BuildRequest.BuildTargetInfo(parameters: parameters, target: $0) })
         let buildRequest = BuildRequest(parameters: parameters, buildTargets: buildTargets, dependencyScope: .workspace, continueBuildingAfterErrors: true, useParallelTargets: true, useImplicitDependencies: false, useDryRun: false)
-        await tester.checkBuild(buildRequest: buildRequest) { results in
+        await tester.checkBuild(runDestination: .macOS, buildRequest: buildRequest) { results in
             results.checkTarget("DynamicLibraryTarget") { target in
                 // There should be one symlink task.
                 results.checkTask(.matchTarget(target), .matchRule(["SymLink", "/tmp/Test/aProject/build/Release/DynamicLibraryTarget.tbd", "../../../../aProject.dst/usr/local/lib/DynamicLibraryTarget.tbd"])) { _ in }
@@ -384,7 +384,7 @@ fileprivate struct BuildActionTaskConstructionTests: CoreBasedTests {
         let overrides = [
             "INSTALLAPI_COPY_PHASE": "YES",
         ]
-        await tester.checkBuild(BuildParameters(action: .installAPI, configuration: "Release", overrides: overrides)) { results in
+        await tester.checkBuild(BuildParameters(action: .installAPI, configuration: "Release", overrides: overrides), runDestination: .macOS) { results in
             results.checkTarget("DynamicLibraryTarget") { target in
                 // There should be one symlink task.
                 results.checkTask(.matchTarget(target), .matchRule(["SymLink", "/tmp/Test/aProject/build/Release/DynamicLibraryTarget.tbd", "../../../../aProject.dst/usr/local/lib/DynamicLibraryTarget.tbd"])) { _ in }
@@ -490,7 +490,7 @@ fileprivate struct BuildActionTaskConstructionTests: CoreBasedTests {
         let SRCROOT = tester.workspace.projects[0].sourceRoot.str
 
         // Check an installhdrs release build.
-        await tester.checkBuild(BuildParameters(action: .installHeaders, configuration: "Release")) { results in
+        await tester.checkBuild(BuildParameters(action: .installHeaders, configuration: "Release"), runDestination: .macOS) { results in
             results.checkTarget("FrameworkTarget") { target in
                 // There should be the expected number of mkdir and symlink tasks.
                 results.checkTasks(.matchTarget(target), .matchRuleType("MkDir"), body: { tasks in
@@ -574,7 +574,7 @@ fileprivate struct BuildActionTaskConstructionTests: CoreBasedTests {
             "INSTALLHDRS_COPY_PHASE": "YES",
             "INSTALLHDRS_SCRIPT_PHASE": "YES",
         ]
-        await tester.checkBuild(BuildParameters(action: .installHeaders, configuration: "Release", overrides: overrides)) { results in
+        await tester.checkBuild(BuildParameters(action: .installHeaders, configuration: "Release", overrides: overrides), runDestination: .macOS) { results in
             results.checkTarget("FrameworkTarget") { target in
                 // There should be the expected number of mkdir and symlink tasks.
                 results.checkTasks(.matchTarget(target), .matchRuleType("MkDir"), body: { tasks in
@@ -749,7 +749,7 @@ fileprivate struct BuildActionTaskConstructionTests: CoreBasedTests {
         try fs.write(Path(SRCROOT).join("StubFramework.framework/Versions/A/StubFramework"), contents: "binary")
 
         // Check the Release build.
-        await tester.checkBuild(BuildParameters(action: .install, configuration: "Release"), fs: fs) { results in
+        await tester.checkBuild(BuildParameters(action: .install, configuration: "Release"), runDestination: .macOS, fs: fs) { results in
             // Ignore all tasks we don't want to check.
             results.checkTasks(.matchRuleType("Gate")) { _ in }
             results.checkTasks(.matchRuleType("WriteAuxiliaryFile")) { _ in }

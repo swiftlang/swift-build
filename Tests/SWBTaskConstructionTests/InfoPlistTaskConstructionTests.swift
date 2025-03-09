@@ -95,7 +95,7 @@ fileprivate struct InfoPlistTaskConstructionTests: CoreBasedTests {
         let tester = try TaskConstructionTester(core, testProject)
         let SRCROOT = tester.workspace.projects[0].sourceRoot.str
 
-        await tester.checkBuild(BuildParameters(action: .install, configuration: "Debug", activeRunDestination: .macOS)) { results in
+        await tester.checkBuild(BuildParameters(action: .install, configuration: "Debug"), runDestination: .macOS) { results in
             results.checkNoDiagnostics()
             results.checkTarget("Tool") { target in
                 // There should be an Info.plist processing task, and associated Preprocess (we explicitly enable it).
@@ -114,7 +114,7 @@ fileprivate struct InfoPlistTaskConstructionTests: CoreBasedTests {
             }
         }
 
-        await tester.checkBuild(BuildParameters(action: .install, configuration: "Release", activeRunDestination: .anyMac)) { results in
+        await tester.checkBuild(BuildParameters(action: .install, configuration: "Release"), runDestination: .anyMac) { results in
             results.checkNoDiagnostics()
             results.checkTarget("Tool") { target in
                 for arch in ["arm64", "x86_64"] {

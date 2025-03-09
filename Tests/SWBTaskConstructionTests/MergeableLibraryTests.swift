@@ -163,7 +163,7 @@ fileprivate struct MergeableLibraryTests: CoreBasedTests {
         do {
             let buildType = "Debug"
             let (SYMROOT, OBJROOT, DSTROOT) = buildDirs(in: Path("/tmp/buildDir"), for: buildType)
-            let parameters = BuildParameters(configuration: CONFIGURATION, activeRunDestination: runDestination, overrides: [
+            let parameters = BuildParameters(configuration: CONFIGURATION, overrides: [
                 "SYMROOT": SYMROOT,
                 "OBJROOT": OBJROOT,
                 "DSTROOT": DSTROOT,
@@ -175,7 +175,7 @@ fileprivate struct MergeableLibraryTests: CoreBasedTests {
             // Add all the targets as top-level targets as this can shake out certain kinds of target dependency resolution bugs.
             let targets = tester.workspace.projects[0].targets.map({ BuildRequest.BuildTargetInfo(parameters: parameters, target: $0) })
             let request = BuildRequest(parameters: parameters, buildTargets: targets, continueBuildingAfterErrors: false, useParallelTargets: true, useImplicitDependencies: true, useDryRun: false)
-            await tester.checkBuild(parameters, buildRequest: request) { results in
+            await tester.checkBuild(parameters, runDestination: runDestination, buildRequest: request) { results in
                 results.consumeTasksMatchingRuleTypes()
 
                 // Check that the mergeable targets were *not* build to be mergeable.
@@ -330,7 +330,7 @@ fileprivate struct MergeableLibraryTests: CoreBasedTests {
         do {
             let buildType = "Release"
             let (SYMROOT, OBJROOT, DSTROOT) = buildDirs(in: Path("/tmp/buildDir"), for: buildType)
-            let parameters = BuildParameters(configuration: CONFIGURATION, activeRunDestination: runDestination, overrides: [
+            let parameters = BuildParameters(configuration: CONFIGURATION, overrides: [
                 "SYMROOT": SYMROOT,
                 "OBJROOT": OBJROOT,
                 "DSTROOT": DSTROOT,
@@ -343,7 +343,7 @@ fileprivate struct MergeableLibraryTests: CoreBasedTests {
             // Add all the targets as top-level targets as this can shake out certain kinds of target dependency resolution bugs.
             let targets = tester.workspace.projects[0].targets.map({ BuildRequest.BuildTargetInfo(parameters: parameters, target: $0) })
             let request = BuildRequest(parameters: parameters, buildTargets: targets, continueBuildingAfterErrors: false, useParallelTargets: true, useImplicitDependencies: true, useDryRun: false)
-            await tester.checkBuild(parameters, buildRequest: request) { results in
+            await tester.checkBuild(parameters, runDestination: runDestination, buildRequest: request) { results in
                 results.consumeTasksMatchingRuleTypes()
 
                 // Check that the mergeable targets were built to be mergeable.
@@ -579,7 +579,7 @@ fileprivate struct MergeableLibraryTests: CoreBasedTests {
         do {
             let buildType = "Debug"
             let (SYMROOT, OBJROOT, DSTROOT) = buildDirs(in: Path("/tmp/buildDir"), for: buildType)
-            let parameters = BuildParameters(configuration: CONFIGURATION, activeRunDestination: runDestination, overrides: [
+            let parameters = BuildParameters(configuration: CONFIGURATION, overrides: [
                 "SYMROOT": SYMROOT,
                 "OBJROOT": OBJROOT,
                 "DSTROOT": DSTROOT,
@@ -591,7 +591,7 @@ fileprivate struct MergeableLibraryTests: CoreBasedTests {
             // Add all the targets as top-level targets as this can shake out certain kinds of target dependency resolution bugs.
             let targets = tester.workspace.projects[0].targets.map({ BuildRequest.BuildTargetInfo(parameters: parameters, target: $0) })
             let request = BuildRequest(parameters: parameters, buildTargets: targets, continueBuildingAfterErrors: false, useParallelTargets: true, useImplicitDependencies: true, useDryRun: false)
-            await tester.checkBuild(parameters, buildRequest: request) { results in
+            await tester.checkBuild(parameters, runDestination: runDestination, buildRequest: request) { results in
                 results.consumeTasksMatchingRuleTypes()
 
                 // Check that the mergeable target was *not* build to be mergeable.
@@ -717,7 +717,7 @@ fileprivate struct MergeableLibraryTests: CoreBasedTests {
         do {
             let buildType = "Release"
             let (SYMROOT, OBJROOT, DSTROOT) = buildDirs(in: Path("/tmp/buildDir"), for: buildType)
-            let parameters = BuildParameters(configuration: CONFIGURATION, activeRunDestination: runDestination, overrides: [
+            let parameters = BuildParameters(configuration: CONFIGURATION, overrides: [
                 "SYMROOT": SYMROOT,
                 "OBJROOT": OBJROOT,
                 "DSTROOT": DSTROOT,
@@ -730,7 +730,7 @@ fileprivate struct MergeableLibraryTests: CoreBasedTests {
             // Add all the targets as top-level targets as this can shake out certain kinds of target dependency resolution bugs.
             let targets = tester.workspace.projects[0].targets.map({ BuildRequest.BuildTargetInfo(parameters: parameters, target: $0) })
             let request = BuildRequest(parameters: parameters, buildTargets: targets, continueBuildingAfterErrors: false, useParallelTargets: true, useImplicitDependencies: true, useDryRun: false)
-            await tester.checkBuild(parameters, buildRequest: request) { results in
+            await tester.checkBuild(parameters, runDestination: runDestination, buildRequest: request) { results in
                 results.consumeTasksMatchingRuleTypes()
 
                 // Check that the mergeable targets were *not* built to be mergeable.
@@ -970,7 +970,7 @@ fileprivate struct MergeableLibraryTests: CoreBasedTests {
         do {
             let buildType = "Debug"
             let (SYMROOT, OBJROOT, DSTROOT) = buildDirs(in: Path("/tmp/buildDir"), for: buildType)
-            let parameters = BuildParameters(configuration: "Config", activeRunDestination: .iOS, overrides: [
+            let parameters = BuildParameters(configuration: "Config", overrides: [
                 "SYMROOT": SYMROOT,
                 "OBJROOT": OBJROOT,
                 "DSTROOT": DSTROOT,
@@ -981,7 +981,7 @@ fileprivate struct MergeableLibraryTests: CoreBasedTests {
             // Add all the targets as top-level targets as this can shake out certain kinds of target dependency resolution bugs.
             let targets = tester.workspace.projects[0].targets.map({ BuildRequest.BuildTargetInfo(parameters: parameters, target: $0) })
             let request = BuildRequest(parameters: parameters, buildTargets: targets, continueBuildingAfterErrors: false, useParallelTargets: true, useImplicitDependencies: true, useDryRun: false)
-            await tester.checkBuild(parameters, buildRequest: request) { results in
+            await tester.checkBuild(parameters, runDestination: .iOS, buildRequest: request) { results in
                 results.consumeTasksMatchingRuleTypes()
 
                 // Check that the mergeable target was *not* built to be mergeable.
@@ -1088,7 +1088,7 @@ fileprivate struct MergeableLibraryTests: CoreBasedTests {
         do {
             let buildType = "Release"
             let (SYMROOT, OBJROOT, DSTROOT) = buildDirs(in: Path("/tmp/buildDir"), for: buildType)
-            let parameters = BuildParameters(configuration: "Config", activeRunDestination: .iOS, overrides: [
+            let parameters = BuildParameters(configuration: "Config", overrides: [
                 "SYMROOT": SYMROOT,
                 "OBJROOT": OBJROOT,
                 "DSTROOT": DSTROOT,
@@ -1100,7 +1100,7 @@ fileprivate struct MergeableLibraryTests: CoreBasedTests {
             // Add all the targets as top-level targets as this can shake out certain kinds of target dependency resolution bugs.
             let targets = tester.workspace.projects[0].targets.map({ BuildRequest.BuildTargetInfo(parameters: parameters, target: $0) })
             let request = BuildRequest(parameters: parameters, buildTargets: targets, continueBuildingAfterErrors: false, useParallelTargets: true, useImplicitDependencies: true, useDryRun: false)
-            await tester.checkBuild(parameters, buildRequest: request) { results in
+            await tester.checkBuild(parameters, runDestination: .iOS, buildRequest: request) { results in
                 results.consumeTasksMatchingRuleTypes()
 
                 // Check that the mergeable target was *not* built to be mergeable.
@@ -1284,7 +1284,7 @@ fileprivate struct MergeableLibraryTests: CoreBasedTests {
             let runDestination = RunDestinationInfo.iOS
             let buildType = "Debug"
             let (SYMROOT, OBJROOT, DSTROOT) = buildDirs(in: Path("/tmp/buildDir"), for: buildType)
-            let parameters = BuildParameters(configuration: CONFIGURATION, activeRunDestination: runDestination, overrides: [
+            let parameters = BuildParameters(configuration: CONFIGURATION, overrides: [
                 "SYMROOT": SYMROOT,
                 "OBJROOT": OBJROOT,
                 "DSTROOT": DSTROOT,
@@ -1299,7 +1299,7 @@ fileprivate struct MergeableLibraryTests: CoreBasedTests {
             let BUILT_PRODUCTS_DIR = "\(SYMROOT)/\(CONFIGURATION)" + (runDestination != .macOS ? "-\(runDestination.platform)" : "")
             let buildTargets = [BuildRequest.BuildTargetInfo(parameters: parameters, target: tester.workspace.projects[0].targets[0])]
             let request = BuildRequest(parameters: parameters, buildTargets: buildTargets, continueBuildingAfterErrors: false, useParallelTargets: true, useImplicitDependencies: true, useDryRun: false)
-            await tester.checkBuild(parameters, buildRequest: request, fs: fs) { results in
+            await tester.checkBuild(parameters, runDestination: runDestination, buildRequest: request, fs: fs) { results in
                 results.consumeTasksMatchingRuleTypes()
 
                 results.checkTask(.matchRuleType("ProcessXCFramework"), .matchRuleItemBasename("\(fwkBaseName).xcframework")) { task in
@@ -1379,7 +1379,7 @@ fileprivate struct MergeableLibraryTests: CoreBasedTests {
             let runDestination = RunDestinationInfo.iOSSimulator
             let buildType = "Debug"
             let (SYMROOT, OBJROOT, DSTROOT) = buildDirs(in: Path("/tmp/buildDir"), for: buildType)
-            let parameters = BuildParameters(configuration: CONFIGURATION, activeRunDestination: runDestination, overrides: [
+            let parameters = BuildParameters(configuration: CONFIGURATION, overrides: [
                 "SYMROOT": SYMROOT,
                 "OBJROOT": OBJROOT,
                 "DSTROOT": DSTROOT,
@@ -1394,7 +1394,7 @@ fileprivate struct MergeableLibraryTests: CoreBasedTests {
             let BUILT_PRODUCTS_DIR = "\(SYMROOT)/\(CONFIGURATION)" + (runDestination != .macOS ? "-\(runDestination.platform)" : "")
             let buildTargets = [BuildRequest.BuildTargetInfo(parameters: parameters, target: tester.workspace.projects[0].targets[0])]
             let request = BuildRequest(parameters: parameters, buildTargets: buildTargets, continueBuildingAfterErrors: false, useParallelTargets: true, useImplicitDependencies: true, useDryRun: false)
-            await tester.checkBuild(parameters, buildRequest: request, fs: fs) { results in
+            await tester.checkBuild(parameters, runDestination: runDestination, buildRequest: request, fs: fs) { results in
                 results.consumeTasksMatchingRuleTypes()
 
                 results.checkTask(.matchRuleType("ProcessXCFramework"), .matchRuleItemBasename("\(fwkBaseName).xcframework")) { task in
@@ -1457,7 +1457,7 @@ fileprivate struct MergeableLibraryTests: CoreBasedTests {
             let runDestination = RunDestinationInfo.iOS
             let buildType = "Release"
             let (SYMROOT, OBJROOT, DSTROOT) = buildDirs(in: Path("/tmp/buildDir"), for: buildType)
-            let parameters = BuildParameters(configuration: CONFIGURATION, activeRunDestination: runDestination, overrides: [
+            let parameters = BuildParameters(configuration: CONFIGURATION, overrides: [
                 "SYMROOT": SYMROOT,
                 "OBJROOT": OBJROOT,
                 "DSTROOT": DSTROOT,
@@ -1473,7 +1473,7 @@ fileprivate struct MergeableLibraryTests: CoreBasedTests {
             let BUILT_PRODUCTS_DIR = "\(SYMROOT)/\(CONFIGURATION)" + (runDestination != .macOS ? "-\(runDestination.platform)" : "")
             let buildTargets = [BuildRequest.BuildTargetInfo(parameters: parameters, target: tester.workspace.projects[0].targets[0])]
             let request = BuildRequest(parameters: parameters, buildTargets: buildTargets, continueBuildingAfterErrors: false, useParallelTargets: true, useImplicitDependencies: true, useDryRun: false)
-            await tester.checkBuild(parameters, buildRequest: request, fs: fs) { results in
+            await tester.checkBuild(parameters, runDestination: runDestination, buildRequest: request, fs: fs) { results in
                 results.consumeTasksMatchingRuleTypes()
 
                 results.checkTask(.matchRuleType("ProcessXCFramework"), .matchRuleItemBasename("\(fwkBaseName).xcframework")) { task in
@@ -1527,7 +1527,7 @@ fileprivate struct MergeableLibraryTests: CoreBasedTests {
             let runDestination = RunDestinationInfo.iOS
             let buildType = "Release"
             let (SYMROOT, OBJROOT, DSTROOT) = buildDirs(in: Path("/tmp/buildDir"), for: buildType)
-            let parameters = BuildParameters(configuration: CONFIGURATION, activeRunDestination: runDestination, overrides: [
+            let parameters = BuildParameters(configuration: CONFIGURATION, overrides: [
                 "SYMROOT": SYMROOT,
                 "OBJROOT": OBJROOT,
                 "DSTROOT": DSTROOT,
@@ -1544,7 +1544,7 @@ fileprivate struct MergeableLibraryTests: CoreBasedTests {
             let BUILT_PRODUCTS_DIR = "\(SYMROOT)/\(CONFIGURATION)" + (runDestination != .macOS ? "-\(runDestination.platform)" : "")
             let buildTargets = [BuildRequest.BuildTargetInfo(parameters: parameters, target: tester.workspace.projects[0].targets[0])]
             let request = BuildRequest(parameters: parameters, buildTargets: buildTargets, continueBuildingAfterErrors: false, useParallelTargets: true, useImplicitDependencies: true, useDryRun: false)
-            await tester.checkBuild(parameters, buildRequest: request, fs: fs) { results in
+            await tester.checkBuild(parameters, runDestination: runDestination, buildRequest: request, fs: fs) { results in
                 results.consumeTasksMatchingRuleTypes()
 
                 results.checkTask(.matchRuleType("ProcessXCFramework"), .matchRuleItemBasename("\(fwkBaseName).xcframework")) { task in
@@ -1606,7 +1606,7 @@ fileprivate struct MergeableLibraryTests: CoreBasedTests {
             let runDestination = RunDestinationInfo.iOSSimulator
             let buildType = "Release"
             let (SYMROOT, OBJROOT, DSTROOT) = buildDirs(in: Path("/tmp/buildDir"), for: buildType)
-            let parameters = BuildParameters(configuration: CONFIGURATION, activeRunDestination: runDestination, overrides: [
+            let parameters = BuildParameters(configuration: CONFIGURATION, overrides: [
                 "SYMROOT": SYMROOT,
                 "OBJROOT": OBJROOT,
                 "DSTROOT": DSTROOT,
@@ -1622,7 +1622,7 @@ fileprivate struct MergeableLibraryTests: CoreBasedTests {
             let BUILT_PRODUCTS_DIR = "\(SYMROOT)/\(CONFIGURATION)" + (runDestination != .macOS ? "-\(runDestination.platform)" : "")
             let buildTargets = [BuildRequest.BuildTargetInfo(parameters: parameters, target: tester.workspace.projects[0].targets[0])]
             let request = BuildRequest(parameters: parameters, buildTargets: buildTargets, continueBuildingAfterErrors: false, useParallelTargets: true, useImplicitDependencies: true, useDryRun: false)
-            await tester.checkBuild(parameters, buildRequest: request, fs: fs) { results in
+            await tester.checkBuild(parameters, runDestination: runDestination, buildRequest: request, fs: fs) { results in
                 results.consumeTasksMatchingRuleTypes()
 
                 results.checkTask(.matchRuleType("ProcessXCFramework"), .matchRuleItemBasename("\(fwkBaseName).xcframework")) { task in
@@ -1761,7 +1761,7 @@ fileprivate struct MergeableLibraryTests: CoreBasedTests {
             let runDestination = RunDestinationInfo.macOS
             let buildType = "Debug"
             let (SYMROOT, OBJROOT, DSTROOT) = buildDirs(in: Path("/tmp/buildDir"), for: buildType)
-            let parameters = BuildParameters(configuration: CONFIGURATION, activeRunDestination: runDestination, overrides: [
+            let parameters = BuildParameters(configuration: CONFIGURATION, overrides: [
                 "SYMROOT": SYMROOT,
                 "OBJROOT": OBJROOT,
                 "DSTROOT": DSTROOT,
@@ -1776,7 +1776,7 @@ fileprivate struct MergeableLibraryTests: CoreBasedTests {
             let BUILT_PRODUCTS_DIR = "\(SYMROOT)/\(CONFIGURATION)" + (runDestination != .macOS ? "-\(runDestination.platform)" : "")
             let buildTargets = [BuildRequest.BuildTargetInfo(parameters: parameters, target: tester.workspace.projects[0].targets[0])]
             let request = BuildRequest(parameters: parameters, buildTargets: buildTargets, continueBuildingAfterErrors: false, useParallelTargets: true, useImplicitDependencies: true, useDryRun: false)
-            await tester.checkBuild(parameters, buildRequest: request, fs: fs) { results in
+            await tester.checkBuild(parameters, runDestination: runDestination, buildRequest: request, fs: fs) { results in
                 results.consumeTasksMatchingRuleTypes()
 
                 results.checkTask(.matchRuleType("ProcessXCFramework"), .matchRuleItemBasename("\(fwkBaseName).xcframework")) { task in
@@ -1858,7 +1858,7 @@ fileprivate struct MergeableLibraryTests: CoreBasedTests {
             let runDestination = RunDestinationInfo.macOS
             let buildType = "Release"
             let (SYMROOT, OBJROOT, DSTROOT) = buildDirs(in: Path("/tmp/buildDir"), for: buildType)
-            let parameters = BuildParameters(configuration: CONFIGURATION, activeRunDestination: runDestination, overrides: [
+            let parameters = BuildParameters(configuration: CONFIGURATION, overrides: [
                 "SYMROOT": SYMROOT,
                 "OBJROOT": OBJROOT,
                 "DSTROOT": DSTROOT,
@@ -1874,7 +1874,7 @@ fileprivate struct MergeableLibraryTests: CoreBasedTests {
             let BUILT_PRODUCTS_DIR = "\(SYMROOT)/\(CONFIGURATION)" + (runDestination != .macOS ? "-\(runDestination.platform)" : "")
             let buildTargets = [BuildRequest.BuildTargetInfo(parameters: parameters, target: tester.workspace.projects[0].targets[0])]
             let request = BuildRequest(parameters: parameters, buildTargets: buildTargets, continueBuildingAfterErrors: false, useParallelTargets: true, useImplicitDependencies: true, useDryRun: false)
-            await tester.checkBuild(parameters, buildRequest: request, fs: fs) { results in
+            await tester.checkBuild(parameters, runDestination: runDestination, buildRequest: request, fs: fs) { results in
                 results.consumeTasksMatchingRuleTypes()
 
                 results.checkTask(.matchRuleType("ProcessXCFramework"), .matchRuleItemBasename("\(fwkBaseName).xcframework")) { task in
@@ -2022,7 +2022,7 @@ fileprivate struct MergeableLibraryTests: CoreBasedTests {
         do {
             let buildType = "Debug"
             let (SYMROOT, OBJROOT, DSTROOT) = buildDirs(in: Path("/tmp/buildDir"), for: buildType)
-            let parameters = BuildParameters(configuration: "Config", activeRunDestination: .iOS, overrides: [
+            let parameters = BuildParameters(configuration: "Config", overrides: [
                 "SYMROOT": SYMROOT,
                 "OBJROOT": OBJROOT,
                 "DSTROOT": DSTROOT,
@@ -2033,7 +2033,7 @@ fileprivate struct MergeableLibraryTests: CoreBasedTests {
             // Add all the targets as top-level targets as this can shake out certain kinds of target dependency resolution bugs.
             let targets = tester.workspace.projects[0].targets.map({ BuildRequest.BuildTargetInfo(parameters: parameters, target: $0) })
             let request = BuildRequest(parameters: parameters, buildTargets: targets, continueBuildingAfterErrors: false, useParallelTargets: true, useImplicitDependencies: true, useDryRun: false)
-            await tester.checkBuild(parameters, buildRequest: request) { results in
+            await tester.checkBuild(parameters, runDestination: .iOS, buildRequest: request) { results in
                 results.consumeTasksMatchingRuleTypes()
 
                 // Check that the framework targets were *not* build to be mergeable.
@@ -2134,7 +2134,7 @@ fileprivate struct MergeableLibraryTests: CoreBasedTests {
         do {
             let buildType = "Release"
             let (SYMROOT, OBJROOT, DSTROOT) = buildDirs(in: Path("/tmp/buildDir"), for: buildType)
-            let parameters = BuildParameters(configuration: "Config", activeRunDestination: .iOS, overrides: [
+            let parameters = BuildParameters(configuration: "Config", overrides: [
                 "SYMROOT": SYMROOT,
                 "OBJROOT": OBJROOT,
                 "DSTROOT": DSTROOT,
@@ -2146,7 +2146,7 @@ fileprivate struct MergeableLibraryTests: CoreBasedTests {
             // Add all the targets as top-level targets as this can shake out certain kinds of target dependency resolution bugs.
             let targets = tester.workspace.projects[0].targets.map({ BuildRequest.BuildTargetInfo(parameters: parameters, target: $0) })
             let request = BuildRequest(parameters: parameters, buildTargets: targets, continueBuildingAfterErrors: false, useParallelTargets: true, useImplicitDependencies: true, useDryRun: false)
-            await tester.checkBuild(parameters, buildRequest: request) { results in
+            await tester.checkBuild(parameters, runDestination: .iOS, buildRequest: request) { results in
                 results.consumeTasksMatchingRuleTypes()
 
                 // Check that the mergeable targets were *not* built to be mergeable.
@@ -2326,7 +2326,7 @@ fileprivate struct MergeableLibraryTests: CoreBasedTests {
             let CONFIGURATION = "Config"
             let buildVariants = ["normal", "profile"]
             let runDestination = RunDestinationInfo.iOS
-            let parameters = BuildParameters(configuration: CONFIGURATION, activeRunDestination: .iOS, overrides: [
+            let parameters = BuildParameters(configuration: CONFIGURATION, overrides: [
                 "SYMROOT": SYMROOT,
                 "OBJROOT": OBJROOT,
                 "DSTROOT": DSTROOT,
@@ -2341,7 +2341,7 @@ fileprivate struct MergeableLibraryTests: CoreBasedTests {
             // Add all the targets as top-level targets as this can shake out certain kinds of target dependency resolution bugs.
             let targets = tester.workspace.projects[0].targets.map({ BuildRequest.BuildTargetInfo(parameters: parameters, target: $0) })
             let request = BuildRequest(parameters: parameters, buildTargets: targets, continueBuildingAfterErrors: false, useParallelTargets: true, useImplicitDependencies: true, useDryRun: false)
-            await tester.checkBuild(parameters, buildRequest: request) { results in
+            await tester.checkBuild(parameters, runDestination: .iOS, buildRequest: request) { results in
                 results.consumeTasksMatchingRuleTypes()
 
                 // Check the mergeable target.
@@ -2510,7 +2510,7 @@ fileprivate struct MergeableLibraryTests: CoreBasedTests {
             let (SYMROOT, OBJROOT, DSTROOT) = buildDirs(in: Path("/tmp/buildDir"), for: buildType)
             let CONFIGURATION = "Config"
             let runDestination = RunDestinationInfo.iOS
-            let parameters = BuildParameters(configuration: CONFIGURATION, activeRunDestination: .iOS, overrides: [
+            let parameters = BuildParameters(configuration: CONFIGURATION, overrides: [
                 "SYMROOT": SYMROOT,
                 "OBJROOT": OBJROOT,
                 "DSTROOT": DSTROOT,
@@ -2522,7 +2522,7 @@ fileprivate struct MergeableLibraryTests: CoreBasedTests {
             let BUILT_PRODUCTS_DIR = "\(SYMROOT)/\(CONFIGURATION)" + (runDestination != .macOS ? "-\(runDestination.platform)" : "")
             let targets = [BuildRequest.BuildTargetInfo(parameters: parameters, target: tester.workspace.projects[0].targets[0])]
             let request = BuildRequest(parameters: parameters, buildTargets: targets, continueBuildingAfterErrors: false, useParallelTargets: true, useImplicitDependencies: true, useDryRun: false)
-            await tester.checkBuild(parameters, buildRequest: request) { results in
+            await tester.checkBuild(parameters, runDestination: .iOS, buildRequest: request) { results in
                 results.consumeTasksMatchingRuleTypes()
 
                 // Check the normal framework target.
@@ -2700,7 +2700,7 @@ fileprivate struct MergeableLibraryTests: CoreBasedTests {
             for action: BuildAction in [.install, .installHeaders, .installAPI] {
                 let buildType = "Release"
                 let (SYMROOT, OBJROOT, DSTROOT) = buildDirs(in: Path("/tmp/buildDir"), for: buildType)
-                let parameters = BuildParameters(action: action, configuration: CONFIGURATION, activeRunDestination: runDestination, overrides: [
+                let parameters = BuildParameters(action: action, configuration: CONFIGURATION, overrides: [
                     "SYMROOT": SYMROOT,
                     "OBJROOT": OBJROOT,
                     "DSTROOT": DSTROOT,
@@ -2712,7 +2712,7 @@ fileprivate struct MergeableLibraryTests: CoreBasedTests {
                 // Add all the targets as top-level targets as this can shake out certain kinds of target dependency resolution bugs.
                 let targets = tester.workspace.projects[0].targets.map({ BuildRequest.BuildTargetInfo(parameters: parameters, target: $0) })
                 let request = BuildRequest(parameters: parameters, buildTargets: targets, continueBuildingAfterErrors: false, useParallelTargets: true, useImplicitDependencies: true, useDryRun: false)
-                await tester.checkBuild(parameters, buildRequest: request) { results in
+                await tester.checkBuild(parameters, runDestination: runDestination, buildRequest: request) { results in
                     results.consumeTasksMatchingRuleTypes()
 
                     // Check the actions with a build component.
@@ -2934,7 +2934,7 @@ fileprivate struct MergeableLibraryTests: CoreBasedTests {
             // Test a debug build
             do {
                 let (SYMROOT, OBJROOT, DSTROOT) = ("/tmp/buildDir/\(runDestination.platform)/sym", "/tmp/buildDir/\(runDestination.platform)/obj", "/tmp/buildDir/\(runDestination.platform)/dst")
-                let parameters = BuildParameters(configuration: "Config", activeRunDestination: runDestination, overrides: [
+                let parameters = BuildParameters(configuration: "Config", overrides: [
                     "SYMROOT": SYMROOT,
                     "OBJROOT": OBJROOT,
                     "DSTROOT": DSTROOT,
@@ -2945,7 +2945,7 @@ fileprivate struct MergeableLibraryTests: CoreBasedTests {
                 // Add all the targets as top-level targets as this can shake out certain kinds of target dependency resolution bugs.
                 let targets = tester.workspace.projects[0].targets.map({ BuildRequest.BuildTargetInfo(parameters: parameters, target: $0) })
                 let request = BuildRequest(parameters: parameters, buildTargets: targets, continueBuildingAfterErrors: false, useParallelTargets: true, useImplicitDependencies: true, useDryRun: false)
-                await tester.checkBuild(parameters, buildRequest: request) { results in
+                await tester.checkBuild(parameters, runDestination: runDestination, buildRequest: request) { results in
                     results.checkError("Mergeable libraries are not supported for architecture 'armv7k', but AUTOMATICALLY_MERGE_DEPENDENCIES is assigned at level: target. (in target 'AutomaticApp' from project 'aProject')")
                     results.checkError("Mergeable libraries are not supported for architecture 'armv7k', but MERGE_LINKED_LIBRARIES is assigned at level: target. (in target 'ManualApp' from project 'aProject')")
                     results.checkError("Mergeable libraries are not supported for architecture 'armv7k', but MERGEABLE_LIBRARY is assigned at level: target. (in target 'ManualMergeableFwk' from project 'aProject')")
@@ -2962,7 +2962,7 @@ fileprivate struct MergeableLibraryTests: CoreBasedTests {
             // Test a release build
             do {
                 let (SYMROOT, OBJROOT, DSTROOT) = ("/tmp/buildDir/\(runDestination.platform)/sym", "/tmp/buildDir/\(runDestination.platform)/obj", "/tmp/buildDir/\(runDestination.platform)/dst")
-                let parameters = BuildParameters(configuration: "Config", activeRunDestination: runDestination, overrides: [
+                let parameters = BuildParameters(configuration: "Config", overrides: [
                     "SYMROOT": SYMROOT,
                     "OBJROOT": OBJROOT,
                     "DSTROOT": DSTROOT,
@@ -2974,7 +2974,7 @@ fileprivate struct MergeableLibraryTests: CoreBasedTests {
                 // Add all the targets as top-level targets as this can shake out certain kinds of target dependency resolution bugs.
                 let targets = tester.workspace.projects[0].targets.map({ BuildRequest.BuildTargetInfo(parameters: parameters, target: $0) })
                 let request = BuildRequest(parameters: parameters, buildTargets: targets, continueBuildingAfterErrors: false, useParallelTargets: true, useImplicitDependencies: true, useDryRun: false)
-                await tester.checkBuild(parameters, buildRequest: request) { results in
+                await tester.checkBuild(parameters, runDestination: runDestination, buildRequest: request) { results in
                     results.checkError("Mergeable libraries are not supported for architecture 'armv7k', but AUTOMATICALLY_MERGE_DEPENDENCIES is assigned at level: target. (in target 'AutomaticApp' from project 'aProject')")
                     results.checkError("Mergeable libraries are not supported for architecture 'armv7k', but MERGE_LINKED_LIBRARIES is assigned at level: target. (in target 'ManualApp' from project 'aProject')")
                     results.checkError("Mergeable libraries are not supported for architecture 'armv7k', but MERGEABLE_LIBRARY is assigned at level: target. (in target 'ManualMergeableFwk' from project 'aProject')")

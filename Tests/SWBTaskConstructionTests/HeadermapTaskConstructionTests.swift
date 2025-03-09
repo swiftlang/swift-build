@@ -94,7 +94,7 @@ fileprivate struct HeadermapTaskConstructionTests: CoreBasedTests {
         let SRCROOT = tester.workspace.projects[0].sourceRoot.str
 
         // Check the debug build.
-        await tester.checkBuild() { results in
+        await tester.checkBuild(runDestination: .macOS) { results in
             results.checkNoDiagnostics()
 
             results.checkTarget(targetName) { target in
@@ -187,7 +187,7 @@ fileprivate struct HeadermapTaskConstructionTests: CoreBasedTests {
         let buildRequest = BuildRequest(parameters: parameters, buildTargets: [buildTarget], continueBuildingAfterErrors: true, useParallelTargets: true, useImplicitDependencies: false, useDryRun: false)
 
         // Check the debug build.
-        await tester.checkBuild(parameters, buildRequest: buildRequest) { results in
+        await tester.checkBuild(parameters, runDestination: .macOS, buildRequest: buildRequest) { results in
             results.checkNoDiagnostics()
             results.checkTarget("exec") { target in
                 results.checkHeadermapGenerationTask(.matchTarget(target), .matchRuleItemBasename("exec-project-headers.hmap")) { headermap in
@@ -299,7 +299,7 @@ fileprivate struct HeadermapTaskConstructionTests: CoreBasedTests {
 
         // Check that the headermap contents are deterministic.
         var hmapContents: [[UInt8]] = []
-        await tester.checkBuild { results in
+        await tester.checkBuild(runDestination: .macOS) { results in
             results.checkNoDiagnostics()
             results.checkTarget("Tool") { target in
                 for basename in headermapBasenames {
@@ -363,7 +363,7 @@ fileprivate struct HeadermapTaskConstructionTests: CoreBasedTests {
                 }
             }
         }
-        await tester.checkBuild { results in
+        await tester.checkBuild(runDestination: .macOS) { results in
             results.checkTarget("Tool") { target in
                 #expect(headermapBasenames.count == hmapContents.count)
                 for (basename, hmapContents) in zip(headermapBasenames, hmapContents) {
@@ -444,7 +444,7 @@ fileprivate struct HeadermapTaskConstructionTests: CoreBasedTests {
         let tester = try await TaskConstructionTester(getCore(), testProject)
         func checkBuild(configurationName: String, clangUsesAllTargetHeaders: Bool, swiftUsesAllTargetHeaders: Bool, buildRequest: BuildRequest? = nil, sourceLocation: SourceLocation = #_sourceLocation) async {
             let targetName = (buildRequest == nil) ? "Application" : nil
-            await tester.checkBuild(BuildParameters(configuration: configurationName), targetName: targetName, buildRequest: buildRequest) { results in
+            await tester.checkBuild(BuildParameters(configuration: configurationName), runDestination: .macOS, targetName: targetName, buildRequest: buildRequest) { results in
                 results.checkTarget("Application") { target in
                     results.checkTask(.matchTarget(target), .matchRuleType("CompileC")) { task in
                         if clangUsesAllTargetHeaders {
@@ -545,7 +545,7 @@ fileprivate struct HeadermapTaskConstructionTests: CoreBasedTests {
         let tester = try await TaskConstructionTester(getCore(), testProject)
 
         for configurationName in ["Default", "Off", "On"] {
-            await tester.checkBuild(BuildParameters(configuration: configurationName), targetName: "Application") { results in
+            await tester.checkBuild(BuildParameters(configuration: configurationName), runDestination: .macOS, targetName: "Application") { results in
                 results.checkTarget("Application") { target in
                     results.checkHeadermapGenerationTask(.matchTarget(target), .matchRuleItemBasename("Application-all-non-framework-target-headers.hmap")) { headermap in
                         if configurationName != "Off" {

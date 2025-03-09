@@ -241,7 +241,7 @@ fileprivate struct TrackedDomainTaskConstructionTests: CoreBasedTests {
         try await XCFrameworkTestSupport.writeXCFramework(supportXCFramework, fs: fs, path: supportXCFrameworkPath, infoLookup: infoLookup)
 
         // Check an install release build.
-        await tester.checkBuild(BuildParameters(action: .build, configuration: "Debug"), fs: fs) { results in
+        await tester.checkBuild(BuildParameters(action: .build, configuration: "Debug"), runDestination: .macOS, fs: fs) { results in
             results.checkTarget("AppTarget") { target in
                 results.checkTask(.matchTarget(target), .matchRuleType("ProcessInfoPlistFile")) { task in
                     task.checkCommandLineContains([

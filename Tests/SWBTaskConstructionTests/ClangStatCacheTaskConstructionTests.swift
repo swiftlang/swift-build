@@ -68,7 +68,7 @@ fileprivate struct ClangStatCacheTaskConstructionTests: CoreBasedTests {
 
         let core = try await getCore()
         let tester = try TaskConstructionTester(core, testWorkspace)
-        await tester.checkBuild(BuildParameters(configuration: "Debug"), fs: localFS) { results in
+        await tester.checkBuild(runDestination: .macOS, fs: localFS) { results in
             results.checkNoDiagnostics()
             results.checkTask(.matchRulePattern(["ClangStatCache", .any, .equal(core.loadSDK(.macOS).path.str)])) { task in
                 task.checkCommandLineMatches([.suffix("clang-stat-cache"), .equal(core.loadSDK(.macOS).path.str), .equal("-o"), .suffix(".sdkstatcache")])
@@ -145,7 +145,7 @@ fileprivate struct ClangStatCacheTaskConstructionTests: CoreBasedTests {
                     ])])
 
         let tester = try await TaskConstructionTester(getCore(), testWorkspace)
-        await tester.checkBuild(BuildParameters(configuration: "Debug"), fs: localFS) { results in
+        await tester.checkBuild(runDestination: .macOS, fs: localFS) { results in
             // There should be no duplicate tasks error, and exactly one stat cache task.
             results.checkNoDiagnostics()
             results.checkTasks(.matchRulePattern(["ClangStatCache", .any, .any])) { tasks in
@@ -185,7 +185,7 @@ fileprivate struct ClangStatCacheTaskConstructionTests: CoreBasedTests {
 
         let core = try await getCore()
         let tester = try TaskConstructionTester(core, testWorkspace)
-        await tester.checkBuild(BuildParameters(configuration: "Debug"), fs: localFS) { results in
+        await tester.checkBuild(runDestination: .macOS, fs: localFS) { results in
             results.checkNoDiagnostics()
             results.checkTask(.matchRulePattern(["ClangStatCache", .any, .equal(core.loadSDK(.macOS).path.str)])) { task in
                 task.checkCommandLineMatches([.suffix("clang-stat-cache"), .equal(core.loadSDK(.macOS).path.str), .equal("-v"), .equal("-o"), .suffix(".sdkstatcache")])
@@ -221,16 +221,16 @@ fileprivate struct ClangStatCacheTaskConstructionTests: CoreBasedTests {
                     ])])
 
         let tester = try await TaskConstructionTester(getCore(), testWorkspace)
-        await tester.checkBuild(BuildParameters(configuration: "Debug"), fs: localFS) { results in
+        await tester.checkBuild(runDestination: .macOS, fs: localFS) { results in
             results.checkTaskExists(.matchRuleType("ClangStatCache"))
         }
 
-        await tester.checkBuild(BuildParameters(configuration: "Debug", overrides: ["SDK_STAT_CACHE_ENABLE": "NO"]), fs: localFS) { results in
+        await tester.checkBuild(BuildParameters(configuration: "Debug", overrides: ["SDK_STAT_CACHE_ENABLE": "NO"]), runDestination: .macOS, fs: localFS) { results in
             results.checkNoTask(.matchRuleType("ClangStatCache"))
         }
 
         await UserDefaults.withEnvironment(["EnableSDKStatCaching": "0"]) {
-            await tester.checkBuild(BuildParameters(configuration: "Debug"), fs: localFS) { results in
+            await tester.checkBuild(runDestination: .macOS, fs: localFS) { results in
                 results.checkNoTask(.matchRuleType("ClangStatCache"))
             }
         }

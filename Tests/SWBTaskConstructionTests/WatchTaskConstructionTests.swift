@@ -205,7 +205,7 @@ fileprivate struct WatchTaskConstructionTests: CoreBasedTests {
         let actoolPath = try await self.actoolPath
 
         // Check the debug build, for the device.
-        try await tester.checkBuild(fs: fs) { results in
+        try await tester.checkBuild(runDestination: .macOS, fs: fs) { results in
             // Ignore certain classes of tasks.
             results.checkTasks(.matchRuleType("Gate")) { _ in }
             results.checkTasks(.matchRuleType("WriteAuxiliaryFile")) { tasks in }
@@ -513,7 +513,7 @@ fileprivate struct WatchTaskConstructionTests: CoreBasedTests {
         }
 
         // Check the debug build, for the simulator.
-        await tester.checkBuild(BuildParameters(configuration: "Debug", activeRunDestination: .iOSSimulator), fs: fs) { results in
+        await tester.checkBuild(runDestination: .iOSSimulator, fs: fs) { results in
             // Ignore certain classes of tasks.
             results.checkTasks(.matchRuleType("Gate")) { _ in }
             results.checkTasks(.matchRuleType("WriteAuxiliaryFile")) { tasks in }
@@ -804,7 +804,7 @@ fileprivate struct WatchTaskConstructionTests: CoreBasedTests {
 
         // Check an install build for the device.
         let installParameters = BuildParameters(action: .install, configuration: "Debug", overrides: ["BITCODE_GENERATION_MODE": "bitcode"])
-        await tester.checkBuild(installParameters, fs: fs) { results in
+        await tester.checkBuild(installParameters, runDestination: .macOS, fs: fs) { results in
             // Ignore certain classes of tasks.
             results.checkTasks(.matchRuleType("Gate")) { _ in }
             results.checkTasks(.matchRuleType("WriteAuxiliaryFile")) { tasks in }
@@ -1132,7 +1132,7 @@ fileprivate struct WatchTaskConstructionTests: CoreBasedTests {
         let actoolPath = try await self.actoolPath
 
         // Check the debug build, for the device.
-        await tester.checkBuild(fs: fs) { results in
+        await tester.checkBuild(runDestination: .macOS, fs: fs) { results in
             // Ignore certain classes of tasks.
             results.consumeTasksMatchingRuleTypes(["CodeSign", "CreateBuildDirectory", "Gate", "MkDir", "ProcessProductPackaging", "ProcessProductPackagingDER", "Copy", "RegisterExecutionPolicyException", "Touch", "Validate", "ValidateEmbeddedBinary", "WriteAuxiliaryFile"])
 
@@ -1215,7 +1215,7 @@ fileprivate struct WatchTaskConstructionTests: CoreBasedTests {
         try fs.write(core.loadSDK(.iOS).path.join("../../../Library/Application Support/MessagesApplicationStub/MessagesApplicationStub"), contents: "stub")
 
         // Check the debug build, for the device.
-        await tester.checkBuild(fs: fs) { results in
+        await tester.checkBuild(runDestination: .macOS, fs: fs) { results in
             // Ignore certain classes of tasks.
             results.consumeTasksMatchingRuleTypes(["CodeSign", "CreateBuildDirectory", "Gate", "MkDir", "ProcessProductPackaging", "ProcessProductPackagingDER", "RegisterExecutionPolicyException", "Touch", "Validate", "ValidateEmbeddedBinary", "WriteAuxiliaryFile"])
 
@@ -1360,7 +1360,7 @@ fileprivate struct WatchTaskConstructionTests: CoreBasedTests {
         try fs.write(core.loadSDK(.watchOS).path.join("Library/Application Support/WatchKit/WK"), contents: "WatchKitStub")
 
         let params = BuildParameters(action: .archive, configuration: "Debug", overrides: ["WATCHKIT_2_SUPPORT_FOLDER_PATH": "/tmp/SideCars"])
-        await tester.checkBuild(params, fs: fs) { results in
+        await tester.checkBuild(params, runDestination: .macOS, fs: fs) { results in
             results.checkNoDiagnostics()
             results.checkTask(.matchRule(["CopyAndPreserveArchs", "/tmp/SideCars/WK"])) { task in
                 // This is a target-independent task because multiple apps may exist in the same project but share a single stub
@@ -1412,13 +1412,13 @@ fileprivate struct WatchTaskConstructionTests: CoreBasedTests {
         let tester = try await TaskConstructionTester(getCore(), testProject)
 
         // Expect a warning when deploying to iOS 13 or later.
-        await tester.checkBuild(BuildParameters(configuration: "Debug", activeRunDestination: .iOS, overrides: ["IPHONEOS_DEPLOYMENT_TARGET": "13.0"])) { results in
+        await tester.checkBuild(BuildParameters(configuration: "Debug", overrides: ["IPHONEOS_DEPLOYMENT_TARGET": "13.0"]), runDestination: .iOS) { results in
             results.checkWarning(.equal("WatchKit Settings bundles in iOS apps are deprecated. (in target 'Watchable' from project 'aProject')"))
             results.checkNoDiagnostics()
         }
 
         // Expect no warning for earlier deployment targets.
-        await tester.checkBuild(BuildParameters(configuration: "Debug", activeRunDestination: .iOS, overrides: ["IPHONEOS_DEPLOYMENT_TARGET": "12.0"])) { results in
+        await tester.checkBuild(BuildParameters(configuration: "Debug", overrides: ["IPHONEOS_DEPLOYMENT_TARGET": "12.0"]), runDestination: .iOS) { results in
             results.checkNoDiagnostics()
         }
     }
@@ -1466,7 +1466,7 @@ fileprivate struct WatchTaskConstructionTests: CoreBasedTests {
         let tester = try await TaskConstructionTester(getCore(), testWorkspace)
         let SRCROOT = tester.workspace.projects[0].sourceRoot.str
 
-        await tester.checkBuild(BuildParameters(configuration: "Debug", activeRunDestination: .anywatchOSDevice)) { results in
+        await tester.checkBuild(runDestination: .anywatchOSDevice) { results in
             results.checkTarget("CoreFoo") { target in
                 results.checkTask(.matchTarget(target), .matchRuleType("SwiftDriver Compilation Requirements"), .matchRuleItemPattern("arm64")) { task in
                     task.checkCommandLineContains(["\(SRCROOT)/build/aProject.build/Debug-watchos/CoreFoo.build/Objects-normal/arm64/CoreFoo.swiftmodule"])

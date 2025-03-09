@@ -125,7 +125,7 @@ fileprivate struct EagerCompilationTests: CoreBasedTests {
             ("D", ["A", "B", "C"])
         ]
 
-        await tester.checkBuild(parameters, buildRequest: buildRequest) { results in
+        await tester.checkBuild(parameters, runDestination: .macOS, buildRequest: buildRequest) { results in
             for (after, befores) in checks {
                 results.checkTask(.matchTargetName(after), .matchRuleType("CompileC")) { compileAfter in
                     // compilation should wait for dependencies to compile, but should not wait for linking.
@@ -168,7 +168,7 @@ fileprivate struct EagerCompilationTests: CoreBasedTests {
             ("H", ["E", "F", "G"]),
         ]
 
-        await tester.checkBuild(parameters, buildRequest: buildRequest) { results in
+        await tester.checkBuild(parameters, runDestination: .macOS, buildRequest: buildRequest) { results in
             for (after, befores) in checks {
                 results.checkTask(.matchTargetName(after), .matchRuleItemPattern(.or("CompileC", "SwiftDriver Compilation"))) { compileAfter in
                     for before in befores {
@@ -253,7 +253,7 @@ fileprivate struct EagerCompilationTests: CoreBasedTests {
         let parameters = BuildParameters(configuration: "Debug")
         let buildRequest = BuildRequest(parameters: parameters, buildTargets: tester.workspace.projects[0].targets.map({ BuildRequest.BuildTargetInfo(parameters: parameters, target: $0) }), continueBuildingAfterErrors: true, useParallelTargets: true, useImplicitDependencies: false, useDryRun: false)
 
-        await tester.checkBuild(parameters, buildRequest: buildRequest) { results in
+        await tester.checkBuild(parameters, runDestination: .macOS, buildRequest: buildRequest) { results in
             results.checkTask(.matchTargetName("B"), .matchRuleType("CompileC")) { task in
                 results.checkTaskFollows(task, .matchTargetName("A"), .matchRuleType("CompileC"))
                 results.checkTaskFollows(task, .matchTargetName("A"), .matchRuleType("Ld"))
@@ -299,7 +299,7 @@ fileprivate struct EagerCompilationTests: CoreBasedTests {
         let parameters = BuildParameters(configuration: "Debug")
         let buildRequest = BuildRequest(parameters: parameters, buildTargets: tester.workspace.projects[0].targets.map({ BuildRequest.BuildTargetInfo(parameters: parameters, target: $0) }), continueBuildingAfterErrors: true, useParallelTargets: true, useImplicitDependencies: false, useDryRun: false)
 
-        await tester.checkBuild(parameters, buildRequest: buildRequest) { results in
+        await tester.checkBuild(parameters, runDestination: .macOS, buildRequest: buildRequest) { results in
             results.checkTask(.matchTargetName("B"), .matchRuleType("CompileC")) { task in
                 results.checkTaskFollows(task, .matchTargetName("A"), .matchRuleType("CompileC"))
                 results.checkTaskFollows(task, .matchTargetName("A"), .matchRuleType("Ld"))
@@ -352,7 +352,7 @@ fileprivate struct EagerCompilationTests: CoreBasedTests {
         let parameters = BuildParameters(configuration: "Debug")
         let buildRequest = BuildRequest(parameters: parameters, buildTargets: tester.workspace.projects[0].targets.map({ BuildRequest.BuildTargetInfo(parameters: parameters, target: $0) }), continueBuildingAfterErrors: true, useParallelTargets: true, useImplicitDependencies: false, useDryRun: false)
 
-        await tester.checkBuild(parameters, buildRequest: buildRequest) { results in
+        await tester.checkBuild(parameters, runDestination: .macOS, buildRequest: buildRequest) { results in
             results.checkTask(.matchTargetName("B"), .matchRuleType("CompileC")) { task in
                 results.checkTaskDoesNotFollow(task, .matchTargetName("A"), .matchRuleType("Ld"))
                 results.checkTaskDoesNotFollow(task, .matchTargetName("A"), .matchRuleType("PhaseScriptExecution"))
@@ -399,7 +399,7 @@ fileprivate struct EagerCompilationTests: CoreBasedTests {
         let parameters = BuildParameters(configuration: "Debug")
         let buildRequest = BuildRequest(parameters: parameters, buildTargets: tester.workspace.projects[0].targets.map({ BuildRequest.BuildTargetInfo(parameters: parameters, target: $0) }), continueBuildingAfterErrors: true, useParallelTargets: true, useImplicitDependencies: false, useDryRun: false)
 
-        await tester.checkBuild(parameters, buildRequest: buildRequest) { results in
+        await tester.checkBuild(parameters, runDestination: .macOS, buildRequest: buildRequest) { results in
             results.checkTask(.matchTargetName("B"), .matchRuleType("CompileC")) { task in
                 results.checkTaskDoesNotFollow(task, .matchTargetName("A"), .matchRuleType("Ld"))
                 results.checkTaskDoesNotFollow(task, .matchTargetName("A"), .matchRuleType("PhaseScriptExecution"))
@@ -443,7 +443,7 @@ fileprivate struct EagerCompilationTests: CoreBasedTests {
         let parameters = BuildParameters(configuration: "Debug")
         let buildRequest = BuildRequest(parameters: parameters, buildTargets: tester.workspace.projects[0].targets.map({ BuildRequest.BuildTargetInfo(parameters: parameters, target: $0) }), continueBuildingAfterErrors: true, useParallelTargets: true, useImplicitDependencies: false, useDryRun: false)
 
-        await tester.checkBuild(parameters, buildRequest: buildRequest) { results in
+        await tester.checkBuild(parameters, runDestination: .macOS, buildRequest: buildRequest) { results in
             results.checkTask(.matchTargetName("Aggregate"), .matchRuleType("PhaseScriptExecution")) { task in
                 results.checkTaskFollows(task, .matchTargetName("A"), .matchRuleType("Gate"), .matchRuleItemPattern(.suffix("-end")))
             }
@@ -482,7 +482,7 @@ fileprivate struct EagerCompilationTests: CoreBasedTests {
         let parameters = BuildParameters(configuration: "Debug")
         let buildRequest = BuildRequest(parameters: parameters, buildTargets: tester.workspace.projects[0].targets.map({ BuildRequest.BuildTargetInfo(parameters: parameters, target: $0) }), continueBuildingAfterErrors: true, useParallelTargets: true, useImplicitDependencies: false, useDryRun: false)
 
-        await tester.checkBuild(parameters, buildRequest: buildRequest) { results in
+        await tester.checkBuild(parameters, runDestination: .macOS, buildRequest: buildRequest) { results in
             results.checkTask(.matchTargetName("B"), .matchRuleType("CompileC")) { task in
                 results.checkTaskFollows(task, .matchTargetName("A"), .matchRuleType("Ld"))
                 results.checkTaskFollows(task, .matchTargetName("A"), .matchRuleType("PhaseScriptExecution"))
@@ -546,7 +546,7 @@ fileprivate struct EagerCompilationTests: CoreBasedTests {
             try fs.write(frameworkPath, contents: ByteString(encodingAsUTF8: frameworkPath.basename))
         }
 
-        await tester.checkBuild(parameters, buildRequest: buildRequest, fs: fs) { results in
+        await tester.checkBuild(parameters, runDestination: .macOS, buildRequest: buildRequest, fs: fs) { results in
             results.checkTask(.matchTargetName("B"), .matchRuleType("CompileC")) { task in
                 results.checkTaskDoesNotFollow(task, .matchTargetName("A"), .matchRuleType("CompileC"))
             }
@@ -593,7 +593,7 @@ fileprivate struct EagerCompilationTests: CoreBasedTests {
         let parameters = BuildParameters(configuration: "Debug")
         let buildRequest = BuildRequest(parameters: parameters, buildTargets: tester.workspace.projects[0].targets.map({ BuildRequest.BuildTargetInfo(parameters: parameters, target: $0) }), continueBuildingAfterErrors: true, useParallelTargets: true, useImplicitDependencies: false, useDryRun: false)
 
-        await tester.checkBuild(parameters, buildRequest: buildRequest) { results in
+        await tester.checkBuild(parameters, runDestination: .macOS, buildRequest: buildRequest) { results in
             results.checkTask(.matchTargetName("B"), .matchRuleType("CompileC")) { task in
                 results.checkTaskDoesNotFollow(task, .matchTargetName("A"), .matchRuleType("CompileC"))
             }
@@ -646,7 +646,7 @@ fileprivate struct EagerCompilationTests: CoreBasedTests {
         let parameters = BuildParameters(configuration: "Debug")
         let buildRequest = BuildRequest(parameters: parameters, buildTargets: tester.workspace.projects[0].targets.map({ BuildRequest.BuildTargetInfo(parameters: parameters, target: $0) }), continueBuildingAfterErrors: true, useParallelTargets: true, useImplicitDependencies: false, useDryRun: false)
 
-        await tester.checkBuild(parameters, buildRequest: buildRequest) { results in
+        await tester.checkBuild(parameters, runDestination: .macOS, buildRequest: buildRequest) { results in
             results.checkWarning(.contains("target 'B' requires eager compilation, but DEPLOYMENT_LOCATION is set and the build directory of 'A' encloses the build directory of 'B'."))
             results.checkNoDiagnostics()
         }
@@ -687,7 +687,7 @@ fileprivate struct EagerCompilationTests: CoreBasedTests {
         let parameters = BuildParameters(configuration: "Debug")
         let buildRequest = BuildRequest(parameters: parameters, buildTargets: tester.workspace.projects[0].targets.map({ BuildRequest.BuildTargetInfo(parameters: parameters, target: $0) }), continueBuildingAfterErrors: true, useParallelTargets: true, useImplicitDependencies: false, useDryRun: false)
 
-        await tester.checkBuild(parameters, buildRequest: buildRequest) { results in
+        await tester.checkBuild(parameters, runDestination: .macOS, buildRequest: buildRequest) { results in
             results.checkTask(.matchTargetName("B"), .matchRuleType("CompileC")) { task in
                 results.checkTaskFollows(task, .matchTargetName("A"), .matchRuleType("CompileC"))
                 results.checkTaskFollows(task, .matchTargetName("A"), .matchRuleType("Ld"))
@@ -745,7 +745,7 @@ fileprivate struct EagerCompilationTests: CoreBasedTests {
         let parameters = BuildParameters(configuration: "Debug")
         let buildRequest = BuildRequest(parameters: parameters, buildTargets: tester.workspace.projects[0].targets.map({ BuildRequest.BuildTargetInfo(parameters: parameters, target: $0) }), continueBuildingAfterErrors: true, useParallelTargets: true, useImplicitDependencies: false, useDryRun: false)
 
-        await tester.checkBuild(parameters, buildRequest: buildRequest) { results in
+        await tester.checkBuild(parameters, runDestination: .macOS, buildRequest: buildRequest) { results in
             results.checkWarning(.contains("target 'B' has both required and disabled eager compilation"))
             results.checkNoDiagnostics()
         }
@@ -782,7 +782,7 @@ fileprivate struct EagerCompilationTests: CoreBasedTests {
         let parameters = BuildParameters(configuration: "Debug")
         let buildRequest = BuildRequest(parameters: parameters, buildTargets: tester.workspace.projects[0].targets.map({ BuildRequest.BuildTargetInfo(parameters: parameters, target: $0) }), continueBuildingAfterErrors: true, useParallelTargets: true, useImplicitDependencies: false, useDryRun: false)
 
-        await tester.checkBuild(parameters, buildRequest: buildRequest) { results in
+        await tester.checkBuild(parameters, runDestination: .macOS, buildRequest: buildRequest) { results in
             results.checkWarning(.contains("target 'A' requires eager compilation, but build phase 'Run Script' is delaying eager compilation"))
             results.checkNoDiagnostics()
         }
@@ -823,7 +823,7 @@ fileprivate struct EagerCompilationTests: CoreBasedTests {
         let parameters = BuildParameters(configuration: "Debug")
         let buildRequest = BuildRequest(parameters: parameters, buildTargets: tester.workspace.projects[0].targets.map({ BuildRequest.BuildTargetInfo(parameters: parameters, target: $0) }), continueBuildingAfterErrors: true, useParallelTargets: true, useImplicitDependencies: false, useDryRun: false)
 
-        await tester.checkBuild(parameters, buildRequest: buildRequest) { results in
+        await tester.checkBuild(parameters, runDestination: .macOS, buildRequest: buildRequest) { results in
             results.checkTask(.matchTargetName("B"), .matchRuleType("CompileC")) { compileAfter in
                 // compilation should not wait for dependencies to compile
                 results.checkTaskDoesNotFollow(compileAfter, .matchTargetName("A"), .matchRuleType("CompileC"))
@@ -880,7 +880,7 @@ fileprivate struct EagerCompilationTests: CoreBasedTests {
             let parameters = BuildParameters(configuration: "Debug")
             let buildRequest = BuildRequest(parameters: parameters, buildTargets: tester.workspace.projects[0].targets.map({ BuildRequest.BuildTargetInfo(parameters: parameters, target: $0) }), continueBuildingAfterErrors: true, useParallelTargets: true, useImplicitDependencies: false, useDryRun: false)
 
-            await tester.checkBuild(parameters, buildRequest: buildRequest) { results in
+            await tester.checkBuild(parameters, runDestination: .macOS, buildRequest: buildRequest) { results in
                 results.checkTask(.matchTargetName("B"), .matchRuleType("CompileC")) { compileAfter in
                     // compilation should not wait for dependencies to compile
                     results.checkTaskDoesNotFollow(compileAfter, .matchTargetName("A"), .matchRuleType("CompileC"))
@@ -946,7 +946,7 @@ fileprivate struct EagerCompilationTests: CoreBasedTests {
             let parameters = BuildParameters(configuration: "Debug")
             let buildRequest = BuildRequest(parameters: parameters, buildTargets: tester.workspace.projects[0].targets.map({ BuildRequest.BuildTargetInfo(parameters: parameters, target: $0) }), continueBuildingAfterErrors: true, useParallelTargets: true, useImplicitDependencies: false, useDryRun: false)
 
-            await tester.checkBuild(parameters, buildRequest: buildRequest) { results in
+            await tester.checkBuild(parameters, runDestination: .macOS, buildRequest: buildRequest) { results in
                 results.checkTask(.matchTargetName("A"), .matchRuleType("CompileC")) { compileAfter in
                     results.checkTaskFollows(compileAfter, .matchTargetName("A"), .matchRuleType("SwiftDriver Compilation Requirements"))
                 }
@@ -1024,7 +1024,7 @@ fileprivate struct EagerCompilationTests: CoreBasedTests {
             let parameters = BuildParameters(configuration: "Debug")
             let buildRequest = BuildRequest(parameters: parameters, buildTargets: tester.workspace.projects[0].targets.map({ BuildRequest.BuildTargetInfo(parameters: parameters, target: $0) }), continueBuildingAfterErrors: true, useParallelTargets: true, useImplicitDependencies: false, useDryRun: false)
 
-            await tester.checkBuild(parameters, buildRequest: buildRequest) { results in
+            await tester.checkBuild(parameters, runDestination: .macOS, buildRequest: buildRequest) { results in
                 func verifyDependencyChain(_ tasks: [[TaskCondition]], sourceLocation: SourceLocation = #_sourceLocation) {
                     // order doesn't matter for one or less tasks in a chain
                     guard tasks.count > 1 else { return }
@@ -1150,7 +1150,7 @@ fileprivate struct EagerCompilationTests: CoreBasedTests {
             let parameters = BuildParameters(configuration: "Debug")
             let buildRequest = BuildRequest(parameters: parameters, buildTargets: tester.workspace.projects[0].targets.map({ BuildRequest.BuildTargetInfo(parameters: parameters, target: $0) }), continueBuildingAfterErrors: true, useParallelTargets: true, useImplicitDependencies: false, useDryRun: false)
 
-            await tester.checkBuild(parameters, buildRequest: buildRequest) { results in
+            await tester.checkBuild(parameters, runDestination: .macOS, buildRequest: buildRequest) { results in
                 results.checkTask(.matchTargetName("A"), .matchRuleType("CompileC")) { compileAfter in
                     results.checkTaskFollows(compileAfter, .matchTargetName("A"), .matchRuleType("ProcessPCH"))
                 }
@@ -1303,7 +1303,7 @@ fileprivate struct EagerCompilationTests: CoreBasedTests {
             try fs.createDirectory(toolchain.path.join("usr").join("bin"), recursive: true)
             try fs.write(toolchain.path.join("usr").join("bin").join("coremlc"), contents: ByteString())
 
-            await tester.checkBuild(parameters, buildRequest: buildRequest, fs: fs, clientDelegate: Delegate()) { results in
+            await tester.checkBuild(parameters, runDestination: .macOS, buildRequest: buildRequest, fs: fs, clientDelegate: Delegate()) { results in
                 results.checkNoDiagnostics()
 
                 results.checkTask(.matchTargetName("A"), .matchRuleType("SwiftDriver Compilation")) { compilationTask in
@@ -1398,7 +1398,7 @@ fileprivate struct EagerCompilationTests: CoreBasedTests {
             let parameters = BuildParameters(configuration: "Debug")
             let buildRequest = BuildRequest(parameters: parameters, buildTargets: tester.workspace.projects[0].targets.map({ BuildRequest.BuildTargetInfo(parameters: parameters, target: $0) }), continueBuildingAfterErrors: true, useParallelTargets: true, useImplicitDependencies: false, useDryRun: false)
 
-            await tester.checkBuild(parameters, buildRequest: buildRequest) { results in
+            await tester.checkBuild(parameters, runDestination: .macOS, buildRequest: buildRequest) { results in
                 results.checkNoDiagnostics()
 
                 results.checkTask(.matchTargetName("A"), .matchRuleType("SwiftDriver Compilation")) { compilationTask in
@@ -1489,7 +1489,7 @@ fileprivate struct EagerCompilationTests: CoreBasedTests {
             let parameters = BuildParameters(configuration: "Debug")
             let buildRequest = BuildRequest(parameters: parameters, buildTargets: tester.workspace.projects[0].targets.map({ BuildRequest.BuildTargetInfo(parameters: parameters, target: $0) }), continueBuildingAfterErrors: true, useParallelTargets: true, useImplicitDependencies: false, useDryRun: false)
 
-            await tester.checkBuild(parameters, buildRequest: buildRequest) { results in
+            await tester.checkBuild(parameters, runDestination: .macOS, buildRequest: buildRequest) { results in
                 results.checkNoDiagnostics()
 
                 results.checkTask(.matchTargetName("A"), .matchRuleType("SwiftDriver Compilation")) { compilationTask in
@@ -1580,7 +1580,7 @@ fileprivate struct EagerCompilationTests: CoreBasedTests {
             let parameters = BuildParameters(configuration: "Debug")
             let buildRequest = BuildRequest(parameters: parameters, buildTargets: tester.workspace.projects[0].targets.map({ BuildRequest.BuildTargetInfo(parameters: parameters, target: $0) }), continueBuildingAfterErrors: true, useParallelTargets: true, useImplicitDependencies: false, useDryRun: false)
 
-            await tester.checkBuild(parameters, buildRequest: buildRequest) { results in
+            await tester.checkBuild(parameters, runDestination: .macOS, buildRequest: buildRequest) { results in
                 results.checkNoDiagnostics()
 
                 results.checkTask(.matchTargetName("A"), .matchRuleType("SwiftDriver Compilation")) { compilationTask in
@@ -1647,7 +1647,7 @@ fileprivate struct EagerCompilationTests: CoreBasedTests {
 
             let tester = try await TaskConstructionTester(getCore(), testProject)
 
-            await tester.checkBuild(targetName: "A") { results in
+            await tester.checkBuild(runDestination: .macOS, targetName: "A") { results in
                 results.checkWarning(.prefix("tasks in 'Copy Headers' are delayed by unsandboxed script phases"))
                 results.checkNoDiagnostics()
 
@@ -1718,7 +1718,7 @@ fileprivate struct EagerCompilationTests: CoreBasedTests {
             let tester = try await TaskConstructionTester(getCore(), testProject)
             let parameters = BuildParameters(configuration: "Debug")
             let buildRequest = BuildRequest(parameters: parameters, buildTargets: tester.workspace.projects[0].targets.map({ BuildRequest.BuildTargetInfo(parameters: parameters, target: $0) }), continueBuildingAfterErrors: true, useParallelTargets: true, useImplicitDependencies: false, useDryRun: false)
-            try await tester.checkBuild(parameters, buildRequest: buildRequest) { results in
+            try await tester.checkBuild(parameters, runDestination: .macOS, buildRequest: buildRequest) { results in
                 results.checkNoDiagnostics()
 
                 let compilationRequirementRuleInfoType = "SwiftDriver Compilation Requirements"
@@ -1820,7 +1820,7 @@ fileprivate struct EagerCompilationTests: CoreBasedTests {
         let testWorkspace = TestWorkspace("aWorkspace", projects: [testProject])
         let tester = try await TaskConstructionTester(getCore(), testWorkspace)
 
-        try await tester.checkBuild(BuildParameters(configuration: "Debug")) { results in
+        try await tester.checkBuild(runDestination: .macOS) { results in
             results.checkNoDiagnostics()
 
             try results.checkTarget("App") { target in
@@ -1895,7 +1895,7 @@ fileprivate struct EagerCompilationTests: CoreBasedTests {
             let tester = try await TaskConstructionTester(getCore(), testProject)
             let parameters = BuildParameters(configuration: "Debug")
             let buildRequest = BuildRequest(parameters: parameters, buildTargets: tester.workspace.projects[0].targets.map({ BuildRequest.BuildTargetInfo(parameters: parameters, target: $0) }), continueBuildingAfterErrors: true, useParallelTargets: true, useImplicitDependencies: false, useDryRun: false)
-            try await tester.checkBuild(parameters, buildRequest: buildRequest) { results in
+            try await tester.checkBuild(parameters, runDestination: .macOS, buildRequest: buildRequest) { results in
                 results.checkNoDiagnostics()
 
                 let compilationRequirementRuleInfoType = "SwiftDriver Compilation Requirements"
@@ -2025,7 +2025,7 @@ fileprivate struct EagerCompilationTests: CoreBasedTests {
             let tester = try await TaskConstructionTester(getCore(), testProject)
             let parameters = BuildParameters(configuration: "Debug")
             let buildRequest = BuildRequest(parameters: parameters, buildTargets: tester.workspace.projects[0].targets.map({ BuildRequest.BuildTargetInfo(parameters: parameters, target: $0) }), continueBuildingAfterErrors: true, useParallelTargets: true, useImplicitDependencies: false, useDryRun: false)
-            try await tester.checkBuild(parameters, buildRequest: buildRequest) { results in
+            try await tester.checkBuild(parameters, runDestination: .macOS, buildRequest: buildRequest) { results in
                 results.checkNoDiagnostics()
 
                 let compilationRequirementRuleInfoType = "SwiftDriver Compilation Requirements"

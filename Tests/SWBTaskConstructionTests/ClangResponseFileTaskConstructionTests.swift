@@ -57,7 +57,7 @@ fileprivate struct ClangResponseFileTaskConstructionTests: CoreBasedTests {
 
             let core = try await getCore()
             let tester = try TaskConstructionTester(core, testProject)
-            try await tester.checkBuild(BuildParameters(configuration: "Debug", activeRunDestination: .host), runDestination: .host) { results in
+            try await tester.checkBuild(runDestination: .host) { results in
                 try results.checkWriteAuxiliaryFileTask(.matchRuleItemPattern(.suffix("7187679823f38a2a940e0043cdf9d637-common-args.resp"))) { task, contents in
                     let responseFilePath = try #require(task.outputs.only)
 
@@ -116,7 +116,7 @@ fileprivate struct ClangResponseFileTaskConstructionTests: CoreBasedTests {
 
             let core = try await getCore()
             let tester = try TaskConstructionTester(core, testProject)
-            await tester.checkBuild(BuildParameters(configuration: "Debug", activeRunDestination: .host), runDestination: .host) { results in
+            await tester.checkBuild(runDestination: .host) { results in
                 results.checkNoTask(.matchRulePattern(["WriteAuxiliaryFile", .suffix(".resp")]))
                 results.checkNoDiagnostics()
             }
@@ -164,7 +164,7 @@ fileprivate struct ClangResponseFileTaskConstructionTests: CoreBasedTests {
 
             let core = try await getCore()
             let tester = try TaskConstructionTester(core, testProject)
-            await tester.checkBuild(BuildParameters(configuration: "Debug", activeRunDestination: .host), runDestination: .host) { results in
+            await tester.checkBuild(runDestination: .host) { results in
                 results.checkWriteAuxiliaryFileTask(.matchRuleItemPattern(.suffix("7187679823f38a2a940e0043cdf9d637-common-args.resp"))) { task, contents in
                     let stringContents = contents.asString
                     #expect(stringContents.contains("-target"))
@@ -229,7 +229,7 @@ fileprivate struct ClangResponseFileTaskConstructionTests: CoreBasedTests {
 
             let core = try await getCore()
             let tester = try TaskConstructionTester(core, testProject)
-            await tester.checkBuild(BuildParameters(configuration: "Debug", activeRunDestination: .host), runDestination: .host) { results in
+            await tester.checkBuild(runDestination: .host) { results in
                 var aResponseFile: Path? = nil
                 var bResponseFile: Path? = nil
                 var cResponseFile: Path? = nil
@@ -288,7 +288,7 @@ fileprivate struct ClangResponseFileTaskConstructionTests: CoreBasedTests {
 
             let core = try await getCore()
             let tester = try TaskConstructionTester(core, testProject)
-            await tester.checkBuild(BuildParameters(configuration: "Debug", activeRunDestination: .host), runDestination: .host) { results in
+            await tester.checkBuild(runDestination: .host) { results in
                 var compileResponseFile: Path? = nil
                 var analyzeResponseFile: Path? = nil
                 results.checkTask(.matchRuleType("CompileC"), .matchRuleItemPattern(.suffix("a.c"))) { compileTask in
@@ -347,7 +347,7 @@ fileprivate struct ClangResponseFileTaskConstructionTests: CoreBasedTests {
 
             let core = try await getCore()
             let tester = try TaskConstructionTester(core, testProject)
-            await tester.checkBuild(BuildParameters(configuration: "Debug", activeRunDestination: .host), runDestination: .host) { results in
+            await tester.checkBuild(runDestination: .host) { results in
                 results.checkWriteAuxiliaryFileTask(.matchRuleItemPattern(.suffix("7187679823f38a2a940e0043cdf9d637-common-args.resp"))) { task, contents in
                     let stringContents = contents.asString
                     #expect(stringContents.contains("-Xclang -Wno-shorten-64-to-32"))

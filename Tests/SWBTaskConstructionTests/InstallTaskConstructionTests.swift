@@ -135,7 +135,7 @@ fileprivate struct InstallTaskConstructionTests: CoreBasedTests {
             "DSTROOT": "/tmp/dstroot",
             "USE_HIERARCHICAL_LAYOUT_FOR_COPIED_ASIDE_PRODUCTS": "YES",
         ]
-        await tester.checkBuild(BuildParameters(action: .install, configuration: "Release", overrides: overrides)) { results in
+        await tester.checkBuild(BuildParameters(action: .install, configuration: "Release", overrides: overrides), runDestination: .macOS) { results in
             results.checkNoDiagnostics()
 
             results.consumeTasksMatchingRuleTypes(["Gate", "WriteAuxiliaryFile", "CreateBuildDirectory", "MkDir", "Strip", "SetOwnerAndGroup", "SetMode", "Touch", "RegisterWithLaunchServices"])
@@ -236,7 +236,7 @@ fileprivate struct InstallTaskConstructionTests: CoreBasedTests {
 
         // Check a build where the DSTROOT is a string-prefix of the SRCROOT.
         var DSTROOT = tester.workspace.projects[0].sourceRoot.dirname.join(projectNameRoot).str
-        await tester.checkBuild(BuildParameters(action: .install, configuration: "Release", overrides: ["DSTROOT": DSTROOT,])) { results in
+        await tester.checkBuild(BuildParameters(action: .install, configuration: "Release", overrides: ["DSTROOT": DSTROOT,]), runDestination: .macOS) { results in
             results.checkNoDiagnostics()
 
             results.consumeTasksMatchingRuleTypes(["Gate", "WriteAuxiliaryFile", "CreateBuildDirectory", "MkDir", "Strip", "SetOwnerAndGroup", "SetMode", "Touch", "RegisterWithLaunchServices"])
@@ -249,7 +249,7 @@ fileprivate struct InstallTaskConstructionTests: CoreBasedTests {
 
         // Check a build where the DSTROOT is *not* a string-prefix of the SRCROOT.
         DSTROOT = tester.workspace.projects[0].sourceRoot.dirname.join("\(projectNameRoot).dst").str
-        await tester.checkBuild(BuildParameters(action: .install, configuration: "Release", overrides: ["DSTROOT": DSTROOT,])) { results in
+        await tester.checkBuild(BuildParameters(action: .install, configuration: "Release", overrides: ["DSTROOT": DSTROOT,]), runDestination: .macOS) { results in
             results.checkNoDiagnostics()
 
             results.consumeTasksMatchingRuleTypes(["Gate", "WriteAuxiliaryFile", "CreateBuildDirectory", "MkDir", "Strip", "SetOwnerAndGroup", "SetMode", "Touch", "RegisterWithLaunchServices"])

@@ -61,7 +61,7 @@ fileprivate struct LibtoolTaskConstructionTests: CoreBasedTests {
         let tester = try TaskConstructionTester(core, testProject)
         let SRCROOT = tester.workspace.projects[0].sourceRoot.str
 
-        await tester.checkBuild(BuildParameters(configuration: "Debug")) { results in
+        await tester.checkBuild(runDestination: .macOS) { results in
             results.checkTarget("Deterministic") { target in
                 results.checkTask(.matchTarget(target), .matchRuleType("Libtool")) { task in
                     task.checkRuleInfo(["Libtool", "\(SRCROOT)/build/Debug/libDeterministic.a", "normal"])

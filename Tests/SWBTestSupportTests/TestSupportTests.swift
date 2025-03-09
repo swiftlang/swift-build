@@ -66,10 +66,10 @@ import SWBUtil
 
             let core = try await getCore()
             let buildA = try TaskConstructionTester(core, testWorkspace)
-            try await buildA.checkBuild { outerResults in
+            try await buildA.checkBuild(runDestination: .macOS) { outerResults in
                 let tasks = outerResults.getTasks(.matchRuleItem("CompileC"))
                 let buildB = try TaskConstructionTester(core, testWorkspace)
-                await buildB.checkBuild { results in
+                await buildB.checkBuild(runDestination: .macOS) { results in
                     // This is not a not a known issue but rather an expected failure
                     withKnownIssue("Task does not belong to the current build") {
                         try results.checkTaskFollows(#require(tasks.only), .matchRuleItem("CompileC"))

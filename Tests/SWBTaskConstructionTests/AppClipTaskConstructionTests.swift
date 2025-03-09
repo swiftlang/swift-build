@@ -25,7 +25,7 @@ fileprivate struct AppClipTaskConstructionTests: CoreBasedTests {
             let fs = PseudoFS()
             let tester = try await TaskConstructionTester(getCore(), TestProject.appClip(sourceRoot: tmpDir, fs: fs))
 
-            await tester.checkBuild(BuildParameters(action: .build, configuration: "Debug", activeRunDestination: .iOS), fs: fs) { results in
+            await tester.checkBuild(BuildParameters(action: .build, configuration: "Debug"), runDestination: .iOS, fs: fs) { results in
                 results.checkNoDiagnostics()
                 for variant in ["thinned", "unthinned"] {
                     results.checkTask(.matchTargetName("Foo"), .matchRuleType("CompileAssetCatalogVariant"), .matchRuleItem(variant)) { task in
@@ -40,14 +40,14 @@ fileprivate struct AppClipTaskConstructionTests: CoreBasedTests {
                 }
             }
 
-            await tester.checkBuild(BuildParameters(action: .build, configuration: "Debug", activeRunDestination: .iOSSimulator), fs: fs) { results in
+            await tester.checkBuild(BuildParameters(action: .build, configuration: "Debug"), runDestination: .iOSSimulator, fs: fs) { results in
                 results.checkNoDiagnostics()
                 results.checkTask(.matchTargetName("Foo"), .matchRuleType("ValidateEmbeddedBinary")) { task in
                     task.checkCommandLine(["embeddedBinaryValidationUtility", "\(tmpDir.str)/build/Debug-iphonesimulator/Foo.app/AppClips/BarClip.app", "-info-plist-path", "\(tmpDir.str)/build/Debug-iphonesimulator/Foo.app/Info.plist"])
                 }
             }
 
-            await tester.checkBuild(BuildParameters(action: .build, configuration: "Debug", activeRunDestination: .macCatalyst), fs: fs) { results in
+            await tester.checkBuild(BuildParameters(action: .build, configuration: "Debug"), runDestination: .macCatalyst, fs: fs) { results in
                 results.checkNoDiagnostics()
                 results.checkTask(.matchTargetName("Foo"), .matchRuleType("Ld")) { task in
                     task.checkCommandLineLastArgumentEqual("\(tmpDir.str)/build/Debug\(MacCatalystInfo.publicSDKBuiltProductsDirSuffix)/Foo.app/Contents/MacOS/Foo")

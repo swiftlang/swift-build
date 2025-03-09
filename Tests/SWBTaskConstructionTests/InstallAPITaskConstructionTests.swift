@@ -81,7 +81,7 @@ fileprivate struct InstallAPITaskConstructionTests: CoreBasedTests {
         try fs.write(tester.workspace.projects[0].sourceRoot.join("Info.plist"), contents: "<dict/>")
 
         // We should only try to sign valid API-able product types.
-        await tester.checkBuild(BuildParameters(action: .install, configuration: "Debug"), fs: fs) { results in
+        await tester.checkBuild(BuildParameters(action: .install, configuration: "Debug"), runDestination: .macOS, fs: fs) { results in
             results.checkError("Cannot code sign because the target does not have an Info.plist file and one is not being generated automatically. Apply an Info.plist file to the target using the INFOPLIST_FILE build setting or generate one automatically by setting the GENERATE_INFOPLIST_FILE build setting to YES (recommended). (in target 'FwkNoPlist' from project 'aProject')")
             results.checkError("Cannot code sign because the target does not have an Info.plist file and one is not being generated automatically. Apply an Info.plist file to the target using the INFOPLIST_FILE build setting or generate one automatically by setting the GENERATE_INFOPLIST_FILE build setting to YES (recommended). (in target 'FwkNoPlist' from project 'aProject')")
             results.checkError("Cannot code sign because the target does not have an Info.plist file and one is not being generated automatically. Apply an Info.plist file to the target using the INFOPLIST_FILE build setting or generate one automatically by setting the GENERATE_INFOPLIST_FILE build setting to YES (recommended). (in target 'FwkNoSrc' from project 'aProject')")
@@ -134,7 +134,7 @@ fileprivate struct InstallAPITaskConstructionTests: CoreBasedTests {
         let tapiToolPath = try await self.tapiToolPath
 
         // Check the `installapi` build.
-        await tester.checkBuild(BuildParameters(action: .installAPI, configuration: "Debug"), fs: fs) { results in
+        await tester.checkBuild(BuildParameters(action: .installAPI, configuration: "Debug"), runDestination: .macOS, fs: fs) { results in
             // There should be 3 interesting tasks (aside from symlink/touch tasks):
             // * CpHeader for umbrella header
             // * SymLink of the .tbd file
@@ -182,7 +182,7 @@ fileprivate struct InstallAPITaskConstructionTests: CoreBasedTests {
         }
 
         // Check the `install` build, which should run the same steps but also provide the binary for comparison purposes.
-        await tester.checkBuild(BuildParameters(action: .install, configuration: "Debug", overrides: ["RETAIN_RAW_BINARIES": "YES"]), fs: fs) { results in
+        await tester.checkBuild(BuildParameters(action: .install, configuration: "Debug", overrides: ["RETAIN_RAW_BINARIES": "YES"]), runDestination: .macOS, fs: fs) { results in
             // There should be 4 interesting tasks (aside from symlink/touch tasks):
             // * CpHeader for umbrella header
             // * SymLink of the .tbd file
@@ -302,7 +302,7 @@ fileprivate struct InstallAPITaskConstructionTests: CoreBasedTests {
         let tapiToolPath = try await self.tapiToolPath
 
         // Check the `installapi` build.
-        await tester.checkBuild(BuildParameters(action: .installAPI, configuration: "Debug"), fs: fs) { results in
+        await tester.checkBuild(BuildParameters(action: .installAPI, configuration: "Debug"), runDestination: .macOS, fs: fs) { results in
             // There should be 3 interesting tasks (aside from symlink/touch tasks):
             // * CpHeader for umbrella header
             // * SymLink of the .tbd file
@@ -353,7 +353,7 @@ fileprivate struct InstallAPITaskConstructionTests: CoreBasedTests {
         }
 
         // Check the `install` build, which should run the same steps but also provide the binary for comparison purposes.
-        await tester.checkBuild(BuildParameters(action: .install, configuration: "Debug", overrides: ["RETAIN_RAW_BINARIES": "YES"]), fs: fs) { results in
+        await tester.checkBuild(BuildParameters(action: .install, configuration: "Debug", overrides: ["RETAIN_RAW_BINARIES": "YES"]), runDestination: .macOS, fs: fs) { results in
             // There should be 4 interesting tasks (aside from symlink/touch tasks):
             // * CpHeader for umbrella header
             // * SymLink of the .tbd file
@@ -496,7 +496,7 @@ fileprivate struct InstallAPITaskConstructionTests: CoreBasedTests {
 
 
         // Check the `installapi` build.
-        try await tester.checkBuild(BuildParameters(action: .installAPI, configuration: "Debug"), fs: fs) { results in
+        try await tester.checkBuild(BuildParameters(action: .installAPI, configuration: "Debug"), runDestination: .macOS, fs: fs) { results in
             results.checkNoDiagnostics()
             results.checkTask(.matchRuleType("CpHeader")) { task in
                 task.checkCommandLineMatches([
@@ -553,7 +553,7 @@ fileprivate struct InstallAPITaskConstructionTests: CoreBasedTests {
         }
 
         // Check the `install` build, which should run the same steps but also provide the binary for comparison purposes.
-        await tester.checkBuild(BuildParameters(action: .install, configuration: "Debug", overrides: ["RETAIN_RAW_BINARIES": "YES"]), fs: fs) { results in
+        await tester.checkBuild(BuildParameters(action: .install, configuration: "Debug", overrides: ["RETAIN_RAW_BINARIES": "YES"]), runDestination: .macOS, fs: fs) { results in
             // There should be 4 interesting tasks (aside from symlink/touch tasks):
             // * CpHeader for umbrella header
             // * SymLink of the .tbd file
@@ -637,7 +637,7 @@ fileprivate struct InstallAPITaskConstructionTests: CoreBasedTests {
         let tester = try await TaskConstructionTester(getCore(), testProject)
 
         // Check the `install` build performs the stubify step.
-        await tester.checkBuild(BuildParameters(action: .install, configuration: "Debug")) { results in
+        await tester.checkBuild(BuildParameters(action: .install, configuration: "Debug"), runDestination: .macOS) { results in
             results.checkNoDiagnostics()
             results.checkTask(.matchRuleType("GenerateTAPI")) { task in
                 // check TAPI options.
@@ -699,7 +699,7 @@ fileprivate struct InstallAPITaskConstructionTests: CoreBasedTests {
         ])
 
         // Check the `installapi` build.
-        try await tester.checkBuild(BuildParameters(action: .installAPI, configuration: "Debug")) { results in
+        try await tester.checkBuild(BuildParameters(action: .installAPI, configuration: "Debug"), runDestination: .macOS) { results in
             // There should be 3 interesting tasks:
             // * CpHeader for header
             // * WriteAuxiliaryFile for JSON description
@@ -748,7 +748,7 @@ fileprivate struct InstallAPITaskConstructionTests: CoreBasedTests {
         }
 
         // Check the `install` build, which should run the same steps but also provide the binary for comparison purposes.
-        try await tester.checkBuild(BuildParameters(action: .install, configuration: "Debug")) { results in
+        try await tester.checkBuild(BuildParameters(action: .install, configuration: "Debug"), runDestination: .macOS) { results in
             results.checkNoDiagnostics()
             results.checkTask(.matchRuleType("CpHeader")) { task in
                 task.checkCommandLineMatches([
@@ -846,7 +846,7 @@ fileprivate struct InstallAPITaskConstructionTests: CoreBasedTests {
         ])
 
         // Check the `installapi` build.
-        try await tester.checkBuild(BuildParameters(action: .installAPI, configuration: "Debug")) { results in
+        try await tester.checkBuild(BuildParameters(action: .installAPI, configuration: "Debug"), runDestination: .macOS) { results in
             results.checkNoDiagnostics()
             try results.checkWriteAuxiliaryFileTask(.matchRuleType("WriteAuxiliaryFile"), .matchRuleItemBasename("Core.json")) { task, contents in
                 let data = try PropertyList.fromJSONData(contents)
@@ -891,7 +891,7 @@ fileprivate struct InstallAPITaskConstructionTests: CoreBasedTests {
         }
 
         // Check the `install` build, which should run the same steps but also provide the binary for comparison purposes.
-        try await tester.checkBuild(BuildParameters(action: .install, configuration: "Debug")) { results in
+        try await tester.checkBuild(BuildParameters(action: .install, configuration: "Debug"), runDestination: .macOS) { results in
             results.checkNoDiagnostics()
             results.checkTask(.matchRuleType("CpHeader")) { task in
                 task.checkCommandLineMatches([
@@ -970,7 +970,7 @@ fileprivate struct InstallAPITaskConstructionTests: CoreBasedTests {
         let tester = try await TaskConstructionTester(getCore(), testProject)
 
         // Check the `install` build performs the stubify step.
-        await tester.checkBuild(BuildParameters(action: .install, configuration: "Debug")) { results in
+        await tester.checkBuild(BuildParameters(action: .install, configuration: "Debug"), runDestination: .macOS) { results in
             results.checkNoDiagnostics()
             results.checkTask(.matchRuleType("GenerateTAPI")) { task in
                 // check TAPI options.
@@ -1050,7 +1050,7 @@ fileprivate struct InstallAPITaskConstructionTests: CoreBasedTests {
         let tester = try await TaskConstructionTester(getCore(), testProject)
 
         // Check the `install` build performs the stubify step.
-        await tester.checkBuild(BuildParameters(action: .install, configuration: "Debug")) { results in
+        await tester.checkBuild(BuildParameters(action: .install, configuration: "Debug"), runDestination: .macOS) { results in
             results.checkNoDiagnostics()
             results.checkNoTask(.matchRuleType("GenerateTAPI"))
         }
@@ -1232,7 +1232,7 @@ fileprivate struct InstallAPITaskConstructionTests: CoreBasedTests {
             ])
         let tester = try await TaskConstructionTester(getCore(), testProject)
 
-        await tester.checkBuild(BuildParameters(action: .installAPI, configuration: "Debug")) { results in
+        await tester.checkBuild(BuildParameters(action: .installAPI, configuration: "Debug"), runDestination: .macOS) { results in
             results.checkError(.equal("Framework requested to generate API, but has not adopted SUPPORTS_TEXT_BASED_API (in target 'BadFwk' from project 'aProject')"))
             results.checkError(.equal("Dynamic Library requested to generate API, but has not adopted SUPPORTS_TEXT_BASED_API (in target 'BadDynamicLib' from project 'aProject')"))
             results.checkNoDiagnostics()
@@ -1294,7 +1294,7 @@ fileprivate struct InstallAPITaskConstructionTests: CoreBasedTests {
                 task.checkCommandLineDoesNotContain("-emit-tbd")
             }
         }
-        await tester.checkBuild(BuildParameters(action: .installAPI, configuration: "Release")) { results in
+        await tester.checkBuild(BuildParameters(action: .installAPI, configuration: "Release"), runDestination: .macOS) { results in
             results.consumeTasksMatchingRuleTypes(["Gate", "SymLink", "CpHeader", "MkDir", "Touch", "CreateBuildDirectory"])
             // Check that the VFS is generated.
             results.checkTaskExists(.matchRuleType("WriteAuxiliaryFile"), .matchRuleItemBasename("all-product-headers.yaml"))
@@ -1335,7 +1335,7 @@ fileprivate struct InstallAPITaskConstructionTests: CoreBasedTests {
                     ])
             ])
         let tester = try await TaskConstructionTester(getCore(), testProject)
-        await tester.checkBuild(BuildParameters(action: .installAPI, configuration: "Debug")) { results in
+        await tester.checkBuild(BuildParameters(action: .installAPI, configuration: "Debug"), runDestination: .macOS) { results in
             // Check that the VFS is generated.
             results.checkTaskExists(.matchRuleType("WriteAuxiliaryFile"), .matchRuleItemBasename("all-product-headers.yaml"))
             results.checkTarget("FooFramework") { target in
@@ -1400,7 +1400,7 @@ fileprivate struct InstallAPITaskConstructionTests: CoreBasedTests {
         let tapiVersion = try await discoveredTAPIToolInfo(at: tapiToolPath).toolVersion ?? Version()
 
         // Check the `installapi` build.
-        await tester.checkBuild(BuildParameters(action: .installAPI, configuration: "Debug")) { results in
+        await tester.checkBuild(BuildParameters(action: .installAPI, configuration: "Debug"), runDestination: .macOS) { results in
             results.consumeTasksMatchingRuleTypes(["Gate", "SymLink", "CpHeader", "MkDir", "Touch", "CreateBuildDirectory"])
             // Check that the VFS is generated.
             results.checkTaskExists(.matchRuleType("WriteAuxiliaryFile"), .matchRuleItemBasename("all-product-headers.yaml"))
@@ -1529,7 +1529,7 @@ fileprivate struct InstallAPITaskConstructionTests: CoreBasedTests {
 
         let tester = try await TaskConstructionTester(getCore(), testProject)
 
-        await tester.checkBuild(BuildParameters(action: .installAPI, configuration: "Debug")) { results in
+        await tester.checkBuild(BuildParameters(action: .installAPI, configuration: "Debug"), runDestination: .macOS) { results in
             results.checkTarget("TargetName") { target in
                 results.checkNoTask(.matchRuleType("RuleScriptExecution"))
             }
@@ -1537,7 +1537,7 @@ fileprivate struct InstallAPITaskConstructionTests: CoreBasedTests {
         let overrides = [
             "APPLY_RULES_IN_INSTALLAPI": "YES"
         ]
-        await tester.checkBuild(BuildParameters(action: .installAPI, configuration: "Debug", overrides: overrides)) { results in
+        await tester.checkBuild(BuildParameters(action: .installAPI, configuration: "Debug", overrides: overrides), runDestination: .macOS) { results in
             results.checkTarget("TargetName") { target in
                 results.checkTask(.matchRuleType("RuleScriptExecution")) { task in
                     task.checkCommandLineContains(["/bin/sh", "-c", "cp $INPUT_FILE_PATH /tmp/b"])
@@ -1587,7 +1587,7 @@ fileprivate struct InstallAPITaskConstructionTests: CoreBasedTests {
 
         let tester = try await TaskConstructionTester(getCore(), testProject)
 
-        await tester.checkBuild(BuildParameters(action: .installAPI, configuration: "Debug")) { results in
+        await tester.checkBuild(BuildParameters(action: .installAPI, configuration: "Debug"), runDestination: .macOS) { results in
             results.consumeTasksMatchingRuleTypes(["Gate", "SymLink", "CpHeader", "MkDir", "Touch", "CreateBuildDirectory"])
 
             // Check that the VFS is generated.
@@ -1684,7 +1684,7 @@ fileprivate struct InstallAPITaskConstructionTests: CoreBasedTests {
         let tester = try await TaskConstructionTester(getCore(), testProject)
 
         // Check the `installapi` build.
-        await tester.checkBuild(BuildParameters(action: .installAPI, configuration: "Debug", activeRunDestination: .anyiOSDevice)) { results in
+        await tester.checkBuild(BuildParameters(action: .installAPI, configuration: "Debug"), runDestination: .anyiOSDevice) { results in
             results.checkNoDiagnostics()
 
             // Check that the VFS is generated.
@@ -1820,7 +1820,7 @@ fileprivate struct InstallAPITaskConstructionTests: CoreBasedTests {
         }
 
         // Check the `installapi` build.
-        await tester.checkBuild(BuildParameters(action: .installAPI, configuration: "Debug", activeRunDestination: .anyiOSDevice), clientDelegate: Delegate()) { results in
+        await tester.checkBuild(BuildParameters(action: .installAPI, configuration: "Debug"), runDestination: .anyiOSDevice, clientDelegate: Delegate()) { results in
             results.checkNoDiagnostics()
 
             // Check that the VFS is generated.
@@ -1938,7 +1938,7 @@ fileprivate struct InstallAPITaskConstructionTests: CoreBasedTests {
         let tester = try await TaskConstructionTester(getCore(), testProject)
 
         // Check the `installapi` build.
-        await tester.checkBuild(BuildParameters(action: .installAPI, configuration: "Debug")) { results in
+        await tester.checkBuild(BuildParameters(action: .installAPI, configuration: "Debug"), runDestination: .macOS) { results in
             // It is an error to have Swift code and not enable InstallAPI.
             // Only applies to frameworks and dylibs.
             results.checkError(.equal("Dynamic Library requested to generate API, but has not adopted SUPPORTS_TEXT_BASED_API (in target 'BadDylib' from project 'aProject')"))
@@ -1947,7 +1947,7 @@ fileprivate struct InstallAPITaskConstructionTests: CoreBasedTests {
         }
 
         // Check the `installapi` build with ALLOW_UNSUPPORTED_TEXT_BASED_API set.
-        await tester.checkBuild(BuildParameters(action: .installAPI, configuration: "Debug", overrides: ["ALLOW_UNSUPPORTED_TEXT_BASED_API": "YES"])) { results in
+        await tester.checkBuild(BuildParameters(action: .installAPI, configuration: "Debug", overrides: ["ALLOW_UNSUPPORTED_TEXT_BASED_API": "YES"]), runDestination: .macOS) { results in
             results.checkNoDiagnostics()
         }
     }
@@ -2004,7 +2004,7 @@ fileprivate struct InstallAPITaskConstructionTests: CoreBasedTests {
         let tester = try await TaskConstructionTester(getCore(), testProject)
 
         // Check the `installapi` build.
-        await tester.checkBuild(BuildParameters(action: .installAPI, configuration: "Debug", activeRunDestination: .iOS)) { results in
+        await tester.checkBuild(BuildParameters(action: .installAPI, configuration: "Debug"), runDestination: .iOS) { results in
             let arch = results.runDestinationTargetArchitecture
 
             // We should have a Swift invocation for FwkPrivate even though it's not installed.
@@ -2127,7 +2127,7 @@ fileprivate struct InstallAPITaskConstructionTests: CoreBasedTests {
 
         let tester = try await TaskConstructionTester(getCore(), testProject)
 
-        await tester.checkBuild(BuildParameters(action: .installAPI, configuration: "Debug")) { results in
+        await tester.checkBuild(BuildParameters(action: .installAPI, configuration: "Debug"), runDestination: .macOS) { results in
             results.consumeTasksMatchingRuleTypes(["Gate", "SymLink", "CpHeader", "MkDir", "Touch", "CreateBuildDirectory"])
             results.checkTarget("PackageProduct") { target in
                 results.checkNoDiagnostics()
@@ -2193,7 +2193,7 @@ fileprivate struct InstallAPITaskConstructionTests: CoreBasedTests {
             ])
         ])
         // Check the `installapi` build.
-        try await tester.checkBuild(BuildParameters(action: .installAPI, configuration: "Debug"), fs: fs) { results in
+        try await tester.checkBuild(BuildParameters(action: .installAPI, configuration: "Debug"), runDestination: .macOS, fs: fs) { results in
             results.checkNoDiagnostics()
             results.checkTask(.matchRuleType("CpHeader")) { task in
                 task.checkCommandLineMatches([
@@ -2247,7 +2247,7 @@ fileprivate struct InstallAPITaskConstructionTests: CoreBasedTests {
         }
 
         // Check the `install` build, which should run the same steps but also provide the binary for comparison purposes.
-        await tester.checkBuild(BuildParameters(action: .install, configuration: "Debug", overrides: ["RETAIN_RAW_BINARIES": "YES"]), fs: fs) { results in
+        await tester.checkBuild(BuildParameters(action: .install, configuration: "Debug", overrides: ["RETAIN_RAW_BINARIES": "YES"]), runDestination: .macOS, fs: fs) { results in
             results.checkNoDiagnostics()
             results.checkTask(.matchRuleType("CpHeader")) { task in
                 task.checkCommandLineMatches([
@@ -2353,7 +2353,7 @@ fileprivate struct InstallAPITaskConstructionTests: CoreBasedTests {
             ])
         ])
 
-        try await tester.checkBuild(BuildParameters(action: .installAPI, configuration: "Debug", activeRunDestination: .macOS), fs: fs) { results in
+        try await tester.checkBuild(BuildParameters(action: .installAPI, configuration: "Debug"), runDestination: .macOS, fs: fs) { results in
             results.checkNoDiagnostics()
             try results.checkWriteAuxiliaryFileTask(.matchRuleType("WriteAuxiliaryFile"), .matchRuleItemBasename("Fwk.json")) { task, contents in
                 let data = try PropertyList.fromJSONData(contents)
@@ -2365,7 +2365,7 @@ fileprivate struct InstallAPITaskConstructionTests: CoreBasedTests {
             }
         }
 
-        try await tester.checkBuild(BuildParameters(action: .installAPI, configuration: "Debug", activeRunDestination: .iOS), fs: fs) { results in
+        try await tester.checkBuild(BuildParameters(action: .installAPI, configuration: "Debug"), runDestination: .iOS, fs: fs) { results in
             results.checkNoDiagnostics()
             try results.checkWriteAuxiliaryFileTask(.matchRuleType("WriteAuxiliaryFile"), .matchRuleItemBasename("Fwk.json")) { task, contents in
                 let data = try PropertyList.fromJSONData(contents)
@@ -2424,7 +2424,7 @@ fileprivate struct InstallAPITaskConstructionTests: CoreBasedTests {
         try await fs.writePlist(Path("/TEST/Info.plist"), .plDict([:]))
 
         // Check the `installapi` build.
-        await tester.checkBuild(BuildParameters(action: .installAPI, configuration: "Debug"), fs: fs) { results in
+        await tester.checkBuild(BuildParameters(action: .installAPI, configuration: "Debug"), runDestination: .macOS, fs: fs) { results in
             results.checkNoDiagnostics()
             results.checkTask(.matchRuleType("GenerateTAPI")) { task in
                 // check TAPI options.
@@ -2452,7 +2452,7 @@ fileprivate struct InstallAPITaskConstructionTests: CoreBasedTests {
         }
 
         // Check the `install` build, which should run the same steps but also provide the binary for comparison purposes.
-        await tester.checkBuild(BuildParameters(action: .install, configuration: "Debug", overrides: ["RETAIN_RAW_BINARIES": "YES"]), fs: fs) { results in
+        await tester.checkBuild(BuildParameters(action: .install, configuration: "Debug", overrides: ["RETAIN_RAW_BINARIES": "YES"]), runDestination: .macOS, fs: fs) { results in
 
             // Validate that dSYM generation happens before GenerationTAPI task.
             results.checkNoDiagnostics()
@@ -2551,7 +2551,7 @@ fileprivate struct InstallAPITaskConstructionTests: CoreBasedTests {
         try await fs.writePlist(Path("/TEST/Info.plist"), .plDict([:]))
 
         // Check the `installapi` build.
-        await tester.checkBuild(BuildParameters(action: .installAPI, configuration: "Debug"), fs: fs) { results in
+        await tester.checkBuild(BuildParameters(action: .installAPI, configuration: "Debug"), runDestination: .macOS, fs: fs) { results in
             results.checkNoDiagnostics()
             results.checkTask(.matchRuleType("GenerateTAPI")) { task in
                 // check TAPI options.
@@ -2579,7 +2579,7 @@ fileprivate struct InstallAPITaskConstructionTests: CoreBasedTests {
         }
 
         // Check the `install` build, which should run the same steps but also provide the binary for comparison purposes.
-        await tester.checkBuild(BuildParameters(action: .install, configuration: "Debug", overrides: ["RETAIN_RAW_BINARIES": "YES"]), fs: fs) { results in
+        await tester.checkBuild(BuildParameters(action: .install, configuration: "Debug", overrides: ["RETAIN_RAW_BINARIES": "YES"]), runDestination: .macOS, fs: fs) { results in
 
             // Validate that dSYM generation happens before GenerationTAPI task.
             results.checkNoDiagnostics()
@@ -2675,7 +2675,7 @@ fileprivate struct InstallAPITaskConstructionTests: CoreBasedTests {
             ])
         let tester = try await TaskConstructionTester(getCore(), testProject)
         // Even though SUPPORTS_TEXT_BASED_API=YES is global for the project, don't emit a swiftmodule for the app target because it doesn't emit a TBD, and isn't a dependency of any target which emits a TBD.
-        await tester.checkBuild(BuildParameters(action: .installAPI, configuration: "Debug")) { results in
+        await tester.checkBuild(BuildParameters(action: .installAPI, configuration: "Debug"), runDestination: .macOS) { results in
             results.checkWarning(.prefix("Skipping installAPI swiftmodule emission for target 'App'"))
             results.checkNoDiagnostics()
             results.checkTarget("App") { appTarget in

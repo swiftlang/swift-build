@@ -101,7 +101,7 @@ fileprivate struct ClangStaticAnalyzerTests: CoreBasedTests {
                 "CLANG_STATIC_ANALYZER_MODE": "deep",
                 "VALID_ARCHS": architectures.joined(separator: " ")
             ]
-            await tester.checkBuild(BuildParameters(configuration: "Debug", activeRunDestination: .host, overrides: overrides), runDestination: .host) { results in
+            await tester.checkBuild(BuildParameters(configuration: "Debug", overrides: overrides), runDestination: .host) { results in
                 results.checkTarget("Lib") { target in
                     results.checkNoTask(.matchTarget(target), .matchRule(["Analyze", Path(SRCROOT).join("bar.s").str]))
 
@@ -140,7 +140,7 @@ fileprivate struct ClangStaticAnalyzerTests: CoreBasedTests {
                                             ])])])
         let testWorkspace = TestWorkspace("aWorkspace", projects: [testProject])
 
-        try await TaskConstructionTester(getCore(), testWorkspace).checkBuild(BuildParameters(configuration: "Debug", overrides: ["RUN_CLANG_STATIC_ANALYZER": "YES", "CLANG_ANALYZER_EXEC": "clang-custom"])) { results in
+        try await TaskConstructionTester(getCore(), testWorkspace).checkBuild(BuildParameters(configuration: "Debug", overrides: ["RUN_CLANG_STATIC_ANALYZER": "YES", "CLANG_ANALYZER_EXEC": "clang-custom"]), runDestination: .macOS) { results in
             results.checkTarget("Lib") { target in
                 results.checkTask(.matchTarget(target), .matchRuleType("AnalyzeShallow")) { task in
                     task.checkCommandLineContains(["clang-custom"])
@@ -188,7 +188,7 @@ fileprivate struct ClangStaticAnalyzerTests: CoreBasedTests {
             ])
         let testWorkspace = TestWorkspace("aWorkspace", projects: [testProject])
 
-        try await TaskConstructionTester(getCore(), testWorkspace).checkBuild(BuildParameters(configuration: "Debug", overrides: ["RUN_CLANG_STATIC_ANALYZER": "YES"])) { results in
+        try await TaskConstructionTester(getCore(), testWorkspace).checkBuild(BuildParameters(configuration: "Debug", overrides: ["RUN_CLANG_STATIC_ANALYZER": "YES"]), runDestination: .macOS) { results in
             results.checkTarget("AnalyzedLib") { target in
                 results.checkTask(.matchTarget(target), .matchRuleType("AnalyzeShallow")) { _ in }
             }

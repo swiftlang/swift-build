@@ -67,7 +67,7 @@ fileprivate struct ReadOnlySettingsTaskConstructionTests: CoreBasedTests {
             let testProject = getTestProject(productSpecificLdFlagsSetting: "")
             let tester = try TaskConstructionTester(core, testProject)
 
-            await tester.checkBuild(fs: fs) { results in
+            await tester.checkBuild(runDestination: .macOS, fs: fs) { results in
                 results.checkError(.equal("PRODUCT_SPECIFIC_LDFLAGS assigned at level: project. This setting is append-only and cannot be overridden without prepending $(inherited). (in target 'AppTarget' from project 'aProject')"))
                 results.checkNoDiagnostics()
             }
@@ -79,7 +79,7 @@ fileprivate struct ReadOnlySettingsTaskConstructionTests: CoreBasedTests {
             let testProject = getTestProject(productSpecificLdFlagsSetting: "-e _foo")
             let tester = try TaskConstructionTester(core, testProject)
 
-            await tester.checkBuild(fs: fs) { results in
+            await tester.checkBuild(runDestination: .macOS, fs: fs) { results in
                 results.checkError(.equal("PRODUCT_SPECIFIC_LDFLAGS assigned at level: project. This setting is append-only and cannot be overridden without prepending $(inherited). (in target 'AppTarget' from project 'aProject')"))
                 results.checkNoDiagnostics()
             }
@@ -91,7 +91,7 @@ fileprivate struct ReadOnlySettingsTaskConstructionTests: CoreBasedTests {
             let testProject = getTestProject(productSpecificLdFlagsSetting: "-e _foo $(inherited)")
             let tester = try TaskConstructionTester(core, testProject)
 
-            await tester.checkBuild(fs: fs) { results in
+            await tester.checkBuild(runDestination: .macOS, fs: fs) { results in
                 results.checkError(.equal("PRODUCT_SPECIFIC_LDFLAGS assigned at level: project. This setting is append-only and cannot be overridden without prepending $(inherited). (in target 'AppTarget' from project 'aProject')"))
                 results.checkNoDiagnostics()
             }
@@ -103,7 +103,7 @@ fileprivate struct ReadOnlySettingsTaskConstructionTests: CoreBasedTests {
             let testProject = getTestProject(productSpecificLdFlagsSetting: "$(inherited) -e _foo")
             let tester = try TaskConstructionTester(core, testProject)
 
-            await tester.checkBuild(fs: fs) { results in
+            await tester.checkBuild(runDestination: .macOS, fs: fs) { results in
                 results.checkNoDiagnostics()
             }
         }
@@ -114,7 +114,7 @@ fileprivate struct ReadOnlySettingsTaskConstructionTests: CoreBasedTests {
             let testProject = getTestProject(productSpecificLdFlagsSetting: "$(inherited)")
             let tester = try TaskConstructionTester(core, testProject)
 
-            await tester.checkBuild(fs: fs) { results in
+            await tester.checkBuild(runDestination: .macOS, fs: fs) { results in
                 results.checkNoDiagnostics()
             }
         }
