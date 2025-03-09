@@ -448,7 +448,7 @@ fileprivate struct BuildOperationTests: CoreBasedTests {
                 let codec = UNIXShellCommandCodec(encodingStrategy: .backslashes, encodingBehavior: .fullCommandLine)
                 // We filter out any variables that are automatically added by the shell or llbuild
                 $0 <<< "#!/bin/bash\n"
-                $0 <<< "/usr/bin/env -u DEVELOPER_DIR | /usr/bin/sort | grep -v PWD= | grep -v SHLVL= | grep -v LLBUILD_ | grep -v _= \n"
+                $0 <<< "/usr/bin/env -u DEVELOPER_DIR | /usr/bin/sort | grep -v PWD= | grep -v SHLVL= | grep -v LLBUILD_ | grep -v ANDROID_ | grep -v _= \n"
                 $0 <<< codec.encode([yaccPath.str]) <<< " \"$@\"\n"
             }
             try tester.fs.setFilePermissions(tmpDirPath.join("yacc-script"), permissions: 0o755)
