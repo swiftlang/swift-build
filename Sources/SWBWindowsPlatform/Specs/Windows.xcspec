@@ -19,7 +19,7 @@
         Description = "Standard architectures";
         ArchitectureSetting = "ARCHS_STANDARD";
         RealArchitectures = (
-            "$(VALID_ARCHS)"
+            "$(HOST_ARCH)"
         );
         SortNumber = 0;
     },
