@@ -2371,4 +2371,49 @@ fileprivate struct InfoPlistProcessorTaskTests: CoreBasedTests {
             XCTAssertEqualPropertyListItems(dict["CFBundleIcons~ipad"], expectedMerge)
         }
     }
+
+    @Test
+    func usageDescriptionKeyWarning() async throws {
+        let core = try await getCore()
+        let scope = try createMockScope { namespace, table in
+            try namespace.declareBooleanMacro("GENERATE_INFOPLIST_FILE")
+            table.push(try #require(namespace.lookupMacroDeclaration("GENERATE_INFOPLIST_FILE") as? BooleanMacroDeclaration), literal: true)
+            try table.remove(namespace.declareStringMacro("MARKETING_VERSION"))
+        }
+        let platformName = "iphoneos"
+        let platform = try #require(core.platformRegistry.lookup(name: platformName), "invalid platform name '\(platformName)'")
+        let executionDelegate = MockExecutionDelegate(core: try await getCore())
+
+        let action = InfoPlistProcessorTaskAction(try prepareContext(InfoPlistProcessorTaskActionContext(scope: scope, productType: nil, platform: platform, sdk: core.sdkRegistry.lookup(platformName), sdkVariant: nil, cleanupRequiredArchitectures: []), fs: executionDelegate.fs))
+        let task = Task(forTarget: nil, ruleInfo: [], commandLine: ["builtin-infoPlistUtility", "-expandbuildsettings", "-platform", platformName, "/tmp/input.plist", "-o", "/tmp/output.plist"], workingDirectory: Path.root.join("tmp"), outputs: [], action: action, execDescription: "Copy Info.plist")
+
+        // Write the test files.
+        try executionDelegate.fs.createDirectory(Path.root.join("tmp"))
+        try await executionDelegate.fs.writePlist(Path("/tmp/input.plist"), .plDict([
+            "CFBundleIconName": .plString(""),
+            "NSHomeKitUsageDescription": .plString(""),
+            "NSSiriUsageDescription": .plBool(true),
+            "NSFaceIDUsageDescription": .plString("Used for authentication."),
+        ]))
+
+        let outputDelegate = MockTaskOutputDelegate()
+        let result = await action.performTaskAction(
+            task,
+            dynamicExecutionDelegate: MockDynamicTaskExecutionDelegate(),
+            executionDelegate: executionDelegate,
+            clientDelegate: MockTaskExecutionClientDelegate(),
+            outputDelegate: outputDelegate
+        )
+
+        guard result == .succeeded else {
+            Issue.record("task failed; errors: \(outputDelegate.errors)")
+            return
+        }
+
+        let warnings = outputDelegate.warnings
+
+        #expect(warnings.count == 2)
+        #expect(warnings.contains("warning: The value for NSHomeKitUsageDescription must be a non-empty string."))
+        #expect(warnings.contains("warning: The value for NSSiriUsageDescription must be of type string, but is a boolean."))
+    }
 }

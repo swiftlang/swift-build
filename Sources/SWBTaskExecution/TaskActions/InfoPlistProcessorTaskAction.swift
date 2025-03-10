@@ -632,6 +632,55 @@ public final class InfoPlistProcessorTaskAction: TaskAction
         return (.succeeded, messages)
     }
 
+    private let usageDescriptionStringKeys: Set<String> = [
+        "NFCReaderUsageDescription",
+        "NSAppleEventsUsageDescription",
+        "NSAppleMusicUsageDescription",
+        "NSBluetoothAlwaysUsageDescription",
+        "NSBluetoothPeripheralUsageDescription",
+        "NSBluetoothWhileInUseUsageDescription",
+        "NSCalendarsUsageDescription",
+        "NSCameraUsageDescription",
+        "NSContactsUsageDescription",
+        "NSDesktopFolderUsageDescription",
+        "NSDocumentsFolderUsageDescription",
+        "NSDownloadsFolderUsageDescription",
+        "NSFaceIDUsageDescription",
+        "NSFallDetectionUsageDescription",
+        "NSFileProviderDomainUsageDescription",
+        "NSFileProviderPresenceUsageDescription",
+        "NSFocusStatusUsageDescription",
+        "NSGKFriendListUsageDescription",
+        "NSHealthClinicalHealthRecordsShareUsageDescription",
+        "NSHealthShareUsageDescription",
+        "NSHealthUpdateUsageDescription",
+        "NSHomeKitUsageDescription",
+        "NSIdentityUsageDescription",
+        "NSLocalNetworkUsageDescription",
+        "NSLocationAlwaysAndWhenInUseUsageDescription",
+        "NSLocationAlwaysUsageDescription",
+        "NSLocationUsageDescription",
+        "NSLocationWhenInUseUsageDescription",
+        "NSMicrophoneUsageDescription",
+        "NSMotionUsageDescription",
+        "NSNearbyInteractionAllowOnceUsageDescription",
+        "NSNearbyInteractionUsageDescription",
+        "NSNetworkVolumesUsageDescription",
+        "NSPhotoLibraryAddUsageDescription",
+        "NSPhotoLibraryUsageDescription",
+        "NSRemindersUsageDescription",
+        "NSRemovableVolumesUsageDescription",
+        "NSSensorKitUsageDescription",
+        "NSSiriUsageDescription",
+        "NSSpeechRecognitionUsageDescription",
+        "NSSystemAdministrationUsageDescription",
+        "NSSystemExtensionUsageDescription",
+        "NSUserTrackingUsageDescription",
+        "NSVideoSubscriberAccountUsageDescription",
+        "NSVoIPUsageDescription",
+        "OSBundleUsageDescription",
+    ]
+
     /// Produce a collection of default Info.plist keys based on content in the project, taking platform and product type into account.
     /// Could be done through InfoPlistAdditions properties in product types, but that would result in more duplication at this point
     private func defaultInfoPlistContent(scope: MacroEvaluationScope, platform: Platform?, productType: ProductTypeSpec?) -> [String: PropertyListItem]
@@ -687,59 +736,9 @@ public final class InfoPlistProcessorTaskAction: TaskAction
             "LSApplicationCategoryType",
             "NSHumanReadableCopyright",
             "NSPrincipalClass",
-
-            // Usage Descriptions
-
             "ITSAppUsesNonExemptEncryption",
             "ITSEncryptionExportComplianceCode",
-            "NFCReaderUsageDescription",
-            "NSAppleEventsUsageDescription",
-            "NSAppleMusicUsageDescription",
-            "NSBluetoothAlwaysUsageDescription",
-            "NSBluetoothPeripheralUsageDescription",
-            "NSBluetoothWhileInUseUsageDescription",
-            "NSCalendarsUsageDescription",
-            "NSCameraUsageDescription",
-            "NSContactsUsageDescription",
-            "NSDesktopFolderUsageDescription",
-            "NSDocumentsFolderUsageDescription",
-            "NSDownloadsFolderUsageDescription",
-            "NSFaceIDUsageDescription",
-            "NSFallDetectionUsageDescription",
-            "NSFileProviderDomainUsageDescription",
-            "NSFileProviderPresenceUsageDescription",
-            "NSFocusStatusUsageDescription",
-            "NSGKFriendListUsageDescription",
-            "NSHealthClinicalHealthRecordsShareUsageDescription",
-            "NSHealthShareUsageDescription",
-            "NSHealthUpdateUsageDescription",
-            "NSHomeKitUsageDescription",
-            "NSIdentityUsageDescription",
-            "NSLocalNetworkUsageDescription",
-            "NSLocationAlwaysAndWhenInUseUsageDescription",
-            "NSLocationAlwaysUsageDescription",
             "NSLocationTemporaryUsageDescriptionDictionary",
-            "NSLocationUsageDescription",
-            "NSLocationWhenInUseUsageDescription",
-            "NSMicrophoneUsageDescription",
-            "NSMotionUsageDescription",
-            "NSNearbyInteractionAllowOnceUsageDescription",
-            "NSNearbyInteractionUsageDescription",
-            "NSNetworkVolumesUsageDescription",
-            "NSPhotoLibraryAddUsageDescription",
-            "NSPhotoLibraryUsageDescription",
-            "NSRemindersUsageDescription",
-            "NSRemovableVolumesUsageDescription",
-            "NSSensorKitPrivacyPolicyURL",
-            "NSSensorKitUsageDescription",
-            "NSSiriUsageDescription",
-            "NSSpeechRecognitionUsageDescription",
-            "NSSystemAdministrationUsageDescription",
-            "NSSystemExtensionUsageDescription",
-            "NSUserTrackingUsageDescription",
-            "NSVideoSubscriberAccountUsageDescription",
-            "NSVoIPUsageDescription",
-            "OSBundleUsageDescription",
 
             // macOS
 
@@ -759,6 +758,7 @@ public final class InfoPlistProcessorTaskAction: TaskAction
             // iOS
 
             "LSSupportsOpeningDocumentsInPlace",
+            "NSSensorKitPrivacyPolicyURL",
             "NSSupportsLiveActivities",
             "NSSupportsLiveActivitiesFrequentUpdates",
             "UIApplicationSupportsIndirectInputEvents",
@@ -791,7 +791,7 @@ public final class InfoPlistProcessorTaskAction: TaskAction
             // Sticker Packs
 
             "NSStickerSharingLevel",
-        ]
+        ] + usageDescriptionStringKeys
 
         for key in generatedInfoPlistKeys {
             updateContentWithInfoPlistKeyMacroValue(&content, key)
@@ -1511,7 +1511,25 @@ public final class InfoPlistProcessorTaskAction: TaskAction
             }
         }
 
+        validateUsageStringDefinitions(plistDict, outputDelegate: outputDelegate)
         return true
+    }
+
+    private func validateUsageStringDefinitions(_ plistDict: [String: PropertyListItem], outputDelegate: any TaskOutputDelegate) {
+        let usageStringPlistEntries = plistDict.filter { key, _ in
+            usageDescriptionStringKeys.contains(key)
+        }
+
+        for (key, value) in usageStringPlistEntries {
+            switch value {
+            case .plString(let stringValue):
+                if stringValue.isEmpty {
+                    outputDelegate.emitWarning("The value for \(key) must be a non-empty string.")
+                }
+            default:
+                outputDelegate.emitWarning("The value for \(key) must be of type string, but is \(value.typeDisplayString.withIndefiniteArticle).")
+            }
+        }
     }
 
     /// Scans the path for an `PrivacyInfo.xcprivacy` file and returns the `Path` to that file, if found. Otherwise, returns `nil`.
