@@ -664,7 +664,7 @@ public final class SDKRegistry: SDKRegistryLookup, CustomStringConvertible, Send
 
         let archs: PropertyListItem = switch operatingSystem {
             case .windows:
-                .plArray([.plString("x86_64"), .plString("aarch64")])
+                .plArray([.plString("x86_64"), .plString("i686"), .plString("aarch64"), .plString("thumbv7")])
             default:
                 .plArray([.plString(Architecture.hostStringValue ?? "unknown")])
         }
