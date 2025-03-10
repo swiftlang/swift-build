@@ -22,15 +22,20 @@ public struct EnvironmentExtensionPoint: ExtensionPoint {
 
     // MARK: - actual extension point
 
-    public static func additionalEnvironmentVariables(pluginManager: PluginManager, fs: any FSProxy) async throws -> [String: String] {
+    public static func additionalEnvironmentVariables(pluginManager: PluginManager, context: any EnvironmentExtensionAdditionalEnvironmentVariablesContext) async throws -> [String: String] {
         var env: [String: String] = [:]
         for ext in pluginManager.extensions(of: Self.self) {
-            try await env.merge(ext.additionalEnvironmentVariables(fs: fs), uniquingKeysWith: { _, new in new })
+            try await env.merge(ext.additionalEnvironmentVariables(context: context), uniquingKeysWith: { _, new in new })
         }
         return env
     }
 }
 
 public protocol EnvironmentExtension: Sendable {
-    func additionalEnvironmentVariables(fs: any FSProxy) async throws -> [String: String]
+    func additionalEnvironmentVariables(context: any EnvironmentExtensionAdditionalEnvironmentVariablesContext) async throws -> [String: String]
+}
+
+public protocol EnvironmentExtensionAdditionalEnvironmentVariablesContext: Sendable {
+    var hostOperatingSystem: OperatingSystem { get }
+    var fs: any FSProxy { get }
 }

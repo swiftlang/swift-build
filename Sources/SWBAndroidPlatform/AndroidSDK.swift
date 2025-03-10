@@ -125,8 +125,7 @@ struct AndroidSDK: Sendable {
         }
     }
 
-    public static func findInstallations(fs: any FSProxy) async throws -> [AndroidSDK] {
-        let host = try ProcessInfo.processInfo.hostOperatingSystem()
+    public static func findInstallations(host: OperatingSystem, fs: any FSProxy) async throws -> [AndroidSDK] {
         let defaultLocation: Path? = switch host {
         case .windows:
             // %LOCALAPPDATA%\Android\Sdk

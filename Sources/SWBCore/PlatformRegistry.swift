@@ -20,6 +20,8 @@ public import SWBMacro
 /// Delegate protocol used to access external information (such as specifications) and to report diagnostics.
 @_spi(Testing) public protocol PlatformRegistryDelegate: DiagnosticProducingDelegate, SpecRegistryProvider {
     var pluginManager: PluginManager { get }
+
+    var developerPath: Path { get }
 }
 
 public final class Platform: Sendable {
@@ -182,7 +184,9 @@ public final class Platform: Sendable {
     /// The list of executable search paths in the platform.
     @_spi(Testing) public var executableSearchPaths: StackedSearchPath
 
-    init(_ name: String, _ displayName: String, _ familyName: String, _ familyDisplayName: String?, _ identifier: String, _ devicePlatformName: String?, _ simulatorPlatformName: String?, _ path: Path, _ version: String?, _ productBuildVersion: String?, _ defaultSettings: [String: PropertyListItem], _ additionalInfoPlistEntries: [String: PropertyListItem], _ isDeploymentPlatform: Bool, _ specRegistryProvider: any SpecRegistryProvider, preferredArchValue: String?, executableSearchPaths: [Path], fs: any FSProxy) {
+    var sdkSearchPaths: [Path]
+
+    init(_ name: String, _ displayName: String, _ familyName: String, _ familyDisplayName: String?, _ identifier: String, _ devicePlatformName: String?, _ simulatorPlatformName: String?, _ path: Path, _ version: String?, _ productBuildVersion: String?, _ defaultSettings: [String: PropertyListItem], _ additionalInfoPlistEntries: [String: PropertyListItem], _ isDeploymentPlatform: Bool, _ specRegistryProvider: any SpecRegistryProvider, preferredArchValue: String?, executableSearchPaths: [Path], sdkSearchPaths: [Path], fs: any FSProxy) {
         self.name = name
         self.displayName = displayName
         self.familyName = familyName
@@ -199,6 +203,7 @@ public final class Platform: Sendable {
         self.specRegistryProvider = specRegistryProvider
         self.preferredArch = preferredArchValue
         self.executableSearchPaths = StackedSearchPath(paths: executableSearchPaths, fs: fs)
+        self.sdkSearchPaths = sdkSearchPaths
         self.sdkCanonicalName = name
     }
 
@@ -338,9 +343,19 @@ public final class PlatformRegistry {
             delegate.pluginManager.extensions(of: PlatformInfoExtensionPoint.self)
         }
 
+        struct Context: PlatformInfoExtensionAdditionalPlatformsContext {
+            var hostOperatingSystem: OperatingSystem
+            var developerPath: Path
+            var fs: any FSProxy
+        }
+
         for platformExtension in platformInfoExtensions() {
-            for (path, data) in platformExtension.additionalPlatforms() {
-                registerPlatform(path, .plDict(data), fs)
+            do {
+                for (path, data) in try platformExtension.additionalPlatforms(context: Context(hostOperatingSystem: hostOperatingSystem, developerPath: delegate.developerPath, fs: fs)) {
+                    registerPlatform(path, .plDict(data), fs)
+                }
+            } catch {
+                delegate.error(error)
             }
         }
     }
@@ -440,20 +455,9 @@ public final class PlatformRegistry {
 
     private func registerPlatform(_ path: Path, _ data: PropertyListItem, _ fs: any FSProxy) {
         // The data should always be a dictionary.
-        guard case .plDict(var items) = data else {
+        guard case .plDict(let items) = data else {
             delegate.error(path, "unexpected platform data")
             return
-        }
-
-        if path.basenameWithoutSuffix == "Windows" {
-            do {
-                try items.merge(fallbackSystemPlatformSettings(operatingSystem: .windows)) { old, new in
-                    new
-                }
-            } catch {
-                delegate.error(path, "\(error)")
-                return
-            }
         }
 
         // Check that type is correct.
@@ -623,8 +627,14 @@ public final class PlatformRegistry {
             path.join("usr").join("bin"),
         ]
 
+        var sdkSearchPaths: [Path] = [
+            path.join("Developer").join("SDKs")
+        ]
+
         for platformExtension in platformInfoExtensions() {
             executableSearchPaths.append(contentsOf: platformExtension.additionalPlatformExecutableSearchPaths(platformName: name, platformPath: path))
+
+            platformExtension.adjustPlatformSDKSearchPaths(platformName: name, platformPath: path, sdkSearchPaths: &sdkSearchPaths)
         }
 
         executableSearchPaths.append(contentsOf: [
@@ -634,7 +644,7 @@ public final class PlatformRegistry {
         ])
 
         // FIXME: Need to parse other fields. It would also be nice to diagnose unused keys like we do for Spec data (and we might want to just use the spec parser here).
-        let platform = Platform(name, displayName, familyName, familyDisplayName, identifier, devicePlatformName, simulatorPlatformName, path, version, productBuildVersion, defaultSettings, additionalInfoPlistEntries, isDeploymentPlatform, delegate, preferredArchValue: preferredArchValue, executableSearchPaths: executableSearchPaths, fs: fs)
+        let platform = Platform(name, displayName, familyName, familyDisplayName, identifier, devicePlatformName, simulatorPlatformName, path, version, productBuildVersion, defaultSettings, additionalInfoPlistEntries, isDeploymentPlatform, delegate, preferredArchValue: preferredArchValue, executableSearchPaths: executableSearchPaths, sdkSearchPaths: sdkSearchPaths, fs: fs)
         if let duplicatePlatform = platformsByIdentifier[identifier] {
             delegate.error(path, "platform '\(identifier)' already registered from \(duplicatePlatform.path.str)")
             return

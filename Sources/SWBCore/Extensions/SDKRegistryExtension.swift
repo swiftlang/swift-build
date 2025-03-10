@@ -23,7 +23,7 @@ public struct SDKRegistryExtensionPoint: ExtensionPoint {
 public protocol SDKRegistryExtension: Sendable {
     var supportedSDKCanonicalNameSuffixes: Set<String> { get }
 
-    func additionalSDKs(platformRegistry: PlatformRegistry) async -> [(path: Path, platform: Platform?, data: [String: PropertyListItem])]
+    func additionalSDKs(context: any SDKRegistryExtensionAdditionalSDKsContext) async throws -> [(path: Path, platform: Platform?, data: [String: PropertyListItem])]
 }
 
 extension SDKRegistryExtension {
@@ -31,7 +31,13 @@ extension SDKRegistryExtension {
         []
     }
 
-    public func additionalSDKs(platformRegistry: PlatformRegistry) async -> [(path: Path, platform: Platform?, data: [String: PropertyListItem])] {
+    public func additionalSDKs(context: any SDKRegistryExtensionAdditionalSDKsContext) async throws -> [(path: Path, platform: Platform?, data: [String: PropertyListItem])] {
         []
     }
+}
+
+public protocol SDKRegistryExtensionAdditionalSDKsContext: Sendable {
+    var hostOperatingSystem: OperatingSystem { get }
+    var platformRegistry: PlatformRegistry { get }
+    var fs: any FSProxy { get }
 }

@@ -486,8 +486,13 @@ package final class BuildOperation: BuildSystemOperation {
             self.buildOutputDelegate.error("unable to retrieve additional environment variables via the BuildOperationExtensionPoint.")
         }
 
+        struct Context: EnvironmentExtensionAdditionalEnvironmentVariablesContext {
+            var hostOperatingSystem: OperatingSystem
+            var fs: any FSProxy
+        }
+
         do {
-            try await buildEnvironment.addContents(of: EnvironmentExtensionPoint.additionalEnvironmentVariables(pluginManager: core.pluginManager, fs: fs))
+            try await buildEnvironment.addContents(of: EnvironmentExtensionPoint.additionalEnvironmentVariables(pluginManager: core.pluginManager, context: Context(hostOperatingSystem: core.hostOperatingSystem, fs: fs)))
         } catch {
             self.buildOutputDelegate.error("unable to retrieve additional environment variables via the EnvironmentExtensionPoint.")
         }

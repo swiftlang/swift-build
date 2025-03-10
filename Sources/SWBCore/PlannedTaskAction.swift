@@ -144,6 +144,7 @@ public struct InfoPlistProcessorTaskActionContext: PlatformBuildContext, Seriali
             sdk = loadedSDK
         } else {
             sdk = nil
+            _ = deserializer.deserializeNil() // skip past SDK variant name
             sdkVariant = nil
         }
 

@@ -30,8 +30,8 @@ struct QNXPlatformSpecsExtension: SpecificationsExtension {
 }
 
 struct QNXEnvironmentExtension: EnvironmentExtension {
-    func additionalEnvironmentVariables(fs: any FSProxy) async throws -> [String : String] {
-        if let latest = try await QNXSDP.findInstallations(fs: fs).first {
+    func additionalEnvironmentVariables(context: any EnvironmentExtensionAdditionalEnvironmentVariablesContext) async throws -> [String : String] {
+        if let latest = try await QNXSDP.findInstallations(host: context.hostOperatingSystem, fs: context.fs).first {
             return latest.environment
         }
         return [:]
@@ -43,7 +43,7 @@ struct QNXPlatformExtension: PlatformInfoExtension {
         ["QNX_DEPLOYMENT_TARGET"]
     }
 
-    func additionalPlatforms() -> [(path: Path, data: [String: PropertyListItem])] {
+    func additionalPlatforms(context: any PlatformInfoExtensionAdditionalPlatformsContext) throws -> [(path: Path, data: [String: PropertyListItem])] {
         [
             (.root, [
                 "Type": .plString("Platform"),
@@ -59,12 +59,12 @@ struct QNXPlatformExtension: PlatformInfoExtension {
 }
 
 struct QNXSDKRegistryExtension: SDKRegistryExtension {
-    func additionalSDKs(platformRegistry: PlatformRegistry) async -> [(path: Path, platform: SWBCore.Platform?, data: [String : PropertyListItem])] {
-        guard let qnxPlatform = platformRegistry.lookup(name: "qnx") else {
+    func additionalSDKs(context: any SDKRegistryExtensionAdditionalSDKsContext) async throws -> [(path: Path, platform: SWBCore.Platform?, data: [String : PropertyListItem])] {
+        guard let qnxPlatform = context.platformRegistry.lookup(name: "qnx") else {
             return []
         }
 
-        guard let qnxSdk = try? await QNXSDP.findInstallations(fs: localFS).first else {
+        guard let qnxSdk = try? await QNXSDP.findInstallations(host: context.hostOperatingSystem, fs: context.fs).first else {
             return []
         }
 
@@ -123,11 +123,11 @@ struct QNXSDKRegistryExtension: SDKRegistryExtension {
 }
 
 struct QNXToolchainRegistryExtension: ToolchainRegistryExtension {
-    func additionalToolchains(fs: any FSProxy) async -> [Toolchain] {
-        guard let toolchainPath = try? await QNXSDP.findInstallations(fs: fs).first?.hostPath else {
+    func additionalToolchains(context: any ToolchainRegistryExtensionAdditionalToolchainsContext) async -> [Toolchain] {
+        guard let toolchainPath = try? await QNXSDP.findInstallations(host: context.hostOperatingSystem, fs: context.fs).first?.hostPath else {
             return []
         }
 
-        return [Toolchain("qnx", "QNX", Version(0, 0, 0), [], toolchainPath, [], [], [:], [:], [:], executableSearchPaths: [toolchainPath.join("usr").join("bin")], testingLibraryPlatformNames: [], fs: fs)]
+        return [Toolchain("qnx", "QNX", Version(0, 0, 0), [], toolchainPath, [], [], [:], [:], [:], executableSearchPaths: [toolchainPath.join("usr").join("bin")], testingLibraryPlatformNames: [], fs: context.fs)]
     }
 }

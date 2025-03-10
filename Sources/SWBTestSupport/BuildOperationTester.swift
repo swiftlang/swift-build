@@ -1209,6 +1209,11 @@ package final class BuildOperationTester {
     /// The user preferences to supply when testing.
     package var userPreferences = UserPreferences.defaultForTesting
 
+    private struct EnvironmentVariablesExtensionContext: EnvironmentExtensionAdditionalEnvironmentVariablesContext {
+        var hostOperatingSystem: OperatingSystem
+        var fs: any FSProxy
+    }
+
     /// Create a build tester.
     ///
     /// - simulated: Whether or not the build is being done in simulation.
@@ -1223,7 +1228,7 @@ package final class BuildOperationTester {
         self.clientDelegate = clientDelegate ?? MockTestClientDelegate()
         self.continueBuildingAfterErrors = continueBuildingAfterErrors
         self.systemInfo = systemInfo
-        let env = try await EnvironmentExtensionPoint.additionalEnvironmentVariables(pluginManager: core.pluginManager, fs: fs)
+        let env = try await EnvironmentExtensionPoint.additionalEnvironmentVariables(pluginManager: core.pluginManager, context: EnvironmentVariablesExtensionContext(hostOperatingSystem: core.hostOperatingSystem, fs: fs))
         self.userInfo = try await Self.defaultUserInfo.addingPlatformDefaults(from: env)
     }
 
@@ -1241,7 +1246,7 @@ package final class BuildOperationTester {
         self.clientDelegate = clientDelegate ?? MockTestClientDelegate()
         self.continueBuildingAfterErrors = continueBuildingAfterErrors
         self.systemInfo = systemInfo
-        let env = try await EnvironmentExtensionPoint.additionalEnvironmentVariables(pluginManager: core.pluginManager, fs: fs)
+        let env = try await EnvironmentExtensionPoint.additionalEnvironmentVariables(pluginManager: core.pluginManager, context: EnvironmentVariablesExtensionContext(hostOperatingSystem: core.hostOperatingSystem, fs: fs))
         self.userInfo = try await Self.defaultUserInfo.addingPlatformDefaults(from: env)
     }
 

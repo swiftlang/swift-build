@@ -1580,9 +1580,10 @@ fileprivate struct InfoPlistProcessorTaskTests: CoreBasedTests {
 
         let platformName = "macosx"
         let platform = try #require(core.platformRegistry.lookup(name: platformName), "invalid platform name '\(platformName)'")
+        let sdk = try #require(core.sdkRegistry.lookup(platformName), "invalid SDK name '\(platformName)'")
         let executionDelegate = MockExecutionDelegate(core: try await getCore())
 
-        let action = InfoPlistProcessorTaskAction(try prepareContext(InfoPlistProcessorTaskActionContext(scope: scope, productType: nil, platform: platform, sdk: core.sdkRegistry.lookup(platformName), sdkVariant: nil, cleanupRequiredArchitectures: []), fs: executionDelegate.fs))
+        let action = InfoPlistProcessorTaskAction(try prepareContext(InfoPlistProcessorTaskActionContext(scope: scope, productType: nil, platform: platform, sdk: sdk, sdkVariant: nil, cleanupRequiredArchitectures: []), fs: executionDelegate.fs))
         let task = Task(forTarget: nil, ruleInfo: [], commandLine: ["builtin-infoPlistUtility", "-platform", platformName, "/tmp/input.plist", "-o", "/tmp/output.plist", "-genpkginfo", "/tmp/PkgInfo"], workingDirectory: Path.root.join("tmp"), outputs: [], action: action, execDescription: "Copy Info.plist")
 
         // Write the test files.

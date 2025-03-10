@@ -34,10 +34,10 @@ struct AndroidPlatformSpecsExtension: SpecificationsExtension {
 }
 
 struct AndroidEnvironmentExtension: EnvironmentExtension {
-    func additionalEnvironmentVariables(fs: any FSProxy) async throws -> [String: String] {
-        switch try ProcessInfo.processInfo.hostOperatingSystem() {
+    func additionalEnvironmentVariables(context: any EnvironmentExtensionAdditionalEnvironmentVariablesContext) async throws -> [String: String] {
+        switch context.hostOperatingSystem {
         case .windows, .macOS, .linux:
-            if let latest = try? await AndroidSDK.findInstallations(fs: fs).first {
+            if let latest = try? await AndroidSDK.findInstallations(host: context.hostOperatingSystem, fs: context.fs).first {
                 return [
                     "ANDROID_SDK_ROOT": latest.path.str,
                     "ANDROID_NDK_ROOT": latest.ndkPath?.str,
@@ -55,7 +55,7 @@ struct AndroidPlatformExtension: PlatformInfoExtension {
         ["ANDROID_DEPLOYMENT_TARGET"]
     }
     
-    func additionalPlatforms() -> [(path: Path, data: [String: PropertyListItem])] {
+    func additionalPlatforms(context: any PlatformInfoExtensionAdditionalPlatformsContext) throws -> [(path: Path, data: [String: PropertyListItem])] {
         [
             (.root, [
                 "Type": .plString("Platform"),
@@ -71,12 +71,9 @@ struct AndroidPlatformExtension: PlatformInfoExtension {
 }
 
 struct AndroidSDKRegistryExtension: SDKRegistryExtension {
-    func additionalSDKs(platformRegistry: PlatformRegistry) async -> [(path: Path, platform: SWBCore.Platform?, data: [String: PropertyListItem])] {
-        guard let host = try? ProcessInfo.processInfo.hostOperatingSystem() else {
-            return []
-        }
-
-        guard let androidPlatform = platformRegistry.lookup(name: "android") else {
+    func additionalSDKs(context: any SDKRegistryExtensionAdditionalSDKsContext) async throws -> [(path: Path, platform: SWBCore.Platform?, data: [String: PropertyListItem])] {
+        let host = context.hostOperatingSystem
+        guard let androidPlatform = context.platformRegistry.lookup(name: "android") else {
             return []
         }
 
@@ -99,7 +96,7 @@ struct AndroidSDKRegistryExtension: SDKRegistryExtension {
             "AR": .plString(host.imageFormat.executableName(basename: "llvm-ar")),
         ]
 
-        guard let androidSdk = try? await AndroidSDK.findInstallations(fs: localFS).first else {
+        guard let androidSdk = try? await AndroidSDK.findInstallations(host: host, fs: context.fs).first else {
             return []
         }
 
@@ -141,11 +138,11 @@ struct AndroidSDKRegistryExtension: SDKRegistryExtension {
 }
 
 struct AndroidToolchainRegistryExtension: ToolchainRegistryExtension {
-    func additionalToolchains(fs: any FSProxy) async -> [Toolchain] {
-        guard let toolchainPath = try? await AndroidSDK.findInstallations(fs: fs).first?.toolchainPath else {
+    func additionalToolchains(context: any ToolchainRegistryExtensionAdditionalToolchainsContext) async -> [Toolchain] {
+        guard let toolchainPath = try? await AndroidSDK.findInstallations(host: context.hostOperatingSystem, fs: context.fs).first?.toolchainPath else {
             return []
         }
 
-        return [Toolchain("android", "Android", Version(0, 0, 0), [], toolchainPath, [], [], [:], [:], [:], executableSearchPaths: [toolchainPath.join("bin")], testingLibraryPlatformNames: [], fs: fs)]
+        return [Toolchain("android", "Android", Version(0, 0, 0), [], toolchainPath, [], [], [:], [:], [:], executableSearchPaths: [toolchainPath.join("bin")], testingLibraryPlatformNames: [], fs: context.fs)]
     }
 }
