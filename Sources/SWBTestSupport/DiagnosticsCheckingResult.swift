@@ -210,5 +210,10 @@ package func _filterDiagnostic(message: String) -> String? {
         return nil
     }
 
+    // Workaround: rdar://146492614
+    if message.contains(#/Search path '.+\/System\/iOSSupport\/System\/Library\/SubFrameworks' not found/#) {
+        return nil
+    }
+
     return message
 }
