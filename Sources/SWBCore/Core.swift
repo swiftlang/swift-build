@@ -103,8 +103,18 @@ public final class Core: Sendable {
             // Force loading SDKs.
             let sdkRegistry = core.sdkRegistry
 
+            struct Context: SDKRegistryExtensionAdditionalSDKsContext {
+                var hostOperatingSystem: OperatingSystem
+                var platformRegistry: PlatformRegistry
+                var fs: any FSProxy
+            }
+
             for `extension` in await pluginManager.extensions(of: SDKRegistryExtensionPoint.self) {
-                await sdkRegistry.registerSDKs(extension: `extension`, platformRegistry: core.platformRegistry)
+                do {
+                    try await sdkRegistry.registerSDKs(extension: `extension`, context: Context(hostOperatingSystem: hostOperatingSystem, platformRegistry: core.platformRegistry, fs: localFS))
+                } catch {
+                    delegate.emit(Diagnostic(behavior: .error, location: .unknown, data: DiagnosticData("\(error)")))
+                }
             }
 
             // Force loading all specs.
@@ -298,7 +308,7 @@ public final class Core: Sendable {
 
     /// The list of SDK search paths.
     @_spi(Testing) public lazy var sdkPaths: [(Path, Platform?)] = {
-        return self.platformRegistry.platforms.map { ($0.path.join("Developer/SDKs"), $0) }
+        return self.platformRegistry.platforms.flatMap { platform in platform.sdkSearchPaths.map { ($0, platform) } }
     }()
 
     /// The list of toolchain search paths.
@@ -317,11 +327,6 @@ public final class Core: Sendable {
         else {
             let platformsDir = self.developerPath.join("Platforms")
             searchPaths = [platformsDir]
-            if hostOperatingSystem == .windows {
-                for dir in (try? localFS.listdir(platformsDir)) ?? [] {
-                    searchPaths.append(platformsDir.join(dir))
-                }
-            }
         }
         if let additionalPlatformSearchPaths = getEnvironmentVariable("XCODE_EXTRA_PLATFORM_FOLDERS") {
             for searchPath in additionalPlatformSearchPaths.split(separator: ":") {
@@ -666,6 +671,10 @@ struct CoreRegistryDelegate : PlatformRegistryDelegate, SDKRegistryDelegate, Spe
 
     var pluginManager: PluginManager {
         core.pluginManager
+    }
+
+    var developerPath: Path {
+        core.developerPath
     }
 }
 

@@ -75,8 +75,7 @@ struct QNXSDP: Sendable {
         }
     }
 
-    public static func findInstallations(fs: any FSProxy) async throws -> [QNXSDP] {
-        let host = try ProcessInfo.processInfo.hostOperatingSystem()
+    public static func findInstallations(host: OperatingSystem, fs: any FSProxy) async throws -> [QNXSDP] {
         var searchPaths = [Path.homeDirectory]
         if host == .windows {
             if let systemDrive = getEnvironmentVariable("SystemDrive") {

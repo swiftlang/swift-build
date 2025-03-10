@@ -634,20 +634,6 @@ public final class SDKRegistry: SDKRegistryLookup, CustomStringConvertible, Send
                 "CHOWN": "/usr/bin/chown",
                 "AR": "llvm-ar",
             ]
-        case .windows:
-            defaultProperties = [
-                "GCC_GENERATE_DEBUGGING_SYMBOLS": .plString("NO"),
-                "LD_DEPENDENCY_INFO_FILE": .plString(""),
-
-                "GENERATE_TEXT_BASED_STUBS": "NO",
-                "GENERATE_INTERMEDIATE_TEXT_BASED_STUBS": "NO",
-
-                "LIBRARY_SEARCH_PATHS": "$(inherited) $(SDKROOT)/usr/lib/swift/windows/$(CURRENT_ARCH)",
-
-                "OTHER_SWIFT_FLAGS": "$(inherited) -libc $(DEFAULT_USE_RUNTIME)",
-
-                "DEFAULT_USE_RUNTIME": "MD",
-            ]
         default:
             defaultProperties = [:]
         }
@@ -656,18 +642,10 @@ public final class SDKRegistry: SDKRegistryLookup, CustomStringConvertible, Send
         switch operatingSystem {
         case .linux:
             tripleEnvironment = "gnu"
-        case .windows:
-            tripleEnvironment = "msvc"
         default:
             tripleEnvironment = ""
         }
 
-        let archs: PropertyListItem = switch operatingSystem {
-            case .windows:
-                .plArray([.plString("x86_64"), .plString("i686"), .plString("aarch64"), .plString("thumbv7")])
-            default:
-                .plArray([.plString(Architecture.hostStringValue ?? "unknown")])
-        }
         return try [
             "Type": .plString("SDK"),
             "Version": .plString(Version(ProcessInfo.processInfo.operatingSystemVersion).zeroTrimmed.description),
@@ -678,7 +656,7 @@ public final class SDKRegistry: SDKRegistryLookup, CustomStringConvertible, Send
             ].merging(defaultProperties, uniquingKeysWith: { _, new in new })),
             "SupportedTargets": .plDict([
                 operatingSystem.xcodePlatformName: .plDict([
-                    "Archs": archs,
+                    "Archs": .plArray([.plString(Architecture.hostStringValue ?? "unknown")]),
                     "LLVMTargetTripleEnvironment": .plString(tripleEnvironment),
                     "LLVMTargetTripleSys": .plString(operatingSystem.xcodePlatformName),
                     "LLVMTargetTripleVendor": .plString("unknown"),
@@ -707,8 +685,8 @@ public final class SDKRegistry: SDKRegistryLookup, CustomStringConvertible, Send
         }
     }
 
-    internal func registerSDKs(extension: any SDKRegistryExtension, platformRegistry: PlatformRegistry) async {
-        for (path, platform, data) in await `extension`.additionalSDKs(platformRegistry: platformRegistry) {
+    internal func registerSDKs(extension: any SDKRegistryExtension, context: any SDKRegistryExtensionAdditionalSDKsContext) async throws {
+        for (path, platform, data) in try await `extension`.additionalSDKs(context: context) {
             registerSDK(path, path, platform, .plDict(data))
         }
     }
@@ -739,20 +717,9 @@ public final class SDKRegistry: SDKRegistryLookup, CustomStringConvertible, Send
 
     @discardableResult private func registerSDK(_ path: Path, _ pathResolved: Path, _ platform: Platform?, _ data: PropertyListItem) -> SDK? {
         // The data should always be a dictionary.
-        guard case .plDict(var items) = data else {
+        guard case .plDict(let items) = data else {
             delegate.error(path, "unexpected SDK data")
             return nil
-        }
-
-        if platform?.name == "windows" && path.basenameWithoutSuffix == "Windows" {
-            do {
-                try items.merge(fallbackSystemSDKSettings(operatingSystem: .windows)) { old, new in
-                    new
-                }
-            } catch {
-                delegate.error(path, "\(error)")
-                return nil
-            }
         }
 
         // Extract the name properties.

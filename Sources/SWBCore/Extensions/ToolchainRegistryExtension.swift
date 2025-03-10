@@ -22,11 +22,16 @@ public struct ToolchainRegistryExtensionPoint: ExtensionPoint, Sendable {
 }
 
 public protocol ToolchainRegistryExtension: Sendable {
-    func additionalToolchains(fs: any FSProxy) async -> [Toolchain]
+    func additionalToolchains(context: any ToolchainRegistryExtensionAdditionalToolchainsContext) async -> [Toolchain]
 }
 
 extension ToolchainRegistryExtension {
-    public func additionalToolchains(fs: any FSProxy) async -> [Toolchain] {
+    public func additionalToolchains(context: any ToolchainRegistryExtensionAdditionalToolchainsContext) async -> [Toolchain] {
         []
     }
+}
+
+public protocol ToolchainRegistryExtensionAdditionalToolchainsContext: Sendable {
+    var hostOperatingSystem: OperatingSystem { get }
+    var fs: any FSProxy { get }
 }

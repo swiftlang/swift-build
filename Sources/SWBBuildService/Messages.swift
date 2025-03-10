@@ -263,8 +263,13 @@ private struct SetSessionUserInfoMsg: MessageHandler {
             throw MsgParserError.missingWorkspaceContext
         }
 
+        struct Context: EnvironmentExtensionAdditionalEnvironmentVariablesContext {
+            var hostOperatingSystem: OperatingSystem
+            var fs: any FSProxy
+        }
+
         // Update the workspace context.
-        let env = try await EnvironmentExtensionPoint.additionalEnvironmentVariables(pluginManager: workspaceContext.core.pluginManager, fs: workspaceContext.fs)
+        let env = try await EnvironmentExtensionPoint.additionalEnvironmentVariables(pluginManager: workspaceContext.core.pluginManager, context: Context(hostOperatingSystem: workspaceContext.core.hostOperatingSystem, fs: workspaceContext.fs))
         workspaceContext.updateUserInfo(try await UserInfo(user: message.user, group: message.group, uid: message.uid, gid: message.gid, home: Path(message.home), processEnvironment: message.processEnvironment, buildSystemEnvironment: message.buildSystemEnvironment).addingPlatformDefaults(from: env))
 
         return VoidResponse()

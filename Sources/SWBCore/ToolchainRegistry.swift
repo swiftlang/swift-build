@@ -451,8 +451,13 @@ public final class ToolchainRegistry: @unchecked Sendable {
             delegate.error(error)
         }
 
+        struct Context: ToolchainRegistryExtensionAdditionalToolchainsContext {
+            var hostOperatingSystem: OperatingSystem
+            var fs: any FSProxy
+        }
+
         for toolchainExtension in await delegate.pluginManager.extensions(of: ToolchainRegistryExtensionPoint.self) {
-            for toolchain in await toolchainExtension.additionalToolchains(fs: fs) {
+            for toolchain in await toolchainExtension.additionalToolchains(context: Context(hostOperatingSystem: hostOperatingSystem, fs: fs)) {
                 do {
                     try register(toolchain)
                 } catch {

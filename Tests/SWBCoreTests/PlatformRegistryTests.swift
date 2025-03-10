@@ -47,6 +47,10 @@ import SWBMacro
         var errors: [String] {
             return _diagnosticsEngine.diagnostics.filter { $0.behavior == .error }.map { $0.formatLocalizedDescription(.debugWithoutBehavior) }
         }
+
+        var developerPath: Path {
+            Path.temporaryDirectory
+        }
     }
 
     /// Helper function for scanning test inputs.
