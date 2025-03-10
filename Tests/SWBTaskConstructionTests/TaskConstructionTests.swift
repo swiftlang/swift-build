@@ -4812,7 +4812,7 @@ fileprivate struct TaskConstructionTests: CoreBasedTests {
         try fs.createDirectory(Path(SRCROOT).join("Framework/FooFramework/Bar"), recursive: true)
 
         // Check the build.
-        await tester.checkBuild(runDestination: .macOS, fs: fs) { results in
+        await tester.checkBuild(runDestination: .host, fs: fs) { results in
             results.checkTarget("Tool") { target in
                 results.checkTask(.matchTarget(target), .matchRuleType("CompileC")) { task in
                     let buildProductsDirSuffix = RunDestinationInfo.host.builtProductsDirSuffix
