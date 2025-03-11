@@ -16,11 +16,23 @@ import SWBMacro
 import Foundation
 
 @PluginExtensionSystemActor public func initializePlugin(_ manager: PluginManager) {
+    let plugin = AndroidPlugin()
     manager.register(AndroidPlatformSpecsExtension(), type: SpecificationsExtensionPoint.self)
-    manager.register(AndroidEnvironmentExtension(), type: EnvironmentExtensionPoint.self)
+    manager.register(AndroidEnvironmentExtension(plugin: plugin), type: EnvironmentExtensionPoint.self)
     manager.register(AndroidPlatformExtension(), type: PlatformInfoExtensionPoint.self)
-    manager.register(AndroidSDKRegistryExtension(), type: SDKRegistryExtensionPoint.self)
-    manager.register(AndroidToolchainRegistryExtension(), type: ToolchainRegistryExtensionPoint.self)
+    manager.register(AndroidSDKRegistryExtension(plugin: plugin), type: SDKRegistryExtensionPoint.self)
+    manager.register(AndroidToolchainRegistryExtension(plugin: plugin), type: ToolchainRegistryExtensionPoint.self)
+}
+
+final class AndroidPlugin: Sendable {
+    private let androidSDKInstallations = AsyncCache<OperatingSystem, [AndroidSDK]>()
+
+    func cachedAndroidSDKInstallations(host: OperatingSystem) async throws -> [AndroidSDK] {
+        try await androidSDKInstallations.value(forKey: host) {
+            // Always pass localFS because this will be cached, and executes a process on the host system so there's no reason to pass in any proxy.
+            try await AndroidSDK.findInstallations(host: host, fs: localFS)
+        }
+    }
 }
 
 struct AndroidPlatformSpecsExtension: SpecificationsExtension {
@@ -34,10 +46,12 @@ struct AndroidPlatformSpecsExtension: SpecificationsExtension {
 }
 
 struct AndroidEnvironmentExtension: EnvironmentExtension {
+    let plugin: AndroidPlugin
+
     func additionalEnvironmentVariables(context: any EnvironmentExtensionAdditionalEnvironmentVariablesContext) async throws -> [String: String] {
         switch context.hostOperatingSystem {
         case .windows, .macOS, .linux:
-            if let latest = try? await AndroidSDK.findInstallations(host: context.hostOperatingSystem, fs: context.fs).first {
+            if let latest = try? await plugin.cachedAndroidSDKInstallations(host: context.hostOperatingSystem).first {
                 return [
                     "ANDROID_SDK_ROOT": latest.path.str,
                     "ANDROID_NDK_ROOT": latest.ndkPath?.str,
@@ -71,6 +85,8 @@ struct AndroidPlatformExtension: PlatformInfoExtension {
 }
 
 struct AndroidSDKRegistryExtension: SDKRegistryExtension {
+    let plugin: AndroidPlugin
+
     func additionalSDKs(context: any SDKRegistryExtensionAdditionalSDKsContext) async throws -> [(path: Path, platform: SWBCore.Platform?, data: [String: PropertyListItem])] {
         let host = context.hostOperatingSystem
         guard let androidPlatform = context.platformRegistry.lookup(name: "android") else {
@@ -96,7 +112,7 @@ struct AndroidSDKRegistryExtension: SDKRegistryExtension {
             "AR": .plString(host.imageFormat.executableName(basename: "llvm-ar")),
         ]
 
-        guard let androidSdk = try? await AndroidSDK.findInstallations(host: host, fs: context.fs).first else {
+        guard let androidSdk = try? await plugin.cachedAndroidSDKInstallations(host: host).first else {
             return []
         }
 
@@ -138,8 +154,10 @@ struct AndroidSDKRegistryExtension: SDKRegistryExtension {
 }
 
 struct AndroidToolchainRegistryExtension: ToolchainRegistryExtension {
+    let plugin: AndroidPlugin
+
     func additionalToolchains(context: any ToolchainRegistryExtensionAdditionalToolchainsContext) async -> [Toolchain] {
-        guard let toolchainPath = try? await AndroidSDK.findInstallations(host: context.hostOperatingSystem, fs: context.fs).first?.toolchainPath else {
+        guard let toolchainPath = try? await plugin.cachedAndroidSDKInstallations(host: context.hostOperatingSystem).first?.toolchainPath else {
             return []
         }
 
