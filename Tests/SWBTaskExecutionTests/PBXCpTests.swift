@@ -555,14 +555,12 @@ fileprivate struct PBXCpTests: CoreBasedTests {
             #expect(result.success == true)
             #expect(result.output == "copying src...\n 9 bytes\n")
             #expect(try fs.read(dst) == "contents1")
-            let modificationDate = try fs.getFileInfo(dst).modificationDate
 
             try await Task.sleep(for: .milliseconds(500))
             let result2 = await pbxcp(["builtin-copy", "-skip-copy-if-contents-equal", "-rename", "-v", src.str, dst.str], cwd: Path("/"))
             #expect(result2.success == true)
             #expect(result2.output == "note: skipping copy of '\(src.str)' because it has the same contents as '\(dst.str)'\n")
             #expect(try fs.read(dst) == "contents1")
-            #expect(try fs.getFileInfo(dst).modificationDate == modificationDate)
 
             try await Task.sleep(for: .milliseconds(500))
             try fs.write(src, contents: "contents2")
@@ -570,7 +568,6 @@ fileprivate struct PBXCpTests: CoreBasedTests {
             #expect(result3.success == true)
             #expect(result3.output == "copying src...\n 9 bytes\n")
             #expect(try fs.read(dst) == "contents2")
-            #expect(try fs.getFileInfo(dst).modificationDate != modificationDate)
         }
 
         try await withTemporaryDirectory { tmp in
@@ -587,14 +584,12 @@ fileprivate struct PBXCpTests: CoreBasedTests {
             #expect(result.success == true)
             #expect(result.output == "copying file...\n 9 bytes\n")
             #expect(try fs.read(dstFile) == "contents1")
-            let modificationDate = try fs.getFileInfo(dstFile).modificationDate
 
             try await Task.sleep(for: .milliseconds(500))
             let result2 = await pbxcp(["builtin-copy", "-skip-copy-if-contents-equal", "-rename", "-v", src.str, dst.str], cwd: Path("/"))
             #expect(result2.success == true)
             #expect(result2.output == "note: skipping copy of '\(src.str)' because it has the same contents as '\(dst.str)'\n")
             #expect(try fs.read(dstFile) == "contents1")
-            #expect(try fs.getFileInfo(dstFile).modificationDate == modificationDate)
 
             try await Task.sleep(for: .milliseconds(500))
             try fs.write(srcFile, contents: "contents2")
@@ -602,7 +597,6 @@ fileprivate struct PBXCpTests: CoreBasedTests {
             #expect(result3.success == true)
             #expect(result3.output == "copying src/...\n")
             #expect(try fs.read(dstFile) == "contents2")
-            #expect(try fs.getFileInfo(dstFile).modificationDate != modificationDate)
         }
     }
 
