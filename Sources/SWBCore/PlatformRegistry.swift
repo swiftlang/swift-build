@@ -349,7 +349,7 @@ public final class PlatformRegistry {
             var fs: any FSProxy
         }
 
-        for platformExtension in platformInfoExtensions() {
+        for platformExtension in await platformInfoExtensions() {
             do {
                 for (path, data) in try platformExtension.additionalPlatforms(context: Context(hostOperatingSystem: hostOperatingSystem, developerPath: delegate.developerPath, fs: fs)) {
                     await registerPlatform(path, .plDict(data), fs)
@@ -632,8 +632,8 @@ public final class PlatformRegistry {
             path.join("Developer").join("SDKs")
         ]
 
-        for platformExtension in platformInfoExtensions() {
-            await executableSearchPaths.append(contentsOf: platformExtension.additionalPlatformExecutableSearchPaths(platformName: name, platformPath: path))
+        for platformExtension in await platformInfoExtensions() {
+            await executableSearchPaths.append(contentsOf: platformExtension.additionalPlatformExecutableSearchPaths(platformName: name, platformPath: path, fs: localFS))
 
             platformExtension.adjustPlatformSDKSearchPaths(platformName: name, platformPath: path, sdkSearchPaths: &sdkSearchPaths)
 
