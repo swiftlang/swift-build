@@ -1149,7 +1149,7 @@ When `GENERATE_INFOPLIST_FILE` is enabled, sets the value of the [CFBundleIdenti
                 Category = "Linking - Warnings";
             },
             {
-                Name = "LD_MULTIARCH";
+                Name = "_LD_MULTIARCH";
                 Type = Boolean;
                 DefaultValue = YES;
             },

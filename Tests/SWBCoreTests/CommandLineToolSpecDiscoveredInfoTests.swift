@@ -159,7 +159,7 @@ import SWBMacro
     @Test
     func discoveredLdLinkerSpecInfo() async throws {
         var table = try await ldMacroTable()
-        table.push(BuiltinMacros.LD_MULTIARCH, literal: true)
+        table.push(BuiltinMacros._LD_MULTIARCH, literal: true)
         // Default Linker, just check we have one.
         try await withSpec(LdLinkerSpec.self, .deferred, additionalTable: table) { (info: DiscoveredLdLinkerToolSpecInfo) in
             #expect(!info.toolPath.isEmpty)
@@ -173,7 +173,7 @@ import SWBMacro
     @Test(.requireSDKs(.macOS))
     func discoveredLdLinkerSpecInfo_macOS() async throws {
         var table = try await ldMacroTable()
-        table.push(BuiltinMacros.LD_MULTIARCH, literal: true)
+        table.push(BuiltinMacros._LD_MULTIARCH, literal: true)
         // Default Linker
         try await withSpec(LdLinkerSpec.self, .deferred, additionalTable: table) { (info: DiscoveredLdLinkerToolSpecInfo) in
             #expect(!info.toolPath.isEmpty)
@@ -191,7 +191,7 @@ import SWBMacro
     @Test(.requireSDKs(.linux))
     func discoveredLdLinkerSpecInfo_Linux() async throws {
         var table = try await ldMacroTable()
-        table.push(BuiltinMacros.LD_MULTIARCH, literal: true)
+        table.push(BuiltinMacros._LD_MULTIARCH, literal: true)
         // Default Linker
         try await withSpec(LdLinkerSpec.self, .deferred, additionalTable: table) { (info: DiscoveredLdLinkerToolSpecInfo) in
             #expect(!info.toolPath.isEmpty)
@@ -237,7 +237,7 @@ import SWBMacro
     @Test(.requireSDKs(.windows))
     func discoveredLdLinkerSpecInfo_Windows() async throws {
         var table = try await ldMacroTable()
-        table.push(BuiltinMacros.LD_MULTIARCH, literal: true)
+        table.push(BuiltinMacros._LD_MULTIARCH, literal: true)
         try await withSpec(LdLinkerSpec.self, .deferred, platform: "windows", additionalTable: table) { (info: DiscoveredLdLinkerToolSpecInfo) in
             #expect(!info.toolPath.isEmpty)
             #expect(info.toolVersion != nil)
@@ -254,8 +254,8 @@ import SWBMacro
 
         // link.exe cannot be used for multipler architectures and requires a distinct link.exe for each target architecture
         table.push(BuiltinMacros.ALTERNATE_LINKER, literal: "link")
-        table.push(BuiltinMacros.LD_MULTIARCH, literal: false)
-        table.push(BuiltinMacros.LD_MULTIARCH_PREFIX_MAP, literal: ["x86_64:x64", "aarch64:arm64", "arm64:arm64"])
+        table.push(BuiltinMacros._LD_MULTIARCH, literal: false)
+        table.push(BuiltinMacros._LD_MULTIARCH_PREFIX_MAP, literal: ["x86_64:x64", "aarch64:arm64", "i386:x86", "thumbv7:arm"])
 
         // x86_64
         table.push(BuiltinMacros.ARCHS, literal: ["x86_64"])
@@ -268,6 +268,7 @@ import SWBMacro
             #expect(info.linker == .linkExe)
         }
 
+        // FIXME: Fails in swift-ci missing arm64 toolchain on x86_64 host.
         // // link aarch64
         // table.push(BuiltinMacros.ARCHS, literal: ["aarch64"])
         // try await withSpec(LdLinkerSpec.self, .deferred, platform: "windows", additionalTable: table) { (info: DiscoveredLdLinkerToolSpecInfo) in
