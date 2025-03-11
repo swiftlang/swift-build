@@ -16,11 +16,23 @@ import SWBMacro
 import Foundation
 
 @PluginExtensionSystemActor public func initializePlugin(_ manager: PluginManager) {
+    let plugin = QNXPlugin()
     manager.register(QNXPlatformSpecsExtension(), type: SpecificationsExtensionPoint.self)
-    manager.register(QNXEnvironmentExtension(), type: EnvironmentExtensionPoint.self)
+    manager.register(QNXEnvironmentExtension(plugin: plugin), type: EnvironmentExtensionPoint.self)
     manager.register(QNXPlatformExtension(), type: PlatformInfoExtensionPoint.self)
-    manager.register(QNXSDKRegistryExtension(), type: SDKRegistryExtensionPoint.self)
-    manager.register(QNXToolchainRegistryExtension(), type: ToolchainRegistryExtensionPoint.self)
+    manager.register(QNXSDKRegistryExtension(plugin: plugin), type: SDKRegistryExtensionPoint.self)
+    manager.register(QNXToolchainRegistryExtension(plugin: plugin), type: ToolchainRegistryExtensionPoint.self)
+}
+
+final class QNXPlugin: Sendable {
+    private let qnxInstallations = AsyncCache<OperatingSystem, [QNXSDP]>()
+
+    func cachedQNXSDPInstallations(host: OperatingSystem) async throws -> [QNXSDP] {
+        try await qnxInstallations.value(forKey: host) {
+            // Always pass localFS because this will be cached, and executes a process on the host system so there's no reason to pass in any proxy.
+            try await QNXSDP.findInstallations(host: host, fs: localFS)
+        }
+    }
 }
 
 struct QNXPlatformSpecsExtension: SpecificationsExtension {
@@ -30,8 +42,10 @@ struct QNXPlatformSpecsExtension: SpecificationsExtension {
 }
 
 struct QNXEnvironmentExtension: EnvironmentExtension {
+    let plugin: QNXPlugin
+
     func additionalEnvironmentVariables(context: any EnvironmentExtensionAdditionalEnvironmentVariablesContext) async throws -> [String : String] {
-        if let latest = try await QNXSDP.findInstallations(host: context.hostOperatingSystem, fs: context.fs).first {
+        if let latest = try await plugin.cachedQNXSDPInstallations(host: context.hostOperatingSystem).first {
             return latest.environment
         }
         return [:]
@@ -59,12 +73,14 @@ struct QNXPlatformExtension: PlatformInfoExtension {
 }
 
 struct QNXSDKRegistryExtension: SDKRegistryExtension {
+    let plugin: QNXPlugin
+
     func additionalSDKs(context: any SDKRegistryExtensionAdditionalSDKsContext) async throws -> [(path: Path, platform: SWBCore.Platform?, data: [String : PropertyListItem])] {
         guard let qnxPlatform = context.platformRegistry.lookup(name: "qnx") else {
             return []
         }
 
-        guard let qnxSdk = try? await QNXSDP.findInstallations(host: context.hostOperatingSystem, fs: context.fs).first else {
+        guard let qnxSdk = try? await plugin.cachedQNXSDPInstallations(host: context.hostOperatingSystem).first else {
             return []
         }
 
@@ -123,8 +139,10 @@ struct QNXSDKRegistryExtension: SDKRegistryExtension {
 }
 
 struct QNXToolchainRegistryExtension: ToolchainRegistryExtension {
+    let plugin: QNXPlugin
+
     func additionalToolchains(context: any ToolchainRegistryExtensionAdditionalToolchainsContext) async -> [Toolchain] {
-        guard let toolchainPath = try? await QNXSDP.findInstallations(host: context.hostOperatingSystem, fs: context.fs).first?.hostPath else {
+        guard let toolchainPath = try? await plugin.cachedQNXSDPInstallations(host: context.hostOperatingSystem).first?.hostPath else {
             return []
         }
 
