@@ -21,7 +21,7 @@ import Testing
 @Suite
 fileprivate struct BuildCommandTests: CoreBasedTests {
     /// Check compilation of a single file in C, ObjC and Swift, including the `uniquingSuffix` behavior.
-    @Test(.requireSDKs(.host))
+    @Test(.requireSDKs(.host), .requireThreadSafeWorkingDirectory)
     func singleFileCompile() async throws {
         try await withTemporaryDirectory { tmpDirPath async throws -> Void in
             let testWorkspace = try await TestWorkspace(
@@ -163,7 +163,7 @@ fileprivate struct BuildCommandTests: CoreBasedTests {
     }
 
     /// Check analyze of a single file.
-    @Test(.requireSDKs(.host))
+    @Test(.requireSDKs(.host), .requireThreadSafeWorkingDirectory)
     func singleFileAnalyze() async throws {
         try await runSingleFileTask(BuildParameters(configuration: "Debug", activeRunDestination: .host, overrides: ["RUN_CLANG_STATIC_ANALYZER": "YES"]), buildCommand: .singleFileBuild(buildOnlyTheseFiles: [Path("")]), fileName: "File.m") { results, excludedTypes, _, _ in
             results.consumeTasksMatchingRuleTypes(excludedTypes)
@@ -173,7 +173,7 @@ fileprivate struct BuildCommandTests: CoreBasedTests {
     }
 
     /// Check preprocessing of a single file.
-    @Test(.requireSDKs(.host))
+    @Test(.requireSDKs(.host), .requireThreadSafeWorkingDirectory)
     func preprocessSingleFile() async throws {
         try await runSingleFileTask(BuildParameters(configuration: "Debug", activeRunDestination: .host), buildCommand: .generatePreprocessedFile(buildOnlyTheseFiles: [Path("")]), fileName: "File.m") { results, excludedTypes, inputs, outputs in
             results.consumeTasksMatchingRuleTypes(excludedTypes)
@@ -254,7 +254,7 @@ fileprivate struct BuildCommandTests: CoreBasedTests {
     }
 
     /// Check behavior of the skip dependencies flag.
-    @Test(.requireSDKs(.host))
+    @Test(.requireSDKs(.host), .requireThreadSafeWorkingDirectory)
     func skipDependenciesFlag() async throws {
         func runTest(skipDependencies: Bool, checkAuxiliaryTarget: (_ results: BuildOperationTester.BuildResults) throws -> Void) async throws {
             try await withTemporaryDirectory { tmpDirPath async throws -> Void in
