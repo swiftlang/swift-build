@@ -170,7 +170,7 @@ public struct CASOptions: Hashable, Serializable, Encodable, Sendable {
         self.limitingStrategy = try deserializer.deserialize()
     }
 
-    public enum Purpose {
+    public enum Purpose: Sendable {
         case generic
         case compiler(GCCCompatibleLanguageDialect)
     }
