@@ -110,7 +110,7 @@ fileprivate struct BuildDescriptionTests: CoreBasedTests {
             let taskActionRegistry = try await TaskActionRegistry(pluginManager: core.pluginManager)
 
             let fs1 = PseudoFS()
-            let (description1, _) = try await buildDescription(for: workspace1, fs: fs1)
+            let (description1, _) = try await buildDescription(for: workspace1, activeRunDestination: .macOS, fs: fs1)
             let manifest1Contents = try fs1.read(description1.manifestPath).bytes
             let serialized1 = { () -> ByteString in
                 let serializer = MsgPackSerializer(delegate: BuildDescriptionSerializerDelegate(taskActionRegistry: taskActionRegistry))
@@ -122,7 +122,7 @@ fileprivate struct BuildDescriptionTests: CoreBasedTests {
             for _ in 0 ..< 10 {
                 let workspace2 = try await testWorkspace.load(getCore())
                 let fs2 = PseudoFS()
-                let (description2, _) = try await buildDescription(for: workspace2, fs: fs2)
+                let (description2, _) = try await buildDescription(for: workspace2, activeRunDestination: .macOS, fs: fs2)
 
                 #expect(description1.targetDependencies == description2.targetDependencies)
 
@@ -200,7 +200,7 @@ fileprivate struct BuildDescriptionTests: CoreBasedTests {
             let workspace1 = try await testWorkspace.load(getCore())
 
             let fs1 = PseudoFS()
-            let (results, _) = try await buildDescription(for: workspace1, fs: fs1) as (BuildDescriptionDiagnosticResults, WorkspaceContext)
+            let (results, _) = try await buildDescription(for: workspace1, activeRunDestination: .macOS, fs: fs1) as (BuildDescriptionDiagnosticResults, WorkspaceContext)
 
             let interestingDiagnostics = results.errors.filter({ message -> Bool in
                 message.hasPrefix("Multiple commands produce")
@@ -319,7 +319,7 @@ fileprivate struct BuildDescriptionTests: CoreBasedTests {
             let tester = try await TaskConstructionTester(getCore(), project)
             let fs1 = PseudoFS()
             let (results, _) =
-            try await buildDescription(for: tester.workspace, overrides: ["PACKAGE_BUILD_DYNAMICALLY": "YES"], fs: fs1)
+            try await buildDescription(for: tester.workspace, activeRunDestination: .macOS, overrides: ["PACKAGE_BUILD_DYNAMICALLY": "YES"], fs: fs1)
             as (BuildDescriptionDiagnosticResults, WorkspaceContext)
             let interestingDiagnostics = results.errors.filter({ message -> Bool in
                 message.hasPrefix("Multiple commands produce")
@@ -365,7 +365,7 @@ fileprivate struct BuildDescriptionTests: CoreBasedTests {
                 await deferrable.addBlock { await manager.waitForBuildDescriptionSerialization() }
 
                 func check(fs: any FSProxy, expected: [String], expectedSource: BuildDescriptionRetrievalSource) async throws {
-                    let planRequest = try await self.planRequest(for: workspace, fs: fs, includingTargets: { _ in true })
+                    let planRequest = try await self.planRequest(for: workspace, activeRunDestination: .macOS, fs: fs, includingTargets: { _ in true })
                     let info = try await manager.getNewOrCachedBuildDescription(planRequest, clientDelegate: MockTestTaskPlanningClientDelegate())!
                     #expect(info.source == expectedSource)
 
@@ -434,7 +434,7 @@ fileprivate struct BuildDescriptionTests: CoreBasedTests {
             let testWorkspace = TestWorkspace("aWorkspace", sourceRoot: tmpDirPath, projects: [testProject])
             let workspace = try await testWorkspace.load(getCore())
 
-            let (results, _) = try await buildDescription(for: workspace) as (BuildDescriptionDiagnosticResults, WorkspaceContext)
+            let (results, _) = try await buildDescription(for: workspace, activeRunDestination: .macOS) as (BuildDescriptionDiagnosticResults, WorkspaceContext)
             results.checkNoDiagnostics()
         }
     }
@@ -472,7 +472,7 @@ fileprivate struct BuildDescriptionTests: CoreBasedTests {
             let testWorkspace = TestWorkspace("aWorkspace", sourceRoot: tmpDirPath, projects: [testProject])
             let workspace = try await testWorkspace.load(getCore())
 
-            let (results, _) = try await buildDescription(for: workspace) as (BuildDescriptionDiagnosticResults, WorkspaceContext)
+            let (results, _) = try await buildDescription(for: workspace, activeRunDestination: .macOS) as (BuildDescriptionDiagnosticResults, WorkspaceContext)
             results.checkNoDiagnostics()
         }
     }
@@ -510,7 +510,7 @@ fileprivate struct BuildDescriptionTests: CoreBasedTests {
             let testWorkspace = TestWorkspace("aWorkspace", sourceRoot: tmpDirPath, projects: [testProject])
             let workspace = try await testWorkspace.load(getCore())
 
-            let (results, _) = try await buildDescription(for: workspace) as (BuildDescriptionDiagnosticResults, WorkspaceContext)
+            let (results, _) = try await buildDescription(for: workspace, activeRunDestination: .macOS) as (BuildDescriptionDiagnosticResults, WorkspaceContext)
             #expect(results.errors.isEmpty, "Unexpected errors in build description: \(results.errors)")
             #expect(results.warnings == ["None of the architectures in ARCHS (foo) are valid. Consider setting ARCHS to $(ARCHS_STANDARD) or updating it to include at least one value from VALID_ARCHS (bar). (in target \'NoArchs\' from project 'aProject')"])
         }
@@ -547,7 +547,7 @@ fileprivate struct BuildDescriptionTests: CoreBasedTests {
             let testWorkspace = TestWorkspace("aWorkspace", sourceRoot: tmpDirPath, projects: [testProject])
             let workspace = try await testWorkspace.load(getCore())
 
-            let (results, _) = try await buildDescription(for: workspace) as (BuildDescriptionDiagnosticResults, WorkspaceContext)
+            let (results, _) = try await buildDescription(for: workspace, activeRunDestination: .macOS) as (BuildDescriptionDiagnosticResults, WorkspaceContext)
             #expect(results.errors.isEmpty, "Unexpected errors in build description: \(results.errors)")
             #expect(results.warnings == ["None of the architectures in ARCHS (foo) are valid. Consider setting ARCHS to $(ARCHS_STANDARD) or updating it to include at least one value from VALID_ARCHS (bar). (in target \'NoArchs\' from project 'aProject')"])
         }
@@ -585,7 +585,7 @@ fileprivate struct BuildDescriptionTests: CoreBasedTests {
             let testWorkspace = TestWorkspace("aWorkspace", sourceRoot: tmpDirPath, projects: [testProject])
             let workspace = try await testWorkspace.load(getCore())
 
-            let (results, _) = try await buildDescription(for: workspace) as (BuildDescriptionDiagnosticResults, WorkspaceContext)
+            let (results, _) = try await buildDescription(for: workspace, activeRunDestination: .macOS) as (BuildDescriptionDiagnosticResults, WorkspaceContext)
             #expect(results.errors.isEmpty, "Unexpected errors in build description: \(results.errors)")
             #expect(results.warnings == ["The active architecture (foo) is not valid - it is the only architecture considered because ONLY_ACTIVE_ARCH is enabled. Consider setting ARCHS to $(ARCHS_STANDARD) or updating it to include at least one value from VALID_ARCHS (bar). (in target \'NoArchs\' from project 'aProject')"])
         }
@@ -621,7 +621,7 @@ fileprivate struct BuildDescriptionTests: CoreBasedTests {
             let testWorkspace = TestWorkspace("aWorkspace", sourceRoot: tmpDirPath, projects: [testProject])
             let workspace = try await testWorkspace.load(getCore())
 
-            let (results, _) = try await buildDescription(for: workspace) as (BuildDescriptionDiagnosticResults, WorkspaceContext)
+            let (results, _) = try await buildDescription(for: workspace, activeRunDestination: .macOS) as (BuildDescriptionDiagnosticResults, WorkspaceContext)
             #expect(results.errors.isEmpty, "Unexpected errors in build description: \(results.errors)")
             #expect(results.warnings == ["There are no architectures to compile for because the VALID_ARCHS build setting is an empty list. (in target \'NoArchs\' from project 'aProject')"])
         }
@@ -657,7 +657,7 @@ fileprivate struct BuildDescriptionTests: CoreBasedTests {
             let testWorkspace = TestWorkspace("aWorkspace", sourceRoot: tmpDirPath, projects: [testProject])
             let workspace = try await testWorkspace.load(getCore())
 
-            let (results, _) = try await buildDescription(for: workspace) as (BuildDescriptionDiagnosticResults, WorkspaceContext)
+            let (results, _) = try await buildDescription(for: workspace, activeRunDestination: .macOS) as (BuildDescriptionDiagnosticResults, WorkspaceContext)
             #expect(results.errors.isEmpty, "Unexpected errors in build description: \(results.errors)")
             #expect(results.warnings == ["There are no architectures to compile for because the ARCHS build setting is an empty list. Consider setting ARCHS to $(ARCHS_STANDARD) or updating it to include at least one value from VALID_ARCHS (bar). (in target \'NoArchs\' from project 'aProject')"])
         }

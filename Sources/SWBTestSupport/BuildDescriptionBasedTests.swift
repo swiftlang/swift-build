@@ -31,7 +31,7 @@ extension BuildDescription {
 /// Category for tests which need to use BuildDescription objects.
 extension CoreBasedTests {
     // This should be private, but is public to work around a compiler bug: rdar://108924001 (Unexpected missing symbol in tests (optimizer issue?))
-    package func buildGraph(for workspaceContext: WorkspaceContext, buildRequestContext: BuildRequestContext, configuration: String = "Debug", activeRunDestination: RunDestinationInfo? = .macOS, overrides: [String: String] = [:], useImplicitDependencies: Bool = false, dependencyScope: DependencyScope = .workspace, fs: any FSProxy = PseudoFS(), includingTargets predicate: (Target) -> Bool) async -> TargetBuildGraph {
+    package func buildGraph(for workspaceContext: WorkspaceContext, buildRequestContext: BuildRequestContext, configuration: String = "Debug", activeRunDestination: RunDestinationInfo?, overrides: [String: String] = [:], useImplicitDependencies: Bool = false, dependencyScope: DependencyScope = .workspace, fs: any FSProxy = PseudoFS(), includingTargets predicate: (Target) -> Bool) async -> TargetBuildGraph {
         // Create a fake build request to build all targets.
         let parameters = BuildParameters(configuration: configuration, activeRunDestination: activeRunDestination, overrides: overrides)
         let buildTargets = workspaceContext.workspace.projects.flatMap{ project in
@@ -45,7 +45,7 @@ extension CoreBasedTests {
         return await TargetBuildGraph(workspaceContext: workspaceContext, buildRequest: buildRequest, buildRequestContext: buildRequestContext)
     }
 
-    package func planRequest(for workspace: Workspace, configuration: String = "Debug", activeRunDestination: RunDestinationInfo? = .macOS, overrides: [String: String] = [:], fs: any FSProxy = PseudoFS(), includingTargets predicate: (Target) -> Bool) async throws -> BuildPlanRequest {
+    package func planRequest(for workspace: Workspace, configuration: String = "Debug", activeRunDestination: RunDestinationInfo?, overrides: [String: String] = [:], fs: any FSProxy = PseudoFS(), includingTargets predicate: (Target) -> Bool) async throws -> BuildPlanRequest {
         // Create a workspace context.
         let workspaceContext = try await WorkspaceContext(core: getCore(), workspace: workspace, fs: fs, processExecutionCache: .sharedForTesting)
 
@@ -69,12 +69,12 @@ extension CoreBasedTests {
         return BuildPlanRequest(workspaceContext: buildGraph.workspaceContext, buildRequest: buildGraph.buildRequest, buildRequestContext: buildRequestContext, buildGraph: buildGraph, provisioningInputs: provisioningInputs)
     }
 
-    package func buildDescription(for workspace: Workspace, configuration: String = "Debug", activeRunDestination: RunDestinationInfo? = .macOS, overrides: [String: String] = [:], fs: any FSProxy = PseudoFS(), includingTargets predicate: (Target) -> Bool = { _ in true }) async throws -> (BuildDescription, WorkspaceContext) {
+    package func buildDescription(for workspace: Workspace, configuration: String = "Debug", activeRunDestination: RunDestinationInfo?, overrides: [String: String] = [:], fs: any FSProxy = PseudoFS(), includingTargets predicate: (Target) -> Bool = { _ in true }) async throws -> (BuildDescription, WorkspaceContext) {
         let tuple: (BuildDescriptionDiagnosticResults, WorkspaceContext) = try await buildDescription(for: workspace, configuration: configuration, activeRunDestination: activeRunDestination, overrides: overrides, fs: fs, includingTargets: predicate)
         return (tuple.0.buildDescription, tuple.1)
     }
 
-    @_disfavoredOverload package func buildDescription(for workspace: Workspace, configuration: String = "Debug", activeRunDestination: RunDestinationInfo? = .macOS, overrides: [String: String] = [:], fs: any FSProxy = PseudoFS(), includingTargets predicate: (Target) -> Bool = { _ in true }) async throws -> (BuildDescriptionDiagnosticResults, WorkspaceContext) {
+    @_disfavoredOverload package func buildDescription(for workspace: Workspace, configuration: String = "Debug", activeRunDestination: RunDestinationInfo?, overrides: [String: String] = [:], fs: any FSProxy = PseudoFS(), includingTargets predicate: (Target) -> Bool = { _ in true }) async throws -> (BuildDescriptionDiagnosticResults, WorkspaceContext) {
         let planRequest = try await self.planRequest(for: workspace, configuration: configuration, activeRunDestination: activeRunDestination, overrides: overrides, fs: fs, includingTargets: predicate)
         let delegate = MockTestBuildDescriptionConstructionDelegate()
         guard let results = try await BuildDescriptionManager.constructBuildDescription(planRequest, signature: "", inDirectory: .root, fs: fs, bypassActualTasks: true, clientDelegate: MockTestTaskPlanningClientDelegate(), constructionDelegate: delegate).map({ BuildDescriptionDiagnosticResults(buildDescription: $0, workspace: workspace) }) ?? nil else {
