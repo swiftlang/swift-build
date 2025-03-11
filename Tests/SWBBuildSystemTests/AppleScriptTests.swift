@@ -78,7 +78,7 @@ fileprivate struct AppleScriptTests: CoreBasedTests {
 
             let provisioningInputs = ["App": ProvisioningTaskInputs(identityHash: "-", signedEntitlements: .plDict([:]), simulatedEntitlements: .plDict([:]))]
 
-            try await tester.checkBuild(parameters: BuildParameters(configuration: "Debug"), signableTargets: Set(provisioningInputs.keys), signableTargetInputs: provisioningInputs) { results in
+            try await tester.checkBuild(parameters: BuildParameters(configuration: "Debug"), runDestination: .macOS, signableTargets: Set(provisioningInputs.keys), signableTargetInputs: provisioningInputs) { results in
                 // Check that the delegate was passed build started and build ended events in the right place.
                 results.checkCapstoneEvents()
                 results.checkTask(.matchRuleType("CodeSign")) { _ in }

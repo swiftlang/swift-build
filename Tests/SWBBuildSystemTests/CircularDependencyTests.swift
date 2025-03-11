@@ -84,9 +84,9 @@ fileprivate struct CircularDependencyTests: CoreBasedTests {
                 $0.write("#include <HighLevel/HighLevel.h>")
             }
 
-            let buildParameters = BuildParameters(configuration: "Debug", activeRunDestination: .iOS)
+            let buildParameters = BuildParameters(configuration: "Debug")
 
-            try await tester.checkBuild(parameters: buildParameters, buildRequest: BuildRequest(parameters: buildParameters, buildTargets: [
+            try await tester.checkBuild(parameters: buildParameters, runDestination: .iOS, buildRequest: BuildRequest(parameters: buildParameters, buildTargets: [
                 .init(parameters: buildParameters, target: tester.workspace.projects[0].targets[1]),
                 .init(parameters: buildParameters, target: tester.workspace.projects[0].targets[0])
             ], dependencyScope: .workspace, continueBuildingAfterErrors: false, useParallelTargets: false, useImplicitDependencies: false, useDryRun: false)) { results in

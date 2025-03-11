@@ -78,7 +78,7 @@ fileprivate struct EmbeddedBinaryValidationTests: CoreBasedTests {
             try tester.fs.write(Path(SRCROOT).join("Sources/AppExSource.m"), contents: "int main() { return 0; }")
             try await tester.fs.writePlist(Path(SRCROOT).join("Entitlements.entitlements"), .plDict([:]))
 
-            try await tester.checkBuild(parameters: BuildParameters(configuration: "Debug", activeRunDestination: .macOS), persistent: true, signableTargets: ["AppTarget", "Extending"]) { results in
+            try await tester.checkBuild(parameters: BuildParameters(configuration: "Debug"), runDestination: .macOS, persistent: true, signableTargets: ["AppTarget", "Extending"]) { results in
                 results.checkTask(.matchTargetName("Extending"), .matchRuleType("CodeSign"), .matchRuleItem("\(SRCROOT)/build/Debug/Extending.appex")) { _ in }
 
                 // For the appex, there should be a copy task, no signing task, and a validation task.
@@ -95,7 +95,7 @@ fileprivate struct EmbeddedBinaryValidationTests: CoreBasedTests {
                 results.checkNoDiagnostics()
             }
 
-            try await tester.checkBuild(parameters: BuildParameters(configuration: "Debug", activeRunDestination: .macCatalyst), persistent: true, signableTargets: ["AppTarget", "Extending"]) { results in
+            try await tester.checkBuild(parameters: BuildParameters(configuration: "Debug"), runDestination: .macCatalyst, persistent: true, signableTargets: ["AppTarget", "Extending"]) { results in
                 results.checkTask(.matchTargetName("Extending"), .matchRuleType("CodeSign"), .matchRuleItem("\(SRCROOT)/build/Debug\(MacCatalystInfo.publicSDKBuiltProductsDirSuffix)/Extending.appex")) { _ in }
 
                 // For the appex, there should be a copy task, no signing task, and a validation task.
@@ -112,7 +112,7 @@ fileprivate struct EmbeddedBinaryValidationTests: CoreBasedTests {
                 results.checkNoDiagnostics()
             }
 
-            try await tester.checkBuild(parameters: BuildParameters(configuration: "Debug", activeRunDestination: .iOS, overrides: ["AD_HOC_CODE_SIGNING_ALLOWED": "YES"]), persistent: true, signableTargets: ["AppTarget", "Extending"]) { results in
+            try await tester.checkBuild(parameters: BuildParameters(configuration: "Debug", overrides: ["AD_HOC_CODE_SIGNING_ALLOWED": "YES"]), runDestination: .iOS, persistent: true, signableTargets: ["AppTarget", "Extending"]) { results in
                 results.checkTask(.matchTargetName("Extending"), .matchRuleType("CodeSign"), .matchRuleItem("\(SRCROOT)/build/Debug-iphoneos/Extending.appex")) { _ in }
 
                 // For the appex, there should be a copy task, no signing task, and a validation task.

@@ -66,16 +66,16 @@ fileprivate struct StaleFileRemovalTests: CoreBasedTests {
                 contents <<< "int main() { return 0; }\n"
             }
 
-            try await tester.checkBuild(parameters: BuildParameters(configuration: "Debug", commandLineOverrides: ["SDKROOT": "macosx"]), persistent: true) { results in
+            try await tester.checkBuild(parameters: BuildParameters(configuration: "Debug", commandLineOverrides: ["SDKROOT": "macosx"]), runDestination: .macOS, persistent: true) { results in
                 #expect(tester.fs.exists(SRCROOT.join("build/Debug/Framework.framework/Framework")))
             }
 
-            try await tester.checkBuild(parameters: BuildParameters(configuration: "Debug", commandLineOverrides: ["SDKROOT": "driverkit"]), persistent: true) { results in
+            try await tester.checkBuild(parameters: BuildParameters(configuration: "Debug", commandLineOverrides: ["SDKROOT": "driverkit"]), runDestination: .macOS, persistent: true) { results in
                 #expect(tester.fs.exists(SRCROOT.join("build/Debug/Framework.framework/Framework")))
                 #expect(tester.fs.exists(SRCROOT.join("build/Debug-driverkit/Framework.framework/Framework")))
             }
 
-            try await tester.checkBuild(parameters: BuildParameters(configuration: "Debug", commandLineOverrides: ["SDKROOT": "macosx"]), persistent: true) { results in
+            try await tester.checkBuild(parameters: BuildParameters(configuration: "Debug", commandLineOverrides: ["SDKROOT": "macosx"]), runDestination: .macOS, persistent: true) { results in
                 #expect(tester.fs.exists(SRCROOT.join("build/Debug/Framework.framework/Framework")))
                 #expect(tester.fs.exists(SRCROOT.join("build/Debug-driverkit/Framework.framework/Framework")))
             }
@@ -189,11 +189,11 @@ fileprivate struct StaleFileRemovalTests: CoreBasedTests {
                 contents <<< "int main() { return 0; }\n"
             }
 
-            try await tester.checkBuild(parameters: BuildParameters(action: .build, configuration: "Debug"), persistent: true) { results in
+            try await tester.checkBuild(parameters: BuildParameters(action: .build, configuration: "Debug"), runDestination: .macOS, persistent: true) { results in
                 #expect(tester.fs.exists(SRCROOT.join("build/Debug/Framework.framework/Framework")))
             }
 
-            try await tester.checkBuild(parameters: BuildParameters(action: .installHeaders, configuration: "Debug"), persistent: true) { results in
+            try await tester.checkBuild(parameters: BuildParameters(action: .installHeaders, configuration: "Debug"), runDestination: .macOS, persistent: true) { results in
                 results.checkNoStaleFileRemovalNotes()
             }
         }
@@ -256,7 +256,7 @@ fileprivate struct StaleFileRemovalTests: CoreBasedTests {
                 let parameters = BuildParameters(configuration: "Debug", overrides: overrides)
 
                 // Try build with new combination of sanitizers
-                try await tester.checkBuild(parameters: parameters, persistent: true) { results in
+                try await tester.checkBuild(parameters: parameters, runDestination: .macOS, persistent: true) { results in
                     results.checkTask(.matchRuleType("CompileC")) { _ in }
                     results.checkTask(.matchRuleType("Libtool")) { _ in }
                     results.consumeTasksMatchingRuleTypes(excludingTypes)
@@ -264,11 +264,11 @@ fileprivate struct StaleFileRemovalTests: CoreBasedTests {
                 }
 
                 // Check that we get a null build when using same parameters
-                try await tester.checkNullBuild(parameters: parameters, persistent: true)
+                try await tester.checkNullBuild(parameters: parameters, runDestination: .macOS, persistent: true)
 
                 for previousParameters in previousBuildParameters {
                     // Try build with all previous parameters to ensure that compilation doesn't happen again for them
-                    try await tester.checkBuild(parameters: previousParameters, persistent: true) { results in
+                    try await tester.checkBuild(parameters: previousParameters, runDestination: .macOS, persistent: true) { results in
                         results.checkTask(.matchRuleType("Libtool")) { _ in }
                         results.consumeTasksMatchingRuleTypes(excludingTypes)
                         results.checkNoTask()

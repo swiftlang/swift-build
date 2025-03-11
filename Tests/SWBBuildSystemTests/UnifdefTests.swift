@@ -57,15 +57,15 @@ fileprivate struct UnifdefTests: CoreBasedTests {
             """)
 
             // Check the initial build.
-            try await tester.checkBuild(parameters: BuildParameters(configuration: "Debug", commandLineOverrides: ["COPY_HEADERS_UNIFDEF_FLAGS": "-DFOO"]), persistent: true) { results in
+            try await tester.checkBuild(parameters: BuildParameters(configuration: "Debug", commandLineOverrides: ["COPY_HEADERS_UNIFDEF_FLAGS": "-DFOO"]), runDestination: .macOS, persistent: true) { results in
                 results.checkTask(.matchRuleType("Unifdef")) { _ in }
             }
 
             // The second build should be null.
-            try await tester.checkNullBuild(parameters: BuildParameters(configuration: "Debug", commandLineOverrides: ["COPY_HEADERS_UNIFDEF_FLAGS": "-DFOO"]), persistent: true)
+            try await tester.checkNullBuild(parameters: BuildParameters(configuration: "Debug", commandLineOverrides: ["COPY_HEADERS_UNIFDEF_FLAGS": "-DFOO"]), runDestination: .macOS, persistent: true)
 
             // Changing unifdef's flags should cause it to rerun.
-            try await tester.checkBuild(parameters: BuildParameters(configuration: "Debug", commandLineOverrides: ["COPY_HEADERS_UNIFDEF_FLAGS": "-DBAR"]), persistent: true) { results in
+            try await tester.checkBuild(parameters: BuildParameters(configuration: "Debug", commandLineOverrides: ["COPY_HEADERS_UNIFDEF_FLAGS": "-DBAR"]), runDestination: .macOS, persistent: true) { results in
                 results.checkTask(.matchRuleType("Unifdef")) { _ in }
             }
         }

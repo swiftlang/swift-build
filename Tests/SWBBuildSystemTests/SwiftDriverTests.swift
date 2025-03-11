@@ -116,7 +116,7 @@ fileprivate struct SwiftDriverTests: CoreBasedTests {
             }
 
             // Check that subtasks progress events are reported as expected.
-            try await tester.checkBuild(buildRequest: buildRequest, persistent: true) { results in
+            try await tester.checkBuild(runDestination: .macOS, buildRequest: buildRequest, persistent: true) { results in
 
                 results.checkNoErrors()
 
@@ -238,7 +238,7 @@ fileprivate struct SwiftDriverTests: CoreBasedTests {
                 ])
 
             let tester = try await BuildOperationTester(getCore(), testWorkspace, simulated: false)
-            let parameters = BuildParameters(configuration: "Debug", activeRunDestination: .anyMac)
+            let parameters = BuildParameters(configuration: "Debug")
             let buildRequest = BuildRequest(parameters: parameters, buildTargets: tester.workspace.projects[0].targets.map({ BuildRequest.BuildTargetInfo(parameters: parameters, target: $0) }), continueBuildingAfterErrors: false, useParallelTargets: true, useImplicitDependencies: false, useDryRun: false)
             let SRCROOT = testWorkspace.sourceRoot.join("aProject")
 
@@ -278,7 +278,7 @@ fileprivate struct SwiftDriverTests: CoreBasedTests {
             }
 
             // Check that subtasks progress events are reported as expected.
-            try await tester.checkBuild(buildRequest: buildRequest, persistent: true) { results in
+            try await tester.checkBuild(runDestination: .anyMac, buildRequest: buildRequest, persistent: true) { results in
                 results.checkNoErrors()
 
                 for arch in ["arm64e", "x86_64"] {
@@ -381,7 +381,7 @@ fileprivate struct SwiftDriverTests: CoreBasedTests {
                 ])
 
             let tester = try await BuildOperationTester(getCore(), testWorkspace, simulated: false)
-            let parameters = BuildParameters(configuration: "Debug", activeRunDestination: .anyMac)
+            let parameters = BuildParameters(configuration: "Debug")
             let buildRequest = BuildRequest(parameters: parameters, buildTargets: tester.workspace.projects[0].targets.map({ BuildRequest.BuildTargetInfo(parameters: parameters, target: $0) }), continueBuildingAfterErrors: false, useParallelTargets: true, useImplicitDependencies: false, useDryRun: false)
             let SRCROOT = testWorkspace.sourceRoot.join("aProject")
 
@@ -401,7 +401,7 @@ fileprivate struct SwiftDriverTests: CoreBasedTests {
                         """
             }
 
-            try await tester.checkBuild(buildRequest: buildRequest, persistent: true) { results in
+            try await tester.checkBuild(runDestination: .anyMac, buildRequest: buildRequest, persistent: true) { results in
                 results.checkNoErrors()
             }
         }
@@ -453,7 +453,7 @@ fileprivate struct SwiftDriverTests: CoreBasedTests {
                 ])
 
             let tester = try await BuildOperationTester(getCore(), testWorkspace, simulated: false)
-            let parameters = BuildParameters(configuration: "Debug", activeRunDestination: .anyMac)
+            let parameters = BuildParameters(configuration: "Debug")
             let buildRequest = BuildRequest(parameters: parameters, buildTargets: tester.workspace.projects[0].targets.map({ BuildRequest.BuildTargetInfo(parameters: parameters, target: $0) }), continueBuildingAfterErrors: false, useParallelTargets: true, useImplicitDependencies: false, useDryRun: false)
             let SRCROOT = testWorkspace.sourceRoot.join("aProject")
 
@@ -473,7 +473,7 @@ fileprivate struct SwiftDriverTests: CoreBasedTests {
                         """
             }
 
-            try await tester.checkBuild(buildRequest: buildRequest, persistent: true) { results in
+            try await tester.checkBuild(runDestination: .anyMac, buildRequest: buildRequest, persistent: true) { results in
                 results.checkNoErrors()
 
                 let checkPayload: (BuildOperationTester.BuildResults.Task) -> Void = { task in
@@ -552,7 +552,7 @@ fileprivate struct SwiftDriverTests: CoreBasedTests {
                 ])
 
             let tester = try await BuildOperationTester(getCore(), testWorkspace, simulated: false)
-            let parameters = BuildParameters(configuration: "Debug", activeRunDestination: .anyMac)
+            let parameters = BuildParameters(configuration: "Debug")
             let buildRequest = BuildRequest(parameters: parameters, buildTargets: tester.workspace.projects[0].targets.map({ BuildRequest.BuildTargetInfo(parameters: parameters, target: $0) }), continueBuildingAfterErrors: false, useParallelTargets: true, useImplicitDependencies: false, useDryRun: false)
             let SRCROOT = testWorkspace.sourceRoot.join("aProject")
 
@@ -566,7 +566,7 @@ fileprivate struct SwiftDriverTests: CoreBasedTests {
                             """
             }
 
-            try await tester.checkBuild(buildRequest: buildRequest, persistent: true) { results in
+            try await tester.checkBuild(runDestination: .anyMac, buildRequest: buildRequest, persistent: true) { results in
                 results.checkNoErrors()
 
                 results.checkTask(.matchTargetName("TargetA"), .matchRuleType("SwiftDriver Compilation")) { compileBucket in
@@ -641,7 +641,7 @@ fileprivate struct SwiftDriverTests: CoreBasedTests {
                 ])
 
             let tester = try await BuildOperationTester(getCore(), testWorkspace, simulated: false)
-            let parameters = BuildParameters(configuration: "Debug", activeRunDestination: .anyMac)
+            let parameters = BuildParameters(configuration: "Debug")
             let buildRequest = BuildRequest(parameters: parameters, buildTargets: tester.workspace.projects[0].targets.map({ BuildRequest.BuildTargetInfo(parameters: parameters, target: $0) }), continueBuildingAfterErrors: false, useParallelTargets: true, useImplicitDependencies: false, useDryRun: false)
             let SRCROOT = testWorkspace.sourceRoot.join("aProject")
 
@@ -665,7 +665,7 @@ fileprivate struct SwiftDriverTests: CoreBasedTests {
                         """
             }
 
-            try await tester.checkBuild(buildRequest: buildRequest, persistent: true) { results in
+            try await tester.checkBuild(runDestination: .anyMac, buildRequest: buildRequest, persistent: true) { results in
                 results.checkNoErrors()
             }
         }
@@ -731,7 +731,7 @@ fileprivate struct SwiftDriverTests: CoreBasedTests {
                 ])
 
             let tester = try await BuildOperationTester(getCore(), testWorkspace, simulated: false)
-            let parameters = BuildParameters(action: .installAPI, configuration: "Debug", activeRunDestination: .anyMac)
+            let parameters = BuildParameters(action: .installAPI, configuration: "Debug")
             let buildRequest = BuildRequest(parameters: parameters, buildTargets: tester.workspace.projects[0].targets.map({ BuildRequest.BuildTargetInfo(parameters: parameters, target: $0) }), continueBuildingAfterErrors: false, useParallelTargets: true, useImplicitDependencies: false, useDryRun: false)
             let SRCROOT = testWorkspace.sourceRoot.join("aProject")
 
@@ -755,7 +755,7 @@ fileprivate struct SwiftDriverTests: CoreBasedTests {
                         """
             }
 
-            try await tester.checkBuild(buildRequest: buildRequest, persistent: true) { results in
+            try await tester.checkBuild(runDestination: .anyMac, buildRequest: buildRequest, persistent: true) { results in
                 results.checkNoErrors()
             }
         }
@@ -871,8 +871,8 @@ fileprivate struct SwiftDriverTests: CoreBasedTests {
                             }
                             """
                 }
-                try await tester.checkBuild(buildRequest: parameterizedBuildRequest(buildParameters)) { results in checkExplicitBuildOn(results) }
-                try await tester.checkBuild(buildRequest: cleanRequest) { results in results.checkNoErrors() }
+                try await tester.checkBuild(runDestination: .macOS, buildRequest: parameterizedBuildRequest(buildParameters)) { results in checkExplicitBuildOn(results) }
+                try await tester.checkBuild(runDestination: .macOS, buildRequest: cleanRequest) { results in results.checkNoErrors() }
             }
 
             tester = try await BuildOperationTester(getCore(), testWorkspace, simulated: false)
@@ -888,8 +888,8 @@ fileprivate struct SwiftDriverTests: CoreBasedTests {
                             }
                             """
                 }
-                try await tester.checkBuild(buildRequest: parameterizedBuildRequest(buildParameters)) { results in checkExplicitBuildOff(results) }
-                try await tester.checkBuild(buildRequest: cleanRequest) { results in results.checkNoErrors() }
+                try await tester.checkBuild(runDestination: .macOS, buildRequest: parameterizedBuildRequest(buildParameters)) { results in checkExplicitBuildOff(results) }
+                try await tester.checkBuild(runDestination: .macOS, buildRequest: cleanRequest) { results in results.checkNoErrors() }
             }
         }
     }
@@ -1054,7 +1054,7 @@ fileprivate struct SwiftDriverTests: CoreBasedTests {
                     }
 
                     // Check that subtasks progress events are reported as expected.
-                    try await tester.checkBuild(buildRequest: buildRequest, persistent: true) { results in
+                    try await tester.checkBuild(runDestination: .macOS, buildRequest: buildRequest, persistent: true) { results in
                         results.checkNoErrors()
                         // Remove in rdar://83104047
                         results.checkWarnings([.contains("input unused"), .contains("input unused")], failIfNotFound: false)
@@ -1282,7 +1282,7 @@ fileprivate struct SwiftDriverTests: CoreBasedTests {
             }
 
             // Check that subtasks progress events are reported as expected.
-            try await tester.checkBuild(buildRequest: buildRequest, persistent: true) { results in
+            try await tester.checkBuild(runDestination: .macOS, buildRequest: buildRequest, persistent: true) { results in
                 results.checkNoErrors()
                 // Remove in rdar://83104047
                 results.checkWarnings([.contains("input unused"), .contains("input unused")], failIfNotFound: false)
@@ -1381,7 +1381,7 @@ fileprivate struct SwiftDriverTests: CoreBasedTests {
                         """
             }
 
-            try await tester.checkBuild(buildRequest: buildRequest, persistent: true) { results in
+            try await tester.checkBuild(runDestination: .macOS, buildRequest: buildRequest, persistent: true) { results in
                 results.checkNoErrors()
                 results.checkTasks(.matchRulePattern(["SwiftExplicitDependencyCompileModuleFromInterface", "normal", .any, .contains("SwiftExplicitPrecompiledModules/Foundation-")])) { compileFoundationTasks in
                     // We only expect to need one variant of Foundation
@@ -1517,7 +1517,7 @@ fileprivate struct SwiftDriverTests: CoreBasedTests {
                 }
 
                 // Check that subtasks progress events are reported as expected.
-                try await tester.checkBuild(buildRequest: buildRequest, persistent: true) { results in
+                try await tester.checkBuild(runDestination: .macOS, buildRequest: buildRequest, persistent: true) { results in
                     results.checkNoErrors()
                     // Remove in rdar://83104047
                     results.checkWarnings([.contains("input unused"), .contains("input unused")], failIfNotFound: false)
@@ -1662,12 +1662,12 @@ fileprivate struct SwiftDriverTests: CoreBasedTests {
             }
 
             // Initial build
-            try await tester.checkBuild(buildRequest: buildRequest, persistent: true) { results in
+            try await tester.checkBuild(runDestination: .macOS, buildRequest: buildRequest, persistent: true) { results in
                 results.checkNoErrors()
             }
 
             // null build
-            try await tester.checkNullBuild(buildRequest: buildRequest, persistent: true)
+            try await tester.checkNullBuild(runDestination: .macOS, buildRequest: buildRequest, persistent: true)
 
             // Add method to A1 in TargetA to invalidate TargetA and TargetB planning
             try await tester.fs.writeFileContents(SRCROOT.join("Sources/file1.swift")) { file in
@@ -1680,7 +1680,7 @@ fileprivate struct SwiftDriverTests: CoreBasedTests {
             }
 
             // null build
-            try await tester.checkBuild(buildRequest: buildRequest, persistent: true) { results in
+            try await tester.checkBuild(runDestination: .macOS, buildRequest: buildRequest, persistent: true) { results in
                 results.checkNoErrors()
 
                 results.checkTaskExists(.matchTargetName("TargetA"), .matchRuleType("SwiftDriver"))
@@ -1743,12 +1743,12 @@ fileprivate struct SwiftDriverTests: CoreBasedTests {
             }
 
             // Initial build
-            try await tester.checkBuild(buildRequest: buildRequest, persistent: true) { results in
+            try await tester.checkBuild(runDestination: .macOS, buildRequest: buildRequest, persistent: true) { results in
                 results.checkNoErrors()
             }
 
             // null build
-            try await tester.checkNullBuild(buildRequest: buildRequest, persistent: true)
+            try await tester.checkNullBuild(runDestination: .macOS, buildRequest: buildRequest, persistent: true)
 
             // Change the source file.
             try await tester.fs.writeFileContents(SRCROOT.join("Sources/file1.swift"), waitForNewTimestamp: true) { file in
@@ -1758,7 +1758,7 @@ fileprivate struct SwiftDriverTests: CoreBasedTests {
                     """
             }
 
-            try await tester.checkBuild(buildRequest: buildRequest, persistent: true) { results in
+            try await tester.checkBuild(runDestination: .macOS, buildRequest: buildRequest, persistent: true) { results in
                 results.checkNoErrors()
                 results.checkTaskExists(.matchRuleType("SwiftCompile"))
                 results.checkTaskExists(.matchRuleType("Ld"))
@@ -1772,7 +1772,7 @@ fileprivate struct SwiftDriverTests: CoreBasedTests {
                     """
             }
 
-            try await tester.checkBuild(buildRequest: buildRequest, persistent: true) { results in
+            try await tester.checkBuild(runDestination: .macOS, buildRequest: buildRequest, persistent: true) { results in
                 results.checkNoErrors()
                 results.checkTaskExists(.matchRuleType("SwiftCompile"))
                 results.checkTaskExists(.matchRuleType("Ld"))
@@ -1845,7 +1845,7 @@ fileprivate struct SwiftDriverTests: CoreBasedTests {
             }
 
             // Initial build should succeed. We should have two compile tasks and one module emission task.
-            try await tester.checkBuild(buildRequest: buildRequest, persistent: true) { results in
+            try await tester.checkBuild(runDestination: .macOS, buildRequest: buildRequest, persistent: true) { results in
                 results.checkWarning(.contains("annotation implies no releases, but consumes self"), failIfNotFound: false)
                 results.checkWarning(.contains("mismatching function effects"), failIfNotFound: false)
                 results.checkWarning(.contains("mismatching function effects"), failIfNotFound: false)
@@ -1863,7 +1863,7 @@ fileprivate struct SwiftDriverTests: CoreBasedTests {
                     """
             }
             // In this build, only file2 was directly modified, so it will be in the first wave and file1 will be in the second wave. As a result, we should see both tasks even though compilation of file 1 fails. We may or may not see the emit-module task depending on timing, so don't check for it.
-            try await tester.checkBuild(buildRequest: buildRequest, persistent: true) { results in
+            try await tester.checkBuild(runDestination: .macOS, buildRequest: buildRequest, persistent: true) { results in
                 results.checkError(.contains("cannot find 'y' in scope"))
                 results.checkError(.prefix("Command SwiftCompile failed."))
                 results.checkTaskExists(.matchRulePattern(["SwiftCompile", "normal", .any, "Compiling file1.swift"]))
@@ -1878,7 +1878,7 @@ fileprivate struct SwiftDriverTests: CoreBasedTests {
                     """
             }
             // Previously, only the emit module task and compilation of file2 would run, because the stale build record indicated that file1 succeeded in the previous build. With the fix, we should once again see the emit-module task and both compile tasks.
-            try await tester.checkBuild(buildRequest: buildRequest, persistent: true) { results in
+            try await tester.checkBuild(runDestination: .macOS, buildRequest: buildRequest, persistent: true) { results in
                 results.checkWarning(.contains("annotation implies no releases, but consumes self"), failIfNotFound: false)
                 results.checkWarning(.contains("mismatching function effects"), failIfNotFound: false)
                 results.checkWarning(.contains("mismatching function effects"), failIfNotFound: false)
@@ -1981,12 +1981,12 @@ fileprivate struct SwiftDriverTests: CoreBasedTests {
             }
 
             // Initial build
-            try await tester.checkBuild(buildRequest: buildRequest, persistent: true) { results in
+            try await tester.checkBuild(runDestination: .macOS, buildRequest: buildRequest, persistent: true) { results in
                 results.checkNoErrors()
             }
 
             // null build
-            try await tester.checkNullBuild(buildRequest: buildRequest, persistent: true)
+            try await tester.checkNullBuild(runDestination: .macOS, buildRequest: buildRequest, persistent: true)
 
             // Change B -> Incremental build
             try await tester.fs.writeFileContents(SRCROOT.join("Sources/file4.swift")) { file in
@@ -1996,7 +1996,7 @@ fileprivate struct SwiftDriverTests: CoreBasedTests {
                     """
             }
 
-            try await tester.checkBuild(buildRequest: buildRequest, persistent: true) { results in
+            try await tester.checkBuild(runDestination: .macOS, buildRequest: buildRequest, persistent: true) { results in
                 results.checkNoErrors()
                 results.consumeTasksMatchingRuleTypes(["Gate", "SwiftDriver", "SwiftDriver Compilation Requirements", "SwiftDriver Compilation"], targetName: "TargetA")
 
@@ -2021,7 +2021,7 @@ fileprivate struct SwiftDriverTests: CoreBasedTests {
             }
 
             // Another null build
-            try await tester.checkNullBuild(buildRequest: buildRequest, persistent: true)
+            try await tester.checkNullBuild(runDestination: .macOS, buildRequest: buildRequest, persistent: true)
 
             // Change public API in A
             try await tester.fs.writeFileContents(SRCROOT.join("Sources/file1.swift")) { file in
@@ -2032,7 +2032,7 @@ fileprivate struct SwiftDriverTests: CoreBasedTests {
                     """
             }
 
-            try await tester.checkBuild(buildRequest: buildRequest, persistent: true) { results in
+            try await tester.checkBuild(runDestination: .macOS, buildRequest: buildRequest, persistent: true) { results in
                 results.checkNoErrors()
 
                 // We expect TargetB to rebuild it's files when changing API in a dependency
@@ -2143,16 +2143,16 @@ fileprivate struct SwiftDriverTests: CoreBasedTests {
             }
 
             // Initial build
-            try await tester.checkBuild(buildRequest: buildRequest, persistent: true) { results in
+            try await tester.checkBuild(runDestination: .macOS, buildRequest: buildRequest, persistent: true) { results in
                 results.checkNoErrors()
             }
 
             // null build
 
-            try await tester.checkNullBuild(buildRequest: buildRequest, persistent: true)
+            try await tester.checkNullBuild(runDestination: .macOS, buildRequest: buildRequest, persistent: true)
 
             // another null build
-            try await tester.checkNullBuild(buildRequest: buildRequest, persistent: true)
+            try await tester.checkNullBuild(runDestination: .macOS, buildRequest: buildRequest, persistent: true)
         }
     }
 
@@ -2219,7 +2219,7 @@ fileprivate struct SwiftDriverTests: CoreBasedTests {
                 }
             }
 
-            try await tester.checkBuild(buildRequest: buildRequest, persistent: true) { results in
+            try await tester.checkBuild(runDestination: .macOS, buildRequest: buildRequest, persistent: true) { results in
                 results.checkNoErrors()
             }
         }
@@ -2276,7 +2276,7 @@ fileprivate struct SwiftDriverTests: CoreBasedTests {
                 file <<< "class A {}"
             }
 
-            try await tester.checkBuild { results in
+            try await tester.checkBuild(runDestination: .macOS) { results in
                 results.checkNoDiagnostics()
             }
         }
@@ -2357,7 +2357,7 @@ fileprivate struct SwiftDriverTests: CoreBasedTests {
             }
 
             // Initial build
-            try await tester.checkBuild(buildRequest: buildRequest, persistent: true) { results in
+            try await tester.checkBuild(runDestination: .macOS, buildRequest: buildRequest, persistent: true) { results in
                 results.checkError(.and(.prefix("\(SRCROOT.join("Sources/file1.swift").str):1:18:"), .contains("DoesNotExist")))
                 results.checkError(.and(.prefix("\(SRCROOT.join("Sources/file2.swift").str):1:18:"), .contains("DoesAlsoNotExist")))
                 results.checkError(.prefix("Command SwiftCompile failed."))
@@ -2458,7 +2458,7 @@ fileprivate struct SwiftDriverTests: CoreBasedTests {
             }
 
             // Initial build
-            try await tester.checkBuild(buildRequest: buildRequest, persistent: true) { results in
+            try await tester.checkBuild(runDestination: .macOS, buildRequest: buildRequest, persistent: true) { results in
                 results.checkError(.and(.prefix("\(SRCROOT.join("Sources/file1.swift").str):1:18:"), .contains("DoesNotExist")))
                 results.checkError(.and(.prefix("\(SRCROOT.join("Sources/file2.swift").str):1:18:"), .contains("DoesAlsoNotExist")))
                 results.checkError(.prefix("Command SwiftCompile failed."))
@@ -2536,7 +2536,7 @@ fileprivate struct SwiftDriverTests: CoreBasedTests {
             try await tester.fs.writeFileContents(SRCROOT.join("Sources/A/file.swift")) { $0 <<< "" }
             try await tester.fs.writeFileContents(SRCROOT.join("Sources/B/file.swift")) { $0 <<< "" }
 
-            try await tester.checkBuild(buildRequest: buildRequest, persistent: true) { results in
+            try await tester.checkBuild(runDestination: .macOS, buildRequest: buildRequest, persistent: true) { results in
                 results.checkError(.equal("[Swift Compiler Error] filename \"file.swift\" used twice: '\(SRCROOT.join("Sources/A/file.swift").str)' and '\(SRCROOT.join("Sources/B/file.swift").str)' (for task: [\"SwiftDriver\", \"TargetA\", \"normal\", \"x86_64\", \"com.apple.xcode.tools.swift.compiler\"])"))
 
                 results.checkNoErrors()
@@ -2605,7 +2605,7 @@ fileprivate struct SwiftDriverTests: CoreBasedTests {
             // Check that subtasks progress events are reported as expected.
             tester.userInfo = UserInfo(user: "user", group: "group", uid: 1337, gid: 42, home: tmpDirPath.join("home"), processEnvironment: ["LD_APPLICATION_EXTENSION_SAFE": "1"], buildSystemEnvironment: [:])
 
-            try await tester.checkBuild(buildRequest: buildRequest, persistent: true) { results in
+            try await tester.checkBuild(runDestination: .macOS, buildRequest: buildRequest, persistent: true) { results in
                 results.checkNoErrors()
             }
         }
@@ -2701,7 +2701,7 @@ fileprivate struct SwiftDriverTests: CoreBasedTests {
             }
 
             // Check that subtasks progress events are reported as expected.
-            try await tester.checkBuild(buildRequest: buildRequest, persistent: true) { results in
+            try await tester.checkBuild(runDestination: .macOS, buildRequest: buildRequest, persistent: true) { results in
 
                 results.checkNoErrors()
 
@@ -2881,7 +2881,7 @@ fileprivate struct SwiftDriverTests: CoreBasedTests {
             }
 
             // Check that subtasks progress events are reported as expected.
-            try await tester.checkBuild(buildRequest: buildRequest, persistent: true) { results in
+            try await tester.checkBuild(runDestination: .macOS, buildRequest: buildRequest, persistent: true) { results in
                 // The build should succeed
                 results.checkNoDiagnostics()
 
@@ -3384,7 +3384,7 @@ fileprivate struct SwiftDriverTests: CoreBasedTests {
                 }
 
                 // Check that subtasks progress events are reported as expected.
-                try await tester.checkBuild(buildRequest: buildRequest, persistent: true) { results in
+                try await tester.checkBuild(runDestination: .macOS, buildRequest: buildRequest, persistent: true) { results in
                     results.checkNoErrors()
                     // Remove in rdar://83104047
                     results.checkWarnings([.contains("input unused"), .contains("input unused")], failIfNotFound: false)
@@ -3539,7 +3539,7 @@ fileprivate struct SwiftDriverTests: CoreBasedTests {
                     }
 
                     let core = try await self.getCore()
-                    try await tester.checkBuild(buildRequest: buildRequest, persistent: true) { results in
+                    try await tester.checkBuild(runDestination: .macOS, buildRequest: buildRequest, persistent: true) { results in
                         results.checkNoErrors()
                         // Remove in rdar://83104047
                         results.checkWarnings([.contains("input unused"), .contains("input unused")], failIfNotFound: false)
@@ -3652,7 +3652,7 @@ fileprivate struct SwiftDriverTests: CoreBasedTests {
                 file <<< "func foo() {}"
             }
 
-            try await tester.checkBuild(buildRequest: buildRequest) { results in
+            try await tester.checkBuild(runDestination: .macOS, buildRequest: buildRequest) { results in
                 results.checkTaskExists(.matchRuleType("SwiftDriver"))
                 results.checkTaskExists(.matchRuleType("SwiftDriver Compilation Requirements"))
                 results.checkTaskExists(.matchRuleType("SwiftDriver Compilation"))
@@ -3758,7 +3758,7 @@ fileprivate struct SwiftDriverTests: CoreBasedTests {
             }
 
             // Check that subtasks progress events are reported as expected.
-            try await tester.checkBuild(buildRequest: buildRequest, persistent: true) { results in
+            try await tester.checkBuild(runDestination: .macOS, buildRequest: buildRequest, persistent: true) { results in
                 results.checkNoErrors()
 
                 // Check that progress statistics are consistent
@@ -3809,7 +3809,7 @@ fileprivate struct SwiftDriverTests: CoreBasedTests {
                 ])
 
             let tester = try await BuildOperationTester(getCore(), testWorkspace, simulated: false)
-            let parameters = BuildParameters(action: .docBuild, configuration: "Debug", activeRunDestination: .anyMac)
+            let parameters = BuildParameters(action: .docBuild, configuration: "Debug")
             let buildRequest = BuildRequest(parameters: parameters, buildTargets: tester.workspace.projects[0].targets.map({ BuildRequest.BuildTargetInfo(parameters: parameters, target: $0) }), continueBuildingAfterErrors: false, useParallelTargets: true, useImplicitDependencies: false, useDryRun: false)
             let SRCROOT = testWorkspace.sourceRoot.join("aProject")
 
@@ -3823,7 +3823,7 @@ fileprivate struct SwiftDriverTests: CoreBasedTests {
                     """
             }
 
-            try await tester.checkBuild(buildRequest: buildRequest, persistent: true) { results in
+            try await tester.checkBuild(runDestination: .anyMac, buildRequest: buildRequest, persistent: true) { results in
                 results.checkNoErrors()
                 try results.checkTask(.matchTargetName("TargetA"), .matchRule(["SwiftEmitModule", "normal", "arm64", "Emitting module for TargetA"])) { task in
                     task.checkCommandLineContains([
@@ -3921,7 +3921,7 @@ fileprivate struct SwiftDriverTests: CoreBasedTests {
             }
 
             // Initial build
-            try await tester.checkBuild(parameters: parameters, buildRequest: buildRequest, persistent: true) { results in
+            try await tester.checkBuild(parameters: parameters, runDestination: .macOS, buildRequest: buildRequest, persistent: true) { results in
                 results.checkNoErrors()
 
                 let configuredTargetA = ConfiguredTarget(parameters: results.buildRequest.parameters, target: targetA)
@@ -3931,7 +3931,7 @@ fileprivate struct SwiftDriverTests: CoreBasedTests {
             }
 
             // null build
-            try await tester.checkNullBuild(buildRequest: buildRequest, persistent: true)
+            try await tester.checkNullBuild(runDestination: .macOS, buildRequest: buildRequest, persistent: true)
 
             // Change B -> Incremental build
             try await tester.fs.writeFileContents(SRCROOT.join("Sources/file2.swift")) { file in
@@ -3944,7 +3944,7 @@ fileprivate struct SwiftDriverTests: CoreBasedTests {
                     """
             }
 
-            try await tester.checkBuild(parameters: parameters, buildRequest: buildRequest, persistent: true) { results in
+            try await tester.checkBuild(parameters: parameters, runDestination: .macOS, buildRequest: buildRequest, persistent: true) { results in
                 results.checkNoErrors()
                 results.consumeTasksMatchingRuleTypes(["Gate", "SwiftDriver", "SwiftDriver Compilation Requirements", "SwiftDriver Compilation"], targetName: "TargetA")
 
@@ -3962,7 +3962,7 @@ fileprivate struct SwiftDriverTests: CoreBasedTests {
             }
 
             // Another null build
-            try await tester.checkNullBuild(buildRequest: buildRequest, persistent: true)
+            try await tester.checkNullBuild(runDestination: .macOS, buildRequest: buildRequest, persistent: true)
 
             // Remove public API in A
             try await tester.fs.writeFileContents(SRCROOT.join("Sources/file1.swift")) { file in
@@ -3974,7 +3974,7 @@ fileprivate struct SwiftDriverTests: CoreBasedTests {
                     """
             }
 
-            try await tester.checkBuild(parameters: parameters, buildRequest: buildRequest, persistent: true) { results in
+            try await tester.checkBuild(parameters: parameters, runDestination: .macOS, buildRequest: buildRequest, persistent: true) { results in
                 // B is still using that API, so it should recompile and fail given the discovered dependencies
                 results.checkError(.contains("file2.swift:3"))
                 // We get the error for emit-module and compile jobs
@@ -4009,7 +4009,7 @@ fileprivate struct SwiftDriverTests: CoreBasedTests {
                     """
             }
 
-            try await tester.checkBuild(parameters: parameters, buildRequest: buildRequest, persistent: true) { results in
+            try await tester.checkBuild(parameters: parameters, runDestination: .macOS, buildRequest: buildRequest, persistent: true) { results in
                 results.checkNoErrors()
                 results.consumeTasksMatchingRuleTypes(["Gate", "SwiftDriver", "SwiftDriver Compilation Requirements", "SwiftDriver Compilation"], targetName: "TargetA")
 
@@ -4062,7 +4062,7 @@ fileprivate struct SwiftDriverTests: CoreBasedTests {
             try await tester.fs.writeFileContents(tmpDirPath.join("Source2.swift")) {
                 $0 <<< "struct Bar {}"
             }
-            try await tester.checkBuild(persistent: true) { results in
+            try await tester.checkBuild(runDestination: .macOS, persistent: true) { results in
                 results.check(contains: .activityStarted(ruleInfo: "SwiftDriverJobDiscovery normal \(results.runDestinationTargetArchitecture) Emitting module for Foo"))
                 results.check(contains: .activityEnded(ruleInfo: "SwiftDriverJobDiscovery normal \(results.runDestinationTargetArchitecture) Emitting module for Foo", status: .succeeded))
                 results.check(contains: .activityStarted(ruleInfo: "SwiftDriverJobDiscovery normal \(results.runDestinationTargetArchitecture) Compiling Source.swift"))
@@ -4144,7 +4144,7 @@ fileprivate struct SwiftDriverTests: CoreBasedTests {
             }
 
             // Ensure that if the driver finishes planning but emitted errors, we fail the plan task instead of trying to continue.
-            try await tester.checkBuild(buildRequest: buildRequest, persistent: true) { results in
+            try await tester.checkBuild(runDestination: .macOS, buildRequest: buildRequest, persistent: true) { results in
                 results.checkError(.prefix("[Swift Compiler Error] using bridging headers with framework targets is unsupported"))
                 // We don't care about other errors which may pop up here.
                 results.checkedErrors = true
@@ -4208,7 +4208,7 @@ fileprivate struct SwiftDriverTests: CoreBasedTests {
             }
 
             // Ensure that if the driver finishes planning but emitted errors, we fail the plan task instead of trying to continue.
-            try await tester.checkBuild(buildRequest: buildRequest, persistent: true) { results in
+            try await tester.checkBuild(runDestination: .macOS, buildRequest: buildRequest, persistent: true) { results in
                 results.checkError(.prefix("something bad happened"))
                 results.checkNoErrors()
                 // The earlier failure should not fail this activity.
@@ -4311,7 +4311,7 @@ fileprivate struct SwiftDriverTests: CoreBasedTests {
                 let parameters = BuildParameters(configuration: "Debug", overrides: ["DIAGNOSE_MISSING_TARGET_DEPENDENCIES": warningLevel.rawValue])
                 let buildRequest = BuildRequest(parameters: parameters, buildTargets: tester.workspace.projects[0].targets.map({ BuildRequest.BuildTargetInfo(parameters: parameters, target: $0) }), continueBuildingAfterErrors: false, useParallelTargets: true, useImplicitDependencies: false, useDryRun: false)
 
-                try await tester.checkBuild(buildRequest: buildRequest, persistent: true) { results in
+                try await tester.checkBuild(runDestination: .macOS, buildRequest: buildRequest, persistent: true) { results in
                     switch warningLevel {
                     case .yes:
                         results.checkWarning("'Framework3' is missing a dependency on 'Framework1' because dependency scan of Swift module 'Framework3' discovered a dependency on 'Framework1'")
@@ -4325,7 +4325,7 @@ fileprivate struct SwiftDriverTests: CoreBasedTests {
                     results.checkNoDiagnostics()
                 }
 
-                try await tester.checkBuild(parameters: parameters, buildCommand: .cleanBuildFolder(style: .regular)) { _ in }
+                try await tester.checkBuild(parameters: parameters, runDestination: .macOS, buildCommand: .cleanBuildFolder(style: .regular)) { _ in }
             }
         }
     }
@@ -4408,36 +4408,36 @@ fileprivate struct SwiftDriverTests: CoreBasedTests {
                 // Build without DeprecateApplicationMain enabled.
                 do {
                     let params = BuildParameters(configuration: "Debug")
-                    try await tester.checkBuild(buildRequest: parameterizedBuildRequest(params)) { results in
+                    try await tester.checkBuild(runDestination: .macOS, buildRequest: parameterizedBuildRequest(params)) { results in
                         results.checkWarnings([.contains("Enabling the Swift language feature 'DeprecateApplicationMain' is recommended; set 'SWIFT_UPCOMING_FEATURE_DEPRECATE_APPLICATION_MAIN = YES'")], failIfNotFound: true)
                         results.checkNotes([.contains("Learn more about 'DeprecateApplicationMain' by visiting https://www.swift.org/swift-evolution/")])
                         results.checkNoErrors()
                     }
-                    try await tester.checkBuild(buildRequest: cleanRequest) { results in results.checkNoErrors() }
+                    try await tester.checkBuild(runDestination: .macOS, buildRequest: cleanRequest) { results in results.checkNoErrors() }
                 }
 
                 // Build with 'SWIFT_UPCOMING_FEATURE_DEPRECATE_APPLICATION_MAIN = YES'.
                 do {
                     let params = BuildParameters(configuration: "Debug",
                                                  commandLineOverrides: ["SWIFT_UPCOMING_FEATURE_DEPRECATE_APPLICATION_MAIN": "YES"])
-                    try await tester.checkBuild(buildRequest: parameterizedBuildRequest(params)) { results in results.checkNoDiagnostics() }
-                    try await tester.checkBuild(buildRequest: cleanRequest) { results in results.checkNoErrors() }
+                    try await tester.checkBuild(runDestination: .macOS, buildRequest: parameterizedBuildRequest(params)) { results in results.checkNoDiagnostics() }
+                    try await tester.checkBuild(runDestination: .macOS, buildRequest: cleanRequest) { results in results.checkNoErrors() }
                 }
 
                 // Build with '-enable-upcoming-feature DeprecateApplicationMain'.
                 do {
                     let params = BuildParameters(configuration: "Debug",
                                                  commandLineOverrides: ["OTHER_SWIFT_FLAGS": "-enable-upcoming-feature DeprecateApplicationMain"])
-                    try await tester.checkBuild(buildRequest: parameterizedBuildRequest(params)) { results in results.checkNoDiagnostics() }
-                    try await tester.checkBuild(buildRequest: cleanRequest) { results in results.checkNoErrors() }
+                    try await tester.checkBuild(runDestination: .macOS, buildRequest: parameterizedBuildRequest(params)) { results in results.checkNoDiagnostics() }
+                    try await tester.checkBuild(runDestination: .macOS, buildRequest: cleanRequest) { results in results.checkNoErrors() }
                 }
 
                 // Build with '-enable-experimental-feature DeprecateApplicationMain'.
                 do {
                     let params = BuildParameters(configuration: "Debug",
                                                  commandLineOverrides: ["OTHER_SWIFT_FLAGS": "-enable-experimental-feature DeprecateApplicationMain"])
-                    try await tester.checkBuild(buildRequest: parameterizedBuildRequest(params)) { results in results.checkNoDiagnostics() }
-                    try await tester.checkBuild(buildRequest: cleanRequest) { results in results.checkNoErrors() }
+                    try await tester.checkBuild(runDestination: .macOS, buildRequest: parameterizedBuildRequest(params)) { results in results.checkNoDiagnostics() }
+                    try await tester.checkBuild(runDestination: .macOS, buildRequest: cleanRequest) { results in results.checkNoErrors() }
                 }
             }
 
@@ -4463,12 +4463,12 @@ fileprivate struct SwiftDriverTests: CoreBasedTests {
                 // Build without RegionBasedIsolation enabled.
                 do {
                     let params = BuildParameters(configuration: "Debug")
-                    try await tester.checkBuild(buildRequest: parameterizedBuildRequest(params)) { results in
+                    try await tester.checkBuild(runDestination: .macOS, buildRequest: parameterizedBuildRequest(params)) { results in
                         results.checkErrors([.contains("Enabling the Swift language feature 'RegionBasedIsolation' is required; add '-enable-upcoming-feature RegionBasedIsolation' to 'OTHER_SWIFT_FLAGS'")], failIfNotFound: true)
                         results.checkNotes([.contains("Learn more about 'RegionBasedIsolation' by visiting https://www.swift.org/swift-evolution/")])
                         results.checkNoWarnings()
                     }
-                    try await tester.checkBuild(buildRequest: cleanRequest) { results in results.checkNoErrors() }
+                    try await tester.checkBuild(runDestination: .macOS, buildRequest: cleanRequest) { results in results.checkNoErrors() }
                 }
             }
 
@@ -4494,8 +4494,8 @@ fileprivate struct SwiftDriverTests: CoreBasedTests {
                 // Build without InternalImportsByDefault enabled.
                 do {
                     let params = BuildParameters(configuration: "Debug")
-                    try await tester.checkBuild(buildRequest: parameterizedBuildRequest(params)) { results in results.checkNoDiagnostics() }
-                    try await tester.checkBuild(buildRequest: cleanRequest) { results in results.checkNoErrors() }
+                    try await tester.checkBuild(runDestination: .macOS, buildRequest: parameterizedBuildRequest(params)) { results in results.checkNoDiagnostics() }
+                    try await tester.checkBuild(runDestination: .macOS, buildRequest: cleanRequest) { results in results.checkNoErrors() }
                 }
             }
         }
@@ -4558,7 +4558,7 @@ fileprivate struct SwiftDriverTests: CoreBasedTests {
                         """
             }
 
-            try await tester.checkBuild(buildRequest: buildRequest, persistent: true) { results in
+            try await tester.checkBuild(runDestination: .macOS, buildRequest: buildRequest, persistent: true) { results in
                 var responseFile: Path? = nil
                 results.checkTask(.matchRuleType("SwiftDriver Compilation Requirements")) { driverTask in
                     responseFile = driverTask.outputPaths.filter { $0.str.hasSuffix("-linker-args.resp") }.only

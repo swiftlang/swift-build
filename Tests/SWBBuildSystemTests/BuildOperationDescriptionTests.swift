@@ -160,7 +160,7 @@ fileprivate struct BuildOperationDescriptionTests: CoreBasedTests {
             try await tester.fs.writePlist(testWorkspace.sourceRoot.join("aProject/Info-Bar.plist"), .plDict(["key": .plString("value")]))
 
             // Create a new build description, build from it, and check results.
-            let firstDesc = try await tester.checkBuild { results in
+            let firstDesc = try await tester.checkBuild(runDestination: .macOS) { results in
                 let firstDesc = results.buildDescription
 
                 // Check that we got the BuildDescription in the expected way.
@@ -205,7 +205,7 @@ fileprivate struct BuildOperationDescriptionTests: CoreBasedTests {
             // Build again with different overrides, to make sure we build a new set of tasks.
             let secondParameters = BuildParameters(configuration: "Debug", commandLineOverrides: ["OTHER_CFLAGS": "$(inherited) -DFOO"])
             let secondBuildRequest = BuildRequest(parameters: secondParameters, buildTargets: tester.workspace.projects[0].targets.map({ BuildRequest.BuildTargetInfo(parameters: secondParameters, target: $0) }), dependencyScope: .workspace, continueBuildingAfterErrors: true, useParallelTargets: true, useImplicitDependencies: false, useDryRun: false)
-            let secondDesc = try await tester.checkBuild(parameters: secondParameters, buildRequest: secondBuildRequest) { results in
+            let secondDesc = try await tester.checkBuild(parameters: secondParameters, runDestination: .macOS, buildRequest: secondBuildRequest) { results in
                 let secondDesc = results.buildDescription
 
                 // Check that we got the BuildDescription in the expected way.
@@ -238,7 +238,7 @@ fileprivate struct BuildOperationDescriptionTests: CoreBasedTests {
             }
 
             // Build again using the cached build description, and check results.
-            let thirdDesc = try await tester.checkBuild { results in
+            let thirdDesc = try await tester.checkBuild(runDestination: .macOS) { results in
                 var thirdDesc = results.buildDescription
 
                 // Check that we got the BuildDescription in the expected way.
@@ -307,7 +307,7 @@ fileprivate struct BuildOperationDescriptionTests: CoreBasedTests {
             // Build yet again with a third set of overrides, to make sure we build a new set of tasks, and to check that files on disk were purged as expected.  This will cause 'secondDesc' to be purged, as it is the last-recently-used one.
             let fourthParameters = BuildParameters(configuration: "Debug", commandLineOverrides: ["OTHER_CFLAGS": "$(inherited) -DBAR"])
             let fourthBuildRequest = BuildRequest(parameters: fourthParameters, buildTargets: tester.workspace.projects[0].targets.map({ BuildRequest.BuildTargetInfo(parameters: fourthParameters, target: $0) }), dependencyScope: .workspace, continueBuildingAfterErrors: true, useParallelTargets: true, useImplicitDependencies: false, useDryRun: false)
-            let fourthDesc = try await tester.checkBuild(parameters: fourthParameters, buildRequest: fourthBuildRequest) { results in
+            let fourthDesc = try await tester.checkBuild(parameters: fourthParameters, runDestination: .macOS, buildRequest: fourthBuildRequest) { results in
                 let fourthDesc = results.buildDescription
 
                 // Check that we got the BuildDescription in the expected way.
@@ -370,7 +370,7 @@ fileprivate struct BuildOperationDescriptionTests: CoreBasedTests {
             tester.userPreferences = tester.userPreferences.with(enableBuildSystemCaching: false)
 
             // Create a new build description, build from it, and check results.
-            let firstDesc = try await tester.checkBuild { results in
+            let firstDesc = try await tester.checkBuild(runDestination: .macOS) { results in
                 // Check that we got the BuildDescription in the expected way.
                 #expect(results.buildDescriptionInfo.source == .new)
                 #expect(results.buildDescriptionInfo.inMemoryCacheSize == 1)
@@ -409,7 +409,7 @@ fileprivate struct BuildOperationDescriptionTests: CoreBasedTests {
             }
 
             // Build again using the cached build description, and check results.
-            let secondDesc = try await tester.checkBuild { results in
+            let secondDesc = try await tester.checkBuild(runDestination: .macOS) { results in
                 // Check that we got the BuildDescription in the expected way.
                 #expect(results.buildDescriptionInfo.source == .inMemoryCache)
                 #expect(results.buildDescriptionInfo.inMemoryCacheSize == 1)
@@ -464,7 +464,7 @@ fileprivate struct BuildOperationDescriptionTests: CoreBasedTests {
 
             // Blow away the build manifest file and rebuild.
             try localFS.remove(secondDesc.manifestPath)
-            try await tester.checkBuild { results in
+            try await tester.checkBuild(runDestination: .macOS) { results in
                 // Check that we got the BuildDescription in the expected way.
                 #expect(results.buildDescriptionInfo.source == .new)
 
@@ -499,7 +499,7 @@ fileprivate struct BuildOperationDescriptionTests: CoreBasedTests {
             tester.userPreferences = tester.userPreferences.with(enableBuildSystemCaching: true)
 
             // Create a new build description, build from it, and check results.
-            let firstDesc = try await tester.checkBuild { results in
+            let firstDesc = try await tester.checkBuild(runDestination: .macOS) { results in
                 // Check that we got the BuildDescription in the expected way.
                 #expect(results.buildDescriptionInfo.source == .new)
                 #expect(results.buildDescriptionInfo.inMemoryCacheSize == 1)
@@ -538,7 +538,7 @@ fileprivate struct BuildOperationDescriptionTests: CoreBasedTests {
             }
 
             // Build again using the cached build description, and check results.
-            let secondDesc = try await tester.checkBuild { results in
+            let secondDesc = try await tester.checkBuild(runDestination: .macOS) { results in
                 // Check that we got the BuildDescription in the expected way.
                 #expect(results.buildDescriptionInfo.source == .inMemoryCache)
                 #expect(results.buildDescriptionInfo.inMemoryCacheSize == 1)
@@ -572,7 +572,7 @@ fileprivate struct BuildOperationDescriptionTests: CoreBasedTests {
 
             // Blow away the build manifest file and rebuild.
             try localFS.remove(secondDesc.manifestPath)
-            try await tester.checkBuild { results in
+            try await tester.checkBuild(runDestination: .macOS) { results in
                 // Check that we got the BuildDescription in the expected way.
                 #expect(results.buildDescriptionInfo.source == .new)
 

@@ -80,7 +80,7 @@ fileprivate struct PreviewsBuildOperationTests: CoreBasedTests {
             let previewInfoInput = TaskGeneratePreviewInfoInput.thunkInfo(sourceFile: srcRoot.join("Sources/main.swift"), thunkVariantSuffix: "selection")
 
             // Concrete iOS simulator destination with overrides for an iPhone 14 Pro
-            let buildParameters = BuildParameters(configuration: "Debug", activeRunDestination: .iOSSimulator, overrides: [
+            let buildParameters = BuildParameters(configuration: "Debug", overrides: [
                 "ASSETCATALOG_FILTER_FOR_DEVICE_MODEL": "iPhone15,2",
                 "ASSETCATALOG_FILTER_FOR_DEVICE_OS_VERSION": core.loadSDK(.iOSSimulator).defaultDeploymentTarget,
                 "ASSETCATALOG_FILTER_FOR_THINNING_DEVICE_CONFIGURATION": "iPhone15,2",
@@ -110,7 +110,7 @@ fileprivate struct PreviewsBuildOperationTests: CoreBasedTests {
 
             var buildDescriptionID: BuildDescriptionID?
 
-            try await tester.checkBuild(parameters: buildParameters, buildCommand: .build(style: .buildOnly, skipDependencies: false), signableTargets: Set(provisioningInputs.keys), signableTargetInputs: provisioningInputs) { results in
+            try await tester.checkBuild(parameters: buildParameters, runDestination: .iOSSimulator, buildCommand: .build(style: .buildOnly, skipDependencies: false), signableTargets: Set(provisioningInputs.keys), signableTargetInputs: provisioningInputs) { results in
                 results.checkNoDiagnostics()
                 results.checkNote(.equal("Emplaced \(srcRoot.str)/build/Debug-iphonesimulator/AppTarget.app/Assets.car (for task: [\"LinkAssetCatalog\", \"\(srcRoot.str)/Sources/Assets.xcassets\"])"))
                 results.checkNote(.equal("Using stub executor library with Swift entry point. (for task: [\"ConstructStubExecutorLinkFileList\", \"\(srcRoot.str)/build/ProjectName.build/Debug-iphonesimulator/AppTarget.build/AppTarget-ExecutorLinkFileList-normal-x86_64.txt\"])"))
@@ -319,9 +319,9 @@ fileprivate struct PreviewsBuildOperationTests: CoreBasedTests {
                 }
             }
 
-            try await tester.checkNullBuild(parameters: buildParameters, buildCommand: .build(style: .buildOnly, skipDependencies: false), signableTargets: Set(provisioningInputs.keys), signableTargetInputs: provisioningInputs)
+            try await tester.checkNullBuild(parameters: buildParameters, runDestination: .iOSSimulator, buildCommand: .build(style: .buildOnly, skipDependencies: false), signableTargets: Set(provisioningInputs.keys), signableTargetInputs: provisioningInputs)
 
-            try await tester.checkBuild(parameters: buildParameters, buildCommand: .preview(style: .xojit), signableTargets: Set(provisioningInputs.keys), signableTargetInputs: provisioningInputs) { results in
+            try await tester.checkBuild(parameters: buildParameters, runDestination: .iOSSimulator, buildCommand: .preview(style: .xojit), signableTargets: Set(provisioningInputs.keys), signableTargetInputs: provisioningInputs) { results in
                 results.checkNoDiagnostics()
                 results.checkNote(.equal("Emplaced \(srcRoot.str)/build/Debug-iphonesimulator/AppTarget.app/Assets.car (for task: [\"LinkAssetCatalog\", \"\(srcRoot.str)/Sources/Assets.xcassets\"])"))
                 results.checkNoNotes()
@@ -344,9 +344,9 @@ fileprivate struct PreviewsBuildOperationTests: CoreBasedTests {
                 results.checkNoTask()
             }
 
-            try await tester.checkNullBuild(parameters: buildParameters, buildCommand: .preview(style: .xojit), signableTargets: Set(provisioningInputs.keys), signableTargetInputs: provisioningInputs)
+            try await tester.checkNullBuild(parameters: buildParameters, runDestination: .iOSSimulator, buildCommand: .preview(style: .xojit), signableTargets: Set(provisioningInputs.keys), signableTargetInputs: provisioningInputs)
 
-            try await tester.checkBuild(parameters: buildParameters, buildCommand: .build(style: .buildOnly, skipDependencies: false), signableTargets: Set(provisioningInputs.keys), signableTargetInputs: provisioningInputs) { results in
+            try await tester.checkBuild(parameters: buildParameters, runDestination: .iOSSimulator, buildCommand: .build(style: .buildOnly, skipDependencies: false), signableTargets: Set(provisioningInputs.keys), signableTargetInputs: provisioningInputs) { results in
                 results.checkNoDiagnostics()
 
                 // Switching from preview to build should not have changed the build description
@@ -359,9 +359,9 @@ fileprivate struct PreviewsBuildOperationTests: CoreBasedTests {
                 results.checkNoTask()
             }
 
-            try await tester.checkNullBuild(parameters: buildParameters, buildCommand: .build(style: .buildOnly, skipDependencies: false), signableTargets: Set(provisioningInputs.keys), signableTargetInputs: provisioningInputs)
+            try await tester.checkNullBuild(parameters: buildParameters, runDestination: .iOSSimulator, buildCommand: .build(style: .buildOnly, skipDependencies: false), signableTargets: Set(provisioningInputs.keys), signableTargetInputs: provisioningInputs)
 
-            try await tester.checkBuild(parameters: buildParameters, buildCommand: .preview(style: .xojit), signableTargets: Set(provisioningInputs.keys), signableTargetInputs: provisioningInputs) { results in
+            try await tester.checkBuild(parameters: buildParameters, runDestination: .iOSSimulator, buildCommand: .preview(style: .xojit), signableTargets: Set(provisioningInputs.keys), signableTargetInputs: provisioningInputs) { results in
                 results.checkNoDiagnostics()
 
                 // Switching from build to preview should not have changed the build description
@@ -374,7 +374,7 @@ fileprivate struct PreviewsBuildOperationTests: CoreBasedTests {
                 results.checkNoTask()
             }
 
-            try await tester.checkNullBuild(parameters: buildParameters, buildCommand: .preview(style: .xojit), signableTargets: Set(provisioningInputs.keys), signableTargetInputs: provisioningInputs)
+            try await tester.checkNullBuild(parameters: buildParameters, runDestination: .iOSSimulator, buildCommand: .preview(style: .xojit), signableTargets: Set(provisioningInputs.keys), signableTargetInputs: provisioningInputs)
         }
     }
 
@@ -446,7 +446,7 @@ fileprivate struct PreviewsBuildOperationTests: CoreBasedTests {
             let previewInfoInput = TaskGeneratePreviewInfoInput.thunkInfo(sourceFile: srcRoot.join("Sources/File1.swift"), thunkVariantSuffix: "selection")
 
             // Concrete iOS simulator destination with overrides for an iPhone 14 Pro
-            let buildParameters = BuildParameters(configuration: "Debug", activeRunDestination: .iOSSimulator, overrides: [
+            let buildParameters = BuildParameters(configuration: "Debug", overrides: [
                 "ASSETCATALOG_FILTER_FOR_DEVICE_MODEL": "iPhone15,2",
                 "ASSETCATALOG_FILTER_FOR_DEVICE_OS_VERSION": core.loadSDK(.iOSSimulator).defaultDeploymentTarget,
                 "ASSETCATALOG_FILTER_FOR_THINNING_DEVICE_CONFIGURATION": "iPhone15,2",
@@ -466,7 +466,7 @@ fileprivate struct PreviewsBuildOperationTests: CoreBasedTests {
 
             let provisioningInputs = ["AppTarget": ProvisioningTaskInputs(identityHash: "-", signedEntitlements: .plDict([:]), simulatedEntitlements: .plDict(["foo": "bar"]))]
 
-            try await tester.checkBuild(parameters: buildParameters, buildCommand: .build(style: .buildOnly, skipDependencies: false), signableTargets: Set(provisioningInputs.keys), signableTargetInputs: provisioningInputs) { results in
+            try await tester.checkBuild(parameters: buildParameters, runDestination: .iOSSimulator, buildCommand: .build(style: .buildOnly, skipDependencies: false), signableTargets: Set(provisioningInputs.keys), signableTargetInputs: provisioningInputs) { results in
                 results.checkNoDiagnostics()
 
                 let buildDescription = results.buildDescription
@@ -657,12 +657,12 @@ fileprivate struct PreviewsBuildOperationTests: CoreBasedTests {
             try tester.fs.createDirectory(srcRoot.join("Sources"), recursive: true)
             try tester.fs.write(srcRoot.join("Sources/main.swift"), contents: "")
 
-            let buildParameters = BuildParameters(configuration: "Debug", activeRunDestination: .anyiOSSimulator, overrides: [
+            let buildParameters = BuildParameters(configuration: "Debug", overrides: [
                 // And XOJIT previews enabled, which should be passed when the workspace setting is on
                 "ENABLE_XOJIT_PREVIEWS": "YES",
             ])
 
-            try await tester.checkBuild(parameters: buildParameters, buildCommand: .build(style: .buildOnly, skipDependencies: false)) { results in
+            try await tester.checkBuild(parameters: buildParameters, runDestination: .anyiOSSimulator, buildCommand: .build(style: .buildOnly, skipDependencies: false)) { results in
                 results.checkNoDiagnostics()
 
                 results.consumeTasksMatchingRuleTypes(["Copy", "CopySwiftLibs", "ExtractAppIntentsMetadata", "Gate", "GenerateDSYMFile", "MkDir", "CreateBuildDirectory", "WriteAuxiliaryFile", "ClangStatCache", "RegisterExecutionPolicyException", "AppIntentsSSUTraining", "ProcessInfoPlistFile", "Touch", "Validate", "LinkAssetCatalogSignature", "SwiftExplicitDependencyCompileModuleFromInterface", "SwiftExplicitDependencyGeneratePcm", "ConstructStubExecutorLinkFileList", "ProcessSDKImports"])
@@ -731,12 +731,12 @@ fileprivate struct PreviewsBuildOperationTests: CoreBasedTests {
             try tester.fs.createDirectory(srcRoot.join("Sources"), recursive: true)
             try tester.fs.write(srcRoot.join("Sources/main.swift"), contents: "")
 
-            let buildParameters = BuildParameters(configuration: "Debug", activeRunDestination: .iOSSimulator, overrides: [
+            let buildParameters = BuildParameters(configuration: "Debug", overrides: [
                 // And XOJIT previews enabled, which should be passed when the workspace setting is on
                 "ENABLE_XOJIT_PREVIEWS": "YES",
             ])
 
-            try await tester.checkBuild(parameters: buildParameters, buildCommand: .build(style: .buildOnly, skipDependencies: false)) { results in
+            try await tester.checkBuild(parameters: buildParameters, runDestination: .iOSSimulator, buildCommand: .build(style: .buildOnly, skipDependencies: false)) { results in
                 results.checkNoDiagnostics()
 
                 try results.checkTask(.matchRule(["WriteAuxiliaryFile", "\(srcRoot.str)/build/ProjectName.build/Debug-iphonesimulator/AppExTarget.build/AppExTarget-DebugDylibPath-normal-\(results.runDestinationTargetArchitecture).txt"])) { _ in
@@ -939,7 +939,7 @@ fileprivate struct PreviewsBuildOperationTests: CoreBasedTests {
 
                 let previewInfoInput = TaskGeneratePreviewInfoInput.thunkInfo(sourceFile: srcRoot.join("Sources/main.swift"), thunkVariantSuffix: "selection")
 
-                try await tester.checkBuild(parameters: BuildParameters(configuration: "Debug", activeRunDestination: .anyiOSDevice)) { results in
+                try await tester.checkBuild(parameters: BuildParameters(configuration: "Debug"), runDestination: .anyiOSDevice) { results in
                     results.checkNoDiagnostics()
                     let buildDescription = results.buildDescription
                     let targets = buildDescription.allConfiguredTargets.sorted { $0.target.name < $1.target.name }
@@ -1057,7 +1057,7 @@ fileprivate struct PreviewsBuildOperationTests: CoreBasedTests {
 
             let previewInfoInput = TaskGeneratePreviewInfoInput.thunkInfo(sourceFile: srcRoot.join("Sources/main.swift"), thunkVariantSuffix: "selection")
 
-            try await tester.checkBuild(parameters: BuildParameters(configuration: "Debug")) { results in
+            try await tester.checkBuild(parameters: BuildParameters(configuration: "Debug"), runDestination: .macOS) { results in
                 results.checkNoDiagnostics()
 
                 let buildDescription = results.buildDescription

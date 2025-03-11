@@ -71,7 +71,7 @@ fileprivate struct ClangCompilationCachingTests: CoreBasedTests {
                 """
             }
 
-            try await tester.checkBuild(persistent: true) { results in
+            try await tester.checkBuild(runDestination: .macOS, persistent: true) { results in
                 results.checkNoTask(.matchRuleType("ScanDependencies"))
             }
         }
@@ -150,7 +150,7 @@ fileprivate struct ClangCompilationCachingTests: CoreBasedTests {
                 """
             }
 
-            try await tester.checkBuild(persistent: true) { results in
+            try await tester.checkBuild(runDestination: .macOS, persistent: true) { results in
                 _ = results.checkTask(.matchTargetName("Textual"), .matchRuleType("ScanDependencies")) { $0 }
                 _ = results.checkTask(.matchTargetName("TextualWithFMod"), .matchRuleType("ScanDependencies")) { $0 }
                 results.checkNoTask(.matchTargetName("CppModules"), .matchRuleType("ScanDependencies"))
@@ -357,7 +357,7 @@ fileprivate struct ClangCompilationCachingTests: CoreBasedTests {
                 let arena = ArenaInfo.buildArena(derivedDataRoot: derivedDataPath)
                 let parameters = BuildParameters(action: .build, configuration: "Debug", arena: arena)
 
-                try await tester.checkBuild(parameters: parameters, persistent: false) { results in
+                try await tester.checkBuild(parameters: parameters, runDestination: .macOS, persistent: false) { results in
                     let compileTask: Task = try results.checkTask(.matchRuleType("CompileC")) { $0 }
                     results.checkTaskOutput(compileTask) { compileOutput in
                         XCTAssertMatch(compileOutput.stringValue, .contains("-fcas-path \(derivedDataPath.str)/"))
@@ -371,7 +371,7 @@ fileprivate struct ClangCompilationCachingTests: CoreBasedTests {
                     stream <<< ""
                 }
 
-                try await tester.checkBuild() { results in
+                try await tester.checkBuild(runDestination: .macOS) { results in
                     let compileTask: Task = try results.checkTask(.matchRuleType("CompileC")) { $0 }
                     results.checkTaskOutput(compileTask) { compileOutput in
                         XCTAssertMatch(compileOutput.stringValue, .contains("-fcas-path \(cchrootPath.str)/"))
@@ -442,7 +442,7 @@ fileprivate struct ClangCompilationCachingTests: CoreBasedTests {
                 let arena = ArenaInfo.buildArena(derivedDataRoot: derivedDataPath)
                 let parameters = BuildParameters(action: .build, configuration: "Debug", arena: arena)
 
-                try await tester.checkBuild(parameters: parameters, persistent: false) { results in
+                try await tester.checkBuild(parameters: parameters, runDestination: .macOS, persistent: false) { results in
                     let compileTask: Task = try results.checkTask(.matchRuleType("CompileC")) { $0 }
                     results.checkTaskOutput(compileTask) { compileOutput in
                         XCTAssertNoMatch(compileOutput.stringValue, .contains("-fcas-backend"))
@@ -458,7 +458,7 @@ fileprivate struct ClangCompilationCachingTests: CoreBasedTests {
                     stream <<< ""
                 }
 
-                try await tester.checkBuild() { results in
+                try await tester.checkBuild(runDestination: .macOS) { results in
                     let compileTask: Task = try results.checkTask(.matchRuleType("CompileC")) { $0 }
                     results.checkTaskOutput(compileTask) { compileOutput in
                         XCTAssertNoMatch(compileOutput.stringValue, .contains("-fcas-backend"))
@@ -540,7 +540,7 @@ fileprivate struct ClangCompilationCachingTests: CoreBasedTests {
                 let arena = ArenaInfo.buildArena(derivedDataRoot: derivedDataPath)
                 let parameters = BuildParameters(action: .build, configuration: "Debug", arena: arena)
 
-                try await tester.checkBuild(parameters: parameters, persistent: false) { results in
+                try await tester.checkBuild(parameters: parameters, runDestination: .macOS, persistent: false) { results in
                     let compileTask: Task = try results.checkTask(.matchRuleType("CompileC")) { $0 }
                     results.checkTaskOutput(compileTask) { compileOutput in
                         XCTAssertMatch(compileOutput.stringValue, .contains("-fcas-backend"))
@@ -558,7 +558,7 @@ fileprivate struct ClangCompilationCachingTests: CoreBasedTests {
                     stream <<< ""
                 }
 
-                try await tester.checkBuild() { results in
+                try await tester.checkBuild(runDestination: .macOS) { results in
                     let compileTask: Task = try results.checkTask(.matchRuleType("CompileC")) { $0 }
                     results.checkTaskOutput(compileTask) { compileOutput in
                         XCTAssertMatch(compileOutput.stringValue, .contains("-fcas-backend"))
@@ -622,7 +622,7 @@ fileprivate struct ClangCompilationCachingTests: CoreBasedTests {
                             """
                 }
 
-                try await tester.checkBuild() { results in
+                try await tester.checkBuild(runDestination: .macOS) { results in
                     results.checkTaskExists(.matchRuleType("ScanDependencies"))
                     results.checkTask(.matchRuleType("CompileC")) { compileTask in
                         results.checkTaskOutput(compileTask) { output in
@@ -656,7 +656,7 @@ fileprivate struct ClangCompilationCachingTests: CoreBasedTests {
                                                 buildTargets: tester.workspace.projects[0].targets.map({ BuildRequest.BuildTargetInfo(parameters: buildParameters, target: $0) }),
                                                 continueBuildingAfterErrors: true, useParallelTargets: true, useImplicitDependencies: false, useDryRun: false)
 
-                try await tester.checkBuild(buildRequest: buildRequest) { results in
+                try await tester.checkBuild(runDestination: .macOS, buildRequest: buildRequest) { results in
                     results.checkNoTask(.matchRuleType("ScanDependencies"))
                     results.checkTask(.matchRuleType("CompileC")) { compileTask in
                         results.checkTaskOutput(compileTask) { output in
@@ -726,7 +726,7 @@ fileprivate struct ClangCompilationCachingTests: CoreBasedTests {
                 """
             }
 
-            try await tester.checkBuild(persistent: true) { results in
+            try await tester.checkBuild(runDestination: .macOS, persistent: true) { results in
                 let scanTask: Task = try results.checkTask(.matchRuleType("ScanDependencies")) { $0 }
                 let compileTask: Task = try results.checkTask(.matchRuleType("CompileC")) { $0 }
 
@@ -749,7 +749,7 @@ fileprivate struct ClangCompilationCachingTests: CoreBasedTests {
             // Touch the source file to trigger a new scan.
             try await tester.fs.updateTimestamp(testWorkspace.sourceRoot.join("aProject/file.c"))
 
-            try await tester.checkBuild(persistent: true) { results in
+            try await tester.checkBuild(runDestination: .macOS, persistent: true) { results in
                 if tester.fs.fileSystemMode == .checksumOnly {
                     // Updating timestamp of aProject/file.c will not trigger "ScanDependencies" or "CompileC" tasks
                 } else {
@@ -769,9 +769,9 @@ fileprivate struct ClangCompilationCachingTests: CoreBasedTests {
             }
 
             // Clean the build to trigger a cached build.
-            try await tester.checkBuild(buildCommand: .cleanBuildFolder(style: .regular), body: { _ in })
+            try await tester.checkBuild(runDestination: .macOS, buildCommand: .cleanBuildFolder(style: .regular), body: { _ in })
 
-            try await tester.checkBuild(persistent: true) { results in
+            try await tester.checkBuild(runDestination: .macOS, persistent: true) { results in
                 let scanTask: Task = try results.checkTask(.matchRuleType("ScanDependencies")) { $0 }
                 let compileTask: Task = try results.checkTask(.matchRuleType("CompileC")) { $0 }
 
@@ -800,7 +800,7 @@ fileprivate struct ClangCompilationCachingTests: CoreBasedTests {
                 """
             }
 
-            try await tester.checkBuild(persistent: true) { results in
+            try await tester.checkBuild(runDestination: .macOS, persistent: true) { results in
                 let compileTask: Task = try results.checkTask(.matchRuleType("CompileC")) { $0 }
                 results.checkCompileCacheMiss(compileTask)
                 results.checkNoDiagnostics()
@@ -867,7 +867,7 @@ fileprivate struct ClangCompilationCachingTests: CoreBasedTests {
             }
 
             // Clean build.
-            try await tester.checkBuild(persistent: true) { results in
+            try await tester.checkBuild(runDestination: .macOS, persistent: true) { results in
                 results.checkNoDiagnostics()
                 results.checkTasks(.matchRuleType("ScanDependencies")) { tasks in
                     #expect(tasks.count == 4)
@@ -884,7 +884,7 @@ fileprivate struct ClangCompilationCachingTests: CoreBasedTests {
             try await tester.fs.writeFileContents(testWorkspace.sourceRoot.join("aProject/file1.c")) { stream in
                 stream <<< "int something = 2;"
             }
-            try await tester.checkBuild(persistent: true) { results in
+            try await tester.checkBuild(runDestination: .macOS, persistent: true) { results in
                 results.checkNoDiagnostics()
                 results.checkTasks(.matchRuleType("ScanDependencies")) { tasks in
                     #expect(tasks.count == 1)
@@ -900,7 +900,7 @@ fileprivate struct ClangCompilationCachingTests: CoreBasedTests {
                 stream <<< "my_int something = 2;"
             }
             // Despite the low CAS size limit the PCH include-tree should not get garbage collected.
-            try await tester.checkBuild(persistent: true) { results in
+            try await tester.checkBuild(runDestination: .macOS, persistent: true) { results in
                 results.checkNoDiagnostics()
                 results.checkTasks(.matchRuleType("ScanDependencies")) { tasks in
                     #expect(tasks.count == 1)
@@ -921,7 +921,7 @@ fileprivate struct ClangCompilationCachingTests: CoreBasedTests {
                 stream <<< "my_int something = 3;"
             }
             // The PCH and TU include-trees got removed so the scanner needs to run again.
-            try await tester.checkBuild(persistent: true) { results in
+            try await tester.checkBuild(runDestination: .macOS, persistent: true) { results in
                 results.checkNoDiagnostics()
                 results.checkTasks(.matchRuleType("ScanDependencies")) { tasks in
                     // FIXME: Since file1.c and file3.c did not change, no need to compile or scan them.
@@ -999,7 +999,7 @@ fileprivate struct ClangCompilationCachingTests: CoreBasedTests {
             }
 
             // Clean build.
-            try await tester.checkBuild(persistent: true) { results in
+            try await tester.checkBuild(runDestination: .macOS, persistent: true) { results in
                 results.checkNoDiagnostics()
                 results.checkTasks(.matchRuleType("ScanDependencies")) { tasks in
                     #expect(tasks.count == 2)
@@ -1016,7 +1016,7 @@ fileprivate struct ClangCompilationCachingTests: CoreBasedTests {
             try await tester.fs.writeFileContents(testWorkspace.sourceRoot.join("aProject/file1.c")) { stream in
                 stream <<< "int something = 2;"
             }
-            try await tester.checkBuild(persistent: true) { results in
+            try await tester.checkBuild(runDestination: .macOS, persistent: true) { results in
                 results.checkNoDiagnostics()
                 results.checkTasks(.matchRuleType("ScanDependencies")) { tasks in
                     #expect(tasks.count == 1)
@@ -1035,7 +1035,7 @@ fileprivate struct ClangCompilationCachingTests: CoreBasedTests {
                 my_int something = 2;
                 """
             }
-            try await tester.checkBuild(persistent: true) { results in
+            try await tester.checkBuild(runDestination: .macOS, persistent: true) { results in
                 results.checkNoDiagnostics()
                 results.checkTasks(.matchRuleType("ScanDependencies")) { tasks in
                     #expect(tasks.count == 1)
@@ -1060,7 +1060,7 @@ fileprivate struct ClangCompilationCachingTests: CoreBasedTests {
                 """
             }
             // The module include-tree, PCM and diagnostics got removed; the TU include-tree got removed too.
-            try await tester.checkBuild(persistent: true) { results in
+            try await tester.checkBuild(runDestination: .macOS, persistent: true) { results in
                 results.checkNoDiagnostics()
                 results.checkNoDiagnostics()
                 // FIXME: No need to scan for file1.c, its inputs and outputs are still up-to-date.
@@ -1165,7 +1165,7 @@ fileprivate struct ClangCompilationCachingTests: CoreBasedTests {
             }
 
             // Clean build.
-            try await tester.checkBuild(persistent: true) { results in
+            try await tester.checkBuild(runDestination: .macOS, persistent: true) { results in
                 results.checkNoDiagnostics()
                 results.checkTasks(.matchRuleType("ScanDependencies")) { tasks in
                     #expect(tasks.count == 4)
@@ -1188,7 +1188,7 @@ fileprivate struct ClangCompilationCachingTests: CoreBasedTests {
                 int something = 2;
                 """
             }
-            try await tester.checkBuild(persistent: true) { results in
+            try await tester.checkBuild(runDestination: .macOS, persistent: true) { results in
                 results.checkNoDiagnostics()
                 results.checkTasks(.matchRuleType("ScanDependencies")) { tasks in
                     #expect(tasks.count == 1)
@@ -1208,7 +1208,7 @@ fileprivate struct ClangCompilationCachingTests: CoreBasedTests {
                 """
             }
             // Despite the low CAS size limit the PCH include-tree should not get garbage collected.
-            try await tester.checkBuild(persistent: true) { results in
+            try await tester.checkBuild(runDestination: .macOS, persistent: true) { results in
                 results.checkNoDiagnostics()
                 results.checkTasks(.matchRuleType("ScanDependencies")) { tasks in
                     #expect(tasks.count == 1)
@@ -1234,7 +1234,7 @@ fileprivate struct ClangCompilationCachingTests: CoreBasedTests {
             }
             // The module, PCH and TU include-trees got removed so the scanner needs to run again.
             // The module PCM got removed so the compiler needs to run again.
-            try await tester.checkBuild(persistent: true) { results in
+            try await tester.checkBuild(runDestination: .macOS, persistent: true) { results in
                 results.checkNoDiagnostics()
                 results.checkTasks(.matchRuleType("ScanDependencies")) { tasks in
                     // FIXME: Since file1.c and file3.c did not change, no need to compile or scan them.
@@ -1309,7 +1309,7 @@ fileprivate struct ClangCompilationCachingTests: CoreBasedTests {
                 """
             }
 
-            try await tester.checkBuild(persistent: true) { results in
+            try await tester.checkBuild(runDestination: .macOS, persistent: true) { results in
                 results.checkTasks(.matchRuleType("ScanDependencies")) { tasks in
                     #expect(tasks.count == 2)
                 }
@@ -1334,7 +1334,7 @@ fileprivate struct ClangCompilationCachingTests: CoreBasedTests {
             try await tester.fs.updateTimestamp(testWorkspace.sourceRoot.join("aProject/file1.c"))
             try await tester.fs.updateTimestamp(testWorkspace.sourceRoot.join("aProject/file2.cpp"))
 
-            try await tester.checkBuild(persistent: true) { results in
+            try await tester.checkBuild(runDestination: .macOS, persistent: true) { results in
                 if tester.fs.fileSystemMode == .checksumOnly {
                     // Updating timestamp will not trigger "ScanDependencies" and "CompileC" under .checksumOnly
                 } else {
@@ -1401,7 +1401,7 @@ fileprivate struct ClangCompilationCachingTests: CoreBasedTests {
                 stream <<< "#include <stdio.h>"
             }
 
-            try await tester.checkBuild(persistent: true) { results in
+            try await tester.checkBuild(runDestination: .macOS, persistent: true) { results in
                 results.checkTasks(.matchRuleType("ScanDependencies")) { scanTasks in
                     #expect(scanTasks.count == 2)
                 }
@@ -1421,9 +1421,9 @@ fileprivate struct ClangCompilationCachingTests: CoreBasedTests {
             }
 
             // Clean the build to trigger a cached build.
-            try await tester.checkBuild(buildCommand: .cleanBuildFolder(style: .regular), body: { _ in })
+            try await tester.checkBuild(runDestination: .macOS, buildCommand: .cleanBuildFolder(style: .regular), body: { _ in })
 
-            try await tester.checkBuild(persistent: true) { results in
+            try await tester.checkBuild(runDestination: .macOS, persistent: true) { results in
                 results.checkTasks(.matchRuleType("PrecompileModule")) { pcmTasks in
                     #expect(pcmTasks.count >= 1)
                     for pcmTask in pcmTasks {
@@ -1484,7 +1484,7 @@ fileprivate struct ClangCompilationCachingTests: CoreBasedTests {
                 """
             }
 
-            try await tester.checkBuild(persistent: true) { results in
+            try await tester.checkBuild(runDestination: .macOS, persistent: true) { results in
                 results.checkNoTask(.matchRuleType("ScanDependencies"))
                 results.checkTask(.matchRuleType("CompileC")) { compileTask in
                     results.checkTaskOutput(compileTask) { output in
@@ -1556,10 +1556,10 @@ fileprivate struct ClangCompilationCachingTests: CoreBasedTests {
                     """
                 }
 
-                try await tester.checkBuild(persistent: true, body: body)
+                try await tester.checkBuild(runDestination: .macOS, persistent: true, body: body)
 
                 // Clean.
-                try await tester.checkBuild(buildCommand: .cleanBuildFolder(style: .regular), body: { _ in })
+                try await tester.checkBuild(runDestination: .macOS, buildCommand: .cleanBuildFolder(style: .regular), body: { _ in })
             }
 
             func checkCommandLineCommon(output: ByteString) {
@@ -1651,7 +1651,7 @@ fileprivate struct ClangCompilationCachingTests: CoreBasedTests {
                 "COMPILATION_CACHE_LIMIT_SIZE": "100K",
             ])
 
-            try await tester.checkBuild(parameters: parameters, persistent: true) { results in
+            try await tester.checkBuild(parameters: parameters, runDestination: .macOS, persistent: true) { results in
                 // Normal build, cache persists.
                 let path = tmpDirPath.join("CCHROOT/CompilationCache.noindex")
                 #expect(tester.fs.exists(path))
@@ -1666,9 +1666,9 @@ fileprivate struct ClangCompilationCachingTests: CoreBasedTests {
                 results.checkNoRemarks()
             }
 
-            try await tester.checkBuild(buildCommand: .cleanBuildFolder(style: .regular), body: { _ in })
+            try await tester.checkBuild(runDestination: .macOS, buildCommand: .cleanBuildFolder(style: .regular), body: { _ in })
 
-            try await tester.checkBuild(parameters: parametersCustom, persistent: true) { results in
+            try await tester.checkBuild(parameters: parametersCustom, runDestination: .macOS, persistent: true) { results in
                 // Normal build, cache persists.
                 let path = tmpDirPath.join("Custom")
                 #expect(tester.fs.exists(path))
@@ -1680,14 +1680,14 @@ fileprivate struct ClangCompilationCachingTests: CoreBasedTests {
                 }
             }
 
-            try await tester.checkBuild(buildCommand: .cleanBuildFolder(style: .regular), body: { _ in })
+            try await tester.checkBuild(runDestination: .macOS, buildCommand: .cleanBuildFolder(style: .regular), body: { _ in })
 
             let arena = ArenaInfo.buildArena(derivedDataRoot: tmpDirPath.join("derived-data"))
             let parametersWithDerivedData =  BuildParameters(configuration: "Debug", overrides:[
                 "COMPILATION_CACHE_LIMIT_SIZE": "0",
             ], arena: arena)
 
-            try await tester.checkBuild(parameters: parametersWithDerivedData, persistent: true) { results in
+            try await tester.checkBuild(parameters: parametersWithDerivedData, runDestination: .macOS, persistent: true) { results in
                 // Normal build, cache persists.
                 let path = tmpDirPath.join("derived-data/CompilationCache.noindex")
                 #expect(tester.fs.exists(path))
@@ -1756,7 +1756,7 @@ fileprivate struct ClangCompilationCachingTests: CoreBasedTests {
                 stream <<< ""
             }
 
-            try await tester.checkBuild() { results in
+            try await tester.checkBuild(runDestination: .macOS) { results in
                 results.checkTask(.matchRuleType("PhaseScriptExecution")) { task in
                     #expect(task.environment.bindings.contains(where: { $0 == ("COMPILATION_CACHE_KEEP_CAS_DIRECTORY", "YES") }))
                 }
@@ -1808,7 +1808,7 @@ fileprivate struct ClangCompilationCachingTests: CoreBasedTests {
             }
 
             // Build with explicit modules scanning but without caching.
-            try await tester.checkBuild(persistent: true) { results in
+            try await tester.checkBuild(runDestination: .macOS, persistent: true) { results in
                 _ = results.checkTask(.matchRuleType("ScanDependencies")) { $0 }
                 _ = results.checkTask(.matchRuleType("CompileC")) { $0 }
                 results.checkNoErrors()
@@ -1816,7 +1816,7 @@ fileprivate struct ClangCompilationCachingTests: CoreBasedTests {
 
             // Re-build with caching enabled, make sure compilation tasks re-run.
             let parameters = BuildParameters(configuration: "Debug", overrides: ["CLANG_ENABLE_COMPILE_CACHE": "YES"])
-            try await tester.checkBuild(parameters: parameters, persistent: true) { results in
+            try await tester.checkBuild(parameters: parameters, runDestination: .macOS, persistent: true) { results in
                 _ = results.checkTask(.matchRuleType("ScanDependencies")) { $0 }
                 _ = results.checkTask(.matchRuleType("CompileC")) { $0 }
                 results.checkNoErrors()

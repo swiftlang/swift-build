@@ -53,7 +53,7 @@ fileprivate struct DiscoveredDependenciesBuildOperationTests: CoreBasedTests {
                 contents <<< "int main() { return 0; }\n"
             }
 
-            try await tester.checkBuild { results in
+            try await tester.checkBuild(runDestination: .macOS) { results in
                 results.checkTask(.matchRuleType("CompileC")) { task in
                     results.checkError(.prefix("unable to open dependencies file"))
                     results.checkWarning(.contains("Could not read serialized diagnostics file"))
@@ -132,7 +132,7 @@ fileprivate struct DiscoveredDependenciesBuildOperationTests: CoreBasedTests {
             }
 
             // Check the initial build.
-            try await tester.checkBuild(persistent: true, serial: true) { results in
+            try await tester.checkBuild(runDestination: .macOS, persistent: true, serial: true) { results in
                 results.consumeTasksMatchingRuleTypes(["Gate", "MkDir", "WriteAuxiliaryFile", "SymLink", "CreateBuildDirectory", "ProcessInfoPlistFile", "RegisterExecutionPolicyException", "ClangStatCache", "SwiftExplicitDependencyCompileModuleFromInterface", "SwiftExplicitDependencyGeneratePcm", "ProcessSDKImports"])
 
                 checkDriverContainerTasks(results)
@@ -176,7 +176,7 @@ fileprivate struct DiscoveredDependenciesBuildOperationTests: CoreBasedTests {
                 results.checkNoTask()
             }
 
-            try await tester.checkNullBuild(persistent: true)
+            try await tester.checkNullBuild(runDestination: .macOS, persistent: true)
 
             // Modify the dep implementation, and rebuild. The swiftmodule of Dep won't change, so Client will not need to run SwiftDriver planning.
             //
@@ -185,7 +185,7 @@ fileprivate struct DiscoveredDependenciesBuildOperationTests: CoreBasedTests {
             try await tester.fs.writeFileContents(SRCROOT.join("Sources/Dep.swift")) { contents in
                 contents <<< "public func dep0() { print() }\n"
             }
-            try await tester.checkBuild(persistent: true) { results in
+            try await tester.checkBuild(runDestination: .macOS, persistent: true) { results in
                 // We need to rebuild Dep, relink its framework (since the impl changed), and relink Client (since we don't yet analyze API-based deps).
                 results.consumeTasksMatchingRuleTypes(["Gate"])
                 results.checkTaskExists(.matchTargetName("Dep"), .matchRuleType("SwiftCompile"))
@@ -219,7 +219,7 @@ fileprivate struct DiscoveredDependenciesBuildOperationTests: CoreBasedTests {
             }
 
 
-            try await tester.checkNullBuild(persistent: true)
+            try await tester.checkNullBuild(runDestination: .macOS, persistent: true)
 
             // Change the public API of the dep, and rebuild.
             //
@@ -229,7 +229,7 @@ fileprivate struct DiscoveredDependenciesBuildOperationTests: CoreBasedTests {
                 contents <<< "public func dep0() { }\n"
                 contents <<< "public func dep1() { }\n"
             }
-            try await tester.checkBuild(persistent: true, serial: true) { results in
+            try await tester.checkBuild(runDestination: .macOS, persistent: true, serial: true) { results in
                 // We should rebuild Dep, recopy its .swiftmodule, rebuild the client, and relink both.
                 //
                 // FIXME: Why doesn't this trigger the bug where we sometimes stat the module ahead of when it is needed? That was the purpose of this test so we need to get this to fail more before we fix it.
@@ -273,7 +273,7 @@ fileprivate struct DiscoveredDependenciesBuildOperationTests: CoreBasedTests {
             }
 
             // Check that we get a null build.
-            try await tester.checkNullBuild(persistent: true)
+            try await tester.checkNullBuild(runDestination: .macOS, persistent: true)
         }
     }
 
@@ -357,7 +357,7 @@ fileprivate struct DiscoveredDependenciesBuildOperationTests: CoreBasedTests {
             try await tester.fs.writePlist(infoPlist, .plDict([:]))
 
             // Do a first build where everything should be ok.
-            try await tester.checkBuild(parameters: BuildParameters(configuration: "Debug"), persistent: true) { results in
+            try await tester.checkBuild(parameters: BuildParameters(configuration: "Debug"), runDestination: .macOS, persistent: true) { results in
                 results.checkNoDiagnostics()
             }
 
@@ -367,7 +367,7 @@ fileprivate struct DiscoveredDependenciesBuildOperationTests: CoreBasedTests {
     int shared = 2;
     """)
             // We're not expecting this build to fail.
-            try await tester.checkBuild(parameters: BuildParameters(configuration: "Debug"), persistent: true) { results in
+            try await tester.checkBuild(parameters: BuildParameters(configuration: "Debug"), runDestination: .macOS, persistent: true) { results in
                 results.checkNoDiagnostics()
             }
 
@@ -375,7 +375,7 @@ fileprivate struct DiscoveredDependenciesBuildOperationTests: CoreBasedTests {
             try await tester.fs.writePlist(infoPlist, .plDict([:]))
 
             // Before the fix for linker discovered dependencies, this would have caused a build error.
-            try await tester.checkBuild(parameters: BuildParameters(configuration: "Debug"), persistent: true) { results in
+            try await tester.checkBuild(parameters: BuildParameters(configuration: "Debug"), runDestination: .macOS, persistent: true) { results in
                 results.checkNoDiagnostics()
             }
         }
@@ -449,7 +449,7 @@ fileprivate struct DiscoveredDependenciesBuildOperationTests: CoreBasedTests {
             """)
 
             // Do a first build where everything should be ok.
-            try await tester.checkBuild(parameters: BuildParameters(configuration: "Debug"), persistent: true) { results in
+            try await tester.checkBuild(parameters: BuildParameters(configuration: "Debug"), runDestination: .macOS, persistent: true) { results in
                 results.checkNoDiagnostics()
             }
 

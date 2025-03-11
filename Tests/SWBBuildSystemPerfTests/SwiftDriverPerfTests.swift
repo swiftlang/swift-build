@@ -89,12 +89,12 @@ fileprivate struct SwiftDriverPerfTests: CoreBasedTests, PerfTests {
             for _ in 0..<Config.iterations {
 
                 do {
-                    try await tester.checkBuild(buildRequest: buildRequest, serial: true) { results in
+                    try await tester.checkBuild(runDestination: .macOS, buildRequest: buildRequest, serial: true) { results in
                         resultsCheck(results)
                     }
 
                     if clean {
-                        try await tester.checkBuild(buildCommand: BuildCommand.cleanBuildFolder(style: .regular), body: { _ in })
+                        try await tester.checkBuild(runDestination: .macOS, buildCommand: BuildCommand.cleanBuildFolder(style: .regular), body: { _ in })
                     }
                 } catch {
                     Issue.record("Can't test build: \(error)")
@@ -157,13 +157,13 @@ fileprivate struct SwiftDriverPerfTests: CoreBasedTests, PerfTests {
             let tester = try await BuildOperationTester(getCore(), testWorkspace, simulated: false)
             let parameters = BuildParameters(configuration: "Debug")
             let buildRequest = BuildRequest(parameters: parameters, buildTargets: tester.workspace.projects[0].targets.map({ BuildRequest.BuildTargetInfo(parameters: parameters, target: $0) }), dependencyScope: .workspace, continueBuildingAfterErrors: true, useParallelTargets: true, useImplicitDependencies: false, useDryRun: false)
-            try await tester.checkBuild(buildRequest: buildRequest, persistent: true) { results in
+            try await tester.checkBuild(runDestination: .macOS, buildRequest: buildRequest, persistent: true) { results in
                 results.checkNoDiagnostics()
             }
-            try await tester.checkNullBuild()
+            try await tester.checkNullBuild(runDestination: .macOS)
             try await measure {
                 try localFS.touch(SRCROOT.join(filenames.randomElement()))
-                try await tester.checkBuild(buildRequest: buildRequest, persistent: true) { results in
+                try await tester.checkBuild(runDestination: .macOS, buildRequest: buildRequest, persistent: true) { results in
                     results.checkNoDiagnostics()
                 }
             }

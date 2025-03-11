@@ -55,7 +55,7 @@ fileprivate struct SpriteKitBuildOperationTests: CoreBasedTests {
             try tester.fs.createDirectory(Path(SRCROOT).join("Sources").join("assets.atlas"))
             try tester.fs.writeImage(Path(SRCROOT).join("Sources").join("assets.atlas").join("foo.png"), width: 16, height: 16)
 
-            try await tester.checkBuild() { results in
+            try await tester.checkBuild(runDestination: .macOS) { results in
                 try results.checkTask(.matchRuleType("GenerateTextureAtlas")) { task in
                     task.checkRuleInfo(["GenerateTextureAtlas", "\(SRCROOT)/build/Debug/App.app/Contents/Resources/assets.atlasc", "\(SRCROOT)/Sources/assets.atlas"])
                     task.checkCommandLine(["\(core.developerPath.str)/usr/bin/TextureAtlas", "\(SRCROOT)/Sources/assets.atlas", "\(SRCROOT)/build/Debug/App.app/Contents/Resources"])
