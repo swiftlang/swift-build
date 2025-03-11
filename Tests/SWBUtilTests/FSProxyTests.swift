@@ -260,14 +260,14 @@ import SWBTestSupport
         }
     }
 
-    @Test(.skipHostOS(.linux)) // flaky on Linux because timestamps have been observed to vary by 0.001s after copying
+    @Test
     func localCopyFile() throws {
         try withTemporaryDirectory { tmpDir in
             try _testCopyFile(localFS, basePath: tmpDir)
         }
     }
 
-    @Test(.skipHostOS(.linux)) // flaky on Linux because timestamps have been observed to vary by 0.001s after copying
+    @Test
     func localCopyTree() throws {
         try withTemporaryDirectory { tmpDir in
             try _testCopyTree(localFS, basePath: tmpDir)
@@ -1111,7 +1111,10 @@ import SWBTestSupport
         if try ProcessInfo.processInfo.hostOperatingSystem() != .windows {
             #expect(try fs.getFilePermissions(testDataPathDst) == permissions)
         }
-        #expect(try fs.getFileInfo(testDataPath).modificationDate == fs.getFileInfo(testDataPathDst).modificationDate)
+        if fs is PseudoFS {
+            // There is no guarantee that the implementation of copy() will preserve the modification timestamp on either files and/or directories, on any real filesystem, so only make this assertion for the pseudo filesystem which we wholly control.
+            #expect(try fs.getFileInfo(testDataPath).modificationDate == fs.getFileInfo(testDataPathDst).modificationDate)
+        }
         #expect(try ByteString(testData) == fs.read(testDataPathDst))
     }
 
@@ -1121,7 +1124,10 @@ import SWBTestSupport
             #expect(lhs.isDirectory == rhs.isDirectory, sourceLocation: sourceLocation)
             #expect(lhs.isExecutable == rhs.isExecutable, sourceLocation: sourceLocation)
             #expect(lhs.isSymlink == rhs.isSymlink, sourceLocation: sourceLocation)
-            #expect(lhs.modificationDate == rhs.modificationDate, sourceLocation: sourceLocation)
+            if fs is PseudoFS {
+                // There is no guarantee that the implementation of copy() will preserve the modification timestamp on either files and/or directories, on any real filesystem, so only make this assertion for the pseudo filesystem which we wholly control.
+                #expect(lhs.modificationDate == rhs.modificationDate, sourceLocation: sourceLocation)
+            }
             #expect(lhs.owner == rhs.owner, sourceLocation: sourceLocation)
             #expect(lhs.permissions == rhs.permissions, sourceLocation: sourceLocation)
         }
