@@ -53,15 +53,15 @@
                 IsInputDependency = Yes;
             },
             {
-                Name = LD_MULTIARCH;
+                Name = _LD_MULTIARCH;
                 Type = Boolean;
                 DefaultValue = NO;
                 Condition = "$(ALTERNATE_LINKER) == link";
             },
             {
-                Name = LD_MULTIARCH_PREFIX_MAP;
+                Name = _LD_MULTIARCH_PREFIX_MAP;
                 Type = StringList;
-                DefaultValue = "x86_64:x64 aarch64:arm64 arm64:arm64";
+                DefaultValue = "x86_64:x64 aarch64:arm64 i386:x86 thumbv7:arm";
                 Condition = "$(ALTERNATE_LINKER) == link";
             },
             {
