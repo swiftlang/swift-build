@@ -91,7 +91,7 @@ fileprivate struct AppShortcutsStringsValidationTests: CoreBasedTests {
                     """
             }
 
-            try await tester.checkBuild(parameters: parameters) { results in
+            try await tester.checkBuild(parameters: parameters, runDestination: .macOS) { results in
                 results.checkError(.contains("Couldn't parse property list because the input data was in an invalid format"))
                 results.checkWarning(.contains("Unable to find extract.actionsdata in '--input-data-path' directory path"))
                 results.checkError(.contains("Command ValidateAppShortcutStringsMetadata failed."))
@@ -197,7 +197,7 @@ fileprivate struct AppShortcutsStringsValidationTests: CoreBasedTests {
             let metadataFolderPath = "\(SRCROOT)/build/UninstalledProducts/macosx/testTarget.bundle/Contents/Resources/Metadata.appintents"
 
             // Check that there is 1 error per invalid line
-            try await tester.checkBuild(parameters: parameters) { results in
+            try await tester.checkBuild(parameters: parameters, runDestination: .macOS) { results in
                 results.checkTask(.matchRuleType("ValidateAppShortcutStringsMetadata")) { task in
                     let executableName = task.commandLine.first
                     if let executableName,
@@ -227,7 +227,7 @@ fileprivate struct AppShortcutsStringsValidationTests: CoreBasedTests {
                     """
             }
 
-            try await tester.checkBuild(parameters: parameters) { results in
+            try await tester.checkBuild(parameters: parameters, runDestination: .macOS) { results in
                 results.checkWarning(.contains("This phrase is not used in any App Shortcut or as a Negative Phrase."))
                 results.checkNoErrors()
             }

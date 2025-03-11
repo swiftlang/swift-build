@@ -443,7 +443,7 @@ fileprivate struct EntitlementsBuildOperationTests: CoreBasedTests {
             "com.apple.application-identifier": "$(AppIdentifierPrefix)$(CFBundleIdentifier)",
         ]
         let provisioningInputs = ["App": ProvisioningTaskInputs(identityHash: "-", signedEntitlements: entitlements, simulatedEntitlements: [:])]
-        try await tester.checkBuild(parameters: parameters, persistent: true, signableTargets: Set(provisioningInputs.keys), signableTargetInputs: provisioningInputs) { results in
+        try await tester.checkBuild(parameters: parameters, runDestination: .macOS, persistent: true, signableTargets: Set(provisioningInputs.keys), signableTargetInputs: provisioningInputs) { results in
             // Make sure that the entitlements processing task ran.
             let entitlementsTask = try results.checkTask(.matchRuleType("ProcessProductPackaging")) { task throws in task }
             results.check(contains: .taskHadEvent(entitlementsTask, event: .started))

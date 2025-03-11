@@ -89,7 +89,7 @@ fileprivate struct PackageBuildOperationTests: CoreBasedTests {
                     """
             }
 
-            try await tester.checkBuild() { results in
+            try await tester.checkBuild(runDestination: .macOS) { results in
                 results.checkWarning(.contains("annotation implies no releases, but consumes self"), failIfNotFound: false)
                 results.checkWarning(.contains("annotation implies no releases, but consumes self"), failIfNotFound: false)
                 results.checkWarning(.contains("annotation implies no releases, but consumes self"), failIfNotFound: false)
@@ -167,7 +167,7 @@ fileprivate struct PackageBuildOperationTests: CoreBasedTests {
                     """
             }
 
-            try await tester.checkBuild() { results in
+            try await tester.checkBuild(runDestination: .macOS) { results in
                 results.checkNoDiagnostics()
             }
         }
@@ -437,7 +437,7 @@ fileprivate struct PackageBuildOperationTests: CoreBasedTests {
             }
 
             let buildParams = BuildParameters(configuration: configurationToBuild)
-            try await tester.checkBuild(parameters: buildParams, persistent: true) { results in
+            try await tester.checkBuild(parameters: buildParams, runDestination: .macOS, persistent: true) { results in
                 results.checkTasks(.matchRuleType("SwiftCompile")) { tasks in
                     for task in tasks {
                         let targetName = task.forTarget?.target.name ?? ""
@@ -529,7 +529,7 @@ fileprivate struct PackageBuildOperationTests: CoreBasedTests {
             }
 
             let buildParams = BuildParameters(configuration: configurationToBuild)
-            try await tester.checkBuild(parameters: buildParams, persistent: true) { results in
+            try await tester.checkBuild(parameters: buildParams, runDestination: .macOS, persistent: true) { results in
                 results.checkTasks(.matchRuleType("SwiftCompile")) { tasks in
                     for task in tasks {
                         let targetName = task.forTarget?.target.name ?? ""
@@ -574,7 +574,7 @@ fileprivate struct PackageBuildOperationTests: CoreBasedTests {
             let configurationToBuild = "BestDevelopment"
             let tester = try await testerForBasicPackageProject(tmpDirPath: tmpDirPath, configurationToBuild: configurationToBuild)
             let good = BuildParameters(configuration: configurationToBuild)
-            try await tester.checkBuild(parameters: good, persistent: true) { results in
+            try await tester.checkBuild(parameters: good, runDestination: .macOS, persistent: true) { results in
                 results.checkNoErrors()
             }
         }
@@ -601,7 +601,7 @@ fileprivate struct PackageBuildOperationTests: CoreBasedTests {
 
             let tester = try await testerForBasicPackageProject(tmpDirPath: tmpDirPath, configurationToBuild: configurationToBuild)
             let good = BuildParameters(configuration: configurationToBuild)
-            try await tester.checkBuild(parameters: good, persistent: true) { results in
+            try await tester.checkBuild(parameters: good, runDestination: .macOS, persistent: true) { results in
                 results.checkNoErrors()
 
                 // Check that there is a `CreateBuildDirectory` for each expected build directory.

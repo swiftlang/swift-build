@@ -99,7 +99,7 @@ fileprivate struct ModulesVerifierPerfTests: CoreBasedTests, PerfTests {
                 "ENABLE_MODULE_VERIFIER": verify ? "YES" : "NO",
             ])
 
-            try await tester.checkBuild(parameters: params, serial: true) { results in
+            try await tester.checkBuild(parameters: params, runDestination: .macOS, serial: true) { results in
             }
 
             let filesToTouch = [srcRoot.join("PublicHeader.h"), srcRoot.join("PrivateHeader.h")]
@@ -109,7 +109,7 @@ fileprivate struct ModulesVerifierPerfTests: CoreBasedTests, PerfTests {
                     for file in filesToTouch {
                         try tester.fs.touch(file)
                     }
-                    try await tester.checkBuild(parameters: params, serial: true) { results in
+                    try await tester.checkBuild(parameters: params, runDestination: .macOS, serial: true) { results in
                     }
                 }
             }

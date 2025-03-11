@@ -111,7 +111,7 @@ fileprivate struct InfoPlistBuildOperationTests: CoreBasedTests {
             }
             try await writeToolPlist(different: false)
 
-            try await tester.checkBuild(parameters: BuildParameters(action: .install, configuration: "Release", activeRunDestination: .anyMac)) { results in
+            try await tester.checkBuild(parameters: BuildParameters(action: .install, configuration: "Release"), runDestination: .anyMac) { results in
                 results.checkNoDiagnostics()
                 for arch in ["arm64", "x86_64"] {
                     // There should be an Info.plist processing task, and associated Preprocess (we explicitly enable it).
@@ -139,7 +139,7 @@ fileprivate struct InfoPlistBuildOperationTests: CoreBasedTests {
             // Now write the plist against with per-arch contents and the build should fail
             try await writeToolPlist(different: true)
 
-            try await tester.checkBuild(parameters: BuildParameters(action: .install, configuration: "Release", activeRunDestination: .anyMac)) { results in
+            try await tester.checkBuild(parameters: BuildParameters(action: .install, configuration: "Release"), runDestination: .anyMac) { results in
                 _ = results.checkTask(.matchTargetName("App"), .matchRuleType("MergeInfoPlistFile")) { task in
                     results.checkError(.equal("Info.plist preprocessing produced variable content across multiple architectures and/or build variants, which is not allowed for bundle targets.\n\(["arm64", "x86_64"].map { arch in "\(SRCROOT)/build/aProject.build/Release/App.build/normal/\(arch)/Preprocessed-Info.plist: Using preprocessed file: \(SRCROOT)/build/aProject.build/Release/App.build/normal/\(arch)/Preprocessed-Info.plist" }.joined(separator: "\n")) (for task: \(task.ruleInfo))"))
                 }
@@ -148,7 +148,7 @@ fileprivate struct InfoPlistBuildOperationTests: CoreBasedTests {
             }
 
             // Build with no architectures and we should produce an error.
-            try await tester.checkBuild(parameters: BuildParameters(action: .install, configuration: "Release", activeRunDestination: .anyMac, overrides: ["ARCHS": "soup"])) { results in
+            try await tester.checkBuild(parameters: BuildParameters(action: .install, configuration: "Release", overrides: ["ARCHS": "soup"]), runDestination: .anyMac) { results in
                 _ = results.checkTask(.matchTargetName("App"), .matchRuleType("MergeInfoPlistFile")) { task in
                     results.checkError(.equal("Info.plist preprocessing did not produce content for any architecture and build variant combination. (for task: \(task.ruleInfo))"))
                 }
@@ -208,12 +208,12 @@ fileprivate struct InfoPlistBuildOperationTests: CoreBasedTests {
                 </dict></plist>
                 """
             }
-            try await tester.checkBuild(parameters: BuildParameters(configuration: "Debug", activeRunDestination: .anyMac), persistent: true) { results in
+            try await tester.checkBuild(parameters: BuildParameters(configuration: "Debug"), runDestination: .anyMac, persistent: true) { results in
                 results.checkNoDiagnostics()
                 results.checkTaskExists(.matchTargetName("App"), .matchRuleType("ProcessInfoPlistFile"))
             }
 
-            try await tester.checkBuild(parameters: BuildParameters(configuration: "Debug", activeRunDestination: .anyMac, commandLineOverrides: ["FOO": "Bar"]), persistent: true) { results in
+            try await tester.checkBuild(parameters: BuildParameters(configuration: "Debug", commandLineOverrides: ["FOO": "Bar"]), runDestination: .anyMac, persistent: true) { results in
                 results.checkNoDiagnostics()
                 results.consumeTasksMatchingRuleTypes(["ClangStatCache"])
                 // We should only run the Info.plist processortask for the app when arbitrary build settings change.

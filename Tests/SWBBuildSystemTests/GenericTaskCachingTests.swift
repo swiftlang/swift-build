@@ -71,7 +71,7 @@ fileprivate struct GenericTaskCachingTests: CoreBasedTests {
                 results.checkNoErrors()
             }
 
-            try await tester.checkBuild(buildCommand: BuildCommand.cleanBuildFolder(style: .regular), body: { _ in })
+            try await tester.checkBuild(runDestination: .macOS, buildCommand: BuildCommand.cleanBuildFolder(style: .regular), body: { _ in })
 
             try await tester.checkBuild(parameters: BuildParameters(configuration: "Debug", overrides: ["CCHROOT": tmpDir.join("cchroot").str]), runDestination: .macOS) { results in
                 results.checkTask(.matchRuleType("RealityAssetsCompile")) { task in
@@ -82,7 +82,7 @@ fileprivate struct GenericTaskCachingTests: CoreBasedTests {
                 results.checkNoErrors()
             }
 
-            try await tester.checkBuild(buildCommand: BuildCommand.cleanBuildFolder(style: .regular), body: { _ in })
+            try await tester.checkBuild(runDestination: .macOS, buildCommand: BuildCommand.cleanBuildFolder(style: .regular), body: { _ in })
 
             try localFS.write(SRCROOT.join("Reality.rkassets/foo.txt"), contents: "Foo")
 
@@ -95,7 +95,7 @@ fileprivate struct GenericTaskCachingTests: CoreBasedTests {
                 results.checkNoErrors()
             }
 
-            try await tester.checkBuild(buildCommand: BuildCommand.cleanBuildFolder(style: .regular), body: { _ in })
+            try await tester.checkBuild(runDestination: .macOS, buildCommand: BuildCommand.cleanBuildFolder(style: .regular), body: { _ in })
 
             try localFS.remove(SRCROOT.join("Reality.rkassets/foo.txt"))
 
@@ -159,7 +159,7 @@ fileprivate struct GenericTaskCachingTests: CoreBasedTests {
                 results.checkNoErrors()
             }
 
-            try await tester.checkBuild(buildCommand: BuildCommand.cleanBuildFolder(style: .regular), body: { _ in })
+            try await tester.checkBuild(runDestination: .macOS, buildCommand: BuildCommand.cleanBuildFolder(style: .regular), body: { _ in })
 
             try await tester.checkBuild(parameters: BuildParameters(configuration: "Debug", overrides: ["CCHROOT": tmpDir.join("cchroot").str]), runDestination: .macOS) { results in
                 results.checkTaskExists(.matchRuleType("CompileStoryboard"))
@@ -167,7 +167,7 @@ fileprivate struct GenericTaskCachingTests: CoreBasedTests {
                 results.checkNoErrors()
             }
 
-            try await tester.checkBuild(buildCommand: BuildCommand.cleanBuildFolder(style: .regular), body: { _ in })
+            try await tester.checkBuild(runDestination: .macOS, buildCommand: BuildCommand.cleanBuildFolder(style: .regular), body: { _ in })
 
             try localFS.append(SRCROOT.join("Main.storyboard"), contents: " ")
 
@@ -177,7 +177,7 @@ fileprivate struct GenericTaskCachingTests: CoreBasedTests {
                 results.checkNoErrors()
             }
 
-            try await tester.checkBuild(buildCommand: BuildCommand.cleanBuildFolder(style: .regular), body: { _ in })
+            try await tester.checkBuild(runDestination: .macOS, buildCommand: BuildCommand.cleanBuildFolder(style: .regular), body: { _ in })
 
             try await tester.fs.writeStoryboard(SRCROOT.join("Main.storyboard"), .iOS)
 
@@ -237,7 +237,7 @@ fileprivate struct GenericTaskCachingTests: CoreBasedTests {
                 results.checkNoErrors()
             }
 
-            try await tester.checkBuild(buildCommand: BuildCommand.cleanBuildFolder(style: .regular), body: { _ in })
+            try await tester.checkBuild(runDestination: .macOS, buildCommand: BuildCommand.cleanBuildFolder(style: .regular), body: { _ in })
 
             try await tester.checkBuild(parameters: BuildParameters(configuration: "Debug", overrides: ["CCHROOT": tmpDir.join("cchroot").str]), runDestination: .macOS) { results in
                 results.checkTaskExists(.matchRuleType("CompileAssetCatalogVariant"))
@@ -245,7 +245,7 @@ fileprivate struct GenericTaskCachingTests: CoreBasedTests {
                 results.checkNoErrors()
             }
 
-            try await tester.checkBuild(buildCommand: BuildCommand.cleanBuildFolder(style: .regular), body: { _ in })
+            try await tester.checkBuild(runDestination: .macOS, buildCommand: BuildCommand.cleanBuildFolder(style: .regular), body: { _ in })
 
             try localFS.write(SRCROOT.join("Assets.xcassets/foo.txt"), contents: "Foo")
 
@@ -255,7 +255,7 @@ fileprivate struct GenericTaskCachingTests: CoreBasedTests {
                 results.checkNoErrors()
             }
 
-            try await tester.checkBuild(buildCommand: BuildCommand.cleanBuildFolder(style: .regular), body: { _ in })
+            try await tester.checkBuild(runDestination: .macOS, buildCommand: BuildCommand.cleanBuildFolder(style: .regular), body: { _ in })
 
             try localFS.remove(SRCROOT.join("Assets.xcassets/foo.txt"))
 

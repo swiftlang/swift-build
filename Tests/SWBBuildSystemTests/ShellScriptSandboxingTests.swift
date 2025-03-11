@@ -121,7 +121,7 @@ fileprivate struct ShellScriptSandboxingTests: CoreBasedTests {
             let overriddenParameters = BuildParameters(configuration: "Debug")
 
             // Ensure content of checksum*.txt is 8ddd8be4b179a529afa5f2ffae4b9858 with no violation.
-            try await tester.checkBuild(parameters: overriddenParameters) { results in
+            try await tester.checkBuild(parameters: overriddenParameters, runDestination: .macOS) { results in
                 results.checkNoDiagnostics()
 
                 try results.checkTask(.matchRuleType("PhaseScriptExecution"), .matchRuleItemPattern(.contains("ChecksumFileInRootViaAbsolutePath"))) { task in
@@ -244,7 +244,7 @@ fileprivate struct ShellScriptSandboxingTests: CoreBasedTests {
             let overriddenParameters = BuildParameters(configuration: "Debug")
 
             // Clean build: Ensure content of checksum*.txt is 8ddd8be4b179a529afa5f2ffae4b9858 with no violation.
-            try await tester.checkBuild(parameters: overriddenParameters) { results in
+            try await tester.checkBuild(parameters: overriddenParameters, runDestination: .macOS) { results in
                 try results.checkTask(.matchRuleType("PhaseScriptExecution"), .matchRuleItemPattern(.contains("TaskA"))) { task in
                     #expect(task.commandLine.first == "/usr/bin/sandbox-exec")
 
@@ -256,7 +256,7 @@ fileprivate struct ShellScriptSandboxingTests: CoreBasedTests {
             }
 
             // Null build
-            try await tester.checkBuild(parameters: overriddenParameters) { results in
+            try await tester.checkBuild(parameters: overriddenParameters, runDestination: .macOS) { results in
                 results.checkNoTask()
                 results.checkNoDiagnostics()
             }
@@ -266,7 +266,7 @@ fileprivate struct ShellScriptSandboxingTests: CoreBasedTests {
                 stream <<< "Hola Amigos\n"
             }
 
-            try await tester.checkBuild(parameters: overriddenParameters) { results in
+            try await tester.checkBuild(parameters: overriddenParameters, runDestination: .macOS) { results in
                 try results.checkTask(.matchRuleType("PhaseScriptExecution"), .matchRuleItemPattern(.contains("TaskA"))) { task in
                     let path = task.outputPaths[0].withoutTrailingSlash()
                     let checksum = try tester.fs.read(path).asString
@@ -450,7 +450,7 @@ fileprivate struct ShellScriptSandboxingTests: CoreBasedTests {
             }
 
             // Check clean build
-            try await tester.checkBuild(parameters: overriddenParameters, persistent: true) { results in
+            try await tester.checkBuild(parameters: overriddenParameters, runDestination: .macOS, persistent: true) { results in
                 // Check that build succeeds
                 results.checkNoDiagnostics()
 
@@ -476,7 +476,7 @@ fileprivate struct ShellScriptSandboxingTests: CoreBasedTests {
             }
 
             // Check null build after first clean build
-            try await tester.checkBuild(parameters: overriddenParameters, persistent: true) { results in
+            try await tester.checkBuild(parameters: overriddenParameters, runDestination: .macOS, persistent: true) { results in
                 results.checkNoDiagnostics()
                 results.consumeTasksMatchingRuleTypes(["Gate"])
                 results.checkNoTask()
@@ -488,7 +488,7 @@ fileprivate struct ShellScriptSandboxingTests: CoreBasedTests {
             }
 
             // Ensure changes to raw file are propagated
-            try await tester.checkBuild(parameters: overriddenParameters, persistent: true) { results in
+            try await tester.checkBuild(parameters: overriddenParameters, runDestination: .macOS, persistent: true) { results in
                 // Check that build succeeds
                 results.checkNoDiagnostics()
 
@@ -508,7 +508,7 @@ fileprivate struct ShellScriptSandboxingTests: CoreBasedTests {
             }
 
             // Ensure null build is indeed null
-            try await tester.checkBuild(parameters: overriddenParameters, persistent: true) { results in
+            try await tester.checkBuild(parameters: overriddenParameters, runDestination: .macOS, persistent: true) { results in
                 results.checkNoDiagnostics()
                 results.consumeTasksMatchingRuleTypes(["Gate"])
                 results.checkNoTask()
@@ -623,7 +623,7 @@ fileprivate struct ShellScriptSandboxingTests: CoreBasedTests {
                                                                        "B_DOT_TXT_PREFIX": "B_PREFIX",
                                                                       ])
 
-                try await tester.checkBuild(parameters: overriddenParameters, persistent: true) { results in
+                try await tester.checkBuild(parameters: overriddenParameters, runDestination: .macOS, persistent: true) { results in
                     // Check that build succeeds
                     results.checkNoDiagnostics()
 
@@ -637,7 +637,7 @@ fileprivate struct ShellScriptSandboxingTests: CoreBasedTests {
                 }
 
                 // Null build
-                try await tester.checkBuild(parameters: overriddenParameters, persistent: true) { results in
+                try await tester.checkBuild(parameters: overriddenParameters, runDestination: .macOS, persistent: true) { results in
                     // Check that build succeeds
                     results.checkNoDiagnostics()
 
@@ -654,7 +654,7 @@ fileprivate struct ShellScriptSandboxingTests: CoreBasedTests {
                                                                   ])
 
                 // Incremental build to reflect the change in environment variable
-                try await tester.checkBuild(parameters: overriddenParameters, persistent: true) { results in
+                try await tester.checkBuild(parameters: overriddenParameters, runDestination: .macOS, persistent: true) { results in
                     // Check that build succeeds
                     results.checkNoDiagnostics()
 
@@ -668,7 +668,7 @@ fileprivate struct ShellScriptSandboxingTests: CoreBasedTests {
                 }
 
                 // null build
-                try await tester.checkBuild(parameters: overriddenParameters, persistent: true) { results in
+                try await tester.checkBuild(parameters: overriddenParameters, runDestination: .macOS, persistent: true) { results in
                     // Check that build succeeds
                     results.checkNoDiagnostics()
 
@@ -692,7 +692,7 @@ fileprivate struct ShellScriptSandboxingTests: CoreBasedTests {
                 //
                 // Even if we roll ChecksumOnlyFileSystem Swift Build will need to rerun TaskC
                 // due to changes in environment variables
-                try await tester.checkBuild(parameters: overriddenParameters, persistent: true) { results in
+                try await tester.checkBuild(parameters: overriddenParameters, runDestination: .macOS, persistent: true) { results in
                     // Check that build succeeds
                     results.checkNoDiagnostics()
 
@@ -809,7 +809,7 @@ fileprivate struct ShellScriptSandboxingTests: CoreBasedTests {
                                                                    "B_DOT_TXT_PREFIX": "B_PREFIX",
                                                                   ])
 
-            try await tester.checkBuild(parameters: overriddenParameters, persistent: true) { results in
+            try await tester.checkBuild(parameters: overriddenParameters, runDestination: .macOS, persistent: true) { results in
                 // Check that build fails
                 results.checkError(
                     .and(.prefix("Multiple commands produce"),
@@ -918,7 +918,7 @@ fileprivate struct ShellScriptSandboxingTests: CoreBasedTests {
 
             let tester = try await BuildOperationTester(getCore(), testWorkspace, simulated: false, continueBuildingAfterErrors: false)
 
-            try await tester.checkBuild(persistent: true) { results in
+            try await tester.checkBuild(runDestination: .macOS, persistent: true) { results in
                 // Check that build fails
                 results.checkError(
                     .and(.prefix("Multiple commands produce"),
@@ -1053,7 +1053,7 @@ fileprivate struct ShellScriptSandboxingTests: CoreBasedTests {
                     stream <<< "Output from TaskA for a.txt!\n"
                 }
 
-                try await tester.checkBuild(parameters: overriddenParameters, persistent: true) { results in
+                try await tester.checkBuild(parameters: overriddenParameters, runDestination: .macOS, persistent: true) { results in
                     // Check that build succeeds
                     results.checkNoDiagnostics()
 
@@ -1068,7 +1068,7 @@ fileprivate struct ShellScriptSandboxingTests: CoreBasedTests {
                 }
 
                 // First null build
-                try await tester.checkBuild(parameters: overriddenParameters, persistent: true) { results in
+                try await tester.checkBuild(parameters: overriddenParameters, runDestination: .macOS, persistent: true) { results in
                     // Check that build succeeds
                     results.checkNoDiagnostics()
                     results.consumeTasksMatchingRuleTypes(["Gate"])
@@ -1076,7 +1076,7 @@ fileprivate struct ShellScriptSandboxingTests: CoreBasedTests {
                 }
 
                 // Second null build
-                try await tester.checkBuild(parameters: overriddenParameters, persistent: true) { results in
+                try await tester.checkBuild(parameters: overriddenParameters, runDestination: .macOS, persistent: true) { results in
                     // Check that build succeeds
                     results.checkNoDiagnostics()
                     results.consumeTasksMatchingRuleTypes(["Gate"])
@@ -1088,7 +1088,7 @@ fileprivate struct ShellScriptSandboxingTests: CoreBasedTests {
                     stream <<< "Updated output from TaskA for a.txt!\n"
                 }
 
-                try await tester.checkBuild(parameters: overriddenParameters, persistent: true) { results in
+                try await tester.checkBuild(parameters: overriddenParameters, runDestination: .macOS, persistent: true) { results in
                     // Check that build succeeds
                     results.checkNoDiagnostics()
 
@@ -1178,7 +1178,7 @@ fileprivate struct ShellScriptSandboxingTests: CoreBasedTests {
             // We manually run each target in the test via `firstBuildRequest` and `secondBuildRequest`
             let firstBuildRequest = BuildRequest(parameters: overriddenParameters, buildTargets: [BuildRequest.BuildTargetInfo(parameters: overriddenParameters, target: tester.workspace.projects[0].targets[0])], continueBuildingAfterErrors: true, useParallelTargets: true, useImplicitDependencies: false, useDryRun: false)
 
-            try await tester.checkBuild(parameters: overriddenParameters, buildRequest: firstBuildRequest) { results in
+            try await tester.checkBuild(parameters: overriddenParameters, runDestination: .macOS, buildRequest: firstBuildRequest) { results in
                 results.checkWarning(.contains("'ScriptWithUndeclaredInput' will be run during every build because it does not specify any outputs."))
                 self.checkForFlakyViolations(results, #/file-read-data .*/aProject/A.txt .*/#)
                 results.checkNoDiagnostics()
@@ -1186,7 +1186,7 @@ fileprivate struct ShellScriptSandboxingTests: CoreBasedTests {
 
             let secondBuildRequest = BuildRequest(parameters: overriddenParameters, buildTargets: [BuildRequest.BuildTargetInfo(parameters: overriddenParameters, target: tester.workspace.projects[0].targets[1])], continueBuildingAfterErrors: true, useParallelTargets: true, useImplicitDependencies: false, useDryRun: false)
 
-            try await tester.checkBuild(parameters: overriddenParameters, buildRequest: secondBuildRequest) { results in
+            try await tester.checkBuild(parameters: overriddenParameters, runDestination: .macOS, buildRequest: secondBuildRequest) { results in
                 try results.checkTask(.matchRuleType("PhaseScriptExecution"), .matchRuleItemPattern(.contains("ScriptWithUndeclaredOutput"))) { task in
                     do {
                         let path = task.workingDirectory.join("build/aProject.build/Debug/TargetWithUndeclaredOutput.build/DerivedSources/new-folder/log.txt")
@@ -1293,7 +1293,7 @@ fileprivate struct ShellScriptSandboxingTests: CoreBasedTests {
             // We manually run each target in the test via `firstBuildRequest` and `secondBuildRequest`
             let firstBuildRequest = BuildRequest(parameters: overriddenParameters, buildTargets: [BuildRequest.BuildTargetInfo(parameters: overriddenParameters, target: tester.workspace.projects[0].targets[0])], continueBuildingAfterErrors: true, useParallelTargets: true, useImplicitDependencies: false, useDryRun: false)
 
-            try await tester.checkBuild(parameters: overriddenParameters, buildRequest: firstBuildRequest) { results in
+            try await tester.checkBuild(parameters: overriddenParameters, runDestination: .macOS, buildRequest: firstBuildRequest) { results in
                 results.checkWarning(.contains("'ScriptWithUndeclaredInput' will be run during every build because it does not specify any outputs."))
                 self.checkForFlakyViolations(results, #/file-read-data .*/aProject/A.txt .*/#)
                 results.checkNoDiagnostics()
@@ -1301,7 +1301,7 @@ fileprivate struct ShellScriptSandboxingTests: CoreBasedTests {
 
             let secondBuildRequest = BuildRequest(parameters: overriddenParameters, buildTargets: [BuildRequest.BuildTargetInfo(parameters: overriddenParameters, target: tester.workspace.projects[0].targets[1])], continueBuildingAfterErrors: true, useParallelTargets: true, useImplicitDependencies: false, useDryRun: false)
 
-            try await tester.checkBuild(parameters: overriddenParameters, buildRequest: secondBuildRequest) { results in
+            try await tester.checkBuild(parameters: overriddenParameters, runDestination: .macOS, buildRequest: secondBuildRequest) { results in
                 try results.checkTask(.matchRuleType("PhaseScriptExecution"), .matchRuleItemPattern(.contains("ScriptWithUndeclaredOutput"))) { task in
                     let path = task.workingDirectory.join("build/aProject.build/Debug/TargetWithUndeclaredOutput.build/DerivedSources/new-folder/log.txt")
                     let output = try tester.fs.read(path).asString
@@ -1365,7 +1365,7 @@ fileprivate struct ShellScriptSandboxingTests: CoreBasedTests {
 
             try tester.fs.createDirectory(Path(SRCROOT), recursive: true)
 
-            try await tester.checkBuild(parameters: BuildParameters(configuration: "Debug")) { results in
+            try await tester.checkBuild(parameters: BuildParameters(configuration: "Debug"), runDestination: .macOS) { results in
                 results.checkNoDiagnostics()
 
                 try results.checkTasks(.matchRuleType("PhaseScriptExecution")) { tasks in
@@ -1444,7 +1444,7 @@ fileprivate struct ShellScriptSandboxingTests: CoreBasedTests {
                                                        overrides: ["FAKE_PATH_IN": Path(SRCROOT).join("myCryptoProject/raw.txt").str])
 
             // Ensure content of checksum.txt is 8422bdbdffd21972340e63e377d9dbcf with no violation.
-            try await tester.checkBuild(parameters: overriddenParameters) { results in
+            try await tester.checkBuild(parameters: overriddenParameters, runDestination: .macOS) { results in
                 results.checkNoDiagnostics()
 
                 try results.checkTask(.matchRuleType("PhaseScriptExecution")) { task in
@@ -1517,7 +1517,7 @@ fileprivate struct ShellScriptSandboxingTests: CoreBasedTests {
 
             let firstBuildRequest = BuildRequest(parameters: overriddenParameters, buildTargets: [BuildRequest.BuildTargetInfo(parameters: overriddenParameters, target: tester.workspace.projects[0].targets[0])], continueBuildingAfterErrors: true, useParallelTargets: true, useImplicitDependencies: false, useDryRun: false)
 
-            try await tester.checkBuild(parameters: overriddenParameters, buildRequest: firstBuildRequest) { results in
+            try await tester.checkBuild(parameters: overriddenParameters, runDestination: .macOS, buildRequest: firstBuildRequest) { results in
                 results.checkWarning(.contains("'ScriptWithUndeclaredInput' will be run during every build because it does not specify any outputs."))
                 self.checkForFlakyViolations(results, #/file-read-data .*/aProject/undeclared-input.txt .*/#)
 
@@ -1526,7 +1526,7 @@ fileprivate struct ShellScriptSandboxingTests: CoreBasedTests {
 
             let secondBuildRequest = BuildRequest(parameters: overriddenParameters, buildTargets: [BuildRequest.BuildTargetInfo(parameters: overriddenParameters, target: tester.workspace.projects[0].targets[1])], continueBuildingAfterErrors: true, useParallelTargets: true, useImplicitDependencies: false, useDryRun: false)
 
-            try await tester.checkBuild(parameters: overriddenParameters, buildRequest: secondBuildRequest) { results in
+            try await tester.checkBuild(parameters: overriddenParameters, runDestination: .macOS, buildRequest: secondBuildRequest) { results in
                 results.checkWarning(.contains("'ScriptWithUndeclaredOutput' will be run during every build because it does not specify any outputs."))
                 self.checkForFlakyViolations(results, #/file-write-create .*/aProject/undeclared-output.txt .*/#)
 
@@ -1600,7 +1600,7 @@ fileprivate struct ShellScriptSandboxingTests: CoreBasedTests {
 
             try tester.fs.createDirectory(Path(SRCROOT), recursive: true)
 
-            try await tester.checkBuild() { results in
+            try await tester.checkBuild(runDestination: .macOS) { results in
                 results.checkWarning(.contains("'ScriptReadUndeclaredInputFromDeclaredOutputOfOtherTarget' will be run during every build because it does not specify any outputs."))
 
                 self.checkForFlakyViolations(results, #/file-read-data .*/A.txt .*/#)
@@ -1674,7 +1674,7 @@ fileprivate struct ShellScriptSandboxingTests: CoreBasedTests {
                 stream <<< "int main() { return 0; }\n"
             }
 
-            try await tester.checkBuild() { results in
+            try await tester.checkBuild(runDestination: .macOS) { results in
                 results.checkWarning(.contains("'CatScript' will be run during every build because it does not specify any outputs."))
                 results.checkWarning(.contains("'EchoScript' will be run during every build because it does not specify any outputs."))
 
@@ -1772,7 +1772,7 @@ fileprivate struct ShellScriptSandboxingTests: CoreBasedTests {
 
             let overriddenParameters = BuildParameters(configuration: "Debug")
 
-            try await tester.checkBuild(parameters: overriddenParameters) { results in
+            try await tester.checkBuild(parameters: overriddenParameters, runDestination: .macOS) { results in
                 try results.checkTask(.matchRuleType("PhaseScriptExecution")) { task in
                     let path = task.outputPaths[0]
                     let output = try tester.fs.read(path).asString
@@ -1848,7 +1848,7 @@ fileprivate struct ShellScriptSandboxingTests: CoreBasedTests {
 
             try tester.fs.createDirectory(Path(SRCROOT), recursive: true)
 
-            try await tester.checkBuild(parameters: BuildParameters(configuration: "Debug")) { results in
+            try await tester.checkBuild(parameters: BuildParameters(configuration: "Debug"), runDestination: .macOS) { results in
                 results.checkWarning(.contains("'EnsureProjectDirIsBlocked' will be run during every build because it does not specify any outputs."))
 
                 self.checkForFlakyViolations(results, #/file-read-data .*/blocked.txt .*/#)
@@ -1905,7 +1905,7 @@ fileprivate struct ShellScriptSandboxingTests: CoreBasedTests {
 
             try tester.fs.createDirectory(Path(SRCROOT), recursive: true)
 
-            try await tester.checkBuild(parameters: overriddenParameters) { results in
+            try await tester.checkBuild(parameters: overriddenParameters, runDestination: .macOS) { results in
                 results.checkNoDiagnostics()
 
                 try results.checkTask(.matchRuleType("PhaseScriptExecution"), .matchRuleItemPattern(.contains("WriteToDerivedDataDir"))) { task in
@@ -1973,7 +1973,7 @@ fileprivate struct ShellScriptSandboxingTests: CoreBasedTests {
 
             let overriddenParameters = BuildParameters(configuration: "Debug")
 
-            try await tester.checkBuild(parameters: overriddenParameters) { results in
+            try await tester.checkBuild(parameters: overriddenParameters, runDestination: .macOS) { results in
                 results.checkNoDiagnostics()
 
                 try results.checkTask(.matchRuleType("RuleScriptExecution")) { task in

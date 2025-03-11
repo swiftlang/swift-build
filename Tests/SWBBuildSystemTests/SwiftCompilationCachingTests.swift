@@ -114,7 +114,7 @@ fileprivate struct SwiftCompilationCachingTests: CoreBasedTests {
 
             // touch a file, clean build folder, and rebuild.
             try await tester.fs.updateTimestamp(testWorkspace.sourceRoot.join("aProject/App.swift"))
-            try await tester.checkBuild(buildCommand: .cleanBuildFolder(style: .regular), body: { _ in })
+            try await tester.checkBuild(runDestination: .macOS, buildCommand: .cleanBuildFolder(style: .regular), body: { _ in })
 
             tester.userInfo = rawUserInfo.withAdditionalEnvironment(environment: metricsEnv("two"))
             try await tester.checkBuild(runDestination: .anyiOSDevice, persistent: true) { _ in }

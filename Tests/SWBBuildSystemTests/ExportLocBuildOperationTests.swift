@@ -95,7 +95,7 @@ fileprivate struct ExportLocBuildOperationTests: CoreBasedTests {
             try tester.fs.createDirectory(stringsDir, recursive: true)
 
             // Ensure we build the headers component in a localization export build.
-            try await tester.checkBuild(parameters: BuildParameters(action: .exportLoc, configuration: "Debug", overrides: ["SWIFT_EMIT_LOC_STRINGS": "YES", "STRINGSDATA_DIR": stringsDir.str]), persistent: true) { results in
+            try await tester.checkBuild(parameters: BuildParameters(action: .exportLoc, configuration: "Debug", overrides: ["SWIFT_EMIT_LOC_STRINGS": "YES", "STRINGSDATA_DIR": stringsDir.str]), runDestination: .macOS, persistent: true) { results in
                 results.checkTaskExists(.matchRuleType("CpHeader"), .matchRuleItemPattern(.suffix("file.h")))
                 results.checkNoDiagnostics()
             }
@@ -163,11 +163,11 @@ fileprivate struct ExportLocBuildOperationTests: CoreBasedTests {
             try tester.fs.createDirectory(stringsDir, recursive: true)
 
             // Perform a regular debug build for the active arch, then an exportLoc build which will build for all archs. Unless the export log build rebuilds the intermediate TBD, the dependent framework will fail to link.
-            try await tester.checkBuild(parameters: BuildParameters(action: .build, configuration: "Debug", overrides: ["ONLY_ACTIVE_ARCH": "YES"]), persistent: true) { results in
+            try await tester.checkBuild(parameters: BuildParameters(action: .build, configuration: "Debug", overrides: ["ONLY_ACTIVE_ARCH": "YES"]), runDestination: .macOS, persistent: true) { results in
                 results.checkNoDiagnostics()
             }
 
-            try await tester.checkBuild(parameters: BuildParameters(action: .exportLoc, configuration: "Debug", overrides: ["SWIFT_EMIT_LOC_STRINGS": "YES", "ONLY_ACTIVE_ARCH": "NO"]), persistent: true) { results in
+            try await tester.checkBuild(parameters: BuildParameters(action: .exportLoc, configuration: "Debug", overrides: ["SWIFT_EMIT_LOC_STRINGS": "YES", "ONLY_ACTIVE_ARCH": "NO"]), runDestination: .macOS, persistent: true) { results in
                 results.checkNoDiagnostics()
             }
         }

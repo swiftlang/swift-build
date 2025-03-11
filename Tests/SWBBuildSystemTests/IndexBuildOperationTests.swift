@@ -96,7 +96,7 @@ fileprivate struct IndexBuildOperationTests: CoreBasedTests {
             let parameters = BuildParameters(action: .build, configuration: "Debug")
             let buildTargets = tester.workspace.allTargets.map{ BuildRequest.BuildTargetInfo(parameters: parameters, target: $0) }
             let request = BuildRequest(parameters: parameters, buildTargets: buildTargets, continueBuildingAfterErrors: true, useParallelTargets: true, useImplicitDependencies: false, useDryRun: false, buildCommand: .prepareForIndexing(buildOnlyTheseTargets: nil, enableIndexBuildArena: false))
-            try await tester.checkBuild(parameters: parameters, buildRequest: request, persistent: true) { results in
+            try await tester.checkBuild(parameters: parameters, runDestination: .macOS, buildRequest: request, persistent: true) { results in
                 results.consumeTasksMatchingRuleTypes(Self.excludedStartTaskTypes)
 
                 // Swift modules and core data code generation
@@ -254,7 +254,7 @@ fileprivate struct IndexBuildOperationTests: CoreBasedTests {
             let parameters = BuildParameters(action: .build, configuration: "Debug")
             let buildTargets = tester.workspace.allTargets.map{ BuildRequest.BuildTargetInfo(parameters: parameters, target: $0) }
             let request = BuildRequest(parameters: parameters, buildTargets: buildTargets, continueBuildingAfterErrors: false, useParallelTargets: true, useImplicitDependencies: false, useDryRun: false, buildCommand: .prepareForIndexing(buildOnlyTheseTargets: nil, enableIndexBuildArena: false))
-            try await tester.checkBuild(parameters: parameters, buildRequest: request, persistent: true) { results in
+            try await tester.checkBuild(parameters: parameters, runDestination: .macOS, buildRequest: request, persistent: true) { results in
                 results.check(contains: .buildCompleted)
             }
         }
@@ -1697,7 +1697,7 @@ fileprivate struct IndexBuildOperationTests: CoreBasedTests {
 
             let buildRequest = BuildRequest(parameters: BuildParameters(action: .indexBuild, configuration: nil, arena: arena), buildTargets: [], continueBuildingAfterErrors: true, useParallelTargets: true, useImplicitDependencies: true, useDryRun: false, buildCommand: .cleanBuildFolder(style: .regular))
 
-            try await tester.checkBuild(buildRequest: buildRequest, persistent: true) { results in
+            try await tester.checkBuild(runDestination: .macOS, buildRequest: buildRequest, persistent: true) { results in
                 #expect(!tester.fs.exists(arena.buildProductsPath))
             }
         }

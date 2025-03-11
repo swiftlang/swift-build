@@ -163,7 +163,7 @@ fileprivate struct DriverKitBuildOperationTests: CoreBasedTests {
                 contents <<< "int main() { return 0; }\n"
             }
 
-            try await tester.checkBuild(parameters: BuildParameters(configuration: "Debug", commandLineOverrides: ["SDKROOT": "driverkit"]), persistent: true) { results in
+            try await tester.checkBuild(parameters: BuildParameters(configuration: "Debug", commandLineOverrides: ["SDKROOT": "driverkit"]), runDestination: .macOS, persistent: true) { results in
                 let xcodeActualStr = (core.xcodeVersion[0] * 100 + core.xcodeVersion[1] * 10 + core.xcodeVersion[2]).toString(format: "%04d")
 
                 try XCTAssertEqualPropertyListItems(try PropertyList.fromPath(SRCROOT.join("build/Debug-driverkit/Driver.dext/Info.plist"), fs: tester.fs), PropertyListItem.plDict([
@@ -260,13 +260,13 @@ fileprivate struct DriverKitBuildOperationTests: CoreBasedTests {
             }
 
             // macOS 10.15 / DriverKit 19.0 required Info.plists to always be in XML format, so Swift Build overrides the Info.plist format for backwards compatibility.
-            try await tester.checkBuild(parameters: BuildParameters(configuration: "Debug", commandLineOverrides: ["SDKROOT": "driverkit", "DRIVERKIT_DEPLOYMENT_TARGET": "19.0"]), persistent: true) { results in
+            try await tester.checkBuild(parameters: BuildParameters(configuration: "Debug", commandLineOverrides: ["SDKROOT": "driverkit", "DRIVERKIT_DEPLOYMENT_TARGET": "19.0"]), runDestination: .macOS, persistent: true) { results in
                 let (_, format) = try PropertyList.fromPathWithFormat(SRCROOT.join("build/Debug-driverkit/Driver.dext/Info.plist"), fs: tester.fs)
                 #expect(format == .xml)
             }
 
             // macOS 11.0 / DriverKit 20.0 switched from kextd to KernelManagement which added support for reading the binary format.
-            try await tester.checkBuild(parameters: BuildParameters(configuration: "Debug", commandLineOverrides: ["SDKROOT": "driverkit", "DRIVERKIT_DEPLOYMENT_TARGET": "20.0"]), persistent: true) { results in
+            try await tester.checkBuild(parameters: BuildParameters(configuration: "Debug", commandLineOverrides: ["SDKROOT": "driverkit", "DRIVERKIT_DEPLOYMENT_TARGET": "20.0"]), runDestination: .macOS, persistent: true) { results in
                 let (_, format) = try PropertyList.fromPathWithFormat(SRCROOT.join("build/Debug-driverkit/Driver.dext/Info.plist"), fs: tester.fs)
                 #expect(format == .binary)
             }

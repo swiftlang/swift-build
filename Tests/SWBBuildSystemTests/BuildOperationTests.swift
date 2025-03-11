@@ -551,7 +551,7 @@ fileprivate struct BuildOperationTests: CoreBasedTests {
                 ])
             let tester = try await BuildOperationTester(getCore(), testWorkspace, simulated: true)
 
-            try await tester.checkBuild { results in
+            try await tester.checkBuild(runDestination: .macOS) { results in
                 // Check that there were was a warning about the duplicate.
                 results.checkWarning(.contains("duplicate output file '/tmp/b'"))
                 results.checkWarning(.contains("duplicate output file '/tmp/script-output'"))
@@ -628,7 +628,7 @@ That command depends on command in Target 'agg2' (project \'aProject\'): script 
             try await tester.fs.writeFileContents(testWorkspace.sourceRoot.join("aProject/Thing.swift")) { _ in }
             try await tester.fs.writePlist(testWorkspace.sourceRoot.join("aProject/Info.plist"), .plDict(["key": .plString("value")]))
 
-            try await tester.checkBuild { results in
+            try await tester.checkBuild(runDestination: .macOS) { results in
                 // Find the first CompileC task (there are two).
                 let compileTasks = results.checkTasks(.matchRuleType("CompileC")) { $0 }
                 #expect(compileTasks.count == 2)
@@ -712,7 +712,7 @@ That command depends on command in Target 'agg2' (project \'aProject\'): script 
                 stream <<< "}\n"
             }
 
-            try await tester.checkBuild(persistent: true) { results in
+            try await tester.checkBuild(runDestination: .macOS, persistent: true) { results in
                 // Find the module map file creation.
                 let moduleMapWriteTask = try results.checkTask(.matchRuleType("Copy"), .matchRuleItem(tmpDirPath.join("Test/aProject/build/Debug/CoreFoo.framework/Versions/A/Modules/module.modulemap").str)) { task throws in task }
 
@@ -731,7 +731,7 @@ That command depends on command in Target 'agg2' (project \'aProject\'): script 
                 stream <<< "}\n"
             }
 
-            try await tester.checkBuild(persistent: true) { results in
+            try await tester.checkBuild(runDestination: .macOS, persistent: true) { results in
                 // Find the module map file creation.
                 let moduleMapWriteTask = try results.checkTask(.matchRuleType("Copy"), .matchRuleItem(tmpDirPath.join("Test/aProject/build/Debug/CoreFoo.framework/Versions/A/Modules/module.modulemap").str)) { task throws in task }
 
@@ -1030,7 +1030,7 @@ That command depends on command in Target 'agg2' (project \'aProject\'): script 
             ])
 
             // Check the initial build.
-            try await tester.checkBuild(parameters: parameters, persistent: true) { results in
+            try await tester.checkBuild(parameters: parameters, runDestination: .macOS, persistent: true) { results in
                 // Check that the module session validation file was written.
                 if let moduleSessionFilePath = results.buildDescription.moduleSessionFilePath {
                     #expect(tester.fs.exists(moduleSessionFilePath))
@@ -1155,7 +1155,7 @@ That command depends on command in Target 'agg2' (project \'aProject\'): script 
             }
 
             // Check that we get a null build.
-            try await tester.checkNullBuild(parameters: parameters, persistent: true, excludedTasks: ["SwiftDriver", "SwiftDriver Compilation Requirements", "SwiftDriver Compilation", "Gate", "ClangStatCache"])
+            try await tester.checkNullBuild(parameters: parameters, runDestination: .macOS, persistent: true, excludedTasks: ["SwiftDriver", "SwiftDriver Compilation Requirements", "SwiftDriver Compilation", "Gate", "ClangStatCache"])
 
             // Change the source, adding a new .h dep, verify it rebuilds properly.
             try await tester.fs.writeFileContents(SRCROOT.join("Sources/CoreFoo_Internal.h")) { contents in
@@ -1169,7 +1169,7 @@ That command depends on command in Target 'agg2' (project \'aProject\'): script 
             }
 
             // We should rebuild the source and relink.
-            try await tester.checkBuild(parameters: parameters, persistent: true) { results in
+            try await tester.checkBuild(parameters: parameters, runDestination: .macOS, persistent: true) { results in
                 // Check that the expected tasks ran.
                 results.checkTask(.matchRuleType("ScanDependencies"), .matchRuleItemBasename("CoreFoo.o")) { _ in }
                 results.checkTask(.matchRuleType("CompileC"), .matchRuleItemBasename("CoreFoo.o")) { _ in }
@@ -1196,7 +1196,7 @@ That command depends on command in Target 'agg2' (project \'aProject\'): script 
             }
 
             // We should rebuild the source and relink.
-            try await tester.checkBuild(parameters: parameters, persistent: true) { results in
+            try await tester.checkBuild(parameters: parameters, runDestination: .macOS, persistent: true) { results in
                 results.checkWarning(.contains("CoreFoo.m:3:2: [User-Defined Issue] COREFOO is 2"))
                 // Check that the expected tasks ran.
                 results.checkTask(.matchRuleType("ScanDependencies"), .matchRuleItemBasename("CoreFoo.o")) { _ in }
@@ -1221,7 +1221,7 @@ That command depends on command in Target 'agg2' (project \'aProject\'): script 
             }
 
             // We should rebuild the Swift sources (they have an implicit import) and recopy the header.
-            try await tester.checkBuild(parameters: parameters, persistent: true) { results in
+            try await tester.checkBuild(parameters: parameters, runDestination: .macOS, persistent: true) { results in
                 // Check that the expected tasks ran.
                 results.consumeTasksMatchingRuleTypes(["Gate", "Copy", "ExtractAppIntentsMetadata", "ClangStatCache", "SwiftExplicitDependencyGeneratePcm", "ProcessSDKImports"])
 
@@ -1247,7 +1247,7 @@ That command depends on command in Target 'agg2' (project \'aProject\'): script 
 
             // Change the export list, and verify that we relink.
             try await tester.fs.writeFileContents(SRCROOT.join("Sources/CoreFoo.exports")) { contents in }
-            try await tester.checkBuild(parameters: parameters, persistent: true) { results in
+            try await tester.checkBuild(parameters: parameters, runDestination: .macOS, persistent: true) { results in
                 // Check that the expected tasks ran.
                 results.checkTask(.matchRuleType("Ld")) { _ in }
                 results.checkTask(.matchRuleType("Strip")) { _ in }
@@ -1275,7 +1275,7 @@ That command depends on command in Target 'agg2' (project \'aProject\'): script 
             }
 
             // We should rebuild the Swift sources, because the Swift compiler changed.
-            try await tester.checkBuild(parameters: parameters, persistent: true) { results in
+            try await tester.checkBuild(parameters: parameters, runDestination: .macOS, persistent: true) { results in
                 // Check that the expected tasks ran.
                 results.checkTasks(.matchRuleType("Gate")) { _ in }
                 results.checkTasks(.matchRuleType("Copy")) { _ in }
@@ -1487,7 +1487,7 @@ That command depends on command in Target 'agg2' (project \'aProject\'): script 
                     }
                 }
 
-                try await tester.checkBuild { results in
+                try await tester.checkBuild(runDestination: .macOS) { results in
                     // Find the tasks, there should be three.
                     let compileTasks = results.checkTasks(.matchRuleType("CompileC")) { $0 }
                     #expect(compileTasks.count == 3)
@@ -1541,13 +1541,13 @@ That command depends on command in Target 'agg2' (project \'aProject\'): script 
             try await tester.fs.writeAssetCatalog(SRCROOT.join("Assets.xcassets"), .root, .colorSet("Color", [.sRGB(red: 1, green: 1, blue: 1, alpha: 1, idiom: .universal)]))
 
             // Check the initial build.
-            try await tester.checkBuild(persistent: true) { _ in }
+            try await tester.checkBuild(runDestination: .macOS, persistent: true) { _ in }
 
             // Do an incremental update of the catalog
             try await tester.fs.writeAssetCatalog(SRCROOT.join("Assets.xcassets"), .appIcon("AppIcon"))
 
             // Check that the next build is NOT null.
-            try await tester.checkBuild(persistent: true) { results in
+            try await tester.checkBuild(runDestination: .macOS, persistent: true) { results in
                 results.checkTask(.matchRuleType("CompileAssetCatalogVariant")) { _ in }
                 results.checkTasks { tasks in
                     if tester.fs.fileSystemMode == .checksumOnly {
@@ -1565,7 +1565,7 @@ That command depends on command in Target 'agg2' (project \'aProject\'): script 
                 try await tester.fs.updateTimestamp(SRCROOT.join("Assets.xcassets"))
 
                 // Check that the next build is NOT null after touching the .xcassets directory.
-                try await tester.checkBuild(persistent: true) { results in
+                try await tester.checkBuild(runDestination: .macOS, persistent: true) { results in
                     results.checkTask(.matchRuleType("CompileAssetCatalogVariant")) { _ in }
                     results.checkTasks { tasks in
                         #expect(tasks.count > 0)
@@ -1577,7 +1577,7 @@ That command depends on command in Target 'agg2' (project \'aProject\'): script 
             try tester.fs.append(SRCROOT.join("Assets.xcassets/Color.colorset/Contents.json"), contents: "\n\n")
 
             // Check that the next build is NOT null after touching a file inside the .xcassets directory.
-            try await tester.checkBuild(persistent: true) { results in
+            try await tester.checkBuild(runDestination: .macOS, persistent: true) { results in
                 results.checkTask(.matchRuleType("CompileAssetCatalogVariant")) { _ in }
                 results.checkTasks { tasks in
                     if tester.fs.fileSystemMode == .checksumOnly {
@@ -1595,7 +1595,7 @@ That command depends on command in Target 'agg2' (project \'aProject\'): script 
             try tester.fs.removeDirectory(testWorkspace.sourceRoot.join("aProject/build/aProject.build/Debug/Empty.build/assetcatalog_output"))
 
             // Check that the next build is NOT null.
-            try await tester.checkBuild(persistent: true) { results in
+            try await tester.checkBuild(runDestination: .macOS, persistent: true) { results in
                 results.checkTask(.matchRuleType("CompileAssetCatalogVariant")) { _ in }
                 results.checkTasks { tasks in
                     if tester.fs.fileSystemMode == .checksumOnly {
@@ -1669,20 +1669,20 @@ That command depends on command in Target 'agg2' (project \'aProject\'): script 
             try tester.fs.write(SRCROOT.join("foo.fake-customrule"), contents: "")
 
             // Check the initial build.
-            try await tester.checkBuild(parameters: BuildParameters(configuration: "Debug", activeRunDestination: .iOS), persistent: true) { _ in }
+            try await tester.checkBuild(parameters: BuildParameters(configuration: "Debug"), runDestination: .iOS, persistent: true) { _ in }
 
             // Check that the next build is null.
-            try await tester.checkNullBuild(parameters: BuildParameters(configuration: "Debug", activeRunDestination: .iOS), persistent: true, excludedTasks: ["ClangStatCache"])
+            try await tester.checkNullBuild(parameters: BuildParameters(configuration: "Debug"), runDestination: .iOS, persistent: true, excludedTasks: ["ClangStatCache"])
 
             // Check that the next build is NOT null when switching to another platform we haven't built for before.
-            try await tester.checkBuild(parameters: BuildParameters(configuration: "Debug", activeRunDestination: .tvOS), persistent: true) { results in
+            try await tester.checkBuild(parameters: BuildParameters(configuration: "Debug"), runDestination: .tvOS, persistent: true) { results in
                 results.checkTasks { tasks in
                     #expect(tasks.count > 0)
                 }
             }
 
             // Check that the next build is null again when switching back to the original platform.
-            try await tester.checkBuild(parameters: BuildParameters(configuration: "Debug", activeRunDestination: .iOS), persistent: true) { results in
+            try await tester.checkBuild(parameters: BuildParameters(configuration: "Debug"), runDestination: .iOS, persistent: true) { results in
                 results.consumeTasksMatchingRuleTypes(["Gate", "ClangStatCache"])
                 results.checkNoTask()
             }
@@ -1741,7 +1741,7 @@ That command depends on command in Target 'agg2' (project \'aProject\'): script 
             ])
 
             // Check the initial build.
-            try await tester.checkBuild(parameters: overriddenParameters, persistent: true) { results in
+            try await tester.checkBuild(parameters: overriddenParameters, runDestination: .macOS, persistent: true) { results in
                 // Check that the expected tasks ran.
                 results.consumeTasksMatchingRuleTypes(["CreateBuildDirectory", "Gate"])
 
@@ -1775,7 +1775,7 @@ That command depends on command in Target 'agg2' (project \'aProject\'): script 
             // We should avoid scheduling upstream/downstream tasks.
             try await tester.fs.updateTimestamp(Path(SRCROOT).join("aProject/magic.txt"))
 
-            try await tester.checkBuild(parameters: overriddenParameters, persistent: true) { results in
+            try await tester.checkBuild(parameters: overriddenParameters, runDestination: .macOS, persistent: true) { results in
                 // Check that the script ran.
                 results.consumeTasksMatchingRuleTypes(["Gate"])
 
@@ -1784,7 +1784,7 @@ That command depends on command in Target 'agg2' (project \'aProject\'): script 
                 results.checkNoDiagnostics()
             }
 
-            try await tester.checkBuild(parameters: overriddenParameters, persistent: true) { results in
+            try await tester.checkBuild(parameters: overriddenParameters, runDestination: .macOS, persistent: true) { results in
                 // Check that the script ran.
                 results.consumeTasksMatchingRuleTypes(["Gate"])
 
@@ -1799,7 +1799,7 @@ That command depends on command in Target 'agg2' (project \'aProject\'): script 
                 stream <<< "modified string"
             }
 
-            try await tester.checkBuild(parameters: overriddenParameters, persistent: true) { results in
+            try await tester.checkBuild(parameters: overriddenParameters, runDestination: .macOS, persistent: true) { results in
                 // Check that the script ran.
                 results.consumeTasksMatchingRuleTypes(["Gate"])
 
@@ -1819,7 +1819,7 @@ That command depends on command in Target 'agg2' (project \'aProject\'): script 
             // We must re-run the script to re-create the file
             try tester.fs.remove(Path(SRCROOT).join("aProject/magic.txt"))
 
-            try await tester.checkBuild(parameters: overriddenParameters, persistent: true) { results in
+            try await tester.checkBuild(parameters: overriddenParameters, runDestination: .macOS, persistent: true) { results in
                 // Check that the script ran.
                 results.consumeTasksMatchingRuleTypes(["Gate"])
 
@@ -1920,7 +1920,7 @@ That command depends on command in Target 'agg2' (project \'aProject\'): script 
             ])
 
             // Check the initial build.
-            try await tester.checkBuild(parameters: overriddenParameters, persistent: true) { results in
+            try await tester.checkBuild(parameters: overriddenParameters, runDestination: .macOS, persistent: true) { results in
                 // Check that the expected tasks ran.
                 results.consumeTasksMatchingRuleTypes(["CreateBuildDirectory", "Gate"])
 
@@ -1957,7 +1957,7 @@ That command depends on command in Target 'agg2' (project \'aProject\'): script 
                 results.checkNoDiagnostics()
             }
 
-            try await tester.checkBuild(parameters: overriddenParameters, persistent: true) { results in
+            try await tester.checkBuild(parameters: overriddenParameters, runDestination: .macOS, persistent: true) { results in
                 results.consumeTasksMatchingRuleTypes(["Gate"])
                 results.checkNoTask()
             }
@@ -1966,7 +1966,7 @@ That command depends on command in Target 'agg2' (project \'aProject\'): script 
                 stream <<< "magic modified string"
             }
 
-            try await tester.checkBuild(parameters: overriddenParameters, persistent: true) { results in
+            try await tester.checkBuild(parameters: overriddenParameters, runDestination: .macOS, persistent: true) { results in
                 // Check that the script ran.
                 results.consumeTasksMatchingRuleTypes(["Gate"])
 
@@ -1985,7 +1985,7 @@ That command depends on command in Target 'agg2' (project \'aProject\'): script 
                 stream <<< "supermagic string"
             }
 
-            try await tester.checkBuild(parameters: overriddenParameters, persistent: true) { results in
+            try await tester.checkBuild(parameters: overriddenParameters, runDestination: .macOS, persistent: true) { results in
                 // Check that the script ran.
                 results.consumeTasksMatchingRuleTypes(["Gate"])
 
@@ -2034,13 +2034,13 @@ That command depends on command in Target 'agg2' (project \'aProject\'): script 
             try await tester.fs.writeFileContents(testWorkspace.sourceRoot.join("aProject/Test.txt")) { stream in }
 
             // Check the initial build.
-            try await tester.checkBuild(persistent: true) { _ in }
+            try await tester.checkBuild(runDestination: .macOS, persistent: true) { _ in }
 
             // Touch a file inside the directory.
             try await tester.fs.writeFileContents(testWorkspace.sourceRoot.join("aProject/build/Debug/Empty.framework/Versions/a.txt")) { stream in }
 
             // Check that the next build is null.
-            try await tester.checkNullBuild(persistent: true, excludedTasks: ["ClangStatCache"])
+            try await tester.checkNullBuild(runDestination: .macOS, persistent: true, excludedTasks: ["ClangStatCache"])
         }
     }
 
@@ -2082,20 +2082,20 @@ That command depends on command in Target 'agg2' (project \'aProject\'): script 
             try await tester.fs.writeFileContents(testWorkspace.sourceRoot.join("aProject/Test.txt")) { stream in }
 
             // Check the initial build.
-            try await tester.checkBuild(persistent: true) { _ in }
+            try await tester.checkBuild(runDestination: .macOS, persistent: true) { _ in }
 
             // Touch a file inside the directory.
             try await tester.fs.writeFileContents(testWorkspace.sourceRoot.join("aProject/build/Debug/Empty.framework/Versions/a.txt")) { stream in }
 
 
-            try await tester.checkNullBuild(parameters: BuildParameters(configuration: "Debug", commandLineOverrides: ["OTHER_CFLAGS": "-fcolor-diagnostics"]), persistent: true, excludedTasks: ["ClangStatCache"])
+            try await tester.checkNullBuild(parameters: BuildParameters(configuration: "Debug", commandLineOverrides: ["OTHER_CFLAGS": "-fcolor-diagnostics"]), runDestination: .macOS, persistent: true, excludedTasks: ["ClangStatCache"])
 
-            try await tester.checkNullBuild(parameters: BuildParameters(configuration: "Debug", commandLineOverrides: ["OTHER_CFLAGS": "-fmessage-length=1234"]), persistent: true, excludedTasks: ["ClangStatCache"])
+            try await tester.checkNullBuild(parameters: BuildParameters(configuration: "Debug", commandLineOverrides: ["OTHER_CFLAGS": "-fmessage-length=1234"]), runDestination: .macOS, persistent: true, excludedTasks: ["ClangStatCache"])
 
-            try await tester.checkNullBuild(parameters: BuildParameters(configuration: "Debug", commandLineOverrides: ["OTHER_CFLAGS": "-index-store-path \"\(tmpDirPath.join("IndexDataStore"))\""]), persistent: true, excludedTasks: ["ClangStatCache"])
+            try await tester.checkNullBuild(parameters: BuildParameters(configuration: "Debug", commandLineOverrides: ["OTHER_CFLAGS": "-index-store-path \"\(tmpDirPath.join("IndexDataStore"))\""]), runDestination: .macOS, persistent: true, excludedTasks: ["ClangStatCache"])
 
             // Check that the next build is NOT null.
-            try await tester.checkBuild(parameters: BuildParameters(configuration: "Debug", commandLineOverrides: ["OTHER_CFLAGS": "-DFOO=\"删除所有的\""]), persistent: true) { results in
+            try await tester.checkBuild(parameters: BuildParameters(configuration: "Debug", commandLineOverrides: ["OTHER_CFLAGS": "-DFOO=\"删除所有的\""]), runDestination: .macOS, persistent: true) { results in
 
                 // Check that tasks ran.
                 results.checkTasks { tasks in
@@ -2104,12 +2104,12 @@ That command depends on command in Target 'agg2' (project \'aProject\'): script 
             }
 
             // Reset.
-            try await tester.checkBuild(persistent: true) { _ in }
+            try await tester.checkBuild(runDestination: .macOS, persistent: true) { _ in }
 
-            try await tester.checkNullBuild(parameters: BuildParameters(configuration: "Debug", commandLineOverrides: ["OTHER_CFLAGS": "-index-store-path \"\(tmpDirPath.join("IndexDataStore"))\""]), persistent: true, excludedTasks: ["ClangStatCache"])
+            try await tester.checkNullBuild(parameters: BuildParameters(configuration: "Debug", commandLineOverrides: ["OTHER_CFLAGS": "-index-store-path \"\(tmpDirPath.join("IndexDataStore"))\""]), runDestination: .macOS, persistent: true, excludedTasks: ["ClangStatCache"])
 
             // Check that the next build is NOT null.
-            try await tester.checkBuild(parameters: BuildParameters(configuration: "Debug", commandLineOverrides: ["OTHER_CFLAGS": "-DFOO=\"删除所有的\""]), persistent: true) { results in
+            try await tester.checkBuild(parameters: BuildParameters(configuration: "Debug", commandLineOverrides: ["OTHER_CFLAGS": "-DFOO=\"删除所有的\""]), runDestination: .macOS, persistent: true) { results in
 
                 // Check that tasks ran.
                 results.checkTasks { tasks in
@@ -2169,7 +2169,7 @@ That command depends on command in Target 'agg2' (project \'aProject\'): script 
             let provisioningInputs = ["CoreFoo": ProvisioningTaskInputs(identityHash: "-", signedEntitlements: .plDict([:]), simulatedEntitlements: .plDict([:]))]
 
             // Check the initial build.
-            try await tester.checkBuild(persistent: true, signableTargets: Set(provisioningInputs.keys), signableTargetInputs: provisioningInputs) { results in
+            try await tester.checkBuild(runDestination: .macOS, persistent: true, signableTargets: Set(provisioningInputs.keys), signableTargetInputs: provisioningInputs) { results in
                 results.checkTask(.matchRuleType("CodeSign")) { _ in }
             }
 
@@ -2177,7 +2177,7 @@ That command depends on command in Target 'agg2' (project \'aProject\'): script 
             try await tester.fs.writePlist(infoPlistPath, .plDict(initialPlDict.addingContents(of: ["newKey": .plString("newValue")])))
 
             // Check that CodeSign task runs in the next build.
-            try await tester.checkBuild(persistent: true, signableTargets: Set(provisioningInputs.keys), signableTargetInputs: provisioningInputs) { results in
+            try await tester.checkBuild(runDestination: .macOS, persistent: true, signableTargets: Set(provisioningInputs.keys), signableTargetInputs: provisioningInputs) { results in
                 results.checkTask(.matchRuleType("ProcessInfoPlistFile")) { _ in }
                 results.checkTask(.matchRuleType("CodeSign")) { _ in }
             }
@@ -2217,11 +2217,11 @@ That command depends on command in Target 'agg2' (project \'aProject\'): script 
             let release = BuildParameters(configuration: "Release")
 
             // Check the initial debug and release build.
-            try await tester.checkBuild(parameters: debug, persistent: true) { _ in }
-            try await tester.checkBuild(parameters: release, persistent: true) { _ in }
+            try await tester.checkBuild(parameters: debug, runDestination: .macOS, persistent: true) { _ in }
+            try await tester.checkBuild(parameters: release, runDestination: .macOS, persistent: true) { _ in }
 
             // Check that the next debug build is null.
-            try await tester.checkNullBuild(parameters: debug, persistent: true, excludedTasks: ["Gate", "ClangStatCache"])
+            try await tester.checkNullBuild(parameters: debug, runDestination: .macOS, persistent: true, excludedTasks: ["Gate", "ClangStatCache"])
         }
     }
 
@@ -2351,7 +2351,7 @@ That command depends on command in Target 'agg2' (project \'aProject\'): script 
             let tester = try await BuildOperationTester(getCore(), testWorkspace, simulated: false)
 
             // Check the build.
-            try await tester.checkBuild() { results in
+            try await tester.checkBuild(runDestination: .macOS) { results in
                 results.checkTask(.matchRuleType("PhaseScriptExecution")) { task in
                     results.checkTaskOutput(task) { output in
                         XCTAssertMatch(output.unsafeStringValue, .contains("Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/metal"))
@@ -2563,14 +2563,14 @@ That command depends on command in Target 'agg2' (project \'aProject\'): script 
                 }
 
                 // We enable deployment postprocessing explicitly, to check the full range of basic behaviors.
-                let parameters = BuildParameters(configuration: "Debug", activeRunDestination: generic ? .anyMac : .macOS, overrides: [
+                let parameters = BuildParameters(configuration: "Debug", overrides: [
                     "DSTROOT": tmpDirPath.join("dst").str,
                     "DEPLOYMENT_POSTPROCESSING": "YES",
                     "DEPLOYMENT_LOCATION": "YES",
                 ])
 
                 // Check the initial build.
-                try await tester.checkBuild(parameters: parameters, persistent: true, signableTargets: signableTargets, signableTargetInputs: signableTargetInputs) { results in
+                try await tester.checkBuild(parameters: parameters, runDestination: generic ? .anyMac : .macOS, persistent: true, signableTargets: signableTargets, signableTargetInputs: signableTargetInputs) { results in
                     results.consumeTasksMatchingRuleTypes(taskTypesToExclude)
                     for (expectedTask, count) in Dictionary(expectedTasks.map({ ($0, 1) }), uniquingKeysWith: +) {
                         results.checkTasks(.matchRuleType(expectedTask)) { tasks in
@@ -2581,7 +2581,7 @@ That command depends on command in Target 'agg2' (project \'aProject\'): script 
                 }
 
                 // Check that we get a null build.
-                try await tester.checkNullBuild(parameters: parameters, persistent: true, signableTargets: signableTargets, signableTargetInputs: signableTargetInputs, excludedTasks: ["ClangStatCache"])
+                try await tester.checkNullBuild(parameters: parameters, runDestination: generic ? .anyMac : .macOS, persistent: true, signableTargets: signableTargets, signableTargetInputs: signableTargetInputs, excludedTasks: ["ClangStatCache"])
 
                 // Check that we get a proper incremental build if we change the source.
                 try await tester.fs.writeFileContents(SRCROOT.join("Sources/Source.c")) { contents in
@@ -2594,7 +2594,7 @@ That command depends on command in Target 'agg2' (project \'aProject\'): script 
                         contents <<< "}\n";
                     }
                 }
-                try await tester.checkBuild(parameters: parameters, persistent: true, signableTargets: signableTargets, signableTargetInputs: signableTargetInputs) { results in
+                try await tester.checkBuild(parameters: parameters, runDestination: generic ? .anyMac : .macOS, persistent: true, signableTargets: signableTargets, signableTargetInputs: signableTargetInputs) { results in
 
 
                     // We don't expect to rerun any `ProcessProductPackaging` tasks if we just change the source.
@@ -2611,7 +2611,7 @@ That command depends on command in Target 'agg2' (project \'aProject\'): script 
                 }
 
                 // Check that we get a second null build.
-                try await tester.checkNullBuild(parameters: parameters, persistent: true, signableTargets: signableTargets, signableTargetInputs: signableTargetInputs, excludedTasks: ["ClangStatCache"])
+                try await tester.checkNullBuild(parameters: parameters, runDestination: generic ? .anyMac : .macOS, persistent: true, signableTargets: signableTargets, signableTargetInputs: signableTargetInputs, excludedTasks: ["ClangStatCache"])
             }
         }
 
@@ -3283,7 +3283,7 @@ That command depends on command in Target 'agg2' (project \'aProject\'): script 
 
             // Check the initial build.
             let taskTypesToExclude = Set(["Gate", "MkDir", "ProcessInfoPlistFile", "RegisterExecutionPolicyException", "RegisterWithLaunchServices", "SymLink", "Touch", "WriteAuxiliaryFile", "CreateBuildDirectory", "ClangStatCache", "ProcessSDKImports"])
-            try await tester.checkBuild(parameters: parameters, persistent: true, signableTargets: signableTargets) { results in
+            try await tester.checkBuild(parameters: parameters, runDestination: .macOS, persistent: true, signableTargets: signableTargets) { results in
                 results.consumeTasksMatchingRuleTypes(taskTypesToExclude)
 
                 results.checkTasks(.matchRuleType("CompileC")) { tasks in
@@ -3313,7 +3313,7 @@ That command depends on command in Target 'agg2' (project \'aProject\'): script 
             }
 
             // Check that we get a null build.
-            try await tester.checkBuild(parameters: parameters, persistent: true, signableTargets: signableTargets) { results in
+            try await tester.checkBuild(parameters: parameters, runDestination: .macOS, persistent: true, signableTargets: signableTargets) { results in
                 results.consumeTasksMatchingRuleTypes(taskTypesToExclude)
 
                 // Check that no tasks ran.
@@ -3330,7 +3330,7 @@ That command depends on command in Target 'agg2' (project \'aProject\'): script 
 
                 results.checkNoTask()
             }
-            try await tester.checkBuild(parameters: parameters, persistent: true, signableTargets: signableTargets) { results in
+            try await tester.checkBuild(parameters: parameters, runDestination: .macOS, persistent: true, signableTargets: signableTargets) { results in
                 // Check that no tasks ran.
                 //
                 // FIXME: No tasks should run, but the directory tree signature for the copy task isn't correctly computed yet: <rdar://problem/30638921> Directory tree signatures fail when tracking a symbolic link with other mutators
@@ -3344,7 +3344,7 @@ That command depends on command in Target 'agg2' (project \'aProject\'): script 
                 contents <<< "  return 10;\n";
                 contents <<< "}\n";
             }
-            try await tester.checkBuild(parameters: parameters, persistent: true, signableTargets: signableTargets) { results in
+            try await tester.checkBuild(parameters: parameters, runDestination: .macOS, persistent: true, signableTargets: signableTargets) { results in
                 // We should recompile, link, and sign the app.
                 results.consumeTasksMatchingRuleTypes(taskTypesToExclude)
                 results.checkTask(.matchRuleType("ScanDependencies")) { _ in }
@@ -3356,14 +3356,14 @@ That command depends on command in Target 'agg2' (project \'aProject\'): script 
             }
 
             // Check that we get a second null build.
-            try await tester.checkNullBuild(parameters: parameters, persistent: true, signableTargets: signableTargets, excludedTasks: ["ClangStatCache"])
+            try await tester.checkNullBuild(parameters: parameters, runDestination: .macOS, persistent: true, signableTargets: signableTargets, excludedTasks: ["ClangStatCache"])
 
             // Check that we get a proper incremental build if we change the framework source.
             try await tester.fs.writeFileContents(SRCROOT.join("Sources/Fwk.c")) { contents in
                 contents <<< "void thing2(void) __attribute__((visibility(\"default\")));\n"
                 contents <<< "void thing2(void) {}\n"
             }
-            try await tester.checkBuild(parameters: parameters, persistent: true, signableTargets: signableTargets) { results in
+            try await tester.checkBuild(parameters: parameters, runDestination: .macOS, persistent: true, signableTargets: signableTargets) { results in
                 // We should recompile and link the framework, then recopy and resign the app.
                 results.consumeTasksMatchingRuleTypes(taskTypesToExclude)
                 results.checkTask(.matchRuleType("ScanDependencies")) { _ in }
@@ -3378,7 +3378,7 @@ That command depends on command in Target 'agg2' (project \'aProject\'): script 
                 results.checkNoTask()
             }
             // Check that we get a third null build.
-            try await tester.checkNullBuild(parameters: parameters, persistent: true, signableTargets: signableTargets, excludedTasks: ["ClangStatCache"])
+            try await tester.checkNullBuild(parameters: parameters, runDestination: .macOS, persistent: true, signableTargets: signableTargets, excludedTasks: ["ClangStatCache"])
         }
     }
 
@@ -3432,7 +3432,7 @@ That command depends on command in Target 'agg2' (project \'aProject\'): script 
 
             // Perform the first (clean) build and expect to see a compile task.
             try await confirmation("First archive should succeed.") { firstBuildSucceed in
-                try await tester.checkBuild(parameters: parameters) { results in
+                try await tester.checkBuild(parameters: parameters, runDestination: .macOS) { results in
                     results.checkTask(.matchRuleItem("CompileC"), body: { _ in })
                     results.checkTasks { tasks in
                         #expect(tasks.count > 0)
@@ -3444,7 +3444,7 @@ That command depends on command in Target 'agg2' (project \'aProject\'): script 
 
             // Perform the second (incremental) build, and expect to see no tasks run because we didn't change anything.
             try await confirmation("Second archive should succeed.") { secondBuildSucceed in
-                try await tester.checkBuild(parameters: parameters) { results in
+                try await tester.checkBuild(parameters: parameters, runDestination: .macOS) { results in
                     results.checkTasks(.matchRuleType("ClangStatCache")) { _ in }
                     if tester.userPreferences.enableBuildSystemCaching {
                         results.checkNoTask()
@@ -3734,7 +3734,7 @@ That command depends on command in Target 'agg2' (project \'aProject\'): script 
 
             // Do an initial build.  It's a clean build, so we expect all the tasks to run, including the CopySwiftLibs.
             let parameters = BuildParameters(action: .build, configuration: "Debug")
-            try await tester.checkBuild(parameters: parameters, persistent: true) { results in
+            try await tester.checkBuild(parameters: parameters, runDestination: .macOS, persistent: true) { results in
                 // Check that CopySwiftLibs ran.
                 results.checkTasks(.matchRuleType("CopySwiftLibs"), .matchTargetName("App")) { _ in }
                 results.checkTasks(.matchRuleType("CopySwiftLibs"), .matchTargetName("SwiftlessApp")) { _ in }
@@ -3876,7 +3876,7 @@ That command depends on command in Target 'agg2' (project \'aProject\'): script 
             }
 
             // Do another build without changing anything.  It should be a null build.
-            try await tester.checkBuild(parameters: parameters, persistent: true) { results in
+            try await tester.checkBuild(parameters: parameters, runDestination: .macOS, persistent: true) { results in
                 // Check that CopySwiftLibs did not ran.  We could assert that nothing ran, but then we'd get noise for any non-null builds that are also covered by other unit tests, so we limit ourselves to making sure that the CopySwiftLibs task in particular did not run.
                 results.checkTasks(.matchRuleType("CopySwiftLibs"), .matchTargetName("App")) { _ in }
                 results.checkTasks(.matchRuleType("CopySwiftLibs"), .matchTargetName("SwiftlessSysExApp")) { _ in }
@@ -4069,7 +4069,7 @@ That command depends on command in Target 'agg2' (project \'aProject\'): script 
             let srcroot = testWorkspace.sourceRoot.join(projectName).str
             let buildDir = testWorkspace.sourceRoot.join("\(projectName)/build").str
 
-            try await tester.checkBuild(parameters: BuildParameters(configuration: "Debug", commandLineOverrides: ["TEST_ME": "hi", "EVIL": "this seems like a good value ;)"]), persistent: true) { results in
+            try await tester.checkBuild(parameters: BuildParameters(configuration: "Debug", commandLineOverrides: ["TEST_ME": "hi", "EVIL": "this seems like a good value ;)"]), runDestination: .macOS, persistent: true) { results in
                 // We expect one task with one line of output.
                 results.checkTask(.matchRuleType("ExternalBuildToolExecution")) { task in
                     results.checkTaskOutput(task) { output in
@@ -4082,7 +4082,7 @@ That command depends on command in Target 'agg2' (project \'aProject\'): script 
             }
 
             // Should have run again
-            try await tester.checkBuild(parameters: BuildParameters(configuration: "Debug", commandLineOverrides: ["SDKROOT": "macosx"]), persistent: true) { results in
+            try await tester.checkBuild(parameters: BuildParameters(configuration: "Debug", commandLineOverrides: ["SDKROOT": "macosx"]), runDestination: .macOS, persistent: true) { results in
                 // We expect one task with one line of output.
                 results.checkTask(.matchRuleType("ExternalBuildToolExecution")) { task in
                     results.checkTaskOutput(task) { output in
@@ -4258,7 +4258,7 @@ That command depends on command in Target 'agg2' (project \'aProject\'): script 
                 let buildTargets = [BuildRequest.BuildTargetInfo(parameters: parameters, target: tester.workspace.target(for: mainTarget.guid)!)]
                 let request = BuildRequest(parameters: parameters, buildTargets: buildTargets, continueBuildingAfterErrors: true, useParallelTargets: true, useImplicitDependencies: false, useDryRun: false)
 
-                try await tester.checkBuild(buildRequest: request, persistent: true) { results in
+                try await tester.checkBuild(runDestination: .macOS, buildRequest: request, persistent: true) { results in
                     results.consumeTasksMatchingRuleTypes(excludedTypes)
                     results.checkTask(.matchRuleType("ScanDependencies")) { _ in }
                     results.checkTask(.matchRuleType("CompileC")) { _ in }
@@ -4268,7 +4268,7 @@ That command depends on command in Target 'agg2' (project \'aProject\'): script 
                 }
 
                 // Check that we get a null build.
-                try await tester.checkNullBuild(buildRequest: request, persistent: true, excludedTasks: ["ClangStatCache"])
+                try await tester.checkNullBuild(runDestination: .macOS, buildRequest: request, persistent: true, excludedTasks: ["ClangStatCache"])
             }
 
             // Build both targets together.
@@ -4281,7 +4281,7 @@ That command depends on command in Target 'agg2' (project \'aProject\'): script 
                 let request = BuildRequest(parameters: parameters, buildTargets: buildTargets, continueBuildingAfterErrors: true, useParallelTargets: true, useImplicitDependencies: false, useDryRun: false)
 
                 // We should only get two interesting compilation tasks, for the new target.
-                try await tester.checkBuild(buildRequest: request, persistent: true) { results in
+                try await tester.checkBuild(runDestination: .macOS, buildRequest: request, persistent: true) { results in
                     results.consumeTasksMatchingRuleTypes(excludedTypes)
                     results.checkTask(.matchRuleType("ScanDependencies")) { _ in }
                     results.checkTask(.matchRuleType("CompileC")) { _ in }
@@ -4291,7 +4291,7 @@ That command depends on command in Target 'agg2' (project \'aProject\'): script 
                 }
 
                 // Check that we get a null build.
-                try await tester.checkNullBuild(buildRequest: request, persistent: true, excludedTasks: ["ClangStatCache"])
+                try await tester.checkNullBuild(runDestination: .macOS, buildRequest: request, persistent: true, excludedTasks: ["ClangStatCache"])
             }
         }
     }
@@ -4322,7 +4322,7 @@ That command depends on command in Target 'agg2' (project \'aProject\'): script 
             let tester = try await BuildOperationTester(getCore(), testWorkspace, simulated: false)
 
             let parameters = BuildParameters(action: .build, configuration: "Debug")
-            try await tester.checkBuild(parameters: parameters, persistent: true, signableTargets: ["Tool"], signableTargetInputs: ["Tool": ProvisioningTaskInputs(identityHash: "-", identityName: "-", signedEntitlements: .plDict(["com.apple.security.get-task-allow": .plBool(true)]))]) { results in
+            try await tester.checkBuild(parameters: parameters, runDestination: .macOS, persistent: true, signableTargets: ["Tool"], signableTargetInputs: ["Tool": ProvisioningTaskInputs(identityHash: "-", identityName: "-", signedEntitlements: .plDict(["com.apple.security.get-task-allow": .plBool(true)]))]) { results in
                 results.consumeTasksMatchingRuleTypes(["Gate", "WriteAuxiliaryFile", "CreateBuildDirectory"])
                 results.checkNoTask()
 
@@ -4365,7 +4365,7 @@ That command depends on command in Target 'agg2' (project \'aProject\'): script 
             try await tester.fs.writeFileContents(testWorkspace.sourceRoot.join("aProject/main.c"), body: { $0 <<< "" })
 
             let parameters = BuildParameters(action: .build, configuration: "Debug")
-            try await tester.checkBuild(parameters: parameters, persistent: true, signableTargets: ["Tool"], signableTargetInputs: ["Tool": ProvisioningTaskInputs(identityHash: "-", identityName: "-", signedEntitlements: .plDict(["com.apple.security.get-task-allow": .plBool(true)]))]) { results in
+            try await tester.checkBuild(parameters: parameters, runDestination: .macOS, persistent: true, signableTargets: ["Tool"], signableTargetInputs: ["Tool": ProvisioningTaskInputs(identityHash: "-", identityName: "-", signedEntitlements: .plDict(["com.apple.security.get-task-allow": .plBool(true)]))]) { results in
                 results.checkTask(.matchRuleType("GenerateTAPI")) { _ in }
                 results.checkNoDiagnostics()
             }
@@ -4428,7 +4428,7 @@ That command depends on command in Target 'agg2' (project \'aProject\'): script 
                 "com.apple.security.files.user-selected.read-only": 1,
             ]
             let provisioningInputs = ["App": ProvisioningTaskInputs(identityHash: "-", signedEntitlements: entitlements, simulatedEntitlements: [:])]
-            try await tester.checkBuild(parameters: parameters, persistent: true, signableTargets: Set(provisioningInputs.keys), signableTargetInputs: provisioningInputs) { results in
+            try await tester.checkBuild(parameters: parameters, runDestination: .macOS, persistent: true, signableTargets: Set(provisioningInputs.keys), signableTargetInputs: provisioningInputs) { results in
                 // Make sure that the entitlements processing task ran.
                 results.checkTask(.matchRuleType("ProcessProductPackaging")) { _ in }
 
@@ -4436,7 +4436,7 @@ That command depends on command in Target 'agg2' (project \'aProject\'): script 
             }
 
             // Now perform the for-test build.
-            try await tester.checkBuild(parameters: parameters, schemeCommand: .test, persistent: true, signableTargets: Set(provisioningInputs.keys), signableTargetInputs: provisioningInputs) { results in
+            try await tester.checkBuild(parameters: parameters, runDestination: .macOS, schemeCommand: .test, persistent: true, signableTargets: Set(provisioningInputs.keys), signableTargetInputs: provisioningInputs) { results in
                 // Make sure that the entitlements processing task ran again.
                 results.checkTask(.matchRuleType("ProcessProductPackaging")) { _ in }
 
@@ -4495,7 +4495,7 @@ That command depends on command in Target 'agg2' (project \'aProject\'): script 
 
             // Perform the initial for-launch build.
             let excludedTypes = Set(["Gate", "WriteAuxiliaryFile", "SymLink", "MkDir", "Touch", "Copy", "CreateBuildDirectory", "RegisterExecutionPolicyException", "ClangStatCache"])
-            try await tester.checkBuild(persistent: true) { results in
+            try await tester.checkBuild(runDestination: .macOS, persistent: true) { results in
                 results.checkNoDiagnostics()
 
                 results.consumeTasksMatchingRuleTypes(excludedTypes)
@@ -4507,7 +4507,7 @@ That command depends on command in Target 'agg2' (project \'aProject\'): script 
             }
 
             // Check that we get a null build.
-            try await tester.checkNullBuild(persistent: true, excludedTasks: ["ClangStatCache"])
+            try await tester.checkNullBuild(runDestination: .macOS, persistent: true, excludedTasks: ["ClangStatCache"])
         }
     }
 
@@ -4564,7 +4564,7 @@ That command depends on command in Target 'agg2' (project \'aProject\'): script 
             }
 
             // Check that subtasks progress events are reported as expected.
-            try await tester.checkBuild(persistent: true) { results in
+            try await tester.checkBuild(runDestination: .macOS, persistent: true) { results in
                 // Integrated Swift driver doesn't record jobs as subtasks.
                 results.check(notContains: .subtaskDidReportProgress(.scanning, count: 4))
                 results.check(notContains: .subtaskDidReportProgress(.started, count: 1))
@@ -4576,7 +4576,7 @@ That command depends on command in Target 'agg2' (project \'aProject\'): script 
             try await tester.fs.writeFileContents(SRCROOT.join("Sources/file3.swift")) {
                 $0 <<< "func foo() {}"
             }
-            try await tester.checkBuild(persistent: true) { results in
+            try await tester.checkBuild(runDestination: .macOS, persistent: true) { results in
                 // Integrated Swift driver doesn't show jobs as subtasks
                 results.check(notContains: .subtaskDidReportProgress(.scanning, count: 4))
                 results.check(notContains: .subtaskDidReportProgress(.upToDate, count: 1))
@@ -4586,7 +4586,7 @@ That command depends on command in Target 'agg2' (project \'aProject\'): script 
             let parameters = BuildParameters(configuration: "Debug", overrides: [
                 "SWIFT_WHOLE_MODULE_OPTIMIZATION": "true",
             ])
-            try await tester.checkBuild(parameters: parameters, persistent: true) { results in
+            try await tester.checkBuild(parameters: parameters, runDestination: .macOS, persistent: true) { results in
                 // Integrated Swift driver doesn't record jobs as subtasks.
                 results.check(notContains: .subtaskDidReportProgress(.scanning, count: 1))
                 results.check(notContains: .subtaskDidReportProgress(.started, count: 1))
@@ -4645,7 +4645,7 @@ That command depends on command in Target 'agg2' (project \'aProject\'): script 
 
             // Build the project and verify that it fails. Record the highest maximum task count reported during the build.
             var build1HighestMaxTaskCount: Int?
-            try await tester.checkBuild(persistent: true) { results in
+            try await tester.checkBuild(runDestination: .macOS, persistent: true) { results in
                 if !SWBFeatureFlag.performOwnershipAnalysis.value {
                     for _ in 0..<4 {
                         results.checkError(.contains("No such file or directory (2) (for task: [\"Copy\""))
@@ -4669,7 +4669,7 @@ That command depends on command in Target 'agg2' (project \'aProject\'): script 
 
             // Check that a second build succeeds and record the highest maximum task count recorded.
             var build2HighestMaxTaskCount: Int?
-            try await tester.checkBuild(persistent: true) { results in
+            try await tester.checkBuild(runDestination: .macOS, persistent: true) { results in
                 results.checkNoDiagnostics()
 
                 build2HighestMaxTaskCount = results.events.compactMap {
@@ -4733,7 +4733,7 @@ That command depends on command in Target 'agg2' (project \'aProject\'): script 
             ]
             let provisioningInputs = ["Core": ProvisioningTaskInputs(identityHash: "-", signedEntitlements: entitlements, simulatedEntitlements: [:])]
             let excludedTypes = Set(["Gate", "WriteAuxiliaryFile", "SymLink", "MkDir", "Touch", "Copy", "CreateBuildDirectory", "ProcessInfoPlistFile", "ClangStatCache", "ProcessSDKImports"])
-            try await tester.checkBuild(persistent: true, signableTargets: Set(provisioningInputs.keys), signableTargetInputs: provisioningInputs) { results in
+            try await tester.checkBuild(runDestination: .macOS, persistent: true, signableTargets: Set(provisioningInputs.keys), signableTargetInputs: provisioningInputs) { results in
                 results.consumeTasksMatchingRuleTypes(excludedTypes)
 
                 if productType == .framework || productType == .dynamicLibrary {
@@ -4790,7 +4790,7 @@ That command depends on command in Target 'agg2' (project \'aProject\'): script 
             }
 
             // Check that we get a null build.
-            try await tester.checkNullBuild(persistent: true, signableTargets: Set(provisioningInputs.keys), signableTargetInputs: provisioningInputs, excludedTasks: ["ClangStatCache"])
+            try await tester.checkNullBuild(runDestination: .macOS, persistent: true, signableTargets: Set(provisioningInputs.keys), signableTargetInputs: provisioningInputs, excludedTasks: ["ClangStatCache"])
         }
     }
 
@@ -4884,7 +4884,7 @@ That command depends on command in Target 'agg2' (project \'aProject\'): script 
             }
 
             // First build should contain TAPI task.
-            try await tester.checkBuild(persistent: true) { results in
+            try await tester.checkBuild(runDestination: .macOS, persistent: true) { results in
                 results.checkTask(.matchRuleType("GenerateTAPI")) { _ in }
             }
 
@@ -4893,12 +4893,12 @@ That command depends on command in Target 'agg2' (project \'aProject\'): script 
                 $0 <<< "void func() {} // does nothing"
             }
 
-            try await tester.checkBuild(persistent: true) { results in
+            try await tester.checkBuild(runDestination: .macOS, persistent: true) { results in
                 results.checkTask(.matchRuleType("GenerateTAPI")) { _ in }
             }
 
             // This should be a null build.
-            try await tester.checkNullBuild(persistent: true, excludedTasks: ["ClangStatCache"])
+            try await tester.checkNullBuild(runDestination: .macOS, persistent: true, excludedTasks: ["ClangStatCache"])
         }
     }
 
@@ -4936,7 +4936,7 @@ That command depends on command in Target 'agg2' (project \'aProject\'): script 
             try await tester.fs.writeFileContents(objcFile) { stream in }
 
 
-            try await tester.checkBuild(persistent: true) { results in
+            try await tester.checkBuild(runDestination: .macOS, persistent: true) { results in
                 for ruleType in ["SwiftDriver Compilation Requirements", "SwiftDriver Compilation"] {
                     results.checkError("Build input file cannot be found: \'\(tmpDirPath.str)/Test/aProject/File.swift\'. Did you forget to declare this file as an output of a script phase or custom build rule which produces it? (for task: [\"\(ruleType)\", \"aFramework\", \"normal\", \"x86_64\", \"com.apple.xcode.tools.swift.compiler\"])")
                 }
@@ -5011,7 +5011,7 @@ That command depends on command in Target 'agg2' (project \'aProject\'): script 
             try tester.fs.write(sharedFile, contents: "int shared = 1;")
             try tester.fs.write(mainFile, contents: "int main() { return 0; }")
 
-            try await tester.checkBuild(parameters: BuildParameters(action: .install, configuration: "Debug"), persistent: true) { _ in }
+            try await tester.checkBuild(parameters: BuildParameters(action: .install, configuration: "Debug"), runDestination: .macOS, persistent: true) { _ in }
 
             let ldDepsPath = SRCROOT.join(
                 "build/aProject.build/Debug/Tool.build/Objects-normal/x86_64/Tool_dependency_info.dat"
@@ -5072,7 +5072,7 @@ That command depends on command in Target 'agg2' (project \'aProject\'): script 
                 stream <<< "{ Foo = Bar; }"
             }
 
-            try await tester.checkBuild(parameters: BuildParameters(configuration: "Debug")) { results in
+            try await tester.checkBuild(parameters: BuildParameters(configuration: "Debug"), runDestination: .macOS) { results in
                 results.checkNoDiagnostics()
 
                 results.checkNoTask(.matchRuleType("CpResource"))
@@ -5171,7 +5171,7 @@ That command depends on command in Target 'agg2' (project \'aProject\'): script 
             let iigPath = try await self.iigPath
             let migPath = try await self.migPath
 
-            try await tester.checkBuild(parameters: BuildParameters(configuration: "Debug", activeRunDestination: .anyMac), persistent: true) { results in
+            try await tester.checkBuild(parameters: BuildParameters(configuration: "Debug"), runDestination: .anyMac, persistent: true) { results in
                 results.checkNoWarnings()
                 results.checkNoErrors()
 
@@ -5258,13 +5258,13 @@ That command depends on command in Target 'agg2' (project \'aProject\'): script 
             // Disable the memory cache by setting its limit to zero, to make sure we're actually going to reload the build description from disk.
             let tester = try await BuildOperationTester(getCore(), testWorkspace, simulated: false, buildDescriptionMaxCacheSize: (0, 1))
 
-            try await tester.checkBuild(persistent: true) { results in
+            try await tester.checkBuild(runDestination: .macOS, persistent: true) { results in
                 results.checkWarning(.equal("There are no architectures to compile for because the ARCHS build setting is an empty list. Consider setting ARCHS to $(ARCHS_STANDARD) or updating it to include at least one value from VALID_ARCHS (none). (in target 'Tool' from project 'aProject')"))
                 results.checkNoDiagnostics()
             }
 
             // Building a second time should have restored the warning from the serialized build description.
-            try await tester.checkBuild(persistent: true) { results in
+            try await tester.checkBuild(runDestination: .macOS, persistent: true) { results in
                 results.checkWarning(.equal("There are no architectures to compile for because the ARCHS build setting is an empty list. Consider setting ARCHS to $(ARCHS_STANDARD) or updating it to include at least one value from VALID_ARCHS (none). (in target 'Tool' from project 'aProject')"))
                 results.checkNoDiagnostics()
             }
@@ -5333,7 +5333,7 @@ That command depends on command in Target 'agg2' (project \'aProject\'): script 
                 stream <<< "int dadeeplib() { return 2; }\n"
             }
 
-            try await tester.checkBuild(persistent: true) { results in
+            try await tester.checkBuild(runDestination: .macOS, persistent: true) { results in
                 // Verify that the .o files are compiled.
                 results.checkTask(.matchRule(["CompileC", "\(buildDirectory)/aProject.build/Debug/DeepLib.build/Objects-normal/x86_64/deeplib.o", "\(SRCROOT)/aProject/deeplib.c", "normal", "x86_64", "c", "com.apple.compilers.llvm.clang.1_0.compiler"])) { _ in }
                 results.checkTask(.matchRule(["CompileC", "\(buildDirectory)/aProject.build/Debug/Lib.build/Objects-normal/x86_64/lib.o", "\(SRCROOT)/aProject/lib.c", "normal", "x86_64", "c", "com.apple.compilers.llvm.clang.1_0.compiler"])) { _ in }
@@ -5365,13 +5365,13 @@ That command depends on command in Target 'agg2' (project \'aProject\'): script 
             }
 
             // Validate a null build.
-            try await tester.checkNullBuild(persistent: true, excludedTasks: ["ClangStatCache"])
+            try await tester.checkNullBuild(runDestination: .macOS, persistent: true, excludedTasks: ["ClangStatCache"])
 
             // Test that updating lib.c causes the correct recompile.
             try await tester.fs.writeFileContents(testWorkspace.sourceRoot.join("aProject/lib.c")) { stream in
                 stream <<< "int dalib1() { return 11; }\n"
             }
-            try await tester.checkBuild(persistent: true) { results in
+            try await tester.checkBuild(runDestination: .macOS, persistent: true) { results in
                 results.consumeTasksMatchingRuleTypes(["RegisterExecutionPolicyException", "Gate", "ClangStatCache", "ProcessSDKImports"])
                 results.checkTask(.matchRule(["CompileC", "\(buildDirectory)/aProject.build/Debug/Lib.build/Objects-normal/x86_64/lib.o", "\(SRCROOT)/aProject/lib.c", "normal", "x86_64", "c", "com.apple.compilers.llvm.clang.1_0.compiler"])) { _ in }
                 results.checkTask(.matchRule(["Libtool", "\(buildDirectory)/Debug/libLib.a", "normal"])) { _ in }
@@ -5383,7 +5383,7 @@ That command depends on command in Target 'agg2' (project \'aProject\'): script 
             try await tester.fs.writeFileContents(testWorkspace.sourceRoot.join("aProject/deeplib.c")) { stream in
                 stream <<< "int dadeeplib1() { return 22; }\n"
             }
-            try await tester.checkBuild(persistent: true) { results in
+            try await tester.checkBuild(runDestination: .macOS, persistent: true) { results in
                 results.consumeTasksMatchingRuleTypes(["RegisterExecutionPolicyException", "Gate", "ClangStatCache", "ProcessSDKImports"])
                 results.checkTask(.matchRule(["CompileC", "\(buildDirectory)/aProject.build/Debug/DeepLib.build/Objects-normal/x86_64/deeplib.o", "\(SRCROOT)/aProject/deeplib.c", "normal", "x86_64", "c", "com.apple.compilers.llvm.clang.1_0.compiler"])) { _ in }
                 results.checkTask(.matchRule(["Libtool", "\(buildDirectory)/Debug/libDeepLib.a", "normal"])) { _ in }
@@ -5464,7 +5464,7 @@ That command depends on command in Target 'agg2' (project \'aProject\'): script 
             let excludingTypes: Set<String> = ["SetGroup", "SetMode", "Strip", "RegisterExecutionPolicyException", "Gate", "ClangStatCache", "ProcessSDKImports"]
 
             let parameters = BuildParameters(action: .install, configuration: "Debug")
-            try await tester.checkBuild(parameters: parameters, persistent: true) { results in
+            try await tester.checkBuild(parameters: parameters, runDestination: .macOS, persistent: true) { results in
                 // Verify that the .o files are compiled.
                 results.checkTask(.matchRule(["CompileC", "\(buildDirectory)/aProject.build/Debug/DeepLib.build/Objects-normal/x86_64/deeplib.o", "\(SRCROOT)/aProject/deeplib.c", "normal", "x86_64", "c", "com.apple.compilers.llvm.clang.1_0.compiler"])) { _ in }
                 results.checkTask(.matchRule(["CompileC", "\(buildDirectory)/aProject.build/Debug/Lib.build/Objects-normal/x86_64/lib.o", "\(SRCROOT)/aProject/lib.c", "normal", "x86_64", "c", "com.apple.compilers.llvm.clang.1_0.compiler"])) { _ in }
@@ -5497,13 +5497,13 @@ That command depends on command in Target 'agg2' (project \'aProject\'): script 
             }
 
             // Validate a null build.
-            try await tester.checkNullBuild(parameters: parameters, persistent: true, excludedTasks: ["ClangStatCache"])
+            try await tester.checkNullBuild(parameters: parameters, runDestination: .macOS, persistent: true, excludedTasks: ["ClangStatCache"])
 
             // Test that updating lib.c causes the correct recompile.
             try await tester.fs.writeFileContents(testWorkspace.sourceRoot.join("aProject/lib.c")) { stream in
                 stream <<< "int dalib1() { return 11; }\n"
             }
-            try await tester.checkBuild(parameters: parameters, persistent: true) { results in
+            try await tester.checkBuild(parameters: parameters, runDestination: .macOS, persistent: true) { results in
                 results.consumeTasksMatchingRuleTypes(excludingTypes)
                 results.checkTask(.matchRule(["CompileC", "\(buildDirectory)/aProject.build/Debug/Lib.build/Objects-normal/x86_64/lib.o", "\(SRCROOT)/aProject/lib.c", "normal", "x86_64", "c", "com.apple.compilers.llvm.clang.1_0.compiler"])) { _ in }
                 results.checkTask(.matchRule(["Libtool", "\(buildDirectory)/UninstalledProducts/macosx/libLib.a", "normal"])) { _ in }
@@ -5515,7 +5515,7 @@ That command depends on command in Target 'agg2' (project \'aProject\'): script 
             try await tester.fs.writeFileContents(testWorkspace.sourceRoot.join("aProject/deeplib.c")) { stream in
                 stream <<< "int dadeeplib1() { return 22; }\n"
             }
-            try await tester.checkBuild(parameters: parameters, persistent: true) { results in
+            try await tester.checkBuild(parameters: parameters, runDestination: .macOS, persistent: true) { results in
                 results.consumeTasksMatchingRuleTypes(excludingTypes)
                 results.checkTask(.matchRule(["CompileC", "\(buildDirectory)/aProject.build/Debug/DeepLib.build/Objects-normal/x86_64/deeplib.o", "\(SRCROOT)/aProject/deeplib.c", "normal", "x86_64", "c", "com.apple.compilers.llvm.clang.1_0.compiler"])) { _ in }
                 results.checkTask(.matchRule(["Libtool", "\(buildDirectory)/UninstalledProducts/macosx/libDeepLib.a", "normal"])) { _ in }
@@ -5557,7 +5557,7 @@ That command depends on command in Target 'agg2' (project \'aProject\'): script 
                 stream <<< "int main() { return 0; }\n"
             }
 
-            try await tester.checkBuild() { results in
+            try await tester.checkBuild(runDestination: .macOS) { results in
                 #expect("\(tmpDirPath.str)/cache/XCBuildData" == results.buildDescription.dir.str)
             }
         }
@@ -5614,14 +5614,14 @@ That command depends on command in Target 'agg2' (project \'aProject\'): script 
                 stream <<< "int tool2() { return 0; }\n"
             }
 
-            try await tester.checkBuild() { results in
+            try await tester.checkBuild(runDestination: .macOS) { results in
                 #expect("\(tmpDirPath.str)/Test/aProject/build/XCBuildData" == results.buildDescription.dir.str)
             }
 
             let parameters = BuildParameters(configuration: "Debug", overrides: [
                 "BUILD_DESCRIPTION_CACHE_DIR": "\(tmpDirPath.str)/cache",
             ])
-            try await tester.checkBuild(parameters: parameters) { results in
+            try await tester.checkBuild(parameters: parameters, runDestination: .macOS) { results in
                 #expect("\(tmpDirPath.str)/cache/XCBuildData" == results.buildDescription.dir.str)
             }
         }
@@ -5671,7 +5671,7 @@ That command depends on command in Target 'agg2' (project \'aProject\'): script 
             let infoPlistFile = testWorkspace.sourceRoot.join("aProject/Info.plist")
             try await tester.fs.writePlist(infoPlistFile, .plDict([:]))
 
-            try await tester.checkBuild(persistent: true, signableTargets: signableTargets) { results in
+            try await tester.checkBuild(runDestination: .macOS, persistent: true, signableTargets: signableTargets) { results in
                 results.checkTask(.matchRule(["CompileMetalFile", "\(testWorkspace.sourceRoot.str)/aProject/Metal.metal"])) { _ in }
                 results.checkTask(.matchRule(["MetalLink", "\(testWorkspace.sourceRoot.str)/aProject/build/Debug/aFramework.framework/Versions/A/Resources/default.metallib"])) { _ in }
                 results.checkTask(.matchRule(["CodeSign", "\(testWorkspace.sourceRoot.str)/aProject/build/Debug/aFramework.framework/Versions/A"])) { _ in }
@@ -5691,7 +5691,7 @@ That command depends on command in Target 'agg2' (project \'aProject\'): script 
                     """
             }
 
-            try await tester.checkBuild(persistent: true, signableTargets: signableTargets) { results in
+            try await tester.checkBuild(runDestination: .macOS, persistent: true, signableTargets: signableTargets) { results in
                 results.checkTask(.matchRule(["CompileMetalFile", "\(testWorkspace.sourceRoot.str)/aProject/Metal.metal"])) { _ in }
                 results.checkTask(.matchRule(["MetalLink", "\(testWorkspace.sourceRoot.str)/aProject/build/Debug/aFramework.framework/Versions/A/Resources/default.metallib"])) { _ in }
                 results.checkTask(.matchRule(["CodeSign", "\(testWorkspace.sourceRoot.str)/aProject/build/Debug/aFramework.framework/Versions/A"])) { _ in }
@@ -5734,7 +5734,7 @@ That command depends on command in Target 'agg2' (project \'aProject\'): script 
                 """
             }
 
-            try await tester.checkBuild() { results in
+            try await tester.checkBuild(runDestination: .macOS) { results in
                 // We shouldn't see a 'failed to create dependency file' error here.
                 results.checkNoDiagnostics()
             }
@@ -5855,7 +5855,7 @@ That command depends on command in Target 'agg2' (project \'aProject\'): script 
             let signableTargets: Set<String> = ["Tool", "Other"]
             let excludedTasks: Set<String> = ["CreateBuildDirectory", "MkDir", "WriteAuxiliaryFile", "ProcessInfoPlistFile", "SymLink", "Validate", "RegisterWithLaunchServices", "Touch", "Gate", "RegisterExecutionPolicyException", "ClangStatCache", "ProcessSDKImports"]
 
-            try await tester.checkBuild(persistent: true, signableTargets: signableTargets) { results in
+            try await tester.checkBuild(runDestination: .macOS, persistent: true, signableTargets: signableTargets) { results in
                 results.consumeTasksMatchingRuleTypes(excludedTasks)
                 results.checkTask(.matchRule(["CompileC", "\(buildDirectory)/aProject.build/Debug/Other.build/Objects-normal/x86_64/other.o", "\(SRCROOT)/aProject/other.c", "normal", "x86_64", "c", "com.apple.compilers.llvm.clang.1_0.compiler"])) { _ in }
                 results.checkTask(.matchRule(["CompileC", "\(buildDirectory)/aProject.build/Debug/Tool.build/Objects-normal/x86_64/tool.o", "\(SRCROOT)/aProject/tool.c", "normal", "x86_64", "c", "com.apple.compilers.llvm.clang.1_0.compiler"])) { _ in }
@@ -5881,16 +5881,16 @@ That command depends on command in Target 'agg2' (project \'aProject\'): script 
             }
 
             // Need to re-codesign based on the embedd; existing behavior that we should address too.
-            try await tester.checkBuild(persistent: true, signableTargets: signableTargets) { _ in }
+            try await tester.checkBuild(runDestination: .macOS, persistent: true, signableTargets: signableTargets) { _ in }
 
             // Validate a null build.
-            try await tester.checkNullBuild(persistent: true, signableTargets: signableTargets, excludedTasks: ["ClangStatCache"], diagnosticsToValidate: [.error, .warning])
+            try await tester.checkNullBuild(runDestination: .macOS, persistent: true, signableTargets: signableTargets, excludedTasks: ["ClangStatCache"], diagnosticsToValidate: [.error, .warning])
 
             // Test updating just one resource file triggers a copy and codesign.
             try await tester.fs.writeFileContents(testWorkspace.sourceRoot.join("aProject/resource.txt")) { stream in
                 stream <<< "goodbye\n"
             }
-            try await tester.checkBuild(persistent: true, signableTargets: signableTargets) { results in
+            try await tester.checkBuild(runDestination: .macOS, persistent: true, signableTargets: signableTargets) { results in
                 results.consumeTasksMatchingRuleTypes(excludedTasks)
                 results.checkTask(.matchRule(["Copy", "\(buildDirectory)/Debug/Tool.app/Contents/Resources/resource.txt", "\(SRCROOT)/aProject/resource.txt"])) { _ in }
                 results.checkTask(.matchRule(["CodeSign", "\(buildDirectory)/Debug/Tool.app"])) { _ in }
@@ -5901,7 +5901,7 @@ That command depends on command in Target 'agg2' (project \'aProject\'): script 
             try await tester.fs.writeFileContents(testWorkspace.sourceRoot.join("aProject/other.txt")) { stream in
                 stream <<< "goodbye\n"
             }
-            try await tester.checkBuild(persistent: true, signableTargets: signableTargets) { results in
+            try await tester.checkBuild(runDestination: .macOS, persistent: true, signableTargets: signableTargets) { results in
                 results.consumeTasksMatchingRuleTypes(excludedTasks)
                 results.checkTask(.matchRule(["Copy", "\(buildDirectory)/Debug/Tool.app/Contents/Resources/other.txt", "\(SRCROOT)/aProject/other.txt"])) { _ in }
                 results.checkTask(.matchRule(["CodeSign", "\(buildDirectory)/Debug/Tool.app"])) { _ in }
@@ -5915,7 +5915,7 @@ That command depends on command in Target 'agg2' (project \'aProject\'): script 
             try await tester.fs.writeFileContents(testWorkspace.sourceRoot.join("aProject/other.txt")) { stream in
                 stream <<< "goodbye.. one last time\n"
             }
-            try await tester.checkBuild(persistent: true, signableTargets: signableTargets) { results in
+            try await tester.checkBuild(runDestination: .macOS, persistent: true, signableTargets: signableTargets) { results in
                 results.consumeTasksMatchingRuleTypes(excludedTasks)
                 results.checkTask(.matchRule(["Copy", "\(buildDirectory)/Debug/Tool.app/Contents/Resources/resource.txt", "\(SRCROOT)/aProject/resource.txt"])) { _ in }
                 results.checkTask(.matchRule(["Copy", "\(buildDirectory)/Debug/Tool.app/Contents/Resources/other.txt", "\(SRCROOT)/aProject/other.txt"])) { _ in }
@@ -5927,7 +5927,7 @@ That command depends on command in Target 'agg2' (project \'aProject\'): script 
             try await tester.fs.writeFileContents(testWorkspace.sourceRoot.join("aProject/nope.txt")) { stream in
                 stream <<< "goodbye\n"
             }
-            try await tester.checkBuild(persistent: true, signableTargets: signableTargets) { results in
+            try await tester.checkBuild(runDestination: .macOS, persistent: true, signableTargets: signableTargets) { results in
                 results.consumeTasksMatchingRuleTypes(excludedTasks)
                 results.checkTask(.matchRule(["Copy", "\(buildDirectory)/Debug/DerivedSources/nope.txt", "\(SRCROOT)/aProject/nope.txt"])) { _ in }
                 results.checkNoTask()
@@ -5937,7 +5937,7 @@ That command depends on command in Target 'agg2' (project \'aProject\'): script 
             try await tester.fs.writeFileContents(testWorkspace.sourceRoot.join("aProject/input1.txt")) { stream in
                 stream <<< "goodbye\n"
             }
-            try await tester.checkBuild(persistent: true, signableTargets: signableTargets) { results in
+            try await tester.checkBuild(runDestination: .macOS, persistent: true, signableTargets: signableTargets) { results in
                 results.consumeTasksMatchingRuleTypes(excludedTasks)
                 results.checkTask(.matchRule(["PhaseScriptExecution", "Run Me", "\(buildDirectory)/aProject.build/Debug/Tool.build/Script-RunMe1.sh"])) { _ in }
                 results.checkNoTask()
@@ -5947,7 +5947,7 @@ That command depends on command in Target 'agg2' (project \'aProject\'): script 
             try await tester.fs.writeFileContents(testWorkspace.sourceRoot.join("aProject/input2.txt")) { stream in
                 stream <<< "goodbye.. this time I mean it\n"
             }
-            try await tester.checkBuild(persistent: true, signableTargets: signableTargets) { results in
+            try await tester.checkBuild(runDestination: .macOS, persistent: true, signableTargets: signableTargets) { results in
                 results.consumeTasksMatchingRuleTypes(excludedTasks)
                 results.checkTask(.matchRule(["PhaseScriptExecution", "Run Me (Outputs)", "\(buildDirectory)/aProject.build/Debug/Tool.build/Script-RunMe2.sh"])) { _ in }
                 results.checkTask(.matchRule(["CodeSign", "\(buildDirectory)/Debug/Tool.app"])) { _ in }
@@ -5958,7 +5958,7 @@ That command depends on command in Target 'agg2' (project \'aProject\'): script 
             try await tester.fs.writeFileContents(testWorkspace.sourceRoot.join("aProject/input3.txt")) { stream in
                 stream <<< "goodbye.. we are over\n"
             }
-            try await tester.checkBuild(persistent: true, signableTargets: signableTargets) { results in
+            try await tester.checkBuild(runDestination: .macOS, persistent: true, signableTargets: signableTargets) { results in
                 results.consumeTasksMatchingRuleTypes(excludedTasks)
                 results.checkTask(.matchRule(["PhaseScriptExecution", "Run Me (FileList)", "\(buildDirectory)/aProject.build/Debug/Tool.build/Script-RunMe3.sh"])) { _ in }
                 results.checkTask(.matchRule(["CodeSign", "\(buildDirectory)/Debug/Tool.app"])) { _ in }
@@ -5970,7 +5970,7 @@ That command depends on command in Target 'agg2' (project \'aProject\'): script 
                 stream <<< "int other() { return 0; }\n"
                 stream <<< "int another() { return 0; }\n"
             }
-            try await tester.checkBuild(persistent: true, signableTargets: signableTargets) { results in
+            try await tester.checkBuild(runDestination: .macOS, persistent: true, signableTargets: signableTargets) { results in
                 results.consumeTasksMatchingRuleTypes(excludedTasks)
                 results.checkTask(.matchRule(["CompileC", "\(buildDirectory)/aProject.build/Debug/Other.build/Objects-normal/x86_64/other.o", "\(SRCROOT)/aProject/other.c", "normal", "x86_64", "c", "com.apple.compilers.llvm.clang.1_0.compiler"])) { _ in }
                 results.checkTask(.matchRule(["Ld", "\(buildDirectory)/Debug/Other.framework/Versions/A/Other", "normal"])) { _ in }
@@ -6317,7 +6317,7 @@ That command depends on command in Target 'agg2' (project \'aProject\'): script 
 
             let signableTargets: Set<String> = ["Tool", "NoTool"]
 
-            try await tester.checkBuild(persistent: true, signableTargets: signableTargets) { results in
+            try await tester.checkBuild(runDestination: .macOS, persistent: true, signableTargets: signableTargets) { results in
                 results.consumeTasksMatchingRuleTypes(excludedTasks)
 
                 // For the first pass, these should be the same for both targets.
@@ -6338,13 +6338,13 @@ That command depends on command in Target 'agg2' (project \'aProject\'): script 
             }
 
             // Validate a null build.
-            try await tester.checkNullBuild(persistent: true, signableTargets: signableTargets, excludedTasks: ["ClangStatCache"], diagnosticsToValidate: [.error, .warning])
+            try await tester.checkNullBuild(runDestination: .macOS, persistent: true, signableTargets: signableTargets, excludedTasks: ["ClangStatCache"], diagnosticsToValidate: [.error, .warning])
 
             // Test updating just one resource file triggers a copy and codesign.
             try await tester.fs.writeFileContents(testWorkspace.sourceRoot.join("aProject/resource.txt")) { stream in
                 stream <<< "goodbye\n"
             }
-            try await tester.checkBuild(persistent: true, signableTargets: signableTargets) { results in
+            try await tester.checkBuild(runDestination: .macOS, persistent: true, signableTargets: signableTargets) { results in
                 results.consumeTasksMatchingRuleTypes(excludedTasks)
 
                 // When ENABLE_ADDITIONAL_CODESIGN_INPUT_TRACKING = YES
@@ -6368,7 +6368,7 @@ That command depends on command in Target 'agg2' (project \'aProject\'): script 
             try await tester.fs.writeFileContents(testWorkspace.sourceRoot.join("aProject/other.txt")) { stream in
                 stream <<< "goodbye\n"
             }
-            try await tester.checkBuild(persistent: true, signableTargets: signableTargets) { results in
+            try await tester.checkBuild(runDestination: .macOS, persistent: true, signableTargets: signableTargets) { results in
                 results.consumeTasksMatchingRuleTypes(excludedTasks)
 
                 // When ENABLE_ADDITIONAL_CODESIGN_INPUT_TRACKING = YES
@@ -6395,7 +6395,7 @@ That command depends on command in Target 'agg2' (project \'aProject\'): script 
             try await tester.fs.writeFileContents(testWorkspace.sourceRoot.join("aProject/other.txt")) { stream in
                 stream <<< "goodbye.. i don't want to see you again'\n"
             }
-            try await tester.checkBuild(persistent: true, signableTargets: signableTargets) { results in
+            try await tester.checkBuild(runDestination: .macOS, persistent: true, signableTargets: signableTargets) { results in
                 results.consumeTasksMatchingRuleTypes(excludedTasks)
 
                 // When ENABLE_ADDITIONAL_CODESIGN_INPUT_TRACKING = YES
@@ -6421,7 +6421,7 @@ That command depends on command in Target 'agg2' (project \'aProject\'): script 
             try await tester.fs.writeFileContents(testWorkspace.sourceRoot.join("aProject/nope.txt")) { stream in
                 stream <<< "goodbye\n"
             }
-            try await tester.checkBuild(persistent: true, signableTargets: signableTargets) { results in
+            try await tester.checkBuild(runDestination: .macOS, persistent: true, signableTargets: signableTargets) { results in
                 results.consumeTasksMatchingRuleTypes(excludedTasks)
 
                 // When ENABLE_ADDITIONAL_CODESIGN_INPUT_TRACKING = YES
@@ -6441,7 +6441,7 @@ That command depends on command in Target 'agg2' (project \'aProject\'): script 
             try await tester.fs.writeFileContents(testWorkspace.sourceRoot.join("aProject/input1.txt")) { stream in
                 stream <<< "goodbye\n"
             }
-            try await tester.checkBuild(persistent: true, signableTargets: signableTargets) { results in
+            try await tester.checkBuild(runDestination: .macOS, persistent: true, signableTargets: signableTargets) { results in
                 results.consumeTasksMatchingRuleTypes(excludedTasks)
 
                 // When ENABLE_ADDITIONAL_CODESIGN_INPUT_TRACKING = YES
@@ -6461,7 +6461,7 @@ That command depends on command in Target 'agg2' (project \'aProject\'): script 
             try await tester.fs.writeFileContents(testWorkspace.sourceRoot.join("aProject/input2.txt")) { stream in
                 stream <<< "goodbye.. one last time\n"
             }
-            try await tester.checkBuild(persistent: true, signableTargets: signableTargets) { results in
+            try await tester.checkBuild(runDestination: .macOS, persistent: true, signableTargets: signableTargets) { results in
                 results.consumeTasksMatchingRuleTypes(excludedTasks)
 
                 // When ENABLE_ADDITIONAL_CODESIGN_INPUT_TRACKING = YES
@@ -6485,7 +6485,7 @@ That command depends on command in Target 'agg2' (project \'aProject\'): script 
             try await tester.fs.writeFileContents(testWorkspace.sourceRoot.join("aProject/input3.txt")) { stream in
                 stream <<< "goodbye.. i'm over this\n"
             }
-            try await tester.checkBuild(persistent: true, signableTargets: signableTargets) { results in
+            try await tester.checkBuild(runDestination: .macOS, persistent: true, signableTargets: signableTargets) { results in
                 results.consumeTasksMatchingRuleTypes(excludedTasks)
 
                 // When ENABLE_ADDITIONAL_CODESIGN_INPUT_TRACKING = YES
@@ -6566,7 +6566,7 @@ That command depends on command in Target 'agg2' (project \'aProject\'): script 
 
             let excludedTasks: Set<String> = ["CreateBuildDirectory", "MkDir", "WriteAuxiliaryFile", "ProcessInfoPlistFile", "Validate", "RegisterWithLaunchServices", "Touch", "Gate", "RegisterExecutionPolicyException"]
 
-            try await tester.checkBuild(persistent: true, signableTargets: ["Tool"]) { results in
+            try await tester.checkBuild(runDestination: .macOS, persistent: true, signableTargets: ["Tool"]) { results in
                 results.consumeTasksMatchingRuleTypes(excludedTasks)
                 results.checkTask(.matchRule(["CompileC", "\(buildDirectory)/aProject.build/Debug/Tool.build/Objects-normal/x86_64/tool.o", "\(SRCROOT)/aProject/tool.c", "normal", "x86_64", "c", "com.apple.compilers.llvm.clang.1_0.compiler"])) { _ in }
                 results.checkTask(.matchRule(["Ld", "\(buildDirectory)/Debug/Tool.app/Contents/MacOS/Tool", "normal", "x86_64"])) { _ in }
@@ -6578,14 +6578,14 @@ That command depends on command in Target 'agg2' (project \'aProject\'): script 
             }
 
             // Validate a null build.
-            try await tester.checkNullBuild(persistent: true, signableTargets: ["Tool"])
+            try await tester.checkNullBuild(runDestination: .macOS, persistent: true, signableTargets: ["Tool"])
 
             // Update other.txt and ensure that it's copied.
             try await tester.fs.writeFileContents(testWorkspace.sourceRoot.join("aProject/other.txt")) { stream in
                 stream <<< "friend\n"
             }
 
-            try await tester.checkBuild(persistent: true, signableTargets: ["Tool"]) { results in
+            try await tester.checkBuild(runDestination: .macOS, persistent: true, signableTargets: ["Tool"]) { results in
                 results.consumeTasksMatchingRuleTypes(excludedTasks)
                 results.checkTask(.matchRule(["Copy", "\(buildDirectory)/Debug/Tool.app/Contents/other.txt", "\(SRCROOT)/aProject/other.txt"])) { _ in }
                 results.checkTask(.matchRule(["CodeSign", "\(buildDirectory)/Debug/Tool.app"])) { _ in }
@@ -6696,18 +6696,18 @@ That command depends on command in Target 'agg2' (project \'aProject\'): script 
             try await tester.fs.writeFileContents(projectDir.join("File.swift")) { stream in }
             try tester.fs.writeCoreDataModel(projectDir.join("Model.xcdatamodel"), language: .swift)
 
-            try await tester.checkBuild(persistent: true) { results in
+            try await tester.checkBuild(runDestination: .macOS, persistent: true) { results in
                 results.checkNoDiagnostics()
                 results.checkTask(.matchRuleType("RuleScriptExecution"), .matchRuleItemPattern(.suffix("DerivedSources/Model.mom"))) { _ in }
             }
 
 
             // Verify null build.
-            try await tester.checkNullBuild(persistent: true, excludedTasks: ["ClangStatCache"], diagnosticsToValidate: [.error, .warning])
+            try await tester.checkNullBuild(runDestination: .macOS, persistent: true, excludedTasks: ["ClangStatCache"], diagnosticsToValidate: [.error, .warning])
 
             // Verify incremental build when changing content of a nested file type.
             try tester.fs.writeCoreDataModel(projectDir.join("Model.xcdatamodel"), language: .swift)
-            try await tester.checkBuild(persistent: true) { results in
+            try await tester.checkBuild(runDestination: .macOS, persistent: true) { results in
                 results.checkNoDiagnostics()
 
                 results.checkTask(.matchRule(["RuleScriptExecution", "\(projectDir.str)/build/aProject.build/Debug/aFramework.build/DerivedSources/Model.mom", "\(projectDir.str)/Model.xcdatamodel", "normal", results.runDestinationTargetArchitecture])) { _ in }
@@ -6889,7 +6889,7 @@ That command depends on command in Target 'agg2' (project \'aProject\'): script 
             ]
             // Check the build.
             for enableSandboxingInTest in [true, false] {
-                try await tester.checkBuild(parameters: BuildParameters(action: .build, configuration: "Debug", overrides: overrides.addingContents(of: ["ENABLE_USER_SCRIPT_SANDBOXING": enableSandboxingInTest ? "YES" : "NO"]))) { results in
+                try await tester.checkBuild(parameters: BuildParameters(action: .build, configuration: "Debug", overrides: overrides.addingContents(of: ["ENABLE_USER_SCRIPT_SANDBOXING": enableSandboxingInTest ? "YES" : "NO"])), runDestination: .macOS) { results in
                     results.checkNoDiagnostics()
 
                     try results.checkTask(.matchRuleType("RuleScriptExecution"), .matchRuleItemBasename("example.fake-ts"), .matchRuleItemBasename("example.fake-ts.fake-js")) { task in
@@ -7044,7 +7044,7 @@ That command depends on command in Target 'agg2' (project \'aProject\'): script 
             ]
             // Check the build.
             for enableSandboxingInTest in [true, false] {
-                try await tester.checkBuild(parameters: BuildParameters(action: .build, configuration: "Debug", overrides: overrides.addingContents(of: ["ENABLE_USER_SCRIPT_SANDBOXING": enableSandboxingInTest ? "YES" : "NO"]))) { results in
+                try await tester.checkBuild(parameters: BuildParameters(action: .build, configuration: "Debug", overrides: overrides.addingContents(of: ["ENABLE_USER_SCRIPT_SANDBOXING": enableSandboxingInTest ? "YES" : "NO"])), runDestination: .macOS) { results in
                     results.checkNoDiagnostics()
 
                     try results.checkTask(.matchRuleType("RuleScriptExecution"), .matchRuleItemBasename("example-1.fake-ts")) { task in
@@ -7160,7 +7160,7 @@ That command depends on command in Target 'agg2' (project \'aProject\'): script 
             let signableTargets: Set<String> = ["anApp", "anExtension"]
 
             let params = BuildParameters(action: .build, configuration: "Debug")
-            try await tester.checkBuild(parameters: params, persistent: true, signableTargets: signableTargets) { results in
+            try await tester.checkBuild(parameters: params, runDestination: .macOS, persistent: true, signableTargets: signableTargets) { results in
                 results.checkTask(.matchRule(["RegisterWithLaunchServices", "\(buildDirectory)/Debug/anApp.app"])) { _ in }
                 results.checkNoDiagnostics()
             }
@@ -7169,7 +7169,7 @@ That command depends on command in Target 'agg2' (project \'aProject\'): script 
             try await tester.fs.writeFileContents(projectDir.join("resources.js")) { stream in
                 stream <<< "// world"
             }
-            try await tester.checkBuild(parameters: params, persistent: true, signableTargets: signableTargets) { results in
+            try await tester.checkBuild(parameters: params, runDestination: .macOS, persistent: true, signableTargets: signableTargets) { results in
                 results.checkTask(.matchRule(["RegisterWithLaunchServices", "\(buildDirectory)/Debug/anApp.app"])) { _ in }
                 results.checkNoDiagnostics()
             }
@@ -7206,7 +7206,7 @@ That command depends on command in Target 'agg2' (project \'aProject\'): script 
                 stream <<< "int main(void) { return 0; }"
             }
 
-            try await tester.checkBuild() { results in
+            try await tester.checkBuild(runDestination: .macOS) { results in
                 results.checkRemark(.contains("instructions in function"))
             }
         }
@@ -7243,7 +7243,7 @@ That command depends on command in Target 'agg2' (project \'aProject\'): script 
                 stream <<< "int main(void) { return 0; }"
             }
 
-            try await tester.checkBuild() { results in
+            try await tester.checkBuild(runDestination: .macOS) { results in
                 results.checkRemark(.contains("instructions in function"))
             }
         }
@@ -7281,7 +7281,7 @@ That command depends on command in Target 'agg2' (project \'aProject\'): script 
                 stream <<< "int main(void) { return 0; }"
             }
 
-            try await tester.checkBuild() { results in
+            try await tester.checkBuild(runDestination: .macOS) { results in
                 results.checkError(.prefix("Build input file cannot be found"), failIfNotFound: true)
                 results.checkedWarnings = true
 
@@ -7330,7 +7330,7 @@ That command depends on command in Target 'agg2' (project \'aProject\'): script 
                     """
             }
 
-            try await tester.checkBuild() { results in
+            try await tester.checkBuild(runDestination: .macOS) { results in
                 for target in results.buildDescription.allConfiguredTargets {
                     results.check(contains: .targetHadEvent(target, event: .started), count: 1)
                     results.check(contains: .targetHadEvent(target, event: .preparationStarted), count: 1)
@@ -7397,7 +7397,7 @@ That command depends on command in Target 'agg2' (project \'aProject\'): script 
 
             tester.userPreferences = .defaultForTesting.with(enableDebugActivityLogs: true)
 
-            try await tester.checkBuild(parameters: parameters, buildRequest: buildRequest, persistent: true) { results in
+            try await tester.checkBuild(parameters: parameters, runDestination: .macOS, buildRequest: buildRequest, persistent: true) { results in
                 results.checkNoErrors()
                 results.checkNoWarnings()
 

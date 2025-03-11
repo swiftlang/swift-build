@@ -270,10 +270,10 @@ fileprivate struct DeviceFamilyBuildOperationTests: CoreBasedTests {
             }
 
             // When deploying back, we get everything by default
-            try await tester.checkBuild(parameters: BuildParameters(configuration: "Debug", activeRunDestination: .macCatalyst), body: checkEverything)
+            try await tester.checkBuild(parameters: BuildParameters(configuration: "Debug"), runDestination: .macCatalyst, body: checkEverything)
 
             // When deploying to 14, we lose ipad assets in apps only, not in appexts/frameworks
-            try await tester.checkBuild(parameters: BuildParameters(configuration: "Debug", activeRunDestination: .macCatalyst, overrides: ["IPHONEOS_DEPLOYMENT_TARGET": "14.0"])) { results in
+            try await tester.checkBuild(parameters: BuildParameters(configuration: "Debug", overrides: ["IPHONEOS_DEPLOYMENT_TARGET": "14.0"]), runDestination: .macCatalyst) { results in
                 results.checkNoErrors()
 
                 results.checkTask(.matchTargetName("App"), .matchRuleType("CompileAssetCatalogVariant")) { task in

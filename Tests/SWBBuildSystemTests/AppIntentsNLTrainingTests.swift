@@ -144,8 +144,8 @@ fileprivate struct AppIntentsNLTrainingTests: CoreBasedTests {
                     """
             }
 
-            let parameters = BuildParameters(action: .install, configuration: "Debug", activeRunDestination: .iOS)
-            try await tester.checkBuild(parameters: parameters) { results in
+            let parameters = BuildParameters(action: .install, configuration: "Debug")
+            try await tester.checkBuild(parameters: parameters, runDestination: .iOS) { results in
                 results.checkNoErrors()
             }
         }

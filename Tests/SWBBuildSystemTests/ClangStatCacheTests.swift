@@ -59,7 +59,7 @@ fileprivate struct ClangStatCacheTests: CoreBasedTests {
                 """
             }
 
-            try await tester.checkBuild(persistent: true) { results in
+            try await tester.checkBuild(runDestination: .macOS, persistent: true) { results in
                 results.checkNoDiagnostics()
                 results.checkTask(.matchRuleType("ClangStatCache")) { task in
                     task.checkCommandLineMatches([.suffix("clang-stat-cache"), .equal(core.loadSDK(.macOS).path.str), .equal("-o"), .suffix(".sdkstatcache")])
@@ -113,7 +113,7 @@ fileprivate struct ClangStatCacheTests: CoreBasedTests {
                 """
             }
 
-            try await tester.checkBuild(persistent: true) { results in
+            try await tester.checkBuild(runDestination: .macOS, persistent: true) { results in
                 results.checkNoDiagnostics()
                 results.checkTask(.matchRuleType("ClangStatCache")) { task in
                     task.checkCommandLineMatches([.suffix("clang-stat-cache"), .equal(core.loadSDK(.macOS).path.str), .equal("-o"), .suffix(".sdkstatcache")])
@@ -185,7 +185,7 @@ fileprivate struct ClangStatCacheTests: CoreBasedTests {
                 }
                 """
             }
-            try await tester.checkBuild(persistent: true) { results in
+            try await tester.checkBuild(runDestination: .macOS, persistent: true) { results in
                 results.checkNoDiagnostics()
                 results.checkTask(.matchRulePattern(["ClangStatCache", .any, .equal(core.loadSDK(.macOS).path.str)])) { task in
                     task.checkCommandLineMatches([.suffix("clang-stat-cache"), .equal(core.loadSDK(.macOS).path.str), .equal("-o"), .suffix(".sdkstatcache")])

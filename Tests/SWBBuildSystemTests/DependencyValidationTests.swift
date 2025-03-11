@@ -108,7 +108,7 @@ fileprivate struct DependencyValidationTests: CoreBasedTests {
                 $0 <<< "int main() { return 0; }\n"
             }
 
-            try await tester.checkBuild(parameters: parameters) { results in
+            try await tester.checkBuild(parameters: parameters, runDestination: .macOS) { results in
                 results.checkTask(.matchRule(["PhaseScriptExecution", "Script2", "\(tmpDir.str)/aProject/build/aProject.build/Debug/AppTarget.build/Script-Script2.sh"])) { task in
                     // The second script phase should produce an error because its declared input is not _declared_ to be produced by the first script phase even though they are otherwise ordered correctly via the "$(DERIVED_SOURCES_DIR)/order" mock node.
                     let pattern: StringPattern = .suffix("Missing creator task for input node: '\(tmpDir.str)/aProject/build/aProject.build/Debug/AppTarget.build/DerivedSources/other.c'. Did you forget to declare this node as an output of a script phase or custom build rule which produces it? (for task: [\"PhaseScriptExecution\", \"Script2\", \"\(tmpDir.str)/aProject/build/aProject.build/Debug/AppTarget.build/Script-Script2.sh\"])")
@@ -231,7 +231,7 @@ fileprivate struct DependencyValidationTests: CoreBasedTests {
                 $0 <<< "#include <Framework/test.h>\n"
             }
 
-            try await tester.checkBuild(parameters: parameters) { results in
+            try await tester.checkBuild(parameters: parameters, runDestination: .macOS) { results in
                 var exists = false
                 #expect(tester.fs.isSymlink(tmpDir.join("SYMROOT").join("Debug").join("Framework.framework"), &exists))
                 #expect(exists)
@@ -319,7 +319,7 @@ fileprivate struct DependencyValidationTests: CoreBasedTests {
 
             try tester.fs.setCreatedByBuildSystemAttribute(tmpDir.join("dd"))
 
-            try await tester.checkBuild(parameters: parameters) { results in
+            try await tester.checkBuild(parameters: parameters, runDestination: .macOS) { results in
                 results.checkNoDiagnostics()
             }
         }

@@ -109,10 +109,10 @@ fileprivate struct ClangExplicitModulesPerfTests: CoreBasedTests, PerfTests {
             }
 
             try await measure {
-                try await tester.checkBuild(persistent: true) { results in
+                try await tester.checkBuild(runDestination: .macOS, persistent: true) { results in
                     results.checkNoDiagnostics()
                 }
-                try await tester.checkBuild(buildCommand: BuildCommand.cleanBuildFolder(style: .regular), body: { _ in })
+                try await tester.checkBuild(runDestination: .macOS, buildCommand: BuildCommand.cleanBuildFolder(style: .regular), body: { _ in })
             }
         }
     }
@@ -206,7 +206,7 @@ fileprivate struct ClangExplicitModulesPerfTests: CoreBasedTests, PerfTests {
             }
 
             try await measure {
-                try await tester.checkBuild(persistent: true) { results in
+                try await tester.checkBuild(runDestination: .macOS, persistent: true) { results in
                     results.checkNoDiagnostics()
                 }
                 try tester.fs.touch(tmpDirPath.join("Test/aProject/file-\((0..<numSources).randomElement()!).m"))

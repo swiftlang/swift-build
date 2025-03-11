@@ -48,7 +48,7 @@ fileprivate struct WorkspaceDiagnosticsTests: CoreBasedTests {
                 ])
             let tester = try await BuildOperationTester(getCore(), testProject, simulated: false)
 
-            try await tester.checkBuildDescription(BuildParameters(action: .build, configuration: "Debug")) { results in
+            try await tester.checkBuildDescription(BuildParameters(action: .build, configuration: "Debug"), runDestination: .macOS) { results in
                 results.checkError(.equal("[targetIntegrity] App Clips are not available when building for Mac Catalyst. (in target 'Foo' from project 'aProject')"))
                 results.checkNoDiagnostics()
             }
