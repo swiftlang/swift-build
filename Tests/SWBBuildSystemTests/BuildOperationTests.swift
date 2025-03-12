@@ -5880,7 +5880,7 @@ That command depends on command in Target 'agg2' (project \'aProject\'): script 
                 results.checkNoDiagnostics()
             }
 
-            // Need to re-codesign based on the embedd; existing behavior that we should address too.
+            // Need to re-codesign based on the embed; existing behavior that we should address too.
             try await tester.checkBuild(persistent: true, signableTargets: signableTargets) { _ in }
 
             // Validate a null build.
