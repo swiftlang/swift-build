@@ -11,7 +11,7 @@
 //===----------------------------------------------------------------------===//
 
 public import SWBUtil
-import SWBCore
+public import SWBCore
 import Foundation
 
 @PluginExtensionSystemActor public func initializePlugin(_ manager: PluginManager) {
@@ -22,10 +22,10 @@ import Foundation
     manager.register(WindowsSDKRegistryExtension(), type: SDKRegistryExtensionPoint.self)
 }
 
-final class WindowsPlugin: Sendable {
+public final class WindowsPlugin: Sendable {
     private let vsInstallations = AsyncSingleValueCache<[VSInstallation], any Error>()
 
-    func cachedVSInstallations() async throws -> [VSInstallation] {
+    public func cachedVSInstallations() async throws -> [VSInstallation] {
         try await vsInstallations.value {
             // Always pass localFS because this will be cached, and executes a process on the host system so there's no reason to pass in any proxy.
             try await VSInstallation.findInstallations(fs: localFS)
@@ -39,10 +39,10 @@ struct WindowsPlatformSpecsExtension: SpecificationsExtension {
     }
 }
 
-struct WindowsEnvironmentExtension: EnvironmentExtension {
-    let plugin: WindowsPlugin
+@_spi(Testing) public struct WindowsEnvironmentExtension: EnvironmentExtension {
+    public let plugin: WindowsPlugin
 
-    func additionalEnvironmentVariables(context: any EnvironmentExtensionAdditionalEnvironmentVariablesContext) async throws -> [String: String] {
+    @_spi(Testing) public func additionalEnvironmentVariables(context: any EnvironmentExtensionAdditionalEnvironmentVariablesContext) async throws -> [String: String] {
         if context.hostOperatingSystem == .windows {
             // Add the environment variable for the MSVC toolset for Swift and Clang to find it
             let vcToolsInstallDir = "VCToolsInstallDir"

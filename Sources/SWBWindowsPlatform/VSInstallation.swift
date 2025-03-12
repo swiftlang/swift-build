@@ -15,8 +15,29 @@ public import SWBUtil
 import SWBCore
 
 public struct VSInstallation: Decodable, Sendable {
+    public struct Component: Decodable, Sendable {
+        public struct ID: Decodable, Sendable, RawRepresentable {
+            public let rawValue: String
+
+            public init(_ string: String) {
+                self.rawValue = string
+            }
+
+            public init?(rawValue: String) {
+                self.rawValue = rawValue
+            }
+
+            public init(from decoder: any Swift.Decoder) throws {
+                rawValue = try String(from: decoder)
+            }
+        }
+
+        public let id: Component.ID
+    }
+
     public let installationPath: Path
     public let installationVersion: Version
+    public let packages: [Component]
 
     /// Returns a list of all Visual Studio installations on the system, ordered from newest version and last installed to oldest.
     ///
@@ -31,6 +52,7 @@ public struct VSInstallation: Decodable, Sendable {
             "-prerelease",
             "-sort",
             "-format", "json",
+            "-include", "packages",
             "-utf8",
         ]
         let executionResult = try await Process.getOutput(url: URL(fileURLWithPath: vswhere.str), arguments: args)
