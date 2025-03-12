@@ -270,7 +270,6 @@ open class SwiftDriverJobSchedulingTaskAction: TaskAction {
         let key: DynamicTaskKey
         if plannedJob.driverJob.categorizer.isExplicitDependencyBuild {
             key = .swiftDriverExplicitDependencyJob(SwiftDriverExplicitDependencyJobTaskKey(
-                variant: driverPayload.variant,
                 arch: driverPayload.architecture,
                 driverJobKey: plannedJob.key,
                 driverJobSignature: plannedJob.driverJob.signature,
