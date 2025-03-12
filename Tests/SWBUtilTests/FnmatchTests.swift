@@ -198,7 +198,7 @@ import SWBUtil
     }
 
     @Test
-    func fowardAndBackSlashMatch() throws {
+    func forwardAndBackSlashMatch() throws {
         // these test that '\' is handled correctly in character sets.
         try assertFnmatch(pattern: "\\foo\\bar\\*\\", input: "\\foo\\bar\\baz\\baz\\")
         try assertFnmatch(pattern: #"[\]"#, input: #"\"#)
