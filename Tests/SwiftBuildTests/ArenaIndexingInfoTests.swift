@@ -777,7 +777,7 @@ struct ArenaIndexingInfoTests: CoreBasedTests {
                 let info = try await IndexingInfoResults(infoProducer.generateIndexingInfo(target, .macOS, filePath: projectDir.join("main.c").str))
                 await info.checkIndexingInfo { info in
                     do {
-                        // We should be able to successfuly run the resulting command line from indexing info
+                        // We should be able to successfully run the resulting command line from indexing info
                         let success = try await Process.run(url: URL(fileURLWithPath: clangCompilerPath.str), arguments: info.clang.commandLineAsByteStrings.map { $0.asString }).isSuccess
                         #expect(success)
                     } catch {
@@ -860,7 +860,7 @@ struct ArenaIndexingInfoTests: CoreBasedTests {
                 let info = try await IndexingInfoResults(infoProducer.generateIndexingInfo(target, .macOS, filePath: projectDir.join("main.swift").str))
                 await info.checkIndexingInfo { info in
                     do {
-                        // We should be able to successfuly run the resulting command line from indexing info
+                        // We should be able to successfully run the resulting command line from indexing info
                         let success = try await Process.run(url: URL(fileURLWithPath: swiftCompilerPath.str), arguments: info.swift.commandLineAsByteStrings.map { $0.asString }).isSuccess
                         #expect(success)
                     } catch {
