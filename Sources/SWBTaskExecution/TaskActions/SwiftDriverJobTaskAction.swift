@@ -112,12 +112,12 @@ public final class SwiftDriverJobTaskAction: TaskAction, BuildValueValidatingTas
     }
 
     let identifier: SwiftDriverJobIdentifier
-    let variant: String
+    let variant: String?
     let arch: String
     let driverJob: LibSwiftDriver.PlannedBuild.PlannedSwiftDriverJob
     let isUsingWholeModuleOptimization: Bool
 
-    init(_ driverJob: LibSwiftDriver.PlannedBuild.PlannedSwiftDriverJob, variant: String, arch: String, identifier: SwiftDriverJobIdentifier, isUsingWholeModuleOptimization: Bool) {
+    init(_ driverJob: LibSwiftDriver.PlannedBuild.PlannedSwiftDriverJob, variant: String?, arch: String, identifier: SwiftDriverJobIdentifier, isUsingWholeModuleOptimization: Bool) {
         self.driverJob = driverJob
         self.variant = variant
         self.arch = arch
@@ -211,7 +211,7 @@ public final class SwiftDriverJobTaskAction: TaskAction, BuildValueValidatingTas
         }
     }
 
-    internal func constructDriverJobTaskKey(variant: String,
+    internal func constructDriverJobTaskKey(variant: String?,
                                             arch: String,
                                             plannedJob: LibSwiftDriver.PlannedBuild.PlannedSwiftDriverJob,
                                             identifier: String?,
@@ -220,13 +220,15 @@ public final class SwiftDriverJobTaskAction: TaskAction, BuildValueValidatingTas
         let key: DynamicTaskKey
         if plannedJob.driverJob.categorizer.isExplicitDependencyBuild {
             key = .swiftDriverExplicitDependencyJob(SwiftDriverExplicitDependencyJobTaskKey(
-                variant: variant,
                 arch: arch,
                 driverJobKey: plannedJob.key,
                 driverJobSignature: plannedJob.driverJob.signature,
                 compilerLocation: compilerLocation,
                 casOptions: casOptions))
         } else {
+            guard let variant else {
+                fatalError("Expected variant for non-explicit-module job: \(plannedJob.driverJob.descriptionForLifecycle)")
+            }
             guard let jobID = identifier else {
                 fatalError("Expected job identifier for target compile: \(plannedJob.driverJob.descriptionForLifecycle)")
             }
