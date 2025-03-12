@@ -23,12 +23,12 @@ final class SwiftCachingKeyQueryDynamicTaskSpec: DynamicTaskSpec {
             type: self,
             payload: nil,
             forTarget: dynamicTask.target,
-            ruleInfo: ["SwiftCachingKeyQuery", swiftCachingKeyQueryTaskKey.cacheKey],
-            commandLine: ["builtin-swiftCachingKeyQuery", .literal(ByteString(encodingAsUTF8: swiftCachingKeyQueryTaskKey.cacheKey))],
+            ruleInfo: ["SwiftCachingKeyQuery", swiftCachingKeyQueryTaskKey.cacheKeys.description],
+            commandLine: ["builtin-swiftCachingKeyQuery", .literal(ByteString(encodingAsUTF8: swiftCachingKeyQueryTaskKey.cacheKeys.description))],
             environment: dynamicTask.environment,
             workingDirectory: dynamicTask.workingDirectory,
             showEnvironment: dynamicTask.showEnvironment,
-            execDescription: "Swift caching query key \(swiftCachingKeyQueryTaskKey.cacheKey)",
+            execDescription: "Swift caching query key \(swiftCachingKeyQueryTaskKey.cacheKeys)",
             priority: .network,
             isDynamic: true
         )
@@ -57,12 +57,12 @@ final class SwiftCachingMaterializeKeyDynamicTaskSpec: DynamicTaskSpec {
             type: self,
             payload: nil,
             forTarget: dynamicTask.target,
-            ruleInfo: ["SwiftCachingKeyMaterializer", swiftCachingTaskKey.cacheKey],
-            commandLine: ["builtin-swiftCachingKeyMaterializer", .literal(ByteString(encodingAsUTF8: swiftCachingTaskKey.cacheKey))],
+            ruleInfo: ["SwiftCachingKeyMaterializer", swiftCachingTaskKey.cacheKeys.description],
+            commandLine: ["builtin-swiftCachingKeyMaterializer", .literal(ByteString(encodingAsUTF8: swiftCachingTaskKey.cacheKeys.description))],
             environment: dynamicTask.environment,
             workingDirectory: dynamicTask.workingDirectory,
             showEnvironment: dynamicTask.showEnvironment,
-            execDescription: "Swift caching materialize key \(swiftCachingTaskKey.cacheKey)",
+            execDescription: "Swift caching materialize key \(swiftCachingTaskKey.cacheKeys)",
             priority: .network,
             isDynamic: true
         )
