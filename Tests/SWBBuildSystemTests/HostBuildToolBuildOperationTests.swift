@@ -130,7 +130,7 @@ fileprivate struct HostBuildToolBuildOperationTests: CoreBasedTests {
                 #expect(try tester.fs.read(tmpDirPath.join("Test/aProject/build/Debug/Framework.framework/Resources/HostToolGeneratedResource.txt")).unsafeStringValue == "Hello from host tool!\nHello from host lib!\n")
             }
 
-            try await tester.checkBuild(parameters: parameters, buildCommand: .cleanBuildFolder(style: .regular)) { _ in }
+            try await tester.checkBuild(parameters: parameters, runDestination: .macOS, buildCommand: .cleanBuildFolder(style: .regular)) { _ in }
 
             // Run the same test with an iOS destination.
             try await tester.checkBuild(runDestination: .anyiOSDevice, buildRequest: request) { results throws in
@@ -143,7 +143,7 @@ fileprivate struct HostBuildToolBuildOperationTests: CoreBasedTests {
                 #expect(try tester.fs.read(tmpDirPath.join("Test/aProject/build/Debug-iphoneos/Framework.framework/HostToolGeneratedResource.txt")).unsafeStringValue == "Hello from host tool!\nHello from host lib!\n")
             }
 
-            try await tester.checkBuild(parameters: parameters, buildCommand: .cleanBuildFolder(style: .regular)) { _ in }
+            try await tester.checkBuild(parameters: parameters, runDestination: .macOS, buildCommand: .cleanBuildFolder(style: .regular)) { _ in }
 
             // Run the same test with a Catalyst destination.
             try await tester.checkBuild(runDestination: .anyMacCatalyst, buildRequest: request) { results throws in

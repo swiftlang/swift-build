@@ -88,7 +88,7 @@ fileprivate struct BuildBacktraceTests: CoreBasedTests {
                     """
             }
 
-            try await tester.checkBuild(buildRequest: buildRequest, persistent: true) { results in
+            try await tester.checkBuild(runDestination: .macOS, buildRequest: buildRequest, persistent: true) { results in
                 results.checkNoDiagnostics()
                 results.checkTask(.matchTargetName("TargetFoo"), .matchRuleType("CompileC")) { task in
                     results.checkBacktrace(task, ["<category='ruleNeverBuilt' description=''Compile foo.c (x86_64)' had never run'>"])
@@ -98,7 +98,7 @@ fileprivate struct BuildBacktraceTests: CoreBasedTests {
                 }
             }
 
-            try await tester.checkNullBuild(buildRequest: buildRequest)
+            try await tester.checkNullBuild(runDestination: .macOS, buildRequest: buildRequest)
 
             try await tester.fs.writeFileContents(SRCROOT.join("Sources/foo.c")) { file in
                 file <<<
@@ -109,7 +109,7 @@ fileprivate struct BuildBacktraceTests: CoreBasedTests {
                     """
             }
 
-            try await tester.checkBuild(buildRequest: buildRequest, persistent: true) { results in
+            try await tester.checkBuild(runDestination: .macOS, buildRequest: buildRequest, persistent: true) { results in
                 results.checkNoDiagnostics()
                 results.checkTask(.matchTargetName("TargetFoo"), .matchRuleType("CompileC")) { task in
                     results.checkBacktrace(task, [
@@ -133,7 +133,7 @@ fileprivate struct BuildBacktraceTests: CoreBasedTests {
 
             let modifiedParameters = BuildParameters(configuration: "Debug", overrides: ["GCC_PREPROCESSOR_DEFINITIONS": "MY_DEF",])
             let modifiedBuildRequest = BuildRequest(parameters: modifiedParameters, buildTargets: tester.workspace.projects[0].targets.map({ BuildRequest.BuildTargetInfo(parameters: modifiedParameters, target: $0) }), dependencyScope: .workspace, continueBuildingAfterErrors: true, useParallelTargets: true, useImplicitDependencies: false, useDryRun: false)
-            try await tester.checkBuild(buildRequest: modifiedBuildRequest, persistent: true) { results in
+            try await tester.checkBuild(runDestination: .macOS, buildRequest: modifiedBuildRequest, persistent: true) { results in
                 results.checkNoDiagnostics()
                 results.checkTask(.matchTargetName("TargetFoo"), .matchRuleType("CompileC")) { task in
                     results.checkBacktrace(task, [
@@ -213,7 +213,7 @@ fileprivate struct BuildBacktraceTests: CoreBasedTests {
                     """
             }
 
-            try await tester.checkBuild(buildRequest: buildRequest, persistent: true) { results in
+            try await tester.checkBuild(runDestination: .macOS, buildRequest: buildRequest, persistent: true) { results in
                 results.checkNoDiagnostics()
                 results.checkTask(.matchTargetName("TargetFoo"), .matchRuleType("SwiftEmitModule")) { task in
                     results.checkBacktrace(task, [
@@ -240,7 +240,7 @@ fileprivate struct BuildBacktraceTests: CoreBasedTests {
                     """
             }
 
-            try await tester.checkBuild(buildRequest: buildRequest, persistent: true) { results in
+            try await tester.checkBuild(runDestination: .macOS, buildRequest: buildRequest, persistent: true) { results in
                 results.checkNoDiagnostics()
                 results.checkTask(.matchTargetName("TargetFoo"), .matchRuleType("SwiftEmitModule")) { task in
                     results.checkBacktrace(task, [
@@ -309,13 +309,13 @@ fileprivate struct BuildBacktraceTests: CoreBasedTests {
                     """
             }
 
-            try await tester.checkBuild(buildRequest: buildRequest, persistent: true) { results in
+            try await tester.checkBuild(runDestination: .macOS, buildRequest: buildRequest, persistent: true) { results in
                 results.checkNoDiagnostics()
             }
 
             try tester.fs.remove(SRCROOT.join("build/aProject.build/Debug/TargetFoo.build/Objects-normal/x86_64/foo.o"))
 
-            try await tester.checkBuild(buildRequest: buildRequest, persistent: true) { results in
+            try await tester.checkBuild(runDestination: .macOS, buildRequest: buildRequest, persistent: true) { results in
                 results.checkNoDiagnostics()
                 results.checkTask(.matchTargetName("TargetFoo"), .matchRuleType("CompileC")) { task in
                     results.checkBacktrace(task, [
@@ -360,7 +360,7 @@ fileprivate struct BuildBacktraceTests: CoreBasedTests {
             let parameters = BuildParameters(configuration: "Debug")
             let buildRequest = BuildRequest(parameters: parameters, buildTargets: tester.workspace.projects[0].targets.map({ BuildRequest.BuildTargetInfo(parameters: parameters, target: $0) }), continueBuildingAfterErrors: true, useParallelTargets: true, useImplicitDependencies: false, useDryRun: false)
 
-            try await tester.checkBuild(buildRequest: buildRequest, persistent: true) { results in
+            try await tester.checkBuild(runDestination: .macOS, buildRequest: buildRequest, persistent: true) { results in
                 results.checkNoDiagnostics()
                 results.checkTask(.matchTargetName("TargetFoo"), .matchRuleType("PhaseScriptExecution")) { task in
                     results.checkBacktrace(task, [
@@ -369,7 +369,7 @@ fileprivate struct BuildBacktraceTests: CoreBasedTests {
                 }
             }
 
-            try await tester.checkBuild(buildRequest: buildRequest, persistent: true) { results in
+            try await tester.checkBuild(runDestination: .macOS, buildRequest: buildRequest, persistent: true) { results in
                 results.checkNoDiagnostics()
                 results.checkTask(.matchTargetName("TargetFoo"), .matchRuleType("PhaseScriptExecution")) { task in
                     results.checkBacktrace(task, [
@@ -437,11 +437,11 @@ fileprivate struct BuildBacktraceTests: CoreBasedTests {
                     """
             }
 
-            try await tester.checkBuild(buildRequest: buildRequest, persistent: true, signableTargets: Set(provisioningInputs.keys), signableTargetInputs: provisioningInputs) { results in
+            try await tester.checkBuild(runDestination: .macOS, buildRequest: buildRequest, persistent: true, signableTargets: Set(provisioningInputs.keys), signableTargetInputs: provisioningInputs) { results in
                 results.checkNoDiagnostics()
             }
 
-            try await tester.checkNullBuild(buildRequest: buildRequest, signableTargets: Set(provisioningInputs.keys), signableTargetInputs: provisioningInputs)
+            try await tester.checkNullBuild(runDestination: .macOS, buildRequest: buildRequest, signableTargets: Set(provisioningInputs.keys), signableTargetInputs: provisioningInputs)
 
             try await tester.fs.writeFileContents(SRCROOT.join("Sources/foo.c")) { file in
                 file <<<
@@ -453,7 +453,7 @@ fileprivate struct BuildBacktraceTests: CoreBasedTests {
                     """
             }
 
-            try await tester.checkBuild(buildRequest: buildRequest, persistent: true, signableTargets: Set(provisioningInputs.keys), signableTargetInputs: provisioningInputs) { results in
+            try await tester.checkBuild(runDestination: .macOS, buildRequest: buildRequest, persistent: true, signableTargets: Set(provisioningInputs.keys), signableTargetInputs: provisioningInputs) { results in
                 results.checkNoDiagnostics()
                 results.checkTask(.matchTargetName("TargetFoo"), .matchRuleType("RegisterWithLaunchServices")) { task in
                     results.checkBacktrace(task, [

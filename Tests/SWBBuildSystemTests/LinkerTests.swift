@@ -55,7 +55,7 @@ fileprivate struct LinkerTests: CoreBasedTests {
                 stream <<< "func foo() {}"
             }
 
-            try await tester.checkBuild() { results in
+            try await tester.checkBuild(runDestination: .macOS) { results in
                 results.checkError(.prefix("Unknown argument: '-not-a-real-flag'"))
                 results.checkError(.prefix("Command Ld failed."))
             }
@@ -118,7 +118,7 @@ fileprivate struct LinkerTests: CoreBasedTests {
             try await tester.fs.writeFileContents(projectDir.join("source.mm")) { stream in
                 stream <<< "int main() { return 0; }"
             }
-            try await tester.checkBuild() { results in
+            try await tester.checkBuild(runDestination: .macOS) { results in
                 try results.checkTasks(.matchRuleType("Ld")) { tasks in
                     let task = try #require(tasks.first(where: {  $0.outputPaths[0].ends(with: "testTarget") }))
                     task.checkCommandLineMatches([StringPattern.and(StringPattern.prefix("-L"), StringPattern.suffix("usr/lib/swift/macosx"))])
@@ -145,7 +145,7 @@ fileprivate struct LinkerTests: CoreBasedTests {
             try await tester.fs.writeFileContents(projectDir.join("source.mm")) { stream in
                 stream <<< "int main() { return 0; }"
             }
-            try await tester.checkBuild() { results in
+            try await tester.checkBuild(runDestination: .macOS) { results in
                 results.checkTasks(.matchRuleType("Ld")) { tasks in
                     let task = tasks.first(where: {  $0.outputPaths[0].ends(with: "testTarget") })!
                     task.checkCommandLineNoMatch([StringPattern.and(StringPattern.prefix("-L"), StringPattern.suffix("usr/lib/swift/macosx"))])

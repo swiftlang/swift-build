@@ -71,7 +71,7 @@ fileprivate struct SceneKitBuildOperationTests: CoreBasedTests {
                 _ = try await runHostProcess(["scntool", "--convert", dae.str, "--format", "scn", "--output", Path(SRCROOT).join("Sources").join("D.scnassets").join("scene.scn").str])
             }
 
-            try await tester.checkBuild() { results in
+            try await tester.checkBuild(runDestination: .macOS) { results in
                 results.checkTask(.matchRuleType("Process"), .matchRuleItemBasename("A.dae")) { task in
                     task.checkRuleInfo(["Process", "SceneKit", "document", "\(SRCROOT)/Sources/A.dae"])
                     task.checkCommandLineContains([core.developerPath.join("usr").join("bin").join("scntool").str, "--compress", "\(SRCROOT)/Sources/A.dae"])

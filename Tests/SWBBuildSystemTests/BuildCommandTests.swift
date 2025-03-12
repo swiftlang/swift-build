@@ -156,7 +156,7 @@ fileprivate struct BuildCommandTests: CoreBasedTests {
             }
 
             // Check analyzing the file.
-            try await tester.checkBuild(parameters: parameters, buildRequest: BuildRequest(parameters: parameters, buildTargets: tester.workspace.allTargets.dropFirst().map { .init(parameters: parameters, target: $0) }, continueBuildingAfterErrors: true, useParallelTargets: true, useImplicitDependencies: true, useDryRun: false, buildCommand: buildCommand), persistent: true, buildOutputMap: Dictionary(uniqueKeysWithValues: outputs.map { ($0, input.str) })) { results in
+            try await tester.checkBuild(parameters: parameters, runDestination: nil, buildRequest: BuildRequest(parameters: parameters, buildTargets: tester.workspace.allTargets.dropFirst().map { .init(parameters: parameters, target: $0) }, continueBuildingAfterErrors: true, useParallelTargets: true, useImplicitDependencies: true, useDryRun: false, buildCommand: buildCommand), persistent: true, buildOutputMap: Dictionary(uniqueKeysWithValues: outputs.map { ($0, input.str) })) { results in
                 try body(results, excludedTypes, [input], outputs)
             }
         }

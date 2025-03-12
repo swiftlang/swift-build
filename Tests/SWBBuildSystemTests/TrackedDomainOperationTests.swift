@@ -256,7 +256,7 @@ fileprivate struct TrackedDomainOperationTests: CoreBasedTests {
 
             // Do an initial build. It's a clean build, so we expect all the tasks to run.
             let parameters = BuildParameters(action: .build, configuration: "Debug")
-            try await tester.checkBuild(parameters: parameters, persistent: true) { results in
+            try await tester.checkBuild(parameters: parameters, runDestination: .macOS, persistent: true) { results in
                 let buildDir = tmpDirPath.join(Path("Test/TestProject/build/\(parameters.configuration!)"))
 
                try results.checkTask(.matchRuleType("ProcessInfoPlistFile"), .matchTargetName("App"), body: { task in
@@ -300,7 +300,7 @@ fileprivate struct TrackedDomainOperationTests: CoreBasedTests {
                 ]
             ]))
 
-            try await tester.checkBuild(parameters: parameters, persistent: true) { results in
+            try await tester.checkBuild(parameters: parameters, runDestination: .macOS, persistent: true) { results in
                 let buildDir = tmpDirPath.join(Path("Test/TestProject/build/\(parameters.configuration!)"))
 
                try results.checkTask(.matchRuleType("ProcessInfoPlistFile"), .matchTargetName("App"), body: { task in
@@ -541,7 +541,7 @@ fileprivate struct TrackedDomainOperationTests: CoreBasedTests {
 
             // Do an initial build. It's a clean build, so we expect all the tasks to run.
             let parameters = BuildParameters(action: .build, configuration: "Debug")
-            try await tester.checkBuild(parameters: parameters, persistent: true) { results in
+            try await tester.checkBuild(parameters: parameters, runDestination: .macOS, persistent: true) { results in
                 let buildDir = tmpDirPath.join(Path("Test/TestProject/build/\(parameters.configuration!)"))
 
                try results.checkTask(.matchRuleType("ProcessInfoPlistFile"), .matchTargetName("App"), body: { task in
@@ -569,7 +569,7 @@ fileprivate struct TrackedDomainOperationTests: CoreBasedTests {
                 ]
             ]))
 
-            try await tester.checkBuild(parameters: parameters, persistent: true) { results in
+            try await tester.checkBuild(parameters: parameters, runDestination: .macOS, persistent: true) { results in
                 let buildDir = tmpDirPath.join(Path("Test/TestProject/build/\(parameters.configuration!)"))
 
                try results.checkTask(.matchRuleType("ProcessInfoPlistFile"), .matchTargetName("App"), body: { task in

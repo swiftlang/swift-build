@@ -184,12 +184,12 @@ fileprivate struct HeadermapModuleCompatibilityTests: CoreBasedTests {
             }
 
             // Build the framework first so that its module can be found in the build directory.
-            try await tester.checkBuild(buildRequest: buildRequest(3)) { results in
+            try await tester.checkBuild(runDestination: .macOS, buildRequest: buildRequest(3)) { results in
                 results.checkNoDiagnostics()
             }
 
             for targetIndex in [0, 1, 2] {
-                try await tester.checkBuild(buildRequest: buildRequest(targetIndex)) { results in
+                try await tester.checkBuild(runDestination: .macOS, buildRequest: buildRequest(targetIndex)) { results in
                     if targetIndex != 2 {
                         // The client should fail to build by default, and forcing HEADERMAP_USES_VFS won't help.
                         results.checkError(.prefix("\(temporaryDirectory.str)/Project/build/Debug/Framework.framework/Headers/Object.h:1:5: [Semantic Issue] duplicate interface definition for class 'Object'"))

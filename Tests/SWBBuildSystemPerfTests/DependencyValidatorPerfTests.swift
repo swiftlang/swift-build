@@ -63,10 +63,10 @@ fileprivate struct DependencyValidatorPerfTests: CoreBasedTests, PerfTests {
                     }
                 }
 
-                let parameters = BuildParameters(action: .build, configuration: "Debug", activeRunDestination: .macOS)
+                let parameters = BuildParameters(action: .build, configuration: "Debug")
                 let buildRequest = BuildRequest(parameters: parameters, buildTargets: tester.workspace.allTargets.map { BuildRequest.BuildTargetInfo(parameters: parameters, target: $0) }, dependencyScope: .workspace, continueBuildingAfterErrors: true, useParallelTargets: false, useImplicitDependencies: true, useDryRun: false)
 
-                try await tester.checkBuild(parameters: parameters, buildRequest: buildRequest) { results in
+                try await tester.checkBuild(parameters: parameters, runDestination: .macOS, buildRequest: buildRequest) { results in
                     results.checkTasks(.matchRuleItem("SwiftDriver")) { tasks in
                         #expect(tasks.count == targets.count)
                     }

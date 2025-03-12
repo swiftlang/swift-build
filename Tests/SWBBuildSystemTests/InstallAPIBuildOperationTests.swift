@@ -71,33 +71,33 @@ fileprivate struct InstallAPIBuildOperationTests: CoreBasedTests {
                 try await tester.fs.writeFileContents(testWorkspace.sourceRoot.join("aProject/Private.h"), body: { $0 <<< "void g(void);" })
 
                 let parameters = BuildParameters(action: action, configuration: "Debug")
-                try await tester.checkBuild(parameters: parameters, persistent: true) { results in
+                try await tester.checkBuild(parameters: parameters, runDestination: .macOS, persistent: true) { results in
                     results.checkTask(.matchRuleType("GenerateTAPI")) { _ in }
                     results.checkNoDiagnostics()
                 }
 
-                try await tester.checkNullBuild(parameters: parameters)
+                try await tester.checkNullBuild(parameters: parameters, runDestination: .macOS)
 
                 // Update a public header.
                 try await tester.fs.writeFileContents(testWorkspace.sourceRoot.join("aProject/Public.h"), body: { $0 <<< "void f(void); // prototype" })
 
-                try await tester.checkBuild(parameters: parameters, persistent: true) { results in
+                try await tester.checkBuild(parameters: parameters, runDestination: .macOS, persistent: true) { results in
                     results.checkTask(.matchRuleType("GenerateTAPI")) { _ in }
                     results.checkNoDiagnostics()
                 }
 
-                try await tester.checkNullBuild(parameters: parameters)
+                try await tester.checkNullBuild(parameters: parameters, runDestination: .macOS)
 
                 // Update a private header.
                 try await tester.fs.writeFileContents(testWorkspace.sourceRoot.join("aProject/Private.h"), body: { $0 <<< "void g(void); // prototype" })
 
-                try await tester.checkBuild(parameters: parameters, persistent: true) { results in
+                try await tester.checkBuild(parameters: parameters, runDestination: .macOS, persistent: true) { results in
                     results.checkTask(.matchRuleType("GenerateTAPI")) { _ in }
                     results.checkNoDiagnostics()
                 }
 
-                try await tester.checkNullBuild(parameters: parameters)
-                try await tester.checkBuild(parameters: parameters, buildCommand: .cleanBuildFolder(style: .regular)) { _ in }
+                try await tester.checkNullBuild(parameters: parameters, runDestination: .macOS)
+                try await tester.checkBuild(parameters: parameters, runDestination: .macOS, buildCommand: .cleanBuildFolder(style: .regular)) { _ in }
             }
         }
     }
@@ -148,7 +148,7 @@ fileprivate struct InstallAPIBuildOperationTests: CoreBasedTests {
                 try await tester.fs.writeFileContents(testWorkspace.sourceRoot.join("aProject/Private.h"), body: { $0 <<< "void g(void);" })
 
                 let parameters = BuildParameters(action: action, configuration: "Debug")
-                try await tester.checkBuild(parameters: parameters, persistent: true) { results in
+                try await tester.checkBuild(parameters: parameters, runDestination: .macOS, persistent: true) { results in
                     results.checkTask(.matchRuleType("GenerateTAPI")) { _ in }
                     results.checkNoDiagnostics()
                 }
@@ -156,23 +156,23 @@ fileprivate struct InstallAPIBuildOperationTests: CoreBasedTests {
                 // Update a public header.
                 try await tester.fs.writeFileContents(testWorkspace.sourceRoot.join("aProject/Public.h"), body: { $0 <<< "void f(void); // prototype" })
 
-                try await tester.checkBuild(parameters: parameters, persistent: true) { results in
+                try await tester.checkBuild(parameters: parameters, runDestination: .macOS, persistent: true) { results in
                     results.checkTask(.matchRuleType("GenerateTAPI")) { _ in }
                     results.checkNoDiagnostics()
                 }
 
-                try await tester.checkNullBuild(parameters: parameters)
+                try await tester.checkNullBuild(parameters: parameters, runDestination: .macOS)
 
                 // Update a private header.
                 try await tester.fs.writeFileContents(testWorkspace.sourceRoot.join("aProject/Private.h"), body: { $0 <<< "void g(void); // prototype" })
 
-                try await tester.checkBuild(parameters: parameters, persistent: true) { results in
+                try await tester.checkBuild(parameters: parameters, runDestination: .macOS, persistent: true) { results in
                     results.checkTask(.matchRuleType("GenerateTAPI")) { _ in }
                     results.checkNoDiagnostics()
                 }
 
-                try await tester.checkNullBuild(parameters: parameters)
-                try await tester.checkBuild(parameters: parameters, buildCommand: .cleanBuildFolder(style: .regular)) { _ in }
+                try await tester.checkNullBuild(parameters: parameters, runDestination: .macOS)
+                try await tester.checkBuild(parameters: parameters, runDestination: .macOS, buildCommand: .cleanBuildFolder(style: .regular)) { _ in }
             }
         }
     }
@@ -233,7 +233,7 @@ fileprivate struct InstallAPIBuildOperationTests: CoreBasedTests {
                     }
                     return BuildParameters(action: action, configuration: "Debug", overrides: overrides)
                 }
-                try await tester.checkBuild(parameters: parameters(excludePublicHeader: false, excludePrivateHeader: false), persistent: true) { results in
+                try await tester.checkBuild(parameters: parameters(excludePublicHeader: false, excludePrivateHeader: false), runDestination: .macOS, persistent: true) { results in
                     try results.checkTask(.matchRuleType("GenerateTAPI")) { tapiTask in
                         let output = tapiTask.outputPaths[0]
                         let contents = try tester.fs.read(output).asString
@@ -243,7 +243,7 @@ fileprivate struct InstallAPIBuildOperationTests: CoreBasedTests {
                     results.checkNoDiagnostics()
                 }
 
-                try await tester.checkBuild(parameters: parameters(excludePublicHeader: true, excludePrivateHeader: false), persistent: true) { results in
+                try await tester.checkBuild(parameters: parameters(excludePublicHeader: true, excludePrivateHeader: false), runDestination: .macOS, persistent: true) { results in
                     try results.checkTask(.matchRuleType("GenerateTAPI")) { tapiTask in
                         let output = tapiTask.outputPaths[0]
                         let contents = try tester.fs.read(output).asString
@@ -253,9 +253,9 @@ fileprivate struct InstallAPIBuildOperationTests: CoreBasedTests {
                     results.checkNoDiagnostics()
                 }
 
-                try await tester.checkNullBuild(parameters: parameters(excludePublicHeader: true, excludePrivateHeader: false))
+                try await tester.checkNullBuild(parameters: parameters(excludePublicHeader: true, excludePrivateHeader: false), runDestination: .macOS)
 
-                try await tester.checkBuild(parameters: parameters(excludePublicHeader: true, excludePrivateHeader: true), persistent: true) { results in
+                try await tester.checkBuild(parameters: parameters(excludePublicHeader: true, excludePrivateHeader: true), runDestination: .macOS, persistent: true) { results in
                     try results.checkTask(.matchRuleType("GenerateTAPI")) { tapiTask in
                         let output = tapiTask.outputPaths[0]
                         let contents = try tester.fs.read(output).asString
@@ -265,8 +265,8 @@ fileprivate struct InstallAPIBuildOperationTests: CoreBasedTests {
                     results.checkNoDiagnostics()
                 }
 
-                try await tester.checkNullBuild(parameters: parameters(excludePublicHeader: true, excludePrivateHeader: true))
-                try await tester.checkBuild(parameters: parameters(excludePublicHeader: true, excludePrivateHeader: true), buildCommand: .cleanBuildFolder(style: .regular)) { _ in }
+                try await tester.checkNullBuild(parameters: parameters(excludePublicHeader: true, excludePrivateHeader: true), runDestination: .macOS)
+                try await tester.checkBuild(parameters: parameters(excludePublicHeader: true, excludePrivateHeader: true), runDestination: .macOS, buildCommand: .cleanBuildFolder(style: .regular)) { _ in }
             }
         }
     }
@@ -317,7 +317,7 @@ fileprivate struct InstallAPIBuildOperationTests: CoreBasedTests {
 
             for action in [BuildAction.build, BuildAction.install] {
                 let parameters = BuildParameters(action: action, configuration: "Debug")
-                try await tester.checkBuild(parameters: parameters, persistent: true) { results in
+                try await tester.checkBuild(parameters: parameters, runDestination: .macOS, persistent: true) { results in
                     results.checkTask(.matchRuleType("GenerateTAPI")) { _ in }
                     results.checkNoDiagnostics()
 
@@ -395,7 +395,7 @@ fileprivate struct InstallAPIBuildOperationTests: CoreBasedTests {
                 })
 
                 let parameters = BuildParameters(action: .build, configuration: "Debug")
-                try await tester.checkBuild(parameters: parameters, persistent: true) { results in
+                try await tester.checkBuild(parameters: parameters, runDestination: .macOS, persistent: true) { results in
                     results.checkTaskExists(.matchTargetName("Framework"), .matchRuleType("CompileC"))
                     results.checkTaskExists(.matchTargetName("Framework2"), .matchRuleType("CompileC"))
                     results.checkTaskExists(.matchTargetName("Framework"), .matchRuleType("Ld"))
@@ -415,7 +415,7 @@ fileprivate struct InstallAPIBuildOperationTests: CoreBasedTests {
                         """
                 })
 
-                try await tester.checkBuild(parameters: parameters, persistent: true) { results in
+                try await tester.checkBuild(parameters: parameters, runDestination: .macOS, persistent: true) { results in
                     results.checkNoTask(.matchTargetName("Framework"), .matchRuleType("CompileC"))
                     results.checkTaskExists(.matchTargetName("Framework2"), .matchRuleType("CompileC"))
                     results.checkNoTask(.matchTargetName("Framework"), .matchRuleType("Ld"))
@@ -441,7 +441,7 @@ fileprivate struct InstallAPIBuildOperationTests: CoreBasedTests {
                         """
                 })
 
-                try await tester.checkBuild(parameters: parameters, persistent: true) { results in
+                try await tester.checkBuild(parameters: parameters, runDestination: .macOS, persistent: true) { results in
                     results.checkNoTask(.matchTargetName("Framework"), .matchRuleType("CompileC"))
                     results.checkTaskExists(.matchTargetName("Framework2"), .matchRuleType("CompileC"))
                     results.checkTaskExists(.matchTargetName("Framework"), .matchRuleType("Ld"))

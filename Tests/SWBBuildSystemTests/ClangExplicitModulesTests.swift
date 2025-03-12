@@ -62,7 +62,7 @@ fileprivate struct ClangExplicitModulesTests: CoreBasedTests {
                 """
             }
 
-            try await tester.checkBuild(persistent: true) { results in
+            try await tester.checkBuild(runDestination: .macOS, persistent: true) { results in
                 let scanTask: Task = try results.checkTask(.matchRuleType("ScanDependencies")) { $0 }
                 let compileTask: Task = try results.checkTask(.matchRuleType("CompileC")) { $0 }
 
@@ -88,7 +88,7 @@ fileprivate struct ClangExplicitModulesTests: CoreBasedTests {
                 """
             }
 
-            try await tester.checkBuild(persistent: true) { results in
+            try await tester.checkBuild(runDestination: .macOS, persistent: true) { results in
                 // the test stops at point of failure, so no additional failures are observed. behaves correctly
                 let scanTask: Task = try results.checkTask(.matchRuleType("ScanDependencies")) { $0 }
                 let compileTask: Task = try results.checkTask(.matchRuleType("CompileC")) { $0 }
@@ -145,7 +145,7 @@ fileprivate struct ClangExplicitModulesTests: CoreBasedTests {
                 """
             }
 
-            try await tester.checkBuild(persistent: true) { results in
+            try await tester.checkBuild(runDestination: .macOS, persistent: true) { results in
                 results.checkError(.and(.contains("error scanning dependencies for source"), .contains("could not load \(Path.null.str)")))
                 results.checkNoDiagnostics()
             }
@@ -201,7 +201,7 @@ fileprivate struct ClangExplicitModulesTests: CoreBasedTests {
                 """
             }
 
-            try await tester.checkBuild { results in
+            try await tester.checkBuild(runDestination: .macOS) { results in
                 // There should only be 2 scanning actions.
                 results.checkTasks(.matchRuleType("ScanDependencies")) { scanTasks in
                     #expect(scanTasks.count == 2)
@@ -266,7 +266,7 @@ fileprivate struct ClangExplicitModulesTests: CoreBasedTests {
                 """
             }
 
-            try await tester.checkBuild { results in
+            try await tester.checkBuild(runDestination: .macOS) { results in
                 // There should only be 2 scanning actions.
                 results.checkTasks(.matchRuleType("ScanDependencies")) { scanTasks in
                     #expect(scanTasks.count == 2)
@@ -352,7 +352,7 @@ fileprivate struct ClangExplicitModulesTests: CoreBasedTests {
                 """
             }
 
-            try await tester.checkBuild { results in
+            try await tester.checkBuild(runDestination: .macOS) { results in
                 // There should be 2 scanning actions - one for the precompiled header, one for the translation unit.
                 results.checkTasks(.matchRuleType("ScanDependencies")) { scanTasks in
                     #expect(scanTasks.count == 2)
@@ -418,7 +418,7 @@ fileprivate struct ClangExplicitModulesTests: CoreBasedTests {
 
             tester.userInfo = UserInfo(user: "user", group: "group", uid: 1337, gid: 42, home: tmpDirPath.join("home"), processEnvironment: [:], buildSystemEnvironment: [:])
             tester.userInfo = tester.userInfo.withAdditionalEnvironment(environment: ["GCC_TREAT_WARNINGS_AS_ERRORS": "NO"])
-            try await tester.checkBuild { results in
+            try await tester.checkBuild(runDestination: .macOS) { results in
                 // Check that -Werror was overwritten by GCC_TREAT_WARNINGS_AS_ERRORS=NO.
                 results.checkNoErrors()
                 results.checkWarning(.contains("only one parameter on 'main'"))
@@ -479,7 +479,7 @@ fileprivate struct ClangExplicitModulesTests: CoreBasedTests {
                 """
             }
 
-            try await tester.checkBuild { results in
+            try await tester.checkBuild(runDestination: .macOS) { results in
                 // Check that the "Includes" header search path got picked up due to CompileC being executed in the project source directory.
                 results.checkNoDiagnostics()
             }
@@ -578,7 +578,7 @@ fileprivate struct ClangExplicitModulesTests: CoreBasedTests {
                 """
             }
 
-            try await tester.checkBuild { results in
+            try await tester.checkBuild(runDestination: .macOS) { results in
                 // There should only be 2 scanning actions.
                 results.checkTasks(.matchRuleType("ScanDependencies")) { scanTasks in
                     #expect(scanTasks.count == 2)
@@ -652,7 +652,7 @@ fileprivate struct ClangExplicitModulesTests: CoreBasedTests {
                 """
             }
 
-            try await tester.checkBuild(persistent: true) { results in
+            try await tester.checkBuild(runDestination: .macOS, persistent: true) { results in
                 results.checkTask(.matchRuleType("ScanDependencies")) { _ in }
                 results.checkTask(.matchRuleType("PrecompileModule")) { _ in }
                 var outputs = results.checkTask(.matchRuleType("CompileC")) { task in
@@ -744,7 +744,7 @@ fileprivate struct ClangExplicitModulesTests: CoreBasedTests {
             let clangCompilerPath = try await self.clangCompilerPath
 
             // CLANG_ENABLE_EXPLICIT_MODULES_WITH_COMPILER_LAUNCHER = YES
-            try await launcherTest(true).checkBuild(persistent: true) { results in
+            try await launcherTest(true).checkBuild(runDestination: .macOS, persistent: true) { results in
                 results.checkTask(.matchRuleType("ScanDependencies")) { _ in }
 
                 results.checkTask(.matchRuleType("PrecompileModule")) { pcmTask in
@@ -764,7 +764,7 @@ fileprivate struct ClangExplicitModulesTests: CoreBasedTests {
             }
 
             // CLANG_ENABLE_EXPLICIT_MODULES_WITH_COMPILER_LAUNCHER = NO
-            try await launcherTest(false).checkBuild(persistent: true) { results in
+            try await launcherTest(false).checkBuild(runDestination: .macOS, persistent: true) { results in
                 results.checkNoTask(.matchRuleType("ScanDependencies"))
                 results.checkNoTask(.matchRuleType("PrecompileModule"))
                 results.checkTask(.matchRuleType("CompileC")) { compileTask in
@@ -875,7 +875,7 @@ fileprivate struct ClangExplicitModulesTests: CoreBasedTests {
                 """
             }
 
-            try await tester.checkBuild { results in
+            try await tester.checkBuild(runDestination: .macOS) { results in
                 results.checkError(.contains("expected expression"))
                 results.checkError(.prefix("Command PrecompileModule failed."))
                 results.checkNoDiagnostics()
@@ -928,7 +928,7 @@ fileprivate struct ClangExplicitModulesTests: CoreBasedTests {
                 """
             }
 
-            try await tester.checkBuild(parameters: BuildParameters(action: .analyze, configuration: "Debug", overrides: ["RUN_CLANG_STATIC_ANALYZER": "YES"])) { results in
+            try await tester.checkBuild(parameters: BuildParameters(action: .analyze, configuration: "Debug", overrides: ["RUN_CLANG_STATIC_ANALYZER": "YES"]), runDestination: .macOS) { results in
                 // We should not see any warnings about missing serialized diagnostics.
                 results.checkNoDiagnostics()
             }
@@ -983,7 +983,7 @@ fileprivate struct ClangExplicitModulesTests: CoreBasedTests {
             }
 
             // The build should produce structured diagnostics.
-            try await tester.checkBuild { results in
+            try await tester.checkBuild(runDestination: .macOS) { results in
                 results.checkError(.contains("[Lexical or Preprocessor Issue] 'DoesNotExist/DoesNotExist.h' file not found (for task: [\"ScanDependencies\""))
                 results.checkNoDiagnostics()
             }
@@ -1058,7 +1058,7 @@ fileprivate struct ClangExplicitModulesTests: CoreBasedTests {
             }
 
 
-            try await tester.checkBuild(persistent: true) { results in
+            try await tester.checkBuild(runDestination: .macOS, persistent: true) { results in
                 results.checkNoTask(.matchRuleType("ScanDependencies"))
                 results.checkNoTask(.matchRuleType("PrecompileModule"))
                 results.checkTask(.matchRuleType("CompileC")) { compileTask in
@@ -1118,7 +1118,7 @@ fileprivate struct ClangExplicitModulesTests: CoreBasedTests {
             """
                 }
 
-                try await tester.checkBuild(persistent: true) { results in
+                try await tester.checkBuild(runDestination: .macOS, persistent: true) { results in
 
                     results.checkNoErrors()
 
@@ -1238,7 +1238,7 @@ fileprivate struct ClangExplicitModulesTests: CoreBasedTests {
 
             let target_1 = try #require(tester.workspace.targets(named: "Library_1").only)
             let target_2 = try #require(tester.workspace.targets(named: "Library_2").only)
-            try await tester.checkBuild(buildRequest: BuildRequest(parameters: parameters, buildTargets: [.init(parameters: parameters, target: target_1), .init(parameters: parameters, target: target_2)], continueBuildingAfterErrors: false, useParallelTargets: true, useImplicitDependencies: true, useDryRun: false)) { results in
+            try await tester.checkBuild(runDestination: .macOS, buildRequest: BuildRequest(parameters: parameters, buildTargets: [.init(parameters: parameters, target: target_1), .init(parameters: parameters, target: target_2)], continueBuildingAfterErrors: false, useParallelTargets: true, useImplicitDependencies: true, useDryRun: false)) { results in
 
                 results.checkTasks(.matchRuleType("ScanDependencies")) { scanTasks in
                     #expect(scanTasks.count == 2)
@@ -1257,7 +1257,7 @@ fileprivate struct ClangExplicitModulesTests: CoreBasedTests {
             }
 
             let target_1_2 = try #require(tester.workspace.targets(named: "Library_1_2").only)
-            try await tester.checkBuild(buildRequest: BuildRequest(parameters: parameters, buildTargets: [.init(parameters: parameters, target: target_1_2)], continueBuildingAfterErrors: false, useParallelTargets: true, useImplicitDependencies: true, useDryRun: false)) { results in
+            try await tester.checkBuild(runDestination: .macOS, buildRequest: BuildRequest(parameters: parameters, buildTargets: [.init(parameters: parameters, target: target_1_2)], continueBuildingAfterErrors: false, useParallelTargets: true, useImplicitDependencies: true, useDryRun: false)) { results in
 
                 results.checkTasks(.matchRuleType("ScanDependencies")) { scanTasks in
                     #expect(scanTasks.count == 2)
@@ -1358,7 +1358,7 @@ fileprivate struct ClangExplicitModulesTests: CoreBasedTests {
             let parameters = BuildParameters(configuration: "Debug")
             let buildRequest = BuildRequest(parameters: parameters, buildTargets: tester.workspace.projects[0].targets.map({ BuildRequest.BuildTargetInfo(parameters: parameters, target: $0) }), continueBuildingAfterErrors: false, useParallelTargets: true, useImplicitDependencies: false, useDryRun: false)
 
-            try await tester.checkBuild(buildRequest: buildRequest, persistent: true) { results in
+            try await tester.checkBuild(runDestination: .macOS, buildRequest: buildRequest, persistent: true) { results in
 
                 for targetName in ["Library_1", "Library_2"] {
                     results.checkTaskExists(.matchTargetName(targetName), .matchRuleType("ScanDependencies"))
@@ -1415,7 +1415,7 @@ fileprivate struct ClangExplicitModulesTests: CoreBasedTests {
             }
 
             // Clean build
-            try await tester.checkBuild(persistent: true) { results in
+            try await tester.checkBuild(runDestination: .macOS, persistent: true) { results in
                 results.checkTaskExists(.matchRuleType("ScanDependencies"))
                 results.checkTaskExists(.matchRuleType("CompileC"))
 
@@ -1425,7 +1425,7 @@ fileprivate struct ClangExplicitModulesTests: CoreBasedTests {
             }
 
             // Null build
-            try await tester.checkNullBuild(persistent: true)
+            try await tester.checkNullBuild(runDestination: .macOS, persistent: true)
 
             // Touch the source file to trigger a new scan.
             try await tester.fs.writeFileContents(testWorkspace.sourceRoot.join("aProject/file.c")) { stream in
@@ -1436,7 +1436,7 @@ fileprivate struct ClangExplicitModulesTests: CoreBasedTests {
             """
             }
 
-            try await tester.checkBuild(persistent: true) { results in
+            try await tester.checkBuild(runDestination: .macOS, persistent: true) { results in
                 results.checkTaskExists(.matchRuleType("ScanDependencies"))
                 results.checkTaskExists(.matchRuleType("CompileC"))
 
@@ -1488,7 +1488,7 @@ fileprivate struct ClangExplicitModulesTests: CoreBasedTests {
             }
 
             // Clean build
-            try await tester.checkBuild(persistent: true) { results in
+            try await tester.checkBuild(runDestination: .macOS, persistent: true) { results in
                 results.checkTaskExists(.matchRuleType("ScanDependencies"))
                 results.checkTaskExists(.matchRuleType("CompileC"))
                 results.checkTasks(.matchRuleType("PrecompileModule")) { _ in }
@@ -1497,7 +1497,7 @@ fileprivate struct ClangExplicitModulesTests: CoreBasedTests {
             }
 
             // Null build
-            try await tester.checkNullBuild(persistent: true)
+            try await tester.checkNullBuild(runDestination: .macOS, persistent: true)
 
             // Touch the source file to trigger a new scan.
             try await tester.fs.writeFileContents(testWorkspace.sourceRoot.join("aProject/file.c")) { stream in
@@ -1508,7 +1508,7 @@ fileprivate struct ClangExplicitModulesTests: CoreBasedTests {
             """
             }
 
-            try await tester.checkBuild(persistent: true) { results in
+            try await tester.checkBuild(runDestination: .macOS, persistent: true) { results in
                 results.checkTaskExists(.matchRuleType("ScanDependencies"))
                 results.checkTaskExists(.matchRuleType("CompileC"))
 
@@ -1613,7 +1613,7 @@ fileprivate struct ClangExplicitModulesTests: CoreBasedTests {
             }
 
             // Build and check that we build the Framework module once, and we build other module dependencies.
-            try await tester.checkBuild(persistent: true) { results in
+            try await tester.checkBuild(runDestination: .macOS, persistent: true) { results in
                 results.checkTasks(.matchRuleType("PrecompileModule"), .matchRuleItemPattern(.contains("/Framework-"))) { precompileFrameworkTasks in
                     #expect(precompileFrameworkTasks.count == 1)
                 }
@@ -1625,7 +1625,7 @@ fileprivate struct ClangExplicitModulesTests: CoreBasedTests {
 
             // Update the framework module, but none of its dependencies. The framework module should rebuild, but the others should not.
             try tester.fs.touch(testWorkspace.sourceRoot.join("aProject/Framework.h"))
-            try await tester.checkBuild(persistent: true) { results in
+            try await tester.checkBuild(runDestination: .macOS, persistent: true) { results in
                 results.checkTasks(.matchRuleType("PrecompileModule"), .matchRuleItemPattern(.contains("/Framework-"))) { precompileFrameworkTasks in
                     #expect(precompileFrameworkTasks.count == 1)
                 }
@@ -1729,7 +1729,7 @@ fileprivate struct ClangExplicitModulesTests: CoreBasedTests {
                 """
             }
 
-            try await tester.checkBuild { results in
+            try await tester.checkBuild(runDestination: .macOS) { results in
                 // There be 2 scanning actions.
                 results.checkTasks(.matchRuleType("ScanDependencies")) { scanTasks in
                     #expect(scanTasks.count == 2)
@@ -1749,7 +1749,7 @@ fileprivate struct ClangExplicitModulesTests: CoreBasedTests {
                 """
             }
 
-            try await tester.checkBuild { results in
+            try await tester.checkBuild(runDestination: .macOS) { results in
                 // There should 2 scanning actions.
                 // Both files will recompile.
                 results.checkTasks(.matchRuleType("ScanDependencies")) { compileTasks in
@@ -1785,7 +1785,7 @@ fileprivate struct ClangExplicitModulesTests: CoreBasedTests {
                 """
             }
 
-            try await tester.checkBuild { results in
+            try await tester.checkBuild(runDestination: .macOS) { results in
                 // There should 2 scanning actions.
                 // Both files will recompile.
                 results.checkTasks(.matchRuleType("ScanDependencies")) { compileTasks in
@@ -1900,7 +1900,7 @@ fileprivate struct ClangExplicitModulesTests: CoreBasedTests {
             }
 
             // Build and check that we build the Framework module once.
-            try await tester.checkBuild(persistent: true) { results in
+            try await tester.checkBuild(runDestination: .macOS, persistent: true) { results in
                 results.checkTasks(.matchRuleType("PrecompileModule"), .matchRuleItemPattern(.contains("/Framework-"))) { precompileFrameworkTasks in
                     #expect(precompileFrameworkTasks.count == 1)
                 }
@@ -1909,7 +1909,7 @@ fileprivate struct ClangExplicitModulesTests: CoreBasedTests {
 
             // Update a header in the module and add a preprocessor definition to be picked up in the module hash. We should only build the new copy of the module, as we no longer need the old one.
             try tester.fs.touch(testWorkspace.sourceRoot.join("aProject/Framework.h"))
-            try await tester.checkBuild(parameters: BuildParameters(configuration: "Debug", overrides: ["GCC_PREPROCESSOR_DEFINITIONS": "FOO"]), persistent: true) { results in
+            try await tester.checkBuild(parameters: BuildParameters(configuration: "Debug", overrides: ["GCC_PREPROCESSOR_DEFINITIONS": "FOO"]), runDestination: .macOS, persistent: true) { results in
                 // There be 2 scanning actions.
                 results.checkTasks(.matchRuleType("PrecompileModule"), .matchRuleItemPattern(.contains("/Framework-"))) { precompileFrameworkTasks in
                     #expect(precompileFrameworkTasks.count == 1)
@@ -1988,7 +1988,7 @@ fileprivate struct ClangExplicitModulesTests: CoreBasedTests {
             }
 
             // Build and check that we build the Framework module once.
-            try await tester.checkBuild(persistent: true) { results in
+            try await tester.checkBuild(runDestination: .macOS, persistent: true) { results in
                 results.checkTasks(.matchRuleType("PrecompileModule"), .matchRuleItemPattern(.contains("/Framework-"))) { precompileFrameworkTasks in
                     #expect(precompileFrameworkTasks.count == 1)
                 }
@@ -2003,7 +2003,7 @@ fileprivate struct ClangExplicitModulesTests: CoreBasedTests {
                 #import <CoreData/CoreData.h>
                 """
             }
-            try await tester.checkBuild(persistent: true) { results in
+            try await tester.checkBuild(runDestination: .macOS, persistent: true) { results in
                 // There be 2 scanning actions.
                 results.checkTasks(.matchRuleType("PrecompileModule"), .matchRuleItemPattern(.contains("/Framework-"))) { precompileFrameworkTasks in
                     #expect(precompileFrameworkTasks.count == 1)
@@ -2151,7 +2151,7 @@ fileprivate struct ClangExplicitModulesTests: CoreBasedTests {
                 """
             }
 
-            try await tester.checkBuild(persistent: true) { results in
+            try await tester.checkBuild(runDestination: .macOS, persistent: true) { results in
                 results.checkTasks(.matchRuleType("ScanDependencies")) { scanTasks in
                     #expect(scanTasks.count == 3)
                 }
@@ -2167,7 +2167,7 @@ fileprivate struct ClangExplicitModulesTests: CoreBasedTests {
             // Change the transitively depended-upon module
             try tester.fs.touch(testWorkspace.sourceRoot.join("aProject/Shared2.h"))
 
-            try await tester.checkBuild(persistent: true) { results in
+            try await tester.checkBuild(runDestination: .macOS, persistent: true) { results in
                 results.checkTasks(.matchRuleType("ScanDependencies")) { scanTasks in
                     #expect(scanTasks.count == 3)
                 }
@@ -2281,7 +2281,7 @@ fileprivate struct ClangExplicitModulesTests: CoreBasedTests {
                     """
             }
 
-            try await tester.checkBuild(parameters: BuildParameters(configuration: "Debug", overrides: ["EXCLUDED_SOURCE_FILE_NAMES": "SharedNew.h"]), persistent: true) { results in
+            try await tester.checkBuild(parameters: BuildParameters(configuration: "Debug", overrides: ["EXCLUDED_SOURCE_FILE_NAMES": "SharedNew.h"]), runDestination: .macOS, persistent: true) { results in
                 results.checkNoDiagnostics()
             }
 
@@ -2303,7 +2303,7 @@ fileprivate struct ClangExplicitModulesTests: CoreBasedTests {
                     """
             }
 
-            try await tester.checkBuild(parameters: BuildParameters(configuration: "Debug", overrides: ["EXCLUDED_SOURCE_FILE_NAMES": "Shared.h"]), persistent: true) { results in
+            try await tester.checkBuild(parameters: BuildParameters(configuration: "Debug", overrides: ["EXCLUDED_SOURCE_FILE_NAMES": "Shared.h"]), runDestination: .macOS, persistent: true) { results in
                 results.checkTaskExists(.matchRuleType("PrecompileModule"), .matchRuleItemPattern(.contains("Framework-")))
                 results.checkTaskExists(.matchRuleType("ScanDependencies"), .matchRuleItemBasename("file.m"))
                 results.checkTaskExists(.matchRuleType("ScanDependencies"), .matchRuleItemBasename("Shared.m"))
@@ -2415,7 +2415,7 @@ fileprivate struct ClangExplicitModulesTests: CoreBasedTests {
                     """
             }
 
-            try await tester.checkBuild(parameters: BuildParameters(configuration: "Debug"), persistent: true) { results in
+            try await tester.checkBuild(parameters: BuildParameters(configuration: "Debug"), runDestination: .macOS, persistent: true) { results in
                 results.checkNoDiagnostics()
             }
 
@@ -2428,7 +2428,7 @@ fileprivate struct ClangExplicitModulesTests: CoreBasedTests {
                     """
             }
 
-            try await tester.checkBuild(parameters: BuildParameters(configuration: "Debug", overrides: ["EXCLUDED_SOURCE_FILE_NAMES": "Shared2.h"]), persistent: true) { results in
+            try await tester.checkBuild(parameters: BuildParameters(configuration: "Debug", overrides: ["EXCLUDED_SOURCE_FILE_NAMES": "Shared2.h"]), runDestination: .macOS, persistent: true) { results in
                 results.checkTaskExists(.matchRuleType("PrecompileModule"), .matchRuleItemPattern(.contains("Framework-")))
                 results.checkTaskExists(.matchRuleType("ScanDependencies"), .matchRuleItemBasename("file.m"))
                 results.checkTaskExists(.matchRuleType("CompileC"), .matchRuleItemBasename("file.o"))
@@ -2522,7 +2522,7 @@ fileprivate struct ClangExplicitModulesTests: CoreBasedTests {
                     """
             }
 
-            try await tester.checkBuild(parameters: BuildParameters(configuration: "Debug", overrides: ["EXCLUDED_SOURCE_FILE_NAMES": "file2.m"]), persistent: true) { results in
+            try await tester.checkBuild(parameters: BuildParameters(configuration: "Debug", overrides: ["EXCLUDED_SOURCE_FILE_NAMES": "file2.m"]), runDestination: .macOS, persistent: true) { results in
                 results.checkNoDiagnostics()
             }
 
@@ -2538,7 +2538,7 @@ fileprivate struct ClangExplicitModulesTests: CoreBasedTests {
                     """
             }
 
-            try await tester.checkBuild(parameters: BuildParameters(configuration: "Debug"), persistent: true) { results in
+            try await tester.checkBuild(parameters: BuildParameters(configuration: "Debug"), runDestination: .macOS, persistent: true) { results in
                 results.checkNoTask(.matchRuleType("ScanDependencies"), .matchRuleItemBasename("file.m"))
                 results.checkTaskExists(.matchRuleType("ScanDependencies"), .matchRuleItemBasename("file2.m"))
                 results.checkNoDiagnostics()
@@ -2587,7 +2587,7 @@ fileprivate struct ClangExplicitModulesTests: CoreBasedTests {
                 """
             }
 
-            try await tester.checkBuild(persistent: true) { results in
+            try await tester.checkBuild(runDestination: .macOS, persistent: true) { results in
                 // Because the verifier is enabled, we should produce explicit modules tasks, plus an implicit modules compile task.
                 results.checkTaskExists(.matchRuleType("ScanDependencies"))
                 results.checkTaskExists(.matchRuleType("CompileC"), .matchRuleItem("(implicit-copy)"))
@@ -2649,7 +2649,7 @@ fileprivate struct ClangExplicitModulesTests: CoreBasedTests {
             }
 
             // Clean build
-            try await tester.checkBuild(persistent: true) { results in
+            try await tester.checkBuild(runDestination: .macOS, persistent: true) { results in
                 results.checkTaskExists(.matchRuleType("ScanDependencies"))
                 results.checkTaskExists(.matchRuleType("CompileC"))
 
@@ -2662,7 +2662,7 @@ fileprivate struct ClangExplicitModulesTests: CoreBasedTests {
             try tester.fs.remove(testWorkspace.sourceRoot.join("aProject/Build/aProject.build/Debug/Library.build/Objects-normal/x86_64/file.o"))
 
             // The incremental build should succeed because dependencies will be ingested from disk.
-            try await tester.checkBuild(persistent: true) { results in
+            try await tester.checkBuild(runDestination: .macOS, persistent: true) { results in
                 results.checkNoTask(.matchRuleType("ScanDependencies"))
                 results.checkTaskExists(.matchRuleType("CompileC"))
 
@@ -2714,7 +2714,7 @@ fileprivate struct ClangExplicitModulesTests: CoreBasedTests {
                 """
             }
 
-            try await tester.checkBuild(persistent: true) { results in
+            try await tester.checkBuild(runDestination: .macOS, persistent: true) { results in
                 let responseFileTask: Task = try results.checkTask(.matchRuleType("WriteAuxiliaryFile"), .matchRuleItemPattern(.suffix(".resp"))) { $0 }
                 let scanTask: Task = try results.checkTask(.matchRuleType("ScanDependencies")) { $0 }
                 let compileTask: Task = try results.checkTask(.matchRuleType("CompileC")) { $0 }
@@ -2765,7 +2765,7 @@ fileprivate struct ClangExplicitModulesTests: CoreBasedTests {
             """
             }
 
-            try await tester.checkBuild(persistent: true) { results in
+            try await tester.checkBuild(runDestination: .macOS, persistent: true) { results in
                 results.checkNoTask(.matchRuleType("ScanDependencies"))
                 results.checkNoTask(.matchRuleType("PrecompileModule"))
 
@@ -2873,7 +2873,7 @@ fileprivate struct ClangExplicitModulesTests: CoreBasedTests {
                     results.checkNoDiagnostics()
                 }
 
-                try await tester.checkBuild(parameters: parameters, buildCommand: .cleanBuildFolder(style: .regular)) { _ in }
+                try await tester.checkBuild(parameters: parameters, runDestination: .macOS, buildCommand: .cleanBuildFolder(style: .regular)) { _ in }
             }
         }
     }
@@ -2970,11 +2970,11 @@ fileprivate struct ClangExplicitModulesTests: CoreBasedTests {
             }
 
             // Run a clean build
-            try await tester.checkBuild(persistent: true) { results in
+            try await tester.checkBuild(runDestination: .macOS, persistent: true) { results in
                 results.checkNoDiagnostics()
             }
 
-            try await tester.checkNullBuild(persistent: true)
+            try await tester.checkNullBuild(runDestination: .macOS, persistent: true)
 
             // Touch A's header
             try await tester.fs.writeFileContents(testWorkspace.sourceRoot.join("aProject/A.h")) { stream in
@@ -2986,7 +2986,7 @@ fileprivate struct ClangExplicitModulesTests: CoreBasedTests {
             }
 
             // Run an incremental build. Both B and C should rescan and recompile.
-            try await tester.checkBuild(persistent: true) { results in
+            try await tester.checkBuild(runDestination: .macOS, persistent: true) { results in
                 results.checkTaskExists(.matchRuleItem("PrecompileModule"))
                 results.checkTaskExists(.matchTargetName("B"), .matchRuleItem("ScanDependencies"))
                 results.checkTaskExists(.matchTargetName("C"), .matchRuleItem("ScanDependencies"))
@@ -2994,7 +2994,7 @@ fileprivate struct ClangExplicitModulesTests: CoreBasedTests {
                 results.checkTaskExists(.matchTargetName("C"), .matchRuleItem("CompileC"))
             }
 
-            try await tester.checkNullBuild(persistent: true)
+            try await tester.checkNullBuild(runDestination: .macOS, persistent: true)
         }
     }
 
@@ -3041,7 +3041,7 @@ fileprivate struct ClangExplicitModulesTests: CoreBasedTests {
             }
 
             // The build should succeed if we produced dependency info which can be parsed correctly.
-            try await tester.checkBuild(persistent: true) { results in
+            try await tester.checkBuild(runDestination: .macOS, persistent: true) { results in
                 results.checkNoDiagnostics()
             }
         }

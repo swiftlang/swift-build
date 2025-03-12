@@ -158,7 +158,7 @@ fileprivate struct ClangBuildOperationTests: CoreBasedTests {
                 }
 
                 // Clean build
-                try await tester.checkBuild(persistent: true) { results in
+                try await tester.checkBuild(runDestination: .macOS, persistent: true) { results in
                     results.checkNoDiagnostics()
                 }
 
@@ -166,7 +166,7 @@ fileprivate struct ClangBuildOperationTests: CoreBasedTests {
                 try tester.fs.touch(testWorkspace.sourceRoot.join("aProject/Shared2.h"))
 
                 // The dependency of the system module outside the sysroot should recompile.
-                try await tester.checkBuild(persistent: true) { results in
+                try await tester.checkBuild(runDestination: .macOS, persistent: true) { results in
                     results.checkNoDiagnostics()
                     results.checkTaskExists(.matchRuleType("CompileC"), .matchRuleItemPattern(.suffix("Shared.m")))
                 }

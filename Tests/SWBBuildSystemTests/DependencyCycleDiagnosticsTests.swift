@@ -46,7 +46,7 @@ fileprivate struct DependencyCycleDiagnosticsTests: CoreBasedTests {
                 ])
             let tester = try await BuildOperationTester(getCore(), testWorkspace, simulated: true)
 
-            try await tester.checkBuild { results in
+            try await tester.checkBuild(runDestination: .macOS) { results in
                 results.checkError(.prefix("Cycle inside A; building could produce unreliable results. This usually can be resolved by moving the shell script phase 'B' so that it runs before the build phase that depends on its outputs."))
                 results.checkNoDiagnostics()
             }
@@ -118,13 +118,13 @@ fileprivate struct DependencyCycleDiagnosticsTests: CoreBasedTests {
                     )])
             let tester = try await BuildOperationTester(getCore(), testProject, simulated: false)
 
-            try await tester.checkBuildDescription(BuildParameters(configuration: "Other")) { results in
+            try await tester.checkBuildDescription(BuildParameters(configuration: "Other"), runDestination: .macOS) { results in
                 let tasks = results.buildDescription.tasks.filter { $0.ruleInfo.first == "ProcessPCH++" }
                 #expect(tasks.count == 1)
                 #expect(tasks.first?.formattedRuleInfo(for: .dependencyCycle) == "Target 'A-foo-bar' has process command with input '\(tmpDir.str)/A.pch++'")
             }
 
-            try await tester.checkBuildDescription(BuildParameters(configuration: "Debug"), buildCommand: .generatePreprocessedFile(buildOnlyTheseFiles: [Path("\(tmpDir.str)/A.plist")])) { results in
+            try await tester.checkBuildDescription(BuildParameters(configuration: "Debug"), runDestination: .macOS, buildCommand: .generatePreprocessedFile(buildOnlyTheseFiles: [Path("\(tmpDir.str)/A.plist")])) { results in
                 let tasks = results.buildDescription.tasks.filter { $0.ruleInfo.first == "Preprocess" }
                 #expect(tasks.count == 2)
                 for task in tasks {
@@ -132,7 +132,7 @@ fileprivate struct DependencyCycleDiagnosticsTests: CoreBasedTests {
                 }
             }
 
-            try await tester.checkBuildDescription { results in
+            try await tester.checkBuildDescription(runDestination: .macOS) { results in
                 for task in results.buildDescription.tasks {
                     let formattedOutput = task.formattedRuleInfo(for: .dependencyCycle)
                     switch task.ruleInfo.first {
@@ -299,7 +299,7 @@ fileprivate struct DependencyCycleDiagnosticsTests: CoreBasedTests {
             }
 
             // FIXME: We should be able to eliminate the final task, as it is irrelevant to the cycle.
-            try await tester.checkBuild { results in
+            try await tester.checkBuild(runDestination: .macOS) { results in
                 try await results.checkDependencyCycle(.prefix("Cycle in dependencies between targets"), failIfNotFound: true) { cycle in
                     #expect(cycle.header == "Cycle in dependencies between targets 'A' and 'C'; building could produce unreliable results.")
                     #expect(cycle.path == "Cycle path: A → B → C → A")
@@ -393,7 +393,7 @@ fileprivate struct DependencyCycleDiagnosticsTests: CoreBasedTests {
             // FIXME: We should be able to eliminate the final task, as it is irrelevant to the cycle.
             let parameters = BuildParameters(configuration: "Debug")
             let request = BuildRequest(parameters: parameters, buildTargets: [BuildRequest.BuildTargetInfo(parameters: parameters, target: tester.workspace.projects[0].targets[0])], dependencyScope: .workspace, continueBuildingAfterErrors: false, useParallelTargets: true, useImplicitDependencies: true, useDryRun: false)
-            try await tester.checkBuild(buildRequest: request) { results in
+            try await tester.checkBuild(runDestination: .macOS, buildRequest: request) { results in
                 try await results.checkDependencyCycle(.prefix("Cycle in dependencies between targets"), failIfNotFound: true) { cycle in
                     #expect(cycle.header == "Cycle in dependencies between targets 'A' and 'C'; building could produce unreliable results.")
                     #expect(cycle.path == "Cycle path: A → B → C → A")
@@ -496,7 +496,7 @@ fileprivate struct DependencyCycleDiagnosticsTests: CoreBasedTests {
             }
 
             // Check that the cycle path includes C and D, but not A and B.
-            try await tester.checkBuild { results in
+            try await tester.checkBuild(runDestination: .macOS) { results in
                 try await results.checkDependencyCycle(.prefix("Cycle in dependencies between targets"), failIfNotFound: true) { cycle in
                     #expect(cycle.header == "Cycle in dependencies between targets 'C' and 'D'; building could produce unreliable results.")
                     #expect(cycle.path == "Cycle path: C → D → C")
@@ -572,7 +572,7 @@ fileprivate struct DependencyCycleDiagnosticsTests: CoreBasedTests {
                 try await tester.fs.writeFileContents(file) { _ in }
             }
 
-            try await tester.checkBuild { results in
+            try await tester.checkBuild(runDestination: .macOS) { results in
                 try await results.checkDependencyCycle(.prefix("Cycle in dependencies between targets"), failIfNotFound: true) { cycle in
                     #expect(cycle.header == "Cycle in dependencies between targets 'B' and 'A'; building could produce unreliable results.")
                     #expect(cycle.path == "Cycle path: B → A → B")
@@ -668,7 +668,7 @@ fileprivate struct DependencyCycleDiagnosticsTests: CoreBasedTests {
             let targetC  = BuildRequest.BuildTargetInfo(parameters: buildParameters, target: project.targets[2])
             let buildRequest = BuildRequest(parameters: buildParameters, buildTargets: [targetC, targetB, targetA], dependencyScope: .workspace, continueBuildingAfterErrors: false, useParallelTargets: false, useImplicitDependencies: true, useDryRun: false)
 
-            try await tester.checkBuild(buildRequest: buildRequest) { results in
+            try await tester.checkBuild(runDestination: .macOS, buildRequest: buildRequest) { results in
                 try await results.checkDependencyCycle(.prefix("Cycle in dependencies between targets"), failIfNotFound: true) { cycle in
                     #expect(cycle.header == "Cycle in dependencies between targets 'A' and 'B'; building could produce unreliable results.")
                     #expect(cycle.path == "Cycle path: A → B → A")
@@ -761,7 +761,7 @@ fileprivate struct DependencyCycleDiagnosticsTests: CoreBasedTests {
             // Check the initial build.
             //
             // This should always work, because the module map for the downstream dependency won't have been laid down.
-            try await tester.checkBuild(persistent: true) { results in
+            try await tester.checkBuild(runDestination: .macOS, persistent: true) { results in
                 // Check we ran the appropriate tasks.
                 results.consumeTasksMatchingRuleTypes(["SymLink", "MkDir", "WriteAuxiliaryFile", "Gate", "CreateBuildDirectory", "ProcessInfoPlistFile", "RegisterExecutionPolicyException", "ClangStatCache", "PrecompileModule", "ProcessSDKImports"])
 
@@ -793,7 +793,7 @@ fileprivate struct DependencyCycleDiagnosticsTests: CoreBasedTests {
 
             // Check a null build.
             if tester.fs.fileSystemMode == .checksumOnly {
-                try await tester.checkBuild(persistent: true) { results in
+                try await tester.checkBuild(runDestination: .macOS, persistent: true) { results in
                     // FIXME: (ChecksumOnlyFileSystem)
                     // null build seems to be erroneously spawning a
                     // ["CompileC", "*/BaseFoo.o", "*/BaseFoo.m", "normal", "x86_64", "objective-c", "com.apple.compilers.llvm.clang.1_0.compiler"]
@@ -802,7 +802,7 @@ fileprivate struct DependencyCycleDiagnosticsTests: CoreBasedTests {
                     results.checkNoTask()
                 }
             } else {
-                try await tester.checkNullBuild(persistent: true, excludedTasks: ["ClangStatCache"])
+                try await tester.checkNullBuild(runDestination: .macOS, persistent: true, excludedTasks: ["ClangStatCache"])
             }
 
             // Force a rebuild followed by another incremental build. Because we eagerly write out the module map, there should be no cycle.
@@ -812,10 +812,10 @@ fileprivate struct DependencyCycleDiagnosticsTests: CoreBasedTests {
                 contents <<< "void foo2() {}\n"
             }
 
-            try await tester.checkBuild(persistent: true) { results in
+            try await tester.checkBuild(runDestination: .macOS, persistent: true) { results in
                 results.checkNoDiagnostics()
             }
-            try await tester.checkBuild(persistent: true) { results in
+            try await tester.checkBuild(runDestination: .macOS, persistent: true) { results in
                 results.checkNoDiagnostics()
             }
         }

@@ -53,7 +53,7 @@ fileprivate struct UnitTestBuildOperationTests: CoreBasedTests {
                 overrides["DSTROOT"] = tmpDirPath.join("dst").str
             }
             let parameters = BuildParameters(action: parameters.action, configuration: parameters.configuration, activeRunDestination: parameters.activeRunDestination, activeArchitecture: parameters.activeArchitecture, overrides: overrides)
-            try await tester.checkBuild(parameters: parameters, persistent: true, signableTargets: signableTargets, signableTargetInputs: provisioningInputs, sourceLocation: sourceLocation) { results in
+            try await tester.checkBuild(parameters: parameters, runDestination: nil, persistent: true, signableTargets: signableTargets, signableTargetInputs: provisioningInputs, sourceLocation: sourceLocation) { results in
                 check(results)
             }
         }
@@ -593,7 +593,7 @@ fileprivate struct UnitTestBuildOperationTests: CoreBasedTests {
                 "ENABLE_ADDITIONAL_CODESIGN_INPUT_TRACKING_FOR_SCRIPT_OUTPUTS": "YES",
             ])
 
-            try await tester.checkBuild(parameters: params, schemeCommand: .test, persistent: true, signableTargets: signableTargets) { results in
+            try await tester.checkBuild(parameters: params, runDestination: .macOS, schemeCommand: .test, persistent: true, signableTargets: signableTargets) { results in
                 results.consumeTasksMatchingRuleTypes(excludedTasks)
 
                 results.checkTasks { tasks in
@@ -605,7 +605,7 @@ fileprivate struct UnitTestBuildOperationTests: CoreBasedTests {
             }
 
             // Validate a null build.
-            try await tester.checkBuild(parameters: params, schemeCommand: .test, persistent: true, signableTargets: signableTargets) { results in
+            try await tester.checkBuild(parameters: params, runDestination: .macOS, schemeCommand: .test, persistent: true, signableTargets: signableTargets) { results in
                 // Check that no tasks ran.
                 if SWBFeatureFlag.performOwnershipAnalysis.value {
                     results.consumeTasksMatchingRuleTypes(["ClangStatCache"])
@@ -622,7 +622,7 @@ fileprivate struct UnitTestBuildOperationTests: CoreBasedTests {
             try await tester.fs.writeFileContents(testWorkspace.sourceRoot.join("aProject/Resource.txt")) { stream in
                 stream <<< "goodbye\n"
             }
-            try await tester.checkBuild(parameters: params, schemeCommand: .test, persistent: true, signableTargets: signableTargets) { results in
+            try await tester.checkBuild(parameters: params, runDestination: .macOS, schemeCommand: .test, persistent: true, signableTargets: signableTargets) { results in
                 results.consumeTasksMatchingRuleTypes(excludedTasks)
 
                 results.checkTask(.matchRule(["Copy", "\(buildDirectory)/Debug/AppTarget.app/Contents/Resources/Resource.txt", "\(SRCROOT)/aProject/Resource.txt"])) { _ in }
@@ -636,7 +636,7 @@ fileprivate struct UnitTestBuildOperationTests: CoreBasedTests {
             try await tester.fs.writeFileContents(testWorkspace.sourceRoot.join("aProject/ResourceTwo.txt")) { stream in
                 stream <<< "yeah baby!\n"
             }
-            try await tester.checkBuild(parameters: params, schemeCommand: .test, persistent: true, signableTargets: signableTargets) { results in
+            try await tester.checkBuild(parameters: params, runDestination: .macOS, schemeCommand: .test, persistent: true, signableTargets: signableTargets) { results in
                 results.consumeTasksMatchingRuleTypes(excludedTasks)
 
                 results.checkTask(.matchRule(["Copy", "\(buildDirectory)/Debug/AppTarget.app/Contents/PlugIns/UnitTestTargetTwo.xctest/Contents/Resources/ResourceTwo.txt", "\(SRCROOT)/aProject/ResourceTwo.txt"])) { _ in }
@@ -746,7 +746,7 @@ fileprivate struct UnitTestBuildOperationTests: CoreBasedTests {
             let signableTargets: Set<String> = ["UnitTestTarget", "AppTarget"]
 
             // Perform the initial build, which should fail due to the syntax error in the test target's source file.
-            try await tester.checkBuild(parameters: buildParameters, persistent: true, signableTargets: signableTargets) { results in
+            try await tester.checkBuild(parameters: buildParameters, runDestination: .macOS, persistent: true, signableTargets: signableTargets) { results in
                 withKnownIssue("fails due to rdar://72202535") {
                     // Check that the app target's compile task ran.  (The link command may or may not run, so we don't check it here.)
                     if let task = results.getTask(.matchTargetName("AppTarget"), .matchRuleType("SwiftDriver")) {
@@ -785,7 +785,7 @@ fileprivate struct UnitTestBuildOperationTests: CoreBasedTests {
             try await tester.fs.writeFileContents(testWorkspace.sourceRoot.join("aProject/TestOne.swift")) { stream in
                 stream <<< "func testFoo(){}"
             }
-            try await tester.checkBuild(parameters: buildParameters, persistent: true, signableTargets: signableTargets) { results in
+            try await tester.checkBuild(parameters: buildParameters, runDestination: .macOS, persistent: true, signableTargets: signableTargets) { results in
                 withKnownIssue("fails due to rdar://72202535") {
                     // Check that the app target's compile and link tasks ran.
                     if let task = results.getTask(.matchTargetName("AppTarget"), .matchRuleType("SwiftDriver")) {
@@ -820,7 +820,7 @@ fileprivate struct UnitTestBuildOperationTests: CoreBasedTests {
             try await tester.fs.writeFileContents(testWorkspace.sourceRoot.join("aProject/TestOne.swift")) { stream in
                 stream <<< "func testFoo(){  }"
             }
-            try await tester.checkBuild(parameters: buildParameters, persistent: true, signableTargets: signableTargets) { results in
+            try await tester.checkBuild(parameters: buildParameters, runDestination: .macOS, persistent: true, signableTargets: signableTargets) { results in
                 withKnownIssue("fails due to rdar://72202535") {
                     // Check that the app target's compile and link tasks did not run.
                     if let task = results.getTask(.matchTargetName("AppTarget"), .matchRuleType("SwiftDriver")) {

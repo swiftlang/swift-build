@@ -270,7 +270,7 @@ fileprivate struct OnDemandResourcesTests: CoreBasedTests {
             ]
 
             // ODR is by default enabled on the app product type. If we enable it universally, we expect to see an error because the framework target should not support ODR.
-            try await tester.checkBuild(parameters: BuildParameters(configuration: "Debug", activeRunDestination: .iOS, overrides: ["ENABLE_ON_DEMAND_RESOURCES": "YES"]), signableTargets: Set(provisioningInputs.keys), signableTargetInputs: provisioningInputs) { results in
+            try await tester.checkBuild(parameters: BuildParameters(configuration: "Debug", overrides: ["ENABLE_ON_DEMAND_RESOURCES": "YES"]), runDestination: .iOS, signableTargets: Set(provisioningInputs.keys), signableTargetInputs: provisioningInputs) { results in
                 results.checkError(.equal("On-Demand Resources is enabled (ENABLE_ON_DEMAND_RESOURCES = YES), but the PRODUCT_BUNDLE_IDENTIFIER build setting is empty (in target \'App\' from project 'aProject')"))
                 results.checkError(.equal("WRAP_ASSET_PACKS_IN_SEPARATE_DIRECTORIES=YES is not supported (in target \'App\' from project 'aProject')"))
                 results.checkError(.equal("On-Demand Resources is enabled (ENABLE_ON_DEMAND_RESOURCES = YES), but is not supported for framework targets (in target \'Framework\' from project 'aProject')"))
@@ -336,7 +336,7 @@ fileprivate struct OnDemandResourcesTests: CoreBasedTests {
                 "App": ProvisioningTaskInputs(identityHash: "Apple Development", identityName: "Dev Signing"),
             ]
 
-            try await tester.checkBuild(parameters: BuildParameters(configuration: "Debug", activeRunDestination: .iOS, overrides: ["ENABLE_ON_DEMAND_RESOURCES": "NO"]), signableTargets: Set(provisioningInputs.keys), signableTargetInputs: provisioningInputs) { results in
+            try await tester.checkBuild(parameters: BuildParameters(configuration: "Debug", overrides: ["ENABLE_ON_DEMAND_RESOURCES": "NO"]), runDestination: .iOS, signableTargets: Set(provisioningInputs.keys), signableTargetInputs: provisioningInputs) { results in
                 results.checkNoDiagnostics()
 
                 results.checkTask(.matchRule(["CpResource", srcRoot.join("build/Debug-iphoneos/App.app/A.dat").str, srcRoot.join("Sources/A.dat").str])) { _ in }
@@ -521,7 +521,7 @@ fileprivate struct OnDemandResourcesTests: CoreBasedTests {
             ]
 
             let buildStartDate0 = Date()
-            try await tester.checkBuild(parameters: BuildParameters(configuration: "Debug", activeRunDestination: .iOS), signableTargets: Set(provisioningInputs.keys), signableTargetInputs: provisioningInputs) { results in
+            try await tester.checkBuild(parameters: BuildParameters(configuration: "Debug"), runDestination: .iOS, signableTargets: Set(provisioningInputs.keys), signableTargetInputs: provisioningInputs) { results in
                 results.checkNoDiagnostics()
 
                 // Assets copied into correct asset packs
@@ -603,7 +603,7 @@ fileprivate struct OnDemandResourcesTests: CoreBasedTests {
                 "SDK_VARIANT": MacCatalystInfo.sdkVariantName,
                 "TARGETED_DEVICE_FAMILY": "2",
             ]
-            try await tester.checkBuild(parameters: BuildParameters(configuration: "Debug", overrides: overrides), signableTargets: Set(provisioningInputs.keys), signableTargetInputs: provisioningInputs) { results in
+            try await tester.checkBuild(parameters: BuildParameters(configuration: "Debug", overrides: overrides), runDestination: .macOS, signableTargets: Set(provisioningInputs.keys), signableTargetInputs: provisioningInputs) { results in
                 results.checkNoDiagnostics()
 
                 // Check that there are no tasks putting any content into a .assetpack bundle.
@@ -693,7 +693,7 @@ fileprivate struct OnDemandResourcesTests: CoreBasedTests {
                 "App": ProvisioningTaskInputs(identityHash: "Apple Development", identityName: "Dev Signing"),
             ]
 
-            try await tester.checkBuild(parameters: BuildParameters(configuration: "Debug", activeRunDestination: .iOS), signableTargets: Set(provisioningInputs.keys), signableTargetInputs: provisioningInputs) { results in
+            try await tester.checkBuild(parameters: BuildParameters(configuration: "Debug"), runDestination: .iOS, signableTargets: Set(provisioningInputs.keys), signableTargetInputs: provisioningInputs) { results in
                 results.checkNoDiagnostics()
 
                 let assetPackManifestPlistPath = srcRoot.join("build/Debug-iphoneos/App.app/AssetPackManifestTemplate.plist")
@@ -836,7 +836,7 @@ fileprivate struct OnDemandResourcesTests: CoreBasedTests {
                 "App": ProvisioningTaskInputs(identityHash: "Apple Development", identityName: "Dev Signing"),
             ]
 
-            try await tester.checkBuild(parameters: BuildParameters(configuration: "Debug", activeRunDestination: .iOS), signableTargets: Set(provisioningInputs.keys), signableTargetInputs: provisioningInputs) { results in
+            try await tester.checkBuild(parameters: BuildParameters(configuration: "Debug"), runDestination: .iOS, signableTargets: Set(provisioningInputs.keys), signableTargetInputs: provisioningInputs) { results in
                 results.checkNoDiagnostics()
 
                 let assetPackManifestPlistPath = srcRoot.join("build/Debug-iphoneos/App.app/AssetPackManifest.plist")
@@ -907,7 +907,7 @@ fileprivate struct OnDemandResourcesTests: CoreBasedTests {
 
             let assetPackFoo = ODRAssetPackInfo(identifier: "com.company.App.asset-pack-acbd18db4cc2f85cedef654fccc4a4d8", tags: Set(["foo"]), path: srcRoot.join("build/Debug-iphoneos/OnDemandResources/com.company.App.foo-acbd18db4cc2f85cedef654fccc4a4d8.assetpack"), priority: nil)
 
-            try await tester.checkBuild(parameters: BuildParameters(configuration: "Debug", activeRunDestination: .iOS), signableTargets: Set(provisioningInputs.keys), signableTargetInputs: provisioningInputs) { results in
+            try await tester.checkBuild(parameters: BuildParameters(configuration: "Debug"), runDestination: .iOS, signableTargets: Set(provisioningInputs.keys), signableTargetInputs: provisioningInputs) { results in
                 results.checkNoDiagnostics()
 
                 // We emitted an asset pack, so we would normally emit a manifest as well
@@ -980,7 +980,7 @@ fileprivate struct OnDemandResourcesTests: CoreBasedTests {
 
             // Base build
 
-            try await tester.checkBuild(parameters: BuildParameters(configuration: "Debug", activeRunDestination: .iOS), signableTargets: Set(provisioningInputs.keys), signableTargetInputs: provisioningInputs) { results in
+            try await tester.checkBuild(parameters: BuildParameters(configuration: "Debug"), runDestination: .iOS, signableTargets: Set(provisioningInputs.keys), signableTargetInputs: provisioningInputs) { results in
                 results.checkNoDiagnostics()
                 results.checkTask(.matchRule(["WriteAuxiliaryFile", assetPackFoo.path.join("Info.plist").str])) { _ in }
             }
@@ -994,7 +994,7 @@ fileprivate struct OnDemandResourcesTests: CoreBasedTests {
 
             let assetPackBarFoo = ODRAssetPackInfo(identifier: "com.company.App.asset-pack-8856328b99ee7881e9bf7205296e056d", tags: Set(["foo", "bar"]), path: srcRoot.join("build/Debug-iphoneos/OnDemandResources/com.company.App.bar+foo-8856328b99ee7881e9bf7205296e056d.assetpack"), priority: nil)
 
-            try await tester.checkBuild(parameters: BuildParameters(configuration: "Debug", activeRunDestination: .iOS), signableTargets: Set(provisioningInputs.keys), signableTargetInputs: provisioningInputs) { results in
+            try await tester.checkBuild(parameters: BuildParameters(configuration: "Debug"), runDestination: .iOS, signableTargets: Set(provisioningInputs.keys), signableTargetInputs: provisioningInputs) { results in
                 results.checkNoDiagnostics()
                 results.checkTask(.matchRule(["WriteAuxiliaryFile", assetPackBarFoo.path.join("Info.plist").str])) { _ in }
             }
@@ -1066,7 +1066,7 @@ fileprivate struct OnDemandResourcesTests: CoreBasedTests {
 
             // Base build
 
-            try await tester.checkBuild(parameters: BuildParameters(configuration: "Debug", activeRunDestination: .iOS), persistent: true, signableTargets: Set(provisioningInputs.keys), signableTargetInputs: provisioningInputs) { results in
+            try await tester.checkBuild(parameters: BuildParameters(configuration: "Debug"), runDestination: .iOS, persistent: true, signableTargets: Set(provisioningInputs.keys), signableTargetInputs: provisioningInputs) { results in
                 results.checkNoDiagnostics()
             }
 
@@ -1077,7 +1077,7 @@ fileprivate struct OnDemandResourcesTests: CoreBasedTests {
             // Update an asset and check that the next build only updates the AssetPackManifest on the asset's associated asset pack
             try fs.write(srcRoot.join("Sources/A.dat"), contents: ByteString([42]))
 
-            try await tester.checkBuild(parameters: BuildParameters(configuration: "Debug", activeRunDestination: .iOS), persistent: true, signableTargets: Set(provisioningInputs.keys), signableTargetInputs: provisioningInputs) { results in
+            try await tester.checkBuild(parameters: BuildParameters(configuration: "Debug"), runDestination: .iOS, persistent: true, signableTargets: Set(provisioningInputs.keys), signableTargetInputs: provisioningInputs) { results in
                 let copyTask: Task = try results.checkTask(.matchRule(["CpResource", "\(assetPackFoo.path.str)/A.dat", "\(srcRoot.str)/Sources/A.dat"])) { task in task }
 
                 let manifestTask: Task = try results.checkTask(.matchRule(["CreateAssetPackManifest", assetPackManifestPlistPath.str])) { task in task }

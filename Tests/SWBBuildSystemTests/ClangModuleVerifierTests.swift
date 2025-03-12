@@ -79,7 +79,7 @@ fileprivate struct ClangModuleVerifierTests: CoreBasedTests {
                 #include <Orange/Orange.h>
                 """)
 
-            try await tester.checkBuild(persistent: true) { results in
+            try await tester.checkBuild(runDestination: .macOS, persistent: true) { results in
                 // Check that the diagnostic has the source directory path.
                 results.checkError(.and(.prefix(SRCROOT.join("Orange.h").str), .contains("umbrella header for module 'Orange' does not include header 'Orange2.h'")))
                 results.checkError(.and(.prefix(SRCROOT.join("Orange.h").str), .contains("double-quoted include \"Orange3.h\" in framework header, expected angle-bracketed instead"))) { diag in
@@ -159,7 +159,7 @@ fileprivate struct ClangModuleVerifierTests: CoreBasedTests {
                 """)
 
             // A regular build will just build the correct architecture.
-            try await tester.checkBuild(persistent: true) { results in
+            try await tester.checkBuild(runDestination: .macOS, persistent: true) { results in
                 results.checkNoDiagnostics()
 
                 // There are no non-verification PrecompileModule tasks.
@@ -255,7 +255,7 @@ fileprivate struct ClangModuleVerifierTests: CoreBasedTests {
                 """)
 
             // A regular build will just build the correct architecture.
-            try await tester.checkBuild(persistent: true) { results in
+            try await tester.checkBuild(runDestination: .macOS, persistent: true) { results in
                 // There are no non-verification PrecompileModule tasks.
                 results.checkNoTask(.matchRuleType("PrecompileModule"))
 
@@ -286,9 +286,9 @@ fileprivate struct ClangModuleVerifierTests: CoreBasedTests {
                 }
             }
             // Clean the build to trigger a cached build.
-            try await tester.checkBuild(buildCommand: .cleanBuildFolder(style: .regular), body: { _ in })
+            try await tester.checkBuild(runDestination: .macOS, buildCommand: .cleanBuildFolder(style: .regular), body: { _ in })
 
-            try await tester.checkBuild(persistent: true) { results in
+            try await tester.checkBuild(runDestination: .macOS, persistent: true) { results in
                 results.checkTask(.matchRuleType("VerifyModuleC")) { task in
                     results.checkWarning(.contains("compile job cache hit "))
                     results.checkTaskResult(task, expected: .succeeded())

@@ -89,7 +89,7 @@ fileprivate struct CleanOperationTests: CoreBasedTests {
 
             // Test without an arena - should fail because no projects and no workspace arena provides no means to get the build intermediates path.
             await #expect(performing: {
-                try await tester.checkBuild(buildRequest: BuildRequest(parameters: BuildParameters(configuration: "Debug"), buildTargets: [], continueBuildingAfterErrors: false, useParallelTargets: true, useImplicitDependencies: false, useDryRun: false, buildCommand: .cleanBuildFolder(style: .regular)), persistent: true) { results in
+                try await tester.checkBuild(runDestination: .macOS, buildRequest: BuildRequest(parameters: BuildParameters(configuration: "Debug"), buildTargets: [], continueBuildingAfterErrors: false, useParallelTargets: true, useImplicitDependencies: false, useDryRun: false, buildCommand: .cleanBuildFolder(style: .regular)), persistent: true) { results in
                     results.checkNoDiagnostics()
                 }
             }, throws: { error in
@@ -97,7 +97,7 @@ fileprivate struct CleanOperationTests: CoreBasedTests {
             })
 
             // Test with an arena - should succeed because while there are no projects, we can still get the build intermediates path from the workspace arena.
-            try await tester.checkBuild(buildRequest: BuildRequest(parameters: BuildParameters(configuration: "Debug", arena: arenaInfo(from: tmpDirPath.join("build"))), buildTargets: [], continueBuildingAfterErrors: false, useParallelTargets: true, useImplicitDependencies: false, useDryRun: false, buildCommand: .cleanBuildFolder(style: .regular)), persistent: true) { results in
+            try await tester.checkBuild(runDestination: .macOS, buildRequest: BuildRequest(parameters: BuildParameters(configuration: "Debug", arena: arenaInfo(from: tmpDirPath.join("build"))), buildTargets: [], continueBuildingAfterErrors: false, useParallelTargets: true, useImplicitDependencies: false, useDryRun: false, buildCommand: .cleanBuildFolder(style: .regular)), persistent: true) { results in
                 results.checkNoDiagnostics()
             }
         }
@@ -108,7 +108,7 @@ fileprivate struct CleanOperationTests: CoreBasedTests {
         try await withTestHarness { tester, tmpDirPath, _ in
             let buildFolderPaths = [ tmpDirPath.join("Test/aProject/build"), tmpDirPath.join("Test/aProject/build/Debug"), tmpDirPath.join("Test/aProject/build/EagerLinkingTBDs/Debug")]
 
-            try await tester.checkBuild(persistent: true) { results in
+            try await tester.checkBuild(runDestination: .macOS, persistent: true) { results in
                 // Check if build folder tasks have run as expected.
                 for buildFolderPath in buildFolderPaths {
                     results.checkTask(.matchRule(["CreateBuildDirectory", buildFolderPath.str])) { _ in }
@@ -122,7 +122,7 @@ fileprivate struct CleanOperationTests: CoreBasedTests {
                 #expect(tester.fs.exists(folder))
             }
 
-            try await tester.checkBuild(buildCommand: .cleanBuildFolder(style: .regular), persistent: true) { results in
+            try await tester.checkBuild(runDestination: .macOS, buildCommand: .cleanBuildFolder(style: .regular), persistent: true) { results in
                 results.checkNoDiagnostics()
             }
 
@@ -138,7 +138,7 @@ fileprivate struct CleanOperationTests: CoreBasedTests {
         try await withTestHarness(install: true) { tester, tmpDirPath, dstRoot in
             let buildFolderPaths = [ dstRoot, tmpDirPath.join("Test/aProject/build"), tmpDirPath.join("Test/aProject/build/Debug"), tmpDirPath.join("Test/aProject/build/EagerLinkingTBDs/Debug")]
 
-            try await tester.checkBuild(persistent: true) { results in
+            try await tester.checkBuild(runDestination: .macOS, persistent: true) { results in
                 // Check if build folder tasks have run as expected.
                 for buildFolderPath in buildFolderPaths {
                     results.checkTask(.matchRule(["CreateBuildDirectory", buildFolderPath.str])) { _ in }
@@ -152,7 +152,7 @@ fileprivate struct CleanOperationTests: CoreBasedTests {
                 #expect(tester.fs.exists(folder))
             }
 
-            try await tester.checkBuild(buildCommand: .cleanBuildFolder(style: .regular), persistent: true) { results in
+            try await tester.checkBuild(runDestination: .macOS, buildCommand: .cleanBuildFolder(style: .regular), persistent: true) { results in
                 results.checkNoDiagnostics()
             }
 
@@ -210,7 +210,7 @@ fileprivate struct CleanOperationTests: CoreBasedTests {
             ]
 
             let buildRequest = BuildRequest(parameters: parameters, buildTargets: buildTargets, continueBuildingAfterErrors: true, useParallelTargets: true, useImplicitDependencies: false, useDryRun: false)
-            try await tester.checkBuild(buildRequest: buildRequest, persistent: true) { results in
+            try await tester.checkBuild(runDestination: .macOS, buildRequest: buildRequest, persistent: true) { results in
                 results.checkTasks(.matchRuleType("CreateBuildDirectory")) { tasks in
                     #expect(tasks.count == 6)
                 }
@@ -222,7 +222,7 @@ fileprivate struct CleanOperationTests: CoreBasedTests {
             }
 
             let cleanRequest = BuildRequest(parameters: parameters, buildTargets: buildTargets, continueBuildingAfterErrors: true, useParallelTargets: true, useImplicitDependencies: false, useDryRun: false, buildCommand: .cleanBuildFolder(style: .legacy))
-            try await tester.checkBuild(buildRequest: cleanRequest, persistent: true) { results in
+            try await tester.checkBuild(runDestination: .macOS, buildRequest: cleanRequest, persistent: true) { results in
                 results.checkNoDiagnostics()
             }
             for folder in buildFolderPaths {
@@ -240,7 +240,7 @@ fileprivate struct CleanOperationTests: CoreBasedTests {
                 try tester.fs.createDirectory(folder, recursive: true)
             }
 
-            try await tester.checkBuild(persistent: true) { results in
+            try await tester.checkBuild(runDestination: .macOS, persistent: true) { results in
                 for buildFolderPath in buildFolderPaths {
                     results.checkTask(.matchRule(["CreateBuildDirectory", buildFolderPath.str])) { _ in }
                 }
@@ -248,7 +248,7 @@ fileprivate struct CleanOperationTests: CoreBasedTests {
                 results.checkNoTask(.matchRuleType("CreateBuildDirectory"))
             }
 
-            try await tester.checkBuild(buildCommand: .cleanBuildFolder(style: .regular), persistent: true) { results in
+            try await tester.checkBuild(runDestination: .macOS, buildCommand: .cleanBuildFolder(style: .regular), persistent: true) { results in
                 // Check that expected warnings were emitted.
                 for buildFolderPath in buildFolderPaths {
                     results.checkError(.equal("Could not delete `\(buildFolderPath.str)` because it was not created by the build system and it is not a subfolder of derived data.\nTo mark this directory as deletable by the build system, run `xattr -w com.apple.xcode.CreatedByBuildSystem true \(buildFolderPath.str)` when it is created."))
@@ -268,9 +268,9 @@ fileprivate struct CleanOperationTests: CoreBasedTests {
         try await withTestHarness(useRootDstroot: true) { tester, tmpDirPath, _ in
             let buildFolderPaths = [tmpDirPath]
 
-            try await tester.checkBuild(persistent: true) { results in }
+            try await tester.checkBuild(runDestination: .macOS, persistent: true) { results in }
 
-            try await tester.checkBuild(buildCommand: .cleanBuildFolder(style: .legacy), persistent: true) { results in
+            try await tester.checkBuild(runDestination: .macOS, buildCommand: .cleanBuildFolder(style: .legacy), persistent: true) { results in
                 results.checkWarning(.equal("Refusing to delete `\(tmpDirPath.str)` because it contains one of the projects in this workspace: `\(tmpDirPath.str)/Test/aProject/aProject.xcodeproj`."))
                 results.checkNoDiagnostics()
             }
@@ -309,7 +309,7 @@ fileprivate struct CleanOperationTests: CoreBasedTests {
                 stream <<< "\trm -f \(sourceRoot.str)/out.txt\n"
             }
 
-            try await tester.checkBuild(persistent: true) { results in
+            try await tester.checkBuild(runDestination: .macOS, persistent: true) { results in
                 results.checkNoDiagnostics()
             }
 
@@ -317,7 +317,7 @@ fileprivate struct CleanOperationTests: CoreBasedTests {
             // Check that `passBuildSettingsInEnvironment` works by verifying the contents of the generated file.
             #expect(try tester.fs.read(sourceRoot.join("out.txt")) == "external\n")
 
-            try await tester.checkBuild(buildCommand: .cleanBuildFolder(style: type), persistent: true) { results in
+            try await tester.checkBuild(runDestination: .macOS, buildCommand: .cleanBuildFolder(style: type), persistent: true) { results in
                 results.checkTask(.matchRule(["\(try await getCore().developerPath.str)/usr/bin/make", "clean"])) { _ in }
                 results.checkNoTask()
                 results.checkNoDiagnostics()
@@ -340,7 +340,7 @@ fileprivate struct CleanOperationTests: CoreBasedTests {
     @Test(.requireSDKs(.macOS))
     func cleanExternalTargetsError() async throws {
         try await withBasedProjectHarness { tester, _, _ in
-            try await tester.checkBuild(buildCommand: .cleanBuildFolder(style: .legacy), persistent: false) { results in
+            try await tester.checkBuild(runDestination: .macOS, buildCommand: .cleanBuildFolder(style: .legacy), persistent: false) { results in
                 // CleanOperation.cleanExternalTarget() captures all of the output of the inferior tool - stdout and stderr - as part of the error message, which can include unrelated garbage (e.g. ObjC runtime reports of symbol collisions, reports of xcodebuild being relaunched under ASan), some of which might be expected, so we just check that there's an error which contains the expected string content to be robust to those scenarios.
                 results.checkError(.and(.prefix("Failed to clean target \'external\': "), .contains("make: *** No rule to make target `clean\'.  Stop.\n (for task: [\"\(try await getCore().developerPath.str)/usr/bin/make\", \"clean\"])")))
                 results.checkNoDiagnostics()

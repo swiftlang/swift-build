@@ -73,7 +73,7 @@ fileprivate struct PrefixHeaderAsModuleTests: CoreBasedTests {
                 """
             }
 
-            try await tester.checkBuild(persistent: true) { results in
+            try await tester.checkBuild(runDestination: .macOS, persistent: true) { results in
                 try results.checkTask(.matchRuleType("ScanDependencies")) { scanTask in
                     try results.checkTaskFollows(scanTask, .matchRulePattern(["WriteAuxiliaryFile", .and(.prefix("\(tmpDirPath.str)/Test/aProject/build/SharedPrecompiledHeaders/SharedPrefixModuleMaps/pch.h-"), .suffix(".modulemap"))]))
                 }
@@ -139,7 +139,7 @@ fileprivate struct PrefixHeaderAsModuleTests: CoreBasedTests {
                 """
             }
 
-            try await tester.checkBuild(persistent: true) { results in
+            try await tester.checkBuild(runDestination: .macOS, persistent: true) { results in
                 results.checkTask(.matchRuleType("CompileC")) { _ in }
                 results.checkNoTask(.matchRuleType("ProcessPCH"))
                 results.checkNoDiagnostics()
@@ -200,7 +200,7 @@ fileprivate struct PrefixHeaderAsModuleTests: CoreBasedTests {
                 """
             }
 
-            try await tester.checkBuild(persistent: true) { results in
+            try await tester.checkBuild(runDestination: .macOS, persistent: true) { results in
                 results.checkTask(.matchRuleType("CompileC")) { _ in }
                 results.checkTask(.matchRuleType("ProcessPCH++")) { _ in }
                 results.checkNoDiagnostics()
