@@ -1159,6 +1159,124 @@ fileprivate struct SwiftDriverTests: CoreBasedTests {
         }
     }
 
+    @Test(.requireSDKs(.macOS))
+    func explicitModuleDeduplicationBasics() async throws {
+        try await withTemporaryDirectory { tmpDirPath async throws -> Void in
+            let testWorkspace = try await TestWorkspace(
+                "Test",
+                sourceRoot: tmpDirPath.join("Test"),
+                projects: [
+                    TestProject(
+                        "aProject",
+                        groupTree: TestGroup(
+                            "Sources",
+                            path: "Sources",
+                            children: [
+                                TestFile("fileC.c"),
+                                TestFile("Target0.h"),
+                                TestFile("file1.swift"),
+                                TestFile("file2.swift"),
+                            ]),
+                        buildConfigurations: [
+                            TestBuildConfiguration(
+                                "Debug",
+                                buildSettings: [
+                                    "PRODUCT_NAME": "$(TARGET_NAME)",
+                                    "SWIFT_VERSION": swiftVersion,
+                                    "BUILD_VARIANTS": "normal",
+                                    "SWIFT_ENABLE_EXPLICIT_MODULES": "YES",
+                                    "DEFINES_MODULE": "YES",
+                                    "CLANG_ENABLE_MODULES": "YES"
+                                ])
+                        ],
+                        targets: [
+                            TestStandardTarget(
+                                "Target0",
+                                type: .framework,
+                                buildPhases: [
+                                    TestSourcesBuildPhase([
+                                        "fileC.c",
+                                    ]),
+                                    TestHeadersBuildPhase([
+                                        TestBuildFile("Target0.h", headerVisibility: .public)
+                                    ])
+                                ]),
+                            TestStandardTarget(
+                                "TargetA",
+                                type: .framework,
+                                buildPhases: [
+                                    TestSourcesBuildPhase([
+                                        "file1.swift",
+                                    ]),
+                                ], dependencies: [
+                                    "Target0"
+                                ]),
+                            TestStandardTarget(
+                                "TargetB",
+                                type: .framework,
+                                buildPhases: [
+                                    TestSourcesBuildPhase([
+                                        "file2.swift",
+                                    ]),
+                                ], dependencies: [
+                                    "Target0"
+                                ]),
+                        ])
+                ])
+
+            let tester = try await BuildOperationTester(getCore(), testWorkspace, simulated: false)
+            let parameters = BuildParameters(configuration: "Debug")
+            let buildRequest = BuildRequest(parameters: parameters, buildTargets: tester.workspace.projects[0].targets.map({ BuildRequest.BuildTargetInfo(parameters: parameters, target: $0) }), continueBuildingAfterErrors: false, useParallelTargets: true, useImplicitDependencies: false, useDryRun: false)
+            let SRCROOT = testWorkspace.sourceRoot.join("aProject")
+
+            // Create the source files.
+            try await tester.fs.writeFileContents(SRCROOT.join("Sources/fileC.c")) { file in
+                file <<<
+                            """
+                            int foo() { return 11; }
+                            """
+            }
+            try await tester.fs.writeFileContents(SRCROOT.join("Sources/Target0.h")) { file in
+                file <<<
+                            """
+                            int foo();
+                            """
+            }
+            try await tester.fs.writeFileContents(SRCROOT.join("Sources/file1.swift")) { file in
+                file <<<
+                            """
+                            import Target0
+                            public struct A {
+                                public init() { foo() }
+                            }
+                            """
+            }
+            try await tester.fs.writeFileContents(SRCROOT.join("Sources/file2.swift")) { file in
+                file <<<
+                            """
+                            import Target0
+                            public struct B {
+                                public init() { foo() }
+                            }
+                            """
+            }
+
+            try await tester.checkBuild(runDestination: .macOS, buildRequest: buildRequest, persistent: true) { results in
+                results.checkNoDiagnostics()
+
+                // Identical build variants should be able to share PCMs. We should only have one task to precompile Target0's module.
+                try results.checkTask(.matchRulePattern(["SwiftExplicitDependencyGeneratePcm", .anySequence, .contains("Target0")])) { precompileTarget0Task in
+                    try results.checkTask(.matchRulePattern(["SwiftCompile", "normal", .any, "Compiling file1.swift", .any])) { task in
+                        try results.checkTaskFollows(task, precompileTarget0Task)
+                    }
+                    try results.checkTask(.matchRulePattern(["SwiftCompile", "normal", .any, "Compiling file2.swift", .any])) { task in
+                        try results.checkTaskFollows(task, precompileTarget0Task)
+                    }
+                }
+            }
+        }
+    }
+
     @Test(.requireSDKs(.macOS), .flaky("Occasionally fails in CI due to SwiftExplicitDependencyCompileModuleFromInterface missing from the dependency graph"), .bug("rdar://138085722"), arguments: ["x86_64", "arm64"])
     func explicitBuildWithMultipleProjects(arch: String) async throws {
         try await withTemporaryDirectory { tmpDirPath async throws -> Void in
