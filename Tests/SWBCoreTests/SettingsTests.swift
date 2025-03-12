@@ -1904,15 +1904,14 @@ import SWBMacro
     }
 
     /// Check the behavior of user defined settings, especially w.r.t. quoting rules.
-    @Test(.requireSDKs(.macOS))
+    @Test(.requireSDKs(.host))
     func userDefinedSettings() async throws {
         // Set up a trivial iOS project.
         let testWorkspace = try await TestWorkspace("Workspace",
                                                     projects: [TestProject("aProject",
                                                                            groupTree: TestGroup("SomeFiles", children: []),
                                                                            targets: [
-                                                                            TestStandardTarget("Target1",
-                                                                                               type: .application,
+                                                                            TestStandardTarget("Target1", type: .commandLineTool,
                                                                                                buildConfigurations: [
                                                                                                 TestBuildConfiguration("Debug",
                                                                                                                        buildSettings: [
@@ -1939,16 +1938,14 @@ import SWBMacro
     }
 
     // Test that we correctly normalize path of some special macros.
-    @Test(.requireSDKs(.macOS))
+    @Test(.requireSDKs(.host))
     func macroPathNormalization() async throws {
         let testWorkspace = try await TestWorkspace("Workspace",
                                                     projects: [
                                                         TestProject("aProject",
                                                                     groupTree: TestGroup("SomeFiles", children: []),
                                                                     targets: [
-                                                                        TestStandardTarget("Target1",
-                                                                                           type: .application,
-                                                                                           buildConfigurations: [
+                                                                        TestStandardTarget("Target1", type: .commandLineTool, buildConfigurations: [
                                                                             TestBuildConfiguration("Debug", buildSettings: [
                                                                                 "SYMROOT": "./build",
                                                                                 "DSTROOT": "build/foo/bar/something/../dst",
@@ -1970,8 +1967,8 @@ import SWBMacro
         }
 
         let scope = settings.globalScope
-        #expect(scope.evaluate(BuiltinMacros.SYMROOT) == Path("/tmp/Workspace/aProject/build"))
-        #expect(scope.evaluate(BuiltinMacros.DSTROOT) == Path("/tmp/Workspace/aProject/build/foo/bar/dst"))
+        #expect(scope.evaluate(BuiltinMacros.SYMROOT) == Path.root.join("tmp/Workspace/aProject/build"))
+        #expect(scope.evaluate(BuiltinMacros.DSTROOT) == Path.root.join("tmp/Workspace/aProject/build/foo/bar/dst"))
     }
 
     @Test(.requireSDKs(.tvOS))

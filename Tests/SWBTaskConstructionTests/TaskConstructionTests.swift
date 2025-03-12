@@ -4771,7 +4771,7 @@ fileprivate struct TaskConstructionTests: CoreBasedTests {
     }
 
     /// Check recursive header search paths.
-    @Test(.requireSDKs(.macOS))
+    @Test(.requireSDKs(.host))
     func recursiveHeaderSearchPaths() async throws {
         let testProject = TestProject(
             "aProject",
@@ -4812,26 +4812,29 @@ fileprivate struct TaskConstructionTests: CoreBasedTests {
         try fs.createDirectory(Path(SRCROOT).join("Framework/FooFramework/Bar"), recursive: true)
 
         // Check the build.
-        await tester.checkBuild(runDestination: .macOS, fs: fs) { results in
+        await tester.checkBuild(runDestination: .host, fs: fs) { results in
             results.checkTarget("Tool") { target in
                 results.checkTask(.matchTarget(target), .matchRuleType("CompileC")) { task in
+                    let buildProductsDirSuffix = RunDestinationInfo.host.builtProductsDirSuffix
                     let iQuoteArgs = task.commandLine.enumerated().filter { (i, arg) in
                         (task.commandLine[safe: i - 1]?.asString ?? "") == "-iquote"
                     }.map{ $0.1.asString }
                     let capIArgs = task.commandLine.filter{ $0.asString.hasPrefix("-I") }.map{ $0.asString }
                     let capFArgs = task.commandLine.filter{ $0.asString.hasPrefix("-F") }.map{ $0.asString }
                     #expect(iQuoteArgs == [
-                        "User", "User/FooUser", "User/FooUser/Bar",
-                        "/MissingPath", "OtherMissingPath"])
+                        "User", Path("User/FooUser").str, Path("User/FooUser/Bar").str,
+                        Path("/MissingPath").str, "OtherMissingPath"])
                     #expect(capIArgs == [
-                        "-I\(SRCROOT)/build/Debug/include",
-                        "-ISystem", "-ISystem/FooSystem", "-ISystem/FooSystem/Bar",
-                        "-I\(SRCROOT)/build/aProject.build/Debug/Tool.build/DerivedSources-normal/x86_64",
-                        "-I\(SRCROOT)/build/aProject.build/Debug/Tool.build/DerivedSources/x86_64",
-                        "-I\(SRCROOT)/build/aProject.build/Debug/Tool.build/DerivedSources"])
-                    #expect(capFArgs == [
-                        "-F\(SRCROOT)/build/Debug",
-                        "-FFramework", "-FFramework/FooFramework", "-FFramework/FooFramework/Bar"])
+                        "-I\(Path(SRCROOT).join("build/Debug\(buildProductsDirSuffix)/include").str)",
+                        "-ISystem", "-I\(Path("System/FooSystem").str)", "-I\(Path("System/FooSystem/Bar").str)",
+                        "-I\(Path(SRCROOT).join("build/aProject.build/Debug\(buildProductsDirSuffix)/Tool.build/DerivedSources-normal/\(results.runDestinationTargetArchitecture)").str)",
+                        "-I\(Path(SRCROOT).join("build/aProject.build/Debug\(buildProductsDirSuffix)/Tool.build/DerivedSources/\(results.runDestinationTargetArchitecture)").str)",
+                        "-I\(Path(SRCROOT).join("build/aProject.build/Debug\(buildProductsDirSuffix)/Tool.build/DerivedSources").str)"])
+                    if RunDestinationInfo.host == .macOS {
+                        #expect(capFArgs == [
+                            "-F\(SRCROOT)/build/Debug",
+                            "-FFramework", "-FFramework/FooFramework", "-FFramework/FooFramework/Bar"])
+                    }
                 }
             }
 

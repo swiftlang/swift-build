@@ -52,7 +52,7 @@ extension CoreBasedTests {
         workspaceContext.updateUserPreferences(.defaultForTesting)
 
         // Configure fake user and system info.
-        workspaceContext.updateUserInfo(UserInfo(user: "exampleUser", group: "exampleGroup", uid: 1234, gid:12345, home: Path("/Users/exampleUser"), environment: [:]))
+        workspaceContext.updateUserInfo(UserInfo(user: "exampleUser", group: "exampleGroup", uid: 1234, gid:12345, home: Path.root.join("Users/exampleUser"), environment: [:]))
         workspaceContext.updateSystemInfo(SystemInfo(operatingSystemVersion: Version(99, 98, 97), productBuildVersion: "99A98", nativeArchitecture: "x86_64"))
 
         let buildRequestContext = BuildRequestContext(workspaceContext: workspaceContext)
