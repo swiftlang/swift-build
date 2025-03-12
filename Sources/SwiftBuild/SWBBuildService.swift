@@ -196,7 +196,7 @@ public final class SWBBuildService: Sendable {
 
     // ABI compatibility
     public func createSession(name: String, developerPath: String? = nil, cachePath: String?, inferiorProductsPath: String?, environment: [String:String]?) async -> (Result<SWBBuildServiceSession, any Error>, [SwiftBuildMessage.DiagnosticInfo]) {
-        await createSession(name: name, resourceSearchPaths: [], cachePath: cachePath, inferiorProductsPath: inferiorProductsPath, environment: environment)
+        await createSession(name: name, developerPath: developerPath, resourceSearchPaths: [], cachePath: cachePath, inferiorProductsPath: inferiorProductsPath, environment: environment)
     }
 
     /// Create a new service session.
