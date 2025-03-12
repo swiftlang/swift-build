@@ -54,15 +54,12 @@ private struct GlobalExplicitDependencyTracker {
     /// The collection of *all* explicit module dependency build jobs found so far
     fileprivate private(set) var plannedExplicitDependencyJobs: [LibSwiftDriver.PlannedBuild.PlannedSwiftDriverJob] = []
 
-    /// Next unique job ID in the `uniqueIndexMap`
-    private var nextIndex: Int = 0
-
     mutating func addExplicitDependencyBuildJobs(_ jobs: [SwiftDriverJob], workingDirectory: Path,
                                                  producerMap: inout [Path: LibSwiftDriver.JobKey]) throws -> Set<LibSwiftDriver.JobKey> {
         // Filter out "new" unique jobs and populate the `producerMap`
         var jobKeys: Set<LibSwiftDriver.JobKey> = []
-        var jobKeyIndices: [(Int, LibSwiftDriver.JobIndex)] = []
-        for (index, job) in jobs.enumerated() {
+        var jobsWithIndices: [(SwiftDriverJob, LibSwiftDriver.JobIndex)] = []
+        for job in jobs {
             guard case let .explicitModule(uniqueID) = job.kind else {
                 throw StubError.error("Unexpected job in explicit module builds: \(job.descriptionForLifecycle).")
             }
@@ -71,16 +68,14 @@ private struct GlobalExplicitDependencyTracker {
                 trackerIndex = existingIndex
                 jobKeys.insert(LibSwiftDriver.JobKey.explicitDependencyJob(trackerIndex))
             } else {
-                trackerIndex = nextIndex
-                nextIndex = nextIndex + 1
-                jobKeyIndices.append((index, trackerIndex))
+                trackerIndex = plannedExplicitDependencyJobs.endIndex + jobsWithIndices.count
+                jobsWithIndices.append((job, trackerIndex))
             }
             try LibSwiftDriver.PlannedBuild.addProducts(of: job, index: .explicitDependencyJob(trackerIndex), knownJobs: [], to: &producerMap)
         }
 
         // Once the producerMap has been populated, create the actual PlannedDriverJobs
-        for (jobIndex, trackerIndex) in jobKeyIndices {
-            let job = jobs[jobIndex]
+        for (job, trackerIndex) in jobsWithIndices {
             guard case let .explicitModule(uniqueID) = job.kind else {
                 throw StubError.error("Unexpected job in explicit module builds: \(job.descriptionForLifecycle).")
             }
@@ -88,15 +83,28 @@ private struct GlobalExplicitDependencyTracker {
             let inputs = job.inputs.compactMap { producerMap[$0] }
             let dependencies = Set(inputs).sorted()
             let plannedJob = LibSwiftDriver.PlannedBuild.PlannedSwiftDriverJob(key: jobKey, driverJob: job, dependencies: dependencies, workingDirectory: workingDirectory)
+            assert(trackerIndex == plannedExplicitDependencyJobs.endIndex)
             plannedExplicitDependencyJobs.append(plannedJob)
             uniqueIndexMap[uniqueID] = trackerIndex
             jobKeys.insert(jobKey)
         }
+
+        assert(jobKeys.count == jobs.count)
         return jobKeys
     }
 
     func getExplicitDependencyBuildJobs(for keys: [LibSwiftDriver.JobKey]) -> [LibSwiftDriver.PlannedBuild.PlannedSwiftDriverJob] {
-        plannedExplicitDependencyJobs.enumerated().filter { keys.contains(.explicitDependencyJob($0.offset)) }.map { $0.element }
+        var jobs: [LibSwiftDriver.PlannedBuild.PlannedSwiftDriverJob] = []
+        for key in keys {
+            guard case .explicitDependencyJob(let index) = key else {
+                assertionFailure("Unexpectedly found a regular job in 'plannedExplicitDependencyJobs'")
+                continue
+            }
+            let job = plannedExplicitDependencyJobs[index]
+            assert(job.key == key)
+            jobs.append(job)
+        }
+        return jobs
     }
 
     public func plannedExplicitDependencyBuildJob(for key: LibSwiftDriver.JobKey) -> LibSwiftDriver.PlannedBuild.PlannedSwiftDriverJob? {
