@@ -3003,7 +3003,7 @@ import SWBMacro
             let expected = settings.globalScope.evaluate(expectedMacro)
             #expect(actual == expected)
             if !expected {
-                // We do not currently emit any reasons for diabling in the notes.
+                // We do not currently emit any reasons for disabling in the notes.
                 #expect(settings.notes == [])
             }
             else {
