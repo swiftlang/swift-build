@@ -19,7 +19,8 @@ import SWBTestSupport
 import SWBUtil
 
 @Suite(.skipHostOS(.windows, "Windows platform has no CAS support yet"),
-       .requireCompilationCaching, .requireDependencyScannerPlusCaching)
+       .requireCompilationCaching, .requireDependencyScannerPlusCaching,
+       .flaky("A handful of Swift Build CAS tests fail when running the entire test suite"), .bug("rdar://146781403"))
 fileprivate struct ClangCompilationCachingTests: CoreBasedTests {
     let canUseCASPlugin: Bool
     let canUseCASPruning: Bool
