@@ -76,22 +76,9 @@ extension Environment {
 // MARK: - Global Environment
 
 extension Environment {
-    fileprivate static let _cachedCurrent = SWBMutex<Self?>(nil)
-
     /// Vends a copy of the current process's environment variables.
-    ///
-    /// Mutations to the current process's global environment are not reflected
-    /// in the returned value.
     public static var current: Self {
-        Self._cachedCurrent.withLock { cachedValue in
-            if let cachedValue = cachedValue {
-                return cachedValue
-            } else {
-                let current = Self(ProcessInfo.processInfo.environment)
-                cachedValue = current
-                return current
-            }
-        }
+        Self(ProcessInfo.processInfo.cleanEnvironment)
     }
 }
 
@@ -162,3 +149,34 @@ extension Environment: Decodable {
 }
 
 extension Environment: Sendable {}
+
+extension Environment {
+    public func filter(_ isIncluded: @escaping (Dictionary<EnvironmentKey, String>.Element) throws -> Bool) rethrows -> Environment {
+        try Environment(storage: storage.filter(isIncluded))
+    }
+
+    public func filter<KeyCollection: Collection>(keys: KeyCollection) -> Environment where KeyCollection.Element == EnvironmentKey {
+        return filter { key, _ in keys.contains(key) }
+    }
+
+    public mutating func addContents(of other: Environment) {
+        storage.addContents(of: other.storage)
+    }
+
+    public func addingContents(of other: Environment) -> Environment {
+        var env = self
+        env.addContents(of: other)
+        return env
+    }
+
+    public mutating func addContents(of other: [EnvironmentKey: String]) {
+        storage.addContents(of: other)
+    }
+
+    public func addingContents(of other: [EnvironmentKey: String]) -> Environment {
+        var env = self
+        env.addContents(of: other)
+        return env
+    }
+
+}

@@ -33,8 +33,8 @@ public final class StackedSearchPath: Sendable {
         self.fs = fs
     }
 
-    public init(environment: [String: String], fs: any FSProxy) {
-        self.paths = environment["PATH"]?.split(separator: Path.pathEnvironmentSeparator).map(Path.init) ?? []
+    public init(environment: Environment, fs: any FSProxy) {
+        self.paths = environment[.path]?.split(separator: Path.pathEnvironmentSeparator).map(Path.init) ?? []
         self.fs = fs
     }
 

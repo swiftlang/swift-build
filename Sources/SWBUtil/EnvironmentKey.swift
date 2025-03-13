@@ -25,6 +25,10 @@ extension EnvironmentKey {
     package static let path: Self = "PATH"
 }
 
+extension EnvironmentKey {
+    package static let developerDir: Self = "DEVELOPER_DIR"
+}
+
 extension EnvironmentKey: CodingKeyRepresentable {}
 
 extension EnvironmentKey: Comparable {

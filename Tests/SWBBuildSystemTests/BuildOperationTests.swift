@@ -144,11 +144,11 @@ fileprivate struct BuildOperationTests: CoreBasedTests {
                 results.checkNoErrors()
 
                 let toolchain = try #require(core.toolchainRegistry.defaultToolchain)
-                let environment: [String: String]
+                let environment: Environment
                 if destination.imageFormat(core) == .elf {
                     environment = ["LD_LIBRARY_PATH": toolchain.path.join("usr/lib/swift/\(destination.platform)").str]
                 } else {
-                    environment = [:]
+                    environment = .init()
                 }
 
                 let executionResult = try await Process.getOutput(url: URL(fileURLWithPath: projectDir.join("build").join("Debug\(destination.builtProductsDirSuffix)").join(core.hostOperatingSystem.imageFormat.executableName(basename: "tool")).str), arguments: [], environment: environment)
@@ -377,11 +377,11 @@ fileprivate struct BuildOperationTests: CoreBasedTests {
                 }
 
                 let toolchain = try #require(try await getCore().toolchainRegistry.defaultToolchain)
-                let environment: [String: String]
+                let environment: Environment
                 if destination.platform == "linux" {
                     environment = ["LD_LIBRARY_PATH": toolchain.path.join("usr/lib/swift/linux").str]
                 } else {
-                    environment = [:]
+                    environment = .init()
                 }
 
                 let executionResult = try await Process.getOutput(url: URL(fileURLWithPath: projectDir.join("build").join("Debug\(destination.builtProductsDirSuffix)").join(core.hostOperatingSystem.imageFormat.executableName(basename: "tool")).str), arguments: [], environment: environment)

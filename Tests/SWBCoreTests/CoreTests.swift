@@ -303,7 +303,7 @@ import Foundation
         }
     }
 
-    @Test(.skipIfEnvironmentVariableSet(key: "EXTERNAL_TOOLCHAINS_DIR"))
+    @Test(.skipIfEnvironmentVariableSet(key: .externalToolchainsDir))
     func externalToolchainsDir() async throws {
         try await withTemporaryDirectory { tmpDir in
             let originalToolchain = try await toolchainPathsCount()
@@ -352,13 +352,13 @@ import Foundation
     }
 
     func testExternalToolchainPath(withSetEnv externalToolchainPathsString: String?, expecting expectedPathStrings: [String], _ originalToolchainCount: Int) async throws {
-        var env = ProcessInfo.processInfo.environment.filter { $0.key != "EXTERNAL_TOOLCHAINS_DIR" }
+        var env = Environment.current.filter { $0.key != .externalToolchainsDir }
         if let externalToolchainPathsString {
-            env["EXTERNAL_TOOLCHAINS_DIR"] = externalToolchainPathsString
+            env[.externalToolchainsDir] = externalToolchainPathsString
         }
 
         try await withEnvironment(env, clean: true) {
-            #expect(getEnvironmentVariable("EXTERNAL_TOOLCHAINS_DIR") == externalToolchainPathsString)
+            #expect(getEnvironmentVariable(.externalToolchainsDir) == externalToolchainPathsString)
 
             try await testExternalToolchainPath(environmentOverrides: [:], expecting: expectedPathStrings, originalToolchainCount)
         }

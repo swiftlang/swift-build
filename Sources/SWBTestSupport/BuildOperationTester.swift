@@ -1918,7 +1918,7 @@ private final class BuildOperationTesterDelegate: BuildOperationDelegate {
                     if !self.hadErrors {
                         switch result {
                         case let .exit(exitStatus, _) where !exitStatus.isSuccess && !exitStatus.wasCanceled:
-                            self.delegate.events.append(.buildHadDiagnostic(Diagnostic(behavior: .error, location: .unknown, data: DiagnosticData("Command \(task.ruleInfo[0]) failed. \(RunProcessNonZeroExitError(args: Array(task.commandLineAsStrings), workingDirectory: task.workingDirectory.str, environment: task.environment.bindingsDictionary, status: exitStatus, mergedOutput: output).description)"))))
+                            self.delegate.events.append(.buildHadDiagnostic(Diagnostic(behavior: .error, location: .unknown, data: DiagnosticData("Command \(task.ruleInfo[0]) failed. \(RunProcessNonZeroExitError(args: Array(task.commandLineAsStrings), workingDirectory: task.workingDirectory.str, environment: .init(task.environment.bindingsDictionary), status: exitStatus, mergedOutput: output).description)"))))
                         case .failedSetup:
                             self.delegate.events.append(.buildHadDiagnostic(Diagnostic(behavior: .error, location: .unknown, data: DiagnosticData("Command \(task.ruleInfo[0]) failed setup."))))
                         case .exit, .skipped:

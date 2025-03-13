@@ -80,21 +80,21 @@ final class CLIConnection {
         }
     }
 
-    static var environment: [String: String] {
-        var env = ProcessInfo.processInfo.environment.filter(keys: [
+    static var environment: Environment {
+        var env = Environment.current.filter(keys: [
             "PATH", // important to allow swift to be looked up in PATH on Windows/Linux
             "DEVELOPER_DIR",
             "DYLD_FRAMEWORK_PATH",
             "DYLD_LIBRARY_PATH",
             "LLVM_PROFILE_FILE",
             "MallocNanoZone"
-        ]).addingContents(of: [
+        ]).addingContents(of: Environment([
             // Prevent locally-enabled MSL from failing several tests because MSL prints messages to standard output streams.
             "EnableMallocStackLoggingLiteOnStart": "0"
-        ])
+        ]))
         // For Windows when running in an IDE like VS Code
-        if env["PATH"] == nil, let swiftRuntimePath = try? swiftRuntimePath() {
-            env["PATH"] = swiftRuntimePath.str
+        if env[.path] == nil, let swiftRuntimePath = try? swiftRuntimePath() {
+            env[.path] = swiftRuntimePath.str
         }
         // Required to be set for Process.run to function
         if env["SystemRoot"] == nil, let systemRoot = try? systemRoot() {
@@ -128,7 +128,7 @@ final class CLIConnection {
         task.standardInput = sessionHandle
         task.standardOutput = sessionHandle
         task.standardError = sessionHandle
-        task.environment = Self.environment
+        task.environment = .init(Self.environment)
         do {
             exitPromise = try task.launch()
         } catch {

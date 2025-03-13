@@ -525,7 +525,7 @@ public final class EmbedSwiftStdLibTaskAction: TaskAction {
             }
 
             guard !failed else {
-                throw RunProcessNonZeroExitError(args: args, workingDirectory: task.workingDirectory.str, environment: effectiveEnvironment, status: {
+                throw RunProcessNonZeroExitError(args: args, workingDirectory: task.workingDirectory.str, environment: .init(effectiveEnvironment), status: {
                     if case let .exit(exitStatus, _) = processDelegate.outputDelegate.result {
                         return exitStatus
                     }

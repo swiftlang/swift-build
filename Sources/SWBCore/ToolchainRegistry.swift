@@ -472,7 +472,7 @@ public final class ToolchainRegistry: @unchecked Sendable {
             return
         }
 
-        if let swift = StackedSearchPath(environment: ProcessInfo.processInfo.cleanEnvironment, fs: fs).lookup(Path("swift")), fs.exists(swift) {
+        if let swift = StackedSearchPath(environment: .current, fs: fs).lookup(Path("swift")), fs.exists(swift) {
             let hasUsrBin = swift.normalize().str.hasSuffix("/usr/bin/swift")
             let hasUsrLocalBin = swift.normalize().str.hasSuffix("/usr/local/bin/swift")
             let path: Path

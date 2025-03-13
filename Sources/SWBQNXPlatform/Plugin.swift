@@ -46,7 +46,7 @@ struct QNXEnvironmentExtension: EnvironmentExtension {
 
     func additionalEnvironmentVariables(context: any EnvironmentExtensionAdditionalEnvironmentVariablesContext) async throws -> [String : String] {
         if let latest = try await plugin.cachedQNXSDPInstallations(host: context.hostOperatingSystem).first {
-            return latest.environment
+            return .init(latest.environment)
         }
         return [:]
     }

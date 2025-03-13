@@ -214,10 +214,10 @@ package final class CleanOperation: BuildSystemOperation, TargetDependencyResolv
         let taskIdentifier = task.identifier
         let taskOutputDelegate = delegate.taskStarted(self, taskIdentifier: taskIdentifier, task: task, dependencyInfo: nil)
 
-        let resolvedExecutable = StackedSearchPath(environment: environment, fs: workspaceContext.fs).lookup(Path(executable)) ?? Path(executable)
+        let resolvedExecutable = StackedSearchPath(environment: .init(environment), fs: workspaceContext.fs).lookup(Path(executable)) ?? Path(executable)
 
         do {
-            let result = try await Process.getMergedOutput(url: URL(fileURLWithPath: resolvedExecutable.str), arguments: arguments, currentDirectoryURL: URL(fileURLWithPath: workingDirectory.str), environment: environment)
+            let result = try await Process.getMergedOutput(url: URL(fileURLWithPath: resolvedExecutable.str), arguments: arguments, currentDirectoryURL: URL(fileURLWithPath: workingDirectory.str), environment: .init(environment))
 
             if !result.exitStatus.isSuccess {
                 taskOutputDelegate.emitError("Failed to clean target '\(configuredTarget.target.name)': \(String(decoding: result.output, as: UTF8.self))")

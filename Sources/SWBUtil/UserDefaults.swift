@@ -361,7 +361,7 @@ public let xcodeUserDefaultsToExportToSwiftBuild = [
 
 /// Global function which exports the supplied user default key, if present in the standard UserDefaults, to the process environment if it has not already been set.
 public func exportUserDefaultToEnvironment(_ key: String) {
-    if let _ = getEnvironmentVariable(key) {
+    if let _ = getEnvironmentVariable(EnvironmentKey(key)) {
         // do not override existing environment variable
         return
     }

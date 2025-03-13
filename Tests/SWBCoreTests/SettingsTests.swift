@@ -2042,7 +2042,7 @@ import SWBMacro
     func toolchainBuildSettings() async throws {
         let fs = localFS
         try await withTemporaryDirectory(fs: fs) { toolchainsDir in
-            try await withEnvironment(["EXTERNAL_TOOLCHAINS_DIR": toolchainsDir.str]) {
+            try await withEnvironment([.externalToolchainsDir: toolchainsDir.str]) {
                 // Add in our custom toolchain.
                 try fs.createDirectory(toolchainsDir.join("org.swift.testoss.xctoolchain"), recursive: true)
                 try await fs.writePlist(toolchainsDir.join("org.swift.testoss.xctoolchain").join("Info.plist"), .plDict([

@@ -157,7 +157,7 @@ import SWBTestSupport
     }
 
     /// Test that default and overriding build settings defined in a toolchain are exported.
-    @Test(.requireHostOS(.macOS), .skipIfEnvironmentVariableSet(key: "EXTERNAL_TOOLCHAINS_DIR"))
+    @Test(.requireHostOS(.macOS), .skipIfEnvironmentVariableSet(key: .externalToolchainsDir))
     func exportingToolchainSettings() async throws {
         try await withTemporaryDirectory { tmpDirPath in
             // Toolchains are only loaded from the localFS, so we can't use a PseudoFS here.
@@ -178,8 +178,8 @@ import SWBTestSupport
             ])
 
             // Configure the test data.
-            let environment = ["EXTERNAL_TOOLCHAINS_DIR": toolchainDirPath.str]
-            let core = try await Self.makeCore(environment: environment)
+            let environment: Environment = [.externalToolchainsDir: toolchainDirPath.str]
+            let core = try await Self.makeCore(environment: .init(environment))
             let testWorkspace = try TestWorkspace(
                 "Workspace",
                 projects: [TestProject(
@@ -201,7 +201,7 @@ import SWBTestSupport
                         )
                     ])
                 ]).load(core)
-            let context = try await contextForTestData(testWorkspace, core: core, environment: environment)
+            let context = try await contextForTestData(testWorkspace, core: core, environment: .init(environment))
             let buildRequestContext = BuildRequestContext(workspaceContext: context)
             let testProject = context.workspace.projects[0]
             let testTarget = testProject.targets[0]

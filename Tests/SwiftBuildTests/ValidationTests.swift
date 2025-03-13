@@ -24,7 +24,7 @@ fileprivate struct ValidationTests: CoreBasedTests {
         let url = URL(fileURLWithPath: testPath.str)
 
         // Propagate a standard environment.
-        var environment: [String: String] = ProcessInfo.processInfo.environment.filter(keys: ["HOME", "PATH", "SDKROOT", "TOOLCHAINS", "DEVELOPER_DIR", "LLVM_PROFILE_FILE", "DYLD_FRAMEWORK_PATH", "DYLD_LIBRARY_PATH", "CI"])
+        var environment: Environment = .current.filter(keys: ["HOME", "PATH", "SDKROOT", "TOOLCHAINS", "DEVELOPER_DIR", "LLVM_PROFILE_FILE", "DYLD_FRAMEWORK_PATH", "DYLD_LIBRARY_PATH", "CI"])
 
         // If llbuild hasn't been build there are two scenarios:
         //     - in Debug it will link against the one in build products dir

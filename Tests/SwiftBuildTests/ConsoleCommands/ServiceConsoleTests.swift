@@ -26,7 +26,7 @@ fileprivate struct ServiceConsoleTests {
         // Test against a non-pty.
         let task = SWBUtil.Process()
         task.executableURL = try CLIConnection.swiftbuildToolURL
-        task.environment = CLIConnection.environment
+        task.environment = .init(CLIConnection.environment)
 
         task.standardInput = FileHandle.nullDevice
         try await withExtendedLifetime(Pipe()) { outputPipe in
