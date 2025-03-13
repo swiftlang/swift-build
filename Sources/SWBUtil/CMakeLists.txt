@@ -34,6 +34,8 @@ add_library(SWBUtil
   ElapsedTimer.swift
   EmptyState.swift
   Environment.swift
+  EnvironmentKey.swift
+  EnvironmentHelpers.swift
   Error.swift
   FileHandle+Async.swift
   FilesSignature.swift
