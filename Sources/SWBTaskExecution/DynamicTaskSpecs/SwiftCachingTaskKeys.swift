@@ -15,19 +15,19 @@ public import SWBUtil
 
 public struct SwiftCachingKeyQueryTaskKey: Serializable, CustomDebugStringConvertible {
     let casOptions: CASOptions
-    let cacheKey: String
+    let cacheKeys: [String]
     let compilerLocation: LibSwiftDriver.CompilerLocation
 
-    init(casOptions: CASOptions, cacheKey: String, compilerLocation: LibSwiftDriver.CompilerLocation) {
+    init(casOptions: CASOptions, cacheKeys: [String], compilerLocation: LibSwiftDriver.CompilerLocation) {
         self.casOptions = casOptions
-        self.cacheKey = cacheKey
+        self.cacheKeys = cacheKeys
         self.compilerLocation = compilerLocation
     }
 
     public func serialize<T>(to serializer: T) where T : Serializer {
         serializer.serializeAggregate(3) {
             serializer.serialize(casOptions)
-            serializer.serialize(cacheKey)
+            serializer.serialize(cacheKeys)
             serializer.serialize(compilerLocation)
         }
     }
@@ -35,12 +35,12 @@ public struct SwiftCachingKeyQueryTaskKey: Serializable, CustomDebugStringConver
     public init(from deserializer: any Deserializer) throws {
         try deserializer.beginAggregate(3)
         casOptions = try deserializer.deserialize()
-        cacheKey = try deserializer.deserialize()
+        cacheKeys = try deserializer.deserialize()
         compilerLocation = try deserializer.deserialize()
     }
 
     public var debugDescription: String {
-        "<SwiftCachingKeyQuery casOptions=\(casOptions) cacheKey=\(cacheKey) compilerLocation=\(compilerLocation)>"
+        "<SwiftCachingKeyQuery casOptions=\(casOptions) cacheKey=\(cacheKeys) compilerLocation=\(compilerLocation)>"
     }
 }
 

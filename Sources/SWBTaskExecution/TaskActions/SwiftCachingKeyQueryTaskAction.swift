@@ -45,9 +45,15 @@ public final class SwiftCachingKeyQueryTaskAction: TaskAction {
 
             do {
                 // Request global query to get maximum search space that the database supports
-                let cacheHit = try await cas.queryCacheKey(key.cacheKey, globally: true) != nil
-                if key.casOptions.enableDiagnosticRemarks {
-                    outputDelegate.remark("cache key query \(cacheHit ? "hit" : "miss")")
+                for cacheKey in key.cacheKeys {
+                    let cacheHit = try await cas.queryCacheKey(cacheKey, globally: true) != nil
+                    if key.casOptions.enableDiagnosticRemarks {
+                        outputDelegate.remark("cache key query \(cacheHit ? "hit" : "miss")")
+                    }
+                    guard cacheHit else {
+                        // return on first failure.
+                        return .succeeded
+                    }
                 }
             } catch {
                 guard !key.casOptions.enableStrictCASErrors else { throw error }

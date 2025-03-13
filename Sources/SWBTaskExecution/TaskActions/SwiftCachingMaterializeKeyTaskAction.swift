@@ -41,7 +41,7 @@ public final class SwiftCachingMaterializeKeyTaskAction: TaskAction {
         /// The action is in its initial state, and has not yet performed any work.
         case initial
         /// Waiting for the caching key query to finish.
-        case waitingForKeyQuery(jobTaskIDBase: UInt, cas: SwiftCASDatabases, key: String)
+        case waitingForKeyQuery(jobTaskIDBase: UInt, cas: SwiftCASDatabases, keys: [String])
         /// Waiting for the outputs to finish downloading.
         case waitingForOutputDownloads
         /// Not waiting for any other dependency
@@ -69,22 +69,22 @@ public final class SwiftCachingMaterializeKeyTaskAction: TaskAction {
             guard let cas = try swiftModuleDependencyGraph.getCASDatabases(casOptions: taskKey.casOptions, compilerLocation: taskKey.compilerLocation) else {
                 throw StubError.error("unable to use CAS databases")
             }
-            let jobTaskIDBase: UInt = 0
-            if let cachedComp = try cas.queryLocalCacheKey(taskKey.cacheKey) {
-                if try requestCompilationOutputs(cachedComp,
-                                                 dynamicExecutionDelegate: dynamicExecutionDelegate,
-                                                 cacheKey: taskKey.cacheKey,
-                                                 jobTaskIDBase: jobTaskIDBase) != 0 {
-                    state = .waitingForOutputDownloads
+            var missingKeys: [String] = []
+            var compOutputs: [SwiftCachedCompilation] = []
+            try taskKey.cacheKeys.forEach { key in
+                if let output = try cas.queryLocalCacheKey(key) {
+                    compOutputs.append(output)
                 } else {
-                    state = .done
+                    missingKeys.append(key)
                 }
-            } else {
-                let key = SwiftCachingKeyQueryTaskKey(casOptions: taskKey.casOptions, cacheKey: taskKey.cacheKey, compilerLocation: taskKey.compilerLocation)
+            }
+
+            if !missingKeys.isEmpty {
+                let key = SwiftCachingKeyQueryTaskKey(casOptions: taskKey.casOptions, cacheKeys: missingKeys, compilerLocation: taskKey.compilerLocation)
                 dynamicExecutionDelegate.requestDynamicTask(
                     toolIdentifier: SwiftCachingKeyQueryTaskAction.toolIdentifier,
                     taskKey: .swiftCachingKeyQuery(key),
-                    taskID: jobTaskIDBase,
+                    taskID: 0,
                     singleUse: true,
                     workingDirectory: Path(""),
                     environment: .init(),
@@ -93,7 +93,15 @@ public final class SwiftCachingMaterializeKeyTaskAction: TaskAction {
                     showEnvironment: false,
                     reason: .wasCompilationCachingQuery
                 )
-                state = .waitingForKeyQuery(jobTaskIDBase: jobTaskIDBase + 1, cas: cas, key: taskKey.cacheKey)
+                state = .waitingForKeyQuery(jobTaskIDBase: 1, cas: cas, keys: taskKey.cacheKeys)
+            } else {
+                if try requestCompilationOutputs(compOutputs,
+                                                 dynamicExecutionDelegate: dynamicExecutionDelegate,
+                                                 jobTaskIDBase: 1) != 0 {
+                    state = .waitingForOutputDownloads
+                } else {
+                    state = .done
+                }
             }
         } catch {
             state = .executionError(error)
@@ -111,15 +119,17 @@ public final class SwiftCachingMaterializeKeyTaskAction: TaskAction {
         switch state {
         case .initial:
             state = .executionError(StubError.error("taskDependencyReady unexpectedly called in initial state"))
-        case .waitingForKeyQuery(jobTaskIDBase: let jobTaskIDBase, cas: let cas, key: let key):
+        case .waitingForKeyQuery(jobTaskIDBase: let jobTaskIDBase, cas: let cas, keys: let keys):
             do {
-                guard let cachedComp = try cas.queryLocalCacheKey(key) else {
+                let cachedComps = try keys.compactMap {
+                    try cas.queryLocalCacheKey($0)
+                }
+                guard cachedComps.count == keys.count else {
                     state = .done
                     return // compilation key not found.
                 }
-                if try requestCompilationOutputs(cachedComp,
+                if try requestCompilationOutputs(cachedComps,
                                                  dynamicExecutionDelegate: dynamicExecutionDelegate,
-                                                 cacheKey: key,
                                                  jobTaskIDBase: jobTaskIDBase) != 0 {
                     state = .waitingForOutputDownloads
                 } else {
@@ -139,32 +149,33 @@ public final class SwiftCachingMaterializeKeyTaskAction: TaskAction {
     }
 
     private func requestCompilationOutputs(
-        _ cachedComp: SwiftCachedCompilation,
+        _ cachedComps: [SwiftCachedCompilation],
         dynamicExecutionDelegate: any DynamicTaskExecutionDelegate,
-        cacheKey: String,
         jobTaskIDBase: UInt
     ) throws -> UInt {
-        let requested = try cachedComp.getOutputs().reduce(into: UInt(0)) { (numRequested, output) in
-            if output.isMaterialized { return }
-            let outputMaterializeKey = SwiftCachingOutputMaterializerTaskKey(casOptions: taskKey.casOptions,
-                                                                             casID: output.casID,
-                                                                             outputKind: output.kindName,
-                                                                             compilerLocation: taskKey.compilerLocation)
-            dynamicExecutionDelegate.requestDynamicTask(
-                toolIdentifier: SwiftCachingOutputMaterializerTaskAction.toolIdentifier,
-                taskKey: .swiftCachingOutputMaterializer(outputMaterializeKey),
-                taskID: jobTaskIDBase + numRequested,
-                singleUse: true,
-                workingDirectory: Path(""),
-                environment: .init(),
-                forTarget: nil,
-                priority: .network,
-                showEnvironment: false,
-                reason: .wasCompilationCachingQuery
-            )
-            numRequested += 1
+        let numRequested = try cachedComps.reduce(into: UInt(0)) { (numRequested, cachedComp) in
+            try cachedComp.getOutputs().forEach { output in
+                if output.isMaterialized { return }
+                let outputMaterializeKey = SwiftCachingOutputMaterializerTaskKey(casOptions: taskKey.casOptions,
+                                                                                 casID: output.casID,
+                                                                                 outputKind: output.kindName,
+                                                                                 compilerLocation: taskKey.compilerLocation)
+                dynamicExecutionDelegate.requestDynamicTask(
+                    toolIdentifier: SwiftCachingOutputMaterializerTaskAction.toolIdentifier,
+                    taskKey: .swiftCachingOutputMaterializer(outputMaterializeKey),
+                    taskID: jobTaskIDBase + numRequested,
+                    singleUse: true,
+                    workingDirectory: Path(""),
+                    environment: .init(),
+                    forTarget: nil,
+                    priority: .network,
+                    showEnvironment: false,
+                    reason: .wasCompilationCachingQuery
+                )
+                numRequested += 1
+            }
         }
-        return requested
+        return numRequested
     }
 
     public override func performTaskAction(
