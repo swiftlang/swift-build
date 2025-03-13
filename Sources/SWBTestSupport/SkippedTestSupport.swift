@@ -215,13 +215,13 @@ extension Trait where Self == Testing.ConditionTrait {
         }
     }
 
-    package static func skipIfEnvironment(key: String, value: String) -> Self {
+    package static func skipIfEnvironment(key: EnvironmentKey, value: String) -> Self {
         disabled("environment sets '\(key)' to '\(value)'") {
             getEnvironmentVariable(key) == value
         }
     }
 
-    package static func skipIfEnvironmentVariableSet(key: String) -> Self {
+    package static func skipIfEnvironmentVariableSet(key: EnvironmentKey) -> Self {
         disabled("environment sets '\(key)'") {
             getEnvironmentVariable(key) != nil
         }

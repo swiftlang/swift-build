@@ -1390,7 +1390,7 @@ open class CommandLineToolSpec : PropertyDomainSpec, SpecType, TaskTypeDescripti
     public func executeExternalTool<T>(_ cbc: CommandBuildContext, _ delegate: any TaskGenerationDelegate, commandLine: [String], workingDirectory: String?, environment: [String: String], executionDescription: String?, _ parse: @escaping (ByteString) throws -> T) async throws -> T {
         let executionResult = try await delegate.executeExternalTool(commandLine: commandLine, workingDirectory: workingDirectory, environment: environment, executionDescription: executionDescription)
         guard executionResult.exitStatus.isSuccess else {
-            throw RunProcessNonZeroExitError(args: commandLine, workingDirectory: workingDirectory, environment: environment, status: executionResult.exitStatus, stdout: ByteString(executionResult.stdout), stderr: ByteString(executionResult.stderr))
+            throw RunProcessNonZeroExitError(args: commandLine, workingDirectory: workingDirectory, environment: .init(environment), status: executionResult.exitStatus, stdout: ByteString(executionResult.stdout), stderr: ByteString(executionResult.stderr))
         }
         return try parse(ByteString(executionResult.stdout))
     }

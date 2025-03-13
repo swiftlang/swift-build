@@ -35,7 +35,7 @@ public struct SWBFeatureFlagProperty {
 
     /// Whether the feature flag is actually set at all.
     public var hasValue: Bool {
-        return SWBUtil.UserDefaults.hasValue(forKey: key) || getEnvironmentVariable(key) != nil
+        return SWBUtil.UserDefaults.hasValue(forKey: key) || getEnvironmentVariable(EnvironmentKey(key)) != nil
     }
 
     /// Indicates whether the feature flag is currently active in the calling environment.
@@ -43,7 +43,7 @@ public struct SWBFeatureFlagProperty {
         if !hasValue {
             return defaultValue
         }
-        return SWBUtil.UserDefaults.bool(forKey: key) || getEnvironmentVariable(key)?.boolValue == true
+        return SWBUtil.UserDefaults.bool(forKey: key) || getEnvironmentVariable(EnvironmentKey(key))?.boolValue == true
     }
 
     fileprivate init(_ key: String, defaultValue: Bool = false) {
@@ -59,7 +59,7 @@ public struct SWBOptionalFeatureFlagProperty {
     /// Returns nil if neither environment variable nor User Default are set.  An implementation can then pick a default behavior.
     /// If both the environment variable and User Default are set, the two values are logically AND'd together; this allows the set false value of either to force the feature flag off.
     public var value: Bool? {
-        let envValue = getEnvironmentVariable(key)
+        let envValue = getEnvironmentVariable(EnvironmentKey(key))
         let envHasValue = envValue != nil
         let defHasValue = SWBUtil.UserDefaults.hasValue(forKey: key)
         if !envHasValue && !defHasValue {

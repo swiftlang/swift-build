@@ -781,7 +781,7 @@ extension CoreClientDelegate {
             }
 
             return try await externalToolExecutionQueue.withOperation {
-                try await Process.getOutput(url: url, arguments: Array(commandLine.dropFirst()), currentDirectoryURL: workingDirectory.map(URL.init(fileURLWithPath:)), environment: ProcessInfo.processInfo.cleanEnvironment.merging(environment, uniquingKeysWith: { _, new in new }))
+                try await Process.getOutput(url: url, arguments: Array(commandLine.dropFirst()), currentDirectoryURL: workingDirectory.map(URL.init(fileURLWithPath:)), environment: Environment.current.addingContents(of: .init(environment)))
             }
         case let .result(status, stdout, stderr):
             return Processes.ExecutionResult(exitStatus: status, stdout: stdout, stderr: stderr)

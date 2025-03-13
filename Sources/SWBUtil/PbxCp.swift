@@ -80,7 +80,7 @@ fileprivate func xSecCodePathIsSigned(_ path: Path) throws -> Bool {
 
 // FIXME: Move this fully to Swift Concurrency and execute the process via llbuild after PbxCp is fully converted to Swift
 /// Spawns a process and waits for it to finish, closing stdin and redirecting stdout and stderr to fdout. Failure to launch, non-zero exit code, or exit with a signal will throw an error.
-fileprivate func spawnTaskAndWait(_ launchPath: Path, _ arguments: [String]?, _ environment: [String: String]?, _ workingDirPath: String?, _ dryRun: Bool, _ stream: OutputByteStream) async throws {
+fileprivate func spawnTaskAndWait(_ launchPath: Path, _ arguments: [String]?, _ environment: Environment?, _ workingDirPath: String?, _ dryRun: Bool, _ stream: OutputByteStream) async throws {
     stream <<< launchPath.str
     for arg in arguments ?? [] {
         stream <<< " \(arg)"
@@ -97,7 +97,7 @@ fileprivate func spawnTaskAndWait(_ launchPath: Path, _ arguments: [String]?, _ 
     stream <<< "\(String(decoding: output, as: UTF8.self))"
 
     if !exitStatus.isSuccess {
-        throw RunProcessNonZeroExitError(args: [launchPath.str] + (arguments ?? []), workingDirectory: workingDirPath, environment: environment ?? [:], status: exitStatus, mergedOutput: ByteString(output))
+        throw RunProcessNonZeroExitError(args: [launchPath.str] + (arguments ?? []), workingDirectory: workingDirPath, environment: environment ?? .init(), status: exitStatus, mergedOutput: ByteString(output))
     }
 }
 

@@ -105,7 +105,7 @@ fileprivate struct ProcessTests {
         #expect(result.exitStatus == .exit(42))
     }
 
-    @Test(.enabled(if: StackedSearchPath(environment: ProcessInfo.processInfo.environment, fs: localFS).lookup(Path("clang")) != nil, "requires clang in PATH"))
+    @Test(.enabled(if: StackedSearchPath(environment: .current, fs: localFS).lookup(Path("clang")) != nil, "requires clang in PATH"))
     func uncaughtSignal() async throws {
         try await withTemporaryDirectory { tmpDir in
             let mainCPath = tmpDir.join("main.c").str

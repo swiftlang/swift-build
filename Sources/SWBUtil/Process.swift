@@ -64,7 +64,7 @@ public typealias Process = Foundation.Process
 #endif
 
 extension Process {
-    public static func getOutput(url: URL, arguments: [String], currentDirectoryURL: URL? = nil, environment: [String: String]? = nil, interruptible: Bool = true) async throws -> Processes.ExecutionResult {
+    public static func getOutput(url: URL, arguments: [String], currentDirectoryURL: URL? = nil, environment: Environment? = nil, interruptible: Bool = true) async throws -> Processes.ExecutionResult {
         if #available(macOS 15, iOS 18, tvOS 18, watchOS 11, visionOS 2, *) {
             // Extend the lifetime of the pipes to avoid file descriptors being closed until the AsyncStream is finished being consumed.
             return try await withExtendedLifetime((Pipe(), Pipe())) { (stdoutPipe, stderrPipe) in
@@ -96,7 +96,7 @@ extension Process {
         }
     }
 
-    public static func getMergedOutput(url: URL, arguments: [String], currentDirectoryURL: URL? = nil, environment: [String: String]? = nil, interruptible: Bool = true) async throws -> (exitStatus: Processes.ExitStatus, output: Data) {
+    public static func getMergedOutput(url: URL, arguments: [String], currentDirectoryURL: URL? = nil, environment: Environment? = nil, interruptible: Bool = true) async throws -> (exitStatus: Processes.ExitStatus, output: Data) {
         if #available(macOS 15, iOS 18, tvOS 18, watchOS 11, visionOS 2, *) {
             // Extend the lifetime of the pipe to avoid file descriptors being closed until the AsyncStream is finished being consumed.
             return try await withExtendedLifetime(Pipe()) { pipe in
@@ -124,7 +124,7 @@ extension Process {
         }
     }
 
-    private static func _getOutput<T, U>(url: URL, arguments: [String], currentDirectoryURL: URL?, environment: [String: String]?, interruptible: Bool, setup: (Process) -> T, collect: (T) async throws -> U) async throws -> (exitStatus: Processes.ExitStatus, output: U) {
+    private static func _getOutput<T, U>(url: URL, arguments: [String], currentDirectoryURL: URL?, environment: Environment?, interruptible: Bool, setup: (Process) -> T, collect: (T) async throws -> U) async throws -> (exitStatus: Processes.ExitStatus, output: U) {
         if !url.isFileURL {
             throw StubError.error("\(url) is not an absolute file URL")
         }
@@ -138,7 +138,7 @@ extension Process {
         if let currentDirectoryURL {
             process.currentDirectoryURL = currentDirectoryURL
         }
-        process.environment = environment
+        process.environment = environment.map { .init($0) } ?? nil
 
         let streams = setup(process)
 
@@ -156,7 +156,7 @@ extension Process {
         return try (.init(process), output)
     }
 
-    public static func run(url: URL, arguments: [String], currentDirectoryURL: URL? = nil, environment: [String: String]? = nil, interruptible: Bool = true) async throws -> Processes.ExitStatus {
+    public static func run(url: URL, arguments: [String], currentDirectoryURL: URL? = nil, environment: Environment? = nil, interruptible: Bool = true) async throws -> Processes.ExitStatus {
         try await getOutput(url: url, arguments: arguments, currentDirectoryURL: currentDirectoryURL, environment: environment, interruptible: interruptible).exitStatus
     }
 }
@@ -303,7 +303,7 @@ extension Processes.ExitStatus: CustomStringConvertible {
 public struct RunProcessNonZeroExitError: Error {
     public let args: [String]
     public let workingDirectory: String?
-    public let environment: [String: String]
+    public let environment: Environment
     public let status: Processes.ExitStatus
 
     public enum Output: Sendable {
@@ -313,15 +313,15 @@ public struct RunProcessNonZeroExitError: Error {
 
     public let output: Output?
 
-    public init(args: [String], workingDirectory: String?, environment: [String: String], status: Processes.ExitStatus, mergedOutput: ByteString) {
+    public init(args: [String], workingDirectory: String?, environment: Environment, status: Processes.ExitStatus, mergedOutput: ByteString) {
         self.init(args: args, workingDirectory: workingDirectory, environment: environment, status: status, output: .merged(mergedOutput))
     }
 
-    public init(args: [String], workingDirectory: String?, environment: [String: String], status: Processes.ExitStatus, stdout: ByteString, stderr: ByteString) {
+    public init(args: [String], workingDirectory: String?, environment: Environment, status: Processes.ExitStatus, stdout: ByteString, stderr: ByteString) {
         self.init(args: args, workingDirectory: workingDirectory, environment: environment, status: status, output: .separate(stdout: stdout, stderr: stderr))
     }
 
-    public init(args: [String], workingDirectory: String?, environment: [String: String], status: Processes.ExitStatus, output: Output) {
+    public init(args: [String], workingDirectory: String?, environment: Environment, status: Processes.ExitStatus, output: Output) {
         self.args = args
         self.workingDirectory = workingDirectory
         self.environment = environment
@@ -332,7 +332,7 @@ public struct RunProcessNonZeroExitError: Error {
     public init?(_ process: Process) throws {
         self.args = ((process.executableURL?.path).map { [$0] } ?? []) + (process.arguments ?? [])
         self.workingDirectory = process.currentDirectoryURL?.path
-        self.environment = process.environment ?? [:]
+        self.environment = process.environment.map { .init($0) } ?? .init()
         self.status = try .init(process)
         self.output = nil
         if self.status.isSuccess {
@@ -345,7 +345,7 @@ extension RunProcessNonZeroExitError: CustomStringConvertible, LocalizedError {
     public var description: String {
         let fullArgs: [String]
         if !environment.isEmpty {
-            fullArgs = ["env"] + environment.sorted(byKey: <).map { key, value in "\(key)=\(value)" } + args
+            fullArgs = ["env"] + [String: String](environment).sorted(byKey: <).map { key, value in "\(key)=\(value)" } + args
         } else {
             fullArgs = args
         }

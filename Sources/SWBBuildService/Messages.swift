@@ -184,7 +184,7 @@ extension SetSessionWorkspaceContainerPathRequest: PIFProvidingRequest {
             try fs.createDirectory(dir, recursive: true)
             let pifPath = dir.join(Foundation.UUID().description + ".json")
             let argument = isProject ? "-project" : "-workspace"
-            let result = try await Process.getOutput(url: URL(fileURLWithPath: "/usr/bin/xcrun"), arguments: ["xcodebuild", "-dumpPIF", pifPath.str, argument, path.str], currentDirectoryURL: URL(fileURLWithPath: containerPath.dirname.str, isDirectory: true), environment: ProcessInfo.processInfo.cleanEnvironment.merging(["DEVELOPER_DIR": session.core.developerPath.str], uniquingKeysWith: { _, new in new }))
+            let result = try await Process.getOutput(url: URL(fileURLWithPath: "/usr/bin/xcrun"), arguments: ["xcodebuild", "-dumpPIF", pifPath.str, argument, path.str], currentDirectoryURL: URL(fileURLWithPath: containerPath.dirname.str, isDirectory: true), environment: Environment.current.addingContents(of: [.developerDir: session.core.developerPath.str]))
             if !result.exitStatus.isSuccess {
                 throw StubError.error("Could not dump PIF for '\(path.str)': \(String(decoding: result.stderr, as: UTF8.self))")
             }

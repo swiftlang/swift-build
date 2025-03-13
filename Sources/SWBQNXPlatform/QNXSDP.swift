@@ -28,11 +28,13 @@ struct QNXSDP: Sendable {
         self.sysroot = sysroot
         self.configurationPath = configurationPath
 
-        let environment = [
+        var environment: Environment = [
             "QNX_TARGET": sysroot.str,
-            "QNX_HOST": hostPath?.str,
             "QNX_CONFIGURATION_EXCLUSIVE": configurationPath.str,
-        ].compactMapValues { $0 }
+        ]
+        if let hostPath {
+            environment["QNX_HOST"] = hostPath.str
+        }
         self.environment = environment
 
         self.version = try await {
@@ -60,7 +62,7 @@ struct QNXSDP: Sendable {
     /// Equivalent to `QNX_HOST`.
     public let hostPath: Path?
 
-    public let environment: [String: String]
+    public let environment: Environment
 
     private static func hostPath(host: OperatingSystem, path: Path) -> Path? {
         switch host {

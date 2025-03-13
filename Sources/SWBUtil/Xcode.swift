@@ -24,7 +24,7 @@ public enum Xcode: Sendable {
             throw StubError.error("\(xcodeSelectPath.str) does not exist")
         }
 
-        let environment = getEnvironmentVariable("DEVELOPER_DIR").map { ["DEVELOPER_DIR": $0] } ?? [:]
+        let environment = Environment.current.filter { $0.key == .developerDir }
         let executionResult = try await Process.getOutput(url: URL(fileURLWithPath: xcodeSelectPath.str), arguments: ["-p"], environment: environment)
         if !executionResult.exitStatus.isSuccess {
             throw RunProcessNonZeroExitError(args: [xcodeSelectPath.str, "-p"], workingDirectory: nil, environment: environment, status: executionResult.exitStatus, stdout: ByteString(executionResult.stdout), stderr: ByteString(executionResult.stderr))

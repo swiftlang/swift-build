@@ -171,7 +171,7 @@ fileprivate struct DriverKitTaskConstructionTests: CoreBasedTests {
 
     @Test(.requireSDKs(.driverKit), arguments: [true, false])
     func driverKitFrameworkInstallHeaders(trace: Bool) async throws {
-        var env = ProcessInfo.processInfo.environment.filter { $0.key != "IIG_TRACE_HEADERS" }
+        var env = Environment.current.filter { $0.key != EnvironmentKey("IIG_TRACE_HEADERS") }
         if trace {
             env["IIG_TRACE_HEADERS"] = "1"
         }
