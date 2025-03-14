@@ -146,7 +146,13 @@ struct WindowsSDKRegistryExtension: SDKRegistryExtension {
                 ].merging(defaultProperties, uniquingKeysWith: { _, new in new })),
                 "SupportedTargets": .plDict([
                     "windows": .plDict([
-                        "Archs": .plArray([.plString("x86_64"), .plString("i686"), .plString("aarch64"), .plString("thumbv7")]),
+                        "Archs": .plArray([
+                            .plString("aarch64"),
+                            .plString("arm64ec"),
+                            .plString("armv7"),
+                            .plString("i686"),
+                            .plString("x86_64"),
+                        ]),
                         "LLVMTargetTripleEnvironment": .plString("msvc"),
                         "LLVMTargetTripleSys": .plString("windows"),
                         "LLVMTargetTripleVendor": .plString("unknown"),
