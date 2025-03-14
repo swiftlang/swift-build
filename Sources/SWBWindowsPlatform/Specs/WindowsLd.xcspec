@@ -53,6 +53,18 @@
                 IsInputDependency = Yes;
             },
             {
+                Name = _LD_MULTIARCH;
+                Type = Boolean;
+                DefaultValue = NO;
+                Condition = "$(ALTERNATE_LINKER) == link";
+            },
+            {
+                Name = _LD_MULTIARCH_PREFIX_MAP;
+                Type = StringList;
+                DefaultValue = "x86_64:x64 aarch64:arm64 i386:x86 thumbv7:arm";
+                Condition = "$(ALTERNATE_LINKER) == link";
+            },
+            {
                 // No such concept
                 Name = LD_DETERMINISTIC_MODE;
                 Type = Boolean;

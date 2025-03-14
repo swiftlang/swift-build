@@ -18,17 +18,35 @@ import Foundation
     let plugin = WindowsPlugin()
     manager.register(WindowsPlatformSpecsExtension(), type: SpecificationsExtensionPoint.self)
     manager.register(WindowsEnvironmentExtension(plugin: plugin), type: EnvironmentExtensionPoint.self)
-    manager.register(WindowsPlatformExtension(), type: PlatformInfoExtensionPoint.self)
+    manager.register(WindowsPlatformExtension(plugin: plugin), type: PlatformInfoExtensionPoint.self)
     manager.register(WindowsSDKRegistryExtension(), type: SDKRegistryExtensionPoint.self)
 }
 
 public final class WindowsPlugin: Sendable {
     private let vsInstallations = AsyncSingleValueCache<[VSInstallation], any Error>()
+    private let latestVsInstalltionDirectory = AsyncSingleValueCache<Path?, any Error>()
 
     public func cachedVSInstallations() async throws -> [VSInstallation] {
         try await vsInstallations.value {
             // Always pass localFS because this will be cached, and executes a process on the host system so there's no reason to pass in any proxy.
             try await VSInstallation.findInstallations(fs: localFS)
+        }
+    }
+
+    func cachedLatestVSInstallDirectory(fs: any FSProxy) async throws -> Path? {
+       try await latestVsInstalltionDirectory.value {
+            let installations = try await cachedVSInstallations()
+            .sorted(by: { $0.installationVersion > $1.installationVersion })
+            if let latest = installations.first {
+                let msvcDir = latest.installationPath.join("VC").join("Tools").join("MSVC")
+                if fs.exists(msvcDir) {
+                    let versions = try fs.listdir(msvcDir).map { try Version($0) }.sorted { $0 > $1 }
+                    if let latestVersion = versions.first {
+                        return msvcDir.join(latestVersion.description)
+                    }
+                }
+            }
+            return nil
         }
     }
 }
@@ -44,26 +62,18 @@ struct WindowsPlatformSpecsExtension: SpecificationsExtension {
 
     @_spi(Testing) public func additionalEnvironmentVariables(context: any EnvironmentExtensionAdditionalEnvironmentVariablesContext) async throws -> [String: String] {
         if context.hostOperatingSystem == .windows {
-            // Add the environment variable for the MSVC toolset for Swift and Clang to find it
             let vcToolsInstallDir = "VCToolsInstallDir"
-            let installations = try await plugin.cachedVSInstallations()
-                .sorted(by: { $0.installationVersion > $1.installationVersion })
-            if let latest = installations.first {
-                let msvcDir = latest.installationPath.join("VC").join("Tools").join("MSVC")
-                if context.fs.exists(msvcDir) {
-                    let versions = try context.fs.listdir(msvcDir).map { try Version($0) }.sorted { $0 > $1 }
-                    if let latestVersion = versions.first {
-                        let dir = msvcDir.join(latestVersion.description).str
-                        return [vcToolsInstallDir: dir]
-                    }
-                }
+            guard let dir = try? await plugin.cachedLatestVSInstallDirectory(fs: context.fs) else {
+                return [:]
             }
+            return [vcToolsInstallDir: dir.str]
         }
         return [:]
     }
 }
 
 struct WindowsPlatformExtension: PlatformInfoExtension {
+    let plugin: WindowsPlugin
     func additionalPlatforms(context: any PlatformInfoExtensionAdditionalPlatformsContext) throws -> [(path: Path, data: [String: PropertyListItem])] {
         let operatingSystem = context.hostOperatingSystem
         guard operatingSystem == .windows else {
@@ -105,6 +115,23 @@ struct WindowsPlatformExtension: PlatformInfoExtension {
         // The WindowsSDKRegistryExtension will handle discovery and registration of the SDK.
         if platformName == "windows" {
             sdkSearchPaths = []
+        }
+    }
+
+    public func additionalPlatformExecutableSearchPaths(platformName: String, platformPath: Path, fs: any FSProxy) async -> [Path] {
+        guard let dir = try? await plugin.cachedLatestVSInstallDirectory(fs: fs) else {
+            return []
+        }
+
+        // Note: Do not add in the target directories under the host as these will end up in the global search paths, i.e. PATH
+        // Let the commandlinetool discovery add in the target subdirectory based on the targeted architecture.
+        switch Architecture.hostStringValue {
+        case "aarch64":
+            return [dir.join("bin/Hostarm64")]
+        case "x86_64":
+            return [dir.join("bin/Hostx64")]
+        default:
+            return []
         }
     }
 }

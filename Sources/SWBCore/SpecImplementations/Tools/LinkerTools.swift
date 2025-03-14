@@ -1273,7 +1273,6 @@ public final class LdLinkerSpec : GenericLinkerSpec, SpecIdentifierType, @unchec
     }
 
     override public func discoveredCommandLineToolSpecInfo(_ producer: any CommandProducer, _ scope: MacroEvaluationScope, _ delegate: any CoreClientTargetDiagnosticProducingDelegate) async -> (any DiscoveredCommandLineToolSpecInfo)? {
-        let alternateLinker = scope.evaluate(BuiltinMacros.ALTERNATE_LINKER)
         // The ALTERNATE_LINKER is the 'name' of the linker not the executable name, clang will find the linker binary based on name passed via -fuse-ld, but we need to discover
         // its properties by executing the actual binary. There is a common filename when the linker is not "ld" across all platforms using "ld.<ALTERNAME_LINKER>(.exe)"
         // macOS (Xcode SDK)
@@ -1309,15 +1308,47 @@ public final class LdLinkerSpec : GenericLinkerSpec, SpecIdentifierType, @unchec
         //
         // Note: On Linux you cannot invoke the llvm linker by the direct name for determining the version,
         // you need to use ld.<ALTERNATE_LINKER>
-        var linkerPath = Path("ld")
-        if alternateLinker != "" && alternateLinker != "ld" {
+        let alternateLinker = scope.evaluate(BuiltinMacros.ALTERNATE_LINKER)
+        let isLinkerMultiarch = scope.evaluate(BuiltinMacros._LD_MULTIARCH)
+
+        var linkerPath = producer.hostOperatingSystem == .windows ? Path("ld.lld") : Path("ld")
+        if alternateLinker != "" && alternateLinker != "ld" && alternateLinker != "link" {
             linkerPath = Path(producer.hostOperatingSystem.imageFormat.executableName(basename: "ld.\(alternateLinker)"))
+        } else if alternateLinker != "" {
+            linkerPath =  Path(alternateLinker)
         }
-        // Create the cache key.  This is just the path to the linker we would invoke if we were invoking the linker directly.
-        guard let toolPath = producer.executableSearchPaths.lookup(linkerPath) else {
+        // If the linker does not support multiple architectures update the path to include a subfolder based on the prefix map
+        // to find the architecture specific executable.
+        if !isLinkerMultiarch {
+            let archMap = scope.evaluate(BuiltinMacros._LD_MULTIARCH_PREFIX_MAP)
+            let archMappings = archMap.reduce(into: [String: String]()) { mappings, map in
+                let (arch, prefixDir) = map.split(":")
+                if !arch.isEmpty && !prefixDir.isEmpty {
+                    return mappings[arch] = prefixDir
+                }
+            }
+            if archMappings.isEmpty {
+                delegate.error("_LD_MULTIARCH is 'false', but no prefix mappings are present in _LD_MULTIARCH_PREFIX_MAP")
+                return nil
+            }
+            // Linkers that don't support multiple architectures cannot support universal binaries, so ARCHS will
+            // contain the target architecture and can only be a single value.
+            guard let arch = scope.evaluate(BuiltinMacros.ARCHS).only else {
+                delegate.error("_LD_MULTIARCH is 'false', but multiple ARCHS have been given, this is invalid")
+                return nil
+            }
+            if let prefix = archMappings[arch] {
+                // Add in the target architecture prefix directory to path for search.
+                linkerPath = Path(prefix).join(linkerPath)
+            } else {
+                delegate.error("Could not find prefix mapping for \(arch) in _LD_MULTIARCH_PREFIX_MAP")
+                return nil
+            }
+        }
+        guard let toolPath = producer.executableSearchPaths.findExecutable(operatingSystem: producer.hostOperatingSystem, basename: linkerPath.str) else {
             return nil
         }
-
+        // Create the cache key.  This is just the path to the linker we would invoke if we were invoking the linker directly.
         return await discoveredLinkerToolsInfo(producer, delegate, at: toolPath)
     }
 }
@@ -1638,8 +1669,17 @@ public func discoveredLinkerToolsInfo(_ producer: any CommandProducer, _ delegat
                     #/GNU gold \(GNU Binutils.*\) (?<version>[\d.]+)/#, // Ubuntu "GNU gold (GNU Binutils for Ubuntu 2.38) 1.16", Debian "GNU gold (GNU Binutils for Debian 2.40) 1.16"
                     #/GNU gold \(version .*\) (?<version>[\d.]+)/#,     // Fedora "GNU gold (version 2.40-14.fc39) 1.16", RHEL "GNU gold (version 2.35.2-54.el9) 1.16", Amazon "GNU gold (version 2.29.1-31.amzn2.0.1) 1.14"
                 ]
+
                 if let match = try goLD.compactMap({ try $0.firstMatch(in: String(decoding: executionResult.stdout, as: UTF8.self)) }).first {
                     return DiscoveredLdLinkerToolSpecInfo(linker: .gold, toolPath: toolPath, toolVersion: try Version(String(match.output.version)), architectures: Set())
+                }
+
+                // link.exe has no option to simply dump the version, running, the program will no arguments or an invalid one will dump a header that contains the version.
+                let linkExe = [
+                    #/Microsoft \(R\) Incremental Linker Version (?<version>[\d.]+)/#
+                ]
+                if let match = try linkExe.compactMap({ try $0.firstMatch(in: String(decoding: executionResult.stdout, as: UTF8.self)) }).first {
+                    return DiscoveredLdLinkerToolSpecInfo(linker: .linkExe, toolPath: toolPath, toolVersion: try Version(String(match.output.version)), architectures: Set())
                 }
 
                 struct LDVersionDetails: Decodable {
