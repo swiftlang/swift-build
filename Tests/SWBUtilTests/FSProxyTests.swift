@@ -472,9 +472,31 @@ import SWBTestSupport
             let testDataPath = tmpDir.join("test-data.txt")
             try localFS.write(testDataPath, contents: ByteString(testData))
 
+            let parentDirOwnership = try localFS.getFileOwnership(tmpDir)
             let ownership = try localFS.getFileOwnership(testDataPath)
+
+            // The owner of newly created files is guaranteed to the be process effective UID on Linux. It is not documented on BSDs but generally also expected to be the process effective UID.
             #expect(current_uid == ownership.owner)
-            #expect(current_gid == ownership.group)
+
+            // Considering the following man page documentation for open(2):
+            //   [Darwin/BSD] When a new file is created it is given the group of the directory which contains it.
+            //   [Linux] The group ownership (group ID) of the new file is set either to the effective group ID of the process (System V semantics) or to the group ID of the parent directory (BSD semantics). On Linux, the behavior depends on whether the set-group-ID mode bit is set on the parent directory: if that bit is set, then BSD semantics apply; otherwise, System V semantics apply. For some filesystems, the behavior also depends on the bsdgroups and sysvgroups mount options described in mount(8).
+            // ...and the following man page documentation for mkdir(2):
+            //   [Darwin/BSD] The directory's group ID is set to that of the parent directory in which it is created.
+            //   [Linux] If the directory containing the file has the set-group-ID bit set, or if the filesystem is mounted with BSD group semantics (mount -o bsdgroups or, synonymously mount -o grpid), the new directory will inherit the group ownership from its parent; otherwise it will be owned by the effective group ID of the process.
+            switch try ProcessInfo.processInfo.hostOperatingSystem() {
+            case .android, .linux:
+                // This will _usually_ be correct on Linux-derived OSes (see above), but not always.
+                #expect(current_gid == ownership.group)
+            case .macOS, .iOS, .tvOS, .watchOS, .visionOS:
+                #expect(parentDirOwnership.group == ownership.group)
+            case .windows:
+                // POSIX permissions don't exist, so everything is hardcoded to zero.
+                #expect(current_gid == 0)
+                #expect(ownership.group == 0)
+            case .unknown:
+                break
+            }
 
             try localFS.setFileOwnership(testDataPath, owner: current_uid, group: current_gid)
             let ownershipAfterChange = try localFS.getFileOwnership(testDataPath)
