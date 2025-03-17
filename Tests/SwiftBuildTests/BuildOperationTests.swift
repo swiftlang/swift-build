@@ -15,6 +15,7 @@ import Testing
 
 @_spi(Testing) import SwiftBuild
 import SwiftBuildTestSupport
+import SWBBuildService
 
 import SWBCore
 import SWBUtil
@@ -68,6 +69,43 @@ fileprivate struct BuildOperationTests: CoreBasedTests {
             try await withAsyncDeferrable { deferrable in
                 let tmpDir = temporaryDirectory.path
                 let testSession = try await TestSWBSession(connectionMode: .inProcess, temporaryDirectory: temporaryDirectory)
+                await deferrable.addBlock {
+                    await #expect(throws: Never.self) {
+                        try await testSession.close()
+                    }
+                }
+
+                let srcroot = tmpDir.join("Test")
+                let testProject = TestProject(
+                    "aProject",
+                    defaultConfigurationName: "Release",
+                    groupTree: TestGroup("Foo"),
+                    targets: [])
+                let testWorkspace = TestWorkspace("aWorkspace",
+                                                  sourceRoot: srcroot,
+                                                  projects: [testProject])
+
+                try await testSession.sendPIF(testWorkspace)
+
+                // Run a test build.
+                var request = SWBBuildRequest()
+                request.parameters = SWBBuildParameters()
+                request.parameters.action = "build"
+                request.parameters.configurationName = "Debug"
+
+                let events = try await testSession.runBuildOperation(request: request, delegate: TestBuildOperationDelegate())
+
+                XCTAssertLastBuildEvent(events)
+            }
+        }
+    }
+
+    @Test
+    func emptyBuildInProcessStatic() async throws {
+        try await withTemporaryDirectory { temporaryDirectory in
+            try await withAsyncDeferrable { deferrable in
+                let tmpDir = temporaryDirectory.path
+                let testSession = try await TestSWBSession(connectionMode: .inProcessStatic(swiftbuildServiceEntryPoint), temporaryDirectory: temporaryDirectory)
                 await deferrable.addBlock {
                     await #expect(throws: Never.self) {
                         try await testSession.close()
@@ -405,7 +443,7 @@ fileprivate struct BuildOperationTests: CoreBasedTests {
         }
     }
 
-    @Test(.requireSDKs(.macOS), .skipHostOS(.windows), .requireThreadSafeWorkingDirectory) // version info discovery isn't working on Windows
+    @Test(.requireSDKs(.host), .skipHostOS(.windows), .requireThreadSafeWorkingDirectory) // version info discovery isn't working on Windows
     func explicitBuildDescriptionID() async throws {
         try await withTemporaryDirectory { temporaryDirectory in
             try await withAsyncDeferrable { deferrable in

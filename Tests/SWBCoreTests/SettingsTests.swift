@@ -703,7 +703,7 @@ import SWBMacro
         }
     }
 
-    @Test(.skipHostOS(.windows, "Path handling needs work for windows"))
+    @Test
     func settingsOverridesDevelopmentAssets() async throws {
         func test(buildSettings: [String: String], action: BuildAction = .install, overrides: [String: String] = [:], extraFiles: [Path: String] = [:], configuration: String = "Debug", baseConfig: String? = nil, expectedExcludedFileNames: [String] = [], sourceLocation: SourceLocation = #_sourceLocation) async throws {
             let testWorkspace = try await TestWorkspace("Workspace", projects: [
@@ -732,25 +732,25 @@ import SWBMacro
             #expect(settings.errors.isEmpty, "Expect to not produce any errors", sourceLocation: sourceLocation)
 
             let scope = settings.globalScope
-            #expect(scope.evaluate(BuiltinMacros.EXCLUDED_SOURCE_FILE_NAMES) == expectedExcludedFileNames)
+            #expect(scope.evaluate(BuiltinMacros.EXCLUDED_SOURCE_FILE_NAMES) == expectedExcludedFileNames,  sourceLocation: sourceLocation)
         }
 
         // Specifying DEVELOPMENT_ASSET_PATHS and EXCLUDED_SOURCE_FILE_NAMES should merge them
         try await test(buildSettings: ["DEVELOPMENT_ASSET_PATHS": "'AppTarget/Preview Resources'",
                                        "EXCLUDED_SOURCE_FILE_NAMES": "$(inherited) docs/*"],
-                       expectedExcludedFileNames: ["docs/*", "/tmp/Workspace/aProject/AppTarget/Preview Resources/*"])
+                       expectedExcludedFileNames: ["docs/*", Path.root.join("tmp/Workspace/aProject/AppTarget/Preview Resources/*").str])
 
         // Specifying DEVELOPMENT_ASSET_PATHS which are absolute should work as well
-        try await test(buildSettings: ["DEVELOPMENT_ASSET_PATHS": "'/tmp/Workspace/aProject/AppTarget/Preview Resources'",
+        try await test(buildSettings: ["DEVELOPMENT_ASSET_PATHS": "'\(Path.root.join("tmp/Workspace/aProject/AppTarget/Preview Resources").strWithPosixSlashes)'",
                                        "EXCLUDED_SOURCE_FILE_NAMES": "$(inherited) docs/*"],
-                       expectedExcludedFileNames: ["docs/*", "/tmp/Workspace/aProject/AppTarget/Preview Resources/*"])
+                       expectedExcludedFileNames: ["docs/*", Path.root.join("tmp/Workspace/aProject/AppTarget/Preview Resources/*").str])
 
         // Specifying DEVELOPMENT_ASSET_PATHS which are absolute that are not part of SRCROOT should work as well
-        try await test(buildSettings: ["DEVELOPMENT_ASSET_PATHS": "'/tmp/Workspace/bProject/AppTarget/Preview Resources'",
+        try await test(buildSettings: ["DEVELOPMENT_ASSET_PATHS": "'\(Path.root.join("tmp/Workspace/bProject/AppTarget/Preview Resources").strWithPosixSlashes)'",
                                        "EXCLUDED_SOURCE_FILE_NAMES": "$(inherited) docs/*"],
                        // the directory needs to exist (for /* at the end), so we write a mock file here
                        extraFiles: [.root.join("tmp/Workspace/bProject/AppTarget/Preview Resources/afile.txt"): ""],
-                       expectedExcludedFileNames: ["docs/*", "/tmp/Workspace/bProject/AppTarget/Preview Resources/*"])
+                       expectedExcludedFileNames: ["docs/*", Path.root.join("tmp/Workspace/bProject/AppTarget/Preview Resources/*").str])
 
         // Not specifying DEVELOPMENT_ASSET_PATHS should not affect EXCLUDED_SOURCE_FILE_NAMES
         try await test(buildSettings: ["EXCLUDED_SOURCE_FILE_NAMES": "$(inherited) docs/*"],
@@ -758,19 +758,19 @@ import SWBMacro
 
         // Not specifying EXCLUDED_SOURCE_FILE_NAMES but DEVELOPMENT_ASSET_PATHS should create a list with DEVELOPMENT_ASSET_PATHS' contents
         try await test(buildSettings: ["DEVELOPMENT_ASSET_PATHS": "'AppTarget/Preview Resources'"],
-                       expectedExcludedFileNames: ["/tmp/Workspace/aProject/AppTarget/Preview Resources/*"])
+                       expectedExcludedFileNames: [Path.root.join("tmp/Workspace/aProject/AppTarget/Preview Resources/*").str])
 
         // If the specified directory does not exist, we expect to not receive an error during Settings creation
         // Since the directory does not exist, it gets added as a file (without '*')
         try await test(buildSettings: ["DEVELOPMENT_ASSET_PATHS": "'AppTarget/Does Not Exist'"],
-                       expectedExcludedFileNames: ["/tmp/Workspace/aProject/AppTarget/Does Not Exist"])
+                       expectedExcludedFileNames: [Path.root.join("tmp/Workspace/aProject/AppTarget/Does Not Exist").str])
 
         // If the build action is install, development resources should be excluded
         for action in [BuildAction.install, .installAPI, .installHeaders, .installLoc, .installSource, .archive] {
             try await test(buildSettings: ["DEVELOPMENT_ASSET_PATHS": "'AppTarget/Preview Resources'",
                                            "EXCLUDED_SOURCE_FILE_NAMES": "$(inherited) docs/*"],
                            action: action,
-                           expectedExcludedFileNames: ["docs/*", "/tmp/Workspace/aProject/AppTarget/Preview Resources/*"])
+                           expectedExcludedFileNames: ["docs/*", Path.root.join("tmp/Workspace/aProject/AppTarget/Preview Resources/*").str])
         }
 
         // If the build action is anything else but install (and DEPLOYMENT_POSTPROCESSING is not specified), we don't exclude
@@ -792,7 +792,7 @@ import SWBMacro
                                            "EXCLUDED_SOURCE_FILE_NAMES": "$(inherited) docs/*"],
                            action: action,
                            overrides: ["DEPLOYMENT_POSTPROCESSING": "YES"],
-                           expectedExcludedFileNames: ["docs/*", "/tmp/Workspace/aProject/AppTarget/Preview Resources/*"])
+                           expectedExcludedFileNames: ["docs/*", Path.root.join("tmp/Workspace/aProject/AppTarget/Preview Resources/*").str])
         }
 
         // However, if DEPLOYMENT_LOCATION is explicitly set to NO, development assets should not be excluded
@@ -807,7 +807,7 @@ import SWBMacro
         // Exclude directories and files
         try await test(buildSettings: ["DEVELOPMENT_ASSET_PATHS": "'AppTarget/Preview Resources' 'AppTarget/DevelopmentResourceFile.txt'",
                                        "EXCLUDED_SOURCE_FILE_NAMES": "$(inherited) docs/*"],
-                       expectedExcludedFileNames: ["docs/*", "/tmp/Workspace/aProject/AppTarget/Preview Resources/*", "/tmp/Workspace/aProject/AppTarget/DevelopmentResourceFile.txt"])
+                       expectedExcludedFileNames: ["docs/*", Path.root.join("tmp/Workspace/aProject/AppTarget/Preview Resources/*").str, Path.root.join("tmp/Workspace/aProject/AppTarget/DevelopmentResourceFile.txt").str])
 
         let baseConfigFiles: [Path: String] = [
             .root.join("tmp/Workspace/aProject/Test.xcconfig"): "EXCLUDED_SOURCE_FILE_NAMES[config=Debug] = 'debug/files/*'"
@@ -819,7 +819,7 @@ import SWBMacro
                        extraFiles: baseConfigFiles,
                        configuration: "Debug",
                        baseConfig: "Test.xcconfig",
-                       expectedExcludedFileNames: ["debug/files/*", "/tmp/Workspace/aProject/AppTarget/Preview Resources/*"])
+                       expectedExcludedFileNames: ["debug/files/*", Path.root.join("tmp/Workspace/aProject/AppTarget/Preview Resources/*").str])
 
         // If the condition set states debug, but we build release, we should only have dev assets in the value
         try await test(buildSettings: ["DEVELOPMENT_ASSET_PATHS": "'AppTarget/Preview Resources'"],
@@ -827,7 +827,7 @@ import SWBMacro
                        extraFiles: baseConfigFiles,
                        configuration: "Release",
                        baseConfig: "Test.xcconfig",
-                       expectedExcludedFileNames: ["/tmp/Workspace/aProject/AppTarget/Preview Resources/*"])
+                       expectedExcludedFileNames: [Path.root.join("tmp/Workspace/aProject/AppTarget/Preview Resources/*").str])
     }
 
     @Test
