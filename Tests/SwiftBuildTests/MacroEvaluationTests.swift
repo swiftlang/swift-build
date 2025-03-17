@@ -18,7 +18,7 @@ import SWBTestSupport
 @_spi(Testing) import SWBUtil
 
 /// Test evaluating both using a scope, and directly against the model objects.
-@Suite(.requireHostOS(.macOS))
+@Suite
 fileprivate struct MacroEvaluationTests {
     @Test
     func macroEvaluationBasics() async throws {
@@ -83,7 +83,7 @@ fileprivate struct MacroEvaluationTests {
         }
     }
 
-    @Test(.requireSDKs(.macOS), .userDefaults(["EnablePluginManagerLogging": "0"]))
+    @Test(.requireSDKs(.host), .userDefaults(["EnablePluginManagerLogging": "0"]))
     func macroEvaluationAdvanced() async throws {
         try await withTemporaryDirectory { tmpDir in
             try await withAsyncDeferrable { deferrable in
@@ -150,10 +150,10 @@ fileprivate struct MacroEvaluationTests {
                     "guid": "T1",
                     "name": "Target1",
                     "type": "standard",
-                    "productTypeIdentifier": "com.apple.product-type.application",
+                    "productTypeIdentifier": "com.apple.product-type.tool",
                     "productReference": [
                         "guid": "PR1",
-                        "name": "MyApp.app",
+                        "name": "MyApp",
                     ],
                     "buildPhases": [],
                     "buildConfigurations": [[
@@ -206,6 +206,9 @@ fileprivate struct MacroEvaluationTests {
                 // Evaluate directly against the target.
                 let level = SWBMacroEvaluationLevel.target("T1")
 
+                let hostOperatingSystem = try ProcessInfo.processInfo.hostOperatingSystem()
+                let executableName = hostOperatingSystem.imageFormat.executableName(basename: "MyApp")
+
                 // Evaluate some macros as strings.
                 await #expect(throws: (any Error).self) {
                     try await session.evaluateMacroAsString("UNDEFINED_MACRO", level: level, buildParameters: parameters, overrides: [:])
@@ -228,11 +231,12 @@ fileprivate struct MacroEvaluationTests {
                 // Evaluate some macros as string lists.
                 expectEqual(try await session.evaluateMacroAsStringList("OTHER_CFLAGS", level: level, buildParameters: parameters, overrides: [:]), ["-DPROJECT", "-DTARGET"])
                 // Evaluate some macro expressions as strings.
-                expectEqual(try await session.evaluateMacroExpressionAsString("The name of the product is $(FULL_PRODUCT_NAME)", level: level, buildParameters: parameters, overrides: [:]), "The name of the product is MyApp.app")
-                #expect((try await session.evaluateMacroExpressionAsString("$(TARGET_BUILD_DIR)/$(EXECUTABLE_PATH)", level: level, buildParameters: parameters, overrides: [:])).hasSuffix("build/Config1/MyApp.app/Contents/MacOS/MyApp"))
+                let platformName = try await session.evaluateMacroAsString("EFFECTIVE_PLATFORM_NAME", level: level, buildParameters: parameters, overrides: [:])
+                expectEqual(try await session.evaluateMacroExpressionAsString("The name of the product is $(FULL_PRODUCT_NAME)", level: level, buildParameters: parameters, overrides: [:]), "The name of the product is \(executableName)")
+                #expect((try await session.evaluateMacroExpressionAsString("$(TARGET_BUILD_DIR)/$(EXECUTABLE_PATH)", level: level, buildParameters: parameters, overrides: [:])).hasSuffix(Path("build/Config1\(platformName)").str + "/" + executableName))
 
                 // Evaluate some macro expressions as string lists.
-                expectEqual(try await session.evaluateMacroExpressionAsStringList("$(FULL_PRODUCT_NAME)", level: level, buildParameters: parameters, overrides: [:]), ["MyApp.app"])
+                expectEqual(try await session.evaluateMacroExpressionAsStringList("$(FULL_PRODUCT_NAME)", level: level, buildParameters: parameters, overrides: [:]), [executableName])
                 expectEqual(try await session.evaluateMacroExpressionArrayAsStringList(["$(A)", "$(B)"], level: level, buildParameters: parameters, overrides: [:]), ["A", "B"])
                 // Evaluate an array of macro expressions as individual strings.
                 expectEqual(try await session.evaluateMacroExpressionArrayAsStringList(["$(A)", "$(B)", "$(IS_TRUE)"], level: level, buildParameters: parameters, overrides: [:]), ["A", "B", "YES"])

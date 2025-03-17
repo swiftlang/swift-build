@@ -41,7 +41,8 @@ import SWBUtil
 }
 
 @Suite fileprivate struct TaskCheckingTests: CoreBasedTests {
-    @Test(.requireSDKs(.macOS)) func ensureTaskBelongToCorrectBuild() async throws {
+    @Test(.requireSDKs(.host)) 
+    func ensureTaskBelongToCorrectBuild() async throws {
         try await withTemporaryDirectory { tmpDir in
             let testWorkspace = TestWorkspace("TestWorkspace", sourceRoot: tmpDir, projects: [
                 TestProject("TestProject",
@@ -52,11 +53,11 @@ import SWBUtil
                             buildSettings: [
                                 "GENERATE_INFOPLIST_FILE": "YES",
                                 "PRODUCT_NAME": "$(TARGET_NAME)",
-                                "CODE_SIGN_IDENTITY": "",
+                                "CODE_SIGN_IDENTITY": "-",
                             ]),
                     ],
                     targets: [
-                        TestStandardTarget("TestTarget", type: .application, buildPhases: [
+                        TestStandardTarget("TestTarget", type: .commandLineTool, buildPhases: [
                             TestSourcesBuildPhase([
                                 TestBuildFile("test.c")
                             ])
@@ -66,10 +67,10 @@ import SWBUtil
 
             let core = try await getCore()
             let buildA = try TaskConstructionTester(core, testWorkspace)
-            try await buildA.checkBuild(runDestination: .macOS) { outerResults in
+            try await buildA.checkBuild(runDestination: .host) { outerResults in
                 let tasks = outerResults.getTasks(.matchRuleItem("CompileC"))
                 let buildB = try TaskConstructionTester(core, testWorkspace)
-                await buildB.checkBuild(runDestination: .macOS) { results in
+                await buildB.checkBuild(runDestination: .host) { results in
                     // This is not a not a known issue but rather an expected failure
                     withKnownIssue("Task does not belong to the current build") {
                         try results.checkTaskFollows(#require(tasks.only), .matchRuleItem("CompileC"))
