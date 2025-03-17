@@ -302,7 +302,7 @@ extension CoreBasedTests {
     }
     package func linkPath(_ targetArchitecture: String) async throws -> Path? {
         let (core, defaultToolchain) = try await self.coreAndToolchain()
-        let prefixMapping = [ "x86_64": "x64", "aarch64": "arm64", "i386": "x86", "thumbv7" : "arm" ]
+        let prefixMapping =  ["aarch64" : "arm64", "arm64ec" : "arm64", "armv7" : "arm", "x86_64": "x64", "i686": "x86"]
 
         guard let prefix = prefixMapping[targetArchitecture] else {
             return nil

@@ -61,7 +61,7 @@
             {
                 Name = _LD_MULTIARCH_PREFIX_MAP;
                 Type = StringList;
-                DefaultValue = "x86_64:x64 aarch64:arm64 i386:x86 thumbv7:arm";
+                DefaultValue = "aarch64:arm64 armv7:arm arm64ec:arm64 x86_64:x64 i686:x86";
                 Condition = "$(ALTERNATE_LINKER) == link";
             },
             {

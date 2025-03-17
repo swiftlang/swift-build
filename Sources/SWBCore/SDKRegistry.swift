@@ -646,14 +646,6 @@ public final class SDKRegistry: SDKRegistryLookup, CustomStringConvertible, Send
             tripleEnvironment = ""
         }
 
-        let archs: PropertyListItem =
-            switch operatingSystem {
-            case .windows:
-                .plArray([.plString("x86_64"), .plString("aarch64")])
-            default:
-                .plArray([.plString(Architecture.hostStringValue ?? "unknown")])
-            }
-
         return try [
             "Type": .plString("SDK"),
             "Version": .plString(Version(ProcessInfo.processInfo.operatingSystemVersion).zeroTrimmed.description),
@@ -664,7 +656,7 @@ public final class SDKRegistry: SDKRegistryLookup, CustomStringConvertible, Send
             ].merging(defaultProperties, uniquingKeysWith: { _, new in new })),
             "SupportedTargets": .plDict([
                 operatingSystem.xcodePlatformName: .plDict([
-                    "Archs": archs,
+                    "Archs": .plArray([.plString(Architecture.hostStringValue ?? "unknown")]),
                     "LLVMTargetTripleEnvironment": .plString(tripleEnvironment),
                     "LLVMTargetTripleSys": .plString(operatingSystem.xcodePlatformName),
                     "LLVMTargetTripleVendor": .plString("unknown"),
