@@ -24,7 +24,7 @@ import Foundation
 
 public final class WindowsPlugin: Sendable {
     private let vsInstallations = AsyncSingleValueCache<[VSInstallation], any Error>()
-    private let latestVsInstalltionDirectory = AsyncSingleValueCache<Path?, any Error>()
+    private let latestVsInstallationDirectory = AsyncSingleValueCache<Path?, any Error>()
 
     public func cachedVSInstallations() async throws -> [VSInstallation] {
         try await vsInstallations.value {
@@ -34,7 +34,7 @@ public final class WindowsPlugin: Sendable {
     }
 
     func cachedLatestVSInstallDirectory(fs: any FSProxy) async throws -> Path? {
-       try await latestVsInstalltionDirectory.value {
+       try await latestVsInstallationDirectory.value {
             let installations = try await cachedVSInstallations()
             .sorted(by: { $0.installationVersion > $1.installationVersion })
             if let latest = installations.first {
@@ -63,7 +63,7 @@ struct WindowsPlatformSpecsExtension: SpecificationsExtension {
     @_spi(Testing) public func additionalEnvironmentVariables(context: any EnvironmentExtensionAdditionalEnvironmentVariablesContext) async throws -> [String: String] {
         if context.hostOperatingSystem == .windows {
             let vcToolsInstallDir = "VCToolsInstallDir"
-            guard let dir = try? await findLatestInstallDirectory(fs: context.fs) else {
+            guard let dir = try? await plugin.cachedLatestVSInstallDirectory(fs: context.fs) else {
                 return [:]
             }
             return [vcToolsInstallDir: dir.str]
@@ -71,21 +71,6 @@ struct WindowsPlatformSpecsExtension: SpecificationsExtension {
            return [:]
         }
     }
-
-    @_spi(Testing)public func findLatestInstallDirectory(fs: any FSProxy) async throws -> Path? {
-    let plugin: WindowsPlugin
-    let installations = try await plugin.cachedVSInstallations()
-        .sorted(by: { $0.installationVersion > $1.installationVersion })
-    if let latest = installations.first {
-        let msvcDir = latest.installationPath.join("VC").join("Tools").join("MSVC")
-        if fs.exists(msvcDir) {
-            let versions = try fs.listdir(msvcDir).map { try Version($0) }.sorted { $0 > $1 }
-            if let latestVersion = versions.first {
-                return msvcDir.join(latestVersion.description)
-            }
-        }
-    }
-    return nil
 }
 
 struct WindowsPlatformExtension: PlatformInfoExtension {

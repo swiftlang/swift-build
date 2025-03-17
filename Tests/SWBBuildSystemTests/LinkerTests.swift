@@ -324,7 +324,7 @@ fileprivate struct LinkerTests: CoreBasedTests {
                         results.checkTaskOutput(task) { output in
                             // Expect that the 'link' linker is called by clang
                             if runDestination == .windows && Architecture.hostStringValue == "aarch64" {
-                                // On windows aarch64 'clang' picks the wrong host architecture for link.exe, choosing "MSVC\14.41.34120\bin\Hostx86\x64\link.exe"
+                                // rdar://145868953 - On windows aarch64 'clang' picks the wrong host architecture for link.exe, choosing "MSVC\14.41.34120\bin\Hostx86\x64\link.exe"
                                 withKnownIssue("'clang' picks the wrong binary for link.exe using the Hostx86 version") {
                                     #expect(output.asString.replacingOccurrences(of: "\\\\", with: "\\").contains(linkLinkerPathX86.str))
                                 }
@@ -344,7 +344,7 @@ fileprivate struct LinkerTests: CoreBasedTests {
                          results.checkTaskOutput(task) { output in
                             // Expect that the 'link' linker is called by clang
                             if runDestination == .windows && Architecture.hostStringValue == "aarch64" {
-                                // On windows aarch64 'clang' picks the wrong host architecture for link.exe, choosing "MSVC\14.41.34120\bin\Hostx86\x64\link.exe"
+                                // rdar://145868953 - On windows aarch64 'clang' picks the wrong host architecture for link.exe, choosing "MSVC\14.41.34120\bin\Hostx86\x64\link.exe"
                                 withKnownIssue("'clang' picks the wrong binary for link.exe using the Hostx86 version") {
                                     #expect(output.asString.replacingOccurrences(of: "\\\\", with: "\\").contains(linkLinkerPathAarch64.str))
                                 }

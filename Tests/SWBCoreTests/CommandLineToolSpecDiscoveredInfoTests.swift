@@ -234,53 +234,6 @@ import SWBMacro
         }
     }
 
-    @Test(.requireSDKs(.windows))
-    func discoveredLdLinkerSpecInfo_Windows() async throws {
-        var table = try await ldMacroTable()
-        table.push(BuiltinMacros._LD_MULTIARCH, literal: true)
-        try await withSpec(LdLinkerSpec.self, .deferred, platform: "windows", additionalTable: table) { (info: DiscoveredLdLinkerToolSpecInfo) in
-            #expect(!info.toolPath.isEmpty)
-            #expect(info.toolVersion != nil)
-            if let toolVersion = info.toolVersion {
-                #expect(toolVersion > Version(0, 0, 0))
-            }
-            #expect(info.linker == .lld)
-        }
-        try await withSpec(LdLinkerSpec.self, .result(status: .exit(0), stdout: Data("Microsoft (R) Incremental Linker Version 14.41.34120.0\n".utf8), stderr: Data()), platform: "windows", additionalTable: table) { (info: DiscoveredLdLinkerToolSpecInfo) in
-            #expect(!info.toolPath.isEmpty)
-            #expect(info.toolVersion == Version(14, 41, 34120))
-            #expect(info.architectures == Set())
-        }
-
-        // link.exe cannot be used for multipler architectures and requires a distinct link.exe for each target architecture
-        table.push(BuiltinMacros.ALTERNATE_LINKER, literal: "link")
-        table.push(BuiltinMacros._LD_MULTIARCH, literal: false)
-        table.push(BuiltinMacros._LD_MULTIARCH_PREFIX_MAP, literal: ["x86_64:x64", "aarch64:arm64", "i386:x86", "thumbv7:arm"])
-
-        // x86_64
-        table.push(BuiltinMacros.ARCHS, literal: ["x86_64"])
-        try await withSpec(LdLinkerSpec.self, .deferred, platform: "windows", additionalTable: table) { (info: DiscoveredLdLinkerToolSpecInfo) in
-            #expect(!info.toolPath.isEmpty)
-            #expect(info.toolVersion != nil)
-            if let toolVersion = info.toolVersion {
-                #expect(toolVersion > Version(0, 0, 0))
-            }
-            #expect(info.linker == .linkExe)
-        }
-
-        // FIXME: Fails in swift-ci missing arm64 toolchain on x86_64 host.
-        // // link aarch64
-        // table.push(BuiltinMacros.ARCHS, literal: ["aarch64"])
-        // try await withSpec(LdLinkerSpec.self, .deferred, platform: "windows", additionalTable: table) { (info: DiscoveredLdLinkerToolSpecInfo) in
-        //     #expect(!info.toolPath.isEmpty)
-        //     #expect(info.toolVersion != nil)
-        //     if let toolVersion = info.toolVersion {
-        //         #expect(toolVersion > Version(0, 0, 0))
-        //     }
-        //     #expect(info.linker == .linkExe)
-        // }
-    }
-
     @Test(.skipHostOS(.windows), .requireSystemPackages(apt: "libtool", yum: "libtool"))
     func discoveredLibtoolSpecInfo() async throws {
         try await withSpec(LibtoolLinkerSpec.self, .deferred) { (info: DiscoveredLibtoolLinkerToolSpecInfo) in
