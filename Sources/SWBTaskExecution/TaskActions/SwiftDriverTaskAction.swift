@@ -99,7 +99,7 @@ final public class SwiftDriverTaskAction: TaskAction, BuildValueValidatingTaskAc
                 for dependencyModuleName in dependencyModuleNames {
                     if let targetDependencies = dynamicExecutionDelegate.operationContext.definingTargetsByModuleName[dependencyModuleName] {
                         for targetDependency in targetDependencies {
-                            guard targetDependency != target else {
+                            guard targetDependency.guid != target.guid else {
                                 continue
                             }
                             executionDelegate.taskDiscoveredRequiredTargetDependency(target: target, antecedent: targetDependency, reason: .swiftModuleDependency(dependentModuleName: driverPayload.moduleName, dependencyModuleName: dependencyModuleName), warningLevel: driverPayload.reportRequiredTargetDependencies)

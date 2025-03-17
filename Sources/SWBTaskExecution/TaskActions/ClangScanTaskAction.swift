@@ -198,7 +198,7 @@ public final class ClangScanTaskAction: TaskAction, BuildValueValidatingTaskActi
 
         if let target = task.forTarget {
             for requiredDependency in result.requiredTargetDependencies {
-                guard requiredDependency.target != task.forTarget else {
+                guard requiredDependency.target.guid != task.forTarget?.guid else {
                     continue
                 }
                 executionDelegate.taskDiscoveredRequiredTargetDependency(target: target, antecedent: requiredDependency.target, reason: .clangModuleDependency(translationUnit: explicitModulesPayload.sourcePath, dependencyModuleName: requiredDependency.moduleName), warningLevel: explicitModulesPayload.reportRequiredTargetDependencies)
