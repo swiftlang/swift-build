@@ -584,12 +584,21 @@ package final class ClangModuleDependencyGraph {
             summaryCSV.writeRow([moduleName, "\(variants.count)"])
             summaryMessage += "\(moduleName): \(variants.count == 1 ? "1 variant" : "\(variants.count) variants")\n"
 
-            let mergeResult = nWayMerge(variants.map { ["CWD: \($0.workingDirectory.str)"] + ($0.commands.only?.arguments ?? []) }).filter {
+            let mergeResult = nWayMerge(variants.map {
+                (["CWD: \($0.workingDirectory.str)"] + ($0.commands.only?.arguments ?? [])).filter {
+                    if ["pcm", "dia", "d"].contains(Path($0).fileExtension) {
+                        // Filter differences in module paths, they are a function of the other args
+                        return false
+                    } else if $0.hasPrefix("llvmcas://") {
+                        // Filter differences in CAS URLs, they are a function of the other args
+                        return false
+                    } else {
+                        return true
+                    }
+                }
+            }).filter {
                 if $0.elementOf.count == variants.count {
                     // Don't report args common to all variants
-                    return false
-                } else if ["pcm", "dia", "d"].contains(Path($0.element).fileExtension) {
-                    // Don't report differences in module paths, they are a function of the other args
                     return false
                 } else {
                     return true
