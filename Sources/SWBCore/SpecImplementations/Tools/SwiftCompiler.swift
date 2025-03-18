@@ -1552,6 +1552,10 @@ public final class SwiftCompilerSpec : CompilerSpec, SpecIdentifierType, SwiftDi
                 args.append(contentsOf: ["-I", searchPath])
             }
 
+            for searchPath in cbc.producer.expandedSearchPaths(for: BuiltinMacros.SWIFT_SYSTEM_INCLUDE_PATHS, scope: cbc.scope) {
+                args.append(contentsOf: ["-Isystem", searchPath])
+            }
+
             // Add -F for the effective framework search paths.
             let frameworkSearchPaths = GCCCompatibleCompilerSpecSupport.frameworkSearchPathArguments(cbc.producer, cbc.scope, asSeparateArguments: true)
             args += frameworkSearchPaths.searchPathArguments(for: self, scope: cbc.scope)
