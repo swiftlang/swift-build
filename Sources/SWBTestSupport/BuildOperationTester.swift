@@ -136,6 +136,9 @@ package final class BuildOperationTester {
         /// A generic activity produced a diagnostic.
         case activityHadDiagnostic(ActivityID, Diagnostic)
 
+        /// A generic activity produced output.
+        case activityEmittedData(ruleInfo: String, [UInt8])
+
         /// A generic activity ended.
         case activityEnded(ruleInfo: String, status: BuildOperationTaskEnded.Status)
 
@@ -179,6 +182,8 @@ package final class BuildOperationTester {
                 return "activityStarted(\(ruleInfo))"
             case .activityHadDiagnostic(let activityID, let diagnostic):
                 return "activityHadDiagnostic(\(activityID),\(diagnostic))"
+            case .activityEmittedData(ruleInfo: let ruleInfo, let bytes):
+                return "activityEmittedData(\(ruleInfo), bytes: \(ByteString(bytes).asString)"
             case .activityEnded(ruleInfo: let ruleInfo):
                 return "activityEnded(\(ruleInfo))"
             case .emittedBuildBacktraceFrame(identifier: let id, previousFrameIdentifier: let previousID, category: let category, description: let description):
@@ -2156,7 +2161,11 @@ private final class BuildOperationTesterDelegate: BuildOperationDelegate {
 
     func emit(data: [UInt8], for activity: ActivityID, signature: ByteString) {
         queue.async {
-            // FIXME.
+            guard let ruleInfo = self.activitiesByActivityID[activity.rawValue] else {
+                assertionFailure("Received emit message for activity id '\(activity.rawValue)' but it was not started, or has already ended")
+                return
+            }
+            self.events.append(.activityEmittedData(ruleInfo: ruleInfo, data))
         }
     }
 
