@@ -861,7 +861,12 @@ package final class BuildOperation: BuildSystemOperation {
                 return
             }
 
-            let message = DiagnosticData("'\(target.target.name)' is missing a dependency on '\(antecedent.target.name)' because \(reason)")
+            let message: DiagnosticData
+            if self.userPreferences.enableDebugActivityLogs {
+                message = DiagnosticData("'\(target.target.name):\(target.guid.stringValue)' is missing a dependency on '\(antecedent.target.name):\(antecedent.guid.stringValue)' because \(reason)")
+            } else {
+                message = DiagnosticData("'\(target.target.name)' is missing a dependency on '\(antecedent.target.name)' because \(reason)")
+            }
             switch warningLevel {
             case .yes:
                 buildOutputDelegate.emit(Diagnostic(behavior: .warning, location: .unknown, data: message))
