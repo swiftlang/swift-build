@@ -426,8 +426,16 @@
                 Type = PathList;
                 "FlattenRecursiveSearchPathsInValue" = Yes;
                 Category = "Search Paths";
-                DisplayName = "Import Paths";
+                DisplayName = "Module Import Paths";
                 Description = "A list of paths to be searched by the Swift compiler for additional Swift modules.";
+            },
+            {
+                Name = "SWIFT_SYSTEM_INCLUDE_PATHS";
+                Type = PathList;
+                "FlattenRecursiveSearchPathsInValue" = Yes;
+                Category = "Search Paths";
+                DisplayName = "System Module Import Paths";
+                Description = "A list of paths to be searched by the Swift compiler for additional system Swift modules. Warnings found in system modules will not be emitted.";
             },
             {
                 Name = "FRAMEWORK_SEARCH_PATHS";
