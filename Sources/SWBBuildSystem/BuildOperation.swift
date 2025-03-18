@@ -665,8 +665,31 @@ package final class BuildOperation: BuildSystemOperation {
             }
         }
 
+        do {
+            let swiftCacheHits = self.delegate.aggregatedCounters[.swiftCacheHits, default: 0]
+            let swiftCacheMisses = self.delegate.aggregatedCounters[.swiftCacheMisses, default: 0]
+            let clangCacheHits = self.delegate.aggregatedCounters[.clangCacheHits, default: 0]
+            let clangCacheMisses = self.delegate.aggregatedCounters[.clangCacheMisses, default: 0]
+            if swiftCacheHits + swiftCacheMisses > 0 || clangCacheHits + clangCacheMisses > 0 {
+                adaptor.withActivity(ruleInfo: "CompilationCacheMetrics", executionDescription: "Report compilation cache metrics", signature: "compilation_cache_metrics", target: nil, parentActivity: nil) { activity in
+                    func getSummary(hits: Int, misses: Int) -> String {
+                        let hitPercent = Int((Double(hits) / Double(hits + misses) * 100).rounded())
+                        return "\(hits) hit\(hits == 1 ? "" : "s") (\(hitPercent)%), \(misses) miss\(misses == 1 ? "" : "es")"
+                    }
+                    if swiftCacheHits + swiftCacheMisses > 0 {
+                        delegate.emit(data: ByteString(encodingAsUTF8: "Swift compiler: \(getSummary(hits: swiftCacheHits, misses: swiftCacheMisses))").bytes, for: activity, signature: "compilation_cache_metrics")
+                    }
+                    if clangCacheHits + clangCacheMisses > 0 {
+                        delegate.emit(data: ByteString(encodingAsUTF8: "Clang compiler: \(getSummary(hits: clangCacheHits, misses: clangCacheMisses))").bytes, for: activity, signature: "compilation_cache_metrics")
+                    }
+                    return .succeeded
+                }
+
+            }
+        }
+
         if SWBFeatureFlag.enableCacheMetricsLogs.value {
-            adaptor.withActivity(ruleInfo: "CacheMetrics", executionDescription: "Report cache metrics", signature: "cache_metrics", target: nil, parentActivity: nil) { activity in
+            adaptor.withActivity(ruleInfo: "RawCacheMetrics", executionDescription: "Report raw cache metrics", signature: "raw_cache_metrics", target: nil, parentActivity: nil) { activity in
                 struct AllCounters: Encodable {
                     var global: [String: Double] = [:]
                     var tasks: [String: [String: Double]] = [:]
@@ -682,7 +705,7 @@ package final class BuildOperation: BuildSystemOperation {
                     }
                     serializedCounters.tasks[taskId] = serialTaskCounters
                 }
-                delegate.emit(data: ByteString(encodingAsUTF8: "\(serializedCounters)").bytes, for: activity, signature: "cache_metrics")
+                delegate.emit(data: ByteString(encodingAsUTF8: "\(serializedCounters)").bytes, for: activity, signature: "raw_cache_metrics")
                 return .succeeded
             }
         }
