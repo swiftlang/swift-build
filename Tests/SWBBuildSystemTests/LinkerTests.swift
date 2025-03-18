@@ -173,7 +173,7 @@ fileprivate struct LinkerTests: CoreBasedTests {
         let runDestination: RunDestinationInfo = .host
         let swiftVersion = try await self.swiftVersion
         try await withTemporaryDirectory { tmpDir in
-            let testProject = try await TestProject(
+            let testProject = TestProject(
                 "TestProject",
                 sourceRoot: tmpDir,
                 groupTree: TestGroup(
