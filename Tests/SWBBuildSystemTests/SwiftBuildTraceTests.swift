@@ -20,7 +20,7 @@ import SWBTaskExecution
 
 @Suite
 fileprivate struct SwiftBuildTraceTests: CoreBasedTests {
-    @Test(.requireSDKs(.host))
+    @Test(.requireSDKs(.host), .requireThreadSafeWorkingDirectory)
     func swiftBuildTraceEmission() async throws {
         try await withTemporaryDirectory { tmpDirPath async throws -> Void in
             try await withEnvironment(["SWIFTBUILD_TRACE_FILE": tmpDirPath.join(".SWIFTBUILD_TRACE").str]) {
