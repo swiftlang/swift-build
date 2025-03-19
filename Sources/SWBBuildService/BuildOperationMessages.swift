@@ -1054,7 +1054,7 @@ final class OperationDelegate: BuildOperationDelegate {
         request.send(BuildOperationReportPathMap(copiedPathMap: copiedPathMap, generatedFilesPathMap: generatedFilesPathMap))
     }
 
-    func buildComplete(_ operation: any BuildSystemOperation, status: BuildOperationEnded.Status?, delegate: any BuildOutputDelegate, metrics: BuildOperationMetrics?) {
+    func buildComplete(_ operation: any BuildSystemOperation, status: BuildOperationEnded.Status?, delegate: any BuildOutputDelegate, metrics: BuildOperationMetrics?) -> BuildOperationEnded.Status {
         if !skipCommandLevelInformation {
             // Kick the target callbacks so that our target-level diagnostics get emitted in the right context in the case of an early build failure due to task construction errors.
             for target in diagnosticsHandler.deferredTargets {
@@ -1062,7 +1062,9 @@ final class OperationDelegate: BuildOperationDelegate {
                 targetComplete(operation, configuredTarget: target)
             }
         }
-        activeBuild.completeBuild(status: status ?? taskCompletionBasedStatus, metrics: metrics)
+        let realStatus = status ?? taskCompletionBasedStatus
+        activeBuild.completeBuild(status: realStatus, metrics: metrics)
+        return realStatus
     }
 
     private func getActiveTargetInfo(_ operation: any BuildSystemOperation, _ configuredTarget: ConfiguredTarget) -> TargetInfo {

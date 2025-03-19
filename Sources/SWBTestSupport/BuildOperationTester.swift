@@ -1995,11 +1995,12 @@ private final class BuildOperationTesterDelegate: BuildOperationDelegate {
         return TesterBuildOutputDelegate(delegate: self)
     }
 
-    func buildComplete(_ operation: any BuildSystemOperation, status: BuildOperationEnded.Status?, delegate: any BuildOutputDelegate, metrics: BuildOperationMetrics?) {
+    func buildComplete(_ operation: any BuildSystemOperation, status: BuildOperationEnded.Status?, delegate: any BuildOutputDelegate, metrics: BuildOperationMetrics?) -> BuildOperationEnded.Status {
         queue.async {
             // There is no "build failed" event, so only explicit cancellation needs to map to `buildCancelled`
             self.events.append(status == .cancelled ? .buildCancelled : .buildCompleted)
         }
+        return status ?? .succeeded
     }
 
     func targetPreparationStarted(_ operation: any BuildSystemOperation, configuredTarget: ConfiguredTarget) {

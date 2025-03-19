@@ -306,7 +306,7 @@ fileprivate struct BuildTaskBehaviorTests: CoreBasedTests {
     }
 
     /// Check that we honor specs which are unsafe to interrupt.
-    @Test(.requireSDKs(.host), .skipHostOS(.windows, "no bash shell"))
+    @Test(.requireSDKs(.host), .skipHostOS(.windows, "no bash shell"), .requireThreadSafeWorkingDirectory)
     func unsafeToInterrupt() async throws {
         let fs = localFS
         let output = MakePlannedVirtualNode("<WAIT>")
@@ -365,7 +365,13 @@ fileprivate struct BuildTaskBehaviorTests: CoreBasedTests {
                 }
 
                 try await withTaskCancellationHandler {
-                    await operation.build()
+                    switch await operation.build() {
+                    case .cancelled, .failed:
+                        // If the build already failed, cancel the task that waits for the script so the test doesn't hang forever.
+                        task.cancel()
+                    case .succeeded:
+                        break
+                    }
                     try await task.value
                 } onCancel: {
                     task.cancel()

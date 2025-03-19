@@ -52,7 +52,7 @@ package protocol BuildOperationDelegate {
     /// - Parameters:
     ///   - status: Overall build operation status to override the build result with. This can be used when the operation was aborted (the build could not run to completion, e.g. due to discovery of a cycle) or cancelled and wants to propagate that status regardless of the status of the individual build tasks in the underlying (llbuild) build system. `nil` will use the status based on the result status of the tasks in the underlying llbuild build system.
     ///   - delegate: The task output delegate provided by the \see buildStarted() method.
-    func buildComplete(_ operation: any BuildSystemOperation, status: BuildOperationEnded.Status?, delegate: any BuildOutputDelegate, metrics: BuildOperationMetrics?)
+    @discardableResult func buildComplete(_ operation: any BuildSystemOperation, status: BuildOperationEnded.Status?, delegate: any BuildOutputDelegate, metrics: BuildOperationMetrics?) -> BuildOperationEnded.Status
 
     /// Called when an individual task has been started.
     ///
@@ -137,7 +137,7 @@ package protocol BuildSystemOperation: AnyObject, Sendable {
     var subtaskProgressReporter: (any SubtaskProgressReporter)? { get }
     var uuid: UUID { get }
 
-    func build() async
+    @discardableResult func build() async -> BuildOperationEnded.Status
     func cancel()
     func abort()
 }
@@ -285,7 +285,7 @@ package final class BuildOperation: BuildSystemOperation {
     }
 
     /// Perform the build.
-    package func build() async {
+    package func build() async -> BuildOperationEnded.Status {
         // Inform the client the build has started.
         buildOutputDelegate = delegate.buildStarted(self)
 
@@ -305,8 +305,9 @@ package final class BuildOperation: BuildSystemOperation {
         // Diagnose attempts to use "dry run" mode, which we don't support yet.
         if request.useDryRun {
             buildOutputDelegate.error("-dry-run is not yet supported in the new build system")
-            delegate.buildComplete(self, status: .failed, delegate: buildOutputDelegate, metrics: nil)
-            return
+            let effectiveStatus = BuildOperationEnded.Status.failed
+            delegate.buildComplete(self, status: effectiveStatus, delegate: buildOutputDelegate, metrics: nil)
+            return effectiveStatus
         }
 
         // Helper method to emit information to the CAPTURED_BUILD_INFO_DIR.  This is mainly to be able to gracefully return after emitting a warning if something goes wrong, because not being able to emit this info is typically not serious enough to want to abort the whole build.
@@ -367,8 +368,9 @@ package final class BuildOperation: BuildSystemOperation {
 
         // If task construction had errors, fail the build immediately, unless `continueBuildingAfterErrors` is set.
         if !request.continueBuildingAfterErrors && buildDescription.hadErrors {
-            delegate.buildComplete(self, status: .failed, delegate: buildOutputDelegate, metrics: nil)
-            return
+            let effectiveStatus = BuildOperationEnded.Status.failed
+            delegate.buildComplete(self, status: effectiveStatus, delegate: buildOutputDelegate, metrics: nil)
+            return effectiveStatus
         }
 
         if userPreferences.enableDebugActivityLogs {
@@ -410,8 +412,9 @@ package final class BuildOperation: BuildSystemOperation {
         do {
             let isCancelled = await queue.sync{ self.wasCancellationRequested }
             if !UserDefaults.skipEarlyBuildOperationCancellation && isCancelled {
-                delegate.buildComplete(self, status: .cancelled, delegate: buildOutputDelegate, metrics: nil)
-                return
+                let effectiveStatus = BuildOperationEnded.Status.cancelled
+                delegate.buildComplete(self, status: effectiveStatus, delegate: buildOutputDelegate, metrics: nil)
+                return effectiveStatus
             }
         }
 
@@ -421,8 +424,9 @@ package final class BuildOperation: BuildSystemOperation {
             for message in warnings { buildOutputDelegate.warning(message) }
             for message in errors { buildOutputDelegate.error(message) }
             guard errors.isEmpty else {
-                delegate.buildComplete(self, status: .failed, delegate: buildOutputDelegate, metrics: nil)
-                return
+                let effectiveStatus = BuildOperationEnded.Status.failed
+                delegate.buildComplete(self, status: effectiveStatus, delegate: buildOutputDelegate, metrics: nil)
+                return effectiveStatus
             }
         }
 
@@ -776,7 +780,7 @@ package final class BuildOperation: BuildSystemOperation {
         }
 
         // `buildComplete()` should not run within `queue`, otherwise there can be a deadlock during cancelling.
-        delegate.buildComplete(self, status: effectiveStatus, delegate: buildOutputDelegate, metrics: .init(counters: delegate.aggregatedCounters))
+        return delegate.buildComplete(self, status: effectiveStatus, delegate: buildOutputDelegate, metrics: .init(counters: delegate.aggregatedCounters))
     }
 
     func prepareForBuilding() -> ([String], [String])? {
