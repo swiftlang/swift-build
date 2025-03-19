@@ -4966,7 +4966,7 @@ fileprivate struct TaskConstructionTests: CoreBasedTests {
                 TestBuildConfiguration("Debug", buildSettings: [
                     "PRODUCT_NAME": "$(TARGET_NAME)",
                     "CODE_SIGN_IDENTITY": "-",
-                    "ARCH": "x86_64",
+                    "ARCHS": "arm64",
                     "LIBTOOL": libtoolPath.str,
                 ]),
             ],
@@ -5049,8 +5049,8 @@ fileprivate struct TaskConstructionTests: CoreBasedTests {
                     task.checkNoInputs(contain: [.pathPattern(.suffix("libAnotherStatic.a"))])
                     // Check that the task does *not* declare libStaticLib2.a as an input, since it is located via search paths.  Some projects may have a file reference whose path does not refer to a file, but which relies on finding the library via search paths anyway.
                     task.checkNoInputs(contain: [.pathPattern(.suffix("libStaticLib2.a"))])
-                    // Check that the task contains a command line option to link Object.o, and declares it as an input.
-                    task.checkCommandLineContains(["\(SRCROOT)/Object.o"])
+                    // Check that the task does *not* contain a command line option to link Object.o (it will be in the LinkFileList instead, checked below), but that it *does* declare it as an input.
+                    task.checkCommandLineDoesNotContain("\(SRCROOT)/Object.o")
                     task.checkInputs(contain: [.path("\(SRCROOT)/Object.o")])
 
                     // Check that the task does *not* have a command line option to find libDynamicLib1.dylib, nor does it declare it as an input, because static libraries can't link against dynamic libraries.  We presently don't emit a diagnostic for this - see LibtoolLinkerSpec.constructLinkerTasks() and <rdar://problem/34314195> for more.
@@ -5058,6 +5058,16 @@ fileprivate struct TaskConstructionTests: CoreBasedTests {
                     task.checkNoInputs(contain: [.pathPattern(.suffix("libDynamicLib1.dylib"))])
 
                     task.checkOutputs(contain: [.path("\(SRCROOT)/build/Debug/libStaticLib1.a")])
+                }
+
+                // Check the contents of the LinkFileList.
+                results.checkWriteAuxiliaryFileTask(.matchTarget(target), .matchRuleType("WriteAuxiliaryFile"), .matchRuleItemPattern(.suffix("/StaticLib1.LinkFileList"))) { task, contents in
+                    task.checkRuleInfo(["WriteAuxiliaryFile", "\(SRCROOT)/build/aProject.build/Debug/StaticLib1.build/Objects-normal/arm64/StaticLib1.LinkFileList"])
+                    let contentsLines = contents.asString.dropLast().components(separatedBy: .newlines)
+                    #expect(contentsLines == [
+                        "\(SRCROOT)/build/aProject.build/Debug/StaticLib1.build/Objects-normal/arm64/File.o",
+                        "\(SRCROOT)/Object.o",
+                  ])
                 }
             }
 

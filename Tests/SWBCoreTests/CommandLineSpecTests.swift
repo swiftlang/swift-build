@@ -1261,11 +1261,10 @@ import SWBMacro
         }
         var libraries = [LinkerSpec.LibrarySpecifier]()
         for kind in LinkerSpec.LibrarySpecifier.Kind.allCases {
-            guard kind != .object else {
-                continue
-            }
             libraries.append(contentsOf: generateLibrarySpecifiers(kind: kind))
         }
+        // This is a no-op because object files get added in the SourcesTaskProducer, but we want to confirm that this is the case.
+        libraries.append(LinkerSpec.LibrarySpecifier(kind: .object, path: Path.root.join("tmp/Bar.o"), mode: .normal, useSearchPaths: false, swiftModulePaths: [:], swiftModuleAdditionalLinkerArgResponseFilePaths: [:]))
 
         await linkerSpec.constructLinkerTasks(cbc, delegate, libraries: libraries, usedTools: [:])
 
@@ -1501,6 +1500,9 @@ import SWBMacro
             LinkerSpec.LibrarySpecifier(kind: .framework, path: Path.root.join("tmp/Foo2.framework"), mode: .weak, useSearchPaths: true, swiftModulePaths: [:], swiftModuleAdditionalLinkerArgResponseFilePaths: [:]),
             LinkerSpec.LibrarySpecifier(kind: .framework, path: Path.root.join("tmp/Foo3.framework"), mode: .normal, useSearchPaths: false, swiftModulePaths: [:], swiftModuleAdditionalLinkerArgResponseFilePaths: [:]),
             LinkerSpec.LibrarySpecifier(kind: .framework, path: Path.root.join("tmp/Foo4.framework"), mode: .weak, useSearchPaths: false, swiftModulePaths: [:], swiftModuleAdditionalLinkerArgResponseFilePaths: [:]),
+
+            // This is a no-op because object files get added in the SourcesTaskProducer, but we want to confirm that this is the case.
+            LinkerSpec.LibrarySpecifier(kind: .object, path: Path.root.join("tmp/Bar.o"), mode: .normal, useSearchPaths: false, swiftModulePaths: [:], swiftModuleAdditionalLinkerArgResponseFilePaths: [:]),
         ]
         await librarianSpec.constructLinkerTasks(cbc, delegate, libraries: libraries, usedTools: [:])
 

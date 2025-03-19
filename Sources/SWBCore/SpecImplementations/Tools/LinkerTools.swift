@@ -1530,9 +1530,8 @@ public final class LibtoolLinkerSpec : GenericLinkerSpec, SpecIdentifierType, @u
                 }
 
             case .object:
-                // A static library can bring in the contents of a .o file.
-                inputPaths.append(specifier.path)
-                return [specifier.path.str]
+                // Object files are added to linker inputs in the sources task producer and so end up in the link-file-list.
+                return []
 
             case .framework:
                 // A static library can build against a framework, since the library in the framework could be a static library, which is valid, and we can't tell here whether it is or not.  So we leave it to libtool to do the right thing here.
