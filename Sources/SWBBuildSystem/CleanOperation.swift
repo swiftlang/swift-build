@@ -12,6 +12,7 @@
 
 package import SWBCore
 import SWBTaskExecution
+package import SWBProtocol
 package import SWBUtil
 
 package import class Foundation.FileManager
@@ -61,7 +62,7 @@ package final class CleanOperation: BuildSystemOperation, TargetDependencyResolv
         return try BuildDescriptionManager.cacheDirectory(buildRequest, buildRequestContext: buildRequestContext, workspaceContext: workspaceContext).join("XCBuildData")
     }
 
-    package func build() async {
+    package func build() async -> BuildOperationEnded.Status {
         let buildOutputDelegate = delegate.buildStarted(self)
 
         if workspaceContext.userPreferences.enableDebugActivityLogs {
@@ -103,7 +104,7 @@ package final class CleanOperation: BuildSystemOperation, TargetDependencyResolv
 
         cleanBuildFolders(buildFolders: Set(buildFolders), buildOutputDelegate: buildOutputDelegate)
 
-        delegate.buildComplete(self, status: nil, delegate: buildOutputDelegate, metrics: nil)
+        return delegate.buildComplete(self, status: nil, delegate: buildOutputDelegate, metrics: nil)
     }
 
     package func cancel() {
@@ -205,7 +206,7 @@ package final class CleanOperation: BuildSystemOperation, TargetDependencyResolv
         delegate.targetPreparationStarted(self, configuredTarget: configuredTarget)
         delegate.targetStarted(self, configuredTarget: configuredTarget)
 
-        let (executable, arguments, workingDirectory, environment) = constructCommandLine(for: configuredTarget.target as! ExternalTarget, action: "clean", settings: settings, workspaceContext: workspaceContext, scope: settings.globalScope)
+        let (executable, arguments, workingDirectory, environment) = constructCommandLine(for: configuredTarget.target as! SWBCore.ExternalTarget, action: "clean", settings: settings, workspaceContext: workspaceContext, scope: settings.globalScope)
         let commandLine = [executable] + arguments
 
         let specLookupContext = SpecLookupCtxt(specRegistry: workspaceContext.core.specRegistry, platform: settings.platform)
