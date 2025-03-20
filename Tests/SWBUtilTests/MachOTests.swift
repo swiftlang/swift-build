@@ -783,6 +783,8 @@ fileprivate struct MachOTests {
             BuildVersion.Platform.tvOSSimulator: (platform: "tvos", environment: "simulator"),
             BuildVersion.Platform.watchOS: (platform: "watchos", environment: nil),
             BuildVersion.Platform.watchOSSimulator: (platform: "watchos", environment: "simulator"),
+            BuildVersion.Platform.xrOS: (platform: "xros", environment: nil),
+            BuildVersion.Platform.xrOSSimulator: (platform: "xros", environment: "simulator"),
         ]
 
         for (input, data) in versions {

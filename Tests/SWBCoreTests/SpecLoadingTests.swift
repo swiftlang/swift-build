@@ -189,6 +189,11 @@ import SWBMacro
         try await testProductTypeSpecLoadingClassAssociations(domain: "watchos")
     }
 
+    @Test(.requireSDKs(.xrOS))
+    func productTypeSpecLoadingClassAssociations_visionOS() async throws {
+        try await testProductTypeSpecLoadingClassAssociations(domain: "xros")
+    }
+
     @Test
     func packageTypeSpecLoading() async throws {
         let (spec, _, errors) = try await parseTestSpec(PackageTypeSpec.self, [

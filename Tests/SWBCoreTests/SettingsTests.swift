@@ -1096,7 +1096,7 @@ import SWBMacro
         let arch32 = try #require(Architecture.host.as32bit.stringValue)
         let arch64 = try #require(Architecture.host.as64bit.stringValue)
 
-        let destinations: [RunDestinationInfo] = [.macOS, .macCatalyst, .iOS, .iOSSimulator, .tvOS, .tvOSSimulator, .watchOS, .watchOSSimulator, .linux].filter { core.sdkRegistry.lookup($0.sdk) != nil }
+        let destinations: [RunDestinationInfo] = [.macOS, .macCatalyst, .iOS, .iOSSimulator, .tvOS, .tvOSSimulator, .watchOS, .watchOSSimulator, .xrOS, .xrOSSimulator, .linux].filter { core.sdkRegistry.lookup($0.sdk) != nil }
 
         for destination in destinations {
             let parameters = BuildParameters(action: .build, configuration: "Debug", activeRunDestination: destination, overrides: ["SDKROOT": destination.sdk, "SDK_VARIANT": destination.sdkVariant ?? ""])
@@ -1146,7 +1146,7 @@ import SWBMacro
         let project = context.workspace.projects[0]
         let target = project.targets[0]
 
-        let destinations: [RunDestinationInfo] = [.macOS, .macCatalyst, .iOS, .iOSSimulator, .tvOS, .tvOSSimulator, .watchOS, .watchOSSimulator, .driverKit, .linux].filter { core.sdkRegistry.lookup($0.sdk) != nil }
+        let destinations: [RunDestinationInfo] = [.macOS, .macCatalyst, .iOS, .iOSSimulator, .tvOS, .tvOSSimulator, .watchOS, .watchOSSimulator, .xrOS, .xrOSSimulator, .driverKit, .linux].filter { core.sdkRegistry.lookup($0.sdk) != nil }
 
         for destination in destinations {
             let parameters = BuildParameters(action: .build, configuration: "Debug", activeRunDestination: destination, overrides: ["SDKROOT": destination.sdk, "SDK_VARIANT": destination.sdkVariant ?? ""])
@@ -1170,6 +1170,8 @@ import SWBMacro
                 #expect(try scope.evaluate(scope.namespace.declareStringMacro("RECOMMENDED_TVOS_DEPLOYMENT_TARGET")) == "15.0")
             case .watchOS, .watchOSSimulator:
                 #expect(try scope.evaluate(scope.namespace.declareStringMacro("RECOMMENDED_WATCHOS_DEPLOYMENT_TARGET")) == "8.0")
+            case .xrOS, .xrOSSimulator:
+                #expect(try scope.evaluate(scope.namespace.declareStringMacro("RECOMMENDED_XROS_DEPLOYMENT_TARGET")) == "1.0")
             case .driverKit:
                 #expect(try scope.evaluate(scope.namespace.declareStringMacro("RECOMMENDED_DRIVERKIT_DEPLOYMENT_TARGET")) == "20.0")
             case .linux:

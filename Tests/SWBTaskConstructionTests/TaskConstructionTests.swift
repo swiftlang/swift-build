@@ -7583,6 +7583,7 @@ fileprivate struct TaskConstructionTests: CoreBasedTests {
                                 "IPHONEOS_DEPLOYMENT_TARGET": core.loadSDK(.iOS).defaultDeploymentTarget,
                                 "TVOS_DEPLOYMENT_TARGET": core.loadSDK(.tvOS).defaultDeploymentTarget,
                                 "WATCHOS_DEPLOYMENT_TARGET": core.loadSDK(.watchOS).defaultDeploymentTarget,
+                                "XROS_DEPLOYMENT_TARGET": core.loadSDK(.xrOS).defaultDeploymentTarget,
                                 "DRIVERKIT_DEPLOYMENT_TARGET": core.loadSDK(.driverKit).defaultDeploymentTarget,
                             ]
                         )
@@ -7634,6 +7635,15 @@ fileprivate struct TaskConstructionTests: CoreBasedTests {
 
         try await _defaultDeploymentTargetInRangeTester(runDestination: .watchOS).checkBuild(BuildParameters(action: .build, configuration: "Debug"), runDestination: .watchOS) { results in
             results.checkTask(.matchRuleType("Ld"), .matchRuleItem("/tmp/Test/aProject/build/Debug-watchos/Foo.framework/Foo")) { _ in }
+            results.checkNoDiagnostics()
+        }
+    }
+
+    @Test(.requireSDKs(.xrOS))
+    func defaultDeploymentTargetInRange_visionOS() async throws {
+
+        try await _defaultDeploymentTargetInRangeTester(runDestination: .xrOS).checkBuild(BuildParameters(action: .build, configuration: "Debug"), runDestination: .xrOS) { results in
+            results.checkTask(.matchRuleType("Ld"), .matchRuleItem("/tmp/Test/aProject/build/Debug-xros/Foo.framework/Foo")) { _ in }
             results.checkNoDiagnostics()
         }
     }

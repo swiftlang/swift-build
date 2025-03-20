@@ -40,6 +40,12 @@ fileprivate struct ShellScriptTaskConstructionTests: CoreBasedTests {
         try await testShellScriptDeploymentTargetPruning(sdkroot: "watchsimulator", expectedDeploymentTargetPrefix: "WATCHOS")
     }
 
+    @Test(.requireSDKs(.xrOS))
+    func shellScriptDeploymentTargetPruning_visionOS() async throws {
+        try await testShellScriptDeploymentTargetPruning(sdkroot: "xros", expectedDeploymentTargetPrefix: "XROS")
+        try await testShellScriptDeploymentTargetPruning(sdkroot: "xrsimulator", expectedDeploymentTargetPrefix: "XROS")
+    }
+
     @Test(.requireSDKs(.driverKit))
     func shellScriptDeploymentTargetPruning_DriverKit() async throws {
         try await testShellScriptDeploymentTargetPruning(sdkroot: "driverkit", expectedDeploymentTargetPrefix: "DRIVERKIT")
