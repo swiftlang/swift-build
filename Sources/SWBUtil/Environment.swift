@@ -85,7 +85,7 @@ extension Environment {
 // MARK: - Protocol Conformances
 
 extension Environment: Collection {
-    public struct Index: Comparable {
+    public struct Index: Comparable, Sendable {
         public static func < (lhs: Self, rhs: Self) -> Bool {
             lhs.underlying < rhs.underlying
         }
