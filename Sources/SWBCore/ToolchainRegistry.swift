@@ -473,14 +473,15 @@ public final class ToolchainRegistry: @unchecked Sendable {
         }
 
         if let swift = StackedSearchPath(environment: .current, fs: fs).lookup(Path("swift")), fs.exists(swift) {
-            let hasUsrBin = swift.normalize().str.hasSuffix("/usr/bin/swift")
-            let hasUsrLocalBin = swift.normalize().str.hasSuffix("/usr/local/bin/swift")
+            let realSwiftPath = try fs.realpath(swift).dirname.normalize()
+            let hasUsrBin = realSwiftPath.str.hasSuffix("/usr/bin")
+            let hasUsrLocalBin = realSwiftPath.str.hasSuffix("/usr/local/bin")
             let path: Path
             switch (hasUsrBin, hasUsrLocalBin) {
             case (true, false):
-                path = swift.dirname.dirname.dirname
+                path = realSwiftPath.dirname.dirname.dirname
             case (false, true):
-                path = swift.dirname.dirname.dirname.dirname
+                path = realSwiftPath.dirname.dirname.dirname.dirname
             case (false, false):
                 return
             case (true, true):
