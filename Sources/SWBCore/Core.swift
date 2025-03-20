@@ -382,7 +382,7 @@ public final class Core: Sendable {
 
     private var _specRegistry: SpecRegistry?
 
-    private func initializePlatformRegistry() async {
+    @_spi(Testing) public func initializePlatformRegistry() async {
         var searchPaths: [Path]
         let fs = localFS
         if let onlySearchAdditionalPlatformPaths = getEnvironmentVariable("XCODE_ONLY_EXTRA_PLATFORM_FOLDERS"), onlySearchAdditionalPlatformPaths.boolValue {

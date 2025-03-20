@@ -157,6 +157,9 @@ extension Core {
         // Force the spec registry to load.
         await core.initializeSpecRegistry()
 
+        // 'loadAllSpecs' uses the platform registry, and needs to be initalized since core.platformRegistry is a delayed init property.
+        await core.initializePlatformRegistry()
+
         core.loadAllSpecs()
     }
 }
