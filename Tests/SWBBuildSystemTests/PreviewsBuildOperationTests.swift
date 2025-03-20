@@ -190,7 +190,7 @@ fileprivate struct PreviewsBuildOperationTests: CoreBasedTests {
                         // Ignore irrelevant paths which change often
                         var compileCommandLine = previewInfo.thunkInfo?.compileCommandLine ?? []
                         for idx in compileCommandLine.indices.reversed().dropFirst() {
-                            if ["-external-plugin-path", "-plugin-path", "-blocklist-file", "-prebuilt-module-cache-path", "-in-process-plugin-server-path"].contains(compileCommandLine[idx]) {
+                            if ["-external-plugin-path", "-plugin-path", "-blocklist-file", "-prebuilt-module-cache-path", "-in-process-plugin-server-path", "-resource-dir"].contains(compileCommandLine[idx]) {
                                 // Remove the flag and argument
                                 compileCommandLine.remove(at: idx)
                                 compileCommandLine.remove(at: idx)
@@ -239,8 +239,6 @@ fileprivate struct PreviewsBuildOperationTests: CoreBasedTests {
                                 "-working-directory",
                                 "-Xcc",
                                 "\(srcRoot.str)",
-                                "-resource-dir",
-                                "\(core.developerPath.str)/Toolchains/XcodeDefault.xctoolchain/usr/lib/swift",
                                 "-enable-anonymous-context-mangled-names",
                                 "-file-compilation-dir",
                                 "\(srcRoot.str)",
@@ -488,7 +486,7 @@ fileprivate struct PreviewsBuildOperationTests: CoreBasedTests {
                         // Ignore irrelevant paths which change often.
                         var compileCommandLine = previewInfo.thunkInfo?.compileCommandLine ?? []
                         for idx in compileCommandLine.indices.reversed().dropFirst() {
-                            if ["-external-plugin-path", "-plugin-path", "-blocklist-file", "-prebuilt-module-cache-path", "-in-process-plugin-server-path"].contains(compileCommandLine[idx]) {
+                            if ["-external-plugin-path", "-plugin-path", "-blocklist-file", "-prebuilt-module-cache-path", "-in-process-plugin-server-path", "-resource-dir"].contains(compileCommandLine[idx]) {
                                 // Remove the flag and argument
                                 compileCommandLine.remove(at: idx)
                                 compileCommandLine.remove(at: idx)
@@ -540,8 +538,6 @@ fileprivate struct PreviewsBuildOperationTests: CoreBasedTests {
                                 "-working-directory",
                                 "-Xcc",
                                 "\(srcRoot.str)",
-                                "-resource-dir",
-                                "\(core.developerPath.str)/Toolchains/XcodeDefault.xctoolchain/usr/lib/swift",
                                 "-enable-anonymous-context-mangled-names",
                                 "-file-compilation-dir",
                                 "\(srcRoot.str)",
