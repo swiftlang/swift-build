@@ -2958,6 +2958,9 @@ That command depends on command in Target 'agg2' (project \'aProject\'): script 
             try await tester.fs.writeFramework(sourceDynamicFrameworkPath, archs: runDestination.platform == "macosx" ? ["arm64", "x86_64"] : ["arm64"], platform: #require(runDestination.buildVersionPlatform(core)), infoLookup: core, static: false) { _, _, headersDir, resourcesDir in
                 try await tester.fs.writeFileContents(headersDir.join("ADynamicFwk.h")) { $0 <<< "" }
                 try await tester.fs.writePlist(resourcesDir.join("ADynamicResource.plist"), .plDict([:]))
+                try await tester.fs.writePlist(resourcesDir.join("Info.plist"), .plDict([
+                    "CFBundleIdentifier": "com.apple.ADynamicFwk",
+                ]))
             }
 
             let sourceDynamicFrameworkFiles = try tester.fs.traverse(sourceDynamicFrameworkPath, { $0.relativeSubpath(from: sourceDynamicFrameworkPath) }).sorted()
@@ -3006,6 +3009,7 @@ That command depends on command in Target 'agg2' (project \'aProject\'): script 
                     "LSMinimumSystemVersion": "11.0",
                     "MinimumOSVersion": "11.0",
                     "CFBundleSupportedPlatforms": bundleSupportedPlatforms,
+                    "CFBundleIdentifier": "com.apple.AStaticFwk",
                 ]))
             }
 

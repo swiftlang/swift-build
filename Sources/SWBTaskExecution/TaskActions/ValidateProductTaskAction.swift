@@ -34,8 +34,10 @@ public final class ValidateProductTaskAction: TaskAction {
         let storeIssueTreatment: StoreIssueTreatment
         let validateForStore: Bool
         let validatingArchive: Bool
+        let validateEmbeddedFrameworks: Bool
         let applicationPath: Path
         let infoplistSubpath: String
+        let isShallowBundle: Bool
 
         @_spi(Testing) public init?(_ commandLine: AnySequence<String>, _ outputDelegate: any TaskOutputDelegate) {
             let verbose = false
@@ -45,6 +47,8 @@ public final class ValidateProductTaskAction: TaskAction {
             var applicationPath: Path! = nil
             var infoplistSubpath: String! = nil
             var validateExtension = true
+            var validateEmbeddedFrameworks = true
+            var isShallowBundle = false
 
             var hadErrors = false
             func error(_ message: String) {
@@ -79,7 +83,13 @@ public final class ValidateProductTaskAction: TaskAction {
 
                     // The default is yes, so we only need an opt-out for now. This also prevents us from having to pass in `-validate-extension` everywhere, even though that is the default behavior.
                     case "-no-validate-extension":
-                        validateExtension = false;
+                        validateExtension = false
+
+                    case "-no-validate-embedded-frameworks":
+                        validateEmbeddedFrameworks = false
+
+                    case "-shallow-bundle":
+                        isShallowBundle = true
 
                     case "-infoplist-subpath":
                         guard let path = generator.next() else {
@@ -133,8 +143,10 @@ public final class ValidateProductTaskAction: TaskAction {
             self.storeIssueTreatment = storeIssueTreatment
             self.validateForStore = validateForStore
             self.validatingArchive = validatingArchive
+            self.validateEmbeddedFrameworks = validateEmbeddedFrameworks
             self.applicationPath = applicationPath
             self.infoplistSubpath = infoplistSubpath
+            self.isShallowBundle = isShallowBundle
         }
     }
 
@@ -174,12 +186,100 @@ public final class ValidateProductTaskAction: TaskAction {
         // Validate the iPad multitasking/splitview support in the Info.plist.  This never causes the tool to fail, but it may emit warnings.
         validateiPadMultiTaskingSplitViewSupport(infoPlist, outputDelegate: outputDelegate)
 
-        // Validate that this is actually an App Store category.
         if let configuredTarget = task.forTarget, let platform = configuredTarget.parameters.activeRunDestination?.platform {
+            // Validate that this is actually an App Store category.
             validateAppStoreCategory(infoPlist, platform: platform, targetName: configuredTarget.target.name, schemeCommand: executionDelegate.schemeCommand, options: options, outputDelegate: outputDelegate)
+
+            // Validate compliance of embedded frameworks w.r.t. installation and App Store submission.
+            if options.validateEmbeddedFrameworks {
+                do {
+                    let success = try validateFrameworks(at: applicationPath, isShallow: options.isShallowBundle, outputDelegate: outputDelegate)
+                    return success ? .succeeded : .failed
+                } catch {
+                    outputDelegate.emitError("Unexpected error while validating embedded frameworks: \(error.localizedDescription)")
+                    return .failed
+                }
+            }
         }
 
         return .succeeded
+    }
+
+    private static let deepBundleInfoPlistSubpath = "Versions/Current/Resources/Info.plist"
+    private static let shallowBundleInfoPlistSubpath = "Info.plist"
+
+    @_spi(Testing) public func validateFrameworks(at applicationPath: Path, isShallow: Bool, outputDelegate: any TaskOutputDelegate, fs: any FSProxy = localFS) throws -> Bool {
+        let frameworksSubpath = isShallow ? "Frameworks" : "Contents/Frameworks"
+        let infoPlistSubpath = isShallow ? Self.shallowBundleInfoPlistSubpath : Self.deepBundleInfoPlistSubpath
+
+        let frameworksPath = applicationPath.join(frameworksSubpath)
+        guard fs.exists(frameworksPath) else {
+            return true
+        }
+
+        var frameworkPaths = [Path]()
+        try fs.traverse(frameworksPath) {
+            if $0.fileExtension == "framework" {
+                frameworkPaths.append($0)
+            }
+        }
+
+        var hasErrors = false
+        for frameworkPath in frameworkPaths {
+            let infoPlistPath = frameworkPath.join(infoPlistSubpath)
+            guard fs.exists(infoPlistPath) else {
+                // It seems reasonably common that developers mix up the formats, so we check that to be more helpful.
+                if isShallow, fs.exists(frameworkPath.join(Self.deepBundleInfoPlistSubpath)) {
+                    outputDelegate.emitError("Framework \(frameworkPath.str) contains \(Self.deepBundleInfoPlistSubpath), expected \(Self.shallowBundleInfoPlistSubpath) at the root level since the platform uses shallow bundles")
+                } else if !isShallow, fs.exists(frameworkPath.join(Self.shallowBundleInfoPlistSubpath)) {
+                    outputDelegate.emitError("Framework \(frameworkPath.str) contains \(Self.shallowBundleInfoPlistSubpath), expected \(Self.deepBundleInfoPlistSubpath) since the platform does not use shallow bundles")
+                } else {
+                    outputDelegate.emitError("Framework \(frameworkPath.str) did not contain an Info.plist")
+                }
+                hasErrors = true
+                continue
+            }
+
+            let infoPlistItem: PropertyListItem
+            do {
+                infoPlistItem = try PropertyList.fromPath(infoPlistPath, fs: fs)
+            }
+            catch let error {
+                outputDelegate.emitError("Failed to read Info.plist of framework \(frameworkPath.str): \(error)")
+                hasErrors = true
+                continue
+            }
+            guard case .plDict(let infoPlist) = infoPlistItem else {
+                outputDelegate.emitError("Failed to read Info.plist of framework \(frameworkPath.str): Contents of file are not a dictionary")
+                hasErrors = true
+                continue
+            }
+
+            // We do a more thorough validation for embedded platforms since installation will otherwise be prevented with more confusing diagnostics.
+            if !isShallow {
+                continue
+            }
+
+            // This is being special cased since it appears we always get a dictionary even for invalid plists.
+            if infoPlist.isEmpty {
+                outputDelegate.emitError("Info.plist of framework \(frameworkPath.str) was empty")
+                hasErrors = true
+                continue
+            }
+
+            guard let rawBundleIdentifier = infoPlist["CFBundleIdentifier"], case .plString(let bundleIdentifier) = rawBundleIdentifier, !bundleIdentifier.isEmpty else {
+                outputDelegate.emitError("Framework \(frameworkPath.str) did not have a CFBundleIdentifier in its Info.plist")
+                hasErrors = true
+                continue
+            }
+
+            if bundleIdentifier != bundleIdentifier.asLegalBundleIdentifier {
+                outputDelegate.emitError("Framework \(frameworkPath.str) had an invalid CFBundleIdentifier in its Info.plist: \(bundleIdentifier)")
+                hasErrors = true
+            }
+        }
+
+        return !hasErrors
     }
 
     @_spi(Testing) @discardableResult public func validateiPadMultiTaskingSplitViewSupport(_ infoPlist: [String: PropertyListItem], outputDelegate: any TaskOutputDelegate) -> Bool {
