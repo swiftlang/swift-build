@@ -25,6 +25,7 @@ import SWBTaskConstruction
     manager.register(XCStringsInputFileGroupingStrategyExtension(), type: InputFileGroupingStrategyExtensionPoint.self)
     manager.register(TaskProducersExtension(), type: TaskProducerExtensionPoint.self)
     manager.register(MacCatalystInfoExtension(), type: SDKVariantInfoExtensionPoint.self)
+    manager.register(ApplePlatformInfoExtension(), type: PlatformInfoExtensionPoint.self)
     manager.register(AppleSettingsBuilderExtension(), type: SettingsBuilderExtensionPoint.self)
 }
 
@@ -159,6 +160,21 @@ struct XCStringsInputFileGroupingStrategyExtension: InputFileGroupingStrategyExt
             }
         }
         return ["xcstrings": Factory()]
+    }
+}
+
+struct ApplePlatformInfoExtension: PlatformInfoExtension {
+    func preferredArchValue(for platformName: String) -> String? {
+        // FIXME: rdar://65011964 (Remove PLATFORM_PREFERRED_ARCH)
+        // Don't add values for any new platforms
+        switch platformName {
+        case "macosx", "iphonesimulator", "appletvsimulator", "watchsimulator":
+            return "x86_64"
+        case "iphoneos", "appletvos", "watchos":
+            return "arm64"
+        default:
+            return nil
+        }
     }
 }
 
