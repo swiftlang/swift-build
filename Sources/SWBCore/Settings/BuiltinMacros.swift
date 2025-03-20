@@ -332,6 +332,10 @@ public final class BuiltinMacros {
 
     public static let AD_HOC_CODE_SIGNING_ALLOWED = BuiltinMacros.declareBooleanMacro("AD_HOC_CODE_SIGNING_ALLOWED")
     public static let __AD_HOC_CODE_SIGNING_NOT_ALLOWED_SUPPLEMENTAL_MESSAGE = BuiltinMacros.declareStringMacro("__AD_HOC_CODE_SIGNING_NOT_ALLOWED_SUPPLEMENTAL_MESSAGE")
+    public static let RUNTIME_EXCEPTION_ALLOW_DYLD_ENVIRONMENT_VARIABLES = BuiltinMacros.declareBooleanMacro("RUNTIME_EXCEPTION_ALLOW_DYLD_ENVIRONMENT_VARIABLES")
+    public static let RUNTIME_EXCEPTION_ALLOW_JIT = BuiltinMacros.declareBooleanMacro("RUNTIME_EXCEPTION_ALLOW_JIT")
+    public static let RUNTIME_EXCEPTION_ALLOW_UNSIGNED_EXECUTABLE_MEMORY = BuiltinMacros.declareBooleanMacro("RUNTIME_EXCEPTION_ALLOW_UNSIGNED_EXECUTABLE_MEMORY")
+    public static let AUTOMATION_APPLE_EVENTS = BuiltinMacros.declareBooleanMacro("AUTOMATION_APPLE_EVENTS")
     public static let CODE_SIGNING_ALLOWED = BuiltinMacros.declareBooleanMacro("CODE_SIGNING_ALLOWED")
     public static let CODE_SIGNING_REQUIRED = BuiltinMacros.declareBooleanMacro("CODE_SIGNING_REQUIRED")
     public static let CODE_SIGNING_REQUIRES_TEAM = BuiltinMacros.declareBooleanMacro("CODE_SIGNING_REQUIRES_TEAM")
@@ -345,8 +349,11 @@ public final class BuiltinMacros {
     public static let CODE_SIGN_RESTRICT = BuiltinMacros.declareBooleanMacro("CODE_SIGN_RESTRICT")
     public static let CODE_SIGN_RESOURCE_RULES_PATH = BuiltinMacros.declareStringMacro("CODE_SIGN_RESOURCE_RULES_PATH")
     public static let CODE_SIGN_STYLE = BuiltinMacros.declareStringMacro("CODE_SIGN_STYLE")
+    public static let RUNTIME_EXCEPTION_DEBUGGING_TOOL = BuiltinMacros.declareBooleanMacro("RUNTIME_EXCEPTION_DEBUGGING_TOOL")
     public static let DIAGNOSE_MISSING_TARGET_DEPENDENCIES = BuiltinMacros.declareEnumMacro("DIAGNOSE_MISSING_TARGET_DEPENDENCIES") as EnumMacroDeclaration<BooleanWarningLevel>
+    public static let RUNTIME_EXCEPTION_DISABLE_EXECUTABLE_PAGE_PROTECTION = BuiltinMacros.declareBooleanMacro("RUNTIME_EXCEPTION_DISABLE_EXECUTABLE_PAGE_PROTECTION")
     public static let DISABLE_FREEFORM_CODE_SIGN_OPTION_FLAGS = BuiltinMacros.declareBooleanMacro("DISABLE_FREEFORM_CODE_SIGN_OPTION_FLAGS")
+    public static let RUNTIME_EXCEPTION_DISABLE_LIBRARY_VALIDATION = BuiltinMacros.declareBooleanMacro("RUNTIME_EXCEPTION_DISABLE_LIBRARY_VALIDATION")
     public static let ENABLE_CLOUD_SIGNING = BuiltinMacros.declareBooleanMacro("ENABLE_CLOUD_SIGNING")
 
     public static let ENABLE_GENERIC_TASK_CACHING = BuiltinMacros.declareBooleanMacro("ENABLE_GENERIC_TASK_CACHING")
@@ -2382,6 +2389,13 @@ public final class BuiltinMacros {
 
     /// Force initialization of entitlements macros.
     private static let allEntitlementsMacros = [
+        RUNTIME_EXCEPTION_ALLOW_DYLD_ENVIRONMENT_VARIABLES,
+        RUNTIME_EXCEPTION_ALLOW_JIT,
+        RUNTIME_EXCEPTION_ALLOW_UNSIGNED_EXECUTABLE_MEMORY,
+        AUTOMATION_APPLE_EVENTS,
+        RUNTIME_EXCEPTION_DEBUGGING_TOOL,
+        RUNTIME_EXCEPTION_DISABLE_EXECUTABLE_PAGE_PROTECTION,
+        RUNTIME_EXCEPTION_DISABLE_LIBRARY_VALIDATION,
         ENABLE_APP_SANDBOX,
         ENABLE_RESOURCE_ACCESS_AUDIO_INPUT,
         ENABLE_RESOURCE_ACCESS_BLUETOOTH,

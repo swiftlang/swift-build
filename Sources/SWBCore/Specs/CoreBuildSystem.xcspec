@@ -2161,7 +2161,7 @@ For more information on mergeable libraries, see [Configuring your project to us
                 Name = "ENABLE_APP_SANDBOX";
                 Type = Boolean;
                 DefaultValue = NO;
-                Category = "App Sandbox";
+                Category = "App Sandbox & Hardened Runtime";
                 ConditionFlavors = (
                     sdk,
                 );
@@ -2169,8 +2169,64 @@ For more information on mergeable libraries, see [Configuring your project to us
             {   Name = "ENABLE_HARDENED_RUNTIME";
                 Type = Boolean;
                 DefaultValue = NO;
-                Category = "Code Signing";
+                Category = "App Sandbox & Hardened Runtime";
                 Description = "Enable hardened runtime restrictions.";
+                ConditionFlavors = (
+                    sdk,
+                );
+            },
+            {   Name = "AUTOMATION_APPLE_EVENTS";
+                Type = Boolean;
+                DefaultValue = NO;
+                Category = "App Sandbox & Hardened Runtime";
+                ConditionFlavors = (
+                    sdk,
+                );
+            },
+            {   Name = "RUNTIME_EXCEPTION_ALLOW_DYLD_ENVIRONMENT_VARIABLES";
+                Type = Boolean;
+                DefaultValue = NO;
+                Category = "App Sandbox & Hardened Runtime";
+                ConditionFlavors = (
+                    sdk,
+                );
+            },
+            {   Name = "RUNTIME_EXCEPTION_ALLOW_JIT";
+                Type = Boolean;
+                DefaultValue = NO;
+                Category = "App Sandbox & Hardened Runtime";
+                ConditionFlavors = (
+                    sdk,
+                );
+            },
+            {   Name = "RUNTIME_EXCEPTION_ALLOW_UNSIGNED_EXECUTABLE_MEMORY";
+                Type = Boolean;
+                DefaultValue = NO;
+                Category = "App Sandbox & Hardened Runtime";
+                ConditionFlavors = (
+                    sdk,
+                );
+            },
+            {   Name = "RUNTIME_EXCEPTION_DEBUGGING_TOOL";
+                Type = Boolean;
+                DefaultValue = NO;
+                Category = "App Sandbox & Hardened Runtime";
+                ConditionFlavors = (
+                    sdk,
+                );
+            },
+            {   Name = "RUNTIME_EXCEPTION_DISABLE_EXECUTABLE_PAGE_PROTECTION";
+                Type = Boolean;
+                DefaultValue = NO;
+                Category = "App Sandbox & Hardened Runtime";
+                ConditionFlavors = (
+                    sdk,
+                );
+            },
+            {   Name = "RUNTIME_EXCEPTION_DISABLE_LIBRARY_VALIDATION";
+                Type = Boolean;
+                DefaultValue = NO;
+                Category = "App Sandbox & Hardened Runtime";
                 ConditionFlavors = (
                     sdk,
                 );
@@ -2184,7 +2240,7 @@ For more information on mergeable libraries, see [Configuring your project to us
                     "readwrite",
                 );
                 DefaultValue = "";
-                Category = "App Sandbox";
+                Category = "App Sandbox & Hardened Runtime";
                 ConditionFlavors = (
                     sdk,
                 );
@@ -2198,7 +2254,7 @@ For more information on mergeable libraries, see [Configuring your project to us
                     "readwrite",
                 );
                 DefaultValue = "";
-                Category = "App Sandbox";
+                Category = "App Sandbox & Hardened Runtime";
                 ConditionFlavors = (
                     sdk,
                 );
@@ -2212,7 +2268,7 @@ For more information on mergeable libraries, see [Configuring your project to us
                     "readwrite",
                 );
                 DefaultValue = "";
-                Category = "App Sandbox";
+                Category = "App Sandbox & Hardened Runtime";
                 ConditionFlavors = (
                     sdk,
                 );
@@ -2226,7 +2282,7 @@ For more information on mergeable libraries, see [Configuring your project to us
                     "readwrite",
                 );
                 DefaultValue = "";
-                Category = "App Sandbox";
+                Category = "App Sandbox & Hardened Runtime";
                 ConditionFlavors = (
                     sdk,
                 );
@@ -2240,7 +2296,7 @@ For more information on mergeable libraries, see [Configuring your project to us
                     "readwrite",
                 );
                 DefaultValue = "";
-                Category = "App Sandbox";
+                Category = "App Sandbox & Hardened Runtime";
                 ConditionFlavors = (
                     sdk,
                 );
@@ -2248,7 +2304,7 @@ For more information on mergeable libraries, see [Configuring your project to us
             {   Name = "ENABLE_INCOMING_NETWORK_CONNECTIONS";
                 Type = Boolean;
                 DefaultValue = NO;
-                Category = "App Sandbox";
+                Category = "App Sandbox & Hardened Runtime";
                 ConditionFlavors = (
                     sdk,
                 );
@@ -2256,7 +2312,7 @@ For more information on mergeable libraries, see [Configuring your project to us
             {   Name = "ENABLE_OUTGOING_NETWORK_CONNECTIONS";
                 Type = Boolean;
                 DefaultValue = NO;
-                Category = "App Sandbox";
+                Category = "App Sandbox & Hardened Runtime";
                 ConditionFlavors = (
                     sdk,
                 );
@@ -2264,7 +2320,7 @@ For more information on mergeable libraries, see [Configuring your project to us
             {   Name = "ENABLE_RESOURCE_ACCESS_CAMERA";
                 Type = Boolean;
                 DefaultValue = NO;
-                Category = "App Sandbox";
+                Category = "App Sandbox & Hardened Runtime";
                 ConditionFlavors = (
                     sdk,
                 );
@@ -2272,7 +2328,7 @@ For more information on mergeable libraries, see [Configuring your project to us
             {   Name = "ENABLE_RESOURCE_ACCESS_AUDIO_INPUT";
                 Type = Boolean;
                 DefaultValue = NO;
-                Category = "App Sandbox";
+                Category = "App Sandbox & Hardened Runtime";
                 ConditionFlavors = (
                     sdk,
                 );
@@ -2280,7 +2336,15 @@ For more information on mergeable libraries, see [Configuring your project to us
             {   Name = "ENABLE_RESOURCE_ACCESS_USB";
                 Type = Boolean;
                 DefaultValue = NO;
-                Category = "App Sandbox";
+                Category = "App Sandbox & Hardened Runtime";
+                ConditionFlavors = (
+                    sdk,
+                );
+            },
+            {   Name = "ENABLE_RESOURCE_ACCESS_PHOTO_LIBRARY";
+                Type = Boolean;
+                DefaultValue = NO;
+                Category = "App Sandbox & Hardened Runtime";
                 ConditionFlavors = (
                     sdk,
                 );
@@ -2288,7 +2352,7 @@ For more information on mergeable libraries, see [Configuring your project to us
             {   Name = "ENABLE_RESOURCE_ACCESS_PRINTING";
                 Type = Boolean;
                 DefaultValue = NO;
-                Category = "App Sandbox";
+                Category = "App Sandbox & Hardened Runtime";
                 ConditionFlavors = (
                     sdk,
                 );
@@ -2296,7 +2360,7 @@ For more information on mergeable libraries, see [Configuring your project to us
             {   Name = "ENABLE_RESOURCE_ACCESS_BLUETOOTH";
                 Type = Boolean;
                 DefaultValue = NO;
-                Category = "App Sandbox";
+                Category = "App Sandbox & Hardened Runtime";
                 ConditionFlavors = (
                     sdk,
                 );
@@ -2304,7 +2368,7 @@ For more information on mergeable libraries, see [Configuring your project to us
             {   Name = "ENABLE_RESOURCE_ACCESS_CONTACTS";
                 Type = Boolean;
                 DefaultValue = NO;
-                Category = "App Sandbox";
+                Category = "App Sandbox & Hardened Runtime";
                 ConditionFlavors = (
                     sdk,
                 );
@@ -2312,7 +2376,7 @@ For more information on mergeable libraries, see [Configuring your project to us
             {   Name = "ENABLE_RESOURCE_ACCESS_LOCATION";
                 Type = Boolean;
                 DefaultValue = NO;
-                Category = "App Sandbox";
+                Category = "App Sandbox & Hardened Runtime";
                 ConditionFlavors = (
                     sdk,
                 );
@@ -2320,7 +2384,7 @@ For more information on mergeable libraries, see [Configuring your project to us
             {   Name = "ENABLE_RESOURCE_ACCESS_CALENDARS";
                 Type = Boolean;
                 DefaultValue = NO;
-                Category = "App Sandbox";
+                Category = "App Sandbox & Hardened Runtime";
                 ConditionFlavors = (
                     sdk,
                 );

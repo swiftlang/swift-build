@@ -21,6 +21,36 @@ public final class ProductPackagingToolSpec : GenericCommandLineToolSpec, SpecId
         fatalError("unexpected direct invocation")
     }
 
+    fileprivate static let sandboxAndHardenedRuntimeBooleanEntitlements = [
+        BuiltinMacros.RUNTIME_EXCEPTION_ALLOW_DYLD_ENVIRONMENT_VARIABLES: "com.apple.security.cs.allow-dyld-environment-variables",
+        BuiltinMacros.RUNTIME_EXCEPTION_ALLOW_JIT: "com.apple.security.cs.allow-jit",
+        BuiltinMacros.RUNTIME_EXCEPTION_ALLOW_UNSIGNED_EXECUTABLE_MEMORY: "com.apple.security.cs.allow-unsigned-executable-memory",
+        BuiltinMacros.RUNTIME_EXCEPTION_DEBUGGING_TOOL: "com.apple.security.cs.debugger",
+        BuiltinMacros.RUNTIME_EXCEPTION_DISABLE_EXECUTABLE_PAGE_PROTECTION: "com.apple.security.cs.disable-executable-page-protection",
+        BuiltinMacros.RUNTIME_EXCEPTION_DISABLE_LIBRARY_VALIDATION: "com.apple.security.cs.disable-library-validation",
+        BuiltinMacros.ENABLE_APP_SANDBOX: "com.apple.security.app-sandbox",
+        BuiltinMacros.ENABLE_INCOMING_NETWORK_CONNECTIONS: "com.apple.security.network.server",
+        BuiltinMacros.ENABLE_OUTGOING_NETWORK_CONNECTIONS: "com.apple.security.network.client",
+        BuiltinMacros.ENABLE_RESOURCE_ACCESS_AUDIO_INPUT: "com.apple.security.device.audio-input",
+        BuiltinMacros.ENABLE_RESOURCE_ACCESS_BLUETOOTH: "com.apple.security.device.bluetooth",
+        BuiltinMacros.ENABLE_RESOURCE_ACCESS_CALENDARS: "com.apple.security.personal-information.calendars",
+        BuiltinMacros.ENABLE_RESOURCE_ACCESS_CAMERA: "com.apple.security.device.camera",
+        BuiltinMacros.ENABLE_RESOURCE_ACCESS_CONTACTS: "com.apple.security.personal-information.addressbook",
+        BuiltinMacros.ENABLE_RESOURCE_ACCESS_LOCATION: "com.apple.security.personal-information.location",
+        BuiltinMacros.ENABLE_RESOURCE_ACCESS_PHOTO_LIBRARY: "com.apple.security.personal-information.photos-library",
+        BuiltinMacros.ENABLE_RESOURCE_ACCESS_PRINTING: "com.apple.security.print",
+        BuiltinMacros.ENABLE_RESOURCE_ACCESS_USB: "com.apple.security.device.usb",
+        BuiltinMacros.AUTOMATION_APPLE_EVENTS: "com.apple.security.automation.apple-events",
+    ]
+
+    fileprivate static let sandboxFileAccessSettingsAndEntitlements: [(EnumMacroDeclaration<FileAccessMode>, String)] = [
+        (BuiltinMacros.ENABLE_FILE_ACCESS_DOWNLOADS_FOLDER, "com.apple.security.files.downloads"),
+        (BuiltinMacros.ENABLE_FILE_ACCESS_PICTURE_FOLDER, "com.apple.security.assets.pictures"),
+        (BuiltinMacros.ENABLE_FILE_ACCESS_MUSIC_FOLDER, "com.apple.security.assets.music"),
+        (BuiltinMacros.ENABLE_FILE_ACCESS_MOVIES_FOLDER, "com.apple.security.assets.movies"),
+        (BuiltinMacros.ENABLE_USER_SELECTED_FILES, "com.apple.security.files.user-selected"),
+    ]
+
     /// Construct a task to create the entitlements (`.xcent`) file.
     /// - parameter cbc: The command build context.  This includes the input file to process (until <rdar://problem/29117572> is fixed), and the output file in the product to which write the contents.
     /// - parameter delegate: The task generation delegate.
@@ -88,22 +118,14 @@ public final class ProductPackagingToolSpec : GenericCommandLineToolSpec, SpecId
 
                 // rdar://142845111 (Turn on `AppSandboxConflictingValuesEmitsWarning` by default)
                 if SWBFeatureFlag.enableAppSandboxConflictingValuesEmitsWarning.value {
-                    EntitlementConflictDiagnosticEmitter.checkForConflicts(cbc, delegate, entitlementsDictionary: entitlementsDictionary)
+                    EntitlementConflictDiagnosticEmitter.checkForConflicts(cbc, delegate, entitlementsDictionary: entitlementsDictionary, entitlementsPath: codeSignEntitlementsInput?.absolutePath)
                 }
 
                 if isAppSandboxEnabled || isHardenedRuntimeEnabled {
                     // Inject entitlements that are settable via build settings.
                     // This is only supported when App Sandbox or Hardened Runtime is enabled.
-                    let fileAccessSettingsAndEntitlements: [(EnumMacroDeclaration<FileAccessMode>, String)] = [
-                        (BuiltinMacros.ENABLE_FILE_ACCESS_DOWNLOADS_FOLDER, "com.apple.security.files.downloads"),
-                        (BuiltinMacros.ENABLE_FILE_ACCESS_PICTURE_FOLDER, "com.apple.security.assets.pictures"),
-                        (BuiltinMacros.ENABLE_FILE_ACCESS_MUSIC_FOLDER, "com.apple.security.assets.music"),
-                        (BuiltinMacros.ENABLE_FILE_ACCESS_MOVIES_FOLDER, "com.apple.security.assets.movies"),
-                        (BuiltinMacros.ENABLE_USER_SELECTED_FILES, "com.apple.security.files.user-selected"),
-                    ]
-
-                    for (buildSettingSetting, entitlementPrefix) in fileAccessSettingsAndEntitlements {
-                        let fileAccessValue = cbc.scope.evaluate(buildSettingSetting)
+                    for (buildSetting, entitlementPrefix) in Self.sandboxFileAccessSettingsAndEntitlements {
+                        let fileAccessValue = cbc.scope.evaluate(buildSetting)
                         switch fileAccessValue {
                         case .readOnly:
                             entitlementsDictionary["\(entitlementPrefix).read-only"] = .plBool(true)
@@ -114,41 +136,10 @@ public final class ProductPackagingToolSpec : GenericCommandLineToolSpec, SpecId
                         }
                     }
 
-                    if cbc.scope.evaluate(BuiltinMacros.ENABLE_APP_SANDBOX) {
-                        entitlementsDictionary["com.apple.security.app-sandbox"] = .plBool(true)
-                    }
-                    if cbc.scope.evaluate(BuiltinMacros.ENABLE_INCOMING_NETWORK_CONNECTIONS) {
-                        entitlementsDictionary["com.apple.security.network.server"] = .plBool(true)
-                    }
-                    if cbc.scope.evaluate(BuiltinMacros.ENABLE_OUTGOING_NETWORK_CONNECTIONS) {
-                        entitlementsDictionary["com.apple.security.network.client"] = .plBool(true)
-                    }
-                    if cbc.scope.evaluate(BuiltinMacros.ENABLE_RESOURCE_ACCESS_AUDIO_INPUT) {
-                        entitlementsDictionary["com.apple.security.device.audio-input"] = .plBool(true)
-                    }
-                    if cbc.scope.evaluate(BuiltinMacros.ENABLE_RESOURCE_ACCESS_BLUETOOTH) {
-                        entitlementsDictionary["com.apple.security.device.bluetooth"] = .plBool(true)
-                    }
-                    if cbc.scope.evaluate(BuiltinMacros.ENABLE_RESOURCE_ACCESS_CALENDARS) {
-                        entitlementsDictionary["com.apple.security.personal-information.calendars"] = .plBool(true)
-                    }
-                    if cbc.scope.evaluate(BuiltinMacros.ENABLE_RESOURCE_ACCESS_CAMERA) {
-                        entitlementsDictionary["com.apple.security.device.camera"] = .plBool(true)
-                    }
-                    if cbc.scope.evaluate(BuiltinMacros.ENABLE_RESOURCE_ACCESS_CONTACTS) {
-                        entitlementsDictionary["com.apple.security.personal-information.addressbook"] = .plBool(true)
-                    }
-                    if cbc.scope.evaluate(BuiltinMacros.ENABLE_RESOURCE_ACCESS_LOCATION) {
-                        entitlementsDictionary["com.apple.security.personal-information.location"] = .plBool(true)
-                    }
-                    if cbc.scope.evaluate(BuiltinMacros.ENABLE_RESOURCE_ACCESS_PHOTO_LIBRARY) {
-                        entitlementsDictionary["com.apple.security.personal-information.photos-library"] = .plBool(true)
-                    }
-                    if cbc.scope.evaluate(BuiltinMacros.ENABLE_RESOURCE_ACCESS_PRINTING) {
-                        entitlementsDictionary["com.apple.security.print"] = .plBool(true)
-                    }
-                    if cbc.scope.evaluate(BuiltinMacros.ENABLE_RESOURCE_ACCESS_USB) {
-                        entitlementsDictionary["com.apple.security.device.usb"] = .plBool(true)
+                    for (buildSetting, entitlement) in Self.sandboxAndHardenedRuntimeBooleanEntitlements {
+                        if cbc.scope.evaluate(buildSetting) {
+                            entitlementsDictionary[entitlement] = .plBool(true)
+                        }
                     }
                 }
 
@@ -218,29 +209,32 @@ public final class ProductPackagingToolSpec : GenericCommandLineToolSpec, SpecId
 
 private extension ProductPackagingToolSpec {
     enum EntitlementConflictDiagnosticEmitter {
-        static func checkForConflicts(_ cbc: CommandBuildContext, _ delegate: some TaskGenerationDelegate, entitlementsDictionary: [String: PropertyListItem]) {
-
-            let isAppSandboxEnabled = cbc.scope.evaluate(BuiltinMacros.ENABLE_APP_SANDBOX)
-
-            switch entitlementsDictionary["com.apple.security.app-sandbox"] {
-            case let .plBool(value):
-                if isAppSandboxEnabled != value {
-                    let appSandboxBuildSettingName = BuiltinMacros.ENABLE_APP_SANDBOX.name
+        private static func validate(entitlement: String, withExpectedValue expectedValue: Bool, entitlementsDictionary: [String: PropertyListItem], entitlementsPath: Path?, buildSettingName: String, buildSettingValue: String, delegate: some TaskGenerationDelegate) {
+            switch entitlementsDictionary[entitlement] {
+            case let .plBool(entitlementValue):
+                if expectedValue != entitlementValue {
                     let message: String
                     let childDiagnostics: [Diagnostic]
 
-                    if isAppSandboxEnabled {
+                    let entitlementsLocation: Diagnostic.Location
+                    if let entitlementsPath {
+                        entitlementsLocation = .path(entitlementsPath)
+                    } else {
+                        entitlementsLocation = .unknown
+                    }
+
+                    if expectedValue {
                         // This is when build setting is true and entitlement is false
-                        message = "The \(appSandboxBuildSettingName) build setting is set to YES, but is set to NO in your entitlements file."
+                        message = "The '\(buildSettingName)' build setting is set to '\(buildSettingValue)', but entitlement '\(entitlement)' is set to '\(entitlementValue ? "YES" : "NO")' in your entitlements file."
                         childDiagnostics = [
-                            .init(behavior: .note, location: .unknown, data: .init("To enable App Sandbox, remove the entitlement from your entitlements file.")),
-                            .init(behavior: .note, location: .unknown, data: .init("To disable App Sandbox, remove the entitlement from your entitlements file, and set the \(appSandboxBuildSettingName) build setting to NO."))
+                            .init(behavior: .note, location: entitlementsLocation, data: .init("To enable '\(buildSettingName)', remove the entitlement from your entitlements file.")),
+                            .init(behavior: .note, location: .buildSettings(names: [buildSettingName]), data: .init("To disable '\(buildSettingName)', remove the entitlement from your entitlements file and disable '\(buildSettingName)' in  build settings."))
                         ]
                     } else {
-                        message = "The \(appSandboxBuildSettingName) build setting is set to NO, but is set to YES in your entitlements file."
+                        message = "The '\(buildSettingName)' build setting is set to '\(buildSettingValue)', but entitlement '\(entitlement)' is set to '\(entitlementValue ? "YES" : "NO")' in your entitlements file."
                         childDiagnostics = [
-                            .init(behavior: .note, location: .unknown, data: .init("To enable App Sandbox, remove the entitlement from your entitlements file, and set the \(appSandboxBuildSettingName) build setting to YES.")),
-                            .init(behavior: .note, location: .unknown, data: .init("To disable App Sandbox, remove the entitlement from your entitlements file."))
+                            .init(behavior: .note, location: .buildSettings(names: [buildSettingName]), data: .init("To enable '\(buildSettingName)', remove the entitlement from your entitlements file, and enable '\(buildSettingName)' in build settings.")),
+                            .init(behavior: .note, location: entitlementsLocation, data: .init("To disable '\(buildSettingName)', remove the entitlement from your entitlements file."))
                         ]
                     }
 
@@ -248,6 +242,35 @@ private extension ProductPackagingToolSpec {
                 }
             default:
                 break
+            }
+        }
+
+        static func checkForConflicts(_ cbc: CommandBuildContext, _ delegate: some TaskGenerationDelegate, entitlementsDictionary: [String: PropertyListItem], entitlementsPath: Path?) {
+            for (buildSetting, entitlementPrefix) in sandboxFileAccessSettingsAndEntitlements {
+                let fileAccessValue = cbc.scope.evaluate(buildSetting)
+                let buildSettingName = buildSetting.name
+
+                let readOnlyEntitlement = "\(entitlementPrefix).read-only"
+                let readWriteEntitlement = "\(entitlementPrefix).read-write"
+
+                switch fileAccessValue {
+                case .readOnly:
+                    validate(entitlement: readOnlyEntitlement, withExpectedValue: true, entitlementsDictionary: entitlementsDictionary, entitlementsPath: entitlementsPath, buildSettingName: buildSettingName, buildSettingValue: "readOnly", delegate: delegate)
+
+                case .readWrite:
+                    validate(entitlement: readWriteEntitlement, withExpectedValue: true, entitlementsDictionary: entitlementsDictionary, entitlementsPath: entitlementsPath, buildSettingName: buildSettingName, buildSettingValue: "readWrite", delegate: delegate)
+                case .none:
+                    validate(entitlement: readOnlyEntitlement, withExpectedValue: false, entitlementsDictionary: entitlementsDictionary, entitlementsPath: entitlementsPath, buildSettingName: buildSettingName, buildSettingValue: "None", delegate: delegate)
+                    validate(entitlement: readWriteEntitlement, withExpectedValue: false, entitlementsDictionary: entitlementsDictionary, entitlementsPath: entitlementsPath, buildSettingName: buildSettingName, buildSettingValue: "None", delegate: delegate)
+
+                }
+            }
+
+            for (buildSetting, entitlement) in ProductPackagingToolSpec.sandboxAndHardenedRuntimeBooleanEntitlements {
+                let buildSettingValue = cbc.scope.evaluate(buildSetting)
+                let buildSettingName = buildSetting.name
+
+                validate(entitlement: entitlement, withExpectedValue: buildSettingValue, entitlementsDictionary: entitlementsDictionary, entitlementsPath: entitlementsPath, buildSettingName: buildSettingName, buildSettingValue: "\(buildSettingValue ? "YES" : "NO")", delegate: delegate)
             }
         }
     }
