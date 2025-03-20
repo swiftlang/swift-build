@@ -881,6 +881,16 @@ import SWBMacro
         #expect(realRegistry.lookup("watchsimulator")?.targetBuildVersionPlatform() == .watchOSSimulator)
     }
 
+    /// Tests that the visionOS SDK knows which Mach-O platforms it's targeting.
+    @Test(.requireSDKs(.xrOS))
+    func SDKBuildVersionPlatform_visionOS() async throws {
+        let realRegistry = try await getCore().sdkRegistry
+
+        #expect(realRegistry.lookup("xros")?.targetBuildVersionPlatform() == .xrOS)
+        #expect(realRegistry.lookup("xrsimulator")?.targetBuildVersionPlatform() == .xrOSSimulator)
+    }
+
+
     /// Tests that the DriverKit SDK knows which Mach-O platform it's targeting.
     @Test(.requireSDKs(.driverKit))
     func SDKBuildVersionPlatform_DriverKit() async throws {

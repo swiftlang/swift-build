@@ -467,6 +467,11 @@ fileprivate struct BitcodeTaskConstructionTests: CoreBasedTests {
         try await _testBitcodeFlags(sdkroot: "watchsimulator", expectBitcode: false)
     }
 
+    @Test(.requireSDKs(.xrOS))
+    func bitcodeUnsupportedPlatformsIgnored_visionOSSimulator() async throws {
+        try await _testBitcodeFlags(sdkroot: "xrsimulator", expectBitcode: false)
+    }
+
     @Test(.requireSDKs(.iOS))
     func bitcodeSupportedPlatforms_iOS() async throws {
         try await _testBitcodeFlags(sdkroot: "iphoneos", expectBitcode: true)
@@ -480,5 +485,10 @@ fileprivate struct BitcodeTaskConstructionTests: CoreBasedTests {
     @Test(.requireSDKs(.watchOS))
     func bitcodeSupportedPlatforms_watchOS() async throws {
         try await _testBitcodeFlags(sdkroot: "watchos", expectBitcode: true)
+    }
+
+    @Test(.requireSDKs(.xrOS))
+    func bitcodeSupportedPlatforms_visionOS() async throws {
+        try await _testBitcodeFlags(sdkroot: "xros", expectBitcode: false) // bitcode was never supported on visionOS
     }
 }

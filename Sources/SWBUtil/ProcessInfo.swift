@@ -108,6 +108,8 @@ extension ProcessInfo {
                 return .tvOS(simulator: simulatorRoot != nil)
             case "Watch OS":
                 return .watchOS(simulator: simulatorRoot != nil)
+            case "xrOS":
+                return .visionOS(simulator: simulatorRoot != nil)
             default:
                 break
             }

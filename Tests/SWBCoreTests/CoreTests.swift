@@ -178,6 +178,46 @@ import Foundation
         }
     }
 
+    @Test(.requireSDKs(.xrOS))
+    func platformLoading_visionOS() async throws {
+        let core = try await getCore()
+
+        do {
+            let identifier = "com.apple.platform.xros"
+            if let platform = core.platformRegistry.lookup(identifier: identifier) {
+                #expect(platform.signingContext is DeviceSigningContext)
+
+                let sdkCanonicalName = try #require(platform.sdkCanonicalName)
+                let publicSDK = try #require(core.sdkRegistry.lookup(sdkCanonicalName))
+                let defaultVariant = try #require(publicSDK.defaultVariant)
+                #expect(defaultVariant.deviceFamilies.list == [
+                    DeviceFamily(identifier: 7, name: "vision", displayName: "Apple Vision")
+                ])
+            }
+            else {
+                Issue.record("did not load platform '\(identifier)'")
+            }
+        }
+
+        do {
+            let identifier = "com.apple.platform.xrsimulator"
+            if let platform = core.platformRegistry.lookup(identifier: identifier) {
+                #expect(platform.signingContext is SimulatorSigningContext)
+
+                let sdkCanonicalName = try #require(platform.sdkCanonicalName)
+                let publicSDK = try #require(core.sdkRegistry.lookup(sdkCanonicalName))
+                let defaultVariant = try #require(publicSDK.defaultVariant)
+                #expect(defaultVariant.deviceFamilies.list == [
+                    DeviceFamily(identifier: 7, name: "vision", displayName: "Apple Vision")
+                ])
+            }
+            else {
+                Issue.record("did not load platform '\(identifier)'")
+            }
+        }
+    }
+
+
     @Test(.requireHostOS(.macOS))
     func toolchainLoading() async throws {
         // Validate that we loaded the default toolchain.
