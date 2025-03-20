@@ -633,7 +633,7 @@ extension SWBBuildServiceConnectionMode {
     fileprivate func createTransport(variant: SWBBuildServiceVariant, serviceBundleURL: URL?, stdinPipe: IOPipe, stdoutPipe: IOPipe) throws -> any ConnectionTransport {
         switch self {
         case let .inProcessStatic(startFunc):
-            return try InProcessStaticConnection(stdinPipe: stdinPipe, stdoutPipe: stdoutPipe, startFunc: startFunc)
+            return try InProcessStaticConnection(serviceBundleURL: serviceBundleURL, stdinPipe: stdinPipe, stdoutPipe: stdoutPipe, startFunc: startFunc)
         case .inProcess:
             return try InProcessConnection(variant: variant, serviceBundleURL: serviceBundleURL, stdinPipe: stdinPipe, stdoutPipe: stdoutPipe)
         case .outOfProcess:
@@ -658,11 +658,13 @@ fileprivate protocol ConnectionTransport: AnyObject, Sendable {
 fileprivate final class InProcessStaticConnection: ConnectionTransport {
     private let stdinPipe: IOPipe
     private let stdoutPipe: IOPipe
+    private let serviceBundleURL: URL?
     private let done = WaitCondition()
     private let _state: LockedValue<SWBBuildServiceConnection.State> = .init(.running)
     private let startFunc: @Sendable (Int32, Int32, URL?, @Sendable @escaping ((any Error)?) -> Void) -> Void
 
-    init(stdinPipe: IOPipe, stdoutPipe: IOPipe, startFunc: @Sendable @escaping (Int32, Int32, URL?, @Sendable @escaping ((any Error)?) -> Void) -> Void) throws {
+    init(serviceBundleURL: URL?, stdinPipe: IOPipe, stdoutPipe: IOPipe, startFunc: @Sendable @escaping (Int32, Int32, URL?, @Sendable @escaping ((any Error)?) -> Void) -> Void) throws {
+        self.serviceBundleURL = serviceBundleURL
         self.stdinPipe = stdinPipe
         self.stdoutPipe = stdoutPipe
         self.startFunc = startFunc
@@ -685,11 +687,22 @@ fileprivate final class InProcessStaticConnection: ConnectionTransport {
             }
         }
 
-        let path = Library.locate(SWBBuildServiceConnection.self)
-        let buildServicePlugInsDirectory = URL(fileURLWithPath: path.dirname.str, isDirectory: true)
         let inputFD = stdinPipe.readEnd.rawValue
         let outputFD = stdoutPipe.writeEnd.rawValue
 
+        let buildServiceLocation = SWBBuildServiceConnection.buildServiceLocation(for: .normal, overridingServiceBundleURL: serviceBundleURL)
+        let buildServicePlugInsDirectory: URL?
+        if let buildServiceLocation, let buildServiceBundle = buildServiceLocation.bundle {
+            buildServicePlugInsDirectory = buildServiceBundle.builtInPlugInsURL
+        } else if let buildServiceLocation: SWBBuildServiceConnection.BuildServiceLocation {
+            let path = SWBUtil.Path(buildServiceLocation.executable.path)
+            buildServicePlugInsDirectory = URL(fileURLWithPath: path.dirname.str, isDirectory: true)
+        } else {
+            // If the build service executable is unbundled, then try to find the build service entry point in this executable.
+            let path = Library.locate(SWBBuildServiceConnection.self)
+            // If the build service executable is unbundled, assume that any plugins that may exist are next to our executable.
+            buildServicePlugInsDirectory = URL(fileURLWithPath: path.dirname.str, isDirectory: true)
+        }
         launched = true
         self.startFunc(Int32(inputFD), Int32(outputFD), buildServicePlugInsDirectory, { [done, terminationHandler] error in
             defer { done.signal() }
