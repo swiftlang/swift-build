@@ -92,7 +92,6 @@ add_library(SWBUtil
   String.swift
   SWBDispatch.swift
   TAPIFileList.swift
-  TBDFile.swift
   UniqueSerialization.swift
   UnsafeSendableDelayedInitializationWrapper.swift
   URL.swift
