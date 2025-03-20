@@ -601,27 +601,16 @@ public final class PlatformRegistry {
             }
         }
 
-        var preferredArchValue: String? = {
-            // FIXME: rdar://65011964 (Remove PLATFORM_PREFERRED_ARCH)
-            // Don't add values for any new platforms
-            switch name {
-            case "macosx", "iphonesimulator", "appletvsimulator", "watchsimulator":
-                return "x86_64"
-            case "iphoneos", "appletvos", "watchos":
-                return "arm64"
-            default:
-                return nil
+        let preferredArchValue: String? = await {
+            let values = await Set(platformInfoExtensions().asyncMap { $0.preferredArchValue(for: name) }).compactMap { $0 }
+            if values.count > 1 {
+                delegate.error(path, "platform '\(identifier)' has conflicting preferred arch values: \(values.sorted().joined(separator: ", "))")
             }
+            return values.only
         }()
 
         @preconcurrency @PluginExtensionSystemActor func platformInfoExtensions() -> [any PlatformInfoExtensionPoint.ExtensionProtocol] {
             delegate.pluginManager.extensions(of: PlatformInfoExtensionPoint.self)
-        }
-
-        for platformExtension in await platformInfoExtensions() {
-            if let value = platformExtension.preferredArchValue(for: name) {
-                preferredArchValue = value
-            }
         }
 
         var executableSearchPaths: [Path] = [
