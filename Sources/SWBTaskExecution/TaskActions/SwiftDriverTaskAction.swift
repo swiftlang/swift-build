@@ -93,9 +93,8 @@ final public class SwiftDriverTaskAction: TaskAction, BuildValueValidatingTaskAc
                 outputDelegate.emitNote(message)
             }
 
-            if driverPayload.reportRequiredTargetDependencies != .no && driverPayload.explicitModulesEnabled,
-               let target = task.forTarget,
-               let dependencyModuleNames = try dependencyGraph.queryPlannedBuild(for: driverPayload.uniqueID).transitiveDependencyModuleNames {
+            if driverPayload.reportRequiredTargetDependencies != .no && driverPayload.explicitModulesEnabled, let target = task.forTarget {
+                let dependencyModuleNames = try dependencyGraph.queryTransitiveDependencyModuleNames(for: driverPayload.uniqueID)
                 for dependencyModuleName in dependencyModuleNames {
                     if let targetDependencies = dynamicExecutionDelegate.operationContext.definingTargetsByModuleName[dependencyModuleName] {
                         for targetDependency in targetDependencies {
