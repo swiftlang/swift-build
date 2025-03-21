@@ -174,26 +174,39 @@ public final class SwiftModuleDependencyGraph: SwiftGlobalExplicitDependencyGrap
     }
 
     public func queryPlanningDependencies(for key: String) throws -> [String] {
-        try registryQueue.blocking_sync {
+        let graph = try registryQueue.blocking_sync {
             guard let driver = registry[key] else {
                 throw StubError.error("Unable to find jobs for key \(key). Be sure to plan the build ahead of fetching results.")
             }
-            guard let graph = driver.intermoduleDependencyGraph else {
-                return []
-            }
-            let directDependencies = graph.mainModule.directDependencies ?? []
-            let transitiveDependencies = Set(directDependencies + SWBUtil.transitiveClosure(directDependencies, successors: { moduleID in graph.modules[moduleID]?.directDependencies ?? [] }).0)
-
-            var headerDependencies: [String] = []
-            headerDependencies.reserveCapacity(transitiveDependencies.count * 10)
-            for dependencyID in transitiveDependencies {
-                let sourceFiles = graph.modules[dependencyID]?.sourceFiles ?? []
-                for sourceFile in sourceFiles {
-                    headerDependencies.append(sourceFile)
-                }
-            }
-            return headerDependencies
+            return driver.intermoduleDependencyGraph
         }
+        guard let graph else { return [] }
+        let directDependencies = graph.mainModule.directDependencies ?? []
+        let transitiveDependencies = Set(directDependencies + SWBUtil.transitiveClosure(directDependencies, successors: { moduleID in graph.modules[moduleID]?.directDependencies ?? [] }).0)
+
+        var headerDependencies: [String] = []
+        headerDependencies.reserveCapacity(transitiveDependencies.count * 10)
+        for dependencyID in transitiveDependencies {
+            let sourceFiles = graph.modules[dependencyID]?.sourceFiles ?? []
+            for sourceFile in sourceFiles {
+                headerDependencies.append(sourceFile)
+            }
+        }
+        return headerDependencies
+    }
+
+    public func queryTransitiveDependencyModuleNames(for key: String) throws -> [String] {
+        let graph = try registryQueue.blocking_sync {
+            guard let driver = registry[key] else {
+                throw StubError.error("Unable to find jobs for key \(key). Be sure to plan the build ahead of fetching results.")
+            }
+            return driver.intermoduleDependencyGraph
+        }
+        guard let graph else { return [] }
+        // This calculation is a bit awkward because we cannot directly access the ID of the main module, just its info object
+        let directDependencies = graph.mainModule.directDependencies ?? []
+        let transitiveDependencies = Set(directDependencies + SWBUtil.transitiveClosure(directDependencies, successors: { moduleID in graph.modules[moduleID]?.directDependencies ?? [] }).0)
+        return transitiveDependencies.map(\.moduleName)
     }
 
     /// Serialize incremental build state for the given key and removes its state from memory
