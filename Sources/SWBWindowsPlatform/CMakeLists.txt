@@ -38,3 +38,8 @@ target_link_libraries(SWBWindowsPlatform PUBLIC
   SWBUtil)
 target_sources(SWBWindowsPlatform PRIVATE
   "${CMAKE_CURRENT_BINARY_DIR}/resource_bundle_accessor.swift")
+SwiftBuild_Bundle(MODULE SWBWindowsPlatform FILES
+  Windows.xcspec
+  WindowsCompile.xcspec
+  WindowsLd.xcspec
+  WindowsLibtool.xcspec)
