@@ -393,19 +393,8 @@ public final class PlatformRegistry {
                 platformsByDeploymentTarget[macroName, default: Set<String>()].insert(platform.correspondingDevicePlatform?.name ?? platform.name)
             }
         }
-        // Now add in all deployment targets we know about.  This is because clang also knows about these deployment targets intrinsically when they are passed as environment variables, so we sometimes need to work with them even if the platform which defines them is not installed.
-        for macroName in [
-            "MACOSX_DEPLOYMENT_TARGET",
-            "IPHONEOS_DEPLOYMENT_TARGET",
-            "TVOS_DEPLOYMENT_TARGET",
-            "WATCHOS_DEPLOYMENT_TARGET",
-            "DRIVERKIT_DEPLOYMENT_TARGET",
-            "XROS_DEPLOYMENT_TARGET",
-        ] {
-            allDeploymentTargetMacroNames.insert(macroName)
-            platformsByDeploymentTarget[macroName] = nil
-        }
 
+        // Now add in all deployment targets we know about.  This is because clang also knows about these deployment targets intrinsically when they are passed as environment variables, so we sometimes need to work with them even if the platform which defines them is not installed.
         @preconcurrency @PluginExtensionSystemActor func platformInfoExtensions() -> [any PlatformInfoExtensionPoint.ExtensionProtocol] {
             delegate.pluginManager.extensions(of: PlatformInfoExtensionPoint.self)
         }
