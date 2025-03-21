@@ -173,6 +173,29 @@ public final class SwiftModuleDependencyGraph: SwiftGlobalExplicitDependencyGrap
         }
     }
 
+    public func queryPlanningDependencies(for key: String) throws -> [String] {
+        try registryQueue.blocking_sync {
+            guard let driver = registry[key] else {
+                throw StubError.error("Unable to find jobs for key \(key). Be sure to plan the build ahead of fetching results.")
+            }
+            guard let graph = driver.intermoduleDependencyGraph else {
+                return []
+            }
+            let directDependencies = graph.mainModule.directDependencies ?? []
+            let transitiveDependencies = Set(directDependencies + SWBUtil.transitiveClosure(directDependencies, successors: { moduleID in graph.modules[moduleID]?.directDependencies ?? [] }).0)
+
+            var headerDependencies: [String] = []
+            headerDependencies.reserveCapacity(transitiveDependencies.count * 10)
+            for dependencyID in transitiveDependencies {
+                let sourceFiles = graph.modules[dependencyID]?.sourceFiles ?? []
+                for sourceFile in sourceFiles {
+                    headerDependencies.append(sourceFile)
+                }
+            }
+            return headerDependencies
+        }
+    }
+
     /// Serialize incremental build state for the given key and removes its state from memory
     public func cleanUpForAllKeys() {
         registryQueue.async {
@@ -448,6 +471,8 @@ public final class LibSwiftDriver {
         return try! PlannedBuild(workload: .all([]), argsResolver: self.resolver, explicitModulesResolver: self.explicitModulesResolver, jobExecutionDelegate: nil, globalExplicitDependencyJobGraph: nil, workingDirectory: workingDirectory, eagerCompilationEnabled: self.eagerCompilationEnabled)
     }
 
+    var intermoduleDependencyGraph: InterModuleDependencyGraph?
+
     private init(graph: SwiftModuleDependencyGraph?, compilerLocation: CompilerLocation, target: ConfiguredTarget?, workingDirectory: Path, tempDirPath: Path, explicitModulesTempDirPath: Path, commandLine: [String], environment: [String: String], eagerCompilationEnabled: Bool, diagnosticsEngine: TSCBasic.DiagnosticsEngine, casOptions: CASOptions?) throws {
         self.target = target
         self.workingDirectory = workingDirectory
@@ -496,6 +521,7 @@ public final class LibSwiftDriver {
                 try driver.run(jobs: jobs)
                 if let plannedBuild = executor.movePlannedBuild() {
                     _plannedBuild = plannedBuild
+                    intermoduleDependencyGraph = driver.intermoduleDependencyGraph
                 } else {
                     throw StubError.error("Swift driver build planning failed")
                 }

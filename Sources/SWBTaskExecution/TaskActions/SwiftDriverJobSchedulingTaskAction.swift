@@ -218,6 +218,23 @@ open class SwiftDriverJobSchedulingTaskAction: TaskAction {
             if shouldReportSkippedJobs(driverPayload: driverPayload) {
                 try reportSkippedJobs(task, outputDelegate: outputDelegate, driverPayload: driverPayload, plannedBuild: plannedBuild, dynamicExecutionDelegate: dynamicExecutionDelegate)
             }
+
+            let planningDependencies = try graph.queryPlanningDependencies(for: driverPayload.uniqueID)
+            if executionDelegate.userPreferences.enableDebugActivityLogs {
+                outputDelegate.emitOutput(ByteString(encodingAsUTF8: "Discovered dependency nodes:\n" + planningDependencies.joined(separator: "\n") + "\n"))
+            }
+
+            let dependencyFilteringRootPathString = driverPayload.dependencyFilteringRootPath?.str
+            for dep in planningDependencies {
+                if let dependencyFilteringRootPathString {
+                    // We intentionally do a prefix check instead of an ancestor check here, for performance reasons. The filtering path (SDK path) and paths returned by the compiler are guaranteed to be normalized, which makes this safe.
+                    if !dep.hasPrefix(dependencyFilteringRootPathString) {
+                        dynamicExecutionDelegate.discoveredDependencyNode(ExecutionNode(identifier: dep))
+                    }
+                } else {
+                    dynamicExecutionDelegate.discoveredDependencyNode(ExecutionNode(identifier: dep))
+                }
+            }
         } catch {
             outputDelegate.error(error)
             return .failed

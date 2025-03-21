@@ -4335,6 +4335,189 @@ fileprivate struct SwiftDriverTests: CoreBasedTests {
         }
     }
 
+    @Test(.requireSDKs(.macOS))
+    func userModuleHeaderChangeInvalidatesPlanning() async throws {
+        try await withTemporaryDirectory { tmpDir in
+            let testWorkspace = try await TestWorkspace(
+                "Test",
+                sourceRoot: tmpDir.join("Test"),
+                projects: [
+                    TestProject(
+                        "aProject",
+                        groupTree: TestGroup(
+                            "Sources",
+                            children: [
+                                TestFile("Framework1.h"),
+                                TestFile("file_1.c"),
+                                TestFile("file_2.swift"),
+                            ]),
+                        buildConfigurations: [TestBuildConfiguration(
+                            "Debug",
+                            buildSettings: [
+                                "PRODUCT_NAME": "$(TARGET_NAME)",
+                                "CLANG_ENABLE_MODULES": "YES",
+                                "SWIFT_ENABLE_EXPLICIT_MODULES": "YES",
+                                "SWIFT_VERSION": swiftVersion,
+                                "DEFINES_MODULE": "YES",
+                                "VALID_ARCHS": "arm64",
+                                "DSTROOT": tmpDir.join("dstroot").str,
+                            ])],
+                        targets: [
+                            TestStandardTarget(
+                                "Framework1",
+                                type: .framework,
+                                buildPhases: [
+                                    TestHeadersBuildPhase([TestBuildFile("Framework1.h", headerVisibility: .public)]),
+                                    TestSourcesBuildPhase(["file_1.c"]),
+                                ]),
+                            TestStandardTarget(
+                                "Framework2",
+                                type: .framework,
+                                buildPhases: [
+                                    TestSourcesBuildPhase(["file_2.swift"]),
+                                ],
+                            dependencies: [
+                                "Framework1"
+                            ]),
+                        ])])
+
+            let tester = try await BuildOperationTester(getCore(), testWorkspace, simulated: false)
+
+            try await tester.fs.writeFileContents(testWorkspace.sourceRoot.join("aProject/Framework1.h")) { stream in
+                stream <<<
+            """
+            void foo(void);
+            """
+            }
+
+            try await tester.fs.writeFileContents(testWorkspace.sourceRoot.join("aProject/file_1.c")) { stream in
+                stream <<<
+            """
+            #include <Framework1/Framework1.h>
+            void foo(void) {}
+            """
+            }
+
+            try await tester.fs.writeFileContents(testWorkspace.sourceRoot.join("aProject/file_2.swift")) { stream in
+                stream <<<
+            """
+            import Framework1
+            public func bar() {
+                foo()
+            }
+            """
+            }
+
+            let parameters = BuildParameters(configuration: "Debug", overrides: [:])
+            let buildRequest = BuildRequest(parameters: parameters, buildTargets: tester.workspace.projects[0].targets.map({ BuildRequest.BuildTargetInfo(parameters: parameters, target: $0) }), continueBuildingAfterErrors: false, useParallelTargets: true, useImplicitDependencies: false, useDryRun: false)
+
+            try await tester.checkBuild(runDestination: .macOS, buildRequest: buildRequest, persistent: true) { results in
+                results.checkNoDiagnostics()
+            }
+
+            try await tester.checkNullBuild(runDestination: .macOS, buildRequest: buildRequest, persistent: true)
+
+            try tester.fs.touch(testWorkspace.sourceRoot.join("aProject/Framework1.h"))
+
+            try await tester.checkBuild(runDestination: .macOS, buildRequest: buildRequest, persistent: true) { results in
+                results.checkTaskExists(.matchRuleType("SwiftDriver"))
+                results.checkNoDiagnostics()
+            }
+        }
+    }
+
+    @Test(.requireSDKs(.macOS))
+    func systemModuleOutsideSysrootHeaderChangeInvalidatesPlanning() async throws {
+        try await withTemporaryDirectory { tmpDir in
+            let testWorkspace = try await TestWorkspace(
+                "Test",
+                sourceRoot: tmpDir.join("Test"),
+                projects: [
+                    TestProject(
+                        "aProject",
+                        groupTree: TestGroup(
+                            "Sources",
+                            children: [
+                                TestFile("Framework1.h"),
+                                TestFile("file_1.c"),
+                                TestFile("file_2.swift"),
+                            ]),
+                        buildConfigurations: [TestBuildConfiguration(
+                            "Debug",
+                            buildSettings: [
+                                "PRODUCT_NAME": "$(TARGET_NAME)",
+                                "CLANG_ENABLE_MODULES": "YES",
+                                "SWIFT_ENABLE_EXPLICIT_MODULES": "YES",
+                                "SWIFT_VERSION": swiftVersion,
+                                "DEFINES_MODULE": "YES",
+                                "VALID_ARCHS": "arm64",
+                                "DSTROOT": tmpDir.join("dstroot").str,
+                                "MODULEMAP_FILE_CONTENTS": "framework module Framework1 [system] { header \"Framework1.h\" }"
+                            ])],
+                        targets: [
+                            TestStandardTarget(
+                                "Framework1",
+                                type: .framework,
+                                buildPhases: [
+                                    TestHeadersBuildPhase([TestBuildFile("Framework1.h", headerVisibility: .public)]),
+                                    TestSourcesBuildPhase(["file_1.c"]),
+                                ]),
+                            TestStandardTarget(
+                                "Framework2",
+                                type: .framework,
+                                buildPhases: [
+                                    TestSourcesBuildPhase(["file_2.swift"]),
+                                ],
+                            dependencies: [
+                                "Framework1"
+                            ]),
+                        ])])
+
+            let tester = try await BuildOperationTester(getCore(), testWorkspace, simulated: false)
+
+            try await tester.fs.writeFileContents(testWorkspace.sourceRoot.join("aProject/Framework1.h")) { stream in
+                stream <<<
+            """
+            void foo(void);
+            """
+            }
+
+            try await tester.fs.writeFileContents(testWorkspace.sourceRoot.join("aProject/file_1.c")) { stream in
+                stream <<<
+            """
+            #include <Framework1/Framework1.h>
+            void foo(void) {}
+            """
+            }
+
+            try await tester.fs.writeFileContents(testWorkspace.sourceRoot.join("aProject/file_2.swift")) { stream in
+                stream <<<
+            """
+            import Framework1
+            public func bar() {
+                foo()
+            }
+            """
+            }
+
+            let parameters = BuildParameters(configuration: "Debug", overrides: [:])
+            let buildRequest = BuildRequest(parameters: parameters, buildTargets: tester.workspace.projects[0].targets.map({ BuildRequest.BuildTargetInfo(parameters: parameters, target: $0) }), continueBuildingAfterErrors: false, useParallelTargets: true, useImplicitDependencies: false, useDryRun: false)
+
+            try await tester.checkBuild(runDestination: .macOS, buildRequest: buildRequest, persistent: true) { results in
+                results.checkNoDiagnostics()
+            }
+
+            try await tester.checkNullBuild(runDestination: .macOS, buildRequest: buildRequest, persistent: true)
+
+            try tester.fs.touch(testWorkspace.sourceRoot.join("aProject/Framework1.h"))
+
+            try await tester.checkBuild(runDestination: .macOS, buildRequest: buildRequest, persistent: true) { results in
+                results.checkTaskExists(.matchRuleType("SwiftDriver"))
+                results.checkNoDiagnostics()
+            }
+        }
+    }
+
     @Test(.requireSDKs(.macOS), .disabled(if: getEnvironmentVariable("CI")?.isEmpty == false, "Test relies on timing which would require costly delays in CI"))
     func diagnosingMissingTargetDependencies() async throws {
         try await withTemporaryDirectory { tmpDir in

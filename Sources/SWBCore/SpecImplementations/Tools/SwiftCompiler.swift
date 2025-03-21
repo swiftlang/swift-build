@@ -347,8 +347,9 @@ public struct SwiftDriverPayload: Serializable, TaskPayload, Encodable {
     public let casOptions: CASOptions?
     public let reportRequiredTargetDependencies: BooleanWarningLevel
     public let linkerResponseFilePath: Path?
+    public let dependencyFilteringRootPath: Path?
 
-    internal init(uniqueID: String, compilerLocation: LibSwiftDriver.CompilerLocation, moduleName: String, tempDirPath: Path, explicitModulesTempDirPath: Path, variant: String, architecture: String, eagerCompilationEnabled: Bool, explicitModulesEnabled: Bool, commandLine: [String], ruleInfo: [String], isUsingWholeModuleOptimization: Bool, casOptions: CASOptions?, reportRequiredTargetDependencies: BooleanWarningLevel, linkerResponseFilePath: Path?) {
+    internal init(uniqueID: String, compilerLocation: LibSwiftDriver.CompilerLocation, moduleName: String, tempDirPath: Path, explicitModulesTempDirPath: Path, variant: String, architecture: String, eagerCompilationEnabled: Bool, explicitModulesEnabled: Bool, commandLine: [String], ruleInfo: [String], isUsingWholeModuleOptimization: Bool, casOptions: CASOptions?, reportRequiredTargetDependencies: BooleanWarningLevel, linkerResponseFilePath: Path?, dependencyFilteringRootPath: Path?) {
         self.uniqueID = uniqueID
         self.compilerLocation = compilerLocation
         self.moduleName = moduleName
@@ -364,10 +365,11 @@ public struct SwiftDriverPayload: Serializable, TaskPayload, Encodable {
         self.casOptions = casOptions
         self.reportRequiredTargetDependencies = reportRequiredTargetDependencies
         self.linkerResponseFilePath = linkerResponseFilePath
+        self.dependencyFilteringRootPath = dependencyFilteringRootPath
     }
 
     public init(from deserializer: any Deserializer) throws {
-        try deserializer.beginAggregate(15)
+        try deserializer.beginAggregate(16)
         self.uniqueID = try deserializer.deserialize()
         self.compilerLocation = try deserializer.deserialize()
         self.moduleName = try deserializer.deserialize()
@@ -383,10 +385,11 @@ public struct SwiftDriverPayload: Serializable, TaskPayload, Encodable {
         self.casOptions = try deserializer.deserialize()
         self.reportRequiredTargetDependencies = try deserializer.deserialize()
         self.linkerResponseFilePath = try deserializer.deserialize()
+        self.dependencyFilteringRootPath = try deserializer.deserialize()
     }
 
     public func serialize<T>(to serializer: T) where T : Serializer {
-        serializer.serializeAggregate(15) {
+        serializer.serializeAggregate(16) {
             serializer.serialize(self.uniqueID)
             serializer.serialize(self.compilerLocation)
             serializer.serialize(self.moduleName)
@@ -402,6 +405,7 @@ public struct SwiftDriverPayload: Serializable, TaskPayload, Encodable {
             serializer.serialize(self.casOptions)
             serializer.serialize(self.reportRequiredTargetDependencies)
             serializer.serialize(self.linkerResponseFilePath)
+            serializer.serialize(self.dependencyFilteringRootPath)
         }
     }
 }
@@ -2458,7 +2462,7 @@ public final class SwiftCompilerSpec : CompilerSpec, SpecIdentifierType, SwiftDi
             #endif
             let explicitModuleBuildEnabled = await swiftExplicitModuleBuildEnabled(cbc.producer, cbc.scope, delegate)
 
-            return SwiftDriverPayload(uniqueID: uniqueID, compilerLocation: compilerLocation, moduleName: scope.evaluate(BuiltinMacros.SWIFT_MODULE_NAME), tempDirPath: tempDirPath, explicitModulesTempDirPath: explicitModulesTempDirPath, variant: variant, architecture: arch, eagerCompilationEnabled: eagerCompilationEnabled(args: args, scope: scope, compilationMode: compilationMode, isUsingWholeModuleOptimization: isUsingWholeModuleOptimization), explicitModulesEnabled: explicitModuleBuildEnabled, commandLine: commandLine, ruleInfo: ruleInfo, isUsingWholeModuleOptimization: isUsingWholeModuleOptimization, casOptions: casOptions, reportRequiredTargetDependencies: scope.evaluate(BuiltinMacros.DIAGNOSE_MISSING_TARGET_DEPENDENCIES), linkerResponseFilePath: linkerResponseFilePath)
+            return SwiftDriverPayload(uniqueID: uniqueID, compilerLocation: compilerLocation, moduleName: scope.evaluate(BuiltinMacros.SWIFT_MODULE_NAME), tempDirPath: tempDirPath, explicitModulesTempDirPath: explicitModulesTempDirPath, variant: variant, architecture: arch, eagerCompilationEnabled: eagerCompilationEnabled(args: args, scope: scope, compilationMode: compilationMode, isUsingWholeModuleOptimization: isUsingWholeModuleOptimization), explicitModulesEnabled: explicitModuleBuildEnabled, commandLine: commandLine, ruleInfo: ruleInfo, isUsingWholeModuleOptimization: isUsingWholeModuleOptimization, casOptions: casOptions, reportRequiredTargetDependencies: scope.evaluate(BuiltinMacros.DIAGNOSE_MISSING_TARGET_DEPENDENCIES), linkerResponseFilePath: linkerResponseFilePath, dependencyFilteringRootPath: cbc.producer.sdk?.path)
         }
 
         func constructSwiftResponseFileTask(path: Path) {
