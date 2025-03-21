@@ -46,6 +46,7 @@ fileprivate struct PreviewsBuildOperationTests: CoreBasedTests {
                         "SWIFT_VERSION": "5.0",
                         "SWIFT_OPTIMIZATION_LEVEL": "-Onone",
                         "SDK_STAT_CACHE_ENABLE": "NO",
+                        "SWIFT_ENABLE_EXPLICIT_MODULES": "NO",
                         "PRODUCT_BUNDLE_IDENTIFIER": "com.test.ProjectName",
                         "SWIFT_VALIDATE_CLANG_MODULES_ONCE_PER_BUILD_SESSION": "NO",
                     ])
@@ -404,6 +405,7 @@ fileprivate struct PreviewsBuildOperationTests: CoreBasedTests {
                         "SDKROOT": "iphoneos",
                         "SWIFT_VERSION": "5.0",
                         "SWIFT_OPTIMIZATION_LEVEL": "-Onone",
+                        "SWIFT_ENABLE_EXPLICIT_MODULES": "NO",
                         "SDK_STAT_CACHE_ENABLE": "NO",
                         "SWIFT_VALIDATE_CLANG_MODULES_ONCE_PER_BUILD_SESSION": "NO",
                     ])
