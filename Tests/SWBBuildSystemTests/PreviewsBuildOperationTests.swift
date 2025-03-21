@@ -195,8 +195,12 @@ fileprivate struct PreviewsBuildOperationTests: CoreBasedTests {
                                 compileCommandLine.remove(at: idx)
                                 compileCommandLine.remove(at: idx)
                             }
-                            if ["-disable-clang-spi"].contains(compileCommandLine[idx]) {
+                            if ["-disable-clang-spi", "-no-auto-bridging-header-chaining", "-auto-bridging-header-chaining"].contains(compileCommandLine[idx]) {
                                 // Remove the flag
+                                compileCommandLine.remove(at: idx)
+                            }
+                            if ["-fcolor-diagnostics", "-fno-color-diagnostics"].contains(compileCommandLine[idx+1]) && compileCommandLine[idx] == "-Xcc" {
+                                compileCommandLine.remove(at: idx)
                                 compileCommandLine.remove(at: idx)
                             }
                         }
@@ -491,8 +495,12 @@ fileprivate struct PreviewsBuildOperationTests: CoreBasedTests {
                                 compileCommandLine.remove(at: idx)
                                 compileCommandLine.remove(at: idx)
                             }
-                            if ["-disable-clang-spi"].contains(compileCommandLine[idx]) {
+                            if ["-disable-clang-spi", "-no-auto-bridging-header-chaining", "-auto-bridging-header-chaining"].contains(compileCommandLine[idx]) {
                                 // Remove the flag
+                                compileCommandLine.remove(at: idx)
+                            }
+                            if ["-fcolor-diagnostics", "-fno-color-diagnostics"].contains(compileCommandLine[idx+1]) && compileCommandLine[idx] == "-Xcc" {
+                                compileCommandLine.remove(at: idx)
                                 compileCommandLine.remove(at: idx)
                             }
                         }
