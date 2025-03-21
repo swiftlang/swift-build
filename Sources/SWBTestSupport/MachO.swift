@@ -33,7 +33,7 @@ extension BuildVersion.Platform {
     /// The vendor of the platform, suitable for use as the OS field of an LLVM target triple.
     package func vendor(infoLookup: any PlatformInfoLookup) -> String {
         switch self {
-        case .macOS, .iOS, .iOSSimulator, .macCatalyst, .tvOS, .tvOSSimulator, .watchOS, .watchOSSimulator, .driverKit:
+        case .macOS, .iOS, .iOSSimulator, .macCatalyst, .tvOS, .tvOSSimulator, .watchOS, .watchOSSimulator, .xrOS, .xrOSSimulator, .driverKit:
             return "apple"
         default:
             return infoLookup.lookupPlatformInfo(platform: self)?.llvmTargetTripleVendor ?? "unknown"
@@ -51,6 +51,8 @@ extension BuildVersion.Platform {
             return "tvos"
         case .watchOS, .watchOSSimulator:
             return "watchos"
+        case .xrOS, .xrOSSimulator:
+            return "xros"
         case .driverKit:
             return "driverkit"
         default:
@@ -68,7 +70,7 @@ extension BuildVersion.Platform {
         switch self {
         case .macCatalyst:
             return "macabi"
-        case .iOSSimulator, .tvOSSimulator, .watchOSSimulator:
+        case .iOSSimulator, .tvOSSimulator, .watchOSSimulator, .xrOSSimulator:
             return "simulator"
         default:
             guard let environment = infoLookup.lookupPlatformInfo(platform: self)?.llvmTargetTripleEnvironment, !environment.isEmpty else {
