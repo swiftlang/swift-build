@@ -397,12 +397,16 @@ extension BuildVersion.Platform {
             return "appletvos"
         case .watchOS:
             return "watchos"
+        case .xrOS:
+            return "xros"
         case .iOSSimulator:
             return "iphonesimulator"
         case .tvOSSimulator:
             return "appletvsimulator"
         case .watchOSSimulator:
             return "watchsimulator"
+        case .xrOSSimulator:
+            return "xrsimulator"
         case .driverKit:
             return "driverkit"
         default:
@@ -423,6 +427,8 @@ extension BuildVersion.Platform {
             return targetTripleString(arch: arch, deploymentTarget: Version(13), infoLookup: infoLookup)
         case .watchOS, .watchOSSimulator:
             return targetTripleString(arch: arch, deploymentTarget: Version(6), infoLookup: infoLookup)
+        case .xrOS, .xrOSSimulator:
+            return targetTripleString(arch: arch, deploymentTarget: Version(1), infoLookup: infoLookup)
         case .driverKit:
             return targetTripleString(arch: arch, deploymentTarget: Version(19), infoLookup: infoLookup)
         default:

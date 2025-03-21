@@ -2793,21 +2793,16 @@ extension Diagnostic.Location {
 
 extension BuildVersion.Platform {
     public func deploymentTargetSettingName(infoLookup: (any PlatformInfoLookup)?) -> String {
+        // We need to special-case MACOSX_DEPLOYMENT_TARGET/IPHONEOS_DEPLOYMENT_TARGET because of zippering (see ``CommandProducer/lookupPlatformInfo(platform:)``)
         switch self {
         case .macOS:
             return BuiltinMacros.MACOSX_DEPLOYMENT_TARGET.name
-        case .iOS, .iOSSimulator, .macCatalyst:
+        case .macCatalyst:
             return BuiltinMacros.IPHONEOS_DEPLOYMENT_TARGET.name
-        case .tvOS, .tvOSSimulator:
-            return BuiltinMacros.TVOS_DEPLOYMENT_TARGET.name
-        case .watchOS, .watchOSSimulator:
-            return BuiltinMacros.WATCHOS_DEPLOYMENT_TARGET.name
-        case .driverKit:
-            return BuiltinMacros.DRIVERKIT_DEPLOYMENT_TARGET.name
         default:
             guard let infoProvider = infoLookup?.lookupPlatformInfo(platform: self),
                   let dtsn = infoProvider.deploymentTargetSettingName else {
-                fatalError("external Mach-O based platforms must provide a deployment target setting name")
+                fatalError("Mach-O based platforms must provide a deployment target setting name")
             }
             return dtsn
         }

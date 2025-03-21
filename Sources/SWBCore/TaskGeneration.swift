@@ -315,6 +315,8 @@ extension CommandProducer {
     }
 
     /// Lookup the platform info for this producer
+    ///
+    /// - warning: Because this implementation doesn't actually inspect the platform that's passed in, it can provide the "wrong" answer in cases of zippering on macOS.
     public func lookupPlatformInfo(platform: BuildVersion.Platform) -> (any PlatformInfoProvider)? {
         return sdkVariant
     }
