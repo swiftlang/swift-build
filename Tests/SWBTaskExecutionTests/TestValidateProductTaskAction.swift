@@ -131,4 +131,102 @@ fileprivate struct TestValidateProductTaskAction {
             #expect(delegate.warnings == ["warning: No App Category is set for target 'tester'. Set a category by using the General tab for your target, or by adding an appropriate LSApplicationCategory value to your Info.plist."])
         }
     }
+
+    private static let deepEmbeddedFrameworkPath = Path.root.join("MyApp.app/Contents/Frameworks/MyFramework.framework")
+    private static let shallowEmbeddedFrameworkPath = Path("MyApp.app/Frameworks/MyFramework.framework")
+
+    @Test
+    func embeddedFrameworksValidationBasic() async throws {
+        try await withTemporaryDirectory { tmp in
+            let frameworkPath = tmp.join(Self.shallowEmbeddedFrameworkPath)
+            let delegate = MockTaskOutputDelegate()
+            try localFS.createDirectory(frameworkPath, recursive: true)
+            try await localFS.writePlist(frameworkPath.join("Info.plist"), .plDict([
+                "CFBundleIdentifier": "com.apple.Lunch",
+            ]))
+            let result = try ValidateProductTaskAction().validateFrameworks(at: tmp.join("MyApp.app"), isShallow: true, outputDelegate: delegate)
+            #expect(result, "validation unexpectedly failed")
+            #expect(delegate.errors.isEmpty)
+        }
+    }
+
+    @Test
+    func embeddedFrameworksValidationNoPlist() throws {
+        let delegate = MockTaskOutputDelegate()
+        let fs = PseudoFS()
+        try fs.createDirectory(Self.deepEmbeddedFrameworkPath, recursive: true)
+        let result = try ValidateProductTaskAction().validateFrameworks(at: Path.root.join("MyApp.app"), isShallow: false, outputDelegate: delegate, fs: fs)
+        #expect(result == false, "validation unexpectedly succeeded")
+        #expect(delegate.errors == ["error: Framework \(Self.deepEmbeddedFrameworkPath.str) did not contain an Info.plist"])
+    }
+
+    @Test
+    func embeddedFrameworksValidationHaveShallowBundleFormatForDeepBundle() async throws {
+        let delegate = MockTaskOutputDelegate()
+        let fs = PseudoFS()
+        try fs.createDirectory(Self.deepEmbeddedFrameworkPath, recursive: true)
+        try await fs.writePlist(Self.deepEmbeddedFrameworkPath.join("Info.plist"), .plDict([
+            "CFBundleIdentifier": "com.apple.Lunch",
+        ]))
+        let result = try ValidateProductTaskAction().validateFrameworks(at: Path.root.join("MyApp.app"), isShallow: false, outputDelegate: delegate, fs: fs)
+        #expect(result == false, "validation unexpectedly succeeded")
+        #expect(delegate.errors == ["error: Framework \(Self.deepEmbeddedFrameworkPath.str) contains Info.plist, expected Versions/Current/Resources/Info.plist since the platform does not use shallow bundles"])
+    }
+
+    @Test
+    func embeddedFrameworksValidationHaveDeepBundleFormatForShallowBundle() async throws {
+        let delegate = MockTaskOutputDelegate()
+        let fs = PseudoFS()
+        let path = Path.root.join(Self.shallowEmbeddedFrameworkPath)
+        try fs.createDirectory(path, recursive: true)
+        try await fs.writePlist(path.join("Versions/Current/Resources/Info.plist"), .plDict([
+            "CFBundleIdentifier": "com.apple.Lunch",
+        ]))
+        let result = try ValidateProductTaskAction().validateFrameworks(at: Path.root.join("MyApp.app"), isShallow: true, outputDelegate: delegate, fs: fs)
+        #expect(result == false, "validation unexpectedly succeeded")
+        #expect(delegate.errors == ["error: Framework \(path.str) contains Versions/Current/Resources/Info.plist, expected Info.plist at the root level since the platform uses shallow bundles"])
+    }
+
+    @Test(.requireSDKs(.macOS)) // `PropertyListSerialization` crashes with an invalid plist on non-Darwin platforms.
+    func embeddedFrameworksValidationInvalidInfoPlist() throws {
+        try withTemporaryDirectory { tmp in
+            let frameworkPath = tmp.join(Self.shallowEmbeddedFrameworkPath)
+            let delegate = MockTaskOutputDelegate()
+            try localFS.createDirectory(frameworkPath, recursive: true)
+            try localFS.write(frameworkPath.join("Info.plist"), contents: "Lunch?")
+            let result = try ValidateProductTaskAction().validateFrameworks(at: tmp.join("MyApp.app"), isShallow: true, outputDelegate: delegate)
+            #expect(result == false, "validation unexpectedly succeeded")
+            #expect(delegate.errors == ["error: Failed to read Info.plist of framework \(frameworkPath.str): Couldn't parse property list because the input data was in an invalid format"])
+        }
+    }
+
+    @Test
+    func embeddedFrameworksValidationNoBundleIdentifier() async throws {
+        try await withTemporaryDirectory { tmp in
+            let frameworkPath = tmp.join(Self.shallowEmbeddedFrameworkPath)
+            let delegate = MockTaskOutputDelegate()
+            try localFS.createDirectory(frameworkPath, recursive: true)
+            try await localFS.writePlist(frameworkPath.join("Info.plist"), .plDict([
+                "SomeKey": "Value",
+            ]))
+            let result = try ValidateProductTaskAction().validateFrameworks(at: tmp.join("MyApp.app"), isShallow: true, outputDelegate: delegate)
+            #expect(result == false, "validation unexpectedly succeeded")
+            #expect(delegate.errors == ["error: Framework \(frameworkPath.str) did not have a CFBundleIdentifier in its Info.plist"])
+        }
+    }
+
+    @Test
+    func embeddedFrameworksValidationInvalidBundleIdentifier() async throws {
+        try await withTemporaryDirectory { tmp in
+            let frameworkPath = tmp.join(Self.shallowEmbeddedFrameworkPath)
+            let delegate = MockTaskOutputDelegate()
+            try localFS.createDirectory(frameworkPath, recursive: true)
+            try await localFS.writePlist(frameworkPath.join("Info.plist"), .plDict([
+                "CFBundleIdentifier": "/Lunch",
+            ]))
+            let result = try ValidateProductTaskAction().validateFrameworks(at: tmp.join("MyApp.app"), isShallow: true, outputDelegate: delegate)
+            #expect(result == false, "validation unexpectedly succeeded")
+            #expect(delegate.errors == ["error: Framework \(frameworkPath.str) had an invalid CFBundleIdentifier in its Info.plist: /Lunch"])
+        }
+    }
 }

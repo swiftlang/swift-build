@@ -219,7 +219,7 @@ fileprivate struct PlatformTaskConstructionTests: CoreBasedTests {
                 // There should be one product validation task.
                 results.checkTask(.matchTarget(target), .matchRuleType("Validate"), .matchRuleItemBasename("AppTarget.app")) { task in
                     task.checkRuleInfo(["Validate", "\(SRCROOT)/build/Debug-iphoneos/AppTarget.app"])
-                    task.checkCommandLine(["builtin-validationUtility", "\(SRCROOT)/build/Debug-iphoneos/AppTarget.app", "-infoplist-subpath", "Info.plist"])
+                    task.checkCommandLine(["builtin-validationUtility", "\(SRCROOT)/build/Debug-iphoneos/AppTarget.app", "-shallow-bundle", "-infoplist-subpath", "Info.plist"])
 
                     task.checkInputs([
                         .path("\(SRCROOT)/build/Debug-iphoneos/AppTarget.app"),
@@ -351,7 +351,7 @@ fileprivate struct PlatformTaskConstructionTests: CoreBasedTests {
                 // There should be one product validation task.
                 results.checkTask(.matchTarget(target), .matchRuleType("Validate"), .matchRuleItemBasename("AppTarget.app")) { task in
                     task.checkRuleInfo(["Validate", "\(SRCROOT)/build/Debug-iphonesimulator/AppTarget.app"])
-                    task.checkCommandLine(["builtin-validationUtility", "\(SRCROOT)/build/Debug-iphonesimulator/AppTarget.app", "-infoplist-subpath", "Info.plist"])
+                    task.checkCommandLine(["builtin-validationUtility", "\(SRCROOT)/build/Debug-iphonesimulator/AppTarget.app", "-shallow-bundle", "-infoplist-subpath", "Info.plist"])
 
                     task.checkInputs([
                         .path("\(SRCROOT)/build/Debug-iphonesimulator/AppTarget.app"),
@@ -439,7 +439,7 @@ fileprivate struct PlatformTaskConstructionTests: CoreBasedTests {
                 // There should be one product validation task.
                 results.checkTask(.matchTarget(target), .matchRuleType("Validate"), .matchRuleItemBasename("AppTarget.app")) { task in
                     task.checkRuleInfo(["Validate", "\(srcRoot.str)/build/Debug-iphoneos/AppTarget.app"])
-                    task.checkCommandLine(["builtin-validationUtility", "\(srcRoot.str)/build/Debug-iphoneos/AppTarget.app", "-infoplist-subpath", "Info.plist"])
+                    task.checkCommandLine(["builtin-validationUtility", "\(srcRoot.str)/build/Debug-iphoneos/AppTarget.app", "-shallow-bundle", "-infoplist-subpath", "Info.plist"])
 
                     task.checkOutputs([
                         .path("\(srcRoot.str)/build/Debug-iphoneos/AppTarget.app"),

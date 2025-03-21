@@ -29,6 +29,18 @@
                 CommandLineFlag = "-validate-for-store";
             },
             {
+                Name = ShallowBundle;
+                Type = boolean;
+                DefaultValue = "$(SHALLOW_BUNDLE)";
+                CommandLineFlag = "-shallow-bundle";
+            },
+            {
+                Name = SkipEmbeddedFrameworksValidation;
+                Type = boolean;
+                DefaultValue = "$(SKIP_EMBEDDED_FRAMEWORKS_VALIDATION)";
+                CommandLineFlag = "-no-validate-embedded-frameworks";
+            },
+            {
                 Name = __no_validate_extension__;
                 Type = boolean;
                 DefaultValue = YES;

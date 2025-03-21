@@ -246,6 +246,7 @@ public final class BuiltinMacros {
     public static let SEPARATE_SYMBOL_EDIT = BuiltinMacros.declareBooleanMacro("SEPARATE_SYMBOL_EDIT")
     public static let SKIP_INSTALL = BuiltinMacros.declareBooleanMacro("SKIP_INSTALL")
     public static let SKIP_CLANG_STATIC_ANALYZER = BuiltinMacros.declareBooleanMacro("SKIP_CLANG_STATIC_ANALYZER")
+    public static let SKIP_EMBEDDED_FRAMEWORKS_VALIDATION = BuiltinMacros.declareBooleanMacro("SKIP_EMBEDDED_FRAMEWORKS_VALIDATION")
     public static let STRINGSDATA_DIR = BuiltinMacros.declarePathMacro("STRINGSDATA_DIR")
     public static let STRIP_BITCODE_FROM_COPIED_FILES = BuiltinMacros.declareBooleanMacro("STRIP_BITCODE_FROM_COPIED_FILES")
     public static let STRIP_INSTALLED_PRODUCT = BuiltinMacros.declareBooleanMacro("STRIP_INSTALLED_PRODUCT")
@@ -2113,6 +2114,7 @@ public final class BuiltinMacros {
         SHARED_SUPPORT_FOLDER_PATH,
         SKIP_INSTALL,
         SKIP_CLANG_STATIC_ANALYZER,
+        SKIP_EMBEDDED_FRAMEWORKS_VALIDATION,
         SOURCE_ROOT,
         SPECIALIZATION_SDK_OPTIONS,
         SRCROOT,

@@ -772,6 +772,7 @@ fileprivate struct XCFrameworkBuildOperationTests: CoreBasedTests {
                                 "SKIP_INSTALL": "NO",
                                 "GENERATE_INFOPLIST_FILE": "YES",
                                 "SWIFT_VERSION": swiftVersion,
+                                "SKIP_EMBEDDED_FRAMEWORKS_VALIDATION": "YES",
                             ]
                         )],
                         targets: [

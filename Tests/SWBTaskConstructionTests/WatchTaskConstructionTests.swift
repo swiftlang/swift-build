@@ -392,7 +392,7 @@ fileprivate struct WatchTaskConstructionTests: CoreBasedTests {
 
                 // There should be one product validation task.
                 results.checkTask(.matchTarget(target), .matchRuleType("Validate"), .matchRuleItemBasename("Watchable WatchKit App.app")) { task in
-                    task.checkCommandLine(["builtin-validationUtility", builtWatchAppPath, "-infoplist-subpath", "Info.plist"])
+                    task.checkCommandLine(["builtin-validationUtility", builtWatchAppPath, "-shallow-bundle", "-infoplist-subpath", "Info.plist"])
                 }
 
                 // There should be no other tasks for this target.
@@ -498,7 +498,7 @@ fileprivate struct WatchTaskConstructionTests: CoreBasedTests {
 
                 // There should be one product validation task.
                 results.checkTask(.matchTarget(target), .matchRuleType("Validate"), .matchRuleItemBasename("Watchable.app")) { task in
-                    task.checkCommandLine(["builtin-validationUtility", builtHostIOSAppPath, "-infoplist-subpath", "Info.plist"])
+                    task.checkCommandLine(["builtin-validationUtility", builtHostIOSAppPath, "-shallow-bundle", "-infoplist-subpath", "Info.plist"])
                 }
 
                 // There should be no other tasks for this target.
@@ -681,7 +681,7 @@ fileprivate struct WatchTaskConstructionTests: CoreBasedTests {
 
                 // There should be one product validation task.
                 results.checkTask(.matchTarget(target), .matchRuleType("Validate"), .matchRuleItemBasename("Watchable WatchKit App.app")) { task in
-                    task.checkCommandLine(["builtin-validationUtility", builtWatchAppPath, "-infoplist-subpath", "Info.plist"])
+                    task.checkCommandLine(["builtin-validationUtility", builtWatchAppPath, "-shallow-bundle", "-infoplist-subpath", "Info.plist"])
                 }
 
                 // There should be no other tasks for this target.
@@ -788,7 +788,7 @@ fileprivate struct WatchTaskConstructionTests: CoreBasedTests {
 
                 // There should be one product validation task.
                 results.checkTask(.matchTarget(target), .matchRuleType("Validate"), .matchRuleItemBasename("Watchable.app")) { task in
-                    task.checkCommandLine(["builtin-validationUtility", builtHostIOSAppPath, "-infoplist-subpath", "Info.plist"])
+                    task.checkCommandLine(["builtin-validationUtility", builtHostIOSAppPath, "-shallow-bundle", "-infoplist-subpath", "Info.plist"])
                 }
 
                 // There should be no other tasks for this target.

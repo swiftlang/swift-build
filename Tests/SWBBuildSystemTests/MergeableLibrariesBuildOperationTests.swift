@@ -83,6 +83,7 @@ fileprivate struct MergeableLibrariesBuildOperationTests: CoreBasedTests {
                                     TestBuildConfiguration("Debug",
                                                            buildSettings: [
                                                             "INSTALL_PATH": "/Applications",
+                                                            "SKIP_EMBEDDED_FRAMEWORKS_VALIDATION": "YES",
                                                            ]),
                                 ],
                                 buildPhases: [
@@ -553,8 +554,8 @@ fileprivate struct MergeableLibrariesBuildOperationTests: CoreBasedTests {
                                 "INSTALL_GROUP": "",
                                 "INSTALL_MODE_FLAG": "",
                                 "SDK_STAT_CACHE_ENABLE": "NO",
-
-                                "ASSETCATALOG_COMPILER_SKIP_APP_STORE_DEPLOYMENT": useAppStoreCodelessFrameworksWorkaround ? "NO" : "YES"
+                                "ASSETCATALOG_COMPILER_SKIP_APP_STORE_DEPLOYMENT": useAppStoreCodelessFrameworksWorkaround ? "NO" : "YES",
+                                "SKIP_EMBEDDED_FRAMEWORKS_VALIDATION": "YES",
                             ])
                         ],
                         targets: [
@@ -1029,6 +1030,7 @@ fileprivate struct MergeableLibrariesBuildOperationTests: CoreBasedTests {
                                                            buildSettings: [
                                                             "INSTALL_PATH": "/Applications",
                                                             "MERGE_LINKED_LIBRARIES": "$(APP_MERGE_LINKED_LIBRARIES)",      // Builds below can override APP_MERGE_LINKED_LIBRARIES to NO to disable merging.
+                                                            "SKIP_EMBEDDED_FRAMEWORKS_VALIDATION": "YES",
                                                            ]),
                                 ],
                                 buildPhases: [
@@ -1396,6 +1398,7 @@ fileprivate struct MergeableLibrariesBuildOperationTests: CoreBasedTests {
                                     TestBuildConfiguration(CONFIGURATION,
                                                            buildSettings: [
                                                             "INSTALL_PATH": "/Applications",
+                                                            "SKIP_EMBEDDED_FRAMEWORKS_VALIDATION": "YES",
                                                            ]),
                                 ],
                                 buildPhases: [
