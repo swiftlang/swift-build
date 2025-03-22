@@ -1161,6 +1161,10 @@ extension TaskProducerContext: Hashable {
 }
 
 extension TaskProducerContext: CommandProducer {
+    public func lookupPlatformInfo(platform: BuildVersion.Platform) -> (any PlatformInfoProvider)? {
+        workspaceContext.core.lookupPlatformInfo(platform: platform)
+    }
+    
     public var preferredArch: String? {
         return settings.preferredArch
     }

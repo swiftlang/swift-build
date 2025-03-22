@@ -485,7 +485,7 @@ import SWBMacro
                     }
 
                     func lookupPlatformInfo(platform: BuildVersion.Platform) -> (any PlatformInfoProvider)? {
-                        toastosVariant
+                        platform.rawValue == 99 ? toastosVariant : nil
                     }
                 }
 

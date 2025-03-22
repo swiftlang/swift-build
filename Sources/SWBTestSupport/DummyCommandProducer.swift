@@ -229,4 +229,7 @@ package struct MockCommandProducer: CommandProducer, Sendable {
     package func lookupLibclang(path: SWBUtil.Path) -> (libclang: SWBCore.Libclang?, version: Version?) {
         (nil, nil)
     }
+    package func lookupPlatformInfo(platform: BuildVersion.Platform) -> (any PlatformInfoProvider)? {
+        core.lookupPlatformInfo(platform: platform)
+    }
 }
