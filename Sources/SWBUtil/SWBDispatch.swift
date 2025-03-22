@@ -124,7 +124,7 @@ extension SWBDispatchData: RandomAccessCollection {
 }
 
 /// Thin wrapper for `DispatchSemaphore` to isolate it from the rest of the codebase and help migration away from it.
-public final class SWBDispatchSemaphore: Sendable {
+internal final class SWBDispatchSemaphore: Sendable {
     private let semaphore: DispatchSemaphore
 
     public init(value: Int) {
@@ -139,19 +139,6 @@ public final class SWBDispatchSemaphore: Sendable {
     public func blocking_wait() {
         assertNoConcurrency {
             semaphore.wait()
-        }
-    }
-
-    /// Waits for the semaphore.
-    ///
-    /// - note: This spawns a background thread to wait for the semaphore in order to avoid blocking the caller.
-    public func wait() async {
-        await withCheckedContinuation { continuation in
-            let semaphore = self.semaphore
-            Thread.detachNewThread {
-                semaphore.wait()
-                continuation.resume()
-            }
         }
     }
 }
