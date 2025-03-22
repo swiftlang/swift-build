@@ -46,7 +46,7 @@ import Testing
     }
 
     /// Tests cancellation behaviors.
-    @Test
+    @Test(.skipHostOS(.freebsd, "#expect(throws:) crashes on FreeBSD"))
     func cancellation() async {
         let condition = CancellableWaitCondition()
         let task = Task {

@@ -37,7 +37,7 @@ import SWBTestSupport
         }
     }
 
-    @Test func macCatalystSupportsProductTypes() async throws {
+    @Test(.skipHostOS(.freebsd, "#expect(throws:) crashes on FreeBSD")) func macCatalystSupportsProductTypes() async throws {
         #expect(try await withBuildService { try await $0.productTypeSupportsMacCatalyst(developerPath: nil, productTypeIdentifier: "com.apple.product-type.application") })
         #expect(try await withBuildService { try await $0.productTypeSupportsMacCatalyst(developerPath: nil, productTypeIdentifier: "com.apple.product-type.framework") })
         #expect(try await !withBuildService { try await $0.productTypeSupportsMacCatalyst(developerPath: nil, productTypeIdentifier: "com.apple.product-type.application.on-demand-install-capable") })
