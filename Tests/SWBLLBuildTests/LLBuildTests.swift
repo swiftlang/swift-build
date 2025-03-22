@@ -589,10 +589,6 @@ fileprivate class LoggingDelegate: BuildSystemDelegate {
     }
 
     @Test(.requireLLBuild(apiVersion: 15)) func commandSkipping() throws {
-        #if os(Linux) && !DEBUG
-        return // fails on Linux in release mode
-        #endif
-
         let fs = PseudoFS()
 
         // Write the test manifest.
@@ -616,7 +612,8 @@ fileprivate class LoggingDelegate: BuildSystemDelegate {
         // Configure the delegate
         class Delegate: LoggingDelegate {
             override func shouldCommandStart(_ command: Command) -> Bool {
-                assert(super.shouldCommandStart(command))
+                let shouldStart = super.shouldCommandStart(command)
+                #expect(shouldStart)
                 return false
             }
         }
