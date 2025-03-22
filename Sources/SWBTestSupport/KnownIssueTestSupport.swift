@@ -10,7 +10,7 @@
 //
 //===----------------------------------------------------------------------===//
 
-#if DONT_HAVE_CUSTOM_EXECUTION_TRAIT
+#if compiler(<6.1)
 public import Testing
 
 extension Trait where Self == Testing.ConditionTrait {
@@ -23,9 +23,9 @@ extension Trait where Self == Testing.ConditionTrait {
     }
 }
 #else
-@_spi(Experimental) package import Testing
+package import Testing
 
-package struct KnownIssueTestTrait: CustomExecutionTrait & TestTrait & SuiteTrait {
+package struct KnownIssueTestTrait: TestTrait & SuiteTrait & TestScoping {
     let comment: Comment
     let isIntermittent: Bool
     let sourceLocation: SourceLocation
@@ -34,7 +34,7 @@ package struct KnownIssueTestTrait: CustomExecutionTrait & TestTrait & SuiteTrai
         true
     }
 
-    @Sendable package func execute(_ function: @escaping @Sendable () async throws -> Void, for test: Testing.Test, testCase: Testing.Test.Case?) async throws {
+    package func provideScope(for test: Testing.Test, testCase: Testing.Test.Case?, performing function: @Sendable () async throws -> Void) async throws {
         if testCase == nil || test.isSuite {
             try await function()
         } else {

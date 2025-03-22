@@ -10,7 +10,7 @@
 //
 //===----------------------------------------------------------------------===//
 
-#if DONT_HAVE_CUSTOM_EXECUTION_TRAIT
+#if compiler(<6.1)
 public import Testing
 
 extension Trait where Self == Testing.ConditionTrait {
@@ -19,11 +19,11 @@ extension Trait where Self == Testing.ConditionTrait {
     }
 }
 #else
-@_spi(Experimental) package import Testing
+package import Testing
 @_spi(Testing) import SWBUtil
 import Foundation
 
-package struct UserDefaultsTestTrait: CustomExecutionTrait & TestTrait & SuiteTrait {
+package struct UserDefaultsTestTrait: TestTrait & SuiteTrait & TestScoping {
     let userDefaults: [String: String]
     let clean: Bool
 
@@ -31,7 +31,7 @@ package struct UserDefaultsTestTrait: CustomExecutionTrait & TestTrait & SuiteTr
         true
     }
 
-    @Sendable package func execute(_ function: @escaping @Sendable () async throws -> Void, for test: Testing.Test, testCase: Testing.Test.Case?) async throws {
+    package func provideScope(for test: Testing.Test, testCase: Testing.Test.Case?, performing function: @Sendable () async throws -> Void) async throws {
         if testCase == nil || test.isSuite {
             try await function()
         } else {
