@@ -247,7 +247,7 @@ public struct AsyncCLIConnectionResponseSequence<Base: AsyncSequence>: AsyncSequ
                     } catch let error as SWBUtil.POSIXError {
                         // The result of a read operation when pty session is closed is platform-dependent.
                         // BSDs send EOF, Linux raises EIO...
-                        #if os(Linux)
+                        #if os(Linux) || os(Android)
                         if error.code == EIO {
                             break
                         }
@@ -276,7 +276,7 @@ public struct AsyncCLIConnectionResponseSequence<Base: AsyncSequence>: AsyncSequ
                 } catch let error as SWBUtil.POSIXError {
                     // The result of a read operation when pty session is closed is platform-dependent.
                     // BSDs send EOF, Linux raises EIO...
-                    #if os(Linux)
+                    #if os(Linux) || os(Android)
                     if error.code == EIO {
                         break
                     }

@@ -81,11 +81,12 @@ import SWBMacro
     @Test
     func loadingErrors() async throws {
         let builtinPlatforms: [String]
-#if os(Linux)
-        builtinPlatforms = ["linux"]
-#else
-        builtinPlatforms = []
-#endif
+        let hostOS = try ProcessInfo.processInfo.hostOperatingSystem()
+        if hostOS.createFallbackSystemToolchain {
+            builtinPlatforms = try [hostOS.xcodePlatformName]
+        } else {
+            builtinPlatforms = []
+        }
 
         try await withRegistryForTestInputs([
             ("unused", nil),
