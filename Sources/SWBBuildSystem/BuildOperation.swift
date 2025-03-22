@@ -432,20 +432,6 @@ package final class BuildOperation: BuildSystemOperation {
 
         let dbPath = persistent ? buildDescription.buildDatabasePath : Path("")
 
-        func saveBuildDebuggingData(from sourcePath: Path, to filename: String, type: String, debuggingDataPath: Path?) {
-            guard let debuggingDataPath else {
-                return
-            }
-            do {
-                try fs.createDirectory(debuggingDataPath, recursive: true)
-                let savedPath = debuggingDataPath.join(filename)
-                try fs.copy(sourcePath, to: savedPath)
-                self.buildOutputDelegate.note("build debugging is enabled, \(type): '\(savedPath.str)'")
-            } catch {
-                self.buildOutputDelegate.warning("unable to preserve \(type) for post-mortem debugging: \(error)")
-            }
-        }
-
         // Enable build debugging, if requested.
         let traceFile: Path?
         let debuggingDataPath: Path?
@@ -501,6 +487,33 @@ package final class BuildOperation: BuildSystemOperation {
             self.buildOutputDelegate.error("unable to retrieve additional environment variables via the EnvironmentExtensionPoint.")
         }
 
+        // If we use a cached build system, be sure to release it on build completion.
+        if userPreferences.enableBuildSystemCaching {
+            // Get the build system to use, keyed by the directory containing the (sole) database.
+            let entry = cachedBuildSystems.getOrInsert(buildDescription.buildDatabasePath.dirname, { SystemCacheEntry() })
+            return await entry.lock.withLock { [buildEnvironment] _ in
+                await _build(cacheEntry: entry, dbPath: dbPath, traceFile: traceFile, debuggingDataPath: debuggingDataPath, buildEnvironment: buildEnvironment)
+            }
+        } else {
+            return await _build(cacheEntry: nil, dbPath: dbPath, traceFile: traceFile, debuggingDataPath: debuggingDataPath, buildEnvironment: buildEnvironment)
+        }
+    }
+
+    private func saveBuildDebuggingData(from sourcePath: Path, to filename: String, type: String, debuggingDataPath: Path?) {
+        guard let debuggingDataPath else {
+            return
+        }
+        do {
+            try fs.createDirectory(debuggingDataPath, recursive: true)
+            let savedPath = debuggingDataPath.join(filename)
+            try fs.copy(sourcePath, to: savedPath)
+            self.buildOutputDelegate.note("build debugging is enabled, \(type): '\(savedPath.str)'")
+        } catch {
+            self.buildOutputDelegate.warning("unable to preserve \(type) for post-mortem debugging: \(error)")
+        }
+    }
+
+    private func _build(cacheEntry entry: SystemCacheEntry?, dbPath: Path, traceFile: Path?, debuggingDataPath: Path?, buildEnvironment: [String: String]) async -> BuildOperationEnded.Status {
         let algorithm: BuildSystem.SchedulerAlgorithm = {
             if let algorithmString = UserDefaults.schedulerAlgorithm {
                 if let algorithm = BuildSystem.SchedulerAlgorithm(rawValue: algorithmString) {
@@ -517,13 +530,7 @@ package final class BuildOperation: BuildSystemOperation {
         // Create the low-level build system.
         let adaptor: OperationSystemAdaptor
         let system: BuildSystem
-
-        // If we use a cached build system, be sure to release it on build completion.
-        var cacheEntry: SystemCacheEntry? = nil
-        defer {
-            cacheEntry?.lock.signal()
-        }
-
+        
         let llbQoS: SWBLLBuild.BuildSystem.QualityOfService?
         switch request.qos {
         case .default: llbQoS = .default
@@ -533,16 +540,7 @@ package final class BuildOperation: BuildSystemOperation {
         default: llbQoS = nil
         }
 
-        if userPreferences.enableBuildSystemCaching {
-            // Get the build system to use, keyed by the directory containing the (sole) database.
-            let key = buildDescription.buildDatabasePath.dirname
-            let entry = cachedBuildSystems.getOrInsert(key) { SystemCacheEntry() }
-            cacheEntry = entry
-
-            // Wait for exclusive lock on this cache entry to prevent concurrent
-            // use/free of accompanying objects.
-            await entry.lock.wait()
-
+        if let entry {
             // If the entry is valid, reuse it.
             if let cachedAdaptor = entry.adaptor, entry.environment == buildEnvironment, entry.buildDescription! === buildDescription, entry.llbQoS == llbQoS {
                 adaptor = cachedAdaptor

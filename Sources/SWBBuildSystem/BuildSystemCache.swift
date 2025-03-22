@@ -26,7 +26,7 @@ extension HeavyCache: BuildSystemCache where Key == Path, Value == SystemCacheEn
 
 package final class SystemCacheEntry: CacheableValue {
     /// Lock that must be held by the active operation using this cache entry.
-    let lock = SWBDispatchSemaphore(value: 1)
+    let lock = AsyncLockedValue(())
 
     /// The environment in use.
     var environment: [String: String]? = nil
