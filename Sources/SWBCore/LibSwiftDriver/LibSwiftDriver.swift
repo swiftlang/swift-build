@@ -511,7 +511,7 @@ public final class LibSwiftDriver {
             // Remove lib/swift/host/lib_InternalSwiftScan.dylib and add bin/swift-frontend to get a fake path to the compiler frontend.
             let fakeFrontendPath = path.dirname.dirname.dirname.dirname.join("bin/swift-frontend")
             env = environment.merging(["SWIFT_DRIVER_SWIFT_FRONTEND_EXEC": fakeFrontendPath.str, "SWIFT_DRIVER_SWIFTSCAN_LIB": path.str], uniquingKeysWith: { first, second in first })
-            compilerExecutableDir = nil
+            compilerExecutableDir = try TSCBasic.AbsolutePath(validating: fakeFrontendPath.dirname.str)
         }
         let key = SwiftModuleDependencyGraph.OracleRegistryKey(compilerLocation: compilerLocation, casOpts: casOptions)
         let oracle = graph?.oracleRegistry.getOrInsert(key, { InterModuleDependencyOracle() })
