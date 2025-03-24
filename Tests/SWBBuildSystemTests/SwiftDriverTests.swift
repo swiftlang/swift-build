@@ -4518,7 +4518,7 @@ fileprivate struct SwiftDriverTests: CoreBasedTests {
         }
     }
 
-    @Test(.requireSDKs(.macOS), .disabled(if: getEnvironmentVariable("CI")?.isEmpty == false, "Test relies on timing which would require costly delays in CI"))
+    @Test(.requireSDKs(.macOS))
     func diagnosingMissingTargetDependencies() async throws {
         try await withTemporaryDirectory { tmpDir in
             let testWorkspace = try await TestWorkspace(
@@ -4565,8 +4565,6 @@ fileprivate struct SwiftDriverTests: CoreBasedTests {
                                 "Framework3",
                                 type: .framework,
                                 buildPhases: [
-                                    // Ensure that we always happen to build the targets in the right order, even though the dependency is missing.
-                                    TestShellScriptBuildPhase(name: "Sleep", originalObjectID: "A", contents: "sleep 10", alwaysOutOfDate: true),
                                     TestSourcesBuildPhase(["file_3.swift"]),
                                 ]),
                         ])])
@@ -4610,7 +4608,7 @@ fileprivate struct SwiftDriverTests: CoreBasedTests {
 
             for warningLevel in [BooleanWarningLevel.yes, .yesError] {
                 let parameters = BuildParameters(configuration: "Debug", overrides: ["DIAGNOSE_MISSING_TARGET_DEPENDENCIES": warningLevel.rawValue])
-                let buildRequest = BuildRequest(parameters: parameters, buildTargets: tester.workspace.projects[0].targets.map({ BuildRequest.BuildTargetInfo(parameters: parameters, target: $0) }), continueBuildingAfterErrors: false, useParallelTargets: true, useImplicitDependencies: false, useDryRun: false)
+                let buildRequest = BuildRequest(parameters: parameters, buildTargets: tester.workspace.projects[0].targets.map({ BuildRequest.BuildTargetInfo(parameters: parameters, target: $0) }), continueBuildingAfterErrors: false, useParallelTargets: false, useImplicitDependencies: false, useDryRun: false)
 
                 try await tester.checkBuild(runDestination: .macOS, buildRequest: buildRequest, persistent: true) { results in
                     switch warningLevel {
@@ -4627,6 +4625,99 @@ fileprivate struct SwiftDriverTests: CoreBasedTests {
                 }
 
                 try await tester.checkBuild(parameters: parameters, runDestination: .macOS, buildCommand: .cleanBuildFolder(style: .regular)) { _ in }
+            }
+        }
+    }
+
+    @Test(.requireSDKs(.macOS))
+    func diagnosingMissingTargetDependenciesWithDependencyDomains() async throws {
+        try await withTemporaryDirectory { tmpDir in
+            let testWorkspace = try await TestWorkspace(
+                "Test",
+                sourceRoot: tmpDir.join("Test"),
+                projects: [
+                    TestProject(
+                        "aProject",
+                        groupTree: TestGroup(
+                            "Sources",
+                            children: [
+                                TestFile("Framework1.h"),
+                                TestFile("file_1.c"),
+                                TestFile("file_2.swift"),
+                            ]),
+                        buildConfigurations: [TestBuildConfiguration(
+                            "Debug",
+                            buildSettings: [
+                                "PRODUCT_NAME": "$(TARGET_NAME)",
+                                "CLANG_ENABLE_MODULES": "YES",
+                                "_EXPERIMENTAL_CLANG_EXPLICIT_MODULES": "YES",
+                                "SWIFT_ENABLE_EXPLICIT_MODULES": "YES",
+                                "SWIFT_VERSION": swiftVersion,
+                                "DEFINES_MODULE": "YES",
+                                "VALID_ARCHS": "arm64",
+                                "DSTROOT": tmpDir.join("dstroot").str,
+                                "DIAGNOSE_MISSING_TARGET_DEPENDENCIES": "YES",
+                            ])],
+                        targets: [
+                            TestStandardTarget(
+                                "Framework1",
+                                type: .framework,
+                                buildConfigurations: [TestBuildConfiguration(
+                                    "Debug",
+                                    buildSettings: [
+                                        "IMPLICIT_DEPENDENCY_DOMAIN": "One"
+                                    ])],
+                                buildPhases: [
+                                    TestHeadersBuildPhase([TestBuildFile("Framework1.h", headerVisibility: .public)]),
+                                    TestSourcesBuildPhase(["file_1.c"]),
+                                ]),
+                            TestStandardTarget(
+                                "Framework2",
+                                type: .framework,
+                                buildConfigurations: [TestBuildConfiguration(
+                                    "Debug",
+                                    buildSettings: [
+                                        "IMPLICIT_DEPENDENCY_DOMAIN": "Two"
+                                    ])],
+                                buildPhases: [
+                                    TestSourcesBuildPhase(["file_2.swift"]),
+                                ]),
+                        ])])
+
+            let tester = try await BuildOperationTester(getCore(), testWorkspace, simulated: false)
+
+            try await tester.fs.writeFileContents(testWorkspace.sourceRoot.join("aProject/Framework1.h")) { stream in
+                stream <<<
+            """
+            void foo(void);
+            """
+            }
+
+            try await tester.fs.writeFileContents(testWorkspace.sourceRoot.join("aProject/file_1.c")) { stream in
+                stream <<<
+            """
+            #include <Framework1/Framework1.h>
+            void foo(void) {}
+            """
+            }
+
+            try await tester.fs.writeFileContents(testWorkspace.sourceRoot.join("aProject/file_2.swift")) { stream in
+                stream <<<
+            """
+            import Framework1
+            public func baz() {
+                foo()
+            }
+            """
+            }
+
+            let parameters = BuildParameters(configuration: "Debug")
+            let buildRequest = BuildRequest(parameters: parameters, buildTargets: tester.workspace.projects[0].targets.map({ BuildRequest.BuildTargetInfo(parameters: parameters, target: $0) }), continueBuildingAfterErrors: false, useParallelTargets: false, useImplicitDependencies: false, useDryRun: false)
+
+            try await tester.checkBuild(runDestination: .macOS, buildRequest: buildRequest, persistent: true) { results in
+                // Normally, we would report "'Framework2' is missing a dependency on 'Framework1' because dependency scan of Swift module 'Framework2' discovered a dependency on 'Framework1'"
+                // However, because the targets are in different domains, we shouldn't report any diagnostics.
+                results.checkNoDiagnostics()
             }
         }
     }
