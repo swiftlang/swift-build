@@ -111,7 +111,8 @@ actor LinkageDependencyResolver {
                 if Task.isCancelled { return }
                 let configuredTarget = topLevelTargetsToDiscover[i]
                 let imposedParameters = resolver.specializationParameters(configuredTarget, workspaceContext: workspaceContext, buildRequest: buildRequest, buildRequestContext: buildRequestContext)
-                await linkageDependencies(for: configuredTarget, imposedParameters: imposedParameters)
+                let dependenciesOnPath = LinkageDependencies()
+                await linkageDependencies(for: configuredTarget, imposedParameters: imposedParameters, dependenciesOnPath: dependenciesOnPath)
             }
         }
 
@@ -129,7 +130,7 @@ actor LinkageDependencyResolver {
     private var dependenciesPerTarget = [ConfiguredTarget: [ResolvedTargetDependency]]()
     private var visitedDiscoveredTargets = Set<ConfiguredTarget>()
 
-    private func linkageDependencies(for configuredTarget: ConfiguredTarget, imposedParameters: SpecializationParameters?) async {
+    private func linkageDependencies(for configuredTarget: ConfiguredTarget, imposedParameters: SpecializationParameters?, dependenciesOnPath: LinkageDependencies) async {
         // Track that we have visited this target.
         let visited = !visitedDiscoveredTargets.insert(configuredTarget).inserted
 
@@ -155,10 +156,7 @@ actor LinkageDependencyResolver {
                 return nil
             }
             let buildParameters = resolver.buildParametersByTarget[target] ?? configuredTarget.parameters
-            if buildRequest.enableIndexBuildArena && !resolver.isTargetSuitableForPlatform(target, parameters: buildParameters, imposedParameters: imposedParameters) {
-                // The index build is all about source code, being able to produce source dependencies products for compilation purposes, it doesn't produce binaries.
-                // If a dependency is not supported for the platform of the dependent, presumably the dependent will not be able to use its products for compilation purposes, since the source products will be put in a different platform directory and/or they will not be usable by the dependent (e.g. the module will not be importable from a different platform).
-                // If the dependency was intended to be usable from that platform for compilation purposes, it would be a supported platform.
+            if await !resolver.isTargetSuitableForPlatformForIndex(target, parameters: buildParameters, imposedParameters: imposedParameters, dependencies: dependenciesOnPath.path) {
                 return nil
             }
             let effectiveImposedParameters = imposedParameters?.effectiveParameters(target: configuredTarget, dependency: ConfiguredTarget(parameters: buildParameters, target: target), dependencyResolver: resolver)
@@ -186,7 +184,7 @@ actor LinkageDependencyResolver {
             } else {
                 imposedParametersForDependency = resolver.specializationParameters(dependency.target, workspaceContext: workspaceContext, buildRequest: buildRequest, buildRequestContext: buildRequestContext)
             }
-            await self.linkageDependencies(for: dependency.target, imposedParameters: imposedParametersForDependency)
+            await self.linkageDependencies(for: dependency.target, imposedParameters: imposedParametersForDependency, dependenciesOnPath: dependenciesOnPath)
         }
     }
 
@@ -606,4 +604,8 @@ private extension Path {
     var stem: String? {
         return basenameWithoutSuffix.nilIfEmpty
     }
+}
+
+fileprivate actor LinkageDependencies {
+    var path: OrderedSet<ConfiguredTarget> = []
 }

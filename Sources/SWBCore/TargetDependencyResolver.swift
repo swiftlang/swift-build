@@ -811,18 +811,8 @@ fileprivate extension TargetDependencyResolver {
             if let asPackageProduct = dependency as? PackageProductTarget {
                 packageProductDependencies.append(asPackageProduct)
             } else {
-                if buildRequest.enableIndexBuildArena && !resolver.isTargetSuitableForPlatform(dependency, parameters: configuredTarget.parameters, imposedParameters: imposedParameters) {
-                    // The index build is all about source code, being able to produce source dependencies products for compilation purposes, it doesn't produce binaries.
-                    // If a dependency is not supported for the platform of the dependent, presumably the dependent will not be able to use its products for compilation purposes, since the source products will be put in a different platform directory and/or they will not be usable by the dependent (e.g. the module will not be importable from a different platform).
-                    // If the dependency was intended to be usable from that platform for compilation purposes, it would be a supported platform.
-                    // There is one exception - host tools which are required by compilation, and therefore must be registered as dependencies.
-                    func isHostBuildTool(_ target: Target) -> Bool {
-                        guard let standardTarget = target as? StandardTarget else { return false }
-                        return ProductTypeIdentifier(standardTarget.productTypeIdentifier).isHostBuildTool
-                    }
-                    guard isHostBuildTool(dependency) || dependencyPath?.contains(where: { isHostBuildTool($0.target) }) == true else {
-                        continue
-                    }
+                if !resolver.isTargetSuitableForPlatformForIndex(dependency, parameters: configuredTarget.parameters, imposedParameters: imposedParameters, dependencies: dependencyPath) {
+                    continue
                 }
 
                 // If we have an existing, compatible configured target, use its build parameters.
