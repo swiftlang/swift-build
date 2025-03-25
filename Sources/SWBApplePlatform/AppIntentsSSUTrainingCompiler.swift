@@ -13,6 +13,7 @@
 import SWBUtil
 import Foundation
 import SWBMacro
+public import SWBCore
 
 final public class AppIntentsSSUTrainingCompilerSpec: GenericCommandLineToolSpec, SpecIdentifierType, @unchecked Sendable {
     public static let identifier = "com.apple.compilers.appintents-ssu-training"

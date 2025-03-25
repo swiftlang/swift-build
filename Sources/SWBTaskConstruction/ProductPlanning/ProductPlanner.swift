@@ -472,10 +472,6 @@ extension StandardTarget
             }
         }
 
-        createNewPhaseNode("AppIntentsMetadataTaskProducer")
-        taskProducers.append(AppIntentsMetadataTaskProducer(taskProducerContext, sourcesBuildPhase: self.sourcesBuildPhase, resourcesBuildPhase: self.resourcesBuildPhase, phaseStartNodes: [setupEndPhaseNode, buildPhasesEndNode], phaseEndNode: endPhaseNode))
-        postprocessingTaskProducerInputNodes.append(endPhaseNode)
-
         // Add postprocessing task producers.  These are ordered after all of the other task producers.
         createNewPhaseNode("ProductPostprocessingTaskProducer")
         taskProducers.append(ProductPostprocessingTaskProducer(taskProducerContext, phaseStartNodes: postprocessingTaskProducerInputNodes, phaseEndNode: endPhaseNode))
