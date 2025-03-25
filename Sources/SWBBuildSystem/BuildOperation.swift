@@ -885,6 +885,10 @@ package final class BuildOperation: BuildSystemOperation {
             guard targetSettings.platform?.name == antecedentSettings.platform?.name && targetSettings.sdkVariant?.name == antecedentSettings.sdkVariant?.name else {
                 return
             }
+            // Implicit dependency domains allow projects to build multiple copies of a module in a workspace with implicit dependencies enabled, so never diagnose a cross-domain dependency.
+            guard targetSettings.globalScope.evaluate(BuiltinMacros.IMPLICIT_DEPENDENCY_DOMAIN) == antecedentSettings.globalScope.evaluate(BuiltinMacros.IMPLICIT_DEPENDENCY_DOMAIN) else {
+                return
+            }
 
             let message: DiagnosticData
             if self.userPreferences.enableDebugActivityLogs {
