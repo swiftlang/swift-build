@@ -100,6 +100,10 @@ private struct GlobalExplicitDependencyTracker {
                 assertionFailure("Unexpectedly found a regular job in 'plannedExplicitDependencyJobs'")
                 continue
             }
+            guard plannedExplicitDependencyJobs.indices.contains(index) else {
+                assertionFailure("Unexpectedly found an out of bounds job index into 'plannedExplicitDependencyJobs'")
+                continue
+            }
             let job = plannedExplicitDependencyJobs[index]
             assert(job.key == key)
             jobs.append(job)
