@@ -663,11 +663,13 @@ package final class BuildOperation: BuildSystemOperation {
             }
         }
 
+        let aggregatedCounters = await adaptor.getAggregatedCounters()
+        let aggregatedTaskCounters = await adaptor.getAggregatedTaskCounters()
         do {
-            let swiftCacheHits = self.delegate.aggregatedCounters[.swiftCacheHits, default: 0]
-            let swiftCacheMisses = self.delegate.aggregatedCounters[.swiftCacheMisses, default: 0]
-            let clangCacheHits = self.delegate.aggregatedCounters[.clangCacheHits, default: 0]
-            let clangCacheMisses = self.delegate.aggregatedCounters[.clangCacheMisses, default: 0]
+            let swiftCacheHits = aggregatedCounters[.swiftCacheHits, default: 0]
+            let swiftCacheMisses = aggregatedCounters[.swiftCacheMisses, default: 0]
+            let clangCacheHits = aggregatedCounters[.clangCacheHits, default: 0]
+            let clangCacheMisses = aggregatedCounters[.clangCacheMisses, default: 0]
             if swiftCacheHits + swiftCacheMisses > 0 || clangCacheHits + clangCacheMisses > 0 {
                 adaptor.withActivity(ruleInfo: "CompilationCacheMetrics", executionDescription: "Report compilation cache metrics", signature: "compilation_cache_metrics", target: nil, parentActivity: nil) { activity in
                     func getSummary(hits: Int, misses: Int) -> String {
@@ -693,10 +695,10 @@ package final class BuildOperation: BuildSystemOperation {
                     var tasks: [String: [String: Double]] = [:]
                 }
                 var serializedCounters = AllCounters()
-                for (key, value) in self.delegate.aggregatedCounters {
+                for (key, value) in aggregatedCounters {
                     serializedCounters.global[key.rawValue] = Double(value)
                 }
-                for (taskId, taskCounters) in self.delegate.aggregatedTaskCounters {
+                for (taskId, taskCounters) in aggregatedTaskCounters {
                     var serialTaskCounters: [String: Double] = [:]
                     for (counterKey, counterValue) in taskCounters {
                         serialTaskCounters[counterKey.rawValue] = Double(counterValue)
@@ -732,10 +734,10 @@ package final class BuildOperation: BuildSystemOperation {
                     var tasks: [String: [String: Double]] = [:]
                 }
                 var serializedCounters = AllCounters()
-                for (key, value) in self.delegate.aggregatedCounters {
+                for (key, value) in aggregatedCounters {
                     serializedCounters.global[key.rawValue] = Double(value)
                 }
-                for (taskId, taskCounters) in self.delegate.aggregatedTaskCounters {
+                for (taskId, taskCounters) in aggregatedTaskCounters {
                     var serialTaskCounters: [String: Double] = [:]
                     for (counterKey, counterValue) in taskCounters {
                         serialTaskCounters[counterKey.rawValue] = Double(counterValue)
@@ -801,7 +803,7 @@ package final class BuildOperation: BuildSystemOperation {
         }
 
         // `buildComplete()` should not run within `queue`, otherwise there can be a deadlock during cancelling.
-        return delegate.buildComplete(self, status: effectiveStatus, delegate: buildOutputDelegate, metrics: .init(counters: delegate.aggregatedCounters))
+        return delegate.buildComplete(self, status: effectiveStatus, delegate: buildOutputDelegate, metrics: .init(counters: aggregatedCounters))
     }
 
     func prepareForBuilding() -> ([String], [String])? {
@@ -1383,6 +1385,16 @@ internal final class OperationSystemAdaptor: SWBLLBuild.BuildSystemDelegate, Act
     private var commandOutputDelegates: [Command: any TaskOutputDelegate] = [:]
 
     fileprivate let dynamicOperationContext: DynamicTaskOperationContext
+
+    /// Returns the delegate's `aggregatedCounters` in a thread-safe manner.
+    func getAggregatedCounters() async -> [BuildOperationMetrics.Counter: Int] {
+        return await queue.sync { self.operation.delegate.aggregatedCounters }
+    }
+
+    /// Returns the delegate's `aggregatedTaskCounters` in a thread-safe manner.
+    func getAggregatedTaskCounters() async -> [String: [BuildOperationMetrics.TaskCounter: Int]] {
+        return await queue.sync { self.operation.delegate.aggregatedTaskCounters }
+    }
 
     init(operation: BuildOperation, buildOutputDelegate: any BuildOutputDelegate, core: Core) {
         self.operation = operation
