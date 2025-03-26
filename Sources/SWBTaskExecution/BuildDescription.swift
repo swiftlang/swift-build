@@ -138,7 +138,7 @@ package final class BuildDescription: Serializable, Sendable, Encodable, Cacheab
     private let allOutputPaths: Set<Path>
 
     private let rootPathsPerTarget: [ConfiguredTarget: [Path]]
-    private let moduleCachePathPerTarget: [ConfiguredTarget: Path]
+    private let moduleCachePathsPerTarget: [ConfiguredTarget: [Path]]
 
     private let dependencyValidationPerTarget: [ConfiguredTarget: BooleanWarningLevel]
 
@@ -192,13 +192,13 @@ package final class BuildDescription: Serializable, Sendable, Encodable, Cacheab
     package let emitFrontendCommandLines: Bool
 
     /// Load a build description from the given path.
-    fileprivate init(inDir dir: Path, signature: BuildDescriptionSignature, taskStore: FrozenTaskStore, allOutputPaths: Set<Path>, rootPathsPerTarget: [ConfiguredTarget: [Path]], moduleCachePathPerTarget: [ConfiguredTarget: Path], settingsPerTarget: [ConfiguredTarget: Settings], enableStaleFileRemoval: Bool = true, taskActionMap: [String: TaskAction.Type], targetTaskCounts: [ConfiguredTarget: Int], moduleSessionFilePath: Path?, diagnostics: [ConfiguredTarget?: [Diagnostic]], fs: any FSProxy, invalidationPaths: [Path], recursiveSearchPathResults: [RecursiveSearchPathResolver.CachedResult], copiedPathMap: [String: String], targetDependencies: [TargetDependencyRelationship], definingTargetsByModuleName: [String: OrderedSet<ConfiguredTarget>], capturedBuildInfo: CapturedBuildInfo?, bypassActualTasks: Bool, targetsBuildInParallel: Bool, emitFrontendCommandLines: Bool) throws {
+    fileprivate init(inDir dir: Path, signature: BuildDescriptionSignature, taskStore: FrozenTaskStore, allOutputPaths: Set<Path>, rootPathsPerTarget: [ConfiguredTarget: [Path]], moduleCachePathsPerTarget: [ConfiguredTarget: [Path]], settingsPerTarget: [ConfiguredTarget: Settings], enableStaleFileRemoval: Bool = true, taskActionMap: [String: TaskAction.Type], targetTaskCounts: [ConfiguredTarget: Int], moduleSessionFilePath: Path?, diagnostics: [ConfiguredTarget?: [Diagnostic]], fs: any FSProxy, invalidationPaths: [Path], recursiveSearchPathResults: [RecursiveSearchPathResolver.CachedResult], copiedPathMap: [String: String], targetDependencies: [TargetDependencyRelationship], definingTargetsByModuleName: [String: OrderedSet<ConfiguredTarget>], capturedBuildInfo: CapturedBuildInfo?, bypassActualTasks: Bool, targetsBuildInParallel: Bool, emitFrontendCommandLines: Bool) throws {
         self.dir = dir
         self.signature = signature
         self.taskStore = taskStore
         self.allOutputPaths = allOutputPaths
         self.rootPathsPerTarget = rootPathsPerTarget
-        self.moduleCachePathPerTarget = moduleCachePathPerTarget
+        self.moduleCachePathsPerTarget = moduleCachePathsPerTarget
         self.dependencyValidationPerTarget = settingsPerTarget.mapValues { $0.globalScope.evaluate(BuiltinMacros.VALIDATE_DEPENDENCIES) }
         self.taskActionMap = taskActionMap
         self.targetTaskCounts = targetTaskCounts
@@ -271,8 +271,10 @@ package final class BuildDescription: Serializable, Sendable, Encodable, Cacheab
         }
 
         // Only consider paths which _aren't_ in the module cache, which isn't tracked by the build system at present (this may change in future with explicit modules). Normally such paths would be excluded by the root paths check below, but the module cache path may be under one of the other root paths in certain configurations (e.g. overridden SYMROOT).
-        if moduleCachePathPerTarget[target]?.isAncestor(of: path) == true {
-            return false
+        for cachePath in moduleCachePathsPerTarget[target, default: []] {
+            if cachePath.isAncestor(of: path) == true {
+                return false
+            }
         }
 
         // Only consider build directories as those which the build system itself has created.
@@ -323,7 +325,7 @@ package final class BuildDescription: Serializable, Sendable, Encodable, Cacheab
         // Serialize the tasks first so we can index into this array during deserialization.
         serializer.serialize(allOutputPaths)
         serializer.serialize(rootPathsPerTarget)
-        serializer.serialize(moduleCachePathPerTarget)
+        serializer.serialize(moduleCachePathsPerTarget)
         serializer.serialize(dependencyValidationPerTarget)
         serializer.beginAggregate(taskActionMap.count)
         for (tool, taskActionClass) in taskActionMap.sorted(byKey: <) {
@@ -361,7 +363,7 @@ package final class BuildDescription: Serializable, Sendable, Encodable, Cacheab
         self.signature = try deserializer.deserialize()
         self.allOutputPaths = try deserializer.deserialize()
         self.rootPathsPerTarget = try deserializer.deserialize()
-        self.moduleCachePathPerTarget = try deserializer.deserialize()
+        self.moduleCachePathsPerTarget = try deserializer.deserialize()
         self.dependencyValidationPerTarget = try deserializer.deserialize()
         var taskActionMap = [String: TaskAction.Type]()
         let taskActionMapCount = try deserializer.beginAggregate()
@@ -528,7 +530,7 @@ package final class BuildDescriptionBuilder {
     private let rootPathsPerTarget: [ConfiguredTarget: [Path]]
 
     // The map of module cache path per configured target.
-    private let moduleCachePathPerTarget: [ConfiguredTarget: Path]
+    private let moduleCachePathsPerTarget: [ConfiguredTarget: [Path]]
 
     // The map of stale file removal identifier per configured target.
     private let staleFileRemovalIdentifierPerTarget: [ConfiguredTarget?: String]
@@ -547,7 +549,7 @@ package final class BuildDescriptionBuilder {
     /// - Parameters:
     ///   - path: The path of a directory to store the build description to.
     ///   - bypassActualTasks: If enabled, replace tasks with fake ones (`/usr/bin/true`).
-    init(path: Path, signature: BuildDescriptionSignature, buildCommand: BuildCommand, taskAdditionalInputs: [Ref<any PlannedTask>: NodeList], mutatedNodes: Set<Ref<any PlannedNode>>, mutatingTasks: [Ref<any PlannedTask>: MutatingTaskInfo], bypassActualTasks: Bool, targetsBuildInParallel: Bool, emitFrontendCommandLines: Bool, moduleSessionFilePath: Path?, invalidationPaths: [Path], recursiveSearchPathResults: [RecursiveSearchPathResolver.CachedResult], copiedPathMap: [String: String], outputPathsPerTarget: [ConfiguredTarget?: [Path]], allOutputPaths: Set<Path>, rootPathsPerTarget: [ConfiguredTarget: [Path]], moduleCachePathPerTarget: [ConfiguredTarget: Path], staleFileRemovalIdentifierPerTarget: [ConfiguredTarget?: String], settingsPerTarget: [ConfiguredTarget: Settings], targetDependencies: [TargetDependencyRelationship], definingTargetsByModuleName: [String: OrderedSet<ConfiguredTarget>], workspace: Workspace, capturedBuildInfo: CapturedBuildInfo?) {
+    init(path: Path, signature: BuildDescriptionSignature, buildCommand: BuildCommand, taskAdditionalInputs: [Ref<any PlannedTask>: NodeList], mutatedNodes: Set<Ref<any PlannedNode>>, mutatingTasks: [Ref<any PlannedTask>: MutatingTaskInfo], bypassActualTasks: Bool, targetsBuildInParallel: Bool, emitFrontendCommandLines: Bool, moduleSessionFilePath: Path?, invalidationPaths: [Path], recursiveSearchPathResults: [RecursiveSearchPathResolver.CachedResult], copiedPathMap: [String: String], outputPathsPerTarget: [ConfiguredTarget?: [Path]], allOutputPaths: Set<Path>, rootPathsPerTarget: [ConfiguredTarget: [Path]], moduleCachePathsPerTarget: [ConfiguredTarget: [Path]], staleFileRemovalIdentifierPerTarget: [ConfiguredTarget?: String], settingsPerTarget: [ConfiguredTarget: Settings], targetDependencies: [TargetDependencyRelationship], definingTargetsByModuleName: [String: OrderedSet<ConfiguredTarget>], workspace: Workspace, capturedBuildInfo: CapturedBuildInfo?) {
         self.path = path
         self.signature = signature
         self.taskAdditionalInputs = taskAdditionalInputs
@@ -563,7 +565,7 @@ package final class BuildDescriptionBuilder {
         self.outputPathsPerTarget = outputPathsPerTarget
         self.allOutputPaths = allOutputPaths
         self.rootPathsPerTarget = rootPathsPerTarget
-        self.moduleCachePathPerTarget = moduleCachePathPerTarget
+        self.moduleCachePathsPerTarget = moduleCachePathsPerTarget
         self.staleFileRemovalIdentifierPerTarget = staleFileRemovalIdentifierPerTarget
         self.settingsPerTarget = settingsPerTarget
         self.targetDependencies = targetDependencies
@@ -676,7 +678,7 @@ package final class BuildDescriptionBuilder {
         // Create the build description.
         let buildDescription: BuildDescription
         do {
-            buildDescription = try BuildDescription(inDir: path, signature: signature, taskStore: frozenTaskStore, allOutputPaths: allOutputPaths, rootPathsPerTarget: rootPathsPerTarget, moduleCachePathPerTarget: moduleCachePathPerTarget, settingsPerTarget: settingsPerTarget, taskActionMap: taskActionMap, targetTaskCounts: targetTaskCounts, moduleSessionFilePath: moduleSessionFilePath, diagnostics: diagnosticsEngines.mapValues { engine in engine.diagnostics }, fs: fs, invalidationPaths: invalidationPaths, recursiveSearchPathResults: recursiveSearchPathResults, copiedPathMap: copiedPathMap, targetDependencies: targetDependencies, definingTargetsByModuleName: definingTargetsByModuleName, capturedBuildInfo: capturedBuildInfo, bypassActualTasks: bypassActualTasks, targetsBuildInParallel: targetsBuildInParallel, emitFrontendCommandLines: emitFrontendCommandLines)
+            buildDescription = try BuildDescription(inDir: path, signature: signature, taskStore: frozenTaskStore, allOutputPaths: allOutputPaths, rootPathsPerTarget: rootPathsPerTarget, moduleCachePathsPerTarget: moduleCachePathsPerTarget, settingsPerTarget: settingsPerTarget, taskActionMap: taskActionMap, targetTaskCounts: targetTaskCounts, moduleSessionFilePath: moduleSessionFilePath, diagnostics: diagnosticsEngines.mapValues { engine in engine.diagnostics }, fs: fs, invalidationPaths: invalidationPaths, recursiveSearchPathResults: recursiveSearchPathResults, copiedPathMap: copiedPathMap, targetDependencies: targetDependencies, definingTargetsByModuleName: definingTargetsByModuleName, capturedBuildInfo: capturedBuildInfo, bypassActualTasks: bypassActualTasks, targetsBuildInParallel: targetsBuildInParallel, emitFrontendCommandLines: emitFrontendCommandLines)
         }
         catch {
             throw StubError.error("unable to create build description: \(error)")
@@ -1006,7 +1008,7 @@ extension BuildDescription {
     // FIXME: Bypass actual tasks should go away, eventually.
     //
     // FIXME: This layering isn't working well, we are plumbing a bunch of stuff through here just because we don't want to talk to TaskConstruction.
-    static package func construct(workspace: Workspace, tasks: [any PlannedTask], path: Path, signature: BuildDescriptionSignature, buildCommand: BuildCommand, diagnostics: [ConfiguredTarget?: [Diagnostic]] = [:], indexingInfo: [(forTarget: ConfiguredTarget?, path: Path, indexingInfo: any SourceFileIndexingInfo)] = [], fs: any FSProxy = localFS, bypassActualTasks: Bool = false, targetsBuildInParallel: Bool = true, emitFrontendCommandLines: Bool = false, moduleSessionFilePath: Path? = nil, invalidationPaths: [Path] = [], recursiveSearchPathResults: [RecursiveSearchPathResolver.CachedResult] = [], copiedPathMap: [String: String] = [:], rootPathsPerTarget: [ConfiguredTarget:[Path]] = [:], moduleCachePathPerTarget: [ConfiguredTarget: Path] = [:], staleFileRemovalIdentifierPerTarget: [ConfiguredTarget?: String] = [:], settingsPerTarget: [ConfiguredTarget: Settings] = [:], delegate: any BuildDescriptionConstructionDelegate, targetDependencies: [TargetDependencyRelationship] = [], definingTargetsByModuleName: [String: OrderedSet<ConfiguredTarget>], capturedBuildInfo: CapturedBuildInfo?, userPreferences: UserPreferences) async throws -> BuildDescription? {
+    static package func construct(workspace: Workspace, tasks: [any PlannedTask], path: Path, signature: BuildDescriptionSignature, buildCommand: BuildCommand, diagnostics: [ConfiguredTarget?: [Diagnostic]] = [:], indexingInfo: [(forTarget: ConfiguredTarget?, path: Path, indexingInfo: any SourceFileIndexingInfo)] = [], fs: any FSProxy = localFS, bypassActualTasks: Bool = false, targetsBuildInParallel: Bool = true, emitFrontendCommandLines: Bool = false, moduleSessionFilePath: Path? = nil, invalidationPaths: [Path] = [], recursiveSearchPathResults: [RecursiveSearchPathResolver.CachedResult] = [], copiedPathMap: [String: String] = [:], rootPathsPerTarget: [ConfiguredTarget:[Path]] = [:], moduleCachePathsPerTarget: [ConfiguredTarget: [Path]] = [:], staleFileRemovalIdentifierPerTarget: [ConfiguredTarget?: String] = [:], settingsPerTarget: [ConfiguredTarget: Settings] = [:], delegate: any BuildDescriptionConstructionDelegate, targetDependencies: [TargetDependencyRelationship] = [], definingTargetsByModuleName: [String: OrderedSet<ConfiguredTarget>], capturedBuildInfo: CapturedBuildInfo?, userPreferences: UserPreferences) async throws -> BuildDescription? {
         var diagnostics = diagnostics
 
         // We operate on the sorted tasks here to ensure that the list of task additional inputs is deterministic.
@@ -1269,7 +1271,7 @@ extension BuildDescription {
         }
 
         // Create the builder.
-        let builder = BuildDescriptionBuilder(path: path, signature: signature, buildCommand: buildCommand, taskAdditionalInputs: taskAdditionalInputs, mutatedNodes: Set(mutableNodes.keys), mutatingTasks: mutatingTasks, bypassActualTasks: bypassActualTasks, targetsBuildInParallel: targetsBuildInParallel, emitFrontendCommandLines: emitFrontendCommandLines, moduleSessionFilePath: moduleSessionFilePath, invalidationPaths: invalidationPaths, recursiveSearchPathResults: recursiveSearchPathResults, copiedPathMap: copiedPathMap, outputPathsPerTarget: outputPathsPerTarget, allOutputPaths: Set(producers.keys.map { $0.instance.path }), rootPathsPerTarget: rootPathsPerTarget, moduleCachePathPerTarget: moduleCachePathPerTarget, staleFileRemovalIdentifierPerTarget: staleFileRemovalIdentifierPerTarget, settingsPerTarget: settingsPerTarget, targetDependencies: targetDependencies, definingTargetsByModuleName: definingTargetsByModuleName, workspace: workspace, capturedBuildInfo: capturedBuildInfo)
+        let builder = BuildDescriptionBuilder(path: path, signature: signature, buildCommand: buildCommand, taskAdditionalInputs: taskAdditionalInputs, mutatedNodes: Set(mutableNodes.keys), mutatingTasks: mutatingTasks, bypassActualTasks: bypassActualTasks, targetsBuildInParallel: targetsBuildInParallel, emitFrontendCommandLines: emitFrontendCommandLines, moduleSessionFilePath: moduleSessionFilePath, invalidationPaths: invalidationPaths, recursiveSearchPathResults: recursiveSearchPathResults, copiedPathMap: copiedPathMap, outputPathsPerTarget: outputPathsPerTarget, allOutputPaths: Set(producers.keys.map { $0.instance.path }), rootPathsPerTarget: rootPathsPerTarget, moduleCachePathsPerTarget: moduleCachePathsPerTarget, staleFileRemovalIdentifierPerTarget: staleFileRemovalIdentifierPerTarget, settingsPerTarget: settingsPerTarget, targetDependencies: targetDependencies, definingTargetsByModuleName: definingTargetsByModuleName, workspace: workspace, capturedBuildInfo: capturedBuildInfo)
         for (target, diagnostics) in diagnostics {
             let engine = builder.diagnosticsEngines.getOrInsert(target, { DiagnosticsEngine() })
             for diag in diagnostics {
