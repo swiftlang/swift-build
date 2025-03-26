@@ -23,6 +23,16 @@ fileprivate struct FileCopyTaskTests {
         try await withTemporaryDirectory { tmpDir in
             let testDataDirPath = try Path(#require(Bundle.module.resourceURL).appendingPathComponent("TestData").appendingPathComponent("FileCopyTask").path)
 
+            // Many filesystems on other platforms (e.g. various non-ext4 temporary filesystems on Linux) don't support xattrs and will return ENOTSUP.
+            // In particular, tmpfs doesn't support xattrs on Linux unless `CONFIG_TMPFS_XATTR` is enabled in the kernel config.
+            if try ProcessInfo.processInfo.hostOperatingSystem() == .linux {
+                do {
+                    _ = try localFS.getExtendedAttribute(testDataDirPath, key: "user.test")
+                } catch let error as SWBUtil.POSIXError where error.code == ENOTSUP {
+                    return
+                }
+            }
+
             // Set up the copy task and run it.
             let action = FileCopyTaskAction(.init(skipAppStoreDeployment: false, stubPartialCompilerCommandLine: [], stubPartialLinkerCommandLine: [], stubPartialLipoCommandLine: [], partialTargetValues: [], llvmTargetTripleOSVersion: "", llvmTargetTripleSuffix: "", platformName: "", swiftPlatformTargetPrefix: "", isMacCatalyst: false))
             let task = Task(forTarget: nil, ruleInfo: [], commandLine: ["builtin-copy", testDataDirPath.join("LoneFile.txt").str, tmpDir.str], workingDirectory: testDataDirPath, outputs: [], action: action, execDescription: "Copy File")
@@ -35,6 +45,9 @@ fileprivate struct FileCopyTaskTests {
                 clientDelegate: MockTaskExecutionClientDelegate(),
                 outputDelegate: outputDelegate
             )
+
+            #expect(outputDelegate.errors == [])
+            #expect(outputDelegate.warnings == [])
 
             // Make sure it completed successfully.
             #expect(result == .succeeded)
@@ -49,6 +62,16 @@ fileprivate struct FileCopyTaskTests {
         try await withTemporaryDirectory { tmpDir in
             let testDataDirPath = try Path(#require(Bundle.module.resourceURL).appendingPathComponent("TestData").appendingPathComponent("FileCopyTask").path)
 
+            // Many filesystems on other platforms (e.g. various non-ext4 temporary filesystems on Linux) don't support xattrs and will return ENOTSUP.
+            // In particular, tmpfs doesn't support xattrs on Linux unless `CONFIG_TMPFS_XATTR` is enabled in the kernel config.
+            if try ProcessInfo.processInfo.hostOperatingSystem() == .linux {
+                do {
+                    _ = try localFS.getExtendedAttribute(testDataDirPath, key: "user.test")
+                } catch let error as SWBUtil.POSIXError where error.code == ENOTSUP {
+                    return
+                }
+            }
+
             // Set up the copy task and run it.
             let action = FileCopyTaskAction(.init(skipAppStoreDeployment: false, stubPartialCompilerCommandLine: [], stubPartialLinkerCommandLine: [], stubPartialLipoCommandLine: [], partialTargetValues: [], llvmTargetTripleOSVersion: "", llvmTargetTripleSuffix: "", platformName: "", swiftPlatformTargetPrefix: "", isMacCatalyst: false))
             let task = Task(forTarget: nil, ruleInfo: [], commandLine: ["builtin-copy", testDataDirPath.join("SimpleDir").str, tmpDir.str], workingDirectory: testDataDirPath, outputs: [], action: action, execDescription: "Copy Directory")
@@ -61,6 +84,9 @@ fileprivate struct FileCopyTaskTests {
                 clientDelegate: MockTaskExecutionClientDelegate(),
                 outputDelegate: outputDelegate
             )
+
+            #expect(outputDelegate.errors == [])
+            #expect(outputDelegate.warnings == [])
 
             // Make sure it completed successfully.
             #expect(result == .succeeded)
