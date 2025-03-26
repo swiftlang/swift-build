@@ -82,6 +82,11 @@ import SWBMacro
         let toolchains = core.toolchainRegistry.toolchains
         #expect(toolchains.count > 0) // must be at least one toolchain (default)
         for toolchain in toolchains.sorted(by: \.identifier) {
+            if toolchain.identifier == "qnx" {
+                // QNX toolchains do not have clang
+                continue
+            }
+
             let clangPath = try #require(toolchain.executableSearchPaths.findExecutable(operatingSystem: core.hostOperatingSystem, basename: "clang"), "Unable to find clang in search paths for toolchain '\(toolchain.identifier)': \(toolchain.executableSearchPaths.environmentRepresentation)")
             let info = try await discoveredClangToolInfo(toolPath: clangPath, arch: "undefined_arch", sysroot: nil)
             #expect(info.toolPath == clangPath)
