@@ -825,7 +825,7 @@ fileprivate struct CodeSignTaskConstructionTests: CoreBasedTests {
         try await results(action: .build, overrides: ["ENABLE_APP_SANDBOX":"YES"], appSandboxEntitlementValueOverride: false) { results in
             results.checkWarning(
                 .equal(
-                    "The ENABLE_APP_SANDBOX build setting is set to YES, but is set to NO in your entitlements file.\nTo enable App Sandbox, remove the entitlement from your entitlements file.\nTo disable App Sandbox, remove the entitlement from your entitlements file, and set the ENABLE_APP_SANDBOX build setting to NO. (in target \'App\' from project \'aProject\')"
+                    "The \'ENABLE_APP_SANDBOX\' build setting is set to \'YES\', but entitlement \'com.apple.security.app-sandbox\' is set to \'NO\' in your entitlements file.\n/tmp/aWorkspace/aProject/Entitlements.plist: To enable \'ENABLE_APP_SANDBOX\', remove the entitlement from your entitlements file.\nTo disable \'ENABLE_APP_SANDBOX\', remove the entitlement from your entitlements file and disable \'ENABLE_APP_SANDBOX\' in  build settings. (in target \'App\' from project \'aProject\')"
                 )
             )
         }
@@ -834,7 +834,7 @@ fileprivate struct CodeSignTaskConstructionTests: CoreBasedTests {
         try await results(action: .build, overrides: ["ENABLE_APP_SANDBOX":"NO"], appSandboxEntitlementValueOverride: true) { results in
             results.checkWarning(
                 .equal(
-                    "The ENABLE_APP_SANDBOX build setting is set to NO, but is set to YES in your entitlements file.\nTo enable App Sandbox, remove the entitlement from your entitlements file, and set the ENABLE_APP_SANDBOX build setting to YES.\nTo disable App Sandbox, remove the entitlement from your entitlements file. (in target \'App\' from project \'aProject\')"
+                    "The \'ENABLE_APP_SANDBOX\' build setting is set to \'NO\', but entitlement \'com.apple.security.app-sandbox\' is set to \'YES\' in your entitlements file.\nTo enable \'ENABLE_APP_SANDBOX\', remove the entitlement from your entitlements file, and enable \'ENABLE_APP_SANDBOX\' in build settings.\n/tmp/aWorkspace/aProject/Entitlements.plist: To disable \'ENABLE_APP_SANDBOX\', remove the entitlement from your entitlements file. (in target \'App\' from project \'aProject\')"
                 )
             )
         }
