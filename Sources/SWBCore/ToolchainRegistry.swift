@@ -443,52 +443,20 @@ public final class ToolchainRegistry: @unchecked Sendable {
             }
         }
 
-        do {
-            if hostOperatingSystem.createFallbackSystemToolchain {
-                try registerFallbackSystemToolchain(operatingSystem: hostOperatingSystem)
-            }
-        } catch {
-            delegate.error(error)
-        }
-
         struct Context: ToolchainRegistryExtensionAdditionalToolchainsContext {
             var hostOperatingSystem: OperatingSystem
+            var toolchainRegistry: ToolchainRegistry
             var fs: any FSProxy
         }
 
         for toolchainExtension in await delegate.pluginManager.extensions(of: ToolchainRegistryExtensionPoint.self) {
-            for toolchain in await toolchainExtension.additionalToolchains(context: Context(hostOperatingSystem: hostOperatingSystem, fs: fs)) {
-                do {
+            do {
+                for toolchain in try await toolchainExtension.additionalToolchains(context: Context(hostOperatingSystem: hostOperatingSystem, toolchainRegistry: self, fs: fs)) {
                     try register(toolchain)
-                } catch {
-                    delegate.error(error)
                 }
+            } catch {
+                delegate.error(error)
             }
-        }
-    }
-
-    private func registerFallbackSystemToolchain(operatingSystem: OperatingSystem) throws {
-        if lookup(Self.defaultToolchainIdentifier) != nil {
-            return
-        }
-
-        if let swift = StackedSearchPath(environment: .current, fs: fs).lookup(Path("swift")), fs.exists(swift) {
-            let hasUsrBin = swift.normalize().str.hasSuffix("/usr/bin/swift")
-            let hasUsrLocalBin = swift.normalize().str.hasSuffix("/usr/local/bin/swift")
-            let path: Path
-            switch (hasUsrBin, hasUsrLocalBin) {
-            case (true, false):
-                path = swift.dirname.dirname.dirname
-            case (false, true):
-                path = swift.dirname.dirname.dirname.dirname
-            case (false, false):
-                return
-            case (true, true):
-                preconditionFailure()
-            }
-            let llvmDirectories = try Array(fs.listdir(Path("/usr/lib")).filter { $0.hasPrefix("llvm-") }.sorted().reversed())
-            let llvmDirectoriesLocal = try Array(fs.listdir(Path("/usr/local")).filter { $0.hasPrefix("llvm") }.sorted().reversed())
-            try register(Toolchain(Self.defaultToolchainIdentifier, "Default", Version(), [], path, [], llvmDirectories.map { "/usr/lib/\($0)/lib" } + llvmDirectoriesLocal.map { "/usr/local/\($0)/lib" } + ["/usr/lib64"], [:], [:], [:], executableSearchPaths: [path.join("usr").join("bin"), path.join("usr").join("local").join("bin"),  path.join("usr").join("libexec")], testingLibraryPlatformNames: [], fs: fs))
         }
     }
 

@@ -156,7 +156,7 @@ struct AndroidSDKRegistryExtension: SDKRegistryExtension {
 struct AndroidToolchainRegistryExtension: ToolchainRegistryExtension {
     let plugin: AndroidPlugin
 
-    func additionalToolchains(context: any ToolchainRegistryExtensionAdditionalToolchainsContext) async -> [Toolchain] {
+    func additionalToolchains(context: any ToolchainRegistryExtensionAdditionalToolchainsContext) async throws -> [Toolchain] {
         guard let toolchainPath = try? await plugin.cachedAndroidSDKInstallations(host: context.hostOperatingSystem).first?.toolchainPath else {
             return []
         }
