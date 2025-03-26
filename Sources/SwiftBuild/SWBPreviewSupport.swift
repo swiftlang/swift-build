@@ -67,7 +67,7 @@ public struct SWBPreviewTargetDependencyInfo: SWBPreviewInfoContext, Hashable, S
     public let linkCommandLine: [String]
 
     /// Working directory for the linker invocation.
-    public let linkerWorkingDirectory: String
+    public let linkerWorkingDirectory: String?
 
     // The following build settings help Previews diagnose certain situations where it
     // won't succeed or offer help if something goes wrong.
@@ -112,7 +112,7 @@ public struct SWBPreviewTargetDependencyInfo: SWBPreviewInfoContext, Hashable, S
         pifGUID: String,
         objectFileInputMap: [String : Set<String>],
         linkCommandLine: [String],
-        linkerWorkingDirectory: String,
+        linkerWorkingDirectory: String?,
         swiftEnableOpaqueTypeErasure: Bool,
         swiftUseIntegratedDriver: Bool,
         enableJITPreviews: Bool,

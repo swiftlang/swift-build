@@ -437,7 +437,7 @@ public struct PreviewInfoThunkInfo: Codable, Equatable, Sendable {
 public struct PreviewInfoTargetDependencyInfo: Codable, Equatable, Sendable {
     public let objectFileInputMap: [String: Set<String>]
     public let linkCommandLine: [String]
-    public let linkerWorkingDirectory: String
+    public let linkerWorkingDirectory: String?
     public let swiftEnableOpaqueTypeErasure: Bool
     public let swiftUseIntegratedDriver: Bool
     public let enableJITPreviews: Bool
@@ -449,7 +449,7 @@ public struct PreviewInfoTargetDependencyInfo: Codable, Equatable, Sendable {
     public init(
         objectFileInputMap: [String : Set<String>],
         linkCommandLine: [String],
-        linkerWorkingDirectory: String,
+        linkerWorkingDirectory: String?,
         swiftEnableOpaqueTypeErasure: Bool,
         swiftUseIntegratedDriver: Bool,
         enableJITPreviews: Bool,
