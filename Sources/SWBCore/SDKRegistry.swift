@@ -606,63 +606,6 @@ public final class SDKRegistry: SDKRegistryLookup, CustomStringConvertible, Send
         for (path, platform) in searchPaths {
             registerSDKsInDirectory(path, platform)
         }
-
-        do {
-            if hostOperatingSystem.createFallbackSystemToolchain {
-                try registerFallbackSystemSDK(operatingSystem: hostOperatingSystem, platform: searchPaths.compactMap { $0.1 ?? nil }.only)
-            }
-        } catch {
-            delegate.error(error)
-        }
-    }
-
-    private func registerFallbackSystemSDK(operatingSystem: OperatingSystem, platform: Platform?) throws {
-        try registerSDK(Path("/"), Path("/"), platform, .plDict(fallbackSystemSDKSettings(operatingSystem: operatingSystem)))
-    }
-
-    private func fallbackSystemSDKSettings(operatingSystem: OperatingSystem) throws -> [String: PropertyListItem] {
-        let defaultProperties: [String: PropertyListItem]
-        switch operatingSystem {
-        case .linux:
-            defaultProperties = [
-                // Workaround to avoid `-dependency_info` on Linux.
-                "LD_DEPENDENCY_INFO_FILE": .plString(""),
-
-                "GENERATE_TEXT_BASED_STUBS": "NO",
-                "GENERATE_INTERMEDIATE_TEXT_BASED_STUBS": "NO",
-
-                "CHOWN": "/usr/bin/chown",
-                "AR": "llvm-ar",
-            ]
-        default:
-            defaultProperties = [:]
-        }
-
-        let tripleEnvironment: String
-        switch operatingSystem {
-        case .linux:
-            tripleEnvironment = "gnu"
-        default:
-            tripleEnvironment = ""
-        }
-
-        return try [
-            "Type": .plString("SDK"),
-            "Version": .plString(Version(ProcessInfo.processInfo.operatingSystemVersion).zeroTrimmed.description),
-            "CanonicalName": .plString(operatingSystem.xcodePlatformName),
-            "IsBaseSDK": .plBool(true),
-            "DefaultProperties": .plDict([
-                "PLATFORM_NAME": .plString(operatingSystem.xcodePlatformName),
-            ].merging(defaultProperties, uniquingKeysWith: { _, new in new })),
-            "SupportedTargets": .plDict([
-                operatingSystem.xcodePlatformName: .plDict([
-                    "Archs": .plArray([.plString(Architecture.hostStringValue ?? "unknown")]),
-                    "LLVMTargetTripleEnvironment": .plString(tripleEnvironment),
-                    "LLVMTargetTripleSys": .plString(operatingSystem.xcodePlatformName),
-                    "LLVMTargetTripleVendor": .plString("unknown"),
-                ])
-            ]),
-        ]
     }
 
     /// Register all the SDKs in the given directory.

@@ -141,7 +141,7 @@ struct QNXSDKRegistryExtension: SDKRegistryExtension {
 struct QNXToolchainRegistryExtension: ToolchainRegistryExtension {
     let plugin: QNXPlugin
 
-    func additionalToolchains(context: any ToolchainRegistryExtensionAdditionalToolchainsContext) async -> [Toolchain] {
+    func additionalToolchains(context: any ToolchainRegistryExtensionAdditionalToolchainsContext) async throws -> [Toolchain] {
         guard let toolchainPath = try? await plugin.cachedQNXSDPInstallations(host: context.hostOperatingSystem).first?.hostPath else {
             return []
         }

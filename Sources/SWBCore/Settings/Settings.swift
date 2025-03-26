@@ -5282,7 +5282,7 @@ extension Settings {
 }
 
 extension OperatingSystem {
-    @_spi(Testing) public var xcodePlatformName: String {
+    public var xcodePlatformName: String {
         get throws {
             switch self {
             case .macOS:

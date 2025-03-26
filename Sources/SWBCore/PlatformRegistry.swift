@@ -331,16 +331,8 @@ public final class PlatformRegistry {
             await registerPlatformsInDirectory(path, fs)
         }
 
-        do {
-            if hostOperatingSystem.createFallbackSystemToolchain {
-                try await registerFallbackSystemPlatform(operatingSystem: hostOperatingSystem, fs: fs)
-            }
-        } catch {
-            delegate.error(error)
-        }
-
         @preconcurrency @PluginExtensionSystemActor func platformInfoExtensions() async -> [any PlatformInfoExtensionPoint.ExtensionProtocol] {
-            return await delegate.pluginManager.extensions(of: PlatformInfoExtensionPoint.self)
+            return delegate.pluginManager.extensions(of: PlatformInfoExtensionPoint.self)
         }
 
         struct Context: PlatformInfoExtensionAdditionalPlatformsContext {
@@ -359,22 +351,6 @@ public final class PlatformRegistry {
 
             }
         }
-    }
-
-    private func registerFallbackSystemPlatform(operatingSystem: OperatingSystem, fs: any FSProxy) async throws {
-        try await registerPlatform(Path("/"), .plDict(fallbackSystemPlatformSettings(operatingSystem: operatingSystem)), fs)
-    }
-
-    private func fallbackSystemPlatformSettings(operatingSystem: OperatingSystem) throws -> [String: PropertyListItem] {
-        try [
-            "Type": .plString("Platform"),
-            "Name": .plString(operatingSystem.xcodePlatformName),
-            "Identifier": .plString(operatingSystem.xcodePlatformName),
-            "Description": .plString(operatingSystem.xcodePlatformName),
-            "FamilyName": .plString(operatingSystem.xcodePlatformName.capitalized),
-            "FamilyIdentifier": .plString(operatingSystem.xcodePlatformName),
-            "IsDeploymentPlatform": .plString("YES"),
-        ]
     }
 
     private func loadDeploymentTargetMacroNames() {

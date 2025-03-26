@@ -229,7 +229,7 @@ public final class Core: Sendable {
         self.toolchainPaths = {
             var toolchainPaths = [(Path, strict: Bool)]()
 
-            toolchainPaths.append((Path(developerPath).join("Toolchains"), strict: !hostOperatingSystem.createFallbackSystemToolchain))
+            toolchainPaths.append((Path(developerPath).join("Toolchains"), strict: developerPath.hasSuffix(".app/Contents/Developer")))
 
             // FIXME: We should support building the toolchain locally (for `inferiorProductsPath`).
 
@@ -679,12 +679,5 @@ struct CoreRegistryDelegate : PlatformRegistryDelegate, SDKRegistryDelegate, Spe
 
     var developerPath: Path {
         core.developerPath
-    }
-}
-
-extension OperatingSystem {
-    /// Whether the Core is allowed to create a fallback toolchain, SDK, and platform for this operating system in cases where no others have been provided.
-    @_spi(Testing) public var createFallbackSystemToolchain: Bool {
-        return self == .linux
     }
 }

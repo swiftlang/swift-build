@@ -69,7 +69,20 @@ import SWBUtil
                 }
             }
 
-            let core = try await Self.makeCore(skipLoadingPluginsNamed: ["com.apple.dt.SWBAndroidPlatformPlugin"])
+            let pluginManager = await PluginManager(skipLoadingPluginIdentifiers: [])
+            await pluginManager.registerExtensionPoint(SpecificationsExtensionPoint())
+            await pluginManager.registerExtensionPoint(ToolchainRegistryExtensionPoint())
+            await pluginManager.register(BuiltinSpecsExtension(), type: SpecificationsExtensionPoint.self)
+            struct MockToolchainExtension: ToolchainRegistryExtension {
+                func additionalToolchains(context: any ToolchainRegistryExtensionAdditionalToolchainsContext) async throws -> [Toolchain] {
+                    guard context.toolchainRegistry.lookup(ToolchainRegistry.defaultToolchainIdentifier) == nil else {
+                        return []
+                    }
+                    return [Toolchain(ToolchainRegistry.defaultToolchainIdentifier, "Mock", Version(), ["default"], .root, [], [], [:], [:], [:], executableSearchPaths: [], testingLibraryPlatformNames: [], fs: context.fs)]
+                }
+            }
+            await pluginManager.register(MockToolchainExtension(), type: ToolchainRegistryExtensionPoint.self)
+            let core = try #require(await Core.getInitializedCore(TestingCoreDelegate(), pluginManager: pluginManager, inferiorProductsPath: Path.root.join("invalid"), environment: [:], buildServiceModTime: Date(), connectionMode: .inProcess))
             let delegate = TestDataDelegate(pluginManager: core.pluginManager)
             let registry = await ToolchainRegistry(delegate: delegate, searchPaths: [(tmpDirPath, strict: strict)], fs: fs, hostOperatingSystem: core.hostOperatingSystem)
             try perform(registry, delegate.warnings, delegate.errors)
@@ -132,12 +145,7 @@ import SWBUtil
 
     @Test
     func loadingDownloadableToolchain() async throws {
-        let additionalToolchains: [String]
-#if !canImport(Darwin) && !os(Windows)
-        additionalToolchains = ["com.apple.dt.toolchain.XcodeDefault"]
-#else
-        additionalToolchains = []
-#endif
+        let additionalToolchains: [String] = ["com.apple.dt.toolchain.XcodeDefault"]
 
         try await withRegistryForTestInputs([
             ("swift-newer.xctoolchain", ["CFBundleIdentifier": "org.swift.3020161115a", "Version": "3.0.220161211151", "Aliases": ["swift"]]),

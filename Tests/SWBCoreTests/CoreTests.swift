@@ -338,7 +338,6 @@ import Foundation
 
             let results = CoreDelegateResults(delegate.diagnostics)
             results.checkError(.prefix("missing required default toolchain"))
-            results.checkError(.contains("Toolchains: failed to load toolchains in "))
             results.checkNoDiagnostics()
         }
     }
@@ -380,7 +379,17 @@ import Foundation
         let delegate = Delegate()
         let pluginManager = await PluginManager(skipLoadingPluginIdentifiers: [])
         await pluginManager.registerExtensionPoint(SpecificationsExtensionPoint())
+        await pluginManager.registerExtensionPoint(ToolchainRegistryExtensionPoint())
         await pluginManager.register(BuiltinSpecsExtension(), type: SpecificationsExtensionPoint.self)
+        struct MockToolchainExtension: ToolchainRegistryExtension {
+            func additionalToolchains(context: any ToolchainRegistryExtensionAdditionalToolchainsContext) async throws -> [Toolchain] {
+                guard context.toolchainRegistry.lookup(ToolchainRegistry.defaultToolchainIdentifier) == nil else {
+                    return []
+                }
+                return [Toolchain(ToolchainRegistry.defaultToolchainIdentifier, "Mock", Version(), ["default"], .root, [], [], [:], [:], [:], executableSearchPaths: [], testingLibraryPlatformNames: [], fs: context.fs)]
+            }
+        }
+        await pluginManager.register(MockToolchainExtension(), type: ToolchainRegistryExtensionPoint.self)
         let core = await Core.getInitializedCore(delegate, pluginManager: pluginManager, inferiorProductsPath: Path.root.join("invalid"), environment: [:], buildServiceModTime: Date(), connectionMode: .inProcess)
         for diagnostic in delegate.diagnostics {
             if diagnostic.formatLocalizedDescription(.debug).hasPrefix("warning: found previously-unknown deployment target macro ") {
@@ -408,7 +417,17 @@ import Foundation
         let delegate = Delegate()
         let pluginManager = await PluginManager(skipLoadingPluginIdentifiers: [])
         await pluginManager.registerExtensionPoint(SpecificationsExtensionPoint())
+        await pluginManager.registerExtensionPoint(ToolchainRegistryExtensionPoint())
         await pluginManager.register(BuiltinSpecsExtension(), type: SpecificationsExtensionPoint.self)
+        struct MockToolchainExtension: ToolchainRegistryExtension {
+            func additionalToolchains(context: any ToolchainRegistryExtensionAdditionalToolchainsContext) async throws -> [Toolchain] {
+                guard context.toolchainRegistry.lookup(ToolchainRegistry.defaultToolchainIdentifier) == nil else {
+                    return []
+                }
+                return [Toolchain(ToolchainRegistry.defaultToolchainIdentifier, "Mock", Version(), ["default"], .root, [], [], [:], [:], [:], executableSearchPaths: [], testingLibraryPlatformNames: [], fs: context.fs)]
+            }
+        }
+        await pluginManager.register(MockToolchainExtension(), type: ToolchainRegistryExtensionPoint.self)
         let core = await Core.getInitializedCore(delegate, pluginManager: pluginManager, inferiorProductsPath: Path.root.join("invalid"), environment: environmentOverrides, buildServiceModTime: Date(), connectionMode: .inProcess)
         for diagnostic in delegate.diagnostics {
             if diagnostic.formatLocalizedDescription(.debug).hasPrefix("warning: found previously-unknown deployment target macro ") {
