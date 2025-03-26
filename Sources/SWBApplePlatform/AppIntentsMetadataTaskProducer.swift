@@ -51,15 +51,14 @@ final class AppIntentsMetadataTaskProducer: PhasedTaskProducer, TaskProducer {
         guard !context.settings.globalScope.evaluate(BuiltinMacros.LM_SKIP_METADATA_EXTRACTION) else {
             return []
         }
+        guard let configuredTarget = self.targetContext.configuredTarget, let buildPhaseTarget = configuredTarget.target as? BuildPhaseTarget else {
+            return []
+        }
 
         context.addDeferredProducer {
             let scope = self.context.settings.globalScope
             var deferredTasks: [any PlannedTask] = []
             let buildFilesProcessingContext = BuildFilesProcessingContext(self.context.settings.globalScope)
-
-            guard let configuredTarget = self.targetContext.configuredTarget, let buildPhaseTarget = configuredTarget.target as? BuildPhaseTarget else {
-                fatalError("Target is not a BuildPhaseTarget")
-            }
             let swiftSources: [FileToBuild] = self.filterBuildFiles(buildPhaseTarget.sourcesBuildPhase?.buildFiles, identifiers: ["sourcecode.swift"], buildFilesProcessingContext: buildFilesProcessingContext)
             let perArchConstMetadataFiles = self.context.generatedSwiftConstMetadataFiles()
 
