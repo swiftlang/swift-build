@@ -195,7 +195,7 @@ let package = Package(
                 "SWBCSupport",
                 "SWBLibc",
                 .product(name: "ArgumentParser", package: "swift-argument-parser"),
-                .product(name: "Crypto", package: "swift-crypto", condition: .when(platforms: [.linux, .android])),
+                .product(name: "Crypto", package: "swift-crypto", condition: .when(platforms: [.linux, .openbsd, .android])),
                 .product(name: "SystemPackage", package: "swift-system", condition: .when(platforms: [.linux, .android, .windows])),
             ],
             exclude: ["CMakeLists.txt"],
