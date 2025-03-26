@@ -3195,7 +3195,15 @@ public final class SwiftCompilerSpec : CompilerSpec, SpecIdentifierType, SwiftDi
             let outputs = task.outputPaths.filter({ $0.fileSuffix == ".o" })
             guard inputs.count == outputs.count else { return [] }
             return zip(inputs, outputs).map { input, output in
-                TaskGeneratePreviewInfoOutput(architecture: previewPayload.architecture, buildVariant: previewPayload.buildVariant, commandLine: commandLine, input: input, output: output, type: .Swift)
+                TaskGeneratePreviewInfoOutput(
+                    architecture: previewPayload.architecture,
+                    buildVariant: previewPayload.buildVariant,
+                    commandLine: commandLine,
+                    workingDirectory: task.workingDirectory,
+                    input: input,
+                    output: output,
+                    type: .Swift
+                )
             }
         }
 
@@ -3474,7 +3482,15 @@ public final class SwiftCompilerSpec : CompilerSpec, SpecIdentifierType, SwiftDi
             }
         }
 
-        let output = TaskGeneratePreviewInfoOutput(architecture: previewPayload.architecture, buildVariant: previewPayload.buildVariant, commandLine: commandLine, input: inputPath, output: outputPath, type: .Swift)
+        let output = TaskGeneratePreviewInfoOutput(
+            architecture: previewPayload.architecture,
+            buildVariant: previewPayload.buildVariant,
+            commandLine: commandLine,
+            workingDirectory: task.workingDirectory,
+            input: inputPath,
+            output: outputPath,
+            type: .Swift
+        )
 
         return [output]
     }

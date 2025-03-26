@@ -1083,6 +1083,8 @@ public struct TaskGeneratePreviewInfoOutput: Sendable {
     public let buildVariant: String
     /// The commandline to run to update the thunk.
     public let commandLine: [String]
+    /// Working directory of the task
+    public let workingDirectory: Path
     /// Input path of the task.
     public let input: Path
     /// Output path of the task.

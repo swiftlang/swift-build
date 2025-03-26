@@ -254,6 +254,7 @@ fileprivate struct GeneratePreviewInfoTests: CoreBasedTests {
                                 "-o",
                                 "\(tmpDir.str)/Test/build/Debug-iphoneos/App.app/App.debug.dylib"
                             ],
+                            linkerWorkingDirectory: "\(tmpDir.str)/Test",
                             swiftEnableOpaqueTypeErasure: false,
                             swiftUseIntegratedDriver: true,
                             enableJITPreviews: true,
@@ -398,6 +399,7 @@ fileprivate struct GeneratePreviewInfoTests: CoreBasedTests {
                                 "-o",
                                 "\(tmpDir.str)/Test/build/Debug-iphoneos/libStaticLib.a"
                             ],
+                            linkerWorkingDirectory: "\(tmpDir.str)/Test",
                             swiftEnableOpaqueTypeErasure: false,
                             swiftUseIntegratedDriver: true,
                             enableJITPreviews: true,
@@ -523,6 +525,7 @@ fileprivate struct GeneratePreviewInfoTests: CoreBasedTests {
                                 "-o",
                                 "\(tmpDir.str)/Test/build/Debug-iphoneos/CApplication.app/CApplication"
                             ],
+                            linkerWorkingDirectory: "\(tmpDir.str)/Test",
                             swiftEnableOpaqueTypeErasure: false,
                             swiftUseIntegratedDriver: true,
                             enableJITPreviews: false,

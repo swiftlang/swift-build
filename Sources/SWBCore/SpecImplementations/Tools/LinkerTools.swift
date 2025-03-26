@@ -1027,7 +1027,15 @@ public final class LdLinkerSpec : GenericLinkerSpec, SpecIdentifierType, @unchec
             outputPath.str,
             ])
 
-        let output = TaskGeneratePreviewInfoOutput(architecture: previewPayload.architecture, buildVariant: previewPayload.buildVariant, commandLine: commandLine, input: inputPath, output: outputPath, type: .Ld)
+        let output = TaskGeneratePreviewInfoOutput(
+            architecture: previewPayload.architecture,
+            buildVariant: previewPayload.buildVariant,
+            commandLine: commandLine,
+            workingDirectory: task.workingDirectory,
+            input: inputPath,
+            output: outputPath,
+            type: .Ld
+        )
 
         return [output]
     }
@@ -1072,6 +1080,7 @@ public final class LdLinkerSpec : GenericLinkerSpec, SpecIdentifierType, @unchec
                 architecture: previewPayload.architecture,
                 buildVariant: previewPayload.buildVariant,
                 commandLine: commandLine,
+                workingDirectory: task.workingDirectory,
                 input: Path(""),
                 output: payload.outputPath,
                 type: .Ld
@@ -1640,6 +1649,7 @@ public final class LibtoolLinkerSpec : GenericLinkerSpec, SpecIdentifierType, @u
                 architecture: previewPayload.architecture,
                 buildVariant: previewPayload.buildVariant,
                 commandLine: Array(task.commandLineAsStrings),
+                workingDirectory: task.workingDirectory,
                 input: Path(""),
                 output: Path(""),
                 type: .Ld

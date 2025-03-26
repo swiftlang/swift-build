@@ -66,6 +66,9 @@ public struct SWBPreviewTargetDependencyInfo: SWBPreviewInfoContext, Hashable, S
     /// Full command line for Previews to extract values as needed. This is the link command line of the preview stub dylib.
     public let linkCommandLine: [String]
 
+    /// Working directory for the linker invocation.
+    public let linkerWorkingDirectory: String
+
     // The following build settings help Previews diagnose certain situations where it
     // won't succeed or offer help if something goes wrong.
 
@@ -109,6 +112,7 @@ public struct SWBPreviewTargetDependencyInfo: SWBPreviewInfoContext, Hashable, S
         pifGUID: String,
         objectFileInputMap: [String : Set<String>],
         linkCommandLine: [String],
+        linkerWorkingDirectory: String,
         swiftEnableOpaqueTypeErasure: Bool,
         swiftUseIntegratedDriver: Bool,
         enableJITPreviews: Bool,
@@ -124,6 +128,7 @@ public struct SWBPreviewTargetDependencyInfo: SWBPreviewInfoContext, Hashable, S
         self.pifGUID = pifGUID
         self.objectFileInputMap = objectFileInputMap
         self.linkCommandLine = linkCommandLine
+        self.linkerWorkingDirectory = linkerWorkingDirectory
         self.swiftEnableOpaqueTypeErasure = swiftEnableOpaqueTypeErasure
         self.swiftUseIntegratedDriver = swiftUseIntegratedDriver
         self.enableJITPreviews = enableJITPreviews

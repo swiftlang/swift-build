@@ -1027,6 +1027,7 @@ fileprivate extension SWBPreviewTargetDependencyInfo {
         case let .targetDependencyInfo(targetDependencyInfo):
             self.objectFileInputMap = targetDependencyInfo.objectFileInputMap
             self.linkCommandLine = targetDependencyInfo.linkCommandLine
+            self.linkerWorkingDirectory = targetDependencyInfo.linkerWorkingDirectory
             self.swiftEnableOpaqueTypeErasure = targetDependencyInfo.swiftEnableOpaqueTypeErasure
             self.swiftUseIntegratedDriver = targetDependencyInfo.swiftUseIntegratedDriver
             self.enableJITPreviews = targetDependencyInfo.enableJITPreviews

@@ -1078,6 +1078,7 @@ private extension PreviewInfoOutput {
                 PreviewInfoTargetDependencyInfo(
                     objectFileInputMap: info.objectFileInputMap,
                     linkCommandLine: info.linkCommandLine,
+                    linkerWorkingDirectory: info.linkerWorkingDirectory,
                     swiftEnableOpaqueTypeErasure: info.swiftEnableOpaqueTypeErasure,
                     swiftUseIntegratedDriver: info.swiftUseIntegratedDriver,
                     enableJITPreviews: info.enableJITPreviews,
