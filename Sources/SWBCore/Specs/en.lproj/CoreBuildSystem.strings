@@ -202,8 +202,8 @@ If your prefix file never includes files from the build directory you may set th
 "[CODE_SIGN_INJECT_BASE_ENTITLEMENTS]-name" = "Code Signing Inject Base Entitlements";
 "[CODE_SIGN_INJECT_BASE_ENTITLEMENTS]-description" = "Automatically inject entitlements from the platform's BaseEntitlements.plist into the code signatures of executables.";
 
-"[ENABLE_HARDENED_RUNTIME]-name" = "Enable Hardened Runtime";
-"[ENABLE_HARDENED_RUNTIME]-description" = "Hardened Runtime defends your application by preventing modifications to its code and provides fine-grained controls over what can run in your process. Hardening the runtime also prevents access to sensitive resources unless your application pre-declares its intent to use them, which reduces the attack surface by eliminating unnecessary access.  These properties help prevent exploitation of your application and this capability is required for your app to be notarized.";
+"[REGISTER_APP_GROUPS]-name" = "Register App Groups";
+"[REGISTER_APP_GROUPS]-description" = "When set, the app groups capability will require a provisioning profile. All app group identifiers prefixed with 'group.' will need to be registered on the developer website and set in the profile. This is only applicable to platforms supporting unregistered app groups.";
 
 "[LAUNCH_CONSTRAINT_SELF]-name" = "Launch Constraint Process Plist";
 "[LAUNCH_CONSTRAINT_SELF]-description" = "A path to a plist representation of a Requirements Dictionary indicating the desired constraint on this binary.";
@@ -215,11 +215,29 @@ If your prefix file never includes files from the build directory you may set th
 "[LIBRARY_LOAD_CONSTRAINT]-name" = "Library Load Constraint Plist";
 "[LIBRARY_LOAD_CONSTRAINT]-description" = "A path to a plist representation of a Requirements Dictionary that specifies the desired set of libraries that can be loaded by this process. Supported when building on macOS 14 or later.";
 
-// Code-signing App Sandbox Settings
-"[App Sandbox]-category" = "Signing - App Sandbox";
+// Code-signing App Sandbox & Hardened Runtime Settings
+"[App Sandbox & Hardened Runtime]-category" = "Signing - App Sandbox & Hardened Runtime";
 
 "[ENABLE_APP_SANDBOX]-name" = "Enable App Sandbox";
 "[ENABLE_APP_SANDBOX]-description" = "When set, enables App Sandbox for a target.";
+
+"[ENABLE_HARDENED_RUNTIME]-name" = "Enable Hardened Runtime";
+"[ENABLE_HARDENED_RUNTIME]-description" = "Hardened Runtime defends your application by preventing modifications to its code and provides fine-grained controls over what can run in your process. Hardening the runtime also prevents access to sensitive resources unless your application pre-declares its intent to use them, which reduces the attack surface by eliminating unnecessary access.  These properties help prevent exploitation of your application and this capability is required for your app to be notarized.";
+
+"[AUTOMATION_APPLE_EVENTS]-name" = "Apple Events";
+"[AUTOMATION_APPLE_EVENTS]-description" = "A Boolean value that indicates whether the app may prompt the user for permission to send Apple events to other apps.";
+"[RUNTIME_EXCEPTION_ALLOW_DYLD_ENVIRONMENT_VARIABLES]-name" = "Allow DYLD Environment Variables";
+"[RUNTIME_EXCEPTION_ALLOW_DYLD_ENVIRONMENT_VARIABLES]-description" = "A Boolean value that indicates whether the app may be affected by dynamic linker environment variables, which you can use to inject code into your app’s process.";
+"[RUNTIME_EXCEPTION_ALLOW_JIT]-name" = "Allow JIT";
+"[RUNTIME_EXCEPTION_ALLOW_JIT]-description" = "A Boolean value that indicates whether the app may create writable and executable memory using the MAP_JIT flag.";
+"[RUNTIME_EXCEPTION_ALLOW_UNSIGNED_EXECUTABLE_MEMORY]-name" = "Allow Unsigned Executable Memory";
+"[RUNTIME_EXCEPTION_ALLOW_UNSIGNED_EXECUTABLE_MEMORY]-description" = "A Boolean value that indicates whether the app may create writable and executable memory without the restrictions imposed by using the MAP_JIT flag.";
+"[RUNTIME_EXCEPTION_DEBUGGING_TOOL]-name" = "Debugging Tool";
+"[RUNTIME_EXCEPTION_DEBUGGING_TOOL]-description" = "A Boolean value that indicates whether the app is a debugger and may attach to other processes or get task ports.";
+"[RUNTIME_EXCEPTION_DISABLE_EXECUTABLE_PAGE_PROTECTION]-name" = "Disable Executable Page Protection";
+"[RUNTIME_EXCEPTION_DISABLE_EXECUTABLE_PAGE_PROTECTION]-description" = "A Boolean value that indicates whether to disable all code signing protections while launching an app, and during its execution.";
+"[RUNTIME_EXCEPTION_DISABLE_LIBRARY_VALIDATION]-name" = "Disable Library Validation";
+"[RUNTIME_EXCEPTION_DISABLE_LIBRARY_VALIDATION]-description" = "A Boolean value that indicates whether the app loads arbitrary plug-ins or frameworks, without requiring code signing.";
 
 "[ENABLE_USER_SELECTED_FILES]-name" = "Enable User Selected Files";
 "[ENABLE_USER_SELECTED_FILES]-description" = "This setting indicates whether App Sandbox allows access to files the user selects with an Open or Save dialog.";
@@ -280,6 +298,9 @@ If your prefix file never includes files from the build directory you may set th
 
 "[ENABLE_RESOURCE_ACCESS_USB]-name" = "USB";
 "[ENABLE_RESOURCE_ACCESS_USB]-description" = "When set, enables communication with connected USB devices.";
+
+"[ENABLE_RESOURCE_ACCESS_PHOTO_LIBRARY]-name" = "Photos Library";
+"[ENABLE_RESOURCE_ACCESS_PHOTO_LIBRARY]-description" = "A Boolean value that indicates whether the app has read-write access to the user’s Photos library.";
 
 "[ENABLE_RESOURCE_ACCESS_PRINTING]-name" = "Printing";
 "[ENABLE_RESOURCE_ACCESS_PRINTING]-description" = "When set, enables access to print documents and media using the system’s configured printers.";
