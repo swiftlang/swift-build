@@ -681,7 +681,7 @@ import SWBMacro
         let cbc = CommandBuildContext(producer: producer, scope: mockScope, inputs: [FileToBuild(absolutePath: Path.root.join("tmp/input"), fileType: mockFileType)], output: nil)
 
         // Check that task construction sets the correct env bindings.
-        await stdlibTool.constructSwiftStdLibraryToolTask(cbc, delegate, foldersToScan: nil, filterForSwiftOS: false, backDeploySwiftConcurrency: false)
+        await stdlibTool.constructSwiftStdLibraryToolTask(cbc, delegate, foldersToScan: nil, filterForSwiftOS: false, backDeploySwiftConcurrency: false, backDeploySwiftSpan: false)
         #expect(delegate.shellTasks.count == 1)
         let task = try #require(delegate.shellTasks[safe: 0])
         #expect(task.environment.bindingsDictionary == ["CODESIGN_ALLOCATE": "/path/to/codesign_allocate"])
