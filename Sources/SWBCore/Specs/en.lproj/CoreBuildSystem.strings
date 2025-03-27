@@ -22,7 +22,7 @@
 "[ARCHS]-description" = "A list of the architectures for which the product will be built. This is usually set to a predefined build setting provided by the platform. If more than one architecture is specified, a universal binary will be produced.";
 
 "[ONLY_ACTIVE_ARCH]-name" = "Build Active Architecture Only";
-"[ONLY_ACTIVE_ARCH]-description" = "If enabled, only the active architecture is built. This setting will be ignored when building with a run destination which does not define a specific architecture, such as a 'Generic Device' run destination.";
+"[ONLY_ACTIVE_ARCH]-description" = "If enabled, only the active architecture is built. This setting will be ignored when building with a run destination which does not define a specific architecture, such as a 'Generic Device' run destination, or if the 'Override Architectures' scheme option is set to 'Match Run Destination' or 'Universal'.";
 
 "[EXCLUDED_ARCHS]-name" = "Excluded Architectures";
 "[EXCLUDED_ARCHS]-description" = "A list of architectures for which the target should not be built. These architectures will be removed from the list in `ARCHS` when the target is built. If the resulting list of architectures is empty, no binary will be produced. This can be used to declare architectures a target does not support for use in environments where `ARCHS` is being overridden at a higher level (e.g., via `xcodebuild`).";
