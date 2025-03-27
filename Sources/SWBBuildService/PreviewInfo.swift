@@ -51,6 +51,7 @@ package struct PreviewInfoOutput: Sendable {
     package struct TargetDependencyInfo: Sendable {
         package let objectFileInputMap: [String: Set<String>]
         package let linkCommandLine: [String]
+        package let linkerWorkingDirectory: String?
 
         package let swiftEnableOpaqueTypeErasure: Bool
         package let swiftUseIntegratedDriver: Bool
@@ -264,6 +265,7 @@ extension BuildDescription {
                         let targetInfo = PreviewInfoOutput.TargetDependencyInfo(
                             objectFileInputMap: swiftInfos,
                             linkCommandLine: linkInfo?.commandLine ?? [],
+                            linkerWorkingDirectory: linkInfo?.workingDirectory.str,
                             swiftEnableOpaqueTypeErasure: settings.globalScope.evaluate(BuiltinMacros.SWIFT_ENABLE_OPAQUE_TYPE_ERASURE),
                             swiftUseIntegratedDriver: settings.globalScope.evaluate(BuiltinMacros.SWIFT_USE_INTEGRATED_DRIVER),
                             enableJITPreviews: settings.globalScope.evaluate(BuiltinMacros.ENABLE_XOJIT_PREVIEWS),
