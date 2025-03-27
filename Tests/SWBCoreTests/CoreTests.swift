@@ -386,7 +386,7 @@ import Foundation
                 guard context.toolchainRegistry.lookup(ToolchainRegistry.defaultToolchainIdentifier) == nil else {
                     return []
                 }
-                return [Toolchain(ToolchainRegistry.defaultToolchainIdentifier, "Mock", Version(), ["default"], .root, [], [], [:], [:], [:], executableSearchPaths: [], testingLibraryPlatformNames: [], fs: context.fs)]
+                return [Toolchain(identifier: ToolchainRegistry.defaultToolchainIdentifier, displayName: "Mock", version: Version(), aliases: ["default"], path: .root, frameworkPaths: [], libraryPaths: [], defaultSettings: [:], overrideSettings: [:], defaultSettingsWhenPrimary: [:], executableSearchPaths: [], testingLibraryPlatformNames: [], fs: context.fs)]
             }
         }
         await pluginManager.register(MockToolchainExtension(), type: ToolchainRegistryExtensionPoint.self)
@@ -424,7 +424,7 @@ import Foundation
                 guard context.toolchainRegistry.lookup(ToolchainRegistry.defaultToolchainIdentifier) == nil else {
                     return []
                 }
-                return [Toolchain(ToolchainRegistry.defaultToolchainIdentifier, "Mock", Version(), ["default"], .root, [], [], [:], [:], [:], executableSearchPaths: [], testingLibraryPlatformNames: [], fs: context.fs)]
+                return [Toolchain(identifier: ToolchainRegistry.defaultToolchainIdentifier, displayName: "Mock", version: Version(), aliases: ["default"], path: .root, frameworkPaths: [], libraryPaths: [], defaultSettings: [:], overrideSettings: [:], defaultSettingsWhenPrimary: [:], executableSearchPaths: [], testingLibraryPlatformNames: [], fs: context.fs)]
             }
         }
         await pluginManager.register(MockToolchainExtension(), type: ToolchainRegistryExtensionPoint.self)

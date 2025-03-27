@@ -161,6 +161,21 @@ struct AndroidToolchainRegistryExtension: ToolchainRegistryExtension {
             return []
         }
 
-        return [Toolchain("android", "Android", Version(0, 0, 0), [], toolchainPath, [], [], [:], [:], [:], executableSearchPaths: [toolchainPath.join("bin")], testingLibraryPlatformNames: [], fs: context.fs)]
+        return [
+            Toolchain(
+                identifier: "android",
+                displayName: "Android",
+                version: Version(0, 0, 0),
+                aliases: [],
+                path: toolchainPath,
+                frameworkPaths: [],
+                libraryPaths: [],
+                defaultSettings: [:],
+                overrideSettings: [:],
+                defaultSettingsWhenPrimary: [:],
+                executableSearchPaths: [toolchainPath.join("bin")],
+                testingLibraryPlatformNames: [],
+                fs: context.fs)
+        ]
     }
 }

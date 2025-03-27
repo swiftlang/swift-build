@@ -74,7 +74,7 @@ public final class Toolchain: Hashable, Sendable {
     /// The names of the platforms for which this toolchain contains testing libraries.
     public let testingLibraryPlatformNames: Set<String>
 
-    package init(_ identifier: String, _ displayName: String, _ version: Version, _ aliases: Set<String>, _ path: Path, _ frameworkPaths: [String], _ libraryPaths: [String], _ defaultSettings: [String: PropertyListItem], _ overrideSettings: [String: PropertyListItem], _ defaultSettingsWhenPrimary: [String: PropertyListItem], executableSearchPaths: [Path], testingLibraryPlatformNames: Set<String>, fs: any FSProxy) {
+    package init(identifier: String, displayName: String, version: Version, aliases: Set<String>, path: Path, frameworkPaths: [String], libraryPaths: [String], defaultSettings: [String: PropertyListItem], overrideSettings: [String: PropertyListItem], defaultSettingsWhenPrimary: [String: PropertyListItem], executableSearchPaths: [Path], testingLibraryPlatformNames: Set<String>, fs: any FSProxy) {
         self.identifier = identifier
         self.version = version
 
@@ -104,7 +104,7 @@ public final class Toolchain: Hashable, Sendable {
         self.testingLibraryPlatformNames = testingLibraryPlatformNames
     }
 
-    convenience init(_ path: Path, operatingSystem: OperatingSystem, fs: any FSProxy, pluginManager: PluginManager, platformRegistry: PlatformRegistry?) async throws {
+    convenience init(path: Path, operatingSystem: OperatingSystem, fs: any FSProxy, pluginManager: PluginManager, platformRegistry: PlatformRegistry?) async throws {
         let data: PropertyListItem
 
         do {
@@ -305,7 +305,7 @@ public final class Toolchain: Hashable, Sendable {
         }
 
         // Construct the toolchain
-        self.init(identifier, displayName, version, aliases, path, frameworkSearchPaths, librarySearchPaths, defaultSettings, overrideSettings, defaultSettingsWhenPrimary, executableSearchPaths: executableSearchPaths, testingLibraryPlatformNames: testingLibraryPlatformNames, fs: fs)
+        self.init(identifier: identifier, displayName: displayName, version: version, aliases: aliases, path: path, frameworkPaths: frameworkSearchPaths, libraryPaths: librarySearchPaths, defaultSettings: defaultSettings, overrideSettings: overrideSettings, defaultSettingsWhenPrimary: defaultSettingsWhenPrimary, executableSearchPaths: executableSearchPaths, testingLibraryPlatformNames: testingLibraryPlatformNames, fs: fs)
     }
 
     public func hash(into hasher: inout Hasher) {
@@ -474,7 +474,7 @@ public final class ToolchainRegistry: @unchecked Sendable {
             guard toolchainPath.basenameWithoutSuffix != "swift-latest" else { continue }
 
             do {
-                let toolchain = try await Toolchain(toolchainPath, operatingSystem: operatingSystem, fs: fs, pluginManager: delegate.pluginManager, platformRegistry: delegate.platformRegistry)
+                let toolchain = try await Toolchain(path: toolchainPath, operatingSystem: operatingSystem, fs: fs, pluginManager: delegate.pluginManager, platformRegistry: delegate.platformRegistry)
                 try register(toolchain)
             } catch let err {
                 delegate.issue(strict: strict, toolchainPath, "failed to load toolchain: \(err)")

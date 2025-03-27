@@ -132,16 +132,16 @@ struct GenericUnixToolchainRegistryExtension: ToolchainRegistryExtension {
             let llvmDirectoriesLocal = try Array(fs.listdir(Path("/usr/local")).filter { $0.hasPrefix("llvm") }.sorted().reversed())
             return [
                 Toolchain(
-                    ToolchainRegistry.defaultToolchainIdentifier,
-                    "Default",
-                    Version(),
-                    ["default"],
-                    path,
-                    [],
-                    llvmDirectories.map { "/usr/lib/\($0)/lib" } + llvmDirectoriesLocal.map { "/usr/local/\($0)/lib" } + ["/usr/lib64"],
-                    [:],
-                    [:],
-                    [:],
+                    identifier: ToolchainRegistry.defaultToolchainIdentifier,
+                    displayName: "Default",
+                    version: Version(),
+                    aliases: ["default"],
+                    path: path,
+                    frameworkPaths: [],
+                    libraryPaths: llvmDirectories.map { "/usr/lib/\($0)/lib" } + llvmDirectoriesLocal.map { "/usr/local/\($0)/lib" } + ["/usr/lib64"],
+                    defaultSettings: [:],
+                    overrideSettings: [:],
+                    defaultSettingsWhenPrimary: [:],
                     executableSearchPaths: realSwiftPath.dirname.relativeSubpath(from: path).map { [path.join($0).join("bin")] } ?? [],
                     testingLibraryPlatformNames: [],
                     fs: fs)
