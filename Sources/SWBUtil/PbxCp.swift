@@ -315,7 +315,7 @@ func _copyFile(_ srcPath: Path, _ dstPath: Path) throws {
                     }
                     var bwritten: Int = 0
                     repeat {
-                        let rebased = UnsafeRawBufferPointer(rebasing: tmpBuffer[bwritten ..< (bread - bwritten)])
+                        let rebased = UnsafeRawBufferPointer(rebasing: tmpBuffer[bwritten..<bread])
                         bwritten += try dstFd.write(rebased)
                     } while (bread > bwritten)
                 }
@@ -440,7 +440,7 @@ fileprivate func copyTree(_ srcPath: Path, _ dstPath: Path, options: CopyOptions
         }
         do {
             _dstPath = try localFS.realpath(dstPath)
-         } catch let error as POSIXError {
+        } catch let error as POSIXError {
             outStream <<< "error: \(dstPath.str): \(String(cString: strerror(error.code)))\n"
             return false
         } catch {
