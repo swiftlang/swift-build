@@ -98,6 +98,10 @@ public final class Libclang {
     public var supportsCASUpToDateChecks: Bool {
         libclang_has_cas_up_to_date_checks_feature(lib)
     }
+
+    public var supportsCurrentWorkingDirectoryOptimization: Bool {
+        libclang_has_current_working_directory_optimization(lib)
+    }
 }
 
 enum DependencyScanningError: Error {
@@ -130,6 +134,7 @@ public final class DependencyScanner {
         public var module_deps: some Sequence<String> { clang_module_dependency.module_deps.toLazyStringSequence() }
         public var cache_key: String? { clang_module_dependency.cache_key.map { String(cString: $0) } }
         public var build_arguments: some Sequence<String> { clang_module_dependency.build_arguments.toLazyStringSequence() }
+        public var is_cwd_ignored: Bool { clang_module_dependency.is_cwd_ignored }
     }
 
     public struct Command {

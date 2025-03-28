@@ -346,6 +346,13 @@ extension Trait where Self == Testing.ConditionTrait {
         }
     }
 
+    package static var requireDependencyScannerWorkingDirectoryOptimization: Self {
+        enabled {
+            let libclang = try #require(try await ConditionTraitContext.shared.libclang)
+            return libclang.supportsCurrentWorkingDirectoryOptimization
+        }
+    }
+
     package static var requireCompilationCaching: Self {
         enabled("compilation caching is not supported") {
             try await ConditionTraitContext.shared.supportsCompilationCaching

@@ -101,7 +101,7 @@ final public class PrecompileClangModuleTaskAction: TaskAction, BuildValueValida
                 taskKey: .precompileClangModule(taskKey),
                 taskID: taskID,
                 singleUse: false,
-                workingDirectory: dependencyInfo.workingDirectory,
+                workingDirectory: Path.root,
                 environment: task.environment,
                 forTarget: task.forTarget,
                 priority: .preferred,
@@ -188,7 +188,7 @@ final public class PrecompileClangModuleTaskAction: TaskAction, BuildValueValida
                 if try ClangCompileTaskAction.replayCachedCommand(
                     command,
                     casDBs: casDBs,
-                    workingDirectory: task.workingDirectory,
+                    workingDirectory: dependencyInfo.workingDirectory,
                     outputDelegate: outputDelegate,
                     enableDiagnosticRemarks: key.casOptions!.enableDiagnosticRemarks
                 ) {
@@ -198,7 +198,7 @@ final public class PrecompileClangModuleTaskAction: TaskAction, BuildValueValida
 
             let delegate = TaskProcessDelegate(outputDelegate: outputDelegate)
             // The frontend invocations should be unaffected by the environment, pass an empty one.
-            try await spawn(commandLine: commandLine, environment: [:], workingDirectory: task.workingDirectory.str, dynamicExecutionDelegate: dynamicExecutionDelegate, clientDelegate: clientDelegate, processDelegate: delegate)
+            try await spawn(commandLine: commandLine, environment: [:], workingDirectory: dependencyInfo.workingDirectory.str, dynamicExecutionDelegate: dynamicExecutionDelegate, clientDelegate: clientDelegate, processDelegate: delegate)
 
             let result = delegate.commandResult ?? .failed
             if result == .succeeded {
