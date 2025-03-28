@@ -61,7 +61,8 @@ public struct DiscardMacroEvaluationScope: SessionMessage, RequestMessage, Equat
 
 /// The context within which a macro evaluation should occur.
 public enum MacroEvaluationRequestContext: Equatable, Sendable, SerializableCodable {
-    /// A `Settings` handle, if called from a scope.
+    /// A `Settings` handle, if called by something which is holding on to a handle.
+    /// - remark: This was previously used when the client held a handle to a macro evaluation scope to use for evaluation. Presently it is unused, but could be revived if the handle-to-a-scope model is useful in the future.
     case settingsHandle(String)
     /// A level and build parameters, if called on the fly.
     case components(level: MacroEvaluationRequestLevel, buildParameters: BuildParametersMessagePayload)

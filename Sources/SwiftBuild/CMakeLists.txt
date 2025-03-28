@@ -45,7 +45,6 @@ add_library(SwiftBuild
   SWBIndexingSupport.swift
   SWBLocalizationSupport.swift
   SWBMacroEvaluation.swift
-  SWBMacroEvaluationScope.swift
   SWBPreviewSupport.swift
   SWBProductPlannerSupport.swift
   SWBPropertyList.swift

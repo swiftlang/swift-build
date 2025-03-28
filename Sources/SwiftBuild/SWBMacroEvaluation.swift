@@ -14,6 +14,7 @@ public import Foundation
 
 import SWBProtocol
 
+/// Errors resulting from macro evaluation.
 public struct SWBMacroEvaluationError: Error, LocalizedError {
     public let message: String
 

@@ -1326,42 +1326,6 @@ private func getSettings(for session: Session, workspaceContext: WorkspaceContex
     }
 }
 
-/// Handle a `CreateMacroEvaluationScopeRequest` message.
-private struct CreateMacroEvaluationScopeMsg: MessageHandler {
-    func handle(request: Request, message: CreateMacroEvaluationScopeRequest) throws -> StringResponse {
-        // Look up the session, and create the build parameters.
-        let session = try request.session(for: message)
-        guard let workspaceContext = session.workspaceContext else {
-            throw MsgParserError.missingWorkspaceContext
-        }
-        let buildParameters = try BuildParameters(from: message.buildParameters)
-
-        // Create a settings object for the requested level and register it with the session.
-        let settings = try getSettings(for: session, workspaceContext: workspaceContext, level: message.level, buildParameters: buildParameters, purpose: .build)
-        let handle = session.registerSettings(settings)
-
-        // Return the handle to the client.
-        return StringResponse(handle)
-    }
-}
-
-private struct DiscardMacroEvaluationScopeMsg: MessageHandler {
-    func handle(request: Request, message: DiscardMacroEvaluationScope) throws -> VoidResponse {
-        // Look up the session.
-        let session = try request.session(for: message)
-
-        // Discard the settings.
-        do {
-            try session.unregisterSettings(for: message.settingsHandle)
-        }
-        catch {
-            throw MsgParserError.missingSettings
-        }
-
-        return VoidResponse()
-    }
-}
-
 private struct MacroEvaluationMsg: MessageHandler {
     func handle(request: Request, message: MacroEvaluationRequest) async throws -> MacroEvaluationResponse {
         // We get the Settings to use for evaluation from the session.
@@ -1641,8 +1605,6 @@ package struct ServiceMessageHandlers: ServiceExtension {
         service.registerMessageHandler(ComputeDependencyGraphMsg.self)
         service.registerMessageHandler(DumpBuildDependencyInfoMsg.self)
         
-        service.registerMessageHandler(CreateMacroEvaluationScopeMsg.self)
-        service.registerMessageHandler(DiscardMacroEvaluationScopeMsg.self)
         service.registerMessageHandler(MacroEvaluationMsg.self)
         service.registerMessageHandler(AllExportedMacrosAndValuesMsg.self)
         service.registerMessageHandler(BuildSettingsEditorInfoMsg.self)

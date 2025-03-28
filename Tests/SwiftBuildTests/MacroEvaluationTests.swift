@@ -198,7 +198,7 @@ fileprivate struct MacroEvaluationTests {
                 let userInfo = SWBUserInfo.defaultForTesting
                 try await session.setUserInfo(userInfo)
 
-                // Create a build request and get a macro evaluation scope.
+                // Create a build request.
                 var parameters = SWBBuildParameters()
                 parameters.action = "build"
                 parameters.configurationName = "Config1"
