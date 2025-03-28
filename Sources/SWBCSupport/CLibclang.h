@@ -49,6 +49,7 @@ typedef struct {
     const char *module_map_path;
     const char **file_deps;
     const char *include_tree_id;
+    bool is_cwd_ignored;
     const char **module_deps;
     const char *cache_key;
     const char **build_arguments;
@@ -121,6 +122,9 @@ bool libclang_has_cas_pruning_feature(libclang_t lib);
 
 /// Whether the libclang has CAS up-to-date checking support.
 bool libclang_has_cas_up_to_date_checks_feature(libclang_t lib);
+
+/// Whether the libclang has current working directory optimization support.
+bool libclang_has_current_working_directory_optimization(libclang_t lib);
 
 /// Create the CAS options object.
 libclang_casoptions_t libclang_casoptions_create(libclang_t lib);

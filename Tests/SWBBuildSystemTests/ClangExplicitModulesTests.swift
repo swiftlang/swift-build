@@ -1374,6 +1374,113 @@ fileprivate struct ClangExplicitModulesTests: CoreBasedTests {
         }
     }
 
+    @Test(.requireSDKs(.macOS), .requireDependencyScanner, .requireDependencyScannerWorkingDirectoryOptimization)
+    func sharingBetweenProjects() async throws {
+        try await withTemporaryDirectory { tmpDir in
+            let testWorkspace = TestWorkspace(
+                "Test",
+                sourceRoot: tmpDir.join("Test"),
+                projects: [
+                    TestProject(
+                        "aProject",
+                        groupTree: TestGroup(
+                            "Sources",
+                            children: [
+                                TestFile("mod_nested.h"),
+                                TestFile("mod.h"),
+                                TestFile("module.modulemap"),
+                                TestFile("file_1.c"),
+                            ]),
+                        buildConfigurations: [TestBuildConfiguration(
+                            "Debug",
+                            buildSettings: [
+                                "PRODUCT_NAME": "$(TARGET_NAME)",
+                                "CLANG_ENABLE_MODULES": "YES",
+                                "_EXPERIMENTAL_CLANG_EXPLICIT_MODULES": "YES",
+                                "CLANG_EXPLICIT_MODULES_OUTPUT_PATH": "\(tmpDir.join("clangmodules").str)",
+                            ])],
+                        targets: [
+                            TestStandardTarget(
+                                "Library_1",
+                                type: .staticLibrary,
+                                buildPhases: [
+                                    TestSourcesBuildPhase(["file_1.c"]),
+                                ]),
+                        ]), TestProject(
+                            "aProject2",
+                            groupTree: TestGroup(
+                                "Sources",
+                                children: [
+                                    TestFile("file_2.c"),
+                                ]),
+                            buildConfigurations: [TestBuildConfiguration(
+                                "Debug",
+                                buildSettings: [
+                                    "PRODUCT_NAME": "$(TARGET_NAME)",
+                                    "CLANG_ENABLE_MODULES": "YES",
+                                    "_EXPERIMENTAL_CLANG_EXPLICIT_MODULES": "YES",
+                                    "HEADER_SEARCH_PATHS": "$(inherited) \(tmpDir.join("Test/aProject").str)",
+                                    "CLANG_EXPLICIT_MODULES_OUTPUT_PATH": "\(tmpDir.join("clangmodules").str)",
+                                ])],
+                            targets: [
+                                TestStandardTarget(
+                                    "Library_2",
+                                    type: .staticLibrary,
+                                    buildPhases: [
+                                        TestSourcesBuildPhase(["file_2.c"]),
+                                    ]),
+                            ])])
+
+            let tester = try await BuildOperationTester(getCore(), testWorkspace, simulated: false)
+
+            try await tester.fs.writeFileContents(testWorkspace.sourceRoot.join("aProject/module.modulemap")) { stream in
+                stream <<<
+            """
+            module mod { header "mod.h" }
+            """
+            }
+
+            try await tester.fs.writeFileContents(testWorkspace.sourceRoot.join("aProject/mod.h")) { stream in
+                stream <<<
+            """
+            void foo(void) {}
+            """
+            }
+
+            try await tester.fs.writeFileContents(testWorkspace.sourceRoot.join("aProject/file_1.c")) { stream in
+                stream <<<
+            """
+            #include "mod.h"
+            """
+            }
+
+            try await tester.fs.writeFileContents(testWorkspace.sourceRoot.join("aProject2/file_2.c")) { stream in
+                stream <<<
+            """
+            #include "mod.h"
+            """
+            }
+
+            let parameters = BuildParameters(configuration: "Debug")
+            let buildRequest = BuildRequest(parameters: parameters, buildTargets: tester.workspace.projects[0].targets.map({ BuildRequest.BuildTargetInfo(parameters: parameters, target: $0) }) + tester.workspace.projects[1].targets.map({ BuildRequest.BuildTargetInfo(parameters: parameters, target: $0) }), continueBuildingAfterErrors: false, useParallelTargets: true, useImplicitDependencies: false, useDryRun: false)
+
+            try await tester.checkBuild(runDestination: .macOS, buildRequest: buildRequest, persistent: true) { results in
+
+                for targetName in ["Library_1", "Library_2"] {
+                    results.checkTaskExists(.matchTargetName(targetName), .matchRuleType("ScanDependencies"))
+                    results.checkTaskExists(.matchTargetName(targetName), .matchRuleType("CompileC"))
+                }
+
+                // We should optimize out the working directory and only build one variant of "mod"
+                results.checkTasks(.matchRulePattern(["PrecompileModule", .contains("mod-")])) { tasks in
+                    #expect(tasks.count == 1)
+                }
+
+                results.checkNoDiagnostics()
+            }
+        }
+    }
+
     @Test(.requireSDKs(.macOS))
     func incrementalBuildBasics() async throws {
         try await withTemporaryDirectory { tmpDir in

@@ -144,7 +144,7 @@ public final class ClangCompileTaskAction: TaskAction, BuildValueValidatingTaskA
                 taskKey: .precompileClangModule(precompileModuleTaskKey),
                 taskID: state.dynamicTaskBaseID,
                 singleUse: true,
-                workingDirectory: dependencyInfo.workingDirectory,
+                workingDirectory: Path.root,
                 environment: task.environment,
                 forTarget: nil,
                 priority: .preferred,

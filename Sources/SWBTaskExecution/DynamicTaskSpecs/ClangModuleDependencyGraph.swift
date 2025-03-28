@@ -429,8 +429,8 @@ package final class ClangModuleDependencyGraph {
                                     fileDependencies: fileDependencies,
                                     includeTreeID: module.include_tree_id,
                                     moduleDependencies: OrderedSet(moduleDeps),
-                                    // Cached builds do not rely on the process working directory, and different scanner working directories should not inhibit task deduplication
-                                    workingDirectory: module.cache_key != nil ? Path.root : workingDirectory,
+                                    // Cached builds do not rely on the process working directory, and different scanner working directories should not inhibit task deduplication. The same is true if the scanner reports the working directory can be ignored.
+                                    workingDirectory: module.cache_key != nil || module.is_cwd_ignored ? Path.root : workingDirectory,
                                     command: DependencyInfo.CompileCommand(cacheKey: module.cache_key, arguments: commandLine),
                                     transitiveIncludeTreeIDs: transitiveIncludeTreeIDs,
                                     transitiveCompileCommandCacheKeys: transitiveCommandCacheKeys,

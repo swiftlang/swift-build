@@ -893,6 +893,18 @@ extern "C" {
         void (*clang_experimental_DependencyScannerServiceOptions_setCASOptions)(CXDependencyScannerServiceOptions Opts, CXCASOptions);
 
         /**
+          * Set the working directory optimization option.
+          * The dependency scanner service option Opts will indicate to the scanner that
+          * the current working directory can or cannot be ignored when computing the
+          * pcms' context hashes. The scanner will then determine if it is safe to
+          * optimize each module and act accordingly.
+          *
+          * \param Value If it is non zero, the option is on. Otherwise the
+          * option is off.
+          */
+        void (*clang_experimental_DependencyScannerServiceOptions_setCWDOptimization)(CXDependencyScannerServiceOptions Opts, int Value);
+
+        /**
          * Create a \c CXDependencyScannerService object.
          * Must be disposed with \c clang_experimental_DependencyScannerService_dispose_v0().
          */
@@ -1140,6 +1152,12 @@ extern "C" {
          * valid.
          */
         const char *(*clang_experimental_DepGraphModule_getCacheKey)(CXDepGraphModule);
+
+        /**
+          * \returns 1 if the scanner ignores the current working directory when
+          * computing the module's context hash. Otherwise returns 0.
+          */
+         int (*clang_experimental_DepGraphModule_isCWDIgnored)(CXDepGraphModule);
 
         /**
          * \returns the number \c CXDepGraphTUCommand objects in the graph.
@@ -1410,6 +1428,7 @@ struct LibclangWrapper {
         LOOKUP_OPTIONAL(clang_experimental_DependencyScannerServiceOptions_setDependencyMode);
         LOOKUP_OPTIONAL_CAS_API(clang_experimental_DependencyScannerServiceOptions_setCASDatabases);
         LOOKUP_OPTIONAL(clang_experimental_DependencyScannerServiceOptions_setCASOptions);
+        LOOKUP_OPTIONAL(clang_experimental_DependencyScannerServiceOptions_setCWDOptimization);
         LOOKUP_OPTIONAL(clang_experimental_DependencyScannerService_create_v1);
         LOOKUP_OPTIONAL_DEPENDENCY_SCANNER_API(clang_experimental_DependencyScannerService_dispose_v0);
         LOOKUP_OPTIONAL_DEPENDENCY_SCANNER_API(clang_experimental_DependencyScannerWorker_create_v0);
@@ -1429,6 +1448,7 @@ struct LibclangWrapper {
         LOOKUP_OPTIONAL(clang_experimental_DepGraphModule_getModuleDeps);
         LOOKUP_OPTIONAL(clang_experimental_DepGraphModule_getBuildArguments);
         LOOKUP_OPTIONAL(clang_experimental_DepGraphModule_getCacheKey);
+        LOOKUP_OPTIONAL(clang_experimental_DepGraphModule_isCWDIgnored);
         LOOKUP_OPTIONAL(clang_experimental_DepGraphModule_getIncludeTreeID);
         LOOKUP_OPTIONAL(clang_experimental_DepGraph_getNumTUCommands);
         LOOKUP_OPTIONAL(clang_experimental_DepGraph_getTUCommand);
@@ -1573,6 +1593,9 @@ struct LibclangScanner {
         }
         if (casOpts) {
             lib->fns.clang_experimental_DependencyScannerServiceOptions_setCASOptions(opts, casOpts->casOpts);
+        }
+        if (lib->fns.clang_experimental_DependencyScannerServiceOptions_setCWDOptimization) {
+            lib->fns.clang_experimental_DependencyScannerServiceOptions_setCWDOptimization(opts, 1);
         }
         service = lib->fns.clang_experimental_DependencyScannerService_create_v1(opts);
         assert(service && "unable to create service");
@@ -1745,6 +1768,11 @@ extern "C" {
     bool libclang_has_cas_up_to_date_checks_feature(libclang_t lib) {
         return lib->wrapper->fns.clang_experimental_DepGraphModule_getIncludeTreeID &&
                lib->wrapper->fns.clang_experimental_cas_isMaterialized;
+    }
+
+    bool libclang_has_current_working_directory_optimization(libclang_t lib) {
+        return lib->wrapper->fns.clang_experimental_DepGraphModule_isCWDIgnored &&
+               lib->wrapper->fns.clang_experimental_DependencyScannerServiceOptions_setCWDOptimization;
     }
 
     libclang_casoptions_t libclang_casoptions_create(libclang_t lib) {
@@ -2055,6 +2083,7 @@ extern "C" {
                 const char *includeTreeID = lib->fns.clang_experimental_DepGraphModule_getIncludeTreeID
                     ? lib->fns.clang_experimental_DepGraphModule_getIncludeTreeID(depMod)
                     : nullptr;
+                bool isCWDIgnored = lib->fns.clang_experimental_DepGraphModule_isCWDIgnored ? lib->fns.clang_experimental_DepGraphModule_isCWDIgnored(depMod) : 0;
                 LibclangFunctions::CXCStringArray fileDeps = lib->fns.clang_experimental_DepGraphModule_getFileDeps(depMod);
                 LibclangFunctions::CXCStringArray moduleDeps = lib->fns.clang_experimental_DepGraphModule_getModuleDeps(depMod);
                 LibclangFunctions::CXCStringArray buildArguments = lib->fns.clang_experimental_DepGraphModule_getBuildArguments(depMod);
@@ -2063,6 +2092,7 @@ extern "C" {
                 modules[i].context_hash = contextHash;
                 modules[i].module_map_path = moduleMapPath;
                 modules[i].include_tree_id = includeTreeID;
+                modules[i].is_cwd_ignored = isCWDIgnored;
                 modules[i].cache_key = cacheKey;
                 modules[i].file_deps = copyStringSet(fileDeps);
                 modules[i].module_deps = copyStringSet(moduleDeps);
