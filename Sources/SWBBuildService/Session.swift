@@ -204,10 +204,12 @@ package final class Session {
         return startPIFTransfer(workspaceSignature: workspaceSignature)
     }
 
-    // MARK: Support for the client to request build setting evaluation
+
+    // MARK: Support for saving macro evaluation scopes to look up by a handle (UUID).
 
 
     /// The active Settings objects being vended for use by the client.
+    /// - remark: This is presently only used in `PlanningOperation` to be able to evaluate some settings after receiving provisioning inputs from the client, without having to reconstruct the `ConfiguredTarget` in that asyncronous operation.
     var registeredSettings = Registry<String, Settings>()
 
     /// Register a `Settings` object with the session.  This returns a handle (a `UUID` string) to the caller which it can pass to the client and which can then be used to evaluate settings using this `Settings` object.  The caller is responsible for removing this `Settings` object from the session when it is no longer needed.
