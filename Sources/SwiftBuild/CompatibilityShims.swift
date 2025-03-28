@@ -15,8 +15,6 @@ public typealias XCBBuildService = SWBBuildService
 public typealias XCBBuildServiceConsole = SWBBuildServiceConsole
 public typealias XCBServiceConsoleCommandRegistry = SWBServiceConsoleCommandRegistry
 public typealias XCBBuildServiceSession = SWBBuildServiceSession
-@available(*, deprecated, message: "SWBMacroEvaluationScope is deprecated and should not be used")
-public typealias XCBMacroEvaluationScope = SWBMacroEvaluationScope
 public typealias XCBuildFileType = SwiftBuildFileType
 public typealias XCBBuildOperationTaskMetrics = SWBBuildOperationTaskMetrics
 public typealias XCBBuildOperationBacktraceFrame = SWBBuildOperationBacktraceFrame
