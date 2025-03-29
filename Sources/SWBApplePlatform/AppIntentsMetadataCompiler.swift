@@ -12,6 +12,7 @@
 
 import SWBUtil
 import SWBMacro
+public import SWBCore
 
 /// The minimal data we need to serialize to reconstruct `generateLocalizationInfo`
 private struct AppIntentsLocalizationPayload: TaskPayload {

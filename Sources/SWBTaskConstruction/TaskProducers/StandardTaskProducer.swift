@@ -102,7 +102,7 @@ open class PhasedTaskProducer: StandardTaskProducer {
     /// The subclass *must* manually report these, if `addTaskBarrier` is used.
     var additionalGateTasks: [any PlannedTask] = []
 
-    var targetContext: TargetTaskProducerContext
+    public var targetContext: TargetTaskProducerContext
 
     /// Create a phased task producer.
     ///

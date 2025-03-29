@@ -44,9 +44,7 @@ public struct BuiltinSpecsExtension: SpecificationsExtension {
 
     public func specificationClasses() -> [any SpecIdentifierType.Type] {
         [
-            AppIntentsMetadataCompilerSpec.self,
             AppShortcutStringsMetadataCompilerSpec.self,
-            AppIntentsSSUTrainingCompilerSpec.self,
             CodesignToolSpec.self,
             CopyToolSpec.self,
             ClangStatCacheSpec.self,

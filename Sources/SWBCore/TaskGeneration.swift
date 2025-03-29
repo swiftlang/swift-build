@@ -1133,8 +1133,14 @@ public struct LocalizationBuildPortion: Hashable, Sendable {
     /// The name of the architecture we were building for.
     public let architecture: String
 
+    public init(effectivePlatformName: String, variant: String, architecture: String) {
+        self.effectivePlatformName = effectivePlatformName
+        self.variant = variant
+        self.architecture = architecture
+    }
+
     /// Returns a platform name to use for localization info purposes.
-    static func effectivePlatformName(scope: MacroEvaluationScope, sdkVariant: SDKVariant?) -> String {
+    public static func effectivePlatformName(scope: MacroEvaluationScope, sdkVariant: SDKVariant?) -> String {
         if let sdkVariant, sdkVariant.isMacCatalyst {
             // Treat Catalyst as a separate platform.
             return MacCatalystInfo.localizationEffectivePlatformName

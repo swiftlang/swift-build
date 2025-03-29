@@ -201,9 +201,7 @@ public class TaskProducerContext: StaleFileRemovalContext, BuildFileResolution
         }
     }
 
-    let appIntentsMetadataCompilerSpec: AppIntentsMetadataCompilerSpec
-    let appShortcutStringsMetadataCompilerSpec: AppShortcutStringsMetadataCompilerSpec
-    let appIntentsSsuTrainingCompilerSpec: AppIntentsSSUTrainingCompilerSpec
+    public let appShortcutStringsMetadataCompilerSpec: AppShortcutStringsMetadataCompilerSpec
     let appleScriptCompilerSpec: CommandLineToolSpec
     public let clangSpec: ClangCompilerSpec
     public let clangAssemblerSpec: ClangCompilerSpec
@@ -331,9 +329,7 @@ public class TaskProducerContext: StaleFileRemovalContext, BuildFileResolution
         //
         // FIXME: These should really be bound even earlier, like in the spec cache. Or at least, we should throw here and just produce a dep graph error if any are missing.
         let domain = settings.platform?.name ?? ""
-        self.appIntentsMetadataCompilerSpec = workspaceContext.core.specRegistry.getSpec("com.apple.compilers.appintentsmetadata", domain: domain) as! AppIntentsMetadataCompilerSpec
         self.appShortcutStringsMetadataCompilerSpec = workspaceContext.core.specRegistry.getSpec("com.apple.compilers.appshortcutstringsmetadata", domain: domain) as! AppShortcutStringsMetadataCompilerSpec
-        self.appIntentsSsuTrainingCompilerSpec = workspaceContext.core.specRegistry.getSpec("com.apple.compilers.appintents-ssu-training", domain: domain) as! AppIntentsSSUTrainingCompilerSpec
         self.appleScriptCompilerSpec = workspaceContext.core.specRegistry.getSpec("com.apple.compilers.osacompile", domain: domain) as! CommandLineToolSpec
         self.clangSpec = try! workspaceContext.core.specRegistry.getSpec(domain: domain) as ClangCompilerSpec
         self.clangAssemblerSpec = try! workspaceContext.core.specRegistry.getSpec(domain: domain) as ClangAssemblerSpec
@@ -556,7 +552,7 @@ public class TaskProducerContext: StaleFileRemovalContext, BuildFileResolution
     }
 
     /// Get the product generated Swift Objective-C interface header files.
-    func generatedSwiftConstMetadataFiles() -> [String: [Path]] {
+    public func generatedSwiftConstMetadataFiles() -> [String: [Path]] {
         return queue.blocking_sync {
             assert(_inDeferredMode)
             return _generatedGeneratedSwiftConstMetadataFiles
@@ -607,7 +603,7 @@ public class TaskProducerContext: StaleFileRemovalContext, BuildFileResolution
     }
 
     /// Add a deferred task production block.
-    func addDeferredProducer(_ body: @escaping () async -> [any PlannedTask]) {
+    public func addDeferredProducer(_ body: @escaping () async -> [any PlannedTask]) {
         queue.blocking_sync {
             assert(!_inDeferredMode)
             _deferredProducers.append(body)
