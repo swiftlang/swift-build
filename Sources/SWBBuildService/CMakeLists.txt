@@ -36,4 +36,4 @@ target_link_libraries(SWBBuildService PUBLIC
   SWBUniversalPlatform
   SWBWebAssemblyPlatform
   SWBWindowsPlatform
-  SwiftSystem::SystemPackage)
+  $<$<NOT:$<PLATFORM_ID:Darwin>>:SwiftSystem::SystemPackage>)
