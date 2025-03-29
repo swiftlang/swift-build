@@ -201,6 +201,22 @@ public final class InfoPlistProcessorTaskAction: TaskAction
         if expandBuildSettings {
             if SWBFeatureFlag.enableDefaultInfoPlistTemplateKeys.value || scope.evaluate(BuiltinMacros.GENERATE_INFOPLIST_FILE) {
                 let plistDefaults = defaultInfoPlistContent(scope: scope, platform: platform, productType: productType)
+
+                // Add conflict detection before merging
+                for (key, defaultValue) in plistDefaults {
+                    if let existingValue = plist.dictValue?[key] {
+                        if let conflictMessage = detectConflict(
+                            forKey: key,
+                            existingValue: existingValue,
+                            newValue: defaultValue,
+                            existingSource: "Info.plist file",
+                            newSource: "build setting"
+                        ) {
+                            outputDelegate.emitWarning(conflictMessage)
+                        }
+                    }
+                }
+                
                 do {
                     let result = try withTemporaryDirectory(fs: executionDelegate.fs) { plistDefaultsDir -> CommandResult in
                         let plistDefaultsPath = plistDefaultsDir.join("DefaultInfoPlistContent.plist")
@@ -940,6 +956,17 @@ public final class InfoPlistProcessorTaskAction: TaskAction
         for (key, valueToMerge) in additionalDict {
             let workingValue = plistDict[key]
 
+            // Check for conflicts
+            if let workingValue = workingValue, let conflictMessage = detectConflict(
+                    forKey: key,
+                    existingValue: workingValue,
+                    newValue: valueToMerge,
+                    existingSource: "Info.plist",
+                    newSource: "additional content file '\(path.str)'"
+                ) {
+                outputDelegate.emitWarning(conflictMessage)
+            }
+
             // Handle special-case keys first.
             if key == "UIRequiredDeviceCapabilities" {
                 if let mergedCapabilitiesResult = mergeUIRequiredDeviceCapabilities(valueToMerge, from: path, into: workingValue, from: inputPath!, outputDelegate) {
@@ -1574,6 +1601,49 @@ public final class InfoPlistProcessorTaskAction: TaskAction
         }
     }
 
+
+    /// Detects if two PropertyListItem values are in conflict and returns an appropriate warning message if they are.
+    /// - Parameters:
+    ///   - key: The key being checked for conflict
+    ///   - existingValue: The existing value in the plist
+    ///   - newValue: The new value being applied
+    ///   - existingSource: Description of where the existing value came from (e.g., "Info.plist")
+    ///   - newSource: Description of where the new value came from (e.g., "build settings")
+    /// - Returns: A warning message if there's a conflict, nil otherwise
+    private func detectConflict(
+        forKey key: String,
+        existingValue: PropertyListItem,
+        newValue: PropertyListItem,
+        existingSource: String,
+        newSource: String
+    ) -> String? {
+        // For scalar types (string, number, boolean), simply check equality
+        if existingValue.isScalarType && newValue.isScalarType {
+            if existingValue != newValue {
+                return "Conflicting values for Info.plist key '\(key)': '\(existingValue)' from \(existingSource) will be overwritten by '\(newValue)' from \(newSource)"
+            }
+        }
+        // For arrays, check if they contain different elements
+        else if case .plArray(let existingArray) = existingValue, case .plArray(let newArray) = newValue {
+            if existingArray != newArray {
+                return "Conflicting array values for Info.plist key '\(key)' from \(existingSource) will be merged with values from \(newSource)"
+            }
+        }
+        // for dictionaries, recursively check keys
+        else if case .plDict(let existingDict) = existingValue, case .plDict(let newDict) = newValue {
+            for (subKey, newSubValue) in newDict {
+                if let existingSubValue = existingDict[subKey],
+                   existingSubValue != newSubValue {
+                    return "Conflicting dictionary values for Info.plist key '\(key).\(subKey)': '\(existingSubValue)' from \(existingSource) will be overwritten by '\(newSubValue)' from \(newSource)"
+                }
+            }
+        }
+        // If types are different entirely, that's a conflict
+        else if existingValue.typeDisplayString != newValue.typeDisplayString {
+            return "Type conflict for Info.plist key '\(key)': \(existingValue.typeDisplayString) from \(existingSource) will be replaced with \(newValue.typeDisplayString) from \(newSource)"
+        }
+        return nil
+    }
 
     // Serialization
 
