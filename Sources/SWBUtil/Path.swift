@@ -36,36 +36,21 @@ private extension String.UTF8View {
 ///
 /// This struct adds support for common path manipulation operations.
 public struct Path: Serializable, Sendable {
-    private var useLegacyImplementation: Bool {
-        #if os(Windows)
-        return false
-        #else
-        return true
-        #endif
-    }
 
     private var _impl: FilePath {
-        // When switching to the new implementation, this will become an ivar
-        precondition(!useLegacyImplementation)
         return FilePath(str)
     }
 
     private init(_ impl: FilePath) {
-        // When switching to the new implementation, this store the instance directly
         _str = impl.string
-        precondition(!useLegacyImplementation)
     }
 
     private let _str: String
 
     /// The path's file system representation as a string.
     public var str: String {
-        if useLegacyImplementation {
-            return _str
-        }
-        return FilePath(_str).string
+        return _str
     }
-
     /// The system path separator.
     #if os(Windows)
     public static let pathSeparator = Character("\\")
@@ -123,11 +108,7 @@ public struct Path: Serializable, Sendable {
     }
 
     public func withPlatformString<Result>(_ body: (UnsafePointer<CInterop.PlatformChar>) throws -> Result) rethrows -> Result {
-        if useLegacyImplementation {
-            return try FilePath(str).withPlatformString(body)
-        }
-
-        return try _impl.withPlatformString(body)
+        try _impl.withPlatformString(body)
     }
 
     /// Returns the current working directory path, which is guaranteed to be absolute.
@@ -182,141 +163,53 @@ public struct Path: Serializable, Sendable {
 
     /// Check if the path is the root path.
     public var isRoot: Bool {
-        if useLegacyImplementation {
-            return self.str == Path.pathSeparatorString
-        }
-        return FilePath(root: _impl.root) == _impl
+        FilePath(root: _impl.root) == _impl
     }
 
     /// Check if the path is absolute.
     public var isAbsolute: Bool {
-        if useLegacyImplementation {
-            return !str.isEmpty && str.utf8[str.utf8.startIndex] == Path.pathSeparatorUTF8
-        }
-        return _impl.isAbsolute
+        _impl.isAbsolute
     }
 
     /// Check if the path is empty.
     public var isEmpty: Bool {
-        return str.isEmpty
+        str.isEmpty
     }
 
     /// Return the subpath of the receiver relative to the given path.  Both paths must be absolute.
     /// - returns: The relative subpath, or nil if path is not an ancestor of the receiver, or either path is not absolute.  If the receiver and the path are equal, then returns the empty string.
     public func relativeSubpath(from path: Path) -> String? {
-        if useLegacyImplementation {
-            guard self.isAbsolute, path.isAbsolute else { return nil }
-            guard self != path else { return "" }
-
-            func subpath(_ anc: Path, _ dec: Path) -> String? {
-                guard !dec.isRoot else { return anc.isRoot ? "" : nil }
-                guard anc != dec else { return "" }
-                guard let sub = subpath(anc, dec.dirname) else { return nil }
-                return sub.isEmpty ? dec.basename : sub + Path.pathSeparatorString + dec.basename
-            }
-
-            return subpath(path.normalize(), self.normalize())
-        }
         var new = _impl
         return new.removePrefix(path._impl) ? new.string : nil
     }
 
     /// Check if the path is an ancestor of another path. Always false for relative paths. This does not resolve symlinks or otherwise access the file system.
     public func isAncestor(of path: Path) -> Bool {
-        if useLegacyImplementation {
-            guard self.isAbsolute, path.isAbsolute else { return false }
-
-            func rec(_ lhs: Path, _ rhs: Path) -> Bool {
-                guard !rhs.isRoot else { return false }
-                return lhs == rhs.dirname || rec(lhs, rhs.dirname)
-            }
-
-            return rec(self.normalize(), path.normalize())
-        }
-        return self != path && path._impl.starts(with: _impl)
+        self != path && path._impl.starts(with: _impl)
     }
 
     /// Check if the path is an ancestor of another path or the same path. Always false for relative paths, even if they are equal.
     public func isAncestorOrEqual(of path: Path) -> Bool {
-        if useLegacyImplementation {
-            guard self.isAbsolute, path.isAbsolute else { return false }
-            let normalizedSelf = self.normalize()
-            let normalizedPath = path.normalize()
-            return normalizedSelf == normalizedPath || normalizedSelf.isAncestor(of: normalizedPath)
-        }
-        return path._impl.starts(with: _impl)
+        path._impl.starts(with: _impl)
     }
 
     /// Split the path into a (head, tail) tuple, where the tail is the base name of the path and never contains the path separator.
     public func split() -> (Path, String) {
-        if useLegacyImplementation {
-            // Find the trailing separator.
-            let utf8 = str.utf8
-            if let idx = utf8.lastIndex(of: Path.pathSeparatorUTF8) {
-                // If the last separator is the one at the start of the string, it should remain a part of the dirname.
-                if idx == utf8.startIndex {
-                    return (Path(String(str[...idx])), String(str[utf8.index(after: idx)...]))
-                }
-
-                return (Path(String(str[..<idx])), String(str[utf8.index(after: idx)...]))
-            }
-
-            // If there were no slashes, the entire path is the base name.
-            return (Path(""), self.str)
-        }
-        return (Path(_impl.removingLastComponent()), _impl.lastComponent?.string ?? "")
+        (Path(_impl.removingLastComponent().string), _impl.lastComponent?.string ?? "")
     }
 
     /// Get the path's parent directory. This does not resolve symlinks or otherwise access the file system.
     public var dirname: Path {
-        if useLegacyImplementation {
-            // Find the trailing separator.
-            let utf8 = str.utf8
-            if let idx = utf8.lastIndex(of: Path.pathSeparatorUTF8) {
-                // If the last separator is the one at the start of the string, it should remain a part of the directory name.
-                if idx == utf8.startIndex {
-                    return Path(String(str[...idx]))
-                }
-
-                return Path(String(str[..<idx]))
-            }
-
-            // If there were no slashes, the entire path is the directory name.
-            return Path("")
-        }
-        return Path(_impl.removingLastComponent())
+        Path(_impl.removingLastComponent().string)
     }
 
     /// The base name of the path.  This is the last path component of the receiver.
     public var basename: String {
-        if useLegacyImplementation {
-            // Find the trailing separator.
-            let utf8 = str.utf8
-            if let idx = utf8.lastIndex(of: Path.pathSeparatorUTF8) {
-                return String(str[utf8.index(after: idx)...])
-            }
-
-            // If there were no slashes, the entire path is the base name.
-            return str
-        }
-        return _impl.lastComponent?.string ?? str
+        _impl.lastComponent?.string ?? str
     }
 
     /// Split the path into a path prefix plus basename and an extension (the basename separated by '.').
     public func splitext() -> (String, String) {
-        if useLegacyImplementation {
-            let utf8 = str.utf8
-            for idx in utf8.indices.reversed() {
-                if utf8[idx] == UInt8(ascii: ".") {
-                    // FIXME: It is unfortunate we have to convert back to String here, maybe we should just store the UTF8View and use that as our representation? Ultimately, I would like to move the internal representation for Path to be a ByteString.
-                    return (String(str[..<idx]), String(str[idx...]))
-                }
-                if utf8[idx] == Path.pathSeparatorUTF8 {
-                    break
-                }
-            }
-            return (str, "")
-        }
         let ext = _impl.extension
         var newPath = _impl
         newPath.extension = nil
@@ -325,18 +218,6 @@ public struct Path: Serializable, Sendable {
 
     /// The path as a string with any suffix on the basename ('.' + extension) removed.
     public var withoutSuffix: String {
-        if useLegacyImplementation {
-            let utf8 = str.utf8
-            for idx in utf8.indices.reversed() {
-                if utf8[idx] == UInt8(ascii: ".") {
-                    return String(str[..<idx])
-                }
-                if utf8[idx] == Path.pathSeparatorUTF8 {
-                    break
-                }
-            }
-            return str
-        }
         var newPath = _impl
         newPath.extension = nil
         return newPath.string
@@ -344,55 +225,17 @@ public struct Path: Serializable, Sendable {
 
     /// The path's basename as a string with any extension removed.
     public var basenameWithoutSuffix: String {
-        if useLegacyImplementation {
-            var suffixIndex: String.UTF8View.Index = str.utf8.endIndex
-            let utf8 = str.utf8
-            for idx in utf8.indices.reversed() {
-                if utf8[idx] == UInt8(ascii: ".") && suffixIndex == str.utf8.endIndex {
-                    suffixIndex = idx
-                } else if utf8[idx] == Path.pathSeparatorUTF8 {
-                    return String(str[utf8.index(after: idx)..<suffixIndex])
-                }
-            }
-
-            // If there were no slashes, the entire path is the base name.
-            return String(str[..<suffixIndex])
-        }
-        return _impl.stem ?? str
+        _impl.stem ?? str
     }
 
     /// The suffix of the path, i.e., the trailing '.' plus any extension, if present.
     public var fileSuffix: String {
-        if useLegacyImplementation {
-            let utf8 = str.utf8
-            for idx in utf8.indices.reversed() {
-                if utf8[idx] == UInt8(ascii: ".") {
-                    return String(str[idx...])
-                }
-                if utf8[idx] == Path.pathSeparatorUTF8 {
-                    break
-                }
-            }
-            return ""
-        }
-        return _impl.extension.map { ".\($0)" } ?? ""
+        _impl.extension.map { ".\($0)" } ?? ""
     }
 
     /// The extension on the path, not including any '.'.
     public var fileExtension: String {
-        if useLegacyImplementation {
-            let utf8 = str.utf8
-            for idx in utf8.indices.reversed() {
-                if utf8[idx] == UInt8(ascii: ".") {
-                    return String(str[utf8.index(after: idx)...])
-                }
-                if utf8[idx] == Path.pathSeparatorUTF8 {
-                    break
-                }
-            }
-            return ""
-        }
-        return _impl.extension ?? ""
+        _impl.extension ?? ""
     }
 
     /// If the path represents an item inside a .lproj directory, then returns the prefix of the .lproj directory.  Otherwise returns nil.
@@ -419,18 +262,9 @@ public struct Path: Serializable, Sendable {
             }
         }
         #endif
-        // Validate the non-root portion
-        if useLegacyImplementation {
-            for component in str.split(separator: Path.pathSeparator) {
-                if component.rangeOfCharacter(from: Path.reservedPathCharacters) != nil {
-                    return false
-                }
-            }
-        } else {
-            for component in _impl.components {
-                if component.string.rangeOfCharacter(from: Path.reservedPathCharacters) != nil {
-                    return false
-                }
+        for component in _impl.components {
+            if component.string.rangeOfCharacter(from: Path.reservedPathCharacters) != nil {
+                return false
             }
         }
         return true
@@ -459,51 +293,9 @@ public struct Path: Serializable, Sendable {
             return self
         }
 
-        if useLegacyImplementation {
-            if preserveRoot && !str.isEmpty && rhs.isAbsolute {
-                // NOTE: We continue to pass preserveRoot to handle multiple leading slashes.
-                return join(String(rhs.str.dropFirst()), preserveRoot: true, normalize: normalize)
-            }
-
-            if str.isEmpty || rhs.isAbsolute {
-                return (normalize && !rhs._isNormalized) ? rhs.normalize() : rhs
-            }
-            if rhs.isEmpty {
-                return self
-            }
-
-            if normalize && !rhs._isNormalized {
-                // Go through the components of the subpath being added, treating `.` and `..` components specially.
-                var result = self.withoutTrailingSlash()
-                rhs.str.enumerateSplits(of: Path.pathSeparator) { component in
-                    switch component {
-                    case ".":
-                        break
-                    case "..":
-                        if result.isEmpty || result.basename == ".." || result.basename == "." { fallthrough }
-                        result = result.dirname
-                    default:
-                        result = result.str.isEmpty ? Path(component) : Path(result.str + "/" + component)
-                    }
-                }
-                return result
-            } else {
-                // Join the two path strings without any normalization.
-                if str[str.index(before: str.endIndex)] == Path.pathSeparator {
-                    return Path(str + rhs.str)
-                } else {
-                    var str = self.str
-                    str.reserveCapacity(str.utf8.count + 1 + rhs.str.utf8.count)
-                    str += Path.pathSeparatorString
-                    str += rhs.str
-                    return Path(str)
-                }
-            }
-        }
-
         if preserveRoot && !str.isEmpty && rhs.isAbsolute {
             // NOTE: We continue to pass preserveRoot to handle multiple leading slashes.
-            return join(Path(rhs._impl.removingRoot()), preserveRoot: true, normalize: normalize)
+            return join(Path(rhs._impl.removingRoot().string), preserveRoot: true, normalize: normalize)
         }
 
         if str.isEmpty || rhs.isAbsolute {
@@ -514,7 +306,7 @@ public struct Path: Serializable, Sendable {
             return self
         }
 
-        let result = Path(_impl.appending(rhs._impl.components))
+        let result = Path(_impl.appending(rhs._impl.components).string)
         return normalize ? result.normalize() : result
     }
 
@@ -560,88 +352,17 @@ public struct Path: Serializable, Sendable {
     ///
     /// - parameter removeDotDotFromRelativePath: If false, then '..' will not be removed from relative paths, akin to the behavior of `-[NSString stringByStandardizingPath]`.
     public func normalize(removeDotDotFromRelativePath: Bool = true) -> Path {
-        if useLegacyImplementation {
-            // If the path is just ".", we want to leave that alone.
-            // This is important for search paths, where "." != "" semantically.
-            if str == "." {
-                return self
-            }
-
-            // Fast path, avoid processing if the string is already normalized. As
-            // implement, this will scan the entire string, but it shouldn't need to
-            // ever create temporary strings, so the cost of this should always be
-            // dwarfed by the actual normalization (at least, as implemented below).
-            if _isNormalized {
-                return self
-            }
-
-            // FIXME: Optimize more.
-            var result = isAbsolute ? Path("/") : Path("")
-            let removeDotDot = (isAbsolute || removeDotDotFromRelativePath)
-            str.enumerateSplits(of: Path.pathSeparator) { component in
-                switch component {
-                case "", ".":
-                    break
-                case "..":
-                    // If we should and can remove the .., then we do so.  Otherwise we append it.
-                    if removeDotDot && result.canTraverseUpward {
-                        result = result.dirname
-                    } else {
-                        result = result.join(component)
-                    }
-                default:
-                    result = result.join(component)
-                }
-            }
-            return result
+        if !removeDotDotFromRelativePath && !isAbsolute {
+            let pathComponents = str.split(separator: Path.pathSeparator)
+                .filter { !$0.isEmpty && $0 != "." }
+            return Path(pathComponents.joined(separator: String(Path.pathSeparator)))
         }
         return Path(_impl.lexicallyNormalized())
     }
 
     /// Check if the path is currently normalized.
     private var _isNormalized: Bool {
-        if useLegacyImplementation {
-            var normalized = true
-            _enumerateAllComponents {
-                switch $0 {
-                case "", ".", "..":
-                    normalized = false
-                default:
-                    break
-                }
-            }
-            return normalized
-        }
-        return _impl.isLexicallyNormal
-    }
-
-    /// Enumerate all "natural" components of the represented path (including empty ones).
-    private func _enumerateAllComponents(_ body: (Substring) -> Void) {
-        if useLegacyImplementation {
-            var remainder: Substring
-            if isAbsolute {
-                remainder = str.dropFirst(1)
-            } else {
-                remainder = str[...]
-            }
-            while let idx = remainder.firstIndex(of: Path.pathSeparator) {
-                body(remainder[..<idx])
-                remainder = remainder[remainder.index(after: idx)...]
-            }
-            body(remainder)
-            return
-        }
-        if let root = _impl.root?.string {
-            body(Substring(root))
-        }
-        for component in _impl.components {
-            body(Substring(component.string))
-        }
-    }
-
-    private var canTraverseUpward: Bool {
-        precondition(useLegacyImplementation)
-        return !isEmpty && basename != ".."
+        _impl.isLexicallyNormal
     }
 
     public var withTrailingSlash: Path {
@@ -659,36 +380,7 @@ public struct Path: Serializable, Sendable {
 
     /// Returns true if the receiver's last N path components match the path components of `path`.
     public func ends(with path: Path) -> Bool {
-        if useLegacyImplementation {
-            // If self is empty, then only return true if path is also empty.
-            guard !self.isEmpty else { return path.isEmpty }
-            // If path is empty, then always return true.
-            guard !path.isEmpty else { return true }
-            // If either self or path are "/", then only return true if both are "/", otherwise return false.
-            guard self.str != "/", path.str != "/" else { return self == path }
-            // If path is absolute, then return false if self is not also absolute.
-            if path.isAbsolute, !self.isAbsolute { return false }
-
-            // Remove trailing slashes.
-            var base = self.str.hasSuffix("/") ? Path(self.str.withoutSuffix("/")) : self
-            var pathBase = path.str.hasSuffix("/") ? Path(path.str.withoutSuffix("/")) : path
-
-            // Iterate backwards over the path components.
-            while !base.isEmpty {
-                let (newBase, last) = base.split()
-                let (newPathBase, pathLast) = pathBase.split()
-                // If the last path components are not equal, then return false.
-                guard last == pathLast else { return false }
-                // If we reached the beginning of path, then everything matched so return true.
-                guard !newPathBase.isEmpty else { return true }
-                // Otherwise, continue with the new base paths.
-                base = newBase
-                pathBase = newPathBase
-            }
-            // If we got here, then we reached the beginning of self, so only return true if we also reached the beginning of path.
-            return pathBase.isEmpty
-        }
-        return _impl.ends(with: path._impl)
+        _impl.ends(with: path._impl)
     }
 
     public func ends(with path: String) -> Bool {
