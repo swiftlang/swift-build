@@ -5299,6 +5299,8 @@ extension OperatingSystem {
                 return "windows"
             case .linux:
                 return "linux"
+            case .freebsd:
+                return "freebsd"
             case .android:
                 return "android"
             case .unknown:
