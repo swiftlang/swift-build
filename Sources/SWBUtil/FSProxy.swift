@@ -665,7 +665,7 @@ class LocalFS: FSProxy, @unchecked Sendable {
             let UTIME_OMIT = 1073741822
             #endif
             let atime = timespec(tv_sec: 0, tv_nsec: Int(UTIME_OMIT))
-            let mtime = timespec(tv_sec: timestamp, tv_nsec: 0)
+            let mtime = timespec(tv_sec: time_t(timestamp), tv_nsec: 0)
             guard utimensat(AT_FDCWD, path.str, [atime, mtime], 0) == 0 else {
                 throw POSIXError(errno, context: "utimensat", "AT_FDCWD", path.str, String(timestamp))
             }
@@ -1390,7 +1390,7 @@ public class PseudoFS: FSProxy, @unchecked Sendable {
                 #if os(Windows)
                 info.st_mtimespec = timespec(tv_sec: Int64(node.timestamp), tv_nsec: 0)
                 #else
-                info.st_mtimespec = timespec(tv_sec: node.timestamp, tv_nsec: 0)
+                info.st_mtimespec = timespec(tv_sec: time_t(node.timestamp), tv_nsec: 0)
                 #endif
                 info.st_size = off_t(contents.bytes.count)
                 info.st_dev = node.device
@@ -1403,7 +1403,7 @@ public class PseudoFS: FSProxy, @unchecked Sendable {
                 info.st_mtimespec = timespec(tv_sec: Int64(node.timestamp), tv_nsec: 0)
                 #else
                 info.st_mode = S_IFDIR
-                info.st_mtimespec = timespec(tv_sec: node.timestamp, tv_nsec: 0)
+                info.st_mtimespec = timespec(tv_sec: time_t(node.timestamp), tv_nsec: 0)
                 #endif
                 info.st_size = off_t(dir.contents.count)
                 info.st_dev = node.device
@@ -1416,7 +1416,7 @@ public class PseudoFS: FSProxy, @unchecked Sendable {
                 info.st_mtimespec = timespec(tv_sec: Int64(node.timestamp), tv_nsec: 0)
                 #else
                 info.st_mode = S_IFLNK
-                info.st_mtimespec = timespec(tv_sec: node.timestamp, tv_nsec: 0)
+                info.st_mtimespec = timespec(tv_sec: time_t(node.timestamp), tv_nsec: 0)
                 #endif
                 info.st_size = off_t(0)
                 info.st_dev = node.device
