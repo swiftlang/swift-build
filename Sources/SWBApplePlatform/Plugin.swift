@@ -41,7 +41,12 @@ struct TaskProducersExtension: TaskProducerExtension {
 
     var unorderedPostSetupTaskProducers: [any TaskProducerFactory] {
         [
-            StubBinaryTaskProducerFactory(),
+            StubBinaryTaskProducerFactory()
+        ]
+    }
+
+    var unorderedPostBuildPhasesTaskProducers: [any TaskProducerFactory] {
+        [
             AppIntentsMetadataTaskProducerFactory()
         ]
     }

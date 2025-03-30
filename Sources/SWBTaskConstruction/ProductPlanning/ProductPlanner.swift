@@ -467,6 +467,12 @@ extension StandardTarget
         for taskProducerExtension in taskProducerExtensions {
             for factory in taskProducerExtension.unorderedPostSetupTaskProducers {
                 createNewPhaseNode(factory.name)
+                taskProducers.append(factory.createTaskProducer(taskProducerContext, startPhaseNodes: [setupEndPhaseNode], endPhaseNode: endPhaseNode))
+                postprocessingTaskProducerInputNodes.append(endPhaseNode)
+            }
+
+            for factory in taskProducerExtension.unorderedPostBuildPhasesTaskProducers {
+                createNewPhaseNode(factory.name)
                 taskProducers.append(factory.createTaskProducer(taskProducerContext, startPhaseNodes: [setupEndPhaseNode, buildPhasesEndNode], endPhaseNode: endPhaseNode))
                 postprocessingTaskProducerInputNodes.append(endPhaseNode)
             }

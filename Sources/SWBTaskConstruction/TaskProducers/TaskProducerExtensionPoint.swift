@@ -26,6 +26,7 @@ package protocol TaskProducerExtension: Sendable {
 
     var setupTaskProducers: [any TaskProducerFactory] { get }
     var unorderedPostSetupTaskProducers: [any TaskProducerFactory] { get }
+    var unorderedPostBuildPhasesTaskProducers: [any TaskProducerFactory] { get }
     var globalTaskProducers: [any GlobalTaskProducerFactory] { get }
 }
 
