@@ -419,7 +419,14 @@ public final class SwiftDriverJobTaskAction: TaskAction, BuildValueValidatingTas
                 private var pid = llbuild_pid_t.invalid
 
                 var executionError: String?
-                var commandResult: CommandResult?
+                private var processStarted = false
+                private var _commandResult: CommandResult?
+                var commandResult: CommandResult? {
+                    guard processStarted else {
+                        return .cancelled
+                    }
+                    return _commandResult
+                }
 
                 init(plannedBuild: LibSwiftDriver.PlannedBuild?, driverJob: LibSwiftDriver.PlannedBuild.PlannedSwiftDriverJob, arguments: [String], environment: [String : String], outputDelegate: any TaskOutputDelegate) {
                     self.plannedBuild = plannedBuild
@@ -430,6 +437,7 @@ public final class SwiftDriverJobTaskAction: TaskAction, BuildValueValidatingTas
                 }
 
                 func processStarted(pid: llbuild_pid_t?) {
+                    processStarted = true
                     do {
                         guard let pid else {
                             // `pid` is only optional because the Windows implementation of llbuild's pid_t type is optional. This should never be nil on other platforms
@@ -465,7 +473,7 @@ public final class SwiftDriverJobTaskAction: TaskAction, BuildValueValidatingTas
                     if outputDelegate.result == nil {
                         outputDelegate.updateResult(TaskResult(result))
                     }
-                    self.commandResult = result.result
+                    self._commandResult = result.result
                     do {
                         try plannedBuild?.jobFinished(job: driverJob, arguments: arguments, pid: pid.pid, environment: environment, exitStatus: .exit(result.exitStatus), output: output)
                     } catch {
