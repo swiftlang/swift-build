@@ -284,7 +284,7 @@ public class FileTypeSpec : Spec, SpecType, @unchecked Sendable {
     public let isFramework: Bool
 
     /// The extensions matched by this file type.
-    let extensions: Set<String>
+    public let extensions: Set<String>
 
     /// The language dialect, suitable for passing to clang via its `-x` option.  This will be `nil` if the file type does not define the language dialect.
     public let languageDialect: GCCCompatibleLanguageDialect?

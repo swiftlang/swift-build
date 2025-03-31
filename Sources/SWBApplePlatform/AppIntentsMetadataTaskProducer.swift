@@ -12,14 +12,11 @@
 
 import SWBCore
 import SWBUtil
+import SWBTaskConstruction
 
 final class AppIntentsMetadataTaskProducer: PhasedTaskProducer, TaskProducer {
-    var sourcesBuildPhase: SourcesBuildPhase?
-    var resourcesBuildPhase: ResourcesBuildPhase?
 
-    init(_ context: TargetTaskProducerContext, sourcesBuildPhase: SourcesBuildPhase?, resourcesBuildPhase: ResourcesBuildPhase?, phaseStartNodes: [any PlannedNode], phaseEndNode: any PlannedNode) {
-        self.sourcesBuildPhase = sourcesBuildPhase
-        self.resourcesBuildPhase = resourcesBuildPhase
+    init(_ context: TargetTaskProducerContext, phaseStartNodes: [any PlannedNode], phaseEndNode: any PlannedNode) {
         super.init(context, phaseStartNodes: phaseStartNodes, phaseEndNode: phaseEndNode)
     }
 
@@ -54,12 +51,15 @@ final class AppIntentsMetadataTaskProducer: PhasedTaskProducer, TaskProducer {
         guard !context.settings.globalScope.evaluate(BuiltinMacros.LM_SKIP_METADATA_EXTRACTION) else {
             return []
         }
+        guard let configuredTarget = self.targetContext.configuredTarget, let buildPhaseTarget = configuredTarget.target as? BuildPhaseTarget else {
+            return []
+        }
 
         context.addDeferredProducer {
             let scope = self.context.settings.globalScope
             var deferredTasks: [any PlannedTask] = []
-            let buildFilesProcessingContext = BuildFilesProcessingContext(scope)
-            let swiftSources: [FileToBuild] = self.filterBuildFiles(self.sourcesBuildPhase?.buildFiles, identifiers: ["sourcecode.swift"], buildFilesProcessingContext: buildFilesProcessingContext)
+            let buildFilesProcessingContext = BuildFilesProcessingContext(self.context.settings.globalScope)
+            let swiftSources: [FileToBuild] = self.filterBuildFiles(buildPhaseTarget.sourcesBuildPhase?.buildFiles, identifiers: ["sourcecode.swift"], buildFilesProcessingContext: buildFilesProcessingContext)
             let perArchConstMetadataFiles = self.context.generatedSwiftConstMetadataFiles()
 
             var metadataDependencyList: Set<Path> = []
@@ -136,12 +136,12 @@ final class AppIntentsMetadataTaskProducer: PhasedTaskProducer, TaskProducer {
                 }
 
             }
-            let appShortcutStringsSources: [FileToBuild] = self.filterBuildFiles(self.resourcesBuildPhase?.buildFiles, identifiers: ["text.plist.strings", "text.json.xcstrings"], buildFilesProcessingContext: buildFilesProcessingContext).filter { ["AppShortcuts.strings", "AppShortcuts.xcstrings"].contains($0.absolutePath.basename) }
+            let appShortcutStringsSources: [FileToBuild] = self.filterBuildFiles(buildPhaseTarget.resourcesBuildPhase?.buildFiles, identifiers: ["text.plist.strings", "text.json.xcstrings"], buildFilesProcessingContext: buildFilesProcessingContext).filter { ["AppShortcuts.strings", "AppShortcuts.xcstrings"].contains($0.absolutePath.basename) }
 
             let cbc = CommandBuildContext(producer: self.context, scope: scope, inputs: swiftSources + constMetadataFilesToBuild + appShortcutStringsSources, resourcesDir: buildFilesProcessingContext.resourcesDir)
 
 
-            let assistantIntentsStringsSources: [FileToBuild] = self.filterBuildFiles(self.resourcesBuildPhase?.buildFiles, identifiers: ["text.plist.strings", "text.json.xcstrings"], buildFilesProcessingContext: buildFilesProcessingContext).filter { ["AssistantIntents.strings", "AssistantIntents.xcstrings"].contains($0.absolutePath.basename) }
+            let assistantIntentsStringsSources: [FileToBuild] = self.filterBuildFiles(buildPhaseTarget.resourcesBuildPhase?.buildFiles, identifiers: ["text.plist.strings", "text.json.xcstrings"], buildFilesProcessingContext: buildFilesProcessingContext).filter { ["AssistantIntents.strings", "AssistantIntents.xcstrings"].contains($0.absolutePath.basename) }
             await self.appendGeneratedTasks(&deferredTasks) { delegate in
                 let shouldConstructAppIntentsMetadataTask = self.context.appIntentsMetadataCompilerSpec.shouldConstructAppIntentsMetadataTask(cbc)
                 let isInstallLoc = scope.evaluate(BuiltinMacros.BUILD_COMPONENTS).contains("installLoc")
@@ -161,13 +161,13 @@ final class AppIntentsMetadataTaskProducer: PhasedTaskProducer, TaskProducer {
                     ((!scope.effectiveInputInfoPlistPath().isEmpty && shouldConstructAppIntentsMetadataTask) || isInstallLoc) {
                     var infoPlistSources: [FileToBuild]
                     if isInstallLoc {
-                        infoPlistSources = self.filterBuildFiles(self.resourcesBuildPhase?.buildFiles, identifiers: ["text.plist.strings", "text.json.xcstrings"], buildFilesProcessingContext: buildFilesProcessingContext).filter { $0.absolutePath.basename.hasSuffix("InfoPlist.strings") || $0.absolutePath.basename.hasSuffix("InfoPlist.xcstrings") }
+                        infoPlistSources = self.filterBuildFiles(buildPhaseTarget.resourcesBuildPhase?.buildFiles, identifiers: ["text.plist.strings", "text.json.xcstrings"], buildFilesProcessingContext: buildFilesProcessingContext).filter { $0.absolutePath.basename.hasSuffix("InfoPlist.strings") || $0.absolutePath.basename.hasSuffix("InfoPlist.xcstrings") }
                         // The installLoc builds should include an AppShortcuts strings/xcstrings file to run SSU tasks
                         guard appShortcutStringsSources.count == 1 else {
                             return
                         }
                     } else {
-                        infoPlistSources = [FileToBuild(context: self.context, absolutePath: scope.evaluate(BuiltinMacros.TARGET_BUILD_DIR).join(scope.evaluate(BuiltinMacros.INFOPLIST_PATH)))]
+                        infoPlistSources = [FileToBuild(absolutePath: scope.evaluate(BuiltinMacros.TARGET_BUILD_DIR).join(scope.evaluate(BuiltinMacros.INFOPLIST_PATH)), inferringTypeUsing: self.context)]
                     }
                     let yamlGenerationInputs: [FileToBuild] = infoPlistSources + appShortcutStringsSources
                     let appIntentsSsuTrainingCbc = CommandBuildContext(producer: self.context, scope: scope, inputs: yamlGenerationInputs, resourcesDir: buildFilesProcessingContext.resourcesDir)
@@ -178,5 +178,15 @@ final class AppIntentsMetadataTaskProducer: PhasedTaskProducer, TaskProducer {
         }
 
         return tasks
+    }
+}
+
+extension TaskProducerContext {
+    var appIntentsMetadataCompilerSpec: AppIntentsMetadataCompilerSpec {
+        return workspaceContext.core.specRegistry.getSpec("com.apple.compilers.appintentsmetadata", domain: domain) as! AppIntentsMetadataCompilerSpec
+    }
+
+    var appIntentsSsuTrainingCompilerSpec: AppIntentsSSUTrainingCompilerSpec {
+        return workspaceContext.core.specRegistry.getSpec("com.apple.compilers.appintents-ssu-training", domain: domain) as! AppIntentsSSUTrainingCompilerSpec
     }
 }

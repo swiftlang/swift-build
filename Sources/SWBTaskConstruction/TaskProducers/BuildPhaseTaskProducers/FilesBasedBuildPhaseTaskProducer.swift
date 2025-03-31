@@ -72,7 +72,7 @@ package final class BuildFilesProcessingContext: BuildFileFilteringContext {
     fileprivate let resolveBuildRules: Bool
 
     /// The resources directory for the product, if relevant.
-    let resourcesDir: Path
+    public let resourcesDir: Path
     /// The resources intermediates directory, if appropriate.
     let tmpResourcesDir: Path
 

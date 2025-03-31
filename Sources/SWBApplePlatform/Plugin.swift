@@ -40,7 +40,15 @@ struct TaskProducersExtension: TaskProducerExtension {
     }
 
     var unorderedPostSetupTaskProducers: [any TaskProducerFactory] {
-        [StubBinaryTaskProducerFactory()]
+        [
+            StubBinaryTaskProducerFactory()
+        ]
+    }
+
+    var unorderedPostBuildPhasesTaskProducers: [any TaskProducerFactory] {
+        [
+            AppIntentsMetadataTaskProducerFactory()
+        ]
     }
 
     var globalTaskProducers: [any GlobalTaskProducerFactory] {
@@ -62,6 +70,16 @@ struct StubBinaryTaskProducerFactory: TaskProducerFactory, GlobalTaskProducerFac
     }
 }
 
+struct AppIntentsMetadataTaskProducerFactory : TaskProducerFactory {
+    var name: String {
+        "AppIntentsMetadataTaskProducer"
+    }
+
+    func createTaskProducer(_ context: TargetTaskProducerContext, startPhaseNodes: [PlannedVirtualNode], endPhaseNode: PlannedVirtualNode) -> any TaskProducer {
+        AppIntentsMetadataTaskProducer(context, phaseStartNodes: startPhaseNodes, phaseEndNode: endPhaseNode)
+    }
+}
+
 struct RealityAssetsTaskProducerFactory: TaskProducerFactory {
     var name: String {
         "RealityAssetsTaskProducer"
@@ -76,6 +94,8 @@ struct ApplePlatformSpecsExtension: SpecificationsExtension {
     func specificationClasses() -> [any SpecIdentifierType.Type] {
         [
             ActoolCompilerSpec.self,
+            AppIntentsMetadataCompilerSpec.self,
+            AppIntentsSSUTrainingCompilerSpec.self,
             CoreDataModelCompilerSpec.self,
             CoreMLCompilerSpec.self,
             CopyTiffFileSpec.self,
