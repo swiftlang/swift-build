@@ -29,6 +29,9 @@ file(CONFIGURE
   ESCAPE_QUOTES @ONLY NEWLINE_STYLE LF)
 
 add_library(SWBApplePlatform STATIC
+  AppIntentsMetadataCompiler.swift
+  AppIntentsMetadataTaskProducer.swift
+  AppIntentsSSUTrainingCompiler.swift
   AssetCatalogCompiler.swift
   CopyTiffFile.swift
   CoreDataCompiler.swift

@@ -136,8 +136,6 @@ add_library(SWBCore
   SpecImplementations/SpecParser.swift
   SpecImplementations/SpecRegistry.swift
   SpecImplementations/Specs.swift
-  SpecImplementations/Tools/AppIntentsMetadataCompiler.swift
-  SpecImplementations/Tools/AppIntentsSSUTrainingCompiler.swift
   SpecImplementations/Tools/AppShortcutStringsMetadataCompiler.swift
   SpecImplementations/Tools/CCompiler.swift
   SpecImplementations/Tools/ClangModuleVerifierInputGenerator.swift
