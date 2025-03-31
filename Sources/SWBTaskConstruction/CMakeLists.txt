@@ -28,7 +28,6 @@ add_library(SWBTaskConstruction
   TaskProducers/BuildPhaseTaskProducers/ShellScriptTaskProducer.swift
   TaskProducers/BuildPhaseTaskProducers/SourcesTaskProducer.swift
   TaskProducers/BuildPhaseTaskProducers/SwiftPackageCopyFilesTaskProducer.swift
-  TaskProducers/OtherTaskProducers/AppIntentsMetadataTaskProducer.swift
   TaskProducers/OtherTaskProducers/CopySwiftPackageResourcesTaskProducer.swift
   TaskProducers/OtherTaskProducers/CustomTaskProducer.swift
   TaskProducers/OtherTaskProducers/DevelopmentAssetsTaskProducer.swift
