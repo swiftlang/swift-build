@@ -216,7 +216,6 @@ public final class InfoPlistProcessorTaskAction: TaskAction
                         }
                     }
                 }
-                
                 do {
                     let result = try withTemporaryDirectory(fs: executionDelegate.fs) { plistDefaultsDir -> CommandResult in
                         let plistDefaultsPath = plistDefaultsDir.join("DefaultInfoPlistContent.plist")
@@ -1036,7 +1035,12 @@ public final class InfoPlistProcessorTaskAction: TaskAction
         existingSource: String,
         newSource: String
     ) -> String? {
-        // For scalar types (string, number, boolean), simply check equality
+        // Skip type conflicts - these already generate errors elsewhere
+        if existingValue.typeDisplayString != newValue.typeDisplayString {
+            return nil
+        }
+
+        // For scalar types (string, number, boolean), check equality
         if existingValue.isScalarType && newValue.isScalarType {
             if existingValue != newValue {
                 return "Conflicting values for Info.plist key '\(key)': '\(existingValue)' from \(existingSource) will be overwritten by '\(newValue)' from \(newSource)"
@@ -1044,24 +1048,18 @@ public final class InfoPlistProcessorTaskAction: TaskAction
         }
         // For arrays, check if they contain different elements
         else if case .plArray(let existingArray) = existingValue, case .plArray(let newArray) = newValue {
-            // Simple check - if arrays have different lengths or elements, there's a conflict
             if existingArray != newArray {
                 return "Conflicting array values for Info.plist key '\(key)' from \(existingSource) will be merged with values from \(newSource)"
             }
         }
         // For dictionaries, recursively check keys
         else if case .plDict(let existingDict) = existingValue, case .plDict(let newDict) = newValue {
-            // Find keys that exist in both dictionaries with different values
             for (subKey, newSubValue) in newDict {
                 if let existingSubValue = existingDict[subKey],
                    existingSubValue != newSubValue {
                     return "Conflicting dictionary values for Info.plist key '\(key).\(subKey)': '\(existingSubValue)' from \(existingSource) will be overwritten by '\(newSubValue)' from \(newSource)"
                 }
             }
-        }
-        // If types are different entirely, that's a conflict
-        else if existingValue.typeDisplayString != newValue.typeDisplayString {
-            return "Type conflict for Info.plist key '\(key)': \(existingValue.typeDisplayString) from \(existingSource) will be replaced with \(newValue.typeDisplayString) from \(newSource)"
         }
 
         return nil
