@@ -956,7 +956,9 @@ public final class InfoPlistProcessorTaskAction: TaskAction
             let workingValue = plistDict[key]
             
             // Check for conflicts
-            if let workingValue, let conflictMessage = detectConflict(
+            if let workingValue,
+               workingValue.typeDisplayString == valueToMerge.typeDisplayString, // Only check for conflicts if they're the same type
+               let conflictMessage = detectConflict(
                 forKey: key,
                 existingValue: workingValue,
                 newValue: valueToMerge,
@@ -1035,11 +1037,6 @@ public final class InfoPlistProcessorTaskAction: TaskAction
         existingSource: String,
         newSource: String
     ) -> String? {
-        // Skip type conflicts - these already generate errors elsewhere
-        if existingValue.typeDisplayString != newValue.typeDisplayString {
-            return nil
-        }
-
         // For scalar types (string, number, boolean), check equality
         if existingValue.isScalarType && newValue.isScalarType {
             if existingValue != newValue {
