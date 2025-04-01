@@ -98,7 +98,7 @@ fileprivate struct BuildBacktraceTests: CoreBasedTests {
                 }
             }
 
-            try await tester.checkNullBuild(runDestination: .macOS, buildRequest: buildRequest)
+            try await tester.checkNullBuild(runDestination: .macOS, buildRequest: buildRequest, persistent: true)
 
             try await tester.fs.writeFileContents(SRCROOT.join("Sources/foo.c")) { file in
                 file <<<
@@ -441,7 +441,7 @@ fileprivate struct BuildBacktraceTests: CoreBasedTests {
                 results.checkNoDiagnostics()
             }
 
-            try await tester.checkNullBuild(runDestination: .macOS, buildRequest: buildRequest, signableTargets: Set(provisioningInputs.keys), signableTargetInputs: provisioningInputs)
+            try await tester.checkNullBuild(runDestination: .macOS, buildRequest: buildRequest, persistent: true, signableTargets: Set(provisioningInputs.keys), signableTargetInputs: provisioningInputs)
 
             try await tester.fs.writeFileContents(SRCROOT.join("Sources/foo.c")) { file in
                 file <<<
