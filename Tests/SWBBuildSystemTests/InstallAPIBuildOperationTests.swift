@@ -76,7 +76,7 @@ fileprivate struct InstallAPIBuildOperationTests: CoreBasedTests {
                     results.checkNoDiagnostics()
                 }
 
-                try await tester.checkNullBuild(parameters: parameters, runDestination: .macOS)
+                try await tester.checkNullBuild(parameters: parameters, runDestination: .macOS, persistent: true)
 
                 // Update a public header.
                 try await tester.fs.writeFileContents(testWorkspace.sourceRoot.join("aProject/Public.h"), body: { $0 <<< "void f(void); // prototype" })
@@ -86,7 +86,7 @@ fileprivate struct InstallAPIBuildOperationTests: CoreBasedTests {
                     results.checkNoDiagnostics()
                 }
 
-                try await tester.checkNullBuild(parameters: parameters, runDestination: .macOS)
+                try await tester.checkNullBuild(parameters: parameters, runDestination: .macOS, persistent: true)
 
                 // Update a private header.
                 try await tester.fs.writeFileContents(testWorkspace.sourceRoot.join("aProject/Private.h"), body: { $0 <<< "void g(void); // prototype" })
@@ -96,7 +96,7 @@ fileprivate struct InstallAPIBuildOperationTests: CoreBasedTests {
                     results.checkNoDiagnostics()
                 }
 
-                try await tester.checkNullBuild(parameters: parameters, runDestination: .macOS)
+                try await tester.checkNullBuild(parameters: parameters, runDestination: .macOS, persistent: true)
                 try await tester.checkBuild(parameters: parameters, runDestination: .macOS, buildCommand: .cleanBuildFolder(style: .regular)) { _ in }
             }
         }
@@ -161,7 +161,7 @@ fileprivate struct InstallAPIBuildOperationTests: CoreBasedTests {
                     results.checkNoDiagnostics()
                 }
 
-                try await tester.checkNullBuild(parameters: parameters, runDestination: .macOS)
+                try await tester.checkNullBuild(parameters: parameters, runDestination: .macOS, persistent: true)
 
                 // Update a private header.
                 try await tester.fs.writeFileContents(testWorkspace.sourceRoot.join("aProject/Private.h"), body: { $0 <<< "void g(void); // prototype" })
@@ -171,7 +171,7 @@ fileprivate struct InstallAPIBuildOperationTests: CoreBasedTests {
                     results.checkNoDiagnostics()
                 }
 
-                try await tester.checkNullBuild(parameters: parameters, runDestination: .macOS)
+                try await tester.checkNullBuild(parameters: parameters, runDestination: .macOS, persistent: true)
                 try await tester.checkBuild(parameters: parameters, runDestination: .macOS, buildCommand: .cleanBuildFolder(style: .regular)) { _ in }
             }
         }
@@ -253,7 +253,7 @@ fileprivate struct InstallAPIBuildOperationTests: CoreBasedTests {
                     results.checkNoDiagnostics()
                 }
 
-                try await tester.checkNullBuild(parameters: parameters(excludePublicHeader: true, excludePrivateHeader: false), runDestination: .macOS)
+                try await tester.checkNullBuild(parameters: parameters(excludePublicHeader: true, excludePrivateHeader: false), runDestination: .macOS, persistent: true)
 
                 try await tester.checkBuild(parameters: parameters(excludePublicHeader: true, excludePrivateHeader: true), runDestination: .macOS, persistent: true) { results in
                     try results.checkTask(.matchRuleType("GenerateTAPI")) { tapiTask in
@@ -265,7 +265,7 @@ fileprivate struct InstallAPIBuildOperationTests: CoreBasedTests {
                     results.checkNoDiagnostics()
                 }
 
-                try await tester.checkNullBuild(parameters: parameters(excludePublicHeader: true, excludePrivateHeader: true), runDestination: .macOS)
+                try await tester.checkNullBuild(parameters: parameters(excludePublicHeader: true, excludePrivateHeader: true), runDestination: .macOS, persistent: true)
                 try await tester.checkBuild(parameters: parameters(excludePublicHeader: true, excludePrivateHeader: true), runDestination: .macOS, buildCommand: .cleanBuildFolder(style: .regular)) { _ in }
             }
         }

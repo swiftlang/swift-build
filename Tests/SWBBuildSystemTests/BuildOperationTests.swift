@@ -3066,7 +3066,7 @@ That command depends on command in Target 'agg2' (project \'aProject\'): script 
                 let buildTargets = tester.workspace.projects[0].targets.map { BuildRequest.BuildTargetInfo(parameters: parameters, target: $0) }
                 let buildRequest = BuildRequest(parameters: parameters, buildTargets: buildTargets, dependencyScope: .workspace, continueBuildingAfterErrors: false, useParallelTargets: true, useImplicitDependencies: false, useDryRun: false, buildCommand: .build(style: .buildOnly, skipDependencies: false), schemeCommand: .launch)
 
-                try await tester.checkBuild(parameters: parameters, runDestination: runDestination, buildRequest: buildRequest, signableTargets: signableTargets) { results in
+                try await tester.checkBuild(parameters: parameters, runDestination: runDestination, buildRequest: buildRequest, persistent: true, signableTargets: signableTargets) { results in
                     results.checkNoDiagnostics()
                     results.consumeTasksMatchingRuleTypes()
 
@@ -3436,7 +3436,7 @@ That command depends on command in Target 'agg2' (project \'aProject\'): script 
 
             // Perform the first (clean) build and expect to see a compile task.
             try await confirmation("First archive should succeed.") { firstBuildSucceed in
-                try await tester.checkBuild(parameters: parameters, runDestination: .macOS) { results in
+                try await tester.checkBuild(parameters: parameters, runDestination: .macOS, persistent: true) { results in
                     results.checkTask(.matchRuleItem("CompileC"), body: { _ in })
                     results.checkTasks { tasks in
                         #expect(tasks.count > 0)
@@ -3448,7 +3448,7 @@ That command depends on command in Target 'agg2' (project \'aProject\'): script 
 
             // Perform the second (incremental) build, and expect to see no tasks run because we didn't change anything.
             try await confirmation("Second archive should succeed.") { secondBuildSucceed in
-                try await tester.checkBuild(parameters: parameters, runDestination: .macOS) { results in
+                try await tester.checkBuild(parameters: parameters, runDestination: .macOS, persistent: true) { results in
                     results.checkTasks(.matchRuleType("ClangStatCache")) { _ in }
                     if tester.userPreferences.enableBuildSystemCaching {
                         results.checkNoTask()

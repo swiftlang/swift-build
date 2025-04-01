@@ -1836,7 +1836,7 @@ fileprivate struct ClangExplicitModulesTests: CoreBasedTests {
                 """
             }
 
-            try await tester.checkBuild(runDestination: .macOS) { results in
+            try await tester.checkBuild(runDestination: .macOS, persistent: true) { results in
                 // There be 2 scanning actions.
                 results.checkTasks(.matchRuleType("ScanDependencies")) { scanTasks in
                     #expect(scanTasks.count == 2)
@@ -1856,7 +1856,7 @@ fileprivate struct ClangExplicitModulesTests: CoreBasedTests {
                 """
             }
 
-            try await tester.checkBuild(runDestination: .macOS) { results in
+            try await tester.checkBuild(runDestination: .macOS, persistent: true) { results in
                 // There should 2 scanning actions.
                 // Both files will recompile.
                 results.checkTasks(.matchRuleType("ScanDependencies")) { compileTasks in
@@ -1892,7 +1892,7 @@ fileprivate struct ClangExplicitModulesTests: CoreBasedTests {
                 """
             }
 
-            try await tester.checkBuild(runDestination: .macOS) { results in
+            try await tester.checkBuild(runDestination: .macOS, persistent: true) { results in
                 // There should 2 scanning actions.
                 // Both files will recompile.
                 results.checkTasks(.matchRuleType("ScanDependencies")) { compileTasks in
