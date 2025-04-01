@@ -847,7 +847,7 @@ public class ClangCompilerSpec : CompilerSpec, SpecIdentifierType, GCCCompatible
             return false
         }
 
-        let buildSettingEnabled = cbc.scope.evaluate(BuiltinMacros.CLANG_ENABLE_COMPILE_CACHE) == .enabled
+        let buildSettingEnabled = cbc.scope.evaluate(BuiltinMacros.CLANG_ENABLE_COMPILE_CACHE)
 
         // If a blocklist is provided in the toolchain, use it to determine the default for the current project
         guard let blocklist = clangInfo?.clangCachingBlocklist else {

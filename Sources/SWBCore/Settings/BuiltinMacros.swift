@@ -507,7 +507,7 @@ public final class BuiltinMacros {
     public static let CLANG_EXPLICIT_MODULES_IGNORE_LIBCLANG_VERSION_MISMATCH = BuiltinMacros.declareBooleanMacro("CLANG_EXPLICIT_MODULES_IGNORE_LIBCLANG_VERSION_MISMATCH")
     public static let CLANG_EXPLICIT_MODULES_OUTPUT_PATH = BuiltinMacros.declareStringMacro("CLANG_EXPLICIT_MODULES_OUTPUT_PATH")
     public static let SWIFT_EXPLICIT_MODULES_OUTPUT_PATH = BuiltinMacros.declareStringMacro("SWIFT_EXPLICIT_MODULES_OUTPUT_PATH")
-    public static let CLANG_ENABLE_COMPILE_CACHE = BuiltinMacros.declareEnumMacro("CLANG_ENABLE_COMPILE_CACHE") as EnumMacroDeclaration<CompilationCachingSetting>
+    public static let CLANG_ENABLE_COMPILE_CACHE = BuiltinMacros.declareBooleanMacro("CLANG_ENABLE_COMPILE_CACHE")
     public static let CLANG_CACHE_FINE_GRAINED_OUTPUTS = BuiltinMacros.declareEnumMacro("CLANG_CACHE_FINE_GRAINED_OUTPUTS") as EnumMacroDeclaration<FineGrainedCachingSetting>
     public static let CLANG_CACHE_FINE_GRAINED_OUTPUTS_VERIFICATION = BuiltinMacros.declareEnumMacro("CLANG_CACHE_FINE_GRAINED_OUTPUTS_VERIFICATION") as EnumMacroDeclaration<FineGrainedCachingVerificationSetting>
     public static let CLANG_DISABLE_DEPENDENCY_INFO_FILE = BuiltinMacros.declareBooleanMacro("CLANG_DISABLE_DEPENDENCY_INFO_FILE")
@@ -1066,7 +1066,7 @@ public final class BuiltinMacros {
     public static let SWIFT_VERSION = BuiltinMacros.declareStringMacro("SWIFT_VERSION")
     public static let EFFECTIVE_SWIFT_VERSION = BuiltinMacros.declareStringMacro("EFFECTIVE_SWIFT_VERSION")
     public static let SWIFT_WHOLE_MODULE_OPTIMIZATION = BuiltinMacros.declareBooleanMacro("SWIFT_WHOLE_MODULE_OPTIMIZATION")
-    public static let SWIFT_ENABLE_COMPILE_CACHE = BuiltinMacros.declareEnumMacro("SWIFT_ENABLE_COMPILE_CACHE") as EnumMacroDeclaration<CompilationCachingSetting>
+    public static let SWIFT_ENABLE_COMPILE_CACHE = BuiltinMacros.declareBooleanMacro("SWIFT_ENABLE_COMPILE_CACHE")
     public static let SWIFT_ENABLE_PREFIX_MAPPING = BuiltinMacros.declareBooleanMacro("SWIFT_ENABLE_PREFIX_MAPPING")
     public static let SWIFT_OTHER_PREFIX_MAPPINGS = BuiltinMacros.declareStringListMacro("SWIFT_OTHER_PREFIX_MAPPINGS")
     public static let SYMBOL_GRAPH_EXTRACTOR_OUTPUT_DIR = BuiltinMacros.declareStringMacro("SYMBOL_GRAPH_EXTRACTOR_OUTPUT_DIR")
@@ -2629,15 +2629,6 @@ public enum SwiftDependencyRegistrationMode: String, Equatable, Hashable, Enumer
     case makeStyleDependenciesSupplementedByScanner = "make-style"
     case swiftDependencyScannerOnly = "dependency-scanner"
     case verifySwiftDependencyScanner = "verify-swift-dependency-scanner"
-}
-
-/// Enumeration macro type for tri-state boolean value of whether the user has enabled compilation caching builds, disabled, or not set.
-public enum CompilationCachingSetting: String, Equatable, Hashable, EnumerationMacroType {
-    public static let defaultValue = CompilationCachingSetting.notset
-
-    case notset = "NOT_SET"
-    case enabled = "YES"
-    case disabled = "NO"
 }
 
 public enum FineGrainedCachingSetting: String, Equatable, Hashable, EnumerationMacroType {

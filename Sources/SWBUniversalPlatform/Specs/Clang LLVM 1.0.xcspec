@@ -2948,6 +2948,12 @@
                 };
             },
 
+            {
+                Name = "CLANG_ENABLE_COMPILE_CACHE";
+                Type = Boolean;
+                DefaultValue = "$(COMPILATION_CACHE_ENABLE_CACHING)";
+            },
+
             // Thread Sanitizer options.
             {
                 Name = "CLANG_THREAD_SANITIZER";

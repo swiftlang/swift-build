@@ -581,11 +581,11 @@ final class WorkspaceSettings: Sendable {
         }
 
         if SWBFeatureFlag.enableClangCachingByDefault.value {
-            table.push(BuiltinMacros.CLANG_ENABLE_COMPILE_CACHE, literal: .enabled)
+            table.push(BuiltinMacros.CLANG_ENABLE_COMPILE_CACHE, literal: true)
         }
 
         if SWBFeatureFlag.enableSwiftCachingByDefault.value {
-            table.push(BuiltinMacros.SWIFT_ENABLE_COMPILE_CACHE, literal: .enabled)
+            table.push(BuiltinMacros.SWIFT_ENABLE_COMPILE_CACHE, literal: true)
         }
 
         return table
