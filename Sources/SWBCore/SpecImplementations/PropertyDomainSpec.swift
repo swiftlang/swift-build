@@ -110,6 +110,10 @@ private final class EnumBuildOptionType : BuildOptionType {
             return try namespace.declareEnumMacro(name) as EnumMacroDeclaration<SwiftEnableExplicitModulesSetting>
         case "SWIFT_ENABLE_EXPLICIT_MODULES":
             return try namespace.declareEnumMacro(name) as EnumMacroDeclaration<SwiftEnableExplicitModulesSetting>
+        case "SWIFT_ENABLE_COMPILE_CACHE":
+            return try namespace.declareEnumMacro(name) as EnumMacroDeclaration<CompilationCachingSetting>
+        case "CLANG_ENABLE_COMPILE_CACHE":
+            return try namespace.declareEnumMacro(name) as EnumMacroDeclaration<CompilationCachingSetting>
         default:
             return try namespace.declareStringMacro(name)
         }
