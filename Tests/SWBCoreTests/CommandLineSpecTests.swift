@@ -1848,14 +1848,14 @@ import SWBMacro
         let core = try await getCore()
         let clangSpec = try core.specRegistry.getSpec("com.apple.compilers.llvm.clang.1_0") as CommandLineToolSpec
         let mockFileType = try core.specRegistry.getSpec("sourcecode.cpp.cpp") as FileTypeSpec
-        let enableCompileCache = try #require(core.specRegistry.internalMacroNamespace.lookupMacroDeclaration("CLANG_ENABLE_COMPILE_CACHE") as? EnumMacroDeclaration<CompilationCachingSetting>)
+        let enableCompileCache = try #require(core.specRegistry.internalMacroNamespace.lookupMacroDeclaration("CLANG_ENABLE_COMPILE_CACHE") as? BooleanMacroDeclaration)
         let enablePrefixMap = try #require(core.specRegistry.internalMacroNamespace.lookupMacroDeclaration("CLANG_ENABLE_PREFIX_MAPPING") as? BooleanMacroDeclaration)
         let prefixMaps = try #require(core.specRegistry.internalMacroNamespace.lookupMacroDeclaration("CLANG_OTHER_PREFIX_MAPPINGS") as? StringListMacroDeclaration)
         let devDir = try #require(core.specRegistry.internalMacroNamespace.lookupMacroDeclaration("DEVELOPER_DIR") as? PathMacroDeclaration)
 
         func test(caching: Bool, prefixMapping: Bool, extraMaps: [String], completion: ([String]) throws -> Void) async throws {
             var table = MacroValueAssignmentTable(namespace: core.specRegistry.internalMacroNamespace)
-            table.push(enableCompileCache, literal: caching ? .enabled : .disabled)
+            table.push(enableCompileCache, literal: caching)
             table.push(enablePrefixMap, literal: prefixMapping)
             table.push(prefixMaps, literal: extraMaps)
             table.push(devDir, literal: "/Xcode.app/Contents/Developer")
@@ -1902,7 +1902,7 @@ import SWBMacro
         let swiftSpec = try core.specRegistry.getSpec("com.apple.xcode.tools.swift.compiler") as CompilerSpec
 
         let mockFileType = try core.specRegistry.getSpec("sourcecode.swift") as FileTypeSpec
-        let enableCompileCache = try #require(core.specRegistry.internalMacroNamespace.lookupMacroDeclaration("SWIFT_ENABLE_COMPILE_CACHE") as? EnumMacroDeclaration<CompilationCachingSetting>)
+        let enableCompileCache = try #require(core.specRegistry.internalMacroNamespace.lookupMacroDeclaration("SWIFT_ENABLE_COMPILE_CACHE") as? BooleanMacroDeclaration)
         let enablePrefixMap = try #require(core.specRegistry.internalMacroNamespace.lookupMacroDeclaration("SWIFT_ENABLE_PREFIX_MAPPING") as? BooleanMacroDeclaration)
         let prefixMaps = try #require(core.specRegistry.internalMacroNamespace.lookupMacroDeclaration("SWIFT_OTHER_PREFIX_MAPPINGS") as? StringListMacroDeclaration)
         let devDir = try #require(core.specRegistry.internalMacroNamespace.lookupMacroDeclaration("DEVELOPER_DIR") as? PathMacroDeclaration)
@@ -1922,7 +1922,7 @@ import SWBMacro
 
             // remove in rdar://53000820
             table.push(BuiltinMacros.USE_SWIFT_RESPONSE_FILE, literal: true)
-            table.push(enableCompileCache, literal: caching ? .enabled : .disabled)
+            table.push(enableCompileCache, literal: caching)
             table.push(enablePrefixMap, literal: prefixMapping)
             table.push(prefixMaps, literal: extraMaps)
             table.push(devDir, literal: "/Xcode.app/Contents/Developer")

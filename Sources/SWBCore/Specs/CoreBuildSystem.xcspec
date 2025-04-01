@@ -1748,6 +1748,22 @@ For more information on mergeable libraries, see [Configuring your project to us
                 DefaultValue = NO;
             },
 
+            {
+                Name = "COMPILATION_CACHE_ENABLE_CACHING";
+                Type = Boolean;
+                Category = "Compilation Caching";
+                DefaultValue = "$(COMPILATION_CACHE_ENABLE_CACHING_DEFAULT)";
+                DisplayName = "Enable Compilation Caching";
+                Description = "Caches the results of compilations for a particular set of inputs.";
+            },
+            {
+                Name = "COMPILATION_CACHE_ENABLE_DIAGNOSTIC_REMARKS";
+                Type = Boolean;
+                Category = "Compilation Caching";
+                DisplayName = "Compilation Caching Diagnostic Info";
+                Description = "Emits diagnostic information for cached compilation tasks.";
+            },
+
             // FIXME: The TAPI settings should not need to be here in order to have them appear in the project editor UI.
             {
                 Name = "SUPPORTS_TEXT_BASED_API";
