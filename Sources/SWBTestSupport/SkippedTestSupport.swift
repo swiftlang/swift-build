@@ -48,6 +48,10 @@ extension KnownSDK {
             return windows
         case .success(.linux):
             return linux
+        case .success(.freebsd):
+            return freebsd
+        case .success(.openbsd):
+            return openbsd
         case .success(.android):
             return android
         case .success(.unknown), .failure:
@@ -68,6 +72,8 @@ extension KnownSDK {
 extension KnownSDK {
     package static let windows: Self = "windows"
     package static let linux: Self = "linux"
+    package static let freebsd: Self = "freebsd"
+    package static let openbsd: Self = "openbsd"
     package static let android: Self = "android"
     package static let qnx: Self = "qnx"
     package static let wasi: Self = "wasi"
@@ -143,6 +149,9 @@ extension Trait where Self == Testing.ConditionTrait {
             case .linux:
                 // Amazon Linux 2 has glibc 2.26, and glibc 2.29 is needed for posix_spawn_file_actions_addchdir_np support
                 FileManager.default.contents(atPath: "/etc/system-release").map { String(decoding: $0, as: UTF8.self) == "Amazon Linux release 2 (Karoo)\n" } ?? false
+            case .openbsd:
+                // OpenBSD does not yet have posix_spawn_file_actions_addchdir support at all
+                true
             default:
                 false
             }
