@@ -30,8 +30,8 @@ import SWBTestSupport
 
 @Suite(.requireXcode16())
 fileprivate struct BuildOperationTests: CoreBasedTests {
-    @Test(.requireSDKs(.host), .requireThreadSafeWorkingDirectory)
-    func commandLineTool() async throws {
+    @Test(.requireSDKs(.host), .requireThreadSafeWorkingDirectory, arguments: ["clang", "swiftc"])
+    func commandLineTool(linkerDriver: String) async throws {
         try await withTemporaryDirectory { (tmpDir: Path) in
             let testProject = try await TestProject(
                 "TestProject",
@@ -54,6 +54,7 @@ fileprivate struct BuildOperationTests: CoreBasedTests {
                         "SDKROOT": "$(HOST_PLATFORM)",
                         "SUPPORTED_PLATFORMS": "$(HOST_PLATFORM)",
                         "SWIFT_VERSION": swiftVersion,
+                        "LINKER_DRIVER": linkerDriver,
                     ])
                 ],
                 targets: [

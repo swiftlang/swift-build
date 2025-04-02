@@ -270,12 +270,22 @@ public class ProductTypeSpec : Spec, SpecType, @unchecked Sendable {
         if producer.isApplePlatform {
             let compatibilityVersion = scope.evaluate(BuiltinMacros.DYLIB_COMPATIBILITY_VERSION)
             if !compatibilityVersion.isEmpty {
-                args += ["-compatibility_version", compatibilityVersion]
+                switch scope.evaluate(BuiltinMacros.LINKER_DRIVER) {
+                case .clang:
+                    args += ["-compatibility_version", compatibilityVersion]
+                case .swiftc:
+                    args += ["-Xlinker", "-compatibility_version", "-Xlinker", compatibilityVersion]
+                }
             }
 
             let currentVersion = scope.evaluate(BuiltinMacros.DYLIB_CURRENT_VERSION)
             if !currentVersion.isEmpty {
-                args += ["-current_version", currentVersion]
+                switch scope.evaluate(BuiltinMacros.LINKER_DRIVER) {
+                case .clang:
+                    args += ["-current_version", currentVersion]
+                case .swiftc:
+                    args += ["-Xlinker", "-current_version", "-Xlinker", currentVersion]
+                }
             }
         }
 

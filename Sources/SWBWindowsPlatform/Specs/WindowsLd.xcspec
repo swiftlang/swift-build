@@ -22,10 +22,11 @@
         SupportsInputFileList = No;
         EnvironmentVariables = {
             "TEMP" = "$(TEMP)";
+            "PATH" = "$(TOOLCHAIN_DIR)/usr/bin;$(DEVELOPER_DIR)/Runtimes/$(TOOLCHAIN_VERSION)/usr/bin;$(PATH)";
         };
         Options = (
             {
-                Name = "MACH_O_TYPE";
+                Name = "CLANG_MACH_O_TYPE";
                 Type = Enumeration;
                 Values = (
                     {
@@ -45,11 +46,24 @@
                         CommandLineFlag = "";
                     },
                 );
+                Condition = "$(LINKER_DRIVER) == clang";
+                DefaultValue = "$(MACH_O_TYPE)";
+            },
+            // We can inherit SWIFTC_MACHO_TYPE from the universal platform Ld.xcspec
+            {
+                Name = CLANG_SDKROOT_LINKER_INPUT;
+                Type = Path;
+                DefaultValue = "$(SDKROOT)";
+                Condition = "$(LINKER_DRIVER) == clang";
+                CommandLineFlag = "--sysroot";
+                IsInputDependency = Yes;
             },
             {
-                Name = SDKROOT;
+                Name = SWIFTC_SDKROOT_LINKER_INPUT;
                 Type = Path;
-                CommandLineFlag = "--sysroot";
+                DefaultValue = "$(SDKROOT)";
+                Condition = "$(LINKER_DRIVER) == swiftc";
+                CommandLineFlag = "-sdk";
                 IsInputDependency = Yes;
             },
             {
@@ -77,6 +91,16 @@
                 Type = String;
                 Condition = "NO";
                 CommandLineArgs = ();
+            },
+            {
+                Name = "CLANG_LD_DYLIB_INSTALL_NAME";
+                Type = String;
+                Condition = "NO";
+            },
+            {
+                Name = "SWIFTC_LD_DYLIB_INSTALL_NAME";
+                Type = String;
+                Condition = "NO";
             },
             {
                 // No such concept
@@ -145,16 +169,21 @@
                 );
                 IsInputDependency = Yes;
             },
+            // Override the differentiated settings to no-ops, both linker drivers use the same flags.
+            {
+                Name = "CLANG__INPUT_FILE_LIST_PATH__";
+                Type = Path;
+                Condition = "NO";
+            },
+            {
+                Name = "SWIFTC__INPUT_FILE_LIST_PATH__";
+                Type = Path;
+                Condition = "NO";
+            },
             {
                 Name = "ALTERNATE_LINKER";
                 Type = String;
                 DefaultValue = "lld-link";
-                CommandLineArgs = {
-                    "" = ();
-                    "<<otherwise>>" = (
-                        "-fuse-ld=$(value)"
-                    );
-                };
             },
         );
     },

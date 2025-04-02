@@ -234,7 +234,13 @@ public final class LdLinkerSpec : GenericLinkerSpec, SpecIdentifierType, @unchec
     public static let identifier = "com.apple.pbx.linkers.ld"
 
     public override func computeExecutablePath(_ cbc: CommandBuildContext) -> String {
-        return cbc.producer.hostOperatingSystem.imageFormat.executableName(basename: "clang")
+        // TODO: We should also provide an "auto" option which chooses based on the source files in the target
+        switch cbc.scope.evaluate(BuiltinMacros.LINKER_DRIVER) {
+        case .clang:
+            return cbc.producer.hostOperatingSystem.imageFormat.executableName(basename: "clang")
+        case .swiftc:
+            return cbc.producer.hostOperatingSystem.imageFormat.executableName(basename: "swiftc")
+        }
     }
 
     override public var toolBasenameAliases: [String] {
