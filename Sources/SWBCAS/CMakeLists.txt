@@ -19,3 +19,8 @@ set_target_properties(SWBCAS PROPERTIES
 target_link_libraries(SWBCAS PUBLIC
   SWBUtil
   SWBCSupport)
+
+target_include_directories(SWBCAS PUBLIC
+  ${CMAKE_CURRENT_BINARY_DIR})
+
+set_property(GLOBAL APPEND PROPERTY SWIFTBUILD_EXPORTS SWBCAS)

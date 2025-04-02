@@ -22,3 +22,8 @@ target_link_libraries(SWBBuildSystem PUBLIC
   SWBCore
   SWBTaskConstruction
   SWBTaskExecution)
+
+target_include_directories(SWBBuildSystem PUBLIC
+  ${CMAKE_CURRENT_BINARY_DIR})
+
+set_property(GLOBAL APPEND PROPERTY SWIFTBUILD_EXPORTS SWBBuildSystem)
