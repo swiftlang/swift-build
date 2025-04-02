@@ -224,6 +224,21 @@ open class SwiftDriverJobSchedulingTaskAction: TaskAction {
                 outputDelegate.emitOutput(ByteString(encodingAsUTF8: "Discovered dependency nodes:\n" + planningDependencies.joined(separator: "\n") + "\n"))
             }
 
+            if driverPayload.verifyScannerDependencies {
+                if case .makefileIgnoringSubsequentOutputs(let makefilePath) = task.dependencyData {
+                    // This is a very rudimentary parser for make-style dependencies as emitted by swiftc.
+                    let contents = try executionDelegate.fs.read(makefilePath)
+                    let firstLine = contents.asString.split("\n").0
+                    let inputs = firstLine.split(":").1.components(separatedBy: " ").map { $0.trimmingCharacters(in: .whitespacesAndNewlines) }.filter { !$0.isEmpty }
+                    let makeStyleInputs = Set(inputs)
+                    let scannerInputs = Set(planningDependencies)
+                    let inputsMissedByScanner = makeStyleInputs.subtracting(scannerInputs)
+                    for missedInput in inputsMissedByScanner.sorted() {
+                        outputDelegate.emitError("Dependency scanner failed to report input '\(missedInput)' present in '\(makefilePath.str)'")
+                    }
+                }
+            }
+
             let dependencyFilteringRootPathString = driverPayload.dependencyFilteringRootPath?.str
             for dep in planningDependencies {
                 if let dependencyFilteringRootPathString {

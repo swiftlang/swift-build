@@ -188,15 +188,27 @@ public final class SwiftModuleDependencyGraph: SwiftGlobalExplicitDependencyGrap
         let directDependencies = graph.mainModule.directDependencies ?? []
         let transitiveDependencies = Set(directDependencies + SWBUtil.transitiveClosure(directDependencies, successors: { moduleID in graph.modules[moduleID]?.directDependencies ?? [] }).0)
 
-        var headerDependencies: [String] = []
-        headerDependencies.reserveCapacity(transitiveDependencies.count * 10)
+        var fileDependencies: [String] = []
+        fileDependencies.reserveCapacity(transitiveDependencies.count * 10)
         for dependencyID in transitiveDependencies {
-            let sourceFiles = graph.modules[dependencyID]?.sourceFiles ?? []
-            for sourceFile in sourceFiles {
-                headerDependencies.append(sourceFile)
+            guard let moduleInfo = graph.modules[dependencyID] else {
+                continue
+            }
+            fileDependencies.append(contentsOf: moduleInfo.sourceFiles ?? [])
+            switch moduleInfo.details {
+            case .swift:
+                break
+            case .swiftPlaceholder:
+                break
+            case .swiftPrebuiltExternal(let details):
+                if let modulePath = VirtualPath.lookup(details.compiledModulePath.path).absolutePath {
+                    fileDependencies.append(modulePath.pathString)
+                }
+            case .clang:
+                break
             }
         }
-        return headerDependencies
+        return fileDependencies
     }
 
     public func queryTransitiveDependencyModuleNames(for key: String) throws -> [String] {
