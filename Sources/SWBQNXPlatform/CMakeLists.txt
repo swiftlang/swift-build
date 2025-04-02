@@ -37,3 +37,8 @@ target_link_libraries(SWBQNXPlatform PUBLIC
   SWBUtil)
 target_sources(SWBQNXPlatform PRIVATE
   "${CMAKE_CURRENT_BINARY_DIR}/resource_bundle_accessor.swift")
+
+target_include_directories(SWBQNXPlatform PUBLIC
+  ${CMAKE_CURRENT_BINARY_DIR})
+
+set_property(GLOBAL APPEND PROPERTY SWIFTBUILD_EXPORTS SWBQNXPlatform)

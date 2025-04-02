@@ -66,3 +66,8 @@ target_link_libraries(SwiftBuild PUBLIC
   SWBProtocol
   SWBUtil
   SWBProjectModel)
+
+target_include_directories(SwiftBuild PUBLIC
+  ${CMAKE_CURRENT_BINARY_DIR})
+
+set_property(GLOBAL APPEND PROPERTY SWIFTBUILD_EXPORTS SwiftBuild)

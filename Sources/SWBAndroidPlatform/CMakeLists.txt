@@ -37,3 +37,8 @@ target_link_libraries(SWBAndroidPlatform PUBLIC
   SWBUtil)
 target_sources(SWBAndroidPlatform PRIVATE
   "${CMAKE_CURRENT_BINARY_DIR}/resource_bundle_accessor.swift")
+
+target_include_directories(SWBAndroidPlatform PUBLIC
+  ${CMAKE_CURRENT_BINARY_DIR})
+
+set_property(GLOBAL APPEND PROPERTY SWIFTBUILD_EXPORTS SWBAndroidPlatform)

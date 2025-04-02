@@ -37,3 +37,8 @@ target_link_libraries(SWBBuildService PUBLIC
   SWBWebAssemblyPlatform
   SWBWindowsPlatform
   $<$<NOT:$<PLATFORM_ID:Darwin>>:SwiftSystem::SystemPackage>)
+
+target_include_directories(SWBBuildService PUBLIC
+  ${CMAKE_CURRENT_BINARY_DIR})
+
+set_property(GLOBAL APPEND PROPERTY SWIFTBUILD_EXPORTS SWBBuildService)

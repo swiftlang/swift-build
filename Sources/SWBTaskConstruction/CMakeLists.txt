@@ -63,3 +63,8 @@ set_target_properties(SWBTaskConstruction PROPERTIES
 target_link_libraries(SWBTaskConstruction PUBLIC
   SWBCore
   SWBUtil)
+
+target_include_directories(SWBTaskConstruction PUBLIC
+  ${CMAKE_CURRENT_BINARY_DIR})
+
+set_property(GLOBAL APPEND PROPERTY SWIFTBUILD_EXPORTS SWBTaskConstruction)

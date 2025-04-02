@@ -19,3 +19,8 @@ target_link_libraries(SWBLibc PUBLIC
 # without this explicit configuration.
 target_include_directories(SWBLibc PUBLIC
   ${CMAKE_CURRENT_BINARY_DIR})
+
+target_include_directories(SWBLibc PUBLIC
+  ${CMAKE_CURRENT_BINARY_DIR})
+
+set_property(GLOBAL APPEND PROPERTY SWIFTBUILD_EXPORTS SWBLibc)
