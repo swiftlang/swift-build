@@ -14,8 +14,8 @@ import Foundation
 import SWBBuildSystem
 import SWBCore
 import SWBLibc
-package import SWBProtocol
-package import SWBServiceCore
+public import SWBProtocol
+public import SWBServiceCore
 import SWBUtil
 
 typealias Cache = SWBUtil.Cache
@@ -46,7 +46,7 @@ private struct CoreCacheKey: Equatable, Hashable {
 /// This is the central class which manages a service instance communicating with a unique client.
 ///
 /// This class is designed to be thread safe: clients can send messages from any thread and they will be sent in FIFO order. Note that individual messages are currently always processed in FIFO order non-concurrently. Messages which require non-trivial amounts of time to service should always be split to use an asynchronous reply.
-package class BuildService: Service, @unchecked Sendable {
+open class BuildService: Service, @unchecked Sendable {
     /// The map of registered sessions.
     var sessionMap = Dictionary<String, Session>()
 
@@ -67,7 +67,7 @@ package class BuildService: Service, @unchecked Sendable {
     /// Async lock to guard access to `sharedCoreCache`, since its `getOrInsert` method can't be given an async closure.
     private var sharedCoreCacheLock = ActorLock()
 
-    package func nextBuildOperationID() -> Int {
+    public func nextBuildOperationID() -> Int {
         return lastBuildOperationID.withLock { value in
             let lastID = value
             value += 1

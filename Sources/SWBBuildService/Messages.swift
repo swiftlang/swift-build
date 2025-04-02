@@ -13,7 +13,7 @@
 import SWBBuildSystem
 package import SWBCore
 import SWBProtocol
-package import SWBServiceCore
+public import SWBServiceCore
 import SWBTaskConstruction
 import SWBTaskExecution
 package import SWBUtil
@@ -1521,10 +1521,10 @@ private struct ClearAllCaches: MessageHandler {
 
 // MARK: ServiceExtension Support
 
-package struct ServiceSessionMessageHandlers: ServiceExtension {
-    package init() {}
+public struct ServiceSessionMessageHandlers: ServiceExtension {
+    public init() {}
 
-    package func register(_ service: Service) {
+    public func register(_ service: Service) {
         service.registerMessageHandler(CreateSessionHandler.self)
         service.registerMessageHandler(ListSessionsHandler.self)
         service.registerMessageHandler(WaitForQuiescenceHandler.self)
@@ -1537,10 +1537,10 @@ package struct ServiceSessionMessageHandlers: ServiceExtension {
     }
 }
 
-package struct ServicePIFMessageHandlers: ServiceExtension {
-    package init() {}
+public struct ServicePIFMessageHandlers: ServiceExtension {
+    public init() {}
 
-    package func register(_ service: Service) {
+    public func register(_ service: Service) {
         service.registerMessageHandler(SetSessionPIFMsg.self)
         service.registerMessageHandler(TransferSessionPIFMsg.self)
         service.registerMessageHandler(TransferSessionPIFObjectsMsg.self)
@@ -1559,10 +1559,10 @@ package struct WorkspaceModelMessageHandlers: ServiceExtension {
     }
 }
 
-package struct ActiveBuildBasicMessageHandlers: ServiceExtension {
-    package init() {}
+public struct ActiveBuildBasicMessageHandlers: ServiceExtension {
+    public init() {}
 
-    package func register(_ service: Service) {
+    public func register(_ service: Service) {
         service.registerMessageHandler(CreateBuildRequestMsg.self)
         service.registerMessageHandler(BuildStartRequestMsg.self)
         service.registerMessageHandler(BuildCancelRequestMsg.self)
