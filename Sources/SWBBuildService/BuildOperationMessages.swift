@@ -13,7 +13,7 @@
 import struct Foundation.Date
 
 package import SWBBuildSystem
-package import SWBCore
+public import SWBCore
 import SWBLibc
 import SWBProtocol
 import SWBServiceCore
@@ -25,7 +25,7 @@ import SWBMacro
 // FIXME: Workaround: <rdar://problem/26249252> Unable to prefer my own type over NS renamed types
 import class SWBTaskExecution.Task
 
-package protocol ActiveBuildOperation {
+public protocol ActiveBuildOperation {
     /// A unique identifier for this build.
     var id: Int { get }
 

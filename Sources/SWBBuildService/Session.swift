@@ -11,9 +11,9 @@
 //===----------------------------------------------------------------------===//
 
 import SWBBuildSystem
-package import SWBCore
-package import SWBProtocol
-package import SWBServiceCore
+public import SWBCore
+public import SWBProtocol
+public import SWBServiceCore
 package import SWBTaskExecution
 import SWBUtil
 import struct Foundation.UUID
@@ -26,7 +26,7 @@ enum SessionError: Error {
 /// This class manages a unique session corresponding to a unique remote client session.
 ///
 /// A session object manages a single workspace, but the client might elect to create multiple sessions for the same workspace.
-package final class Session {
+public final class Session {
     /// A PIF transfer operation.
     final class PIFTransferOperation {
         enum Status {
@@ -149,7 +149,7 @@ package final class Session {
     let UID: String
 
     /// The active workspace session
-    package internal(set) var workspaceContext: WorkspaceContext?
+    public internal(set) var workspaceContext: WorkspaceContext?
 
     /// The incremental PIF loader.
     private let incrementalPIFLoader: IncrementalPIFLoader
@@ -343,7 +343,7 @@ package final class Session {
     }
 
     /// Registers a build operation with the session
-    package func registerActiveBuild(_ build: any ActiveBuildOperation) throws {
+    public func registerActiveBuild(_ build: any ActiveBuildOperation) throws {
         // We currently don't support running multiple build operations in one session, this is just a defensive precondition.
         // But we do allow build description creation operations to run concurrently with normal builds. These are important for index queries to function properly even during a build.
         // We also allow 'prepare-for-index' build operations to run concurrently with a normal build but only one at a time. These are important for functionality in the Xcode editor to work properly, that the user directly interacts with.
@@ -370,7 +370,7 @@ package final class Session {
     }
 
     /// Unregister a build operation from the session
-    package func unregisterActiveBuild(_ build: any ActiveBuildOperation) {
+    public func unregisterActiveBuild(_ build: any ActiveBuildOperation) {
         guard activeBuilds.removeValue(forKey: build.id) != nil else {
             fatalError("tried to unregister nonexistent build: '\(build)'")
         }
@@ -389,7 +389,7 @@ protocol ClientExchange {
 
 extension Request {
     /// Retrieve the session for the message, or throw if invalid.
-    package func session<T: SessionMessage>(for message: T) throws -> Session {
+    public func session<T: SessionMessage>(for message: T) throws -> Session {
         guard let session = buildService.sessionMap[message.sessionHandle] else {
             throw MsgParserError.unknownSession(handle: message.sessionHandle)
         }
