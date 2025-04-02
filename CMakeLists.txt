@@ -50,3 +50,4 @@ find_package(Threads)
 find_package(SQLite3)
 
 add_subdirectory(Sources)
+add_subdirectory(cmake/modules)

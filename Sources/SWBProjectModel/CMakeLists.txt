@@ -8,7 +8,7 @@ See http://swift.org/LICENSE.txt for license information
 See http://swift.org/CONTRIBUTORS.txt for Swift project authors
 ]]
 
-add_library(SWBProjectModel
+add_library(SWBProjectModel STATIC
   IDE/IDEPIFGenerating.swift
   IDE/IDEPIFGUID.swift
   IDE/IDEPIFObject.swift
@@ -20,3 +20,8 @@ set_target_properties(SWBProjectModel PROPERTIES
   Swift_LANGUAGE_VERSION 6)
 target_link_libraries(SWBProjectModel PUBLIC
   SWBProtocol)
+
+target_include_directories(SWBProjectModel PUBLIC
+  ${CMAKE_CURRENT_BINARY_DIR})
+
+set_property(GLOBAL APPEND PROPERTY SWIFTBUILD_EXPORTS SWBProjectModel)

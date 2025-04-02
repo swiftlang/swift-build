@@ -35,3 +35,8 @@ target_link_libraries(SWBGenericUnixPlatform PUBLIC
   SWBUtil)
 target_sources(SWBGenericUnixPlatform PRIVATE
   "${CMAKE_CURRENT_BINARY_DIR}/resource_bundle_accessor.swift")
+
+target_include_directories(SWBGenericUnixPlatform PUBLIC
+  ${CMAKE_CURRENT_BINARY_DIR})
+
+set_property(GLOBAL APPEND PROPERTY SWIFTBUILD_EXPORTS SWBGenericUnixPlatform)

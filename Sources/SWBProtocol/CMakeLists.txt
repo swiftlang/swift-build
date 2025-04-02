@@ -8,7 +8,7 @@ See http://swift.org/LICENSE.txt for license information
 See http://swift.org/CONTRIBUTORS.txt for Swift project authors
 ]]
 
-add_library(SWBProtocol
+add_library(SWBProtocol STATIC
   AsyncSequence.swift
   BuildAction.swift
   BuildOperationMessages.swift
@@ -48,3 +48,8 @@ set_target_properties(SWBProtocol PROPERTIES
   Swift_LANGUAGE_VERSION 6)
 target_link_libraries(SWBProtocol PUBLIC
   SWBUtil)
+
+target_include_directories(SWBProtocol PUBLIC
+  ${CMAKE_CURRENT_BINARY_DIR})
+
+set_property(GLOBAL APPEND PROPERTY SWIFTBUILD_EXPORTS SWBProtocol)

@@ -8,7 +8,7 @@ See http://swift.org/LICENSE.txt for license information
 See http://swift.org/CONTRIBUTORS.txt for Swift project authors
 ]]
 
-add_library(SWBTaskConstruction
+add_library(SWBTaskConstruction STATIC
   BuildDirectoryContext.swift
   DiagnosticSupport.swift
   ProductPlanning/BuildPlan.swift
@@ -63,3 +63,8 @@ set_target_properties(SWBTaskConstruction PROPERTIES
 target_link_libraries(SWBTaskConstruction PUBLIC
   SWBCore
   SWBUtil)
+
+target_include_directories(SWBTaskConstruction PUBLIC
+  ${CMAKE_CURRENT_BINARY_DIR})
+
+set_property(GLOBAL APPEND PROPERTY SWIFTBUILD_EXPORTS SWBTaskConstruction)

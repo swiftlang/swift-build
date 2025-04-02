@@ -1,0 +1,9 @@
+set(SWIFTBUILD_EXPORTS_FILE ${CMAKE_CURRENT_BINARY_DIR}/SwiftBuildExports.cmake)
+
+configure_file(SwiftBuildConfig.cmake.in
+  ${CMAKE_CURRENT_BINARY_DIR}/SwiftBuildConfig.cmake)
+
+get_property(SWIFTBUILD_EXPORTS GLOBAL PROPERTY SWIFTBUILD_EXPORTS)
+export(TARGETS ${SWIFTBUILD_EXPORTS}
+  NAMESPACE SwiftBuild::
+  FILE ${SWIFTBUILD_EXPORTS_FILE})
