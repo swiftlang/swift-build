@@ -28,7 +28,7 @@ file(CONFIGURE
   ]]
   ESCAPE_QUOTES @ONLY NEWLINE_STYLE LF)
 
-add_library(SWBApplePlatform STATIC
+add_library(SWBApplePlatform
   AppIntentsMetadataCompiler.swift
   AppIntentsMetadataTaskProducer.swift
   AppIntentsSSUTrainingCompiler.swift
@@ -75,3 +75,11 @@ target_link_libraries(SWBApplePlatform PUBLIC
   SWBTaskConstruction)
 target_sources(SWBApplePlatform PRIVATE
   "${CMAKE_CURRENT_BINARY_DIR}/resource_bundle_accessor.swift")
+
+set_target_properties(SWBApplePlatform PROPERTIES
+  INTERFACE_INCLUDE_DIRECTORIES ${CMAKE_Swift_MODULE_DIRECTORY})
+
+set_property(GLOBAL APPEND PROPERTY SWIFTBUILD_EXPORTS SWBApplePlatform)
+
+install(TARGETS SWBApplePlatform
+    ARCHIVE DESTINATION "${SwiftBuild_INSTALL_LIBDIR}")

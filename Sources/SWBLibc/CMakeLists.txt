@@ -19,3 +19,11 @@ target_link_libraries(SWBLibc PUBLIC
 # without this explicit configuration.
 target_include_directories(SWBLibc PUBLIC
   ${CMAKE_CURRENT_BINARY_DIR})
+
+set_target_properties(SWBLibc PROPERTIES
+  INTERFACE_INCLUDE_DIRECTORIES ${CMAKE_Swift_MODULE_DIRECTORY})
+
+set_property(GLOBAL APPEND PROPERTY SWIFTBUILD_EXPORTS SWBLibc)
+
+install(TARGETS SWBLibc
+    ARCHIVE DESTINATION "${SwiftBuild_INSTALL_LIBDIR}")

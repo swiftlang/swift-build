@@ -20,3 +20,11 @@ set_target_properties(SWBProjectModel PROPERTIES
   Swift_LANGUAGE_VERSION 6)
 target_link_libraries(SWBProjectModel PUBLIC
   SWBProtocol)
+
+set_target_properties(SWBProjectModel PROPERTIES
+  INTERFACE_INCLUDE_DIRECTORIES ${CMAKE_Swift_MODULE_DIRECTORY})
+
+set_property(GLOBAL APPEND PROPERTY SWIFTBUILD_EXPORTS SWBProjectModel)
+
+install(TARGETS SWBProjectModel
+    ARCHIVE DESTINATION "${SwiftBuild_INSTALL_LIBDIR}")

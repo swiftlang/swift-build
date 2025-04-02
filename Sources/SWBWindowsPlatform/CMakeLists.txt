@@ -28,7 +28,7 @@ file(CONFIGURE
   ]]
   ESCAPE_QUOTES @ONLY NEWLINE_STYLE LF)
 
-add_library(SWBWindowsPlatform STATIC
+add_library(SWBWindowsPlatform
   KnownFolders.swift
   Plugin.swift
   VSInstallation.swift)
@@ -38,3 +38,11 @@ target_link_libraries(SWBWindowsPlatform PUBLIC
   SWBUtil)
 target_sources(SWBWindowsPlatform PRIVATE
   "${CMAKE_CURRENT_BINARY_DIR}/resource_bundle_accessor.swift")
+
+set_target_properties(SWBWindowsPlatform PROPERTIES
+  INTERFACE_INCLUDE_DIRECTORIES ${CMAKE_Swift_MODULE_DIRECTORY})
+
+set_property(GLOBAL APPEND PROPERTY SWIFTBUILD_EXPORTS SWBWindowsPlatform)
+
+install(TARGETS SWBWindowsPlatform
+    ARCHIVE DESTINATION "${SwiftBuild_INSTALL_LIBDIR}")

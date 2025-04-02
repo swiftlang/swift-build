@@ -28,7 +28,7 @@ file(CONFIGURE
   ]]
   ESCAPE_QUOTES @ONLY NEWLINE_STYLE LF)
 
-add_library(SWBAndroidPlatform STATIC
+add_library(SWBAndroidPlatform
   AndroidSDK.swift
   Plugin.swift)
 target_link_libraries(SWBAndroidPlatform PUBLIC
@@ -37,3 +37,11 @@ target_link_libraries(SWBAndroidPlatform PUBLIC
   SWBUtil)
 target_sources(SWBAndroidPlatform PRIVATE
   "${CMAKE_CURRENT_BINARY_DIR}/resource_bundle_accessor.swift")
+
+set_target_properties(SWBAndroidPlatform PROPERTIES
+  INTERFACE_INCLUDE_DIRECTORIES ${CMAKE_Swift_MODULE_DIRECTORY})
+
+set_property(GLOBAL APPEND PROPERTY SWIFTBUILD_EXPORTS SWBAndroidPlatform)
+
+install(TARGETS SWBAndroidPlatform
+    ARCHIVE DESTINATION "${SwiftBuild_INSTALL_LIBDIR}")

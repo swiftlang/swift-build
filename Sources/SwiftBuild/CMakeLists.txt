@@ -66,3 +66,11 @@ target_link_libraries(SwiftBuild PUBLIC
   SWBProtocol
   SWBUtil
   SWBProjectModel)
+
+set_target_properties(SwiftBuild PROPERTIES
+  INTERFACE_INCLUDE_DIRECTORIES ${CMAKE_Swift_MODULE_DIRECTORY})
+
+set_property(GLOBAL APPEND PROPERTY SWIFTBUILD_EXPORTS SwiftBuild)
+
+install(TARGETS SwiftBuild
+    ARCHIVE DESTINATION "${SwiftBuild_INSTALL_LIBDIR}")

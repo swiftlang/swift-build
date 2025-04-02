@@ -111,3 +111,11 @@ target_link_libraries(SWBUtil PUBLIC
   SWBLibc
   ArgumentParser
   $<$<NOT:$<PLATFORM_ID:Darwin>>:SwiftSystem::SystemPackage>)
+
+set_target_properties(SWBUtil PROPERTIES
+  INTERFACE_INCLUDE_DIRECTORIES ${CMAKE_Swift_MODULE_DIRECTORY})
+
+set_property(GLOBAL APPEND PROPERTY SWIFTBUILD_EXPORTS SWBUtil)
+
+install(TARGETS SWBUtil
+    ARCHIVE DESTINATION "${SwiftBuild_INSTALL_LIBDIR}")

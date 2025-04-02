@@ -28,7 +28,7 @@ file(CONFIGURE
   ]]
   ESCAPE_QUOTES @ONLY NEWLINE_STYLE LF)
 
-add_library(SWBWebAssemblyPlatform STATIC
+add_library(SWBWebAssemblyPlatform
   Plugin.swift)
 target_link_libraries(SWBWebAssemblyPlatform PUBLIC
   SWBCore
@@ -36,3 +36,11 @@ target_link_libraries(SWBWebAssemblyPlatform PUBLIC
   SWBUtil)
 target_sources(SWBWebAssemblyPlatform PRIVATE
   "${CMAKE_CURRENT_BINARY_DIR}/resource_bundle_accessor.swift")
+
+set_target_properties(SWBWebAssemblyPlatform PROPERTIES
+  INTERFACE_INCLUDE_DIRECTORIES ${CMAKE_Swift_MODULE_DIRECTORY})
+
+set_property(GLOBAL APPEND PROPERTY SWIFTBUILD_EXPORTS SWBWebAssemblyPlatform)
+
+install(TARGETS SWBWebAssemblyPlatform
+    ARCHIVE DESTINATION "${SwiftBuild_INSTALL_LIBDIR}")
