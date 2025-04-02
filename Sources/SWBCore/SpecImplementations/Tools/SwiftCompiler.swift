@@ -348,8 +348,9 @@ public struct SwiftDriverPayload: Serializable, TaskPayload, Encodable {
     public let reportRequiredTargetDependencies: BooleanWarningLevel
     public let linkerResponseFilePath: Path?
     public let dependencyFilteringRootPath: Path?
+    public let verifyScannerDependencies: Bool
 
-    internal init(uniqueID: String, compilerLocation: LibSwiftDriver.CompilerLocation, moduleName: String, tempDirPath: Path, explicitModulesTempDirPath: Path, variant: String, architecture: String, eagerCompilationEnabled: Bool, explicitModulesEnabled: Bool, commandLine: [String], ruleInfo: [String], isUsingWholeModuleOptimization: Bool, casOptions: CASOptions?, reportRequiredTargetDependencies: BooleanWarningLevel, linkerResponseFilePath: Path?, dependencyFilteringRootPath: Path?) {
+    internal init(uniqueID: String, compilerLocation: LibSwiftDriver.CompilerLocation, moduleName: String, tempDirPath: Path, explicitModulesTempDirPath: Path, variant: String, architecture: String, eagerCompilationEnabled: Bool, explicitModulesEnabled: Bool, commandLine: [String], ruleInfo: [String], isUsingWholeModuleOptimization: Bool, casOptions: CASOptions?, reportRequiredTargetDependencies: BooleanWarningLevel, linkerResponseFilePath: Path?, dependencyFilteringRootPath: Path?, verifyScannerDependencies: Bool) {
         self.uniqueID = uniqueID
         self.compilerLocation = compilerLocation
         self.moduleName = moduleName
@@ -366,10 +367,11 @@ public struct SwiftDriverPayload: Serializable, TaskPayload, Encodable {
         self.reportRequiredTargetDependencies = reportRequiredTargetDependencies
         self.linkerResponseFilePath = linkerResponseFilePath
         self.dependencyFilteringRootPath = dependencyFilteringRootPath
+        self.verifyScannerDependencies = verifyScannerDependencies
     }
 
     public init(from deserializer: any Deserializer) throws {
-        try deserializer.beginAggregate(16)
+        try deserializer.beginAggregate(17)
         self.uniqueID = try deserializer.deserialize()
         self.compilerLocation = try deserializer.deserialize()
         self.moduleName = try deserializer.deserialize()
@@ -386,10 +388,11 @@ public struct SwiftDriverPayload: Serializable, TaskPayload, Encodable {
         self.reportRequiredTargetDependencies = try deserializer.deserialize()
         self.linkerResponseFilePath = try deserializer.deserialize()
         self.dependencyFilteringRootPath = try deserializer.deserialize()
+        self.verifyScannerDependencies = try deserializer.deserialize()
     }
 
     public func serialize<T>(to serializer: T) where T : Serializer {
-        serializer.serializeAggregate(16) {
+        serializer.serializeAggregate(17) {
             serializer.serialize(self.uniqueID)
             serializer.serialize(self.compilerLocation)
             serializer.serialize(self.moduleName)
@@ -406,6 +409,7 @@ public struct SwiftDriverPayload: Serializable, TaskPayload, Encodable {
             serializer.serialize(self.reportRequiredTargetDependencies)
             serializer.serialize(self.linkerResponseFilePath)
             serializer.serialize(self.dependencyFilteringRootPath)
+            serializer.serialize(self.verifyScannerDependencies)
         }
     }
 }
@@ -1391,6 +1395,20 @@ public final class SwiftCompilerSpec : CompilerSpec, SpecIdentifierType, SwiftDi
         return buildSettingEnabled
     }
 
+    func shouldEmitMakeStyleDependencies(_ producer: any CommandProducer, _ scope: MacroEvaluationScope, delegate: any TaskGenerationDelegate) async -> Bool {
+        guard await swiftExplicitModuleBuildEnabled(producer, scope, delegate) else {
+            return true
+        }
+        switch scope.evaluate(BuiltinMacros.SWIFT_DEPENDENCY_REGISTRATION_MODE) {
+        case .makeStyleDependenciesSupplementedByScanner:
+            return true
+        case .swiftDependencyScannerOnly:
+            return false
+        case .verifySwiftDependencyScanner:
+            return true
+        }
+    }
+
     private func swiftCachingEnabled(_ cbc: CommandBuildContext, _ delegate: any TaskGenerationDelegate, _ moduleName: String, _ useIntegratedDriver: Bool, _ explicitModuleBuildEnabled: Bool, _ disabledPCHCompile: Bool) async -> Bool {
         guard cbc.producer.supportsCompilationCaching else { return false }
 
@@ -1822,8 +1840,10 @@ public final class SwiftCompilerSpec : CompilerSpec, SpecIdentifierType, SwiftDi
             // Instruct the compiler to serialize diagnostics.
             args.append("-serialize-diagnostics")
 
-            // Instruct the compiler to emit dependencies information.
-            args.append("-emit-dependencies")
+            if await shouldEmitMakeStyleDependencies(cbc.producer, cbc.scope, delegate: delegate) {
+                // Instruct the compiler to emit dependencies information.
+                args.append("-emit-dependencies")
+            }
 
             // Generate the .swiftmodule from this compilation to a known location.
             //
@@ -2200,7 +2220,10 @@ public final class SwiftCompilerSpec : CompilerSpec, SpecIdentifierType, SwiftDi
                 }
             })
 
-            let dependencyInfoPath: Path? = {
+            let dependencyInfoPath: Path? = await {
+                guard await shouldEmitMakeStyleDependencies(cbc.producer, cbc.scope, delegate: delegate) else {
+                    return nil
+                }
                 // FIXME: Duplication with `SwiftCompilerSpec.computeOutputFileMapContents`
                 //
                 // FIXME: Can we simplify this to not require the full macro scope?
@@ -2307,9 +2330,6 @@ public final class SwiftCompilerSpec : CompilerSpec, SpecIdentifierType, SwiftDi
 
                 // Rest compilation (defined before for transparent dependency handling
                 let eagerCompilationEnabled = eagerCompilationEnabled(args: args, scope: cbc.scope, compilationMode: compilationMode, isUsingWholeModuleOptimization: isUsingWholeModuleOptimization)
-                // FIXME: Duplication with `SwiftCompilerSpec.computeOutputFileMapContents`
-                let masterSwiftBaseName = cbc.scope.evaluate(BuiltinMacros.TARGET_NAME) + compilationMode.moduleBaseNameSuffix + "-master"
-                let emitModuleDependenciesFilePath = objectFileDir.join(masterSwiftBaseName + "-emit-module.d")
                 let compilationRequirementOutputs: [any PlannedNode]
                 let compilationOutputs: [any PlannedNode]
                 if eagerCompilationEnabled {
@@ -2321,8 +2341,17 @@ public final class SwiftCompilerSpec : CompilerSpec, SpecIdentifierType, SwiftDi
                     compilationOutputs = [compilationFinishedNode]
                 }
 
+                let dependencyData: DependencyDataStyle?
+                if await shouldEmitMakeStyleDependencies(cbc.producer, cbc.scope, delegate: delegate) {
+                    // FIXME: Duplication with `SwiftCompilerSpec.computeOutputFileMapContents`
+                    let masterSwiftBaseName = cbc.scope.evaluate(BuiltinMacros.TARGET_NAME) + compilationMode.moduleBaseNameSuffix + "-master"
+                    let emitModuleDependenciesFilePath = objectFileDir.join(masterSwiftBaseName + "-emit-module.d")
+                    dependencyData = eagerCompilationEnabled ? .makefileIgnoringSubsequentOutputs(emitModuleDependenciesFilePath) : dependencyInfoPath.map(DependencyDataStyle.makefileIgnoringSubsequentOutputs)
+                } else {
+                    dependencyData = nil
+                }
+
                 // Compilation Requirements
-                let dependencyData: DependencyDataStyle? = eagerCompilationEnabled ? .makefileIgnoringSubsequentOutputs(emitModuleDependenciesFilePath) : dependencyInfoPath.map(DependencyDataStyle.makefileIgnoringSubsequentOutputs)
                 delegate.createTask(type: self, dependencyData: dependencyData, payload: payload, ruleInfo: ruleInfo("SwiftDriver Compilation Requirements", targetName), additionalSignatureData: additionalSignatureData, commandLine: ["builtin-Swift-Compilation-Requirements", "--"] + args, environment: environmentBindings, workingDirectory: compilerWorkingDirectory(cbc), inputs: allInputsNodes, outputs: compilationRequirementOutputs, action: delegate.taskActionCreationDelegate.createSwiftCompilationRequirementTaskAction(), execDescription: archSpecificExecutionDescription(cbc.scope.namespace.parseString("Unblock downstream dependents of $PRODUCT_NAME"), cbc, delegate), preparesForIndexing: true, enableSandboxing: enableSandboxing, additionalTaskOrderingOptions: [.compilation, .compilationRequirement, .linkingRequirement, .blockedByTargetHeaders, .compilationForIndexableSourceFile], usesExecutionInputs: true, showInLog: true)
 
                 if case .compile = compilationMode {
@@ -2461,8 +2490,9 @@ public final class SwiftCompilerSpec : CompilerSpec, SpecIdentifierType, SwiftDi
             compilerLocation = .library(libSwiftScanPath: libSwiftScanPath)
             #endif
             let explicitModuleBuildEnabled = await swiftExplicitModuleBuildEnabled(cbc.producer, cbc.scope, delegate)
+            let verifyScannerDependencies = explicitModuleBuildEnabled && cbc.scope.evaluate(BuiltinMacros.SWIFT_DEPENDENCY_REGISTRATION_MODE) == .verifySwiftDependencyScanner
 
-            return SwiftDriverPayload(uniqueID: uniqueID, compilerLocation: compilerLocation, moduleName: scope.evaluate(BuiltinMacros.SWIFT_MODULE_NAME), tempDirPath: tempDirPath, explicitModulesTempDirPath: explicitModulesTempDirPath, variant: variant, architecture: arch, eagerCompilationEnabled: eagerCompilationEnabled(args: args, scope: scope, compilationMode: compilationMode, isUsingWholeModuleOptimization: isUsingWholeModuleOptimization), explicitModulesEnabled: explicitModuleBuildEnabled, commandLine: commandLine, ruleInfo: ruleInfo, isUsingWholeModuleOptimization: isUsingWholeModuleOptimization, casOptions: casOptions, reportRequiredTargetDependencies: scope.evaluate(BuiltinMacros.DIAGNOSE_MISSING_TARGET_DEPENDENCIES), linkerResponseFilePath: linkerResponseFilePath, dependencyFilteringRootPath: cbc.producer.sdk?.path)
+            return SwiftDriverPayload(uniqueID: uniqueID, compilerLocation: compilerLocation, moduleName: scope.evaluate(BuiltinMacros.SWIFT_MODULE_NAME), tempDirPath: tempDirPath, explicitModulesTempDirPath: explicitModulesTempDirPath, variant: variant, architecture: arch, eagerCompilationEnabled: eagerCompilationEnabled(args: args, scope: scope, compilationMode: compilationMode, isUsingWholeModuleOptimization: isUsingWholeModuleOptimization), explicitModulesEnabled: explicitModuleBuildEnabled, commandLine: commandLine, ruleInfo: ruleInfo, isUsingWholeModuleOptimization: isUsingWholeModuleOptimization, casOptions: casOptions, reportRequiredTargetDependencies: scope.evaluate(BuiltinMacros.DIAGNOSE_MISSING_TARGET_DEPENDENCIES), linkerResponseFilePath: linkerResponseFilePath, dependencyFilteringRootPath: cbc.producer.sdk?.path, verifyScannerDependencies: verifyScannerDependencies)
         }
 
         func constructSwiftResponseFileTask(path: Path) {
@@ -3048,9 +3078,11 @@ public final class SwiftCompilerSpec : CompilerSpec, SpecIdentifierType, SwiftDi
                 let diagnosticsFilePath = objectFileDir.join(objectFilePrefix + ".dia")
                 fileMapEntry.diagnostics = diagnosticsFilePath.str
 
-                // The dependencies file, used to discover implicit dependencies.  This file will be in Makefile format.
-                let dependenciesFilePath = objectFileDir.join(objectFilePrefix + ".d")
-                fileMapEntry.dependencies = dependenciesFilePath.str
+                if await shouldEmitMakeStyleDependencies(cbc.producer, cbc.scope, delegate: delegate) {
+                    // The dependencies file, used to discover implicit dependencies.  This file will be in Makefile format.
+                    let dependenciesFilePath = objectFileDir.join(objectFilePrefix + ".d")
+                    fileMapEntry.dependencies = dependenciesFilePath.str
+                }
 
                 // The file used by Swift to manage intermodule dependencies.
                 let swiftDependenciesFilePath = objectFileDir.join(objectFilePrefix + ".swiftdeps")
@@ -3085,9 +3117,11 @@ public final class SwiftCompilerSpec : CompilerSpec, SpecIdentifierType, SwiftDi
                 let emitModuleDiagnosticsFilePath = objectFileDir.join(masterSwiftBaseName + "-emit-module.dia")
                 fileMapEntry.emitModuleDiagnostics = emitModuleDiagnosticsFilePath.str
 
-                // The dependency file for emit-module jobs.
-                let emitModuleDependenciesFilePath = objectFileDir.join(masterSwiftBaseName + "-emit-module.d")
-                fileMapEntry.emitModuleDependencies = emitModuleDependenciesFilePath.str
+                if await shouldEmitMakeStyleDependencies(cbc.producer, cbc.scope, delegate: delegate) {
+                    // The dependency file for emit-module jobs.
+                    let emitModuleDependenciesFilePath = objectFileDir.join(masterSwiftBaseName + "-emit-module.d")
+                    fileMapEntry.emitModuleDependencies = emitModuleDependenciesFilePath.str
+                }
 
                 // The PCH file path for generatePCH job.
                 let bridgingHeaderPCHPath = objectFileDir.join(masterSwiftBaseName + "-Bridging-header.pch")
@@ -3115,13 +3149,16 @@ public final class SwiftCompilerSpec : CompilerSpec, SpecIdentifierType, SwiftDi
                 let emitModuleDiagnosticsFilePath = objectFileDir.join(masterSwiftBaseName + "-emit-module.dia")
                 fileMapEntry.emitModuleDiagnostics = emitModuleDiagnosticsFilePath.str
 
-                // The dependency file for emit-module jobs.
-                let emitModuleDependenciesFilePath = objectFileDir.join(masterSwiftBaseName + "-emit-module.d")
-                fileMapEntry.emitModuleDependencies = emitModuleDependenciesFilePath.str
+                if await shouldEmitMakeStyleDependencies(cbc.producer, cbc.scope, delegate: delegate) {
+                    // The dependency file for emit-module jobs.
+                    let emitModuleDependenciesFilePath = objectFileDir.join(masterSwiftBaseName + "-emit-module.d")
+                    fileMapEntry.emitModuleDependencies = emitModuleDependenciesFilePath.str
 
-                // The dependencies file, used to discover implicit dependencies.  This file will be in Makefile format.
-                let dependenciesFilePath = objectFileDir.join(masterSwiftBaseName + ".d")
-                fileMapEntry.dependencies = dependenciesFilePath.str
+
+                    // The dependencies file, used to discover implicit dependencies.  This file will be in Makefile format.
+                    let dependenciesFilePath = objectFileDir.join(masterSwiftBaseName + ".d")
+                    fileMapEntry.dependencies = dependenciesFilePath.str
+                }
 
                 // The file used by Swift to manage intermodule dependencies.
                 let swiftDependenciesFilePath = objectFileDir.join(masterSwiftBaseName + ".swiftdeps")

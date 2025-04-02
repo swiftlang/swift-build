@@ -995,6 +995,7 @@ public final class BuiltinMacros {
     public static let SWIFT_ALLOW_INSTALL_OBJC_HEADER = BuiltinMacros.declareBooleanMacro("SWIFT_ALLOW_INSTALL_OBJC_HEADER")
     public static let __SWIFT_ALLOW_INSTALL_OBJC_HEADER_MESSAGE = BuiltinMacros.declareStringMacro("__SWIFT_ALLOW_INSTALL_OBJC_HEADER_MESSAGE")
     public static let SWIFT_COMPILATION_MODE = BuiltinMacros.declareStringMacro("SWIFT_COMPILATION_MODE")
+    public static let SWIFT_DEPENDENCY_REGISTRATION_MODE = BuiltinMacros.declareEnumMacro("SWIFT_DEPENDENCY_REGISTRATION_MODE") as EnumMacroDeclaration<SwiftDependencyRegistrationMode>
     public static let SWIFT_DEPLOYMENT_TARGET = BuiltinMacros.declareStringMacro("SWIFT_DEPLOYMENT_TARGET")
     public static let SWIFT_DEVELOPMENT_TOOLCHAIN = BuiltinMacros.declareBooleanMacro("SWIFT_DEVELOPMENT_TOOLCHAIN")
     public static let SWIFT_EMIT_LOC_STRINGS = BuiltinMacros.declareBooleanMacro("SWIFT_EMIT_LOC_STRINGS")
@@ -2155,6 +2156,7 @@ public final class BuiltinMacros {
         SWIFT_ALLOW_INSTALL_OBJC_HEADER,
         __SWIFT_ALLOW_INSTALL_OBJC_HEADER_MESSAGE,
         SWIFT_COMPILATION_MODE,
+        SWIFT_DEPENDENCY_REGISTRATION_MODE,
         SWIFT_DEPLOYMENT_TARGET,
         SWIFT_DEVELOPMENT_TOOLCHAIN,
         SWIFT_EMIT_LOC_STRINGS,
@@ -2618,6 +2620,14 @@ public enum SwiftEnableExplicitModulesSetting: String, Equatable, Hashable, Enum
     case notset = "NOT_SET"
     case enabled = "YES"
     case disabled = "NO"
+}
+
+public enum SwiftDependencyRegistrationMode: String, Equatable, Hashable, EnumerationMacroType {
+    public static let defaultValue: SwiftDependencyRegistrationMode = .makeStyleDependenciesSupplementedByScanner
+
+    case makeStyleDependenciesSupplementedByScanner = "make-style"
+    case swiftDependencyScannerOnly = "dependency-scanner"
+    case verifySwiftDependencyScanner = "verify-swift-dependency-scanner"
 }
 
 /// Enumeration macro type for tri-state boolean value of whether the user has enabled compilation caching builds, disabled, or not set.
