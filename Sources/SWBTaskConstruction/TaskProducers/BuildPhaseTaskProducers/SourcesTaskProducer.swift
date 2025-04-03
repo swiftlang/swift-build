@@ -896,7 +896,7 @@ final class SourcesTaskProducer: FilesBasedBuildPhaseTaskProducerBase, FilesBase
 
                 // If there is at least one object file that was built using Swift, ensure the Swift tool is present in the used tools to allow linker spec to add swift specific linker arguments.
                 if objectsInFrameworkPhase.contains(where: { !$0.swiftModulePaths.isEmpty }), !usedTools.keys.contains(context.swiftCompilerSpec) {
-                    usedTools[context.swiftCompilerSpec] = [context.lookupFileType(identifier: "sourcecode.swift")!]
+                    usedTools[context.swiftCompilerSpec] = [context.lookupFileType(identifier: "compiled.mach-o.objfile")!]
                 }
 
                 // If this is an API build, or there are no tasks and object files, don't link, so we don't produce a binary if we're not compiling any code.
