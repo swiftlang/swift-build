@@ -378,9 +378,15 @@ import Foundation
     func toolchainPathsCount() async throws -> Int {
         let delegate = Delegate()
         let pluginManager = await PluginManager(skipLoadingPluginIdentifiers: [])
+        await pluginManager.registerExtensionPoint(DeveloperDirectoryExtensionPoint())
         await pluginManager.registerExtensionPoint(SpecificationsExtensionPoint())
         await pluginManager.registerExtensionPoint(ToolchainRegistryExtensionPoint())
         await pluginManager.register(BuiltinSpecsExtension(), type: SpecificationsExtensionPoint.self)
+        struct MockDeveloperDirectoryExtensionPoint: DeveloperDirectoryExtension {
+            func fallbackDeveloperDirectory(hostOperatingSystem: OperatingSystem) async throws -> Path? {
+                .root
+            }
+        }
         struct MockToolchainExtension: ToolchainRegistryExtension {
             func additionalToolchains(context: any ToolchainRegistryExtensionAdditionalToolchainsContext) async throws -> [Toolchain] {
                 guard context.toolchainRegistry.lookup(ToolchainRegistry.defaultToolchainIdentifier) == nil else {
@@ -389,6 +395,7 @@ import Foundation
                 return [Toolchain(identifier: ToolchainRegistry.defaultToolchainIdentifier, displayName: "Mock", version: Version(), aliases: ["default"], path: .root, frameworkPaths: [], libraryPaths: [], defaultSettings: [:], overrideSettings: [:], defaultSettingsWhenPrimary: [:], executableSearchPaths: [], testingLibraryPlatformNames: [], fs: context.fs)]
             }
         }
+        await pluginManager.register(MockDeveloperDirectoryExtensionPoint(), type: DeveloperDirectoryExtensionPoint.self)
         await pluginManager.register(MockToolchainExtension(), type: ToolchainRegistryExtensionPoint.self)
         let core = await Core.getInitializedCore(delegate, pluginManager: pluginManager, inferiorProductsPath: Path.root.join("invalid"), environment: [:], buildServiceModTime: Date(), connectionMode: .inProcess)
         for diagnostic in delegate.diagnostics {
@@ -416,9 +423,15 @@ import Foundation
     func testExternalToolchainPath(environmentOverrides: [String:String], expecting expectedPathStrings: [String], _ originalToolchainCount: Int) async throws {
         let delegate = Delegate()
         let pluginManager = await PluginManager(skipLoadingPluginIdentifiers: [])
+        await pluginManager.registerExtensionPoint(DeveloperDirectoryExtensionPoint())
         await pluginManager.registerExtensionPoint(SpecificationsExtensionPoint())
         await pluginManager.registerExtensionPoint(ToolchainRegistryExtensionPoint())
         await pluginManager.register(BuiltinSpecsExtension(), type: SpecificationsExtensionPoint.self)
+        struct MockDeveloperDirectoryExtensionPoint: DeveloperDirectoryExtension {
+            func fallbackDeveloperDirectory(hostOperatingSystem: OperatingSystem) async throws -> Path? {
+                .root
+            }
+        }
         struct MockToolchainExtension: ToolchainRegistryExtension {
             func additionalToolchains(context: any ToolchainRegistryExtensionAdditionalToolchainsContext) async throws -> [Toolchain] {
                 guard context.toolchainRegistry.lookup(ToolchainRegistry.defaultToolchainIdentifier) == nil else {
@@ -427,6 +440,7 @@ import Foundation
                 return [Toolchain(identifier: ToolchainRegistry.defaultToolchainIdentifier, displayName: "Mock", version: Version(), aliases: ["default"], path: .root, frameworkPaths: [], libraryPaths: [], defaultSettings: [:], overrideSettings: [:], defaultSettingsWhenPrimary: [:], executableSearchPaths: [], testingLibraryPlatformNames: [], fs: context.fs)]
             }
         }
+        await pluginManager.register(MockDeveloperDirectoryExtensionPoint(), type: DeveloperDirectoryExtensionPoint.self)
         await pluginManager.register(MockToolchainExtension(), type: ToolchainRegistryExtensionPoint.self)
         let core = await Core.getInitializedCore(delegate, pluginManager: pluginManager, inferiorProductsPath: Path.root.join("invalid"), environment: environmentOverrides, buildServiceModTime: Date(), connectionMode: .inProcess)
         for diagnostic in delegate.diagnostics {
