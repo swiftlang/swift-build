@@ -1158,6 +1158,67 @@ fileprivate struct SwiftTaskConstructionTests: CoreBasedTests {
     }
 
     @Test(.requireSDKs(.macOS))
+    func swiftModuleCacheFlags() async throws {
+        let swiftCompilerPath = try await self.swiftCompilerPath
+        let swiftVersion = try await self.swiftVersion
+        let testProject = TestProject(
+            "aProject",
+            groupTree: TestGroup(
+                "SomeFiles", path: "Sources",
+                children: [
+                    TestFile("Foo.swift"),
+                ]),
+            buildConfigurations: [
+                TestBuildConfiguration(
+                    "Debug",
+                    buildSettings: [
+                        "CODE_SIGN_IDENTITY": "",
+                        "PRODUCT_NAME": "$(TARGET_NAME)",
+                        "GCC_GENERATE_DEBUGGING_SYMBOLS": "NO",
+                        "SWIFT_ENABLE_EXPLICIT_MODULES": "YES",
+                        "SWIFT_EXPLICIT_MODULES_OUTPUT_PATH": "/path/to/ExplicitModules",
+                    ]),
+            ],
+            targets: [
+                TestStandardTarget(
+                    "CoreFoo", type: .framework,
+                    buildConfigurations: [
+                        TestBuildConfiguration("Debug",
+                                               buildSettings: [
+                                                "SDKROOT": "macosx",
+                                                "SWIFT_VERSION": swiftVersion,
+                                               ]),
+                    ],
+                    buildPhases: [
+                        TestSourcesBuildPhase([
+                            "Foo.swift",
+                        ]),
+                    ])
+            ])
+        let core = try await getCore()
+        let tester = try TaskConstructionTester(core, testProject)
+
+        let fs = PseudoFS()
+
+        try await fs.writeFileContents(swiftCompilerPath) { $0 <<< "binary" }
+        let arena = ArenaInfo(derivedDataPath: Path("/path/to/DerivedData"), buildProductsPath: Path.root, buildIntermediatesPath: Path.root, pchPath: Path.root, indexRegularBuildProductsPath: nil, indexRegularBuildIntermediatesPath: nil, indexPCHPath: Path.root, indexDataStoreFolderPath: nil, indexEnableDataStore: false)
+        await tester.checkBuild(BuildParameters(configuration: "Debug", arena: arena), runDestination: .macOS, fs: fs) { results in
+            results.checkTarget("CoreFoo")  { target in
+                results.checkTask(.matchTarget(target), .matchRuleType("SwiftDriver Compilation")) { task in
+                    task.checkCommandLineContains(["-module-cache-path", "/path/to/ExplicitModules"])
+                    if LibSwiftDriver.supportsDriverFlag(spelled: "-clang-scanner-module-cache-path") {
+                        task.checkCommandLineContains(["-clang-scanner-module-cache-path", "/path/to/DerivedData/ModuleCache.noindex"])
+                    }
+                    if LibSwiftDriver.supportsDriverFlag(spelled: "-sdk-module-cache-path") {
+                        task.checkCommandLineContains(["-sdk-module-cache-path", "/path/to/DerivedData/ModuleCache.noindex"])
+                    }
+                }
+            }
+            results.checkNoDiagnostics()
+        }
+    }
+
+    @Test(.requireSDKs(.macOS))
     func swiftLTO() async throws {
         let testProject = try await TestProject(
             "aProject",
