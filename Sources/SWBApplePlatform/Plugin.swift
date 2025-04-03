@@ -18,6 +18,7 @@ import Foundation
 import SWBTaskConstruction
 
 @PluginExtensionSystemActor public func initializePlugin(_ manager: PluginManager) {
+    manager.register(AppleDeveloperDirectoryExtension(), type: DeveloperDirectoryExtensionPoint.self)
     manager.register(ApplePlatformSpecsExtension(), type: SpecificationsExtensionPoint.self)
     manager.register(ActoolInputFileGroupingStrategyExtension(), type: InputFileGroupingStrategyExtensionPoint.self)
     manager.register(ImageScaleFactorsInputFileGroupingStrategyExtension(), type: InputFileGroupingStrategyExtensionPoint.self)
@@ -27,6 +28,12 @@ import SWBTaskConstruction
     manager.register(MacCatalystInfoExtension(), type: SDKVariantInfoExtensionPoint.self)
     manager.register(ApplePlatformInfoExtension(), type: PlatformInfoExtensionPoint.self)
     manager.register(AppleSettingsBuilderExtension(), type: SettingsBuilderExtensionPoint.self)
+}
+
+struct AppleDeveloperDirectoryExtension: DeveloperDirectoryExtension {
+    func fallbackDeveloperDirectory(hostOperatingSystem: OperatingSystem) async throws -> Path? {
+        try await hostOperatingSystem == .macOS ? Xcode.getActiveDeveloperDirectoryPath() : nil
+    }
 }
 
 struct TaskProducersExtension: TaskProducerExtension {

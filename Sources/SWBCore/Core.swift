@@ -51,20 +51,30 @@ public final class Core: Sendable {
                 return nil
             }
 
+            #if USE_STATIC_PLUGIN_INITIALIZATION
+            // In a package context, plugins are statically linked into the build system.
+            // Load specs from service plugins if requested since we don't have a Service in certain tests
+            // Here we don't have access to `core.pluginPaths` like we do in the call below,
+            // but it doesn't matter because it will return an empty array when USE_STATIC_PLUGIN_INITIALIZATION is defined.
+            await extraPluginRegistration([])
+            #endif
+
             let resolvedDeveloperPath: String
             do {
                 if let resolved = developerPath?.nilIfEmpty?.str {
                     resolvedDeveloperPath = resolved
-                } else if hostOperatingSystem == .macOS {
-                    resolvedDeveloperPath = try await Xcode.getActiveDeveloperDirectoryPath().str
-                } else if hostOperatingSystem == .windows {
-                    guard let userProgramFiles = URL.userProgramFiles, let swiftPath = try? userProgramFiles.appending(component: "Swift").filePath else {
-                        delegate.error("Could not determine path to user program files")
+                } else {
+                    let values = try await Set(pluginManager.extensions(of: DeveloperDirectoryExtensionPoint.self).asyncMap { try await $0.fallbackDeveloperDirectory(hostOperatingSystem: hostOperatingSystem) }).compactMap { $0 }
+                    switch values.count {
+                    case 0:
+                        delegate.error("Could not determine path to developer directory because no extensions provided a fallback value")
+                        return nil
+                    case 1:
+                        resolvedDeveloperPath = values[0].str
+                    default:
+                        delegate.error("Could not determine path to developer directory because multiple extensions provided conflicting fallback values: \(values.sorted().map { $0.str }.joined(separator: ", "))")
                         return nil
                     }
-                    resolvedDeveloperPath = swiftPath.str
-                } else {
-                    resolvedDeveloperPath = "/"
                 }
             } catch {
                 delegate.error("Could not determine path to developer directory: \(error)")
@@ -93,8 +103,11 @@ public final class Core: Sendable {
                 }
             }
 
+            #if !USE_STATIC_PLUGIN_INITIALIZATION
+            // In a package context, plugins are statically linked into the build system.
             // Load specs from service plugins if requested since we don't have a Service in certain tests
             await extraPluginRegistration(core.pluginPaths)
+            #endif
 
             await core.initializeSpecRegistry()
 
