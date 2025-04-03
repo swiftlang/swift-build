@@ -1800,11 +1800,15 @@ public final class SwiftCompilerSpec : CompilerSpec, SpecIdentifierType, SwiftDi
                     args.append("-explicit-module-build")
                     let explicitDependencyOutputPath = Path(cbc.scope.evaluate(BuiltinMacros.SWIFT_EXPLICIT_MODULES_OUTPUT_PATH))
                     args.append(contentsOf: ["-module-cache-path", explicitDependencyOutputPath.str])
+                    let moduleCacheDir = cbc.scope.evaluate(BuiltinMacros.MODULE_CACHE_DIR)
                     if LibSwiftDriver.supportsDriverFlag(spelled: "-clang-scanner-module-cache-path"),
-                       !cbc.scope.evaluate(BuiltinMacros.MODULE_CACHE_DIR).isEmpty {
+                       !moduleCacheDir.isEmpty {
                         // Specify the Clang scanner cache separately as a shared cache among different projects
-                        let globalModuleCacheForScanningPath = cbc.scope.evaluate(BuiltinMacros.MODULE_CACHE_DIR)
-                        args.append(contentsOf: ["-clang-scanner-module-cache-path", globalModuleCacheForScanningPath.str])
+                        args.append(contentsOf: ["-clang-scanner-module-cache-path", moduleCacheDir.str])
+                    }
+                    if LibSwiftDriver.supportsDriverFlag(spelled: "-sdk-module-cache-path"),
+                       !moduleCacheDir.isEmpty {
+                        args.append(contentsOf: ["-sdk-module-cache-path", moduleCacheDir.str])
                     }
                 }
             } else {
