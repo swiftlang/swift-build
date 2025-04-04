@@ -20,3 +20,8 @@ set_target_properties(SWBProjectModel PROPERTIES
   Swift_LANGUAGE_VERSION 6)
 target_link_libraries(SWBProjectModel PUBLIC
   SWBProtocol)
+
+target_include_directories(SWBProjectModel PUBLIC
+  ${CMAKE_CURRENT_BINARY_DIR})
+
+set_property(GLOBAL APPEND PROPERTY SWIFTBUILD_EXPORTS SWBProjectModel)

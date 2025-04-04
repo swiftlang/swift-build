@@ -33,3 +33,5 @@ target_link_libraries(SWBMacro PUBLIC
 
 target_include_directories(SWBMacro PUBLIC
   ${CMAKE_CURRENT_BINARY_DIR})
+
+set_property(GLOBAL APPEND PROPERTY SWIFTBUILD_EXPORTS SWBMacro)
