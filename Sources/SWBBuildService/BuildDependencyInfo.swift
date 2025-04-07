@@ -403,10 +403,16 @@ extension BuildDependencyInfo {
 
                 let filename = resolvedBuildFile.absolutePath.basename
 
+                // TODO: all of the below are using linkType: .searchPath, we aren't reporting .absolutePath
+
                 if resolvedBuildFile.fileType.conformsTo(identifier: "wrapper.framework") {
+                    // TODO: static frameworks?
                     await inputs.addInput(TargetDependencyInfo.Input(inputType: .framework, name: .name(filename), linkType: .searchPath, libraryType: .dynamic))
                 }
                 else if resolvedBuildFile.fileType.conformsTo(identifier: "compiled.mach-o.dylib") {
+                    await inputs.addInput(TargetDependencyInfo.Input(inputType: .library, name: .name(filename), linkType: .searchPath, libraryType: .dynamic))
+                }
+                else if resolvedBuildFile.fileType.conformsTo(identifier: "sourcecode.text-based-dylib-definition") {
                     await inputs.addInput(TargetDependencyInfo.Input(inputType: .library, name: .name(filename), linkType: .searchPath, libraryType: .dynamic))
                 }
                 else if resolvedBuildFile.fileType.conformsTo(identifier: "archive.ar") {
