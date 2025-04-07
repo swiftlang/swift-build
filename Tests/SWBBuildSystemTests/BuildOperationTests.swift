@@ -3792,8 +3792,8 @@ That command depends on command in Target 'agg2' (project \'aProject\'): script 
                     }
 
                     if !shouldFilterSwiftLibs {
-                        #expect(dependencyInfo.inputs.contains(core.developerPath.join("Toolchains/XcodeDefault.xctoolchain/usr/lib/swift-5.0/macosx/libswiftCore.dylib").str))
-                        #expect(dependencyInfo.inputs.contains(core.developerPath.join("Toolchains/XcodeDefault.xctoolchain/usr/lib/swift-5.0/macosx/libswiftFoundation.dylib").str))
+                        #expect(dependencyInfo.inputs.contains(core.developerPath.path.join("Toolchains/XcodeDefault.xctoolchain/usr/lib/swift-5.0/macosx/libswiftCore.dylib").str))
+                        #expect(dependencyInfo.inputs.contains(core.developerPath.path.join("Toolchains/XcodeDefault.xctoolchain/usr/lib/swift-5.0/macosx/libswiftFoundation.dylib").str))
                         #expect(dependencyInfo.outputs.sorted().contains(expectedDependencyInfo.outputs.sorted()))
                         #expect(dependencyInfo.outputs.contains(buildDir.join("App.app/Contents/Frameworks/libswiftCore.dylib").str))
                         #expect(dependencyInfo.outputs.contains(buildDir.join("App.app/Contents/Frameworks/libswiftFoundation.dylib").str))
@@ -3801,8 +3801,8 @@ That command depends on command in Target 'agg2' (project \'aProject\'): script 
 
                     if shouldBackDeploySwiftConcurrency {
                         // Note all toolchains have this yet...
-                        if tester.fs.exists(core.developerPath.join("Toolchains/XcodeDefault.xctoolchain/usr/lib/swift-5.5/macosx/libswift_Concurrency.dylib")) {
-                            #expect(dependencyInfo.inputs.contains(core.developerPath.join("Toolchains/XcodeDefault.xctoolchain/usr/lib/swift-5.5/macosx/libswift_Concurrency.dylib").str))
+                        if tester.fs.exists(core.developerPath.path.join("Toolchains/XcodeDefault.xctoolchain/usr/lib/swift-5.5/macosx/libswift_Concurrency.dylib")) {
+                            #expect(dependencyInfo.inputs.contains(core.developerPath.path.join("Toolchains/XcodeDefault.xctoolchain/usr/lib/swift-5.5/macosx/libswift_Concurrency.dylib").str))
                             #expect(dependencyInfo.outputs.contains(buildDir.join("App.app/Contents/Frameworks/libswift_Concurrency.dylib").str))
                         }
                     }
@@ -3821,7 +3821,7 @@ That command depends on command in Target 'agg2' (project \'aProject\'): script 
                     let unitTestsExpectedDependencyInfo = DependencyInfo(
                         version: "swift-stdlib-tool",
                         inputs: ([
-                            core.developerPath.join("Platforms/MacOSX.platform/Developer/usr/lib/libXCTestSwiftSupport.dylib").str,
+                            core.developerPath.path.join("Platforms/MacOSX.platform/Developer/usr/lib/libXCTestSwiftSupport.dylib").str,
                             buildDir.join("UnitTests.xctest/Contents/MacOS/UnitTests").str,
                         ]).sorted(),
                         missing: [],
@@ -3838,8 +3838,8 @@ That command depends on command in Target 'agg2' (project \'aProject\'): script 
 
                     if !shouldFilterSwiftLibs {
                         if (try Version(core.loadSDK(.macOS).defaultDeploymentTarget)) < Version(10, 15) {
-                            #expect(unitTestsDependencyInfo.inputs.contains(core.developerPath.join("Toolchains/XcodeDefault.xctoolchain/usr/lib/swift-5.0/macosx/libswiftCore.dylib").str))
-                            #expect(unitTestsDependencyInfo.inputs.contains(core.developerPath.join("Toolchains/XcodeDefault.xctoolchain/usr/lib/swift-5.0/macosx/libswiftFoundation.dylib").str))
+                            #expect(unitTestsDependencyInfo.inputs.contains(core.developerPath.path.join("Toolchains/XcodeDefault.xctoolchain/usr/lib/swift-5.0/macosx/libswiftCore.dylib").str))
+                            #expect(unitTestsDependencyInfo.inputs.contains(core.developerPath.path.join("Toolchains/XcodeDefault.xctoolchain/usr/lib/swift-5.0/macosx/libswiftFoundation.dylib").str))
                         }
                         #expect(unitTestsDependencyInfo.outputs.sorted().contains(unitTestsExpectedDependencyInfo.outputs.sorted()))
                         if (try Version(core.loadSDK(.macOS).defaultDeploymentTarget)) < Version(10, 15) {
@@ -3852,8 +3852,8 @@ That command depends on command in Target 'agg2' (project \'aProject\'): script 
                         // NOTE: Tests have their deployment target overridden.
                         if (try Version(core.loadSDK(.macOS).defaultDeploymentTarget)) < Version(10, 15) {
                             // Note all toolchains have this yet...
-                            if tester.fs.exists(core.developerPath.join("Toolchains/XcodeDefault.xctoolchain/usr/lib/swift-5.5/macosx/libswift_Concurrency.dylib")) {
-                                #expect(unitTestsDependencyInfo.inputs.contains(core.developerPath.join("Toolchains/XcodeDefault.xctoolchain/usr/lib/swift-5.5/macosx/libswift_Concurrency.dylib").str))
+                            if tester.fs.exists(core.developerPath.path.join("Toolchains/XcodeDefault.xctoolchain/usr/lib/swift-5.5/macosx/libswift_Concurrency.dylib")) {
+                                #expect(unitTestsDependencyInfo.inputs.contains(core.developerPath.path.join("Toolchains/XcodeDefault.xctoolchain/usr/lib/swift-5.5/macosx/libswift_Concurrency.dylib").str))
                                 #expect(unitTestsDependencyInfo.outputs.contains(buildDir.join("SwiftlessApp.app/Contents/Frameworks/libswift_Concurrency.dylib").str))
                             }
                         }
@@ -3867,8 +3867,8 @@ That command depends on command in Target 'agg2' (project \'aProject\'): script 
 
                     if shouldBackDeploySwiftConcurrency {
                         // Note all toolchains have this yet...
-                        if tester.fs.exists(core.developerPath.join("Toolchains/XcodeDefault.xctoolchain/usr/lib/swift-5.5/macosx/libswift_Concurrency.dylib")) {
-                            #expect(dependencyInfo.inputs.contains(core.developerPath.join("Toolchains/XcodeDefault.xctoolchain/usr/lib/swift-5.5/macosx/libswift_Concurrency.dylib").str))
+                        if tester.fs.exists(core.developerPath.path.join("Toolchains/XcodeDefault.xctoolchain/usr/lib/swift-5.5/macosx/libswift_Concurrency.dylib")) {
+                            #expect(dependencyInfo.inputs.contains(core.developerPath.path.join("Toolchains/XcodeDefault.xctoolchain/usr/lib/swift-5.5/macosx/libswift_Concurrency.dylib").str))
                             #expect(dependencyInfo.outputs.contains(buildDir.join("SwiftlessSysExApp.app/Contents/Frameworks/libswift_Concurrency.dylib").str))
                         }
                     }

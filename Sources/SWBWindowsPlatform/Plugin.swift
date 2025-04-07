@@ -94,7 +94,15 @@ struct WindowsPlatformExtension: PlatformInfoExtension {
             return []
         }
 
-        let platformsPath = context.developerPath.join("Platforms")
+        let platformsPath: Path
+        switch context.developerPath {
+        case .xcode(let path):
+            platformsPath = path.join("Platforms")
+        case .swiftToolchain(let path, _):
+            platformsPath = path.join("Platforms")
+        case .fallback(let path):
+            platformsPath = path.join("Platforms")
+        }
         return try context.fs.listdir(platformsPath).compactMap { version in
             let versionedPlatformsPath = platformsPath.join(version)
             guard context.fs.isDirectory(versionedPlatformsPath) else {

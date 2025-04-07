@@ -900,7 +900,7 @@ fileprivate struct DocumentationTaskConstructionTests: CoreBasedTests {
                                 "SYSTEM_FRAMEWORK_SEARCH_PATHS": "system_framework_search_paths1 system_framework_search_paths2",
                                 "HEADER_SEARCH_PATHS": "header_search_paths1 header_search_paths2",
                                 "SYSTEM_HEADER_SEARCH_PATHS": "system_header_search_paths1 system_header_search_paths2",
-                                "TOOLCHAIN_DIR": core.developerPath.join("Toolchains/XcodeDefault.xctoolchain").str,
+                                "TOOLCHAIN_DIR": core.developerPath.path.join("Toolchains/XcodeDefault.xctoolchain").str,
                                 "EXCLUDED_SOURCE_FILE_NAMES": "Excluded*",
                                 "DOCC_EXTRACT_SWIFT_INFO_FOR_OBJC_SYMBOLS": "NO",
                                 "TAPI_EXTRACT_API_ENABLE_MODULES": "YES",
@@ -1426,7 +1426,7 @@ fileprivate struct DocumentationTaskConstructionTests: CoreBasedTests {
                             task in
 
                             task.checkCommandLine([
-                                core.developerPath.dirname.join("SharedFrameworks/CoreDocumentation.framework/Resources/sdkdb_to_symgraph").str,
+                                core.developerPath.path.dirname.join("SharedFrameworks/CoreDocumentation.framework/Resources/sdkdb_to_symgraph").str,
                                 sdkdbOutputPath,
                                 "Framework",
                                 symbolGraphPath

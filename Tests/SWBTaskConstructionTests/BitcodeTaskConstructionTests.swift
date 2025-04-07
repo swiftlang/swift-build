@@ -116,7 +116,7 @@ fileprivate struct BitcodeTaskConstructionTests: CoreBasedTests {
 
             // Check that the copying of the framework is stripping bitcode fully.
             results.checkTask(.matchTargetName("AppTarget"), .matchRuleType("Copy"), .matchRuleItemBasename("FwkTarget.framework")) { task in
-                task.checkCommandLineContainsUninterrupted(["-bitcode-strip", "all", "-bitcode-strip-tool", "\(core.developerPath.str)/Toolchains/XcodeDefault.xctoolchain/usr/bin/bitcode_strip"])
+                task.checkCommandLineContainsUninterrupted(["-bitcode-strip", "all", "-bitcode-strip-tool", "\(core.developerPath.path.str)/Toolchains/XcodeDefault.xctoolchain/usr/bin/bitcode_strip"])
                 task.checkCommandLineContainsUninterrupted(["\(SRCROOT)/build/Debug-iphoneos/FwkTarget.framework", "\(SRCROOT)/build/Debug-iphoneos/AppTarget.app/Frameworks"])
             }
             // Check that the copying of the text file is NOT stripping bitcode (because this file is not code signed and so should never be stripped).
@@ -157,7 +157,7 @@ fileprivate struct BitcodeTaskConstructionTests: CoreBasedTests {
 
             // Check that the copying of the framework is stripping bitcode to marker level.
             results.checkTask(.matchTargetName("AppTarget"), .matchRuleType("Copy"), .matchRuleItemBasename("FwkTarget.framework")) { task in
-                task.checkCommandLineContainsUninterrupted(["-bitcode-strip", "replace-with-marker", "-bitcode-strip-tool", "\(core.developerPath.str)/Toolchains/XcodeDefault.xctoolchain/usr/bin/bitcode_strip"])
+                task.checkCommandLineContainsUninterrupted(["-bitcode-strip", "replace-with-marker", "-bitcode-strip-tool", "\(core.developerPath.path.str)/Toolchains/XcodeDefault.xctoolchain/usr/bin/bitcode_strip"])
                 task.checkCommandLineContainsUninterrupted(["\(SRCROOT)/build/Debug-iphoneos/FwkTarget.framework", "\(SRCROOT)/build/Debug-iphoneos/AppTarget.app/Frameworks"])
             }
             // Check that the copying of the text file is NOT stripping bitcode (because this file is not code signed and so should never be stripped).

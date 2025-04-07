@@ -156,9 +156,15 @@ fileprivate struct PreOverridesSettings {
         // NOTE: All of these settings must depend only on the core, and be immutable, as these values are cached in the universal defaults table.
 
         // FIXME: These need to translate to "fake-VFS" paths, for the pseudo-SWB testing.
-        let developerPath = core.developerPath
+        let developerPath = core.developerPath.path
 
-        let legacyDeveloperPath = core.developerPath.dirname.join("PlugIns/Xcode3Core.ideplugin/Contents/SharedSupport/Developer")
+        switch core.developerPath {
+        case .xcode(let path):
+            let legacyDeveloperPath = path.dirname.join("PlugIns/Xcode3Core.ideplugin/Contents/SharedSupport/Developer")
+            table.push(BuiltinMacros.LEGACY_DEVELOPER_DIR, literal: legacyDeveloperPath.str)
+        default:
+            break
+        }
 
         let developerToolsPath = developerPath.join("Tools")
         let developerAppsPath = developerPath.join("Applications")
@@ -185,7 +191,6 @@ fileprivate struct PreOverridesSettings {
         // FIXME: We should see if any of these can be deprecated, once we support that.
         table.push(BuiltinMacros.SYSTEM_DEVELOPER_DIR, literal: developerPath.str)
         table.push(BuiltinMacros.DEVELOPER_DIR, literal: developerPath.str)
-        table.push(BuiltinMacros.LEGACY_DEVELOPER_DIR, literal: legacyDeveloperPath.str)
         table.push(BuiltinMacros.SYSTEM_DEVELOPER_APPS_DIR, literal: developerAppsPath.str)
         table.push(BuiltinMacros.DEVELOPER_APPLICATIONS_DIR, literal: developerAppsPath.str)
         table.push(BuiltinMacros.DEVELOPER_LIBRARY_DIR, literal: developerLibPath.str)
@@ -1020,8 +1025,18 @@ extension WorkspaceContext {
             }
 
             // Add the standard search paths.
-            paths.append(core.developerPath.join("usr").join("bin"))
-            paths.append(core.developerPath.join("usr").join("local").join("bin"))
+            switch core.developerPath {
+            case .xcode(let path), .fallback(let path):
+                paths.append(path.join("usr").join("bin"))
+                paths.append(path.join("usr").join("local").join("bin"))
+            case .swiftToolchain(let path, let xcodeDeveloperPath):
+                paths.append(path.join("usr").join("bin"))
+                paths.append(path.join("usr").join("local").join("bin"))
+                if let xcodeDeveloperPath {
+                    paths.append(xcodeDeveloperPath.join("usr").join("bin"))
+                    paths.append(xcodeDeveloperPath.join("usr").join("local").join("bin"))
+                }
+            }
 
             // Add the entries from PATH.
             if let value = userInfo?.buildSystemEnvironment["PATH"] {
@@ -1857,6 +1872,15 @@ private class SettingsBuilder {
             // FIXME: We need to report an error here if the toolchain couldn't be found.
             return core.toolchainRegistry.lookup(name)
         }
+
+        // If the build system was initialized as part of a swift toolchain, push that toolchain ahead of the default toolchain, if they are not the same (e.g. when on macOS where an Xcode install exists).
+        if case .swiftToolchain(let path, xcodeDeveloperPath: _) = core.developerPath {
+            if let developerPathToolchain = core.toolchainRegistry.toolchains.first(where: { $0.path.normalize() == path.normalize() }),
+               developerPathToolchain != coreSettings.defaultToolchain {
+                toolchains.append(developerPathToolchain)
+            }
+        }
+
         // Add the default toolchain at the end, if not present.
         if let defaultToolchain = coreSettings.defaultToolchain, toolchains.firstIndex(of: defaultToolchain) == nil {
             toolchains.append(defaultToolchain)

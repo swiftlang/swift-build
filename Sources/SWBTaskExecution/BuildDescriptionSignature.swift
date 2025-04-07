@@ -94,7 +94,7 @@ package struct BuildDescriptionSignatureComponents: Codable, Hashable, Sendable 
         }
         systemInfo = request.workspaceContext.systemInfo
         userInfo = request.workspaceContext.userInfo
-        developerPath = request.workspaceContext.core.developerPath
+        developerPath = request.workspaceContext.core.developerPath.path
         xcodeVersionString = request.workspaceContext.core.xcodeVersionString
         xcodeProductBuildVersionString = request.workspaceContext.core.xcodeProductBuildVersionString
         buildServiceModTime = request.workspaceContext.core.buildServiceModTime

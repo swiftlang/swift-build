@@ -21,7 +21,7 @@ public import SWBMacro
 @_spi(Testing) public protocol PlatformRegistryDelegate: DiagnosticProducingDelegate, SpecRegistryProvider {
     var pluginManager: PluginManager { get }
 
-    var developerPath: Path { get }
+    var developerPath: Core.DeveloperPath { get }
 }
 
 public final class Platform: Sendable {
@@ -337,7 +337,7 @@ public final class PlatformRegistry {
 
         struct Context: PlatformInfoExtensionAdditionalPlatformsContext {
             var hostOperatingSystem: OperatingSystem
-            var developerPath: Path
+            var developerPath: Core.DeveloperPath
             var fs: any FSProxy
         }
 

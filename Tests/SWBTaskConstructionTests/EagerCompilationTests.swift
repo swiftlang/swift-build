@@ -541,7 +541,7 @@ fileprivate struct EagerCompilationTests: CoreBasedTests {
         // Create files in the filesystem so they're known to exist.
         let fs = PseudoFS()
         for frameworkSubpath in unitTestFrameworkSubpaths {
-            let frameworkPath = core.developerPath.join("Platforms/MacOSX.platform/Developer").join(frameworkSubpath)
+            let frameworkPath = core.developerPath.path.join("Platforms/MacOSX.platform/Developer").join(frameworkSubpath)
             try fs.createDirectory(frameworkPath.dirname, recursive: true)
             try fs.write(frameworkPath, contents: ByteString(encodingAsUTF8: frameworkPath.basename))
         }

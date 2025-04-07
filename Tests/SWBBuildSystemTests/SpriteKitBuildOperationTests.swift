@@ -58,7 +58,7 @@ fileprivate struct SpriteKitBuildOperationTests: CoreBasedTests {
             try await tester.checkBuild(runDestination: .macOS) { results in
                 try results.checkTask(.matchRuleType("GenerateTextureAtlas")) { task in
                     task.checkRuleInfo(["GenerateTextureAtlas", "\(SRCROOT)/build/Debug/App.app/Contents/Resources/assets.atlasc", "\(SRCROOT)/Sources/assets.atlas"])
-                    task.checkCommandLine(["\(core.developerPath.str)/usr/bin/TextureAtlas", "\(SRCROOT)/Sources/assets.atlas", "\(SRCROOT)/build/Debug/App.app/Contents/Resources"])
+                    task.checkCommandLine(["\(core.developerPath.path.str)/usr/bin/TextureAtlas", "\(SRCROOT)/Sources/assets.atlas", "\(SRCROOT)/build/Debug/App.app/Contents/Resources"])
                     task.checkEnvironment([:], exact: true)
 
                     try results.checkPropertyListContents(Path("\(SRCROOT)/build/Debug/App.app/Contents/Resources/assets.atlasc/assets.plist")) { plist in

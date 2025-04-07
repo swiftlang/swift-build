@@ -74,28 +74,28 @@ fileprivate struct SceneKitBuildOperationTests: CoreBasedTests {
             try await tester.checkBuild(runDestination: .macOS) { results in
                 results.checkTask(.matchRuleType("Process"), .matchRuleItemBasename("A.dae")) { task in
                     task.checkRuleInfo(["Process", "SceneKit", "document", "\(SRCROOT)/Sources/A.dae"])
-                    task.checkCommandLineContains([core.developerPath.join("usr").join("bin").join("scntool").str, "--compress", "\(SRCROOT)/Sources/A.dae"])
+                    task.checkCommandLineContains([core.developerPath.path.join("usr").join("bin").join("scntool").str, "--compress", "\(SRCROOT)/Sources/A.dae"])
                     task.checkEnvironment([:], exact: true)
                 }
                 results.checkTask(.matchRuleType("Process"), .matchRuleItemBasename("B.dae")) { task in
                     task.checkRuleInfo(["Process", "SceneKit", "document", "\(SRCROOT)/Sources/B.dae"])
-                    task.checkCommandLineContains([core.developerPath.join("usr").join("bin").join("scntool").str, "--decompress", "\(SRCROOT)/Sources/B.dae"])
+                    task.checkCommandLineContains([core.developerPath.path.join("usr").join("bin").join("scntool").str, "--decompress", "\(SRCROOT)/Sources/B.dae"])
                     task.checkEnvironment([:], exact: true)
                 }
                 results.checkTask(.matchRuleType("Process"), .matchRuleItemBasename("C.DAE")) { task in
                     task.checkRuleInfo(["Process", "SceneKit", "document", "\(SRCROOT)/Sources/C.DAE"])
-                    task.checkCommandLineContains([core.developerPath.join("usr").join("bin").join("scntool").str, "--compress", "\(SRCROOT)/Sources/C.DAE", "-o", "\(SRCROOT)/build/Debug/App.app/Contents/Resources/C.dae"])
+                    task.checkCommandLineContains([core.developerPath.path.join("usr").join("bin").join("scntool").str, "--compress", "\(SRCROOT)/Sources/C.DAE", "-o", "\(SRCROOT)/build/Debug/App.app/Contents/Resources/C.dae"])
                     task.checkEnvironment([:], exact: true)
                 }
                 results.checkTask(.matchRuleType("Copy"), .matchRuleItemBasename("D.scnassets")) { task in
                     task.checkRuleInfo(["Copy", "SceneKit", "assets", "\(SRCROOT)/Sources/D.scnassets"])
-                    task.checkCommandLineContainsUninterrupted(["\(core.developerPath.str)/usr/bin/copySceneKitAssets", "\(SRCROOT)/Sources/D.scnassets", "-o", "\(SRCROOT)/build/Debug/App.app/Contents/Resources/D.scnassets", "--target-platform=macosx", "--target-version=\(core.loadSDK(.macOS).defaultDeploymentTarget)"])
+                    task.checkCommandLineContainsUninterrupted(["\(core.developerPath.path.str)/usr/bin/copySceneKitAssets", "\(SRCROOT)/Sources/D.scnassets", "-o", "\(SRCROOT)/build/Debug/App.app/Contents/Resources/D.scnassets", "--target-platform=macosx", "--target-version=\(core.loadSDK(.macOS).defaultDeploymentTarget)"])
                     task.checkCommandLineContainsUninterrupted([ "--target-build-dir=\(SRCROOT)/build/Debug", "--resources-folder-path=App.app/Contents/Resources"])
                     task.checkEnvironment([:], exact: true)
                 }
                 results.checkTask(.matchRuleType("Compile"), .matchRuleItemBasename("E.scncache")) { task in
                     task.checkRuleInfo(["Compile", "SceneKit", "Shaders", "\(SRCROOT)/Sources/E.scncache"])
-                    task.checkCommandLineContainsUninterrupted(["\(core.developerPath.str)/usr/bin/compileSceneKitShaders", "\(SRCROOT)/Sources/E.scncache", "-o", "\(SRCROOT)/build/Debug/App.app/Contents/Resources/scenekit.metallib", "--target-platform=macosx", "--target-version=\(core.loadSDK(.macOS).defaultDeploymentTarget)"])
+                    task.checkCommandLineContainsUninterrupted(["\(core.developerPath.path.str)/usr/bin/compileSceneKitShaders", "\(SRCROOT)/Sources/E.scncache", "-o", "\(SRCROOT)/build/Debug/App.app/Contents/Resources/scenekit.metallib", "--target-platform=macosx", "--target-version=\(core.loadSDK(.macOS).defaultDeploymentTarget)"])
                     task.checkCommandLineContainsUninterrupted(["--target-build-dir=\(SRCROOT)/build/Debug", "--resources-folder-path=App.app/Contents/Resources", "--intermediate-dir=\(SRCROOT)/build/aProject.build/Debug/App.build"])
                     task.checkEnvironment([:], exact: true)
                 }

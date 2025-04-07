@@ -321,7 +321,7 @@ extension Trait where Self == Testing.ConditionTrait {
 extension Trait where Self == Testing.ConditionTrait {
     package static var skipDeveloperDirectoryWithEqualSign: Self {
         disabled {
-            try await ConditionTraitContext.shared.getCore().developerPath.str.contains("=")
+            try await ConditionTraitContext.shared.getCore().developerPath.path.str.contains("=")
         }
     }
 
@@ -399,7 +399,7 @@ extension Trait where Self == Testing.ConditionTrait {
 package func casOptions() async throws -> (canUseCASPlugin: Bool, canUseCASPruning: Bool, canCheckCASUpToDate: Bool) {
     let libclang = try #require(try await ConditionTraitContext.shared.libclang)
     let core = try await ConditionTraitContext.shared.getCore()
-    let canUseCASPlugin = libclang.supportsCASPlugin && localFS.exists(core.developerPath.join("usr/lib/libToolchainCASPlugin.dylib"))
+    let canUseCASPlugin = libclang.supportsCASPlugin && localFS.exists(core.developerPath.path.join("usr/lib/libToolchainCASPlugin.dylib"))
     let canUseCASPruning = libclang.supportsCASPruning
     let canCheckCASUpToDate = libclang.supportsCASUpToDateChecks
     return (canUseCASPlugin, canUseCASPruning, canCheckCASUpToDate)
