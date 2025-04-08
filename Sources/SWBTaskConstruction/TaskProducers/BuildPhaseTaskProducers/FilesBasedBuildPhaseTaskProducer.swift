@@ -569,20 +569,23 @@ class FilesBasedBuildPhaseTaskProducerBase: PhasedTaskProducer {
         }
 
         let sourceFiles = (self.targetContext.configuredTarget?.target as? StandardTarget)?.sourcesBuildPhase?.buildFiles.count ?? 0
-        if scope.evaluate(BuiltinMacros.ASSETCATALOG_COMPILER_GENERATE_ASSET_SYMBOLS) && (sourceFiles > 0) {
-            // Process asset catalogs first to workaround issue where generated sources aren't added to main source code group.
-            // rdar://102834701 (File grouping for 'collection groups' is sensitive to ordering of build phase members)
-            var assetCatalogBuildFiles = [ResolvedBuildFile]()
-            var otherBuildFiles = [ResolvedBuildFile]()
-            for resolvedBuildFile in resolvedBuildFiles {
-                if resolvedBuildFile.fileTypeSpec.conformsTo(identifier: "folder.abstractassetcatalog") {
-                    assetCatalogBuildFiles.append(resolvedBuildFile)
-                }
-                else {
-                    otherBuildFiles.append(resolvedBuildFile)
-                }
+        var compileToSwiftFileTypes : [String] = []
+        for groupingStragegyExtensions in await context.workspaceContext.core.pluginManager.extensions(of: InputFileGroupingStrategyExtensionPoint.self) {
+            compileToSwiftFileTypes.append(contentsOf: groupingStragegyExtensions.fileTypesCompilingToSwiftSources())
+        }
+
+        // Reorder resolvedBuildFiles so that file types which compile to Swift appear first in the list and so are processed first.
+        // This is needed because generated sources aren't added to the the main source code list.
+        // rdar://102834701 (File grouping for 'collection groups' is sensitive to ordering of build phase members)
+        var compileToSwiftFiles = [ResolvedBuildFile]()
+        var otherBuildFiles = [ResolvedBuildFile]()
+        for resolvedBuildFile in resolvedBuildFiles {
+            if compileToSwiftFileTypes.contains (where: { identifier in resolvedBuildFile.fileTypeSpec.conformsTo(identifier: identifier)}) {
+                compileToSwiftFiles.append(resolvedBuildFile)
+            } else {
+                otherBuildFiles.append(resolvedBuildFile)
             }
-            resolvedBuildFiles = assetCatalogBuildFiles + otherBuildFiles
+            resolvedBuildFiles = compileToSwiftFiles + otherBuildFiles
         }
 
         // Allow subclasses to provide additional content

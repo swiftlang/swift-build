@@ -155,6 +155,10 @@ struct ActoolInputFileGroupingStrategyExtension: InputFileGroupingStrategyExtens
         }
         return ["actool": Factory()]
     }
+
+    func fileTypesCompilingToSwiftSources() -> [String] {
+        return ["folder.abstractassetcatalog"]
+    }
 }
 
 struct ImageScaleFactorsInputFileGroupingStrategyExtension: InputFileGroupingStrategyExtension {
@@ -165,6 +169,10 @@ struct ImageScaleFactorsInputFileGroupingStrategyExtension: InputFileGroupingStr
             }
         }
         return ["image-scale-factors": Factory()]
+    }
+
+    func fileTypesCompilingToSwiftSources() -> [String] {
+        return []
     }
 }
 
@@ -177,6 +185,10 @@ struct LocalizationInputFileGroupingStrategyExtension: InputFileGroupingStrategy
         }
         return ["region": Factory()]
     }
+
+    func fileTypesCompilingToSwiftSources() -> [String] {
+        return []
+    }
 }
 
 struct XCStringsInputFileGroupingStrategyExtension: InputFileGroupingStrategyExtension {
@@ -187,6 +199,10 @@ struct XCStringsInputFileGroupingStrategyExtension: InputFileGroupingStrategyExt
             }
         }
         return ["xcstrings": Factory()]
+    }
+
+    func fileTypesCompilingToSwiftSources() -> [String] {
+        return []
     }
 }
 
