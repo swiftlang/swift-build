@@ -25,11 +25,11 @@ import Foundation
         let core = try await getCore()
         switch try ProcessInfo.processInfo.hostOperatingSystem() {
         case .macOS:
-            XCTAssertMatch(core.developerPath.str, .suffix(".app/Contents/Developer"))
+            XCTAssertMatch(core.developerPath.path.str, .suffix(".app/Contents/Developer"))
         case .windows:
-            XCTAssertMatch(core.developerPath.str, .suffix("\\AppData\\Local\\Programs\\Swift"))
+            XCTAssertMatch(core.developerPath.path.str, .suffix("\\AppData\\Local\\Programs\\Swift"))
         default:
-            #expect(core.developerPath.str == "/")
+            #expect(core.developerPath.path.str == "/")
         }
     }
 
@@ -333,7 +333,7 @@ import Foundation
             let pluginManager = await PluginManager(skipLoadingPluginIdentifiers: [])
             await pluginManager.registerExtensionPoint(SpecificationsExtensionPoint())
             await pluginManager.register(BuiltinSpecsExtension(), type: SpecificationsExtensionPoint.self)
-            let core = await Core.getInitializedCore(delegate, pluginManager: pluginManager, developerPath: tmpDirPath, buildServiceModTime: Date(), connectionMode: .inProcess)
+            let core = await Core.getInitializedCore(delegate, pluginManager: pluginManager, developerPath: .fallback(tmpDirPath), buildServiceModTime: Date(), connectionMode: .inProcess)
             #expect(core == nil)
 
             let results = CoreDelegateResults(delegate.diagnostics)

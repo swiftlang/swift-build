@@ -292,7 +292,7 @@ fileprivate struct CleanOperationTests: CoreBasedTests {
                         groupTree: TestGroup("Sources", children: []),
                         buildConfigurations: [TestBuildConfiguration("Debug", buildSettings: [:])],
                         targets: [
-                            TestExternalTarget("external", toolPath: "\(try await getCore().developerPath.str)/usr/bin/make", arguments: "$(ACTION)", workingDirectory: sourceRoot.str, buildConfigurations: [TestBuildConfiguration("Debug", buildSettings: [:])], dependencies: [], passBuildSettingsInEnvironment: true)
+                            TestExternalTarget("external", toolPath: "\(try await getCore().developerPath.path.str)/usr/bin/make", arguments: "$(ACTION)", workingDirectory: sourceRoot.str, buildConfigurations: [TestBuildConfiguration("Debug", buildSettings: [:])], dependencies: [], passBuildSettingsInEnvironment: true)
                         ])
                 ])
             let tester = try await BuildOperationTester(getCore(), testWorkspace, simulated: false)
@@ -318,7 +318,7 @@ fileprivate struct CleanOperationTests: CoreBasedTests {
             #expect(try tester.fs.read(sourceRoot.join("out.txt")) == "external\n")
 
             try await tester.checkBuild(runDestination: .macOS, buildCommand: .cleanBuildFolder(style: type), persistent: true) { results in
-                results.checkTask(.matchRule(["\(try await getCore().developerPath.str)/usr/bin/make", "clean"])) { _ in }
+                results.checkTask(.matchRule(["\(try await getCore().developerPath.path.str)/usr/bin/make", "clean"])) { _ in }
                 results.checkNoTask()
                 results.checkNoDiagnostics()
             }
@@ -342,7 +342,7 @@ fileprivate struct CleanOperationTests: CoreBasedTests {
         try await withBasedProjectHarness { tester, _, _ in
             try await tester.checkBuild(runDestination: .macOS, buildCommand: .cleanBuildFolder(style: .legacy), persistent: false) { results in
                 // CleanOperation.cleanExternalTarget() captures all of the output of the inferior tool - stdout and stderr - as part of the error message, which can include unrelated garbage (e.g. ObjC runtime reports of symbol collisions, reports of xcodebuild being relaunched under ASan), some of which might be expected, so we just check that there's an error which contains the expected string content to be robust to those scenarios.
-                results.checkError(.and(.prefix("Failed to clean target \'external\': "), .contains("make: *** No rule to make target `clean\'.  Stop.\n (for task: [\"\(try await getCore().developerPath.str)/usr/bin/make\", \"clean\"])")))
+                results.checkError(.and(.prefix("Failed to clean target \'external\': "), .contains("make: *** No rule to make target `clean\'.  Stop.\n (for task: [\"\(try await getCore().developerPath.path.str)/usr/bin/make\", \"clean\"])")))
                 results.checkNoDiagnostics()
             }
         }

@@ -48,8 +48,8 @@ import SWBMacro
             return _diagnosticsEngine.diagnostics.filter { $0.behavior == .error }.map { $0.formatLocalizedDescription(.debugWithoutBehavior) }
         }
 
-        var developerPath: Path {
-            Path.temporaryDirectory
+        var developerPath: Core.DeveloperPath {
+            .fallback(Path.temporaryDirectory)
         }
     }
 

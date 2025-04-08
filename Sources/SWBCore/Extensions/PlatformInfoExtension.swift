@@ -74,6 +74,6 @@ extension PlatformInfoExtension {
 
 public protocol PlatformInfoExtensionAdditionalPlatformsContext: Sendable {
     var hostOperatingSystem: OperatingSystem { get }
-    var developerPath: Path { get }
+    var developerPath: Core.DeveloperPath { get }
     var fs: any FSProxy { get }
 }
