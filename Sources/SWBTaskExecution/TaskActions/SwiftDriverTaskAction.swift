@@ -114,7 +114,7 @@ final public class SwiftDriverTaskAction: TaskAction, BuildValueValidatingTaskAc
                     for job in plannedBuild.explicitModulesPlannedDriverJobs() {
                         for output in job.driverJob.outputs {
                             if output.fileExtension == "swiftmodule" {
-                                responseFileCommandLine.append(contentsOf: ["-Wl,-add_ast_path", "-Wl,\(output.str)"])
+                                responseFileCommandLine.append(contentsOf: ["-Xlinker", "-add_ast_path", "-Xlinker", "\(output.str)"])
                             }
                         }
                     }
