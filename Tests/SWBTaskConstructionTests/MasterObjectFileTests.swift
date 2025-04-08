@@ -165,7 +165,6 @@ fileprivate struct MasterObjectFileTests: CoreBasedTests {
                 TestBuildConfiguration(
                     "Debug",
                     buildSettings: [
-                        "ENABLE_BITCODE": "YES",
                         "PRODUCT_NAME": "$(TARGET_NAME)",
                         "IPHONEOS_DEPLOYMENT_TARGET": core.loadSDK(.iOS).defaultDeploymentTarget,
                         "SDKROOT": "iphoneos",
@@ -235,7 +234,6 @@ fileprivate struct MasterObjectFileTests: CoreBasedTests {
                 TestBuildConfiguration(
                     "Debug",
                     buildSettings: [
-                        "ENABLE_BITCODE": "YES",
                         "PRODUCT_NAME": "$(TARGET_NAME)",
                         "IPHONEOS_DEPLOYMENT_TARGET": core.loadSDK(.iOS).defaultDeploymentTarget,
                         "SDKROOT": "iphoneos",
@@ -273,12 +271,7 @@ fileprivate struct MasterObjectFileTests: CoreBasedTests {
             results.checkTarget("AllLibraries") { target in
                 // There should be tasks to create the master object file and then the static library.
                 results.checkTask(.matchTarget(target), .matchRuleType("MasterObjectLink")) { task in
-                    if UserDefaults.enableBitcodeSupport {
-                        task.checkCommandLineMatches([.suffix("ld"), "-r", "-arch", "arm64", "-bitcode_bundle", "-syslibroot", .equal(results.runDestinationSDK.path.str), "-o", .equal("\(SRCROOT)/build/aProject.build/Debug-iphoneos/AllLibraries.build/Objects-normal/libAllLibraries.a-arm64-master.o")])
-                    }
-                    else {
-                        task.checkCommandLineMatches([.suffix("ld"), "-r", "-arch", "arm64", "-syslibroot", .equal(results.runDestinationSDK.path.str), "-o", .equal("\(SRCROOT)/build/aProject.build/Debug-iphoneos/AllLibraries.build/Objects-normal/libAllLibraries.a-arm64-master.o")])
-                    }
+                    task.checkCommandLineMatches([.suffix("ld"), "-r", "-arch", "arm64", "-syslibroot", .equal(results.runDestinationSDK.path.str), "-o", .equal("\(SRCROOT)/build/aProject.build/Debug-iphoneos/AllLibraries.build/Objects-normal/libAllLibraries.a-arm64-master.o")])
                 }
                 results.checkTask(.matchTarget(target), .matchRuleType("Libtool")) { task in
                     task.checkCommandLineMatches([.suffix("libtool"), "-static", "-arch_only", "arm64", "-D", "-syslibroot", .equal(results.runDestinationSDK.path.str), .equal("-L\(SRCROOT)/build/Debug-iphoneos"), "-filelist", .equal("\(SRCROOT)/build/aProject.build/Debug-iphoneos/AllLibraries.build/Objects-normal/arm64/AllLibraries.LinkFileList"), "-dependency_info", "\(SRCROOT)/build/aProject.build/Debug-iphoneos/AllLibraries.build/Objects-normal/arm64/AllLibraries_libtool_dependency_info.dat", "-o", .equal("\(SRCROOT)/build/Debug-iphoneos/libAllLibraries.a")])
@@ -287,13 +280,6 @@ fileprivate struct MasterObjectFileTests: CoreBasedTests {
 
             // There should be no other tasks.
             results.checkNoTask()
-
-            if UserDefaults.enableBitcodeSupport {
-                results.checkWarning(.equal("Building with bitcode is deprecated. Please update your project and/or target settings to disable bitcode. (in target 'AllLibraries' from project 'aProject')"))
-            }
-            else {
-                results.checkWarning(.equal("Ignoring ENABLE_BITCODE because building with bitcode is no longer supported. (in target \'AllLibraries\' from project \'aProject\')"))
-            }
 
             // There shouldn't be any diagnostics.
             results.checkNoDiagnostics()
@@ -316,7 +302,6 @@ fileprivate struct MasterObjectFileTests: CoreBasedTests {
                 TestBuildConfiguration(
                     "Debug",
                     buildSettings: [
-                        "ENABLE_BITCODE": "YES",
                         "PRODUCT_NAME": "$(TARGET_NAME)",
                         "IPHONEOS_DEPLOYMENT_TARGET": core.loadSDK(.iOS).defaultDeploymentTarget,
                         "SDKROOT": "iphonesimulator",
@@ -354,7 +339,6 @@ fileprivate struct MasterObjectFileTests: CoreBasedTests {
             results.checkTarget("AllLibraries") { target in
                 // There should be tasks to create the master object file and then the static library.
                 results.checkTask(.matchTarget(target), .matchRuleType("MasterObjectLink")) { task in
-                    // -bitcode_bundle shouldn't be passed here since Intel architectures do not support it
                     task.checkCommandLineMatches([.suffix("ld"), "-r", "-arch", "x86_64", "-syslibroot", .equal(results.runDestinationSDK.path.str), "-o", .equal("\(SRCROOT)/build/aProject.build/Debug-iphonesimulator/AllLibraries.build/Objects-normal/libAllLibraries.a-x86_64-master.o")])
                 }
                 results.checkTask(.matchTarget(target), .matchRuleType("Libtool")) { task in

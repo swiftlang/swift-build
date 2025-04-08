@@ -1031,28 +1031,6 @@
                 DisplayName = "Reflection Metadata Level";
             },
 
-            // Generate bitcode options
-            {
-                Name = "SWIFT_BITCODE_GENERATION_MODE";
-                Type = Enumeration;
-                Values = (
-                    marker,
-                    bitcode,
-                );
-                DefaultValue = "$(BITCODE_GENERATION_MODE)";
-                Architectures = ( arm64, arm64e, armv7, armv7s, armv7k, arm64_32 );
-                Condition = "$(ENABLE_BITCODE)";
-                CommandLineArgs = {
-                    marker = (
-                        "-embed-bitcode-marker",
-                    );
-                    bitcode = (
-                        "-embed-bitcode",
-                    );
-                };
-                // Not visible in the build settings editor
-            },
-
             // Fuzzer option.
             {
                 Name = "SWIFT_LIBFUZZER";

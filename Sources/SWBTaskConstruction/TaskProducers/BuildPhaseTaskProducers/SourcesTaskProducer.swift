@@ -1189,7 +1189,7 @@ final class SourcesTaskProducer: FilesBasedBuildPhaseTaskProducerBase, FilesBase
                 let productBinaryPath = scope.evaluate(BuiltinMacros.TARGET_BUILD_DIR).join(scope.evaluate(BuiltinMacros.EXECUTABLE_PATH))
                 if singleArchBinaryPath != productBinaryPath {
                     await appendGeneratedTasks(&tasks, options: [.linking, .linkingRequirement, .unsignedProductRequirement]) { delegate in
-                        await context.copySpec.constructCopyTasks(CommandBuildContext(producer: context, scope: scope, inputs: [FileToBuild(context: context, absolutePath: singleArchBinaryPath)], output: productBinaryPath, commandOrderingOutputs: [linkedBinaryNode]), delegate, executionDescription: "Copy binary to product", stripUnsignedBinaries: false, stripBitcode: false)
+                        await context.copySpec.constructCopyTasks(CommandBuildContext(producer: context, scope: scope, inputs: [FileToBuild(context: context, absolutePath: singleArchBinaryPath)], output: productBinaryPath, commandOrderingOutputs: [linkedBinaryNode]), delegate, executionDescription: "Copy binary to product", stripUnsignedBinaries: false)
                     }
                 }
             }

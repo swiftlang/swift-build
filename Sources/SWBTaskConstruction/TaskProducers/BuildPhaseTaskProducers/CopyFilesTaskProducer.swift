@@ -237,7 +237,8 @@ class CopyFilesTaskProducer: FilesBasedBuildPhaseTaskProducerBase, FilesBasedBui
         // Determine whether we should re-sign on copy.  This is only done if the file-to-build wants it, *and* the file type supports it.
         let codeSignAfterCopying = ftb.codeSignOnCopy && ftb.fileType.codeSignOnCopy
 
-        // Determine whether we should strip bitcode during copying.  The default value of STRIP_BITCODE_FROM_COPIED_FILES is set on a per-SDK basis.
+        // Determine whether we should strip bitcode during copying.
+        // STRIP_BITCODE_FROM_COPIED_FILES is set to YES for non-simulator embedded platforms, so we don't need to spend time stripping it for other platforms.
         let stripBitcode = scope.evaluate(BuiltinMacros.STRIP_BITCODE_FROM_COPIED_FILES) && codeSignAfterCopying
 
         // SUPPORT FOR MERGEABLE LIBRARIES

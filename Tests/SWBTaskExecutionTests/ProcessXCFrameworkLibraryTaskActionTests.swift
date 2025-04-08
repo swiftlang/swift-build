@@ -38,7 +38,7 @@ fileprivate struct ProcessXCFrameworkLibraryTaskActionTests: CoreBasedTests {
             try fs.createDirectory(Path(SRCROOT), recursive: true)
 
             let supportXCFramework = try XCFramework(version: Version(1, 0), libraries: [
-                XCFramework.Library(libraryIdentifier: "x86_64-apple-macos10.15", supportedPlatform: "macos", supportedArchitectures: ["x86_64"], platformVariant: nil, libraryPath: Path("Support.framework"), binaryPath: Path("Support.framework/Versions/A/Support"), headersPath: nil, debugSymbolsPath: Path("debugSymbols"), bitcodeSymbolMapsPath: Path("BCSymbolMaps")),
+                XCFramework.Library(libraryIdentifier: "x86_64-apple-macos10.15", supportedPlatform: "macos", supportedArchitectures: ["x86_64"], platformVariant: nil, libraryPath: Path("Support.framework"), binaryPath: Path("Support.framework/Versions/A/Support"), headersPath: nil, debugSymbolsPath: Path("debugSymbols")),
                 XCFramework.Library(libraryIdentifier: "arm64-apple-iphoneos13.0", supportedPlatform: "ios", supportedArchitectures: ["arm64", "arm64e"], platformVariant: nil, libraryPath: Path("Support.framework"), binaryPath: Path("Support.framework"), headersPath: nil, debugSymbolsPath: Path("debugSymbols")),
             ])
             let supportXCFrameworkPath = Path(SRCROOT).join("Support.xcframework")
@@ -67,7 +67,6 @@ fileprivate struct ProcessXCFrameworkLibraryTaskActionTests: CoreBasedTests {
 
             // Verify that the debug symbols are in place.
             #expect(try fs.read(Path(DSTROOT).join("Support.framework.dSYM")) == "fake dsym!")
-            #expect(try fs.read(Path(DSTROOT).join("Support.framework.bcsymbolmap")) == "fake symbol map!")
         }
     }
 
@@ -84,7 +83,7 @@ fileprivate struct ProcessXCFrameworkLibraryTaskActionTests: CoreBasedTests {
             try fs.createDirectory(Path(SRCROOT), recursive: true)
 
             let supportXCFramework = try XCFramework(version: Version(1, 0), libraries: [
-                XCFramework.Library(libraryIdentifier: "x86_64-apple-macos10.15", supportedPlatform: "macos", supportedArchitectures: ["x86_64"], platformVariant: nil, libraryPath: Path("libsample.a"), binaryPath: Path("libsample.a"), headersPath: Path("Headers"), debugSymbolsPath: Path("dSYMs"), bitcodeSymbolMapsPath: Path("symbolmaps")),
+                XCFramework.Library(libraryIdentifier: "x86_64-apple-macos10.15", supportedPlatform: "macos", supportedArchitectures: ["x86_64"], platformVariant: nil, libraryPath: Path("libsample.a"), binaryPath: Path("libsample.a"), headersPath: Path("Headers"), debugSymbolsPath: Path("dSYMs")),
                 XCFramework.Library(libraryIdentifier: "arm64-apple-iphoneos13.0", supportedPlatform: "ios", supportedArchitectures: ["arm64", "arm64e"], platformVariant: nil, libraryPath: Path("libsample.a"), binaryPath: Path("libsample.a"), headersPath: Path("Headers"), debugSymbolsPath: Path("dSYMs")),
             ])
             let supportXCFrameworkPath = Path(SRCROOT).join("libsample.xcframework")
@@ -109,7 +108,6 @@ fileprivate struct ProcessXCFrameworkLibraryTaskActionTests: CoreBasedTests {
 
             // Verify that the debug symbols are in place.
             #expect(try fs.read(Path(DSTROOT).join("libsample.a.dSYM")) == "fake dsym!")
-            #expect(try fs.read(Path(DSTROOT).join("libsample.a.bcsymbolmap")) == "fake symbol map!")
 
             // Verify that the headers are in place.
             #expect(try fs.read(Path(DSTROOT).join("include").join("header1.h")) == "// header 1")

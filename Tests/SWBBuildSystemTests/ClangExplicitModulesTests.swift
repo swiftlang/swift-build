@@ -617,7 +617,7 @@ fileprivate struct ClangExplicitModulesTests: CoreBasedTests {
                                 "CLANG_ENABLE_MODULES": "YES",
                                 "_EXPERIMENTAL_CLANG_EXPLICIT_MODULES": "YES",
                                 // This makes the Clang driver invocation expand into multiple -cc1 invocations.
-                                "OTHER_CFLAGS": "-fembed-bitcode -save-temps=obj",
+                                "OTHER_CFLAGS": "-save-temps=obj",
                             ])],
                         targets: [
                             TestStandardTarget(
@@ -668,7 +668,6 @@ fileprivate struct ClangExplicitModulesTests: CoreBasedTests {
 
                 // From -save-times=obj
                 outputs.append(Path(obj.withoutSuffix + ".i"))
-                outputs.append(Path(obj.withoutSuffix + ".bc"))
                 outputs.append(Path(obj.withoutSuffix + ".s"))
 
                 for path in outputs {

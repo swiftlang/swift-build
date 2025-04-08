@@ -2870,7 +2870,6 @@ That command depends on command in Target 'agg2' (project \'aProject\'): script 
                                 "GENERATE_INFOPLIST_FILE": "YES",
                                 "FRAMEWORK_SEARCH_PATHS": "$(inherited) \(tmpDirPath.str)",
                                 "COPY_PHASE_STRIP": "NO",
-                                "STRIP_BITCODE_FROM_COPIED_FILES": "NO",
                                 "SDKROOT": "macosx",
                                 "INSTALLLOC_LANGUAGE": "ja",
                                 "DSTROOT": tmpDirPath.join("DSTROOT").str
@@ -3009,6 +3008,7 @@ That command depends on command in Target 'agg2' (project \'aProject\'): script 
                                 "GENERATE_INFOPLIST_FILE": "YES",
                                 "FRAMEWORK_SEARCH_PATHS": "$(inherited) \(tmpDirPath.str)",
                                 "COPY_PHASE_STRIP": "NO",
+                                // Stripping bitcode varies by platform, and since it's not what we're testing here, we just turn it off.
                                 "STRIP_BITCODE_FROM_COPIED_FILES": "NO",
                                 "SDKROOT": runDestination.sdk,
                                 "SUPPORTS_MACCATALYST": runDestination.sdkVariant == MacCatalystInfo.sdkVariantName ? "YES" : "NO"

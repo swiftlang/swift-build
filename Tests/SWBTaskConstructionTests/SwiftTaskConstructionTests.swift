@@ -325,11 +325,10 @@ fileprivate struct SwiftTaskConstructionTests: CoreBasedTests {
                             #expect(fileDict["dependencies"]?.stringValue == "\(SRCROOT)/build/aProject.build/Debug/AppTarget.build/Objects-normal/x86_64/\(filename).d")
                             #expect(fileDict["swift-dependencies"]?.stringValue == "\(SRCROOT)/build/aProject.build/Debug/AppTarget.build/Objects-normal/x86_64/\(filename).swiftdeps")
                             #expect(fileDict["swiftmodule"]?.stringValue == "\(SRCROOT)/build/aProject.build/Debug/AppTarget.build/Objects-normal/x86_64/\(filename)~partial.swiftmodule")
-                            #expect(fileDict["llvm-bc"]?.stringValue == "\(SRCROOT)/build/aProject.build/Debug/AppTarget.build/Objects-normal/x86_64/\(filename).bc")
                             #expect(fileDict["const-values"]?.stringValue == "\(SRCROOT)/build/aProject.build/Debug/AppTarget.build/Objects-normal/x86_64/\(filename).swiftconstvalues")
                             if swiftFeatures.has(.indexUnitOutputPathWithoutWarning) {
                                 #expect(fileDict["index-unit-output-path"]?.stringValue == "/aProject.build/Debug/AppTarget.build/Objects-normal/x86_64/\(filename).o")
-                                #expect(fileDict.count == 8)
+                                #expect(fileDict.count == 7)
                             } else {
                                 #expect(fileDict.count == 6)
                             }
@@ -1263,11 +1262,9 @@ fileprivate struct SwiftTaskConstructionTests: CoreBasedTests {
                         } else {
                             compileTask.checkCommandLineContains(["-lto=llvm-thin"])
                         }
-                        compileTask.checkOutputs(contain: [.namePattern(.suffix("Bar.bc"))])
                     }
                     results.checkTask(.matchTarget(target), .matchRuleType("Libtool")) { archiverTask in
                         results.checkTaskFollows(archiverTask, .matchTarget(target), .matchRuleType("SwiftDriver Compilation"))
-                        archiverTask.checkInputs(contain: [.namePattern(.suffix("Bar.bc"))])
                     }
                 }
                 results.checkTarget("CoreFoo") { target in
@@ -1277,11 +1274,9 @@ fileprivate struct SwiftTaskConstructionTests: CoreBasedTests {
                         } else {
                             compileTask.checkCommandLineContains(["-lto=llvm-thin"])
                         }
-                        compileTask.checkOutputs(contain: [.namePattern(.suffix("Foo.bc"))])
                     }
                     results.checkTask(.matchTarget(target), .matchRuleType("Ld")) { linkerTask in
                         results.checkTaskFollows(linkerTask, .matchTarget(target), .matchRuleType("SwiftDriver Compilation"))
-                        linkerTask.checkInputs(contain: [.namePattern(.suffix("Foo.bc"))])
                         if ltoSetting == "YES_THIN" {
                             linkerTask.checkCommandLineMatches([.anySequence, "-Xlinker", "-cache_path_lto", "-Xlinker", .suffix("/LTOCache"), .anySequence])
                         }

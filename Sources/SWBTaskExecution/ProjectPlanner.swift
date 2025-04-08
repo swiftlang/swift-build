@@ -75,7 +75,7 @@ package struct ProjectPlanner {
             guard let target = workspaceContext.workspace.target(for: targetIdentifier) else { return nil }
             let settings = buildRequestContext.getCachedSettings(parameters, target: target)
             let productName = settings.globalScope.evaluate(BuiltinMacros.PRODUCT_NAME)
-            return try! ProductDescription(displayName: productName, productName: productName, identifier: productName, productType: .app, dependencies: nil, bundleIdentifier: nil, targetedDeviceFamilies: nil, deploymentTarget: Version("10.10"), marketingVersion: nil, buildVersion: nil, enableBitcode: false, codesign: nil, team: nil, infoPlistPath: nil, iconPath: nil)
+            return try! ProductDescription(displayName: productName, productName: productName, identifier: productName, productType: .app, dependencies: nil, bundleIdentifier: nil, targetedDeviceFamilies: nil, deploymentTarget: Version("10.10"), marketingVersion: nil, buildVersion: nil, codesign: nil, team: nil, infoPlistPath: nil, iconPath: nil)
         }
     }
 
