@@ -345,16 +345,20 @@ final class MacroEvaluationContext {
 
     /// Returns the next value for `macro` (this works correctly if even `macro` is the same as the macro declaration associated with the context, i.e. the inherited-value case — in this case the result is exactly the same as invoking `nextInheritedValue()`).  Returns nil if there is no next value.
     func nextValueForMacro(_ macro: MacroDeclaration) -> MacroValueAssignment? {
-        // If it’s the same macro as ours, it’s really just an inheritance lookup.
-        if macro === self.macro {
-            return nextInheritedValue()
+        var currentContext: MacroEvaluationContext = self
+        while true {
+            // If it’s the same macro as ours, it’s really just an inheritance lookup.
+            if macro === currentContext.macro {
+                return currentContext.nextInheritedValue()
+            }
+            // Otherwise, if we have a parent context, we defer the question to it.
+            if let parent = currentContext.parent {
+                currentContext = parent
+            } else {
+                // If we get this far, we need to look up in our scope’s table.  We might or might not find it.
+                return currentContext.scope.table.lookupMacro(macro, overrideLookup: currentContext.lookup)?.firstMatchingCondition(currentContext.scope.conditionParameterValues)
+            }
         }
-        // Otherwise, if we have a parent context, we defer the question to it.
-        if let parent = self.parent {
-            return parent.nextValueForMacro(macro)
-        }
-        // If we get this far, we need to look up in our scope’s table.  We might or might not find it.
-        return scope.table.lookupMacro(macro, overrideLookup: lookup)?.firstMatchingCondition(scope.conditionParameterValues)
     }
 }
 
