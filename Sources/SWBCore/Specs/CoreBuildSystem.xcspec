@@ -281,25 +281,6 @@
                 DefaultValue = NO;
             },
             {
-                Name = "ENABLE_BITCODE";
-                Type = bool;
-                DefaultValue = NO;
-            },
-            {
-                Name = "HIDE_BITCODE_SYMBOLS";
-                Type = bool;
-                DefaultValue = YES;
-            },
-            {
-                Name = "BITCODE_GENERATION_MODE";
-                Type = enum;
-                Values = (
-                    "marker",
-                    "bitcode",
-                );
-                DefaultValue = marker;
-            },
-            {
                 Name = "STRIP_BITCODE_FROM_COPIED_FILES";
                 Type = bool;
                 DefaultValue = NO;
@@ -1338,29 +1319,6 @@ When `GENERATE_INFOPLIST_FILE` is enabled, sets the value of the [CFBundleIdenti
                 Type = Boolean;
                 Category = BuildOptions;
                 DefaultValue = NO;
-            },
-            {
-                Name = "ENABLE_BITCODE";
-                Type = Boolean;
-                DefaultValue = NO;
-            },
-            {
-                Name = "BITCODE_GENERATION_MODE";
-                Type = Enumeration;
-                Values = (
-                    {
-                        Value = "marker";
-                    },
-                    {
-                        Value = "bitcode";
-                    },
-                );
-                DefaultValue = marker;
-            },
-            {
-                Name = "HIDE_BITCODE_SYMBOLS";
-                Type = Boolean;
-                DefaultValue = YES;
             },
             {
                 Name = "STRIP_BITCODE_FROM_COPIED_FILES";

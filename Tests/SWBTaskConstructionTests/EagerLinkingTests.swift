@@ -420,17 +420,6 @@ fileprivate struct EagerLinkingTests: CoreBasedTests {
             }
         }
 
-        // If archiving with full bitcode, don't emit a tbd.
-        await tester.checkBuild(BuildParameters(action: .archive, configuration: "Debug", overrides: ["ENABLE_BITCODE": "YES"]), runDestination: .macOS, targetName: "Fwk") { results in
-            results.checkTarget("Fwk") { target in
-                results.checkNoDiagnostics()
-                results.checkTask(.matchRuleType("SwiftDriver Compilation Requirements"), .matchTarget(target)) { task in
-                    task.checkCommandLineDoesNotContain("-emit-tbd")
-                    task.checkCommandLineDoesNotContain("-emit-tbd-path")
-                }
-            }
-        }
-
         // An all-Swift app target should not emit a TBD, but the framework it links should.
         await tester.checkBuild(BuildParameters(action: .build, configuration: "Debug"), runDestination: .macOS, targetName: "App") { results in
             results.checkTarget("App") { target in

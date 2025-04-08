@@ -52,6 +52,7 @@ public final class SwiftStdLibToolSpec : GenericCommandLineToolSpec, SpecIdentif
         // Compute the command line.
         var commandLine = await commandLineFromTemplate(cbc, delegate, optionContext: discoveredCommandLineToolSpecInfo(cbc.producer, cbc.scope, delegate), lookup: lookup).map(\.asString)
 
+        // Bitcode is no longer supported, but some old libraries may contain bitcode, so we continue to strip it when directed.
         if commandLine.contains("--strip-bitcode") {
             if let bitcodeStripToolPath = cbc.producer.toolchains.lazy.compactMap({ $0.executableSearchPaths.lookup(Path("bitcode_strip")) }).first {
                 commandLine.append(contentsOf: ["--strip-bitcode-tool", bitcodeStripToolPath.str])

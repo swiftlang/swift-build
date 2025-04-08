@@ -3162,8 +3162,6 @@ fileprivate struct SwiftDriverTests: CoreBasedTests {
                                     "ARCHS": "arm64e",
                                     "SWIFT_WHOLE_MODULE_OPTIMIZATION": "YES",
                                     "SWIFT_ENABLE_LIBRARY_EVOLUTION": "YES",
-                                    "ENABLE_BITCODE": "YES",
-                                    "BITCODE_GENERATION_MODE": "bitcode",
                                     "SDKROOT": "iphoneos",
                                     "SWIFT_USE_INTEGRATED_DRIVER": "YES",
                                 ])
@@ -3229,15 +3227,6 @@ fileprivate struct SwiftDriverTests: CoreBasedTests {
             // Check that subtasks progress events are reported as expected.
             try await tester.checkBuild(runDestination: .anyiOSDevice, buildRequest: buildRequest, persistent: true) { results in
 
-                if UserDefaults.enableBitcodeSupport {
-                    results.checkWarning(.equal("Building with bitcode is deprecated. Please update your project and/or target settings to disable bitcode. (in target 'TargetA' from project 'aProject')"))
-                    results.checkWarning(.equal("Building with bitcode is deprecated. Please update your project and/or target settings to disable bitcode. (in target 'TargetB' from project 'aProject')"))
-                }
-                else {
-                    results.checkWarning(.equal("Ignoring ENABLE_BITCODE because building with bitcode is no longer supported. (in target 'TargetA' from project 'aProject')"))
-                    results.checkWarning(.equal("Ignoring ENABLE_BITCODE because building with bitcode is no longer supported. (in target 'TargetB' from project 'aProject')"))
-                }
-
                 results.checkNoErrors()
 
                 let compilationRequirementA = try #require(results.getTask(.matchTargetName("TargetA"), .matchRuleType("SwiftDriver Compilation Requirements")))
@@ -3273,16 +3262,10 @@ fileprivate struct SwiftDriverTests: CoreBasedTests {
                         #expect(compilationTask.execDescription == "Compile \(targetName) (arm64e)")
 
                         results.checkTaskRequested(compilationTask, .matchTargetName(targetName), .matchRuleType("SwiftCompile"), .matchRuleItem(SRCROOT.join("Sources/file\(targetNameSuffix)1.swift").str), .matchRuleItem(SRCROOT.join("Sources/file\(targetNameSuffix)2.swift").str))
-
-                        if UserDefaults.enableBitcodeSupport {
-                            results.checkTaskRequested(compilationTask, .matchTargetName(targetName), .matchRuleType("SwiftBackend"), .matchRuleItemPattern(.suffix("file\(targetNameSuffix)1.bc")))
-                            results.checkTaskRequested(compilationTask, .matchTargetName(targetName), .matchRuleType("SwiftBackend"), .matchRuleItemPattern(.suffix("file\(targetNameSuffix)2.bc")))
-                        }
                     }
 
                     results.checkTask(.matchTargetName(targetName), .matchRulePattern(["SwiftCompile", "normal", "arm64e", "Compiling file\(targetNameSuffix)1.swift, file\(targetNameSuffix)2.swift", .equal(SRCROOT.join("Sources/file\(targetNameSuffix)1.swift").str), .equal(SRCROOT.join("Sources/file\(targetNameSuffix)2.swift").str)])) { compileFileTask in
-                        let fileSuffix = UserDefaults.enableBitcodeSupport ? "bc" : "o"
-                        compileFileTask.checkCommandLineMatches([.suffix("swift-frontend"), .anySequence, .equal(SRCROOT.join("Sources/file\(targetNameSuffix)1.swift").str), .anySequence, "-o", .suffix("file\(targetNameSuffix)1.\(fileSuffix)"), "-o", .suffix("file\(targetNameSuffix)2.\(fileSuffix)")])
+                        compileFileTask.checkCommandLineMatches([.suffix("swift-frontend"), .anySequence, .equal(SRCROOT.join("Sources/file\(targetNameSuffix)1.swift").str), .anySequence, "-o", .suffix("file\(targetNameSuffix)1.o"), "-o", .suffix("file\(targetNameSuffix)2.o")])
                     }
                 }
             }

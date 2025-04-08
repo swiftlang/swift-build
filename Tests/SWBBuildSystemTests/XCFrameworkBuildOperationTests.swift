@@ -473,7 +473,7 @@ fileprivate struct XCFrameworkBuildOperationTests: CoreBasedTests {
             try await fs.writeFileContents(Path(SRCROOT).join("file.c"), body: { $0 <<< "int main() { return 0; }" })
 
             let supportXCFramework = try XCFramework(version: Version(1, 0), libraries: [
-                XCFramework.Library(libraryIdentifier: "x86_64-apple-macos10.15", supportedPlatform: "macos", supportedArchitectures: ["x86_64"], platformVariant: nil, libraryPath: Path("libsample.a"), binaryPath: Path("libsample.a"), headersPath: Path("Headers"), debugSymbolsPath: Path("dSYMs"), bitcodeSymbolMapsPath: Path("symbolmaps")),
+                XCFramework.Library(libraryIdentifier: "x86_64-apple-macos10.15", supportedPlatform: "macos", supportedArchitectures: ["x86_64"], platformVariant: nil, libraryPath: Path("libsample.a"), binaryPath: Path("libsample.a"), headersPath: Path("Headers"), debugSymbolsPath: Path("dSYMs")),
                 XCFramework.Library(libraryIdentifier: "arm64-apple-iphoneos13.0", supportedPlatform: "ios", supportedArchitectures: ["arm64", "arm64e"], platformVariant: nil, libraryPath: Path("libsample.a"), binaryPath: Path("libsample.a"), headersPath: Path("Headers"), debugSymbolsPath: Path("dSYMs")),
             ])
             let supportXCFrameworkPath = Path(SRCROOT).join("libsample.xcframework")
@@ -481,7 +481,7 @@ fileprivate struct XCFrameworkBuildOperationTests: CoreBasedTests {
             try await XCFrameworkTestSupport.writeXCFramework(supportXCFramework, fs: fs, path: supportXCFrameworkPath, infoLookup: infoLookup)
 
             let otherXCFramework = try XCFramework(version: Version(1, 0), libraries: [
-                XCFramework.Library(libraryIdentifier: "x86_64-apple-macos10.15", supportedPlatform: "macos", supportedArchitectures: ["x86_64"], platformVariant: nil, libraryPath: Path("libother.a"), binaryPath: Path("libother.a"), headersPath: Path("Headers"), debugSymbolsPath: Path("dSYMs"), bitcodeSymbolMapsPath: Path("symbolmaps")),
+                XCFramework.Library(libraryIdentifier: "x86_64-apple-macos10.15", supportedPlatform: "macos", supportedArchitectures: ["x86_64"], platformVariant: nil, libraryPath: Path("libother.a"), binaryPath: Path("libother.a"), headersPath: Path("Headers"), debugSymbolsPath: Path("dSYMs")),
                 XCFramework.Library(libraryIdentifier: "arm64-apple-iphoneos13.0", supportedPlatform: "ios", supportedArchitectures: ["arm64", "arm64e"], platformVariant: nil, libraryPath: Path("libother.a"), binaryPath: Path("libother.a"), headersPath: Path("Headers"), debugSymbolsPath: Path("dSYMs")),
             ])
             let otherXCFrameworkPath = Path(SRCROOT).join("libother.xcframework")
@@ -555,10 +555,6 @@ fileprivate struct XCFrameworkBuildOperationTests: CoreBasedTests {
                     { return $0.headersPath },
                     { return "Missing path (\($0.join("Headers").str)) from XCFramework 'libsample.xcframework' as defined by 'HeadersPath' in its `Info.plist` file (in target \'App\' from project \'aProject\')" }
                 ),
-                (
-                    { return $0.bitcodeSymbolMapsPath },
-                    { return "Missing path (\($0.join("symbolmaps").str)) from XCFramework 'libsample.xcframework' as defined by 'BitcodeSymbolMapsPath' in its `Info.plist` file (in target \'App\' from project \'aProject\')" }
-                ),
             ]
 
             for scenario in scenarios {
@@ -574,8 +570,8 @@ fileprivate struct XCFrameworkBuildOperationTests: CoreBasedTests {
 
                 let supportXCFrameworkPath = Path(SRCROOT).join("libsample.xcframework")
                 let supportXCFramework = try XCFramework(version: Version(1, 0), libraries: [
-                    XCFramework.Library(libraryIdentifier: "x86_64-apple-macos10.15", supportedPlatform: "macos", supportedArchitectures: ["x86_64"], platformVariant: nil, libraryPath: Path("libsample.a"), binaryPath: Path("libsample.a"), headersPath: Path("Headers"), debugSymbolsPath: Path("dSYMs"), bitcodeSymbolMapsPath: Path("symbolmaps")),
-                    XCFramework.Library(libraryIdentifier: "arm64-apple-iphoneos13.0", supportedPlatform: "ios", supportedArchitectures: ["arm64", "arm64e"], platformVariant: nil, libraryPath: Path("libsample.a"), binaryPath: Path("libsample.a"), headersPath: Path("Headers"), debugSymbolsPath: Path("dSYMs"), bitcodeSymbolMapsPath: Path("symbolmaps")),
+                    XCFramework.Library(libraryIdentifier: "x86_64-apple-macos10.15", supportedPlatform: "macos", supportedArchitectures: ["x86_64"], platformVariant: nil, libraryPath: Path("libsample.a"), binaryPath: Path("libsample.a"), headersPath: Path("Headers"), debugSymbolsPath: Path("dSYMs")),
+                    XCFramework.Library(libraryIdentifier: "arm64-apple-iphoneos13.0", supportedPlatform: "ios", supportedArchitectures: ["arm64", "arm64e"], platformVariant: nil, libraryPath: Path("libsample.a"), binaryPath: Path("libsample.a"), headersPath: Path("Headers"), debugSymbolsPath: Path("dSYMs")),
                 ])
 
                 try fs.createDirectory(supportXCFrameworkPath, recursive: true)
@@ -654,8 +650,8 @@ fileprivate struct XCFrameworkBuildOperationTests: CoreBasedTests {
 
             let supportXCFrameworkPath = Path(SRCROOT).join("libsample.xcframework")
             let supportXCFramework = try XCFramework(version: Version(1, 0), libraries: [
-                XCFramework.Library(libraryIdentifier: "x86_64-apple-macos10.15", supportedPlatform: "macos", supportedArchitectures: ["x86_64"], platformVariant: nil, libraryPath: Path("libsample.a"), binaryPath: Path("libsample.a"), headersPath: Path("Headers"), debugSymbolsPath: Path("dSYMs"), bitcodeSymbolMapsPath: Path("symbolmaps")),
-                XCFramework.Library(libraryIdentifier: "arm64-apple-iphoneos13.0", supportedPlatform: "ios", supportedArchitectures: ["arm64", "arm64e"], platformVariant: nil, libraryPath: Path("libsample.a"), binaryPath: Path("libsample.a"), headersPath: Path("Headers"), debugSymbolsPath: Path("dSYMs"), bitcodeSymbolMapsPath: Path("symbolmaps")),
+                XCFramework.Library(libraryIdentifier: "x86_64-apple-macos10.15", supportedPlatform: "macos", supportedArchitectures: ["x86_64"], platformVariant: nil, libraryPath: Path("libsample.a"), binaryPath: Path("libsample.a"), headersPath: Path("Headers"), debugSymbolsPath: Path("dSYMs")),
+                XCFramework.Library(libraryIdentifier: "arm64-apple-iphoneos13.0", supportedPlatform: "ios", supportedArchitectures: ["arm64", "arm64e"], platformVariant: nil, libraryPath: Path("libsample.a"), binaryPath: Path("libsample.a"), headersPath: Path("Headers"), debugSymbolsPath: Path("dSYMs")),
             ])
 
             try fs.createDirectory(supportXCFrameworkPath, recursive: true)
@@ -718,8 +714,8 @@ fileprivate struct XCFrameworkBuildOperationTests: CoreBasedTests {
 
             let supportXCFrameworkPath = Path(SRCROOT).join("libsample.xcframework")
             let supportXCFramework = try XCFramework(version: Version(1, 0), libraries: [
-                XCFramework.Library(libraryIdentifier: "x86_64-apple-macos10.15", supportedPlatform: "macos", supportedArchitectures: ["x86_64"], platformVariant: nil, libraryPath: Path("libsample.a"), binaryPath: Path("libsample.a"), headersPath: Path("Headers"), debugSymbolsPath: Path("dSYMs"), bitcodeSymbolMapsPath: Path("symbolmaps")),
-                XCFramework.Library(libraryIdentifier: "arm64-apple-iphoneos13.0", supportedPlatform: "ios", supportedArchitectures: ["arm64", "arm64e"], platformVariant: nil, libraryPath: Path("libsample.a"), binaryPath: Path("libsample.a"), headersPath: Path("Headers"), debugSymbolsPath: Path("dSYMs"), bitcodeSymbolMapsPath: Path("symbolmaps")),
+                XCFramework.Library(libraryIdentifier: "x86_64-apple-macos10.15", supportedPlatform: "macos", supportedArchitectures: ["x86_64"], platformVariant: nil, libraryPath: Path("libsample.a"), binaryPath: Path("libsample.a"), headersPath: Path("Headers"), debugSymbolsPath: Path("dSYMs")),
+                XCFramework.Library(libraryIdentifier: "arm64-apple-iphoneos13.0", supportedPlatform: "ios", supportedArchitectures: ["arm64", "arm64e"], platformVariant: nil, libraryPath: Path("libsample.a"), binaryPath: Path("libsample.a"), headersPath: Path("Headers"), debugSymbolsPath: Path("dSYMs")),
             ])
 
             try fs.createDirectory(supportXCFrameworkPath, recursive: true)
@@ -887,8 +883,8 @@ fileprivate struct XCFrameworkBuildOperationTests: CoreBasedTests {
 
             let supportXCFrameworkPath = Path(SRCROOT).join("sample.xcframework")
             let supportXCFramework = try XCFramework(version: Version(1, 0), libraries: [
-                XCFramework.Library(libraryIdentifier: "arm64-apple-iphoneos\(infoLookup.loadSDK(.iOS).defaultDeploymentTarget)", supportedPlatform: "ios", supportedArchitectures: ["arm64", "arm64e"], platformVariant: nil, libraryPath: Path("sample.framework"), binaryPath: Path("sample.framework/sample"), headersPath: nil, debugSymbolsPath: Path("dSYMs"), bitcodeSymbolMapsPath: Path("symbolmaps")),
-                XCFramework.Library(libraryIdentifier: "arm64-apple-watchos\(infoLookup.loadSDK(.watchOS).defaultDeploymentTarget)", supportedPlatform: "watchos", supportedArchitectures: ["arm64", "arm64_32"], platformVariant: nil, libraryPath: Path("sample.framework"), binaryPath: Path("sample.framework/sample"), headersPath: nil, debugSymbolsPath: Path("dSYMs"), bitcodeSymbolMapsPath: Path("symbolmaps")),
+                XCFramework.Library(libraryIdentifier: "arm64-apple-iphoneos\(infoLookup.loadSDK(.iOS).defaultDeploymentTarget)", supportedPlatform: "ios", supportedArchitectures: ["arm64", "arm64e"], platformVariant: nil, libraryPath: Path("sample.framework"), binaryPath: Path("sample.framework/sample"), headersPath: nil, debugSymbolsPath: Path("dSYMs")),
+                XCFramework.Library(libraryIdentifier: "arm64-apple-watchos\(infoLookup.loadSDK(.watchOS).defaultDeploymentTarget)", supportedPlatform: "watchos", supportedArchitectures: ["arm64", "arm64_32"], platformVariant: nil, libraryPath: Path("sample.framework"), binaryPath: Path("sample.framework/sample"), headersPath: nil, debugSymbolsPath: Path("dSYMs")),
             ])
 
             try fs.createDirectory(supportXCFrameworkPath, recursive: true)
@@ -896,8 +892,8 @@ fileprivate struct XCFrameworkBuildOperationTests: CoreBasedTests {
 
             let staticSupportXCFrameworkPath = Path(SRCROOT).join("libsample.xcframework")
             let staticSupportXCFramework = try XCFramework(version: Version(1, 0), libraries: [
-                XCFramework.Library(libraryIdentifier: "arm64-apple-iphoneos\(infoLookup.loadSDK(.iOS).defaultDeploymentTarget)", supportedPlatform: "ios", supportedArchitectures: ["arm64", "arm64e"], platformVariant: nil, libraryPath: Path("libsample.a"), binaryPath: Path("libsample.a"), headersPath: nil, debugSymbolsPath: Path("dSYMs"), bitcodeSymbolMapsPath: Path("symbolmaps")),
-                XCFramework.Library(libraryIdentifier: "arm64-apple-watchos\(infoLookup.loadSDK(.watchOS).defaultDeploymentTarget)", supportedPlatform: "watchos", supportedArchitectures: ["arm64", "arm64_32"], platformVariant: nil, libraryPath: Path("libsample.a"), binaryPath: Path("libsample.a"), headersPath: nil, debugSymbolsPath: Path("dSYMs"), bitcodeSymbolMapsPath: Path("symbolmaps")),
+                XCFramework.Library(libraryIdentifier: "arm64-apple-iphoneos\(infoLookup.loadSDK(.iOS).defaultDeploymentTarget)", supportedPlatform: "ios", supportedArchitectures: ["arm64", "arm64e"], platformVariant: nil, libraryPath: Path("libsample.a"), binaryPath: Path("libsample.a"), headersPath: nil, debugSymbolsPath: Path("dSYMs")),
+                XCFramework.Library(libraryIdentifier: "arm64-apple-watchos\(infoLookup.loadSDK(.watchOS).defaultDeploymentTarget)", supportedPlatform: "watchos", supportedArchitectures: ["arm64", "arm64_32"], platformVariant: nil, libraryPath: Path("libsample.a"), binaryPath: Path("libsample.a"), headersPath: nil, debugSymbolsPath: Path("dSYMs")),
             ])
 
             try fs.createDirectory(staticSupportXCFrameworkPath, recursive: true)

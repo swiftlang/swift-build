@@ -2617,7 +2617,7 @@ private class SettingsBuilder {
     // FIXME: Why is this logic not part of loading the SDK in SDKRegistry.registerSDK()?  I think all of the information currently used by this method should be available there.
     func addPlatformSDKSettings(_ platform: Platform?, _ sdk: SDK, _ sdkVariant: SDKVariant?) {
         pushTable(.exported) { table in
-            // bitcode
+            // Bitcode is no longer supported, so we want to continue to strip bitcode from non-simulator embedded platforms as we always have.
             if let platform, !platform.isSimulator, platform.correspondingSimulatorPlatformName != nil {
                 table.push(BuiltinMacros.STRIP_BITCODE_FROM_COPIED_FILES, literal: true)
             }
@@ -4093,12 +4093,6 @@ private class SettingsBuilder {
         // Determine a preferred architecture for indexing, single-file actions, and the static analyzer.
         self.preferredArch = getPreferredArch(effectiveArchs)
 
-        // For installation and deployment, we need to generate proper bitcode: -fembed-bitcode/-embed-bitcode.
-        // NOTE! Do not simply check DEPLOYMENT_POSTPROCESSING as it may not be in-scope yet.
-        if parameters.action.isInstallAction || scope.evaluate(BuiltinMacros.DEPLOYMENT_POSTPROCESSING) {
-            table.push(BuiltinMacros.BITCODE_GENERATION_MODE, literal: "bitcode")
-        }
-
         // Set `ARCHS` to the list of architectures we ended up with, and save the original value.
         table.push(BuiltinMacros.__ARCHS__, literal: originalArchs)
         table.push(BuiltinMacros.ARCHS, literal: effectiveArchs.removingDuplicates())
@@ -4116,10 +4110,6 @@ private class SettingsBuilder {
 
         table.push(BuiltinMacros.__SWIFT_MODULE_ONLY_ARCHS__, literal: originalModuleOnlyArchs)
         table.push(BuiltinMacros.SWIFT_MODULE_ONLY_ARCHS, literal: moduleOnlyArchs)
-
-        if (scope.evaluate(BuiltinMacros.ENABLE_TESTING_SEARCH_PATHS) && project?.isPackage != true) || !["iphoneos", "appletvos", "watchos"].contains(specLookupContext.platform?.name) {
-            table.push(BuiltinMacros.ENABLE_BITCODE, literal: false)
-        }
 
         // FIXME: There is a more random, but questionable stuff here. To be added in a test case driven fashion.
 
@@ -4198,21 +4188,6 @@ private class SettingsBuilder {
             table.push(BuiltinMacros.ALL_SETTINGS, literal: macros.map({ macro in
                 "\(macro)=" + shellCodec.encode([scope.evaluate(scope.namespace.parseString("$\(macro)"))])
             }))
-        }
-
-        // Bitcode support was deprecated in Xcode 14 and is being turned off by default in Xcode 15, but there is a user default which can enable it.
-        if scope.evaluate(BuiltinMacros.ENABLE_BITCODE) {
-            if UserDefaults.enableBitcodeSupport {
-                // If we're going to generate bitcode, then symbol editing must be done by the linker, not by a separate nmedit invocation.
-                table.push(BuiltinMacros.SEPARATE_SYMBOL_EDIT, literal: false)
-
-                self.targetDiagnostics.append(Diagnostic(behavior: .warning, location: .buildSetting(BuiltinMacros.ENABLE_BITCODE), data: DiagnosticData("Building with bitcode is deprecated. Please update your project and/or target settings to disable bitcode.")))
-            }
-            else {
-                table.push(BuiltinMacros.ENABLE_BITCODE, literal: false)
-
-                self.targetDiagnostics.append(Diagnostic(behavior: .warning, location: .buildSetting(BuiltinMacros.ENABLE_BITCODE), data: DiagnosticData("Ignoring ENABLE_BITCODE because building with bitcode is no longer supported.")))
-            }
         }
 
         // If testability is enabled, then that overrides certain other settings, and in a way that the user cannot override: They're either using testability, or they're not.

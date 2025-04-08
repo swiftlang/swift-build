@@ -378,7 +378,7 @@ fileprivate struct WatchTaskConstructionTests: CoreBasedTests {
 
                 // There should be a task to embed the Swift standard libraries.
                 results.checkTask(.matchTarget(target), .matchRuleType("CopySwiftLibs"), .matchRuleItemBasename("Watchable WatchKit App.app")) { task in
-                    task.checkCommandLineContains(["builtin-swiftStdLibTool", "--scan-executable", "\(builtWatchAppPath)/Watchable WatchKit App", "--scan-folder", "\(builtWatchAppPath)/Frameworks", "--scan-folder", "\(builtWatchAppPath)/PlugIns", "--platform", "watchos", "--destination",  "\(builtWatchAppPath)/Frameworks", "--strip-bitcode"])
+                    task.checkCommandLineContains(["builtin-swiftStdLibTool", "--scan-executable", "\(builtWatchAppPath)/Watchable WatchKit App", "--scan-folder", "\(builtWatchAppPath)/Frameworks", "--scan-folder", "\(builtWatchAppPath)/PlugIns", "--platform", "watchos", "--destination",  "\(builtWatchAppPath)/Frameworks"])
                 }
 
                 // There should be one codesign task.
@@ -484,7 +484,7 @@ fileprivate struct WatchTaskConstructionTests: CoreBasedTests {
 
                 // There should be a task to embed the Swift standard libraries.
                 results.checkTask(.matchTarget(target), .matchRuleType("CopySwiftLibs"), .matchRuleItemBasename("Watchable.app")) { task in
-                    task.checkCommandLineContains(["builtin-swiftStdLibTool", "--scan-executable", "\(builtHostIOSAppPath)/Watchable", "--scan-folder", "\(builtHostIOSAppPath)/Frameworks", "--scan-folder", "\(builtHostIOSAppPath)/PlugIns", "--platform", "iphoneos", "--destination",  "\(builtHostIOSAppPath)/Frameworks", "--strip-bitcode"])
+                    task.checkCommandLineContains(["builtin-swiftStdLibTool", "--scan-executable", "\(builtHostIOSAppPath)/Watchable", "--scan-folder", "\(builtHostIOSAppPath)/Frameworks", "--scan-folder", "\(builtHostIOSAppPath)/PlugIns", "--platform", "iphoneos", "--destination",  "\(builtHostIOSAppPath)/Frameworks"])
                 }
 
                 // There should be one codesign task.
@@ -539,15 +539,11 @@ fileprivate struct WatchTaskConstructionTests: CoreBasedTests {
                         ["-o", "\(SRCROOT)/build/aProject.build/Debug-watchsimulator/Watchable WatchKit Extension.build/Objects-\(variant)/\(arch)/Controller.o"]
                     ].reduce([], +)
                     task.checkCommandLineContains(expectedCommandLine)
-                    #expect(!task.commandLine.contains("-fembed-bitcode-marker"))
-                    #expect(!task.commandLine.contains("-fembed-bitcode"))
                 }
                 results.checkTask(.matchTarget(target), .matchRuleType("SwiftDriver Compilation")) { task in
                     task.checkRuleInfo(["SwiftDriver Compilation", "Watchable WatchKit Extension", .equal(variant), .equal(arch), .equal("com.apple.xcode.tools.swift.compiler")])
                     let responseFilePath = "@\(SRCROOT)/build/aProject.build/Debug-watchsimulator/\(target.target.name).build/Objects-\(variant)/\(arch)/\(target.target.name).SwiftFileList"
                     task.checkCommandLineContains([swiftCompilerPath.str, responseFilePath, "-sdk", core.loadSDK(.watchOSSimulator).path.str, "-target", "x86_64-apple-watchos\(core.loadSDK(.watchOS).defaultDeploymentTarget)-simulator"])
-                    #expect(!task.commandLine.contains("-embed-bitcode-marker"))
-                    #expect(!task.commandLine.contains("-embed-bitcode"))
                 }
 
                 results.checkTaskExists(.matchTarget(target), .matchRuleType("SwiftDriver Compilation Requirements"))
@@ -561,8 +557,6 @@ fileprivate struct WatchTaskConstructionTests: CoreBasedTests {
                         ["-fapplication-extension", "\(SRCROOT)/build/Debug-watchsimulator/Watchable WatchKit Extension.appex/Watchable WatchKit Extension"]
                     ].reduce([], +)
                     task.checkCommandLineContains(expectedCommandLine)
-                    #expect(!task.commandLine.contains("-fembed-bitcode-marker"))
-                    #expect(!task.commandLine.contains("-fembed-bitcode"))
                 }
 
                 // There should be tasks to copy the associated Swift files.
@@ -704,24 +698,18 @@ fileprivate struct WatchTaskConstructionTests: CoreBasedTests {
                             ["-o", "\(SRCROOT)/build/aProject.build/Debug-iphonesimulator/Watchable.build/Objects-normal/\(arch)/main.o"]
                         ].reduce([], +)
                         task.checkCommandLineContains(expectedCommandLine)
-                        #expect(!task.commandLine.contains("-fembed-bitcode-marker"))
-                        #expect(!task.commandLine.contains("-fembed-bitcode"))
                     }
                     // SwiftDriver
                     results.checkTask(.matchTarget(target), .matchRuleType("SwiftDriver Compilation")) { task in
                         task.checkRuleInfo(["SwiftDriver Compilation", "Watchable", .equal("normal"), .equal(arch), .equal("com.apple.xcode.tools.swift.compiler")])
                         let responseFilePath = "@\(SRCROOT)/build/aProject.build/Debug-iphonesimulator/\(target.target.name).build/Objects-normal/\(arch)/\(target.target.name).SwiftFileList"
                         task.checkCommandLineContains([swiftCompilerPath.str, responseFilePath, "-sdk", core.loadSDK(.iOSSimulator).path.str, "-target", "\(arch)-apple-ios\(core.loadSDK(.iOSSimulator).defaultDeploymentTarget)-simulator"])
-                        #expect(!task.commandLine.contains("-embed-bitcode-marker"))
-                        #expect(!task.commandLine.contains("-embed-bitcode"))
                     }
 
                     results.checkTaskExists(.matchTarget(target), .matchRuleType("SwiftDriver Compilation Requirements"))
 
                     // Ld
                     results.checkTask(.matchTarget(target), .matchRuleType("Ld")) { task in
-                        #expect(!task.commandLine.contains("-fembed-bitcode-marker"))
-                        #expect(!task.commandLine.contains("-fembed-bitcode"))
                     }
                 }
 
@@ -803,7 +791,7 @@ fileprivate struct WatchTaskConstructionTests: CoreBasedTests {
         }
 
         // Check an install build for the device.
-        let installParameters = BuildParameters(action: .install, configuration: "Debug", overrides: ["BITCODE_GENERATION_MODE": "bitcode"])
+        let installParameters = BuildParameters(action: .install, configuration: "Debug")
         await tester.checkBuild(installParameters, runDestination: .macOS, fs: fs) { results in
             // Ignore certain classes of tasks.
             results.checkTasks(.matchRuleType("Gate")) { _ in }

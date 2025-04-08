@@ -28,11 +28,6 @@
         Identifier = com.apple.build-system.native;
         BasedOn = "default:com.apple.build-system.native";
         Properties = (
-            {
-                Name = "ENABLE_BITCODE";
-                Type = Boolean;
-                DefaultValue = NO;
-            },
         );
     },
 )

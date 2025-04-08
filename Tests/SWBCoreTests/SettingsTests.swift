@@ -263,16 +263,14 @@ import SWBMacro
                                                                                                     "USER_TARGET_SETTING": "USER_TARGET_VALUE"])],
                                                                                                buildPhases: [TestSourcesBuildPhase(["Mock.cpp"])])])]).load(core)
             let context = try await contextForTestData(testWorkspace,
-                                                       environment: [
-                                                        "ENABLE_BITCODE": "YES",
-                                                       ],
-                                                       files: [
-                                                        core.loadSDK(.macOS).path.join("Cocoa.pch"): "",
-                                                        core.loadSDK(.macOS).path.join("System/Library/Frameworks/mock.txt"): "",
-                                                        core.loadSDK(.macOS).path.join("usr/include/mock.txt"): "",
-                                                        additionalSDKPath.join("Applications/Xcode.app/mock.txt"): "",
-                                                        additionalSDKPath.join("usr/mock.txt"): "",
-                                                       ])
+                files: [
+                    core.loadSDK(.macOS).path.join("Cocoa.pch"): "",
+                    core.loadSDK(.macOS).path.join("System/Library/Frameworks/mock.txt"): "",
+                    core.loadSDK(.macOS).path.join("usr/include/mock.txt"): "",
+                    additionalSDKPath.join("Applications/Xcode.app/mock.txt"): "",
+                    additionalSDKPath.join("usr/mock.txt"): "",
+                ]
+            )
             let buildRequestContext = BuildRequestContext(workspaceContext: context)
             let testProject = context.workspace.projects[0]
             let testTarget = testProject.targets[0]
@@ -3133,11 +3131,11 @@ import SWBMacro
                                                                                                             "USER_TARGET_SETTING": "USER_TARGET_VALUE"])],
                                                                                                        buildPhases: [TestSourcesBuildPhase(["Mock.cpp"])])])]).load(getCore())
         let context = try await contextForTestData(testWorkspace,
-                                                   environment: [
-                                                    "ENABLE_BITCODE": "YES",
-                                                    "RC_ARCHS": "x86_64 x86_64h",
-                                                   ],
-                                                   files: [:])
+            environment: [
+                "RC_ARCHS": "x86_64 x86_64h",
+            ],
+            files: [:]
+        )
         let buildRequestContext = BuildRequestContext(workspaceContext: context)
         let testProject = context.workspace.projects[0]
         let testTarget = testProject.targets[0]
@@ -4995,34 +4993,6 @@ import SWBMacro
         let settings = Settings(workspaceContext: context, buildRequestContext: buildRequestContext, parameters: parameters, project: testProject, target: testTarget,  impartedBuildProperties: [buildProperties])
 
         #expect(settings.globalScope.evaluate(BuiltinMacros.OTHER_CFLAGS) == ["-best"])
-    }
-
-    @Test
-    func packagesAllowTestingSearchPathsAndBitcodeSimultaneously() async throws {
-        let testWorkspace = try await TestWorkspace("Test", projects: [
-            TestPackageProject("aPackageProject", groupTree: TestGroup("Sources", path: "Sources", children: [TestFile("best.swift"), TestFile("Info.plist"),]), targets: [
-                TestStandardTarget("Target",
-                                   type: .application,
-                                   buildConfigurations: [
-                    TestBuildConfiguration("Debug", buildSettings: [
-                        "ENABLE_TESTING_SEARCH_PATHS": "YES",
-                        "INFOPLIST_FILE": "Sources/Info.plist",
-                        "SUPPORTED_PLATFORMS": "$(AVAILABLE_PLATFORMS)",
-                    ])
-                ])
-            ])
-        ]).load(getCore())
-
-        let context = try await contextForTestData(testWorkspace)
-        let buildRequestContext = BuildRequestContext(workspaceContext: context)
-        let testProject = context.workspace.projects[0]
-        let testTarget = testProject.targets[0]
-
-        let parameters = BuildParameters(configuration: "Debug", activeRunDestination: .iOS)
-        let settings = Settings(workspaceContext: context, buildRequestContext: buildRequestContext, parameters: parameters, project: testProject, target: testTarget)
-
-        #expect(!settings.globalScope.evaluate(BuiltinMacros.ENABLE_BITCODE))
-        #expect(settings.globalScope.evaluate(BuiltinMacros.ENABLE_TESTING_SEARCH_PATHS))
     }
 
     @Test(.requireSDKs(.macOS))
