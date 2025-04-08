@@ -397,9 +397,6 @@ fileprivate struct SwiftTaskConstructionTests: CoreBasedTests {
                         .namePattern(.prefix("Linked Binary \(SRCROOT)/build/Debug/AppTarget.app/Contents/MacOS/AppTarget")),
                         .path("\(SRCROOT)/build/aProject.build/Debug/AppTarget.build/Objects-normal/x86_64/AppTarget_dependency_info.dat"),
                     ])
-
-                    // We used to pass the deployment target to the linker in the environment, but this is supposedly no longer necessary.
-                    task.checkEnvironment([:], exact: true)
                 }
 
                 // There should be a task to embed the Swift standard libraries.

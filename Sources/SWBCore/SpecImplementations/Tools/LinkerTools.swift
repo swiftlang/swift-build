@@ -1122,6 +1122,13 @@ public final class LdLinkerSpec : GenericLinkerSpec, SpecIdentifierType, @unchec
         }
     }
 
+    override public func environmentFromSpec(_ cbc: CommandBuildContext, _ delegate: any DiagnosticProducingDelegate, lookup: ((MacroDeclaration) -> MacroExpression?)? = nil) -> [(String, String)] {
+        var env: [(String, String)] = super.environmentFromSpec(cbc, delegate, lookup: lookup)
+        // The linker driver and linker may not be adjacent, so set PATH so the former can find the latter.
+        env.append(("PATH", cbc.producer.executableSearchPaths.environmentRepresentation))
+        return env
+    }
+
     /// Compute the list of command line arguments and inputs to pass to the linker, given a list of library specifiers.
     ///
     /// Note that `inputs` will only contain values for libraries which are being directly linked by absolute path rather than by using search paths.
