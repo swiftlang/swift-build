@@ -22,7 +22,7 @@ public final class SwiftStdLibToolSpec : GenericCommandLineToolSpec, SpecIdentif
     }
 
     /// Construct a new task to run the Swift standard library tool.
-    public func constructSwiftStdLibraryToolTask(_ cbc:CommandBuildContext, _ delegate: any TaskGenerationDelegate, foldersToScan: MacroStringListExpression?, filterForSwiftOS: Bool, backDeploySwiftConcurrency: Bool) async {
+    public func constructSwiftStdLibraryToolTask(_ cbc:CommandBuildContext, _ delegate: any TaskGenerationDelegate, foldersToScan: MacroStringListExpression?, filterForSwiftOS: Bool, backDeploySwiftConcurrency: Bool, backDeploySwiftSpan: Bool) async {
         precondition(cbc.outputs.isEmpty, "Unexpected output paths \(cbc.outputs.map { "'\($0.str)'" }) passed to \(type(of: self)).")
 
         let input = cbc.input
@@ -83,6 +83,10 @@ public final class SwiftStdLibToolSpec : GenericCommandLineToolSpec, SpecIdentif
 
         if backDeploySwiftConcurrency {
             commandLine.append("--back-deploy-swift-concurrency")
+        }
+
+        if backDeploySwiftSpan {
+            commandLine.append("--back-deploy-swift-span")
         }
 
         let outputs = [delegate.createVirtualNode("CopySwiftStdlib \(wrapperPathString.str)")]

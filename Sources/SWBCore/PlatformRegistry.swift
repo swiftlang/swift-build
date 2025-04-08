@@ -73,8 +73,11 @@ public final class Platform: Sendable {
     /// Minimum OS version for Swift-in-the-OS support. If this is `nil`, the platform does not support Swift-in-the-OS at all.
     fileprivate(set) var minimumOSForSwiftInTheOS: Version? = nil
 
-    /// Minimum OS version for built-in Swift concurrency support. If this is `nil`, the platform does not support Swift concurrency at all.
+    /// Minimum OS version for Swift concurrency (Swift 5.5). If this is `nil`, the platform does not support Swift concurrency at all.
     fileprivate(set) var minimumOSForSwiftConcurrency: Version? = nil
+
+    /// Minimum OS version for Span in the standard library (Swift 6.2). If this is `nil`, the platform does not support Swift concurrency at all.
+    fileprivate(set) var minimumOSForSwiftSpan: Version? = nil
 
     /// The canonical name of the public SDK for this platform.
     /// - remark: This does not mean that this SDK exists, just that this is its canonical name if it does exist.
@@ -244,6 +247,11 @@ extension Platform {
         return self.minimumOSForSwiftConcurrency ?? self.correspondingDevicePlatform?.minimumOSForSwiftConcurrency ?? nil
     }
 
+    /// Determines the deployment version to use for Swift Span support.
+    fileprivate func swiftOSSpanVersion(_ deploymentTarget: StringMacroDeclaration) -> Version? {
+        return self.minimumOSForSwiftSpan ?? self.correspondingDevicePlatform?.minimumOSForSwiftSpan ?? nil
+    }
+
     /// Determines if the platform supports Swift in the OS.
     public func supportsSwiftInTheOS(_ scope: MacroEvaluationScope, forceNextMajorVersion: Bool = false, considerTargetDeviceOSVersion: Bool = true) -> Bool {
         guard let deploymentTarget = self.deploymentTargetMacro else { return false }
@@ -265,7 +273,7 @@ extension Platform {
         return version >= minimumSwiftInTheOSVersion
     }
 
-    /// Determines if the platform natively supports Swift concurrency. If `false`, then the Swift back-compat concurrency libs needs to be copied into the app/framework's bundle.
+    /// Determines if the platform natively supports Swift concurrency. If `false`, then the Swift concurrency back-compat concurrency libs needs to be copied into the app/framework's bundle.
     public func supportsSwiftConcurrencyNatively(_ scope: MacroEvaluationScope, forceNextMajorVersion: Bool = false, considerTargetDeviceOSVersion: Bool = true) -> Bool? {
         guard let deploymentTarget = self.deploymentTargetMacro else { return false }
 
@@ -286,6 +294,29 @@ extension Platform {
         guard let minimumSwiftConcurrencyVersion = swiftOSCurrencyVersion(deploymentTarget) else { return nil }
 
         return version >= minimumSwiftConcurrencyVersion
+    }
+
+    /// Determines if the platform natively supports Swift 6.2's Span type. If `false`, then the Swift Span back-compat concurrency libs needs to be copied into the app/framework's bundle.
+    public func supportsSwiftSpanNatively(_ scope: MacroEvaluationScope, forceNextMajorVersion: Bool = false, considerTargetDeviceOSVersion: Bool = true) -> Bool? {
+        guard let deploymentTarget = self.deploymentTargetMacro else { return false }
+
+        // If we have target device info and its platform matches the build platform, compare the device OS version
+        let targetDeviceVersion: Version?
+        if considerTargetDeviceOSVersion && scope.evaluate(BuiltinMacros.TARGET_DEVICE_PLATFORM_NAME) == self.name {
+            targetDeviceVersion = try? Version(scope.evaluate(BuiltinMacros.TARGET_DEVICE_OS_VERSION))
+        } else {
+            targetDeviceVersion = nil
+        }
+
+        // Otherwise fall back to comparing the minimum deployment target
+        let deploymentTargetVersion = try? Version(scope.evaluate(deploymentTarget))
+
+        guard let version = targetDeviceVersion ?? deploymentTargetVersion else { return false }
+
+        // Return `nil` here as there is no metadata for the platform to allow downstream clients to be aware of this.
+        guard let minimumSwiftSpanVersion = swiftOSSpanVersion(deploymentTarget) else { return nil }
+
+        return version >= minimumSwiftSpanVersion
     }
 }
 
@@ -676,6 +707,7 @@ public final class PlatformRegistry {
             if let variant = platform.defaultSDKVariant {
                 platform.minimumOSForSwiftInTheOS = variant.minimumOSForSwiftInTheOS
                 platform.minimumOSForSwiftConcurrency = variant.minimumOSForSwiftConcurrency
+                platform.minimumOSForSwiftSpan = variant.minimumOSForSwiftSpan
             }
         }
 
