@@ -25,7 +25,7 @@ import SWBUtil
             #expect(SWBUtil.userCacheDir().str.hasPrefix("/var/folders"))
         case .android:
             #expect(SWBUtil.userCacheDir().str.hasPrefix("/data/local/tmp"))
-        case .linux, .unknown:
+        case .linux, .freebsd, .openbsd, .unknown:
             #expect(SWBUtil.userCacheDir().str.hasPrefix("/tmp"))
         }
     }

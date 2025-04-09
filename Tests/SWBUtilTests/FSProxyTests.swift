@@ -488,7 +488,7 @@ import SWBTestSupport
             case .android, .linux:
                 // This will _usually_ be correct on Linux-derived OSes (see above), but not always.
                 #expect(current_gid == ownership.group)
-            case .macOS, .iOS, .tvOS, .watchOS, .visionOS:
+            case .macOS, .iOS, .tvOS, .watchOS, .visionOS, .freebsd, .openbsd:
                 #expect(parentDirOwnership.group == ownership.group)
             case .windows:
                 // POSIX permissions don't exist, so everything is hardcoded to zero.
@@ -566,7 +566,7 @@ import SWBTestSupport
         }
     }
 
-    @Test(.skipHostOS(.windows))
+    @Test(.skipHostOS(.windows), .skipHostOS(.freebsd, "Blocked on https://github.com/swiftlang/swift/pull/77836"))
     func extendedAttributesSupport() throws {
         try withTemporaryDirectory { (tmpDir: Path) in
             // Many filesystems on other platforms (e.g. various non-ext4 temporary filesystems on Linux) don't support xattrs and will return ENOTSUP.
