@@ -232,7 +232,14 @@ let package = Package(
             swiftSettings: swiftSettings(languageMode: .v6)),
         .target(
             name: "SWBUniversalPlatform",
-            dependencies: ["SWBCore", "SWBMacro", "SWBUtil"],
+            dependencies: [
+                "SWBCore",
+                "SWBMacro",
+                "SWBUtil",
+                "SWBTaskConstruction",
+                "SWBTaskExecution",
+                .product(name: "ArgumentParser", package: "swift-argument-parser"),
+            ],
             exclude: ["CMakeLists.txt"],
             resources: [.process("Specs")],
             swiftSettings: swiftSettings(languageMode: .v6)),

@@ -397,6 +397,103 @@ fileprivate struct BuildOperationTests: CoreBasedTests {
         }
     }
 
+    @Test(.skipHostOS(.macOS), .skipHostOS(.windows, "cannot find testing library"))
+    func unitTestWithGeneratedEntryPoint() async throws {
+        try await withTemporaryDirectory { (tmpDir: Path) in
+            let testProject = try await TestProject(
+                "TestProject",
+                sourceRoot: tmpDir,
+                groupTree: TestGroup(
+                    "SomeFiles",
+                    children: [
+                        TestFile("library.swift"),
+                        TestFile("test.swift"),
+                    ]),
+                buildConfigurations: [
+                    TestBuildConfiguration("Debug", buildSettings: [
+                        "ARCHS": "$(ARCHS_STANDARD)",
+                        "CODE_SIGNING_ALLOWED": "NO",
+                        "PRODUCT_NAME": "$(TARGET_NAME)",
+                        "SDKROOT": "$(HOST_PLATFORM)",
+                        "SUPPORTED_PLATFORMS": "$(HOST_PLATFORM)",
+                        "SWIFT_VERSION": swiftVersion,
+                    ])
+                ],
+                targets: [
+                    TestStandardTarget(
+                        "test",
+                        type: .unitTest,
+                        buildConfigurations: [
+                            TestBuildConfiguration("Debug", buildSettings: [
+                                "LD_RUNPATH_SEARCH_PATHS": "@loader_path/",
+                            ])
+                        ],
+                        buildPhases: [
+                            TestSourcesBuildPhase(["test.swift"]),
+                            TestFrameworksBuildPhase([
+                                TestBuildFile(.target("library")),
+                            ])
+                        ],
+                        dependencies: [
+                            "library"
+                        ]
+                    ),
+                    TestStandardTarget(
+                        "library",
+                        type: .dynamicLibrary,
+                        buildConfigurations: [
+                            TestBuildConfiguration("Debug", buildSettings: [
+                                "DYLIB_INSTALL_NAME_BASE": "$ORIGIN",
+
+                                // FIXME: Find a way to make these default
+                                "EXECUTABLE_PREFIX": "lib",
+                                "EXECUTABLE_PREFIX[sdk=windows*]": "",
+                            ])
+                        ],
+                        buildPhases: [
+                            TestSourcesBuildPhase(["library.swift"]),
+                        ],
+                    ),
+                ])
+            let core = try await getCore()
+            let tester = try await BuildOperationTester(core, testProject, simulated: false)
+
+            let projectDir = tester.workspace.projects[0].sourceRoot
+
+            try await tester.fs.writeFileContents(projectDir.join("library.swift")) { stream in
+                stream <<< "public func foo() -> Int { 42 }\n"
+            }
+
+            try await tester.fs.writeFileContents(projectDir.join("test.swift")) { stream in
+                stream <<< """
+                    import Testing
+                    import library
+                    @Suite struct MySuite {
+                        @Test func myTest() async throws {
+                            #expect(foo() == 42)
+                        }
+                    }
+                """
+            }
+
+            let destination: RunDestinationInfo = .host
+            try await tester.checkBuild(runDestination: destination, persistent: true) { results in
+                results.checkNoErrors()
+
+                let toolchain = try #require(try await getCore().toolchainRegistry.defaultToolchain)
+                let environment: Environment
+                if destination.platform == "linux" {
+                    environment = ["LD_LIBRARY_PATH": toolchain.path.join("usr/lib/swift/linux").str]
+                } else {
+                    environment = .init()
+                }
+
+                let executionResult = try await Process.getOutput(url: URL(fileURLWithPath: projectDir.join("build").join("Debug\(destination.builtProductsDirSuffix)").join(core.hostOperatingSystem.imageFormat.executableName(basename: "test.xctest")).str), arguments: ["--testing-library", "swift-testing"], environment: environment)
+                #expect(String(decoding: executionResult.stderr, as: UTF8.self).contains("Test run started"))
+            }
+        }
+    }
+
     /// Check that environment variables are propagated from the user environment correctly.
     @Test(.requireSDKs(.host), .skipHostOS(.windows), .requireSystemPackages(apt: "yacc", yum: "byacc"))
     func userEnvironment() async throws {

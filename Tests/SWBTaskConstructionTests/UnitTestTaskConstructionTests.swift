@@ -301,6 +301,67 @@ fileprivate struct UnitTestTaskConstructionTests: CoreBasedTests {
         }
     }
 
+    @Test(.requireSDKs(.linux))
+    func unitTestTarget_linux() async throws {
+        let swiftCompilerPath = try await self.swiftCompilerPath
+        let swiftVersion = try await self.swiftVersion
+        let testProject = TestProject(
+            "aProject",
+            groupTree: TestGroup(
+                "SomeFiles",
+                children: [
+                    TestFile("TestOne.swift"),
+                    TestFile("TestTwo.swift"),
+                ]),
+            buildConfigurations: [
+                TestBuildConfiguration(
+                    "Debug",
+                    buildSettings: [
+                        "CODE_SIGN_IDENTITY": "",
+                        "PRODUCT_NAME": "$(TARGET_NAME)",
+                        "SDKROOT": "linux",
+                        "SWIFT_VERSION": swiftVersion,
+                    ]),
+            ],
+            targets: [
+                TestStandardTarget(
+                    "UnitTestTarget",
+                    type: .unitTest,
+                    buildConfigurations: [
+                        TestBuildConfiguration("Debug",
+                                               buildSettings: [:]),
+                    ],
+                    buildPhases: [
+                        TestSourcesBuildPhase([
+                            "TestOne.swift",
+                            "TestTwo.swift",
+                        ]),
+                    ],
+                    dependencies: []
+                ),
+            ])
+        let core = try await getCore()
+        let tester = try TaskConstructionTester(core, testProject)
+
+        let fs = PseudoFS()
+
+        try await fs.writeFileContents(swiftCompilerPath) { $0 <<< "binary" }
+
+        await tester.checkBuild(runDestination: .linux, fs: fs) { results in
+            results.checkTarget("UnitTestTarget") { target in
+                results.checkTask(.matchTarget(target), .matchRuleType("GenerateTestEntryPoint")) { task in
+                    task.checkCommandLineMatches([.suffix("builtin-generateTestEntryPoint"), "--output", .suffix("test_entry_point.swift")])
+                    task.checkOutputs([.pathPattern(.suffix("test_entry_point.swift"))])
+                }
+                results.checkTask(.matchTarget(target), .matchRuleType("SwiftDriver Compilation")) { task in
+                    task.checkInputs(contain: [.pathPattern(.suffix("test_entry_point.swift"))])
+                }
+            }
+
+            results.checkNoDiagnostics()
+        }
+    }
+
 
     // MARK: Application test target using TEST_HOST
 
