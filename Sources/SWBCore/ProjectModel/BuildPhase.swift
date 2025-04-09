@@ -124,7 +124,7 @@ public class BuildPhaseWithBuildFiles: BuildPhase, @unchecked Sendable
 
     /// Returns a string that can be used as a suffix for the base name of a derived file in order to make its filename unique. This is based on the file's path but contains only characters that have no special meaning in filenames.  For example, the string will never contain a path separator character.
     public static func filenameUniquefierSuffixFor(path: Path) -> String {
-        let digester = MD5Context.init()
+        let digester = InsecureHashContext.init()
         digester.add(string: path.normalize().str)
         return digester.signature.asString
     }

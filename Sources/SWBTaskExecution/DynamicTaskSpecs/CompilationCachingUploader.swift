@@ -62,7 +62,7 @@ package final class CompilationCachingUploader {
         }
 
         startedUpload()
-        let signatureCtx = MD5Context()
+        let signatureCtx = InsecureHashContext()
         signatureCtx.add(string: "ClangCachingUpload")
         signatureCtx.add(string: cacheKey)
         let signature = signatureCtx.signature
@@ -122,7 +122,7 @@ package final class CompilationCachingUploader {
         }
 
         startedUpload()
-        let signatureCtx = MD5Context()
+        let signatureCtx = InsecureHashContext()
         signatureCtx.add(string: "SwiftCachingUpload")
         signatureCtx.add(string: cacheKey)
         let signature = signatureCtx.signature

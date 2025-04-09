@@ -195,7 +195,6 @@ let package = Package(
                 "SWBCSupport",
                 "SWBLibc",
                 .product(name: "ArgumentParser", package: "swift-argument-parser"),
-                .product(name: "Crypto", package: "swift-crypto", condition: .when(platforms: [.linux, .openbsd, .android])),
                 .product(name: "SystemPackage", package: "swift-system", condition: .when(platforms: [.linux, .android, .windows])),
             ],
             exclude: ["CMakeLists.txt"],
@@ -427,7 +426,6 @@ for target in package.targets {
 // `SWIFTCI_USE_LOCAL_DEPS` configures if dependencies are locally available to build
 if useLocalDependencies {
     package.dependencies += [
-        .package(path: "../swift-crypto"),
         .package(path: "../swift-driver"),
         .package(path: "../swift-system"),
         .package(path: "../swift-argument-parser"),
@@ -437,7 +435,6 @@ if useLocalDependencies {
     }
 } else {
     package.dependencies += [
-        .package(url: "https://github.com/apple/swift-crypto.git", "2.0.0"..<"4.0.0"),
         .package(url: "https://github.com/swiftlang/swift-driver.git", branch: "main"),
         .package(url: "https://github.com/apple/swift-system.git", .upToNextMajor(from: "1.4.1")),
         .package(url: "https://github.com/apple/swift-argument-parser.git", from: "1.0.3"),

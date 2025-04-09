@@ -728,7 +728,7 @@ private final class BuildSystemTaskPlanningDelegate: TaskPlanningDelegate {
     }
 
     package func recordAttachment(contents: SWBUtil.ByteString) -> SWBUtil.Path {
-        let digester = MD5Context()
+        let digester = InsecureHashContext()
         digester.add(bytes: contents)
         let path = descriptionPath.join("attachments").join(digester.signature.asString)
         do {

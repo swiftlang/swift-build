@@ -412,7 +412,7 @@ fileprivate final class TestSwiftParserDelegate: TaskOutputParserDelegate, Senda
             #expect(delegate.events[safe: 1]?.0 == "skippedSubtask")
 
             let expectedSignature: ByteString = {
-                let md5 = MD5Context()
+                let md5 = InsecureHashContext()
                 md5.add(string: "CompileSwift VARIANT ARCH bar.swift")
                 return md5.signature
             }()

@@ -122,8 +122,8 @@ extension Trait where Self == Testing.ConditionTrait {
 
     /// Constructs a condition trait that causes a test to be disabled if not running on the specified host OS.
     /// - parameter when: An additional constraint to apply such that the host OS requirement is only applied if this parameter is _also_ true. Defaults to true.
-    package static func requireHostOS(_ os: OperatingSystem, when condition: Bool = true) -> Self {
-        enabled("This test requires a \(os) host OS.", { try ProcessInfo.processInfo.hostOperatingSystem() == os && condition })
+    package static func requireHostOS(_ os: OperatingSystem..., when condition: Bool = true) -> Self {
+        enabled("This test requires a \(os) host OS.", { os.contains(try ProcessInfo.processInfo.hostOperatingSystem()) && condition })
     }
 
     /// Constructs a condition trait that causes a test to be disabled if running on the specified host OS.

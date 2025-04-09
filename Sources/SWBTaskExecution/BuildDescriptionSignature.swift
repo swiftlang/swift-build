@@ -114,7 +114,7 @@ extension BuildDescriptionSignatureComponents {
     }
 
     func signatureStringValue(humanReadableString: ByteString) -> BuildDescriptionSignature {
-        let hashContext = MD5Context()
+        let hashContext = InsecureHashContext()
         hashContext.add(bytes: humanReadableString)
         return hashContext.signature
     }

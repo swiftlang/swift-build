@@ -928,7 +928,7 @@ package final class BuildDescriptionBuilder {
     }
 
     package static func computeShellToolSignature(args: [ByteString], environment: EnvironmentBindings?, dependencyData: DependencyDataStyle?, isUnsafeToInterrupt: Bool, additionalSignatureData: String) -> ByteString {
-        let ctx = MD5Context()
+        let ctx = InsecureHashContext()
         for arg in args {
             ctx.add(bytes: arg)
         }
