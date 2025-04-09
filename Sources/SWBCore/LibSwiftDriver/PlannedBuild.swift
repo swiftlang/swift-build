@@ -103,7 +103,7 @@ public struct SwiftDriverJob: Serializable, CustomDebugStringConvertible {
         self.cacheKeys = job.outputCacheKeys.reduce(into: [String]()) { result, key in
             result.append(key.value)
         }.sorted()
-        let md5 = MD5Context()
+        let md5 = InsecureHashContext()
         for arg in commandLine {
             md5.add(bytes: arg)
         }

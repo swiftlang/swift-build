@@ -951,7 +951,7 @@ public final class SwiftCommandOutputParser: TaskOutputParser {
                 ruleInfo = "\(ruleInfo) \(path.str.quotedDescription)"
             }
             let signature: ByteString = {
-                let md5 = MD5Context()
+                let md5 = InsecureHashContext()
                 md5.add(string: ruleInfo)
                 return md5.signature
             }()
@@ -3584,7 +3584,7 @@ extension SwiftCompilerSpec {
     static public func computeRuleInfoAndSignatureForPerFileVirtualBatchSubtask(variant: String, arch: String, path: Path) -> ([String], ByteString) {
         let ruleInfo = ["SwiftCompile", variant, arch, path.str.quotedDescription]
         let signature: ByteString = {
-            let md5 = MD5Context()
+            let md5 = InsecureHashContext()
             md5.add(string: ruleInfo.joined(separator: " "))
             return md5.signature
         }()

@@ -1530,7 +1530,7 @@ internal final class OperationSystemAdaptor: SWBLLBuild.BuildSystemDelegate, Act
             return
         }
 
-        let signatureCtx = MD5Context()
+        let signatureCtx = InsecureHashContext()
         signatureCtx.add(string: "CleanupCompileCache")
         signatureCtx.add(string: cachePath.str)
         let signature = signatureCtx.signature
