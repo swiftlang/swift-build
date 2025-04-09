@@ -50,6 +50,8 @@ extension BuildRequest {
             useDryRun: useDryRun,
             enableStaleFileRemoval: enableStaleFileRemoval,
             showNonLoggedProgress: showNonLoggedProgress,
+            recordBuildBacktraces: recordBuildBacktraces,
+            generatePrecompiledModulesReport: generatePrecompiledModulesReport,
             buildDescriptionID: buildDescriptionID,
             qos: qos,
             buildPlanDiagnosticsDirPath: buildPlanDiagnosticsDirPath,
