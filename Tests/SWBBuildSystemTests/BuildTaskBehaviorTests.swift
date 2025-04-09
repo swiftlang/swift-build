@@ -206,7 +206,7 @@ fileprivate struct BuildTaskBehaviorTests: CoreBasedTests {
 
     /// Stress concurrent access to the build system cache during rapid cancel
     /// then build scenarios.
-    @Test(.requireSDKs(.host), .skipHostOS(.windows, "no /usr/bin/true"),
+    @Test(.requireSDKs(.host), .skipHostOS(.windows, "no /usr/bin/true"), .requireThreadSafeWorkingDirectory,
           // To aid in establishing the subtle concurrent
           // timing required to trigger chaos, we disable early build operation
           // cancellation.
