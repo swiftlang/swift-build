@@ -34,11 +34,17 @@ add_library(SWBUniversalPlatform STATIC
   CppTool.swift
   DiffTool.swift
   LexCompiler.swift
+  TestEntryPointGenerationTaskAction.swift
+  TestEntryPointGenerationTool.swift
+  TestEntryPointTaskProducer.swift
   YaccCompiler.swift
   Plugin.swift)
 target_link_libraries(SWBUniversalPlatform PUBLIC
   SWBCore
   SWBMacro
-  SWBUtil)
+  SWBUtil
+  SWBTaskConstruction
+  SWBTaskExecution
+  ArgumentParser)
 target_sources(SWBUniversalPlatform PRIVATE
   "${CMAKE_CURRENT_BINARY_DIR}/resource_bundle_accessor.swift")

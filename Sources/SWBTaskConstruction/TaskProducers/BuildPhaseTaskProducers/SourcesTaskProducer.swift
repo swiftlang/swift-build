@@ -838,6 +838,10 @@ final class SourcesTaskProducer: FilesBasedBuildPhaseTaskProducerBase, FilesBase
                         result.append((embedInCodeAccessorResult.fileToBuild, embedInCodeAccessorResult.fileToBuildFileType, /* shouldUsePrefixHeader */ false))
                     }
 
+                    if scope.evaluate(BuiltinMacros.GENERATE_TEST_ENTRY_POINT) {
+                        result.append((scope.evaluate(BuiltinMacros.GENERATED_TEST_ENTRY_POINT_PATH), context.lookupFileType(fileName: "sourcecode.swift")!,  /* shouldUsePrefixHeader */ false))
+                    }
+
                     return result
                 }())
 

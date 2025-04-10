@@ -13,9 +13,13 @@
 public import SWBUtil
 import SWBCore
 import Foundation
+import SWBTaskConstruction
+import SWBTaskExecution
 
 @PluginExtensionSystemActor public func initializePlugin(_ manager: PluginManager) {
     manager.register(UniversalPlatformSpecsExtension(), type: SpecificationsExtensionPoint.self)
+    manager.register(UniversalPlatformTaskProducerExtension(), type: TaskProducerExtensionPoint.self)
+    manager.register(UniversalPlatformTaskActionExtension(), type: TaskActionExtensionPoint.self)
 }
 
 struct UniversalPlatformSpecsExtension: SpecificationsExtension {
@@ -26,6 +30,7 @@ struct UniversalPlatformSpecsExtension: SpecificationsExtension {
             CppToolSpec.self,
             LexCompilerSpec.self,
             YaccCompilerSpec.self,
+            TestEntryPointGenerationToolSpec.self,
         ]
     }
 
@@ -42,5 +47,37 @@ struct UniversalPlatformSpecsExtension: SpecificationsExtension {
     // Allow locating the sole remaining `.xcbuildrules` file.
     func specificationSearchPaths(resourceSearchPaths: [Path]) -> [URL] {
         findResourceBundle(nameWhenInstalledInToolchain: "SwiftBuild_SWBUniversalPlatform", resourceSearchPaths: resourceSearchPaths, defaultBundle: Bundle.module)?.resourceURL.map { [$0] } ?? []
+    }
+}
+
+struct UniversalPlatformTaskProducerExtension: TaskProducerExtension {
+    func createPreSetupTaskProducers(_ context: SWBTaskConstruction.TaskProducerContext) -> [any SWBTaskConstruction.TaskProducer] {
+        []
+    }
+
+    struct TestEntryPointTaskProducerFactory: TaskProducerFactory {
+        var name: String {
+            "TestEntryPointTaskProducerFactory"
+        }
+
+        func createTaskProducer(_ context: SWBTaskConstruction.TargetTaskProducerContext, startPhaseNodes: [SWBCore.PlannedVirtualNode], endPhaseNode: SWBCore.PlannedVirtualNode) -> any SWBTaskConstruction.TaskProducer {
+            TestEntryPointTaskProducer(context, phaseStartNodes: startPhaseNodes, phaseEndNode: endPhaseNode)
+        }
+    }
+
+    var setupTaskProducers: [any SWBTaskConstruction.TaskProducerFactory] {
+        [TestEntryPointTaskProducerFactory()]
+    }
+
+    var unorderedPostSetupTaskProducers: [any SWBTaskConstruction.TaskProducerFactory] { [] }
+
+    var unorderedPostBuildPhasesTaskProducers: [any SWBTaskConstruction.TaskProducerFactory] { [] }
+
+    var globalTaskProducers: [any SWBTaskConstruction.GlobalTaskProducerFactory] { [] }
+}
+
+struct UniversalPlatformTaskActionExtension: TaskActionExtension {
+    var taskActionImplementations: [SWBUtil.SerializableTypeCode : any SWBUtil.PolymorphicSerializable.Type] {
+        [41: TestEntryPointGenerationTaskAction.self]
     }
 }
