@@ -38,10 +38,13 @@ private extension String.UTF8View {
 public struct Path: Serializable, Sendable {
     private var _impl: FilePath
 
+    private init(_ impl: FilePath) {
+        self._impl = impl
+    }
+
     public var str: String {
         _impl.string
     }
-
     /// The system path separator.
     #if os(Windows)
     public static let pathSeparator = Character("\\")
@@ -343,7 +346,12 @@ public struct Path: Serializable, Sendable {
     ///
     /// - parameter removeDotDotFromRelativePath: If false, then '..' will not be removed from relative paths, akin to the behavior of `-[NSString stringByStandardizingPath]`.
     public func normalize(removeDotDotFromRelativePath: Bool = true) -> Path {
-        Path(_impl.lexicallyNormalized().string)
+        if !removeDotDotFromRelativePath && !isAbsolute {
+            let pathComponents = str.split(separator: Path.pathSeparator)
+                .filter { !$0.isEmpty && $0 != "." }
+            return Path(pathComponents.joined(separator: String(Path.pathSeparator)))
+        }
+        return Path(_impl.lexicallyNormalized())
     }
 
     /// Check if the path is currently normalized.
