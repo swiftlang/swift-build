@@ -115,7 +115,9 @@ extension Trait where Self == Testing.ConditionTrait {
     package static func requireSDKs(_ knownSDKs: KnownSDK..., comment: Comment? = nil) -> Self {
         enabled(comment != nil ? "required SDKs are not installed: \(comment?.description ?? "")" : "required SDKs are not installed.", {
             let sdkRegistry = try await ConditionTraitContext.shared.getCore().sdkRegistry
-            let missingSDKs = await knownSDKs.asyncFilter { sdkRegistry.lookup($0.sdkName) == nil }.sorted()
+            let missingSDKs = await knownSDKs.asyncFilter { knownSDK in
+                sdkRegistry.lookup(knownSDK.sdkName) == nil && sdkRegistry.allSDKs.count(where: { $0.aliases.contains(knownSDK.sdkName) }) == 0
+            }.sorted()
             return missingSDKs.isEmpty
         })
     }
@@ -134,6 +136,13 @@ extension Trait where Self == Testing.ConditionTrait {
     /// Constructs a condition trait that causes a test to be disabled if process spawning is unavailable (for example, on Apple embedded platforms).
     package static var requireProcessSpawning: Self {
         disabled("Process spawning is unavailable.", { try ProcessInfo.processInfo.hostOperatingSystem().isAppleEmbedded || ProcessInfo.processInfo.isMacCatalystApp })
+    }
+
+    /// Constructs a condition trait that causes a test to be disabled if the developer directory is pointing at an Xcode developer directory.
+    package static var skipXcodeToolchain: Self {
+        disabled("This test is incompatible with Xcode toolchains.", {
+            try await ConditionTraitContext.shared.getCore().developerPath.path.str.contains(".app/Contents/Developer")
+        })
     }
 
     /// Constructs a condition trait that causes a test to be disabled if the Foundation process spawning implementation is not using `posix_spawn_file_actions_addchdir`.
