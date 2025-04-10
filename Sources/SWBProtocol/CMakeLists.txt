@@ -48,3 +48,8 @@ set_target_properties(SWBProtocol PROPERTIES
   Swift_LANGUAGE_VERSION 6)
 target_link_libraries(SWBProtocol PUBLIC
   SWBUtil)
+
+target_include_directories(SWBProtocol PUBLIC
+  ${CMAKE_CURRENT_BINARY_DIR})
+
+set_property(GLOBAL APPEND PROPERTY SWIFTBUILD_EXPORTS SWBProtocol)

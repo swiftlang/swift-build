@@ -14,5 +14,9 @@ set_target_properties(SWBLLBuild PROPERTIES
   Swift_LANGUAGE_VERSION 6)
 target_link_libraries(SWBLLBuild PUBLIC
   SWBUtil
-  $<$<NOT:$<BOOL:${SwiftBuild_USE_LLBUILD_FRAMEWORK}>>:libllbuild>
   $<$<NOT:$<BOOL:${SwiftBuild_USE_LLBUILD_FRAMEWORK}>>:llbuildSwift>)
+
+target_include_directories(SWBLLBuild PUBLIC
+  ${CMAKE_CURRENT_BINARY_DIR})
+
+set_property(GLOBAL APPEND PROPERTY SWIFTBUILD_EXPORTS SWBLLBuild)

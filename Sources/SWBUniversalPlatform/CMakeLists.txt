@@ -48,3 +48,8 @@ target_link_libraries(SWBUniversalPlatform PUBLIC
   ArgumentParser)
 target_sources(SWBUniversalPlatform PRIVATE
   "${CMAKE_CURRENT_BINARY_DIR}/resource_bundle_accessor.swift")
+
+target_include_directories(SWBUniversalPlatform PUBLIC
+  ${CMAKE_CURRENT_BINARY_DIR})
+
+set_property(GLOBAL APPEND PROPERTY SWIFTBUILD_EXPORTS SWBUniversalPlatform)

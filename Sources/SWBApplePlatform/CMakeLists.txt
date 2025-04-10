@@ -75,3 +75,8 @@ target_link_libraries(SWBApplePlatform PUBLIC
   SWBTaskConstruction)
 target_sources(SWBApplePlatform PRIVATE
   "${CMAKE_CURRENT_BINARY_DIR}/resource_bundle_accessor.swift")
+
+target_include_directories(SWBApplePlatform PUBLIC
+  ${CMAKE_CURRENT_BINARY_DIR})
+
+set_property(GLOBAL APPEND PROPERTY SWIFTBUILD_EXPORTS SWBApplePlatform)

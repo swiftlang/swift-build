@@ -16,8 +16,15 @@ target_compile_definitions(SWBCSupport PRIVATE
   $<$<PLATFORM_ID:Windows>:_CRT_NONSTDC_NO_WARNINGS>)
 target_compile_options(SWBCSupport PRIVATE
   -fblocks)
+target_link_options(SWBCSupport PUBLIC
+    $<$<PLATFORM_ID:Darwin>:-lc++>)
 target_include_directories(SWBCSupport PUBLIC
   ${CMAKE_CURRENT_SOURCE_DIR})
 # TODO(compnerd) wire this up with `find_package`
 target_link_libraries(SWBCSupport PRIVATE
   $<$<NOT:$<PLATFORM_ID:Darwin>>:BlocksRuntime>)
+
+target_include_directories(SWBCSupport PUBLIC
+  ${CMAKE_CURRENT_BINARY_DIR})
+
+set_property(GLOBAL APPEND PROPERTY SWIFTBUILD_EXPORTS SWBCSupport)
