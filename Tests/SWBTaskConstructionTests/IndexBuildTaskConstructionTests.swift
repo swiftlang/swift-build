@@ -546,6 +546,10 @@ fileprivate struct IndexBuildTaskConstructionTests: CoreBasedTests {
             try results.checkTask(.matchTargetName("AppTarget"), .matchRuleItem("SwiftDriver Compilation Requirements")) { task in
                 task.checkRuleInfo(["SwiftDriver Compilation Requirements", "AppTarget", "normal", "x86_64", "com.apple.xcode.tools.swift.compiler"])
 
+                // Explicit modules are disabled for semantic functionality currently, make sure it is also disabled
+                // for preparation in general.
+                task.checkCommandLineDoesNotContain("-explicit-module-build")
+
                 let skipFlag = swiftFeatures.has(.experimentalSkipAllFunctionBodies) ? "-experimental-skip-all-function-bodies" : "-experimental-skip-non-inlinable-function-bodies"
                 task.checkCommandLineContains(["-module-name", "AppTarget", "-Onone", "-Xfrontend", skipFlag, "-emit-dependencies", "-emit-module", "-emit-module-path", "-emit-objc-header", "-emit-objc-header-path"])
                 if swiftFeatures.has(.experimentalAllowModuleWithCompilerErrors) {
@@ -793,8 +797,11 @@ fileprivate struct IndexBuildTaskConstructionTests: CoreBasedTests {
 
             results.checkNoTask(.matchCommandLineArgument("clang-stat-cache"))
 
-            try results.checkTask(.matchTargetName("AppTarget"), .matchRuleItem("CompileC")) { task in
+            // Explicit modules are disabled for semantic functionality currently, make sure it is also disabled
+            // for preparation in general.
+            results.checkNoTask(.matchRuleItem("ScanDependencies"))
 
+            try results.checkTask(.matchTargetName("AppTarget"), .matchRuleItem("CompileC")) { task in
                 if clangFeatures.has(.allowPcmWithCompilerErrors) {
                     task.checkCommandLineContains(["-Xclang", "-fallow-pcm-with-compiler-errors"])
                 } else {
