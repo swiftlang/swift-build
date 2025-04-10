@@ -2670,6 +2670,7 @@ public enum LinkerDriverChoice: String, Equatable, Hashable, EnumerationMacroTyp
 
     case clang
     case swiftc
+    case qcc
 }
 
 /// Enumeration macro type for the value of the `INFOPLIST_KEY_LSApplicationCategoryType` build setting.
