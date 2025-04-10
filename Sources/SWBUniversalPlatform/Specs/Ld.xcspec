@@ -501,6 +501,24 @@
                 Name = "LD_EXPORT_GLOBAL_SYMBOLS";
                 Type = Boolean;
                 DefaultValue = NO;
+            },
+            {
+                Name = "SWIFTC_LD_EXPORT_GLOBAL_SYMBOLS";
+                Type = Boolean;
+                DefaultValue = "$(LD_EXPORT_GLOBAL_SYMBOLS)";
+                Condition = "$(LINKER_DRIVER) == swiftc";
+                CommandLineArgs = {
+                    YES = (
+                        "-Xlinker", "-export_dynamic"
+                    );
+                    NO = ();
+                };
+            },
+            {
+                Name = "CLANG_LD_EXPORT_GLOBAL_SYMBOLS";
+                Type = Boolean;
+                DefaultValue = "$(LD_EXPORT_GLOBAL_SYMBOLS)";
+                Condition = "$(LINKER_DRIVER) == clang";
                 CommandLineArgs = {
                     YES = (
                         "-rdynamic",
