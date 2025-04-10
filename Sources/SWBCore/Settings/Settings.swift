@@ -3815,6 +3815,11 @@ private class SettingsBuilder {
             table.push(BuiltinMacros.EFFECTIVE_PLATFORM_NAME, literal: MacCatalystInfo.publicSDKBuiltProductsDirSuffix)
         }
 
+        table.push(BuiltinMacros.SWIFT_ENABLE_EXPLICIT_MODULES, literal: .disabled)
+        table.push(BuiltinMacros._EXPERIMENTAL_SWIFT_EXPLICIT_MODULES, literal: .disabled)
+        table.push(BuiltinMacros.CLANG_ENABLE_EXPLICIT_MODULES, literal: false)
+        table.push(BuiltinMacros._EXPERIMENTAL_CLANG_EXPLICIT_MODULES, literal: false)
+
         push(table, .exported)
     }
 
