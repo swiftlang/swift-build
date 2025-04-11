@@ -15,6 +15,7 @@ import SWBTestSupport
 import SwiftBuild
 import SWBUtil
 import Testing
+import SwiftBuildTestSupport
 
 @Suite(.skipHostOS(.windows))
 fileprivate struct BuildCommandTests {

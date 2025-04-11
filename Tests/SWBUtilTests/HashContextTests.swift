@@ -13,6 +13,7 @@
 import Foundation
 import Testing
 import SWBUtil
+import SWBTestSupport
 
 @Suite fileprivate struct HashContextTests {
     @Test

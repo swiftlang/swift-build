@@ -15,6 +15,8 @@ import Testing
 import SWBCore
 import SWBTestSupport
 import SWBUtil
+import SWBMacro
+import SWBProtocol
 
 @Suite
 fileprivate struct DsymGenerationBuildOperationTests: CoreBasedTests {

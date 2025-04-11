@@ -17,6 +17,7 @@ import SWBTestSupport
 import SWBCore
 import SWBProtocol
 import SWBUtil
+import SWBTaskExecution
 
 
 @Suite

@@ -14,6 +14,13 @@ import Foundation
 import Testing
 import SWBUtil
 import SWBTestSupport
+import SWBCore
+
+#if canImport(System)
+import System
+#else
+import SystemPackage
+#endif
 
 @Suite
 fileprivate struct PBXCpTests: CoreBasedTests {

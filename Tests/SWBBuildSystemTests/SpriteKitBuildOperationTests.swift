@@ -16,6 +16,8 @@ import SWBTestSupport
 import SWBUtil
 
 import Testing
+import SwiftBuildTestSupport
+import SWBCore
 
 @Suite
 fileprivate struct SpriteKitBuildOperationTests: CoreBasedTests {

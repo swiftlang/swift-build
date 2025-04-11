@@ -14,6 +14,7 @@ import Foundation
 import Testing
 import SWBTestSupport
 import SWBUtil
+import SWBCore
 
 @Suite(.skipHostOS(.windows, "path tests need a big overhaul for Windows"))
 fileprivate struct PathTests {

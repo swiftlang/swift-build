@@ -16,6 +16,7 @@ import SWBCore
 import SWBUtil
 import SWBTestSupport
 @_spi(Testing) import SWBCore
+import SWBProtocol
 
 /// Test of the incremental PIF loading mechanisms.
 @Suite(.serialized) fileprivate struct IncrementalPIFLoadingTests {
@@ -340,12 +341,12 @@ import SWBTestSupport
             #expect(IncrementalPIFLoader.objectsTransferred.value == 3)
 
             // Validate that the file references are consistent.
-            var knownReferences = Set<FileReference>()
-            func visit(_ ref: Reference) {
+            var knownReferences = Set<SWBCore.FileReference>()
+            func visit(_ ref: SWBCore.Reference) {
                 switch ref {
-                case let asGroup as FileGroup:
+                case let asGroup as SWBCore.FileGroup:
                     asGroup.children.forEach(visit)
-                case let asFile as FileReference:
+                case let asFile as SWBCore.FileReference:
                     knownReferences.insert(asFile)
                 default:
                     fatalError("unexpected reference: \(ref)")
@@ -354,12 +355,12 @@ import SWBTestSupport
             for project in workspace.projects {
                 knownReferences.removeAll()
                 visit(project.groupTree)
-                for case let target as BuildPhaseTarget in project.targets {
-                    for case let phase as BuildPhaseWithBuildFiles in target.buildPhases {
+                for case let target as SWBCore.BuildPhaseTarget in project.targets {
+                    for case let phase as SWBCore.BuildPhaseWithBuildFiles in target.buildPhases {
                         for buildFile in phase.buildFiles {
                             switch buildFile.buildableItem {
                             case .reference(let guid):
-                                let ref = try #require(workspace.lookupReference(for: guid) as? FileReference)
+                                let ref = try #require(workspace.lookupReference(for: guid) as? SWBCore.FileReference)
                                 #expect(knownReferences.contains(ref), "unexpected target reference: \(ref)")
                             case .targetProduct(_):
                                 continue

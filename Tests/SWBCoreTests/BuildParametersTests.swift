@@ -15,6 +15,7 @@ import Testing
 import SWBUtil
 import SWBCore
 import SWBProtocol
+import SWBTestSupport
 
 @Suite fileprivate struct BuildParametersTests {
     @Test

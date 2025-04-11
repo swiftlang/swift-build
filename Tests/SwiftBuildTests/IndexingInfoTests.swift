@@ -16,6 +16,8 @@ import SwiftBuild
 import SwiftBuildTestSupport
 import SWBTestSupport
 @_spi(Testing) import SWBUtil
+import SWBProtocol
+import SWBCore
 
 // These tests use the old model, ie. the index build arena is disabled.
 @Suite(.requireHostOS(.macOS))

@@ -19,6 +19,7 @@ import SWBProtocol
 import SWBTestSupport
 import SWBMacro
 @_spi(Testing) import SWBCore
+import Synchronization
 
 fileprivate final class TestSwiftParserDelegate: TaskOutputParserDelegate, Sendable {
     let buildOperationIdentifier: BuildSystemOperationIdentifier

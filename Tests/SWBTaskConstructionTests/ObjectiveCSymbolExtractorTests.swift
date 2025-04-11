@@ -17,6 +17,7 @@ import SWBTestSupport
 
 import SWBCore
 @_spi(Testing) import SWBTaskConstruction
+import SWBProtocol
 
 @Suite
 fileprivate struct ObjectiveCSymbolExtractorTests: CoreBasedTests {

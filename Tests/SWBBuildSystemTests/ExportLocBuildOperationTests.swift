@@ -16,6 +16,7 @@ import SWBCore
 import SWBTaskExecution
 import SWBTestSupport
 import SWBUtil
+import SWBProtocol
 
 @Suite
 fileprivate struct ExportLocBuildOperationTests: CoreBasedTests {

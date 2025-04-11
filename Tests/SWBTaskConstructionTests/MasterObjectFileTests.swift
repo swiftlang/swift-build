@@ -15,6 +15,7 @@ import SWBCore
 import SWBTestSupport
 import SWBTaskConstruction
 import SWBUtil
+import SWBProtocol
 
 @Suite
 fileprivate struct MasterObjectFileTests: CoreBasedTests {

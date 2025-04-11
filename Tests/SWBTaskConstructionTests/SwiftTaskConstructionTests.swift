@@ -18,6 +18,7 @@ import SWBTestSupport
 @_spi(Testing) import SWBUtil
 
 import SWBTaskConstruction
+import Foundation
 
 /// Task construction tests related to Swift compilation.
 @Suite

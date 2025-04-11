@@ -13,6 +13,7 @@
 import Foundation
 import SWBUtil
 import Testing
+import Synchronization
 
 @Suite fileprivate struct LazyCacheTests {
     @Test

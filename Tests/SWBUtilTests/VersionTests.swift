@@ -13,6 +13,7 @@
 import Foundation
 import Testing
 import SWBUtil
+import SWBTestSupport
 
 @Suite fileprivate struct VersionTests {
     func checkEq(_ a: Version, _ b: Version) {

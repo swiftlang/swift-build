@@ -13,6 +13,9 @@
 import Foundation
 import Testing
 import SWBCore
+import SWBProtocol
+import SWBUtil
+import SWBTestSupport
 
 @Suite fileprivate struct FileTextEncodingTests {
     @Test

@@ -16,6 +16,8 @@ import Testing
 import SWBBuildSystem
 import SWBCore
 import SWBProtocol
+import Foundation
+import SWBTaskExecution
 
 @Suite
 fileprivate struct LinkerTests: CoreBasedTests {

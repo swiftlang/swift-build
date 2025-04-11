@@ -15,6 +15,7 @@ import Testing
 import SWBCore
 import SWBTestSupport
 import SWBUtil
+import SWBProtocol
 
 /// Test suite for tests specifically examining rebuilding projects in interesting scenarios.
 @Suite

@@ -15,6 +15,7 @@ import Testing
 import SWBUtil
 import SWBCore
 import SWBTestSupport
+import SWBProtocol
 
 @Suite fileprivate struct ShellScriptEnvironmentTests: CoreBasedTests {
     @Test(.requireHostOS(.macOS))

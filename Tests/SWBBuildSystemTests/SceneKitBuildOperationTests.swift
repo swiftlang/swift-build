@@ -14,6 +14,7 @@ import Testing
 
 import SWBTestSupport
 import SWBUtil
+import SWBCore
 
 @Suite
 fileprivate struct SceneKitBuildOperationTests: CoreBasedTests {

@@ -12,6 +12,7 @@
 
 import SWBCore
 @_spi(Testing) import SWBWindowsPlatform
+import SWBUtil
 
 extension VSInstallation.Component.ID {
     static let visualCppBuildTools_x86_x64 = Self("Microsoft.VisualStudio.Component.VC.Tools.x86.x64")

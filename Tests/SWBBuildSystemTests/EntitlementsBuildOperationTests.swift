@@ -20,6 +20,7 @@ import struct SWBProtocol.TargetDependencyRelationship
 import SWBTestSupport
 import SWBTaskExecution
 import SWBUtil
+import SwiftBuildTestSupport
 
 @Suite
 fileprivate struct EntitlementsBuildOperationTests: CoreBasedTests {

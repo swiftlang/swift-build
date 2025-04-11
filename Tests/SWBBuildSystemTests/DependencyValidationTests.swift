@@ -14,6 +14,7 @@ import SWBCore
 import SWBTestSupport
 import SWBUtil
 import Testing
+import SWBProtocol
 
 @Suite
 fileprivate struct DependencyValidationTests: CoreBasedTests {

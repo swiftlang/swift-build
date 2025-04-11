@@ -16,6 +16,7 @@ import SWBCore
 import SWBTaskConstruction
 
 import SWBTestSupport
+import SWBProtocol
 
 @Suite
 fileprivate struct TaskOrderingTests: CoreBasedTests {

@@ -14,6 +14,7 @@ import Foundation
 import Testing
 import SWBTestSupport
 import SWBUtil
+import SWBMacro
 
 @_spi(Testing) import SWBCore
 

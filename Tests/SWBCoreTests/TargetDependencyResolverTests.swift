@@ -16,6 +16,7 @@ import SWBProtocol
 import SWBTestSupport
 @_spi(Testing) import SWBUtil
 import Foundation
+import SWBMacro
 
 fileprivate enum TargetPlatformSpecializationMode {
     /// The v1 support of target platform specialization that uses SDKROOT=auto and SDK_VARIANT=auto to opt-in.

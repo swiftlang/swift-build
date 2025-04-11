@@ -20,6 +20,7 @@ import SWBTestSupport
 import SWBUtil
 
 import SWBTaskConstruction
+import SWBMacro
 
 @Suite
 fileprivate struct PlatformTaskConstructionTests: CoreBasedTests {

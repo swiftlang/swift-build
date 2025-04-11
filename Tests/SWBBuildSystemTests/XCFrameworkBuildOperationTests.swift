@@ -18,6 +18,7 @@ import SWBCore
 import SWBTestSupport
 import SWBTaskExecution
 import SWBUtil
+import SWBProtocol
 
 @Suite
 fileprivate struct XCFrameworkBuildOperationTests: CoreBasedTests {

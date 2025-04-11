@@ -21,6 +21,8 @@ import SWBUtil
 
 import SWBTaskConstruction
 
+import class SWBMacro.StringMacroDeclaration
+
 @Suite
 fileprivate struct TaskConstructionTests: CoreBasedTests {
     @Test(.requireSDKs(.macOS))

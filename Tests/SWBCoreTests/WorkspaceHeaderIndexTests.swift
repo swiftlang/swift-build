@@ -14,6 +14,7 @@ import Foundation
 import Testing
 import SWBTestSupport
 @_spi(Testing) import SWBCore
+import SWBMacro
 
 @Suite fileprivate struct WorkspaceHeaderIndexTests: CoreBasedTests {
     @Test
