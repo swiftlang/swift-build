@@ -12,6 +12,7 @@
 
 public import SWBUtil
 import SWBMacro
+import Foundation
 
 public final class ProductPackagingToolSpec : GenericCommandLineToolSpec, SpecIdentifierType, @unchecked Sendable {
     public static let identifier = "com.apple.tools.product-pkg-utility"

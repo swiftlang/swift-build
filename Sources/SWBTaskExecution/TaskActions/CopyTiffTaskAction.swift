@@ -13,6 +13,7 @@
 public import SWBUtil
 import SWBLibc
 public import SWBCore
+import Foundation
 
 /// Concrete implementation of task for copying a property list file.
 public final class CopyTiffTaskAction: TaskAction {

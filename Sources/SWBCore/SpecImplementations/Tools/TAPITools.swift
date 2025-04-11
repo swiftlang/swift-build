@@ -12,6 +12,7 @@
 
 public import SWBUtil
 public import SWBMacro
+import Foundation
 
 public struct DiscoveredTAPIToolSpecInfo: DiscoveredCommandLineToolSpecInfo {
     public let toolPath: Path

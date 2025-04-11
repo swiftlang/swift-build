@@ -12,6 +12,7 @@
 
 public import SWBUtil
 public import SWBMacro
+import Foundation
 
 public final class CodesignToolSpec : CommandLineToolSpec, SpecIdentifierType, @unchecked Sendable {
     public static let identifier = "com.apple.build-tools.codesign"

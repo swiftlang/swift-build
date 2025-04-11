@@ -13,6 +13,7 @@
 public import SWBUtil
 public import SWBCore
 public import SWBLLBuild
+import Foundation
 
 /// Used only when remote caching is enabled, to manage tasks for remote key
 /// querying and compilation output downloading as dependency tasks.

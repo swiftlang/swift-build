@@ -13,6 +13,11 @@
 package import SWBCore
 import SWBProtocol
 import SWBUtil
+import Foundation
+
+#if canImport(os)
+import os
+#endif
 
 /// Manages uploading compilation caching outputs in the background, when a remote cache is enabled.
 /// The network tasks are managed using Swift concurrency, without blocking execution lanes

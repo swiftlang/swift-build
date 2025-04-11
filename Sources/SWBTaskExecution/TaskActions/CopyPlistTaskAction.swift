@@ -14,6 +14,7 @@ public import SWBCore
 import SWBLibc
 public import SWBUtil
 import SWBMacro
+import Foundation
 
 /// Concrete implementation of task for copying a property list file.
 public final class CopyPlistTaskAction: TaskAction {

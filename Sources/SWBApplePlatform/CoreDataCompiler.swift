@@ -12,6 +12,7 @@
 
 import SWBUtil
 public import SWBCore
+import SWBMacro
 
 public final class CoreDataModelCompilerSpec : GenericCompilerSpec, SpecIdentifierType, @unchecked Sendable {
     public static let identifier = "com.apple.compilers.model.coredata"

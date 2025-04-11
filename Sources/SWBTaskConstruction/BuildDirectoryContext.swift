@@ -11,6 +11,7 @@
 //===----------------------------------------------------------------------===//
 
 import SWBUtil
+import Synchronization
 
 /// Tracks the build directory creation usage across the build plan. This allows the usage information to be cached during task planning.
 final class BuildDirectoryContext: Sendable {

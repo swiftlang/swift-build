@@ -20,6 +20,7 @@ package import SWBUtil
 package import struct SWBProtocol.BuildDescriptionID
 package import struct SWBProtocol.BuildOperationTaskEnded
 import SWBMacro
+import Synchronization
 
 /// An enum describing from where the build description was retrieved, for testing purposes.
 package enum BuildDescriptionRetrievalSource {

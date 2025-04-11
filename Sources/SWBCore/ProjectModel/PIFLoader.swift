@@ -13,6 +13,7 @@
 public import SWBUtil
 public import SWBProtocol
 public import SWBMacro
+import Foundation
 
 enum PIFLoadingError: Error {
     /// Indicates a general PIF object decoding error.

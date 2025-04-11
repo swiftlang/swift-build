@@ -11,7 +11,7 @@
 //===----------------------------------------------------------------------===//
 
 public import SWBUtil
-
+import Foundation
 
 // MARK: General planning operation messages
 

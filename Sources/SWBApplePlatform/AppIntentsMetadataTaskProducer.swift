@@ -13,6 +13,7 @@
 import SWBCore
 import SWBUtil
 import SWBTaskConstruction
+import SWBMacro
 
 final class AppIntentsMetadataTaskProducer: PhasedTaskProducer, TaskProducer {
 

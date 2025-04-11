@@ -12,6 +12,7 @@
 
 import SWBUtil
 public import SWBCore
+import SWBMacro
 
 public final class ResMergerLinkerSpec : GenericLinkerSpec, SpecIdentifierType, @unchecked Sendable {
     public static let identifier = "com.apple.pbx.linkers.resmerger"

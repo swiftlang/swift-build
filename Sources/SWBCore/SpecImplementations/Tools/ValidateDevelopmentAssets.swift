@@ -12,6 +12,7 @@
 
 import SWBProtocol
 import SWBUtil
+import SWBMacro
 
 public final class ValidateDevelopmentAssets: CommandLineToolSpec, SpecImplementationType, @unchecked Sendable {
     public static let identifier = "com.apple.tools.validate-development-assets"

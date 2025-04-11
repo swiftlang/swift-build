@@ -13,6 +13,7 @@
 public import SWBCore
 import SWBLibc
 public import SWBUtil
+import Foundation
 
 public final class CreateBuildDirectoryTaskAction: TaskAction {
     public override class var toolIdentifier: String {

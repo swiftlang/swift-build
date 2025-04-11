@@ -15,6 +15,7 @@ import SWBUtil
 
 import struct Foundation.Data
 import class Foundation.PropertyListDecoder
+import SWBMacro
 
 /// The XCFrameworkTaskProducer needs to look at a various number of build phases to determine what work actually needs to be done. As part of this, the XCFramework itself needs to be inspected. The matching library within the XCFramework will be copied into the build destination root for later processing by the other build phases, such as the `SourcesBuildPhase`, to handle the linking of the library.
 final class XCFrameworkTaskProducer: StandardTaskProducer, TaskProducer {

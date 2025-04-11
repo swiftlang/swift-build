@@ -13,6 +13,7 @@
 import SWBUtil
 import SWBMacro
 import SWBCore
+import Foundation
 
 final class CopyStringsFileSpec: GenericCommandLineToolSpec, SpecIdentifierType, @unchecked Sendable {
     static let identifier = "com.apple.build-tasks.copy-strings-file"

@@ -11,6 +11,7 @@
 //===----------------------------------------------------------------------===//
 
 public import SWBUtil
+import SWBMacro
 
 public final class ConcatenateToolSpec : CommandLineToolSpec, SpecImplementationType, @unchecked Sendable {
     public static let identifier = "com.apple.build-tools.concatenate"

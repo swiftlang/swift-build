@@ -12,6 +12,7 @@
 
 public import SWBUtil
 public import SWBMacro
+import Foundation
 
 
 /// Abstract C Compiler.  This is not a concrete implementation, but rather it uses various information in the command build context to choose a specific compiler and to call `constructTasks()` on that compiler.  This provides a level of indirection for projects that just want their source files compiled using the default C compiler.  Depending on the context, the default C compiler for any particular combination of platform, architecture, and other factors may be Clang, ICC, GCC, or some other compiler.

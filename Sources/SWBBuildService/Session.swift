@@ -17,6 +17,7 @@ public import SWBServiceCore
 package import SWBTaskExecution
 import SWBUtil
 import struct Foundation.UUID
+import Synchronization
 
 enum SessionError: Error {
     case noSettings(String)

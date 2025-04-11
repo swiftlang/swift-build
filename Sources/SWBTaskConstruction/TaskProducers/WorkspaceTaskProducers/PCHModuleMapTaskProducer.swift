@@ -12,6 +12,8 @@
 
 import SWBCore
 import SWBUtil
+import Foundation
+import SWBMacro
 
 final class PCHModuleMapTaskProducer: StandardTaskProducer, TaskProducer {
 

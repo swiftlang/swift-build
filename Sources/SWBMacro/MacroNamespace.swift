@@ -11,6 +11,7 @@
 //===----------------------------------------------------------------------===//
 
 public import SWBUtil
+import Synchronization
 
 /// A namespace represents a set of named macro declarations and (in the future) a set of named macro conditions.  MacroNamespace is the starting point for many of the APIs of the macro evaluation subsystem: declaring macros and conditions, parsing macro expressions as strings or string lists, etc.  A namespace can reference an underlying namespace — this can be used to share, for example, built-in macro declarations among various projects, while still allowing each project to declare custom macros that don’t interfere with each other.
 ///

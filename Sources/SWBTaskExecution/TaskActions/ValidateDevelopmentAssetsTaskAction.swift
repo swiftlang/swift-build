@@ -12,6 +12,7 @@
 
 public import SWBCore
 import SWBUtil
+import SWBMacro
 
 public final class ValidateDevelopmentAssetsTaskAction: TaskAction {
     public override class var toolIdentifier: String {

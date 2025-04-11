@@ -17,6 +17,7 @@ import struct Foundation.CharacterSet
 import struct Foundation.Date
 import class Foundation.DateFormatter
 import typealias Foundation.TimeInterval
+import SWBMacro
 
 public final class ODRAssetPackManifestTaskAction: TaskAction {
     public override class var toolIdentifier: String {

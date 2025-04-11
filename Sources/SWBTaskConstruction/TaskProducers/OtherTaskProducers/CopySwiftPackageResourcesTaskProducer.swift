@@ -12,6 +12,7 @@
 
 import SWBCore
 import SWBUtil
+import SWBMacro
 
 /// Task producer for embedding the Swift package resource bundles into an app or framework.
 final class CopySwiftPackageResourcesTaskProducer: PhasedTaskProducer, TaskProducer {

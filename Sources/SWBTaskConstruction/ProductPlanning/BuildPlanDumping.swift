@@ -12,6 +12,8 @@
 
 package import SWBUtil
 import SWBCore
+import SWBMacro
+import Foundation
 
 /// Ability to dump the contents of a build plan for diagnostic purposes.
 package extension BuildPlan {

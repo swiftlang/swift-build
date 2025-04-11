@@ -14,6 +14,7 @@ import SWBUtil
 import SWBLibc
 public import SWBCore
 public import enum SWBLLBuild.BuildValueKind
+import Foundation
 
 public final class ClangScanTaskAction: TaskAction, BuildValueValidatingTaskAction {
     public override class var toolIdentifier: String {

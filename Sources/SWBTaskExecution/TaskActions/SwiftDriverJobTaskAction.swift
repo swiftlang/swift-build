@@ -15,6 +15,7 @@ import Foundation
 public import SWBCore
 public import SWBUtil
 public import SWBLLBuild
+import SWBProtocol
 
 public final class SwiftDriverJobTaskAction: TaskAction, BuildValueValidatingTaskAction {
     public override class var toolIdentifier: String {

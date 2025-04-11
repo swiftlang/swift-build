@@ -14,6 +14,8 @@ import SWBCore
 import SWBUtil
 import class SWBCore.DocumentationCompilerSpec
 import SWBMacro
+import SWBProtocol
+import Foundation
 
 /// A task producer that constructs TAPI Symbol Extraction tasks.
 ///
@@ -181,7 +183,7 @@ final class TAPISymbolExtractorTaskProducer: PhasedTaskProducer, TaskProducer {
         var headerList: [TAPIFileList.HeaderInfo] = { [headerBuildFiles = documentationHeaderInfo.headerBuildFiles] in
             let buildFilesContext = BuildFilesProcessingContext(scope)
 
-            func computeProductHeader(for fileRef: FileReference, isFramework: Bool, visibility: TAPIFileList.HeaderVisibility, inputNodes: inout [any PlannedNode]) -> TAPIFileList.HeaderInfo? {
+            func computeProductHeader(for fileRef: SWBCore.FileReference, isFramework: Bool, visibility: TAPIFileList.HeaderVisibility, inputNodes: inout [any PlannedNode]) -> TAPIFileList.HeaderInfo? {
                 // The JSON file should have the product headers, not the source headers, so we need to compute the output path.
                 // FIXME: We should be able to get this info from - or at least share it with - the HeadersTaskProducer.
                 let path = producer.context.settings.filePathResolver.resolveAbsolutePath(fileRef)

@@ -11,6 +11,8 @@
 //===----------------------------------------------------------------------===//
 
 public import SWBUtil
+import SWBMacro
+import Foundation
 
 public final class InfoPlistToolSpec : GenericCommandLineToolSpec, SpecIdentifierType, @unchecked Sendable {
     public static let identifier = "com.apple.tools.info-plist-utility"

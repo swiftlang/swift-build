@@ -13,6 +13,8 @@
 package import SWBUtil
 package import SWBCore
 import SWBMacro
+import SWBProtocol
+import Foundation
 
 /// The `GlobalProductPlanDelegate` is a subset of the more ubiquitous `TaskPlanningDelegate` which provides functionality only needed by a `GlobalProductPlan`, even if it exists outside the context of a build.
 package protocol GlobalProductPlanDelegate: CoreClientTargetDiagnosticProducingDelegate {
@@ -38,7 +40,7 @@ package final class GlobalProductPlan: GlobalTargetInfoProvider
     ///
     /// The array of imparted build properties is ordered so that direct dependencies come first, followed by their direct
     /// transitive dependencies and so forth.
-    private var impartedBuildPropertiesByTarget: [ConfiguredTarget: [ImpartedBuildProperties]]
+    private var impartedBuildPropertiesByTarget: [ConfiguredTarget: [SWBCore.ImpartedBuildProperties]]
 
     /// The set of shared intermediate nodes that have been created, keyed by their sharing identifier.
     ///
@@ -48,7 +50,7 @@ package final class GlobalProductPlan: GlobalTargetInfoProvider
     let delegate: any GlobalProductPlanDelegate
 
     struct VFSContentsKey: Hashable {
-        let project: Project
+        let project: SWBCore.Project
         let effectivePlatformName: String
     }
 
@@ -118,15 +120,15 @@ package final class GlobalProductPlan: GlobalTargetInfoProvider
     }
 
     /// The mapping of original targets to dynamically building targets because of diamond-style linkage.
-    private var dynamicallyBuildingTargetsWithDiamondLinkage = [Target:Target]()
+    private var dynamicallyBuildingTargetsWithDiamondLinkage = [SWBCore.Target: SWBCore.Target]()
 
     /// Reverse mapping which allows looking up the corresponding dynamically building target for a static one.
-    private var staticallyBuildingTargetsWithDiamondLinkage = [Target:Target]()
+    private var staticallyBuildingTargetsWithDiamondLinkage = [SWBCore.Target: SWBCore.Target]()
 
     /// All targets in the product plan which are building dynamically because of diamond-style linkage or because of the client's build request.
     ///
     /// Note: currently this will only be package product targets.
-    package var dynamicallyBuildingTargets: Set<Target> {
+    package var dynamicallyBuildingTargets: Set<SWBCore.Target> {
         return Set(planRequest.buildGraph.dynamicallyBuildingTargets + Array(dynamicallyBuildingTargetsWithDiamondLinkage.keys))
     }
 
@@ -213,7 +215,7 @@ package final class GlobalProductPlan: GlobalTargetInfoProvider
         self.clientsOfBundlesByTarget = clientsOfBundlesByTarget
 
         var directlyLinkedDependenciesByTarget = [ConfiguredTarget:OrderedSet<LinkedDependency>]()
-        var impartedBuildPropertiesByTarget = [ConfiguredTarget:[ImpartedBuildProperties]]()
+        var impartedBuildPropertiesByTarget = [ConfiguredTarget:[SWBCore.ImpartedBuildProperties]]()
 
         // We can skip computing contributing properties entirely if no target declares any and if there are no package products in the graph.
         let targetsContributingProperties = planRequest.buildGraph.allTargets.filter { !$0.target.hasImpartedBuildProperties || $0.target.type == .packageProduct }
@@ -303,7 +305,7 @@ package final class GlobalProductPlan: GlobalTargetInfoProvider
             }
 
             // Record the target's products using both TARGET_BUILD_DIR and BUILT_PRODUCTS_DIR.
-            if let standardTarget = configuredTarget.target as? StandardTarget {
+            if let standardTarget = configuredTarget.target as? SWBCore.StandardTarget {
                 productPathsToProducingTargets[settings.globalScope.evaluate(BuiltinMacros.TARGET_BUILD_DIR).join(standardTarget.productReference.name).normalize()] = configuredTarget
                 productPathsToProducingTargets[settings.globalScope.evaluate(BuiltinMacros.BUILT_PRODUCTS_DIR).join(standardTarget.productReference.name).normalize()] = configuredTarget
             }
@@ -465,7 +467,7 @@ package final class GlobalProductPlan: GlobalTargetInfoProvider
                 targetsByCommandLineToolProductPath[executablePath] = configuredTarget
             }
 
-            for scriptPhase in (configuredTarget.target as? BuildPhaseTarget)?.buildPhases.compactMap({ $0 as? ShellScriptBuildPhase }) ?? [] {
+            for scriptPhase in (configuredTarget.target as? SWBCore.BuildPhaseTarget)?.buildPhases.compactMap({ $0 as? SWBCore.ShellScriptBuildPhase }) ?? [] {
                 for scriptPhaseInput in scriptPhase.inputFilePaths.map({ Path(targetSettings.globalScope.evaluate($0)).normalize() }) {
                     if let producingTarget = targetsByCommandLineToolProductPath[scriptPhaseInput] {
                         targetsRequiredToBuildForIndexing.insert(producingTarget)
@@ -699,7 +701,7 @@ package final class GlobalProductPlan: GlobalTargetInfoProvider
                 continue
             }
 
-            var packageTargetsToSkip = [Target]()
+            var packageTargetsToSkip = [SWBCore.Target]()
 
             // Find all statically linked package products.
             let linkedPackageProducts = dependencies.filter {
@@ -785,7 +787,7 @@ package final class GlobalProductPlan: GlobalTargetInfoProvider
             // If we have already emitted an error about a package product, don't emit an error about its targets.
             var packageTargetsToIgnore = [ConfiguredTarget]()
 
-            let updateConfiguration = { (configuredTarget: ConfiguredTarget, dynamicTarget: Target) in
+            let updateConfiguration = { (configuredTarget: ConfiguredTarget, dynamicTarget: SWBCore.Target) in
                 // If the `targetTaskInfo` for the static target isn't present, we already made the decision to make this target dynamic.
                 if self.targetTaskInfos[configuredTarget] == nil { return }
 
@@ -822,7 +824,7 @@ package final class GlobalProductPlan: GlobalTargetInfoProvider
                     packageTargetsToIgnore.append(contentsOf: dependenciesByTarget[product]?.map { $0.target } ?? [])
 
                     let workspaceContext = self.planRequest.workspaceContext
-                    if let packageProductTarget = product.target as? PackageProductTarget, let guid = packageProductTarget.dynamicTargetVariantGuid, let dynamicTarget = workspaceContext.workspace.target(for: guid) {
+                    if let packageProductTarget = product.target as? SWBCore.PackageProductTarget, let guid = packageProductTarget.dynamicTargetVariantGuid, let dynamicTarget = workspaceContext.workspace.target(for: guid) {
                         updateConfiguration(product, dynamicTarget)
                         self.dynamicallyBuildingTargetsWithDiamondLinkage[packageProductTarget] = dynamicTarget
                     } else {
@@ -839,7 +841,7 @@ package final class GlobalProductPlan: GlobalTargetInfoProvider
                     let name = "target '\(target.target.name)'"
                     if let andOther = checkLinkage(for: name, topLevelTargets: topLevelTargets, kind: .target) {
                         let workspaceContext = self.planRequest.workspaceContext
-                        if let standardTarget = target.target as? StandardTarget, let guid = standardTarget.dynamicTargetVariantGuid, let dynamicTarget = workspaceContext.workspace.target(for: guid) {
+                        if let standardTarget = target.target as? SWBCore.StandardTarget, let guid = standardTarget.dynamicTargetVariantGuid, let dynamicTarget = workspaceContext.workspace.target(for: guid) {
                             updateConfiguration(target, dynamicTarget)
                             self.dynamicallyBuildingTargetsWithDiamondLinkage[standardTarget] = dynamicTarget
                         } else {
@@ -874,7 +876,7 @@ package final class GlobalProductPlan: GlobalTargetInfoProvider
     /// Get the settings to use for an unconfigured target.
     ///
     /// This method is intended for use when querying cross-target information where the configuration parameters are not known. In this case, we will use the "best" configured target that we know of, ideally one for the current build. If no configured target is available, we will use one that is configured "as if" the target was building.
-    func getUnconfiguredTargetSettings(_ target: Target, viewedFrom: ConfiguredTarget) -> Settings {
+    func getUnconfiguredTargetSettings(_ target: SWBCore.Target, viewedFrom: ConfiguredTarget) -> Settings {
         // FIXME: Find the "best" configured target.
         //
         // FIXME: Make efficient.
@@ -951,7 +953,7 @@ package final class GlobalProductPlan: GlobalTargetInfoProvider
     /// Construct the module info, if used, for a target.
     //
     // FIXME: We should just merge the ModuleInfo with the ProductPlan: <rdar://problem/24843930> [Swift Build] Merge ModuleInfo with ProductPlan
-    static func computeModuleInfo(workspaceContext: WorkspaceContext, target: Target, settings: Settings, diagnosticHandler: (_ message: String, _ location: Diagnostic.Location, _ component: Component, _ essential: Bool) -> Void) -> ModuleInfo? {
+    static func computeModuleInfo(workspaceContext: WorkspaceContext, target: SWBCore.Target, settings: Settings, diagnosticHandler: (_ message: String, _ location: Diagnostic.Location, _ component: Component, _ essential: Bool) -> Void) -> ModuleInfo? {
         let scope = settings.globalScope
 
         // If this product type doesn't support modules, do nothing.
@@ -977,7 +979,7 @@ package final class GlobalProductPlan: GlobalTargetInfoProvider
 
         // Determine if the target includes Swift, which might contribute to the module definition.
         let specLookupContext = SpecLookupCtxt(specRegistry: workspaceContext.core.specRegistry, platform: settings.platform)
-        let buildingAnySwiftSourceFiles = (target as? BuildPhaseTarget)?.sourcesBuildPhase?.containsSwiftSources(workspaceContext.workspace, specLookupContext, scope, settings.filePathResolver) ?? false
+        let buildingAnySwiftSourceFiles = (target as? SWBCore.BuildPhaseTarget)?.sourcesBuildPhase?.containsSwiftSources(workspaceContext.workspace, specLookupContext, scope, settings.filePathResolver) ?? false
 
         // Determine if the target exports its Swift ObjC API.
         let exportsSwiftObjCAPI = buildingAnySwiftSourceFiles && scope.evaluate(BuiltinMacros.SWIFT_INSTALL_OBJC_HEADER) && !scope.evaluate(BuiltinMacros.SWIFT_OBJC_INTERFACE_HEADER_NAME).isEmpty
@@ -1080,7 +1082,7 @@ package final class GlobalProductPlan: GlobalTargetInfoProvider
     }
 
     /// Determine if `configuredTarget` will generate a module map, and which umbrella header to use.
-    private static func generatesModuleMap(workspaceContext: WorkspaceContext, target: Target, settings: Settings) -> (Bool, String) {
+    private static func generatesModuleMap(workspaceContext: WorkspaceContext, target: SWBCore.Target, settings: Settings) -> (Bool, String) {
         let scope = settings.globalScope
 
         // A target generates a module map if DEFINES_MODULE is true, and it has an explicit module map (or contents), or it has an umbrella header.
@@ -1092,7 +1094,7 @@ package final class GlobalProductPlan: GlobalTargetInfoProvider
         if !scope.evaluate(BuiltinMacros.MODULEMAP_FILE).isEmpty { return (true, "") }
 
         // Look for an umbrella header to use in a generated module map.
-        if let buildPhaseTarget = target as? BuildPhaseTarget, let headersBuildPhase = buildPhaseTarget.headersBuildPhase {
+        if let buildPhaseTarget = target as? SWBCore.BuildPhaseTarget, let headersBuildPhase = buildPhaseTarget.headersBuildPhase {
             let workspace = workspaceContext.workspace
             let headerFileTypes = workspaceContext.core.specRegistry.headerFileTypes
             let moduleName = scope.evaluate(BuiltinMacros.PRODUCT_MODULE_NAME)
@@ -1246,7 +1248,7 @@ package final class ProductPlan
 }
 
 private extension ConfiguredTarget {
-    func getImpartedBuildProperties(using planRequest: BuildPlanRequest) -> ImpartedBuildProperties? {
+    func getImpartedBuildProperties(using planRequest: BuildPlanRequest) -> SWBCore.ImpartedBuildProperties? {
         let settings = planRequest.buildRequestContext.getCachedSettings(self.parameters, target: self.target)
         let defaultConfigurationName = planRequest.workspaceContext.workspace.project(for: self.target).defaultConfigurationName
         let buildConfiguration = self.target.getEffectiveConfiguration(settings.globalScope.evaluate(BuiltinMacros.CONFIGURATION), defaultConfigurationName: defaultConfigurationName)

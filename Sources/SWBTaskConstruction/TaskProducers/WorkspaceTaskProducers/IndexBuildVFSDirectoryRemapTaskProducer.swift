@@ -12,6 +12,7 @@
 
 import SWBCore
 import SWBUtil
+import SWBMacro
 
 final class IndexBuildVFSDirectoryRemapTaskProducer: StandardTaskProducer, TaskProducer {
 

@@ -13,6 +13,7 @@
 public import SWBUtil
 import SWBLibc
 public import SWBCore
+import Foundation
 
 public final class AuxiliaryFileTaskAction: TaskAction {
     public override class var toolIdentifier: String {

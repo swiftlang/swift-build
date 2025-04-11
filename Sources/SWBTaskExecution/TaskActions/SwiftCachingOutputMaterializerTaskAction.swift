@@ -12,6 +12,7 @@
 
 public import SWBUtil
 public import SWBCore
+import Foundation
 
 /// Used only when remote caching is enabled for downloading a compilation output,
 /// using its ID, into the local CAS.

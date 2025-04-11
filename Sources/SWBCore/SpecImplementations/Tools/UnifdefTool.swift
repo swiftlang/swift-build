@@ -11,6 +11,7 @@
 //===----------------------------------------------------------------------===//
 
 public import SWBUtil
+import SWBMacro
 
 public final class UnifdefToolSpec : CommandLineToolSpec, SpecIdentifierType, @unchecked Sendable {
     public static let identifier = "public.build-task.unifdef"

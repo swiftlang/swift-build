@@ -11,6 +11,7 @@
 //===----------------------------------------------------------------------===//
 
 public import SWBUtil
+import SWBProtocol
 
 public final class ConfiguredTarget: Hashable, CustomStringConvertible, Serializable, Comparable, Sendable, Encodable {
     /// The build parameters to use for this target.

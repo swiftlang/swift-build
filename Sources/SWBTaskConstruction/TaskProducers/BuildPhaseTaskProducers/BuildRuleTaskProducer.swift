@@ -13,14 +13,15 @@
 import SWBUtil
 import SWBCore
 import SWBMacro
+import SWBProtocol
 
 final class BuildRuleTaskProducer: StandardTaskProducer, TaskProducer, ShellBasedTaskProducer {
     private unowned let action: BuildRuleScriptAction
     private let cbc: CommandBuildContext
     private unowned let delegate: any TaskGenerationDelegate
-    private unowned let buildPhase: BuildPhase
+    private unowned let buildPhase: SWBCore.BuildPhase
 
-    init(_ context: TaskProducerContext, action: BuildRuleScriptAction, cbc: CommandBuildContext, delegate: any TaskGenerationDelegate, buildPhase: BuildPhase) {
+    init(_ context: TaskProducerContext, action: BuildRuleScriptAction, cbc: CommandBuildContext, delegate: any TaskGenerationDelegate, buildPhase: SWBCore.BuildPhase) {
         self.action = action
         self.cbc = cbc
         self.delegate = delegate
@@ -122,7 +123,7 @@ final class BuildRuleTaskProducer: StandardTaskProducer, TaskProducer, ShellBase
         // If we are in a headers build phase, expose visibility and output dir
         // information to the script and set the HEADER_OUTPUT_DIR macro value
         // for output path resolution.
-        if buildPhase is HeadersBuildPhase {
+        if buildPhase is SWBCore.HeadersBuildPhase {
             if let headerVisibility = input.headerVisibility, let outputDir = TargetHeaderInfo.outputPath(for: input.absolutePath, visibility: headerVisibility, scope: cbc.scope)?.dirname {
                 environment["SCRIPT_HEADER_VISIBILITY"] = headerVisibility.rawValue
                 inputVariables[BuiltinMacros.HEADER_OUTPUT_DIR] = outputDir.str

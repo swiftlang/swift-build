@@ -12,6 +12,7 @@
 
 import SWBUtil
 public import SWBCore
+import SWBMacro
 
 public final class InstrumentsPackageBuilderSpec: GenericCompilerSpec, SpecIdentifierType, @unchecked Sendable {
     public static let identifier = "com.apple.compilers.instruments-package-builder"

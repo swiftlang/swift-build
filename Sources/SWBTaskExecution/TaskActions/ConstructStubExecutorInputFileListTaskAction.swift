@@ -14,6 +14,7 @@ public import SWBCore
 import SWBLibc
 import SWBUtil
 public import SWBLLBuild
+import Foundation
 
 /// rdar://125894897 (🚨 fetchOperationServiceEndpoint seems completely broken for app extensions implemented in Swift (SwiftUI: Swift entry point data not found.))
 ///

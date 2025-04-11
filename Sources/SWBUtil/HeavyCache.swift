@@ -10,6 +10,10 @@
 //
 //===----------------------------------------------------------------------===//
 
+#if canImport(os)
+import os
+#endif
+
 /// Base protocol used for global operations over generic type.
 private protocol _HeavyCacheBase: AnyObject {
     /// Clear the cache.

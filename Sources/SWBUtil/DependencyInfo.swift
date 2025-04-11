@@ -11,6 +11,7 @@
 //===----------------------------------------------------------------------===//
 
 import SWBLibc
+import Foundation
 
 public enum DependencyInfoEncodingError: Error {
     case emptyString

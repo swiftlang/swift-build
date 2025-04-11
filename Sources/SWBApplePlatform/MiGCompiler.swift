@@ -13,6 +13,7 @@
 public import SWBUtil
 public import SWBCore
 public import SWBMacro
+import SWBProtocol
 
 public struct DiscoveredMiGToolSpecInfo: DiscoveredCommandLineToolSpecInfo {
     public let toolPath: Path

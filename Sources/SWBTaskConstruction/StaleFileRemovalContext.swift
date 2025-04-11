@@ -12,6 +12,8 @@
 
 package import SWBCore
 import SWBUtil
+import SWBMacro
+import SWBProtocol
 
 /// Context of immutable data used to compute stale file removal identifiers for configured targets.
 package protocol StaleFileRemovalContext {

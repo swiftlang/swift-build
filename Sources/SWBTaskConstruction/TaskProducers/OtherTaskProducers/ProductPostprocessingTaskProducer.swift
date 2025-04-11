@@ -13,6 +13,8 @@
 import SWBCore
 import SWBUtil
 import SWBMacro
+import SWBProtocol
+import Foundation
 
 /// Returns an array of build variant-macro evaluation scope pairs for the given scope for a list of build variants.
 /// - parameter scope: The base scope for which to return the varianted subscopes.
@@ -770,7 +772,7 @@ private extension ProductTypeSpec {
         struct FilteringContext: PathResolvingBuildFileFilteringContext {
             let excludedSourceFileNames: [String]
             let includedSourceFileNames: [String]
-            let currentPlatformFilter: PlatformFilter?
+            let currentPlatformFilter: SWBCore.PlatformFilter?
             let filePathResolver: FilePathResolver
         }
         let filteringContext = FilteringContext(

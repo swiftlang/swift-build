@@ -10,6 +10,8 @@
 //
 //===----------------------------------------------------------------------===//
 
+import Foundation
+
 extension Int {
     // FIXME: Figure out what the best API for this is. Having a more explicit (non-format string based) API is easier to make efficient, but it ends up taking so many arguments just to get the same flexibility.
     public func toString(format: String = "%d") -> String {

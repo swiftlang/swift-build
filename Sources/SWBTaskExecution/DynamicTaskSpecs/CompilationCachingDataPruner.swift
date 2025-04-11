@@ -14,6 +14,7 @@ package import SWBCore
 import SWBProtocol
 package import SWBUtil
 package import SWBCAS
+import Foundation
 
 package struct ClangCachingPruneDataTaskKey: Hashable, Serializable, CustomDebugStringConvertible, Sendable {
     let path: Path

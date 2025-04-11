@@ -11,6 +11,7 @@
 //===----------------------------------------------------------------------===//
 
 public import SWBUtil
+import SWBMacro
 
 /// Protocol to support getting resolved information about a `BuildFile` within a `ConfiguredTarget`.
 public protocol BuildFileResolution: SpecLookupContext {

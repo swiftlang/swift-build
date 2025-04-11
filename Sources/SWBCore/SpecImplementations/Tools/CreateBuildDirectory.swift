@@ -11,6 +11,7 @@
 //===----------------------------------------------------------------------===//
 
 import SWBUtil
+import SWBMacro
 
 public final class CreateBuildDirectorySpec: CommandLineToolSpec, SpecImplementationType, @unchecked Sendable {
     public static let identifier = "com.apple.tools.create-build-directory"

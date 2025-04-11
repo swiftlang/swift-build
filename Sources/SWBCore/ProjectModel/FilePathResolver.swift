@@ -12,7 +12,7 @@
 
 public import SWBUtil
 public import SWBMacro
-
+import SWBProtocol
 
 /// A FilePathResolver is used to resolve the absolute paths for Reference objects.
 public final class FilePathResolver: Sendable

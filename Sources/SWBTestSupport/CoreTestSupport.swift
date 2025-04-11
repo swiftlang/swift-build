@@ -15,6 +15,7 @@ private import Foundation
 package import SWBUtil
 import SWBTaskConstruction
 import SWBTaskExecution
+import SWBServiceCore
 
 #if USE_STATIC_PLUGIN_INITIALIZATION
 private import SWBAndroidPlatform

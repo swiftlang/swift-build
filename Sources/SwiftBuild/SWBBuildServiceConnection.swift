@@ -16,6 +16,12 @@ import SWBUtil
 
 public import Foundation
 
+#if canImport(System)
+import System
+#else
+import SystemPackage
+#endif
+
 typealias swb_build_service_connection_message_handler_t = @Sendable (UInt64, SWBDispatchData) -> Void
 
 /// Represents and manages a connection to an Swift Build service subprocess.  Clients do not normally talk directly to the connection; instead, they almost always go through a SWBBuildService object, which provides higher-level operations.  The connection doesn’t know about the service-specific semantics, but instead provides general machinery for sending synchronous and asynchronous messages over one or more muxed communication “channels”, and for controlling the subprocess.

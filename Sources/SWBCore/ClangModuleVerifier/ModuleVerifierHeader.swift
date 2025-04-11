@@ -11,6 +11,7 @@
 //===----------------------------------------------------------------------===//
 
 public import SWBUtil
+import Foundation
 
 enum HeaderKind: String {
     case publicHeader = "public"

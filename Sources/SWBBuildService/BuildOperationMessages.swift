@@ -21,6 +21,7 @@ import SWBTaskConstruction
 import SWBTaskExecution
 package import SWBUtil
 import SWBMacro
+import Synchronization
 
 // FIXME: Workaround: <rdar://problem/26249252> Unable to prefer my own type over NS renamed types
 import class SWBTaskExecution.Task

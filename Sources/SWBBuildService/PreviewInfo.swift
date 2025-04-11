@@ -15,6 +15,7 @@ package import SWBCore
 import SWBTaskConstruction
 package import SWBTaskExecution
 package import SWBUtil
+import SWBMacro
 
 enum PreviewInfoErrors: Error {
     case noBuildDescription(any Error)
