@@ -123,16 +123,6 @@
                 IsInputDependency = Yes;
             },
             {
-                Name = "LD_EXPORT_GLOBAL_SYMBOLS";
-                Type = Boolean;
-                DefaultValue = NO;
-                CommandLineArgs = {
-                    YES = ("-Xlinker", "--export-dynamic");
-                    NO = ();
-                };
-                Condition = "$(MACH_O_TYPE) == mh_dylib";
-            },
-            {
                 Name = "CLANG__INPUT_FILE_LIST_PATH__";
                 Type = Path;
                 Condition = "NO"; // wasm-ld does not support -filelist
