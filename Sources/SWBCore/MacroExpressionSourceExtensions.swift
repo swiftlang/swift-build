@@ -12,6 +12,7 @@
 
 public import SWBMacro
 public import SWBProtocol
+import SWBUtil
 
 extension MacroNamespace {
     /// Parses `strings` as a macro expression string list, returning a MacroExpression object to represent it.  The returned macro expression contains a copy of the input string and a compiled representation that can be used to evaluate the expression in a particular context.  The diagnostics handler is invoked once for every issue found during the parsing.  Even in the presence of errors, this method always returns an expression that’s as parsed as possible.

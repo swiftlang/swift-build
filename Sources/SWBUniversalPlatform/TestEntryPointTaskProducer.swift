@@ -12,6 +12,7 @@
 
 import SWBCore
 import SWBTaskConstruction
+import SWBMacro
 
 class TestEntryPointTaskProducer: PhasedTaskProducer, TaskProducer {
     func generateTasks() async -> [any PlannedTask] {

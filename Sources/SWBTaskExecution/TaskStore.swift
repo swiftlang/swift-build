@@ -12,6 +12,7 @@
 
 package import SWBCore
 package import SWBUtil
+import Synchronization
 
 package final class TaskStore {
     package enum Error: Swift.Error {

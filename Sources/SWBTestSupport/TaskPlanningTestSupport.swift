@@ -18,6 +18,8 @@ import SWBTaskExecution
 package import SWBUtil
 import Testing
 package import SWBMacro
+import Foundation
+import Synchronization
 
 extension PlannedTask {
     package var dependencyData: DependencyDataStyle? {

@@ -12,6 +12,7 @@
 
 import SWBUtil
 import SWBCore
+import SWBMacro
 
 final class LexCompilerSpec : CompilerSpec, SpecIdentifierType, @unchecked Sendable {
     static let identifier = "com.apple.compilers.lex"

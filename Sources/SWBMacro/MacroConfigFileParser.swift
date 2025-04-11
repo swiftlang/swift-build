@@ -11,6 +11,7 @@
 //===----------------------------------------------------------------------===//
 
 public import SWBUtil
+import Foundation
 
 private extension UInt8 {
     var isASCIISpace: Bool {

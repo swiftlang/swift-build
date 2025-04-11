@@ -12,6 +12,7 @@
 
 import SWBCore
 import SWBUtil
+import SWBMacro
 
 @PluginExtensionSystemActor private func taskProducerExtensions(_ workspaceContext: WorkspaceContext) -> [any TaskProducerExtension] {
     let extensions = workspaceContext.core.pluginManager.extensions(of: TaskProducerExtensionPoint.self)

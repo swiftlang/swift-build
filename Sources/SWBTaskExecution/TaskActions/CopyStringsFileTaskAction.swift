@@ -15,6 +15,7 @@ import Foundation
 public import SWBCore
 import SWBLibc
 public import SWBUtil
+import SWBProtocol
 
 /// Concrete implementation of task for copying a strings file.
 public final class CopyStringsFileTaskAction: TaskAction {

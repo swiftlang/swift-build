@@ -13,12 +13,14 @@
 import SWBCore
 import SWBUtil
 import SWBMacro
+import SWBProtocol
+import Foundation
 
 /// Produces tasks for files in a Copy Files build phase in an Xcode target.
 ///
 /// Also subclassed by ``SwiftPackageCopyFilesTaskProducer``.
 class CopyFilesTaskProducer: FilesBasedBuildPhaseTaskProducerBase, FilesBasedBuildPhaseTaskProducer {
-    typealias ManagedBuildPhase = CopyFilesBuildPhase
+    typealias ManagedBuildPhase = SWBCore.CopyFilesBuildPhase
 
     func prepare() {
         let scope = context.settings.globalScope
@@ -324,7 +326,7 @@ class CopyFilesTaskProducer: FilesBasedBuildPhaseTaskProducerBase, FilesBasedBui
                             for cTarget in [configuredTarget] + context.globalProductPlan.dependencies(of: configuredTarget) {
                                 // FIXME: Perhaps knowing "does this target link this XCFramework" is something that the GlobalProductPlan or XCFrameworkContext should know.
                                 var didFindBuildFile = false
-                                if let frameworksBuildPhase = (cTarget.target as? BuildPhaseTarget)?.frameworksBuildPhase {
+                                if let frameworksBuildPhase = (cTarget.target as? SWBCore.BuildPhaseTarget)?.frameworksBuildPhase {
                                     for linkedBuildFile in frameworksBuildPhase.buildFiles {
                                         // FIXME: This is sketchy: It's using the current context to evaluate a build file in potentially a different target. This might rarely matter since this code only applies to XCFrameworks, but it feels wrong.
                                         if let resolvedLinkedBuildFile = try? context.resolveBuildFileReference(linkedBuildFile), resolvedLinkedBuildFile.fileType.identifier == "wrapper.xcframework", resolvedBuildFile.absolutePath == resolvedLinkedBuildFile.absolutePath {

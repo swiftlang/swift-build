@@ -13,6 +13,7 @@
 import SWBCore
 import SWBUtil
 import SWBMacro
+import Foundation
 
 /// This task producer is responsible for creating tasks which result in the Info.plist file being produced in its final form and location.
 ///

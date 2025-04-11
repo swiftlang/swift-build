@@ -12,6 +12,7 @@
 
 import Foundation
 import SWBMacro
+import SWBUtil
 
 /// Decodable representation of a .xcbuildrules file's on-disk format.
 struct BuildRuleFile: Codable {

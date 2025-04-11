@@ -10,6 +10,8 @@
 //
 //===----------------------------------------------------------------------===//
 
+import SWBUtil
+
 public final class MkdirToolSpec : CommandLineToolSpec, SpecIdentifierType, @unchecked Sendable {
     public static let identifier = "com.apple.tools.mkdir"
 

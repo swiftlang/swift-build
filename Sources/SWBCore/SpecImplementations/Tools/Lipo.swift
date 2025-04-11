@@ -12,6 +12,7 @@
 
 import SWBProtocol
 import SWBUtil
+import SWBMacro
 
 public final class LipoToolSpec: GenericCommandLineToolSpec, SpecIdentifierType, @unchecked Sendable {
 

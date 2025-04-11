@@ -11,6 +11,7 @@
 //===----------------------------------------------------------------------===//
 
 public import SWBMacro
+import Synchronization
 
 /// The builtin macro declarations for things which are used directly by the build system.
 public final class BuiltinMacros {

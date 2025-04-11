@@ -12,6 +12,7 @@
 
 import SWBCore
 import SWBUtil
+import SWBMacro
 
 extension TaskProducerContext {
     func sandbox(builder: inout PlannedTaskBuilder, delegate: any TaskGenerationDelegate) {

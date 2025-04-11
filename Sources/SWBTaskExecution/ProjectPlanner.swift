@@ -13,6 +13,7 @@
 package import SWBCore
 package import SWBProtocol
 import SWBUtil
+import SWBMacro
 
 package struct ProjectPlanner {
     private let workspaceContext: WorkspaceContext

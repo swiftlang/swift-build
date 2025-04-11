@@ -10,6 +10,8 @@
 //
 //===----------------------------------------------------------------------===//
 
+import Synchronization
+
 /// Supports using an evicting base cache but temporarily preventing eviction during `cache.keepAlive { ... }`.
 ///
 /// - It doesn't prevent the base cache from evicting, but instead temporarily uses an additional non-evicting store

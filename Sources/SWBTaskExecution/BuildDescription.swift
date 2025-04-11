@@ -18,6 +18,7 @@ package import struct SWBProtocol.BuildOperationTaskEnded
 package import struct SWBProtocol.TargetDependencyRelationship
 import class SWBTaskConstruction.ProductPlan
 package import SWBMacro
+import Synchronization
 
 /// The delegate for constructing a build description.
 package protocol BuildDescriptionConstructionDelegate: ActivityReporter {

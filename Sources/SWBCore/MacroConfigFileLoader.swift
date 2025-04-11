@@ -12,6 +12,7 @@
 
 public import SWBUtil
 public import SWBMacro
+import Foundation
 
 /// Information on a macro config file.
 @_spi(Testing) public struct MacroConfigInfo: Sendable {

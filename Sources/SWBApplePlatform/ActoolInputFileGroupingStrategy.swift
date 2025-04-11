@@ -12,6 +12,7 @@
 
 public import SWBCore
 import SWBUtil
+import Foundation
 
 /// A grouping strategy that groups all asset catalogs and all strings files that match sticker packs inside those asset catalogs.
 @_spi(Testing) public final class ActoolInputFileGroupingStrategy: InputFileGroupingStrategy {

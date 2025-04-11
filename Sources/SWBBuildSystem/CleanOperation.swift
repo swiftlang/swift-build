@@ -22,6 +22,7 @@ package import var Foundation.NSLocalizedDescriptionKey
 package import class Foundation.NSError
 package import struct Foundation.URL
 package import struct Foundation.UUID
+import SWBMacro
 
 package final class CleanOperation: BuildSystemOperation, TargetDependencyResolverDelegate {
     package var diagnosticContext: DiagnosticContextData {

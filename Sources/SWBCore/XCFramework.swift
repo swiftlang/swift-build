@@ -17,6 +17,7 @@ public import class Foundation.PropertyListDecoder
 public import class Foundation.PropertyListEncoder
 public import protocol Foundation.LocalizedError
 public import SWBMacro
+import Synchronization
 
 /// Represents the various types of error cases possible when constructing an `XCFramework` type.
 ///

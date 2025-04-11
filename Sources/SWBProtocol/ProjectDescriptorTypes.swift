@@ -11,6 +11,7 @@
 //===----------------------------------------------------------------------===//
 
 public import SWBUtil
+import Foundation
 
 public struct SchemeInput: Equatable, Hashable, Serializable, Sendable {
     public let name: String

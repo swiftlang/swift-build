@@ -12,6 +12,7 @@
 
 import SWBCore
 import SWBUtil
+import SWBMacro
 
 /// A task producer responsible for adding custom tasks specified in the project model to the graph.
 final class CustomTaskProducer: PhasedTaskProducer, TaskProducer {

@@ -11,6 +11,7 @@
 //===----------------------------------------------------------------------===//
 
 import SWBProtocol
+import SWBUtil
 
 class SWBServiceConsoleCreateSessionCommand: SWBServiceConsoleCommand {
     static let name = "createSession"

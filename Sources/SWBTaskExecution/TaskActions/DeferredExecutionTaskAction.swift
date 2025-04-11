@@ -13,6 +13,8 @@
 public import SWBCore
 import SWBUtil
 public import SWBLLBuild
+import Foundation
+import SWBProtocol
 
 public final class DeferredExecutionTaskAction: TaskAction {
     public override class var toolIdentifier: String {

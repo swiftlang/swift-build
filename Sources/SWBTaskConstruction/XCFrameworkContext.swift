@@ -12,6 +12,7 @@
 
 import SWBCore
 import SWBUtil
+import Synchronization
 
 /// Tracks the XCFramework usage across the build plan. This allows the usage information to be cached during task planning.
 final class XCFrameworkContext: Sendable {

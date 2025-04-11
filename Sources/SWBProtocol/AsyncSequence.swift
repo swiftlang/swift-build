@@ -10,6 +10,8 @@
 //
 //===----------------------------------------------------------------------===//
 
+import SWBUtil
+
 extension FixedWidthInteger {
     public init(protocolEndian value: Self) {
         self.init(littleEndian: value)

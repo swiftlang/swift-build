@@ -12,6 +12,7 @@
 
 public import SWBUtil
 public import SWBCore
+import Foundation
 
 /// Used only when remote caching is enabled, for remote cache key querying.
 public final class SwiftCachingKeyQueryTaskAction: TaskAction {

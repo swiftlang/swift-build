@@ -295,6 +295,10 @@ public extension FSProxy {
         var exists: Bool = false
         return isSymlink(path, &exists)
     }
+
+    func getFileSize(_ path: Path) throws -> Int64 {
+        try Int64(getFileInfo(path).statBuf.st_size)
+    }
 }
 
 fileprivate extension FSProxy {

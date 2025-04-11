@@ -11,6 +11,7 @@
 //===----------------------------------------------------------------------===//
 
 public import SWBUtil
+import Foundation
 
 public struct DiscoveredClangToolSpecInfo: DiscoveredCommandLineToolSpecInfo {
     public let toolPath: Path

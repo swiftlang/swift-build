@@ -14,6 +14,8 @@ import SWBUtil
 import SWBLibc
 public import SWBCore
 public import enum SWBLLBuild.BuildValueKind
+import Foundation
+import SWBProtocol
 
 open class SwiftDriverJobSchedulingTaskAction: TaskAction {
     public override class var toolIdentifier: String {

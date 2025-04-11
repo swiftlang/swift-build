@@ -11,6 +11,7 @@
 //===----------------------------------------------------------------------===//
 
 import SWBLibc
+import Synchronization
 
 // This is a workaround for Swift's lack of local-static (rdar://problem/17662275) or in
 // generics (rdar://problem/22882266).

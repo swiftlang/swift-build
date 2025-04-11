@@ -36,6 +36,7 @@ package import struct SWBProtocol.BuildOperationMetrics
 
 // FIXME: Workaround: <rdar://problem/26249252> Unable to prefer my own type over NS renamed types
 package import class SWBTaskExecution.Task
+import SWBMacro
 
 extension BuildRequest {
     func with(parameters: BuildParameters, buildTargets: [BuildTargetInfo]) -> BuildRequest {

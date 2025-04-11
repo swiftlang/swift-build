@@ -12,6 +12,7 @@
 
 import SWBUtil
 public import SWBCore
+import Foundation
 
 public final class XCStringsCompilerSpec: GenericCompilerSpec, SpecIdentifierType, @unchecked Sendable {
     public static let identifier = "com.apple.compilers.xcstrings"

@@ -14,6 +14,8 @@ import SWBUtil
 import SWBLibc
 public import SWBCore
 public import SWBLLBuild
+import Foundation
+import SWBProtocol
 
 public final class ClangCompileTaskAction: TaskAction, BuildValueValidatingTaskAction {
     public override class var toolIdentifier: String {

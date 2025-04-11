@@ -15,7 +15,7 @@ import SWBLibc
 import SWBUtil
 import Foundation
 import struct SWBProtocol.BuildOperationMetrics
-
+import Synchronization
 
 fileprivate func executableFileNameMatchesSwiftRuntimeLibPattern(_ fileName: String) -> Bool {
     return fileName.hasPrefix("libswift") && fileName.hasSuffix(".dylib")

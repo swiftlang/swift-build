@@ -11,6 +11,8 @@
 //===----------------------------------------------------------------------===//
 
 import SWBCore
+import SWBMacro
+import SWBUtil
 
 final class DiffToolSpec: CommandLineToolSpec, SpecImplementationType, @unchecked Sendable {
     static let identifier = "com.apple.build-tools.diff"

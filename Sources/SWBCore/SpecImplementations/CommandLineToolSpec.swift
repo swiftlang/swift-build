@@ -14,6 +14,7 @@ public import SWBUtil
 public import struct Foundation.Data
 public import class Foundation.JSONDecoder
 public import SWBMacro
+import SWBProtocol
 
 /// Describes the type and other characteristics of a single kind of input file accepted by a build tool.
 struct InputFileTypeDescriptor: Encodable, Sendable {

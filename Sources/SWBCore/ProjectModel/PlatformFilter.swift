@@ -12,6 +12,7 @@
 
 import SWBUtil
 import SWBProtocol
+import Foundation
 
 /// Provides a generic mechanism to provide project model items to be filterable for a given platform.
 public final class PlatformFilter: ProjectModelItem, Hashable, Codable {

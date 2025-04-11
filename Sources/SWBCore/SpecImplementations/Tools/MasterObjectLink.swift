@@ -11,6 +11,7 @@
 //===----------------------------------------------------------------------===//
 
 import SWBUtil
+import SWBMacro
 
 /// Spec to use the linker to run `ld -r` to create a prelinked object file (a.k.a. "master object file").
 final class MasterObjectLinkSpec: CommandLineToolSpec, SpecImplementationType, @unchecked Sendable {
