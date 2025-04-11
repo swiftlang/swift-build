@@ -1490,7 +1490,7 @@ public final class SwiftCompilerSpec : CompilerSpec, SpecIdentifierType, SwiftDi
 
             switch feature.level {
             case .warn:
-                delegate.warning("Enabling the Swift language feature '\(identifier)' is recommended; \(supplementaryMessage)")
+                delegate.warning("Enabling the Swift language feature '\(identifier)' will become a requirement in the future; \(supplementaryMessage)")
             case .error:
                 delegate.error("Enabling the Swift language feature '\(identifier)' is required; \(supplementaryMessage)")
             case .ignore:
