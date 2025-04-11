@@ -129,7 +129,7 @@ extension Process {
             throw StubError.error("\(url) is not an absolute file URL")
         }
         let executableFilePath = try url.standardizedFileURL.filePath
-        if !FileManager.default.isExecutableFile(atPath: executableFilePath.str) {
+        if try !localFS.isExecutable(executableFilePath) {
             throw StubError.error("\(executableFilePath.str) is not an executable file")
         }
         let process = Process()

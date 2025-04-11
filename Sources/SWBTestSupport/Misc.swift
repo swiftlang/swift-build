@@ -196,36 +196,6 @@ extension ProcessInfo {
         return false
     }
 
-    /// Whether the process is running translated, e.g. using Rosetta on macOS, or Prism on Windows.
-    package var isTranslated: Bool {
-        #if os(Windows)
-        var pProcessMachine = USHORT(IMAGE_FILE_MACHINE_UNKNOWN)
-        var pNativeMachine = USHORT(IMAGE_FILE_MACHINE_UNKNOWN)
-        guard IsWow64Process2(GetCurrentProcess(), &pProcessMachine, &pNativeMachine) else {
-            return false
-        }
-        // Checking of specific architectures is a bit fragile, but we only support AMD64 and ARM64 on Windows for now.
-        guard pNativeMachine == IMAGE_FILE_MACHINE_ARM64 else {
-            return false
-        }
-        var systemInfo = SYSTEM_INFO()
-        GetNativeSystemInfo(&systemInfo)
-        return systemInfo.wProcessorArchitecture == PROCESSOR_ARCHITECTURE_AMD64
-        #elseif canImport(Darwin)
-        let sysctl_proc_translated = "sysctl.proc_translated"
-        var len: Int = 0
-        if sysctlbyname(sysctl_proc_translated, nil, &len, nil, 0) == 0 {
-            var p = [CChar](repeating: 0, count: len)
-            if len > 0 && sysctlbyname(sysctl_proc_translated, &p, &len, nil, 0) == 0 {
-                return p[0] == 1
-            }
-        }
-        return false
-        #else
-        return false
-        #endif
-    }
-
     // Get memory usage of current process in bytes
     package var memoryUsage: UInt64 {
         #if canImport(Darwin)

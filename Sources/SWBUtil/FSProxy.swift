@@ -71,6 +71,8 @@ public struct FileInfo: Equatable, Sendable {
 
     public var isExecutable: Bool {
         #if os(Windows)
+        // Per https://learn.microsoft.com/en-us/cpp/c-runtime-library/reference/stat-functions, "user execute bits are set according to the filename extension".
+        // Don't use FileManager.isExecutableFile due to https://github.com/swiftlang/swift-foundation/issues/860
         return (statBuf.st_mode & UInt16(_S_IEXEC)) != 0
         #else
         return (statBuf.st_mode & S_IXUSR) != 0
@@ -148,6 +150,7 @@ public protocol FSProxy: AnyObject, Sendable {
     // FIXME: Need to document behavior w.r.t. error handling.
     func isDirectory(_ path: Path) -> Bool
 
+    /// Checks whether the given path has the execute bit (which on Windows is determined by the file extension).
     func isExecutable(_ path: Path) throws -> Bool
 
     /// Checks whether the given path is a symlink, also returning whether the linked file exists.
