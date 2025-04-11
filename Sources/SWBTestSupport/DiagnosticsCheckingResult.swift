@@ -202,7 +202,7 @@ package func _filterDiagnostic(message: String) -> String? {
         return nil
     }
 
-    if message.hasPrefix("Enabling the Swift language feature 'MemberImportVisibility' is recommended") {
+    if message.hasPrefix("Enabling the Swift language feature 'MemberImportVisibility' will become a requirement in the future") {
         return nil
     }
 
