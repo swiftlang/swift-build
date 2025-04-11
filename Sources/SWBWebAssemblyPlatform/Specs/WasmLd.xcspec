@@ -15,7 +15,7 @@
         Domain = webassembly;
         Identifier = "com.apple.pbx.linkers.ld";
         Type = Linker;
-        BasedOn = "default:com.apple.pbx.linkers.ld";
+        BasedOn = "generic-unix:com.apple.pbx.linkers.ld";
         Name = Ld;
         Description = "Link executable using alternate linker";
         IsAbstract = Yes;
@@ -38,12 +38,6 @@
                         CommandLineFlag = "-r";
                     },
                 );
-            },
-            {
-                Name = SDKROOT;
-                Type = Path;
-                CommandLineFlag = "--sysroot";
-                IsInputDependency = Yes;
             },
             {
                 // wasm-ld is always deterministic
@@ -137,6 +131,16 @@
                     NO = ();
                 };
                 Condition = "$(MACH_O_TYPE) == mh_dylib";
+            },
+            {
+                Name = "CLANG__INPUT_FILE_LIST_PATH__";
+                Type = Path;
+                Condition = "NO"; // wasm-ld does not support -filelist
+            },
+            {
+                Name = "SWIFTC__INPUT_FILE_LIST_PATH__";
+                Type = Path;
+                Condition = "NO"; // wasm-ld does not support -filelist
             },
         );
     },

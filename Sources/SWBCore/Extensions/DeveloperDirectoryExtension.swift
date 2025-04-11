@@ -12,15 +12,14 @@
 
 public import SWBUtil
 
-public struct InputFileGroupingStrategyExtensionPoint: ExtensionPoint, Sendable {
-    public typealias ExtensionProtocol = InputFileGroupingStrategyExtension
+public struct DeveloperDirectoryExtensionPoint: ExtensionPoint {
+    public typealias ExtensionProtocol = DeveloperDirectoryExtension
 
-    public static let name = "InputFileGroupingStrategyExtensionPoint"
+    public static let name = "DeveloperDirectoryExtensionPoint"
 
     public init() {}
 }
 
-public protocol InputFileGroupingStrategyExtension: Sendable {
-    func groupingStrategies() -> [String: any InputFileGroupingStrategyFactory]
-    func fileTypesCompilingToSwiftSources() -> [String]
+public protocol DeveloperDirectoryExtension: Sendable {
+    func fallbackDeveloperDirectory(hostOperatingSystem: OperatingSystem) async throws -> Path?
 }

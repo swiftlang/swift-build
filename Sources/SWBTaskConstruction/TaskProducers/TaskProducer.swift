@@ -1308,7 +1308,6 @@ extension TaskProducerContext: CommandProducer {
             scope.evaluate(BuiltinMacros.SWIFT_USE_INTEGRATED_DRIVER) && // Prerequisite for eager linking
             !SwiftCompilerSpec.shouldUseWholeModuleOptimization(for: scope).result && // off for WMO
             scope.evaluate(BuiltinMacros.EAGER_LINKING) && // Optimization is currently opt-in via this build setting
-            scope.evaluate(BuiltinMacros.BITCODE_GENERATION_MODE) != "bitcode" && // Using this optimization is currently unsupported with full bitcode
             settings.productType?.supportsEagerLinking == true && // The optimization is only valid for supported product types
             compileSourcesExportOnlySwiftSymbols(scope: scope) && // All exported symbols from compile sources must be from Swift sources
             !linkedLibrariesMayIntroduceExportedSymbols(scope: scope) // We must not be linking anything that introduces exported symbols

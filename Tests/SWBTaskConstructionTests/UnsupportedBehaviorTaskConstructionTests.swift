@@ -121,7 +121,7 @@ fileprivate struct UnsupportedBehaviorTaskConstructionTests: CoreBasedTests {
         try await fs.writeFileContents(swiftCompilerPath) { $0 <<< "binary" }
         for platform in ["iPhoneOS", "iPhoneSimulator"] {
             for frameworkSubpath in unitTestFrameworkSubpaths {
-                let frameworkPath = core.developerPath.join("Platforms/\(platform).platform/Developer").join(frameworkSubpath)
+                let frameworkPath = core.developerPath.path.join("Platforms/\(platform).platform/Developer").join(frameworkSubpath)
                 try fs.createDirectory(frameworkPath.dirname, recursive: true)
                 try fs.write(frameworkPath, contents: ByteString(encodingAsUTF8: frameworkPath.basename))
             }

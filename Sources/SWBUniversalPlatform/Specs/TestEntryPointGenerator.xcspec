@@ -11,23 +11,17 @@
 //===----------------------------------------------------------------------===//
 
 (
-
-    {
-        _Domain = embedded-shared;
-        Type = BuildSystem;
-        Identifier = com.apple.build-system.core;
-        BasedOn = "com.apple.buildsettings.standard";
-        IsGlobalDomainInUI = Yes;
-        Properties = (
+    {   Identifier = "org.swift.test-entry-point-generator";
+        Type = Compiler;
+        Name = "Generate Test Entry Point";
+        Description = "Generates the entry point for a test target.";
+        CommandLine = "builtin-generateTestEntryPoint [options] --output $(OutputPath)";
+        RuleName = "GenerateTestEntryPoint $(OutputPath)";
+        ExecDescription = "Generate entry point for $(PRODUCT_NAME)";
+        Outputs = (
+            "$(OutputPath)"
         );
-    },
-
-    {
-        _Domain = embedded-shared;
-        Type = BuildSystem;
-        Identifier = com.apple.build-system.native;
-        BasedOn = "default:com.apple.build-system.native";
-        Properties = (
+        Options = (
         );
-    },
+    }
 )

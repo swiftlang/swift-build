@@ -137,7 +137,7 @@ open class SwiftDriverJobSchedulingTaskAction: TaskAction {
                         return
                     }
 
-                    let signatureCtx = MD5Context()
+                    let signatureCtx = InsecureHashContext()
                     signatureCtx.add(string: task.identifier.rawValue)
                     signatureCtx.add(string: "swiftdriverjobdiscoveryactivity")
                     signatureCtx.add(number: dependencyID)

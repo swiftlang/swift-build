@@ -542,9 +542,9 @@ fileprivate struct PlatformTaskConstructionTests: CoreBasedTests {
 
         // Create files in the filesystem so they're known to exist.
         let fs = PseudoFS()
-        try fs.createDirectory(core.developerPath.join("usr/bin"), recursive: true)
-        try await fs.writeFileContents(core.developerPath.join("usr/bin/actool")) { $0 <<< "binary" }
-        try await fs.writeFileContents(core.developerPath.join("usr/bin/ibtool")) { $0 <<< "binary" }
+        try fs.createDirectory(core.developerPath.path.join("usr/bin"), recursive: true)
+        try await fs.writeFileContents(core.developerPath.path.join("usr/bin/actool")) { $0 <<< "binary" }
+        try await fs.writeFileContents(core.developerPath.path.join("usr/bin/ibtool")) { $0 <<< "binary" }
 
         try fs.createDirectory(Path("/Users/whoever/Library/MobileDevice/Provisioning Profiles"), recursive: true)
         try fs.write(Path("/Users/whoever/Library/MobileDevice/Provisioning Profiles/8db0e92c-592c-4f06-bfed-9d945841b78d.mobileprovision"), contents: "profile")
@@ -599,7 +599,7 @@ fileprivate struct PlatformTaskConstructionTests: CoreBasedTests {
                 results.checkTask(.matchTarget(target), .matchRule(["CopyAndPreserveArchs", "/tmp/Test/aProject/build/Debug-iphoneos/StickerTarget.appex/StickerTarget"])) { task in
                     task.checkCommandLineMatches([
                         "lipo",
-                        "\(core.developerPath.str)/Platforms/iPhoneOS.platform/Library/Application Support/MessagesApplicationExtensionStub/MessagesApplicationExtensionStub",
+                        "\(core.developerPath.path.str)/Platforms/iPhoneOS.platform/Library/Application Support/MessagesApplicationExtensionStub/MessagesApplicationExtensionStub",
                         "-output",
                         "/tmp/Test/aProject/build/Debug-iphoneos/StickerTarget.appex/StickerTarget",
                         "-extract",
@@ -744,7 +744,7 @@ fileprivate struct PlatformTaskConstructionTests: CoreBasedTests {
                                                      "-target", "\(arch)-apple-ios\(IPHONEOS_DEPLOYMENT_TARGET)-macabi",
                                                      "-isysroot", core.loadSDK(.macOS).path.str,
                                                      "-L\(core.loadSDK(.macOS).path.str)/System/iOSSupport/usr/lib",
-                                                     "-L\(core.developerPath.str)/Toolchains/XcodeDefault.xctoolchain/usr/lib/swift/maccatalyst",
+                                                     "-L\(core.developerPath.path.str)/Toolchains/XcodeDefault.xctoolchain/usr/lib/swift/maccatalyst",
                                                      "-iframework", "\(core.loadSDK(.macOS).path.str)/System/iOSSupport/System/Library/Frameworks",
                                                      "-o", "\(SRCROOT)/build/aProject.build/Debug\(MacCatalystInfo.publicSDKBuiltProductsDirSuffix)/AppTarget.build/Objects-normal/\(arch)/Binary/AppTarget",
                         ]
@@ -923,7 +923,7 @@ fileprivate struct PlatformTaskConstructionTests: CoreBasedTests {
                                                  "-isysroot", core.loadSDK(.macOS).path.str,
                                                  "-L/usr/local/lib",
                                                  "-L\(core.loadSDK(.macOS).path.str)/System/iOSSupport/usr/lib",
-                                                 "-L\(core.developerPath.str)/Toolchains/XcodeDefault.xctoolchain/usr/lib/swift/maccatalyst",
+                                                 "-L\(core.developerPath.path.str)/Toolchains/XcodeDefault.xctoolchain/usr/lib/swift/maccatalyst",
                                                  "-iframework", "/Library/Frameworks",
                                                  "-iframework", "\(core.loadSDK(.macOS).path.str)/System/iOSSupport/System/Library/Frameworks",
                                                  "-o", "\(SRCROOT)/build/Debug\(MacCatalystInfo.publicSDKBuiltProductsDirSuffix)/AppTarget.app/Contents/MacOS/AppTarget",

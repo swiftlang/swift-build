@@ -183,13 +183,13 @@ extension CoreBasedTests {
 
     package var actoolPath: Path {
         get async throws {
-            try await getCore().developerPath.join("usr/bin/actool")
+            try await getCore().developerPath.path.join("usr/bin/actool")
         }
     }
 
     package var ibtoolPath: Path {
         get async throws {
-            try await getCore().developerPath.join("usr/bin/ibtool")
+            try await getCore().developerPath.path.join("usr/bin/ibtool")
         }
     }
 

@@ -188,16 +188,7 @@ fileprivate struct HeavyCacheTests {
 
 /// Provides a HeavyCache suitable for use in tests (eviction policy disabled to prevent memory pressure interference).
 fileprivate func withHeavyCache<Key, Value>(isolatedGlobalState: Bool = true, maximumSize: Int? = nil, timeToLive: Duration? = nil, _ block: (HeavyCache<Key, Value>) async throws -> Void) async rethrows {
-    func withIsolatedGlobalState(block: () async throws -> Void) async rethrows {
-        if isolatedGlobalState {
-            try await withHeavyCacheGlobalState {
-                try await block()
-            }
-        } else {
-            try await block()
-        }
-    }
-    try await withIsolatedGlobalState {
+    try await withHeavyCacheGlobalState(isolated: isolatedGlobalState) {
         try await block(HeavyCache<Key, Value>(maximumSize: maximumSize, timeToLive: timeToLive, evictionPolicy: .never))
     }
 }

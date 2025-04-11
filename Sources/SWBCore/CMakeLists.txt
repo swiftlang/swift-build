@@ -59,6 +59,7 @@ add_library(SWBCore
   DiagnosticSupport.swift
   EnvironmentBindings.swift
   ExecutableTask.swift
+  Extensions/DeveloperDirectoryExtension.swift
   Extensions/DiagnosticToolingExtension.swift
   Extensions/EnvironmentExtension.swift
   Extensions/FeatureAvailabilityExtension.swift
@@ -71,7 +72,6 @@ add_library(SWBCore
   Extensions/ToolchainRegistryExtension.swift
   FileSystemSignatureBasedCache.swift
   FileToBuild.swift
-  KnownFolders.swift
   LibclangVendored/ArrayExtensions.swift
   LibclangVendored/CStringArray.swift
   LibclangVendored/Libclang.swift

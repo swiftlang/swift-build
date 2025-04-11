@@ -11,6 +11,7 @@
 //===----------------------------------------------------------------------===//
 
 import Testing
+import SWBCore
 import SWBProtocol
 import SWBTestSupport
 import SWBTaskExecution
@@ -19,13 +20,13 @@ import SWBUtil
 @Suite
 fileprivate struct SWBWebAssemblyPlatformTests: CoreBasedTests {
     @Test(
+        .requireSDKs(.wasi),
         .requireThreadSafeWorkingDirectory,
-        .enabled(if: getEnvironmentVariable("WASM_SDKROOT") != nil),
+        .skipXcodeToolchain,
         arguments: ["wasm32"], [true, false]
     )
     func wasiCommandWithSwift(arch: String, enableTestability: Bool) async throws {
-        guard let sdkroot = getEnvironmentVariable("WASM_SDKROOT") else { return }
-        guard let toolchain = getEnvironmentVariable("WASM_TOOLCHAINS") else { return }
+        let sdkroot = try await #require(getCore().loadSDK(llvmTargetTripleSys: "wasi")).path.str
 
         try await withTemporaryDirectory { (tmpDir: Path) in
             let testProject = TestProject(
@@ -46,7 +47,6 @@ fileprivate struct SWBWebAssemblyPlatformTests: CoreBasedTests {
                         "SDKROOT": sdkroot,
                         "SWIFT_VERSION": "6.0",
                         "SUPPORTED_PLATFORMS": "webassembly",
-                        "TOOLCHAINS": toolchain,
                         "ENABLE_TESTABILITY": enableTestability ? "YES" : "NO"
                     ])
                 ],
@@ -132,10 +132,9 @@ fileprivate struct SWBWebAssemblyPlatformTests: CoreBasedTests {
         }
     }
 
-    @Test(.requireThreadSafeWorkingDirectory, .enabled(if: getEnvironmentVariable("WASM_SDKROOT") != nil), arguments: ["wasm32"])
+    @Test(.requireSDKs(.wasi), .requireThreadSafeWorkingDirectory, .skipXcodeToolchain, arguments: ["wasm32"])
     func wasiCommandWithCAndCxx(arch: String) async throws {
-        guard let sdkroot = getEnvironmentVariable("WASM_SDKROOT") else { return }
-        guard let toolchain = getEnvironmentVariable("WASM_TOOLCHAINS") else { return }
+        let sdkroot = try await #require(getCore().loadSDK(llvmTargetTripleSys: "wasi")).path.str
 
         try await withTemporaryDirectory { (tmpDir: Path) in
             let testProject = TestProject(
@@ -157,7 +156,6 @@ fileprivate struct SWBWebAssemblyPlatformTests: CoreBasedTests {
                         "SDKROOT": sdkroot,
                         "SWIFT_VERSION": "6.0",
                         "SUPPORTED_PLATFORMS": "webassembly",
-                        "TOOLCHAINS": toolchain,
                     ])
                 ],
                 targets: [
@@ -250,5 +248,11 @@ fileprivate struct SWBWebAssemblyPlatformTests: CoreBasedTests {
                 // }
             }
         }
+    }
+}
+
+fileprivate extension Core {
+    func loadSDK(llvmTargetTripleSys: String) -> SDK? {
+        sdkRegistry.allSDKs.filter { $0.defaultVariant?.llvmTargetTripleSys == llvmTargetTripleSys }.only
     }
 }

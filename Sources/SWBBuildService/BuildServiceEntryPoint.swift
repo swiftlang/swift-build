@@ -110,6 +110,7 @@ extension BuildService {
             pluginManager.registerExtensionPoint(EnvironmentExtensionPoint())
             pluginManager.registerExtensionPoint(InputFileGroupingStrategyExtensionPoint())
             pluginManager.registerExtensionPoint(TaskProducerExtensionPoint())
+            pluginManager.registerExtensionPoint(DeveloperDirectoryExtensionPoint())
             pluginManager.registerExtensionPoint(DiagnosticToolingExtensionPoint())
             pluginManager.registerExtensionPoint(SDKVariantInfoExtensionPoint())
             pluginManager.registerExtensionPoint(FeatureAvailabilityExtensionPoint())

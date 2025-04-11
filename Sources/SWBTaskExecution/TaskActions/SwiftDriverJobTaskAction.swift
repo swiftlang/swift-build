@@ -164,7 +164,7 @@ public final class SwiftDriverJobTaskAction: TaskAction, BuildValueValidatingTas
     private var state = State()
 
     public override func getSignature(_ task: any ExecutableTask, executionDelegate: any TaskExecutionDelegate) -> ByteString {
-        let md5 = MD5Context()
+        let md5 = InsecureHashContext()
         // We intentionally do not integrate the superclass signature here, because the driver job's signature captures the same information without requiring expensive serialization.
         md5.add(bytes: driverJob.driverJob.signature)
         task.environment.computeSignature(into: md5)

@@ -81,13 +81,6 @@ package enum XCFrameworkTestSupport: Sendable {
                 try fs.createDirectory(targetPath, recursive: true)
                 try fs.write(targetPath.join(lib.libraryPath.str + ".dSYM"), contents: "fake dsym!")
             }
-
-            // Just create some fake bitcode symbol maps for when the library has them.
-            if let bitcodeSymbolMapsPath = lib.bitcodeSymbolMapsPath {
-                let targetPath = libRoot.join(bitcodeSymbolMapsPath)
-                try fs.createDirectory(targetPath, recursive: true)
-                try fs.write(targetPath.join(lib.libraryPath.str + ".bcsymbolmap"), contents: "fake symbol map!")
-            }
         }
     }
 

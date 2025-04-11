@@ -117,7 +117,7 @@ public final class AuxiliaryFileTaskAction: TaskAction {
             serializer.serialize(context.logContents)
             super.serialize(to: serializer)
         }
-        let md5 = MD5Context()
+        let md5 = InsecureHashContext()
         md5.add(bytes: serializer.byteString)
         return md5.signature
     }

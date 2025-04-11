@@ -140,6 +140,7 @@ public final class EmbedSwiftStdLibTaskAction: TaskAction {
         var shouldPrint = false
         var shouldCopy = false
 
+        // Bitcode is no longer supported, but some old libraries may contain bitcode, so we continue to strip it when directed.
         var shouldStripBitcode = false
         var bitcodeStripPath: Path? = nil
 

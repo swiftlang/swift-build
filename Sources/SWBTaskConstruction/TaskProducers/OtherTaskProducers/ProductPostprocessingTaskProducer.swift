@@ -369,10 +369,6 @@ final class ProductPostprocessingTaskProducer: PhasedTaskProducer, TaskProducer 
                     // If multiple targets in the build share a product name, they may compute clashing tbd paths in EagerLinkingTBDs. This is rare, so for now we just skip the optimization if it happens.
                     return
                 }
-                guard !scope.evaluate(BuiltinMacros.ENABLE_BITCODE) || scope.evaluate(BuiltinMacros.BITCODE_GENERATION_MODE) != "bitcode" else {
-                    // If building with full bitcode, the linker will not allow linking against a target's stub, because it doesn't have any.
-                    return
-                }
             }
             context.settings.productType?.addStubAPITasks(self, scope, destination: destination, &tasks)
         }

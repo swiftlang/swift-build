@@ -216,7 +216,7 @@ fileprivate struct ClangTests: CoreBasedTests {
         do {
             let fs = PseudoFS()
             try await fs.writeFileContents(Path(mockClangPath)) { $0 <<< "binary" }
-            try await fs.writeFileContents(core.developerPath.join(clangCachePath)) { $0 <<< "binary" }
+            try await fs.writeFileContents(core.developerPath.path.join(clangCachePath)) { $0 <<< "binary" }
             let tester = try TaskConstructionTester(core, getTestProject(["CC" : Path(mockClangPath).str]))
 
             await tester.checkBuild(runDestination: .host, fs: fs, clientDelegate: ClientDelegate(mockClangPath)) { results in
@@ -241,7 +241,7 @@ fileprivate struct ClangTests: CoreBasedTests {
         do {
             let fs = PseudoFS()
             try await fs.writeFileContents(Path(mockClangPath)) { $0 <<< "binary" }
-            try await fs.writeFileContents(core.developerPath.join(clangCachePath)) { $0 <<< "binary" }
+            try await fs.writeFileContents(core.developerPath.path.join(clangCachePath)) { $0 <<< "binary" }
             let tester = try TaskConstructionTester(core, getTestProject([
                 "CC" : Path(mockClangPath).str,
                 "CLANG_CACHE_FALLBACK_IF_UNAVAILABLE" : "YES",
@@ -260,7 +260,7 @@ fileprivate struct ClangTests: CoreBasedTests {
         do {
             let fs = PseudoFS()
             try await fs.writeFileContents(clangCompilerPath) { $0 <<< "binary" }
-            try await fs.writeFileContents(core.developerPath.join(clangCachePath)) { $0 <<< "binary" }
+            try await fs.writeFileContents(core.developerPath.path.join(clangCachePath)) { $0 <<< "binary" }
             let tester = try TaskConstructionTester(core, getTestProject())
 
             await tester.checkBuild(runDestination: .host, fs: fs) { results in

@@ -221,6 +221,20 @@ public final class SWBBuildService: Sendable {
         }
     }
 
+    public func createSession(name: String, swiftToolchainPath: String, resourceSearchPaths: [String], cachePath: String?, inferiorProductsPath: String?, environment: [String:String]?) async -> (Result<SWBBuildServiceSession, any Error>, [SwiftBuildMessage.DiagnosticInfo]) {
+        do {
+            let response = try await send(request: CreateSessionRequest(name: name, developerPath: .swiftToolchain(Path(swiftToolchainPath)), resourceSearchPaths: resourceSearchPaths.map(Path.init), cachePath: cachePath.map(Path.init), inferiorProductsPath: inferiorProductsPath.map(Path.init), environment: environment))
+            let diagnostics = response.diagnostics.map { SwiftBuildMessage.DiagnosticInfo(.init($0, .global)) }
+            if let sessionID = response.sessionID {
+                return (.success(SWBBuildServiceSession(name: name, uid: sessionID, service: self)), diagnostics)
+            } else {
+                return (.failure(SwiftBuildError.requestError(description: "Could not initialize build system")), diagnostics)
+            }
+        } catch {
+            return (.failure(error), [])
+        }
+    }
+
     /// List the active session UIDs and info.
     ///
     /// - returns: A map of session UIDs to info.

@@ -58,7 +58,7 @@ fileprivate struct ClangResponseFileTaskConstructionTests: CoreBasedTests {
             let core = try await getCore()
             let tester = try TaskConstructionTester(core, testProject)
             try await tester.checkBuild(runDestination: .host) { results in
-                try results.checkWriteAuxiliaryFileTask(.matchRuleItemPattern(.suffix("7187679823f38a2a940e0043cdf9d637-common-args.resp"))) { task, contents in
+                try results.checkWriteAuxiliaryFileTask(.matchRuleItemPattern(.suffix("-common-args.resp"))) { task, contents in
                     let responseFilePath = try #require(task.outputs.only)
 
                     // The command arguments in the response file vary vastly between different platforms, so just check for some basics present in the content.
@@ -165,7 +165,7 @@ fileprivate struct ClangResponseFileTaskConstructionTests: CoreBasedTests {
             let core = try await getCore()
             let tester = try TaskConstructionTester(core, testProject)
             await tester.checkBuild(runDestination: .host) { results in
-                results.checkWriteAuxiliaryFileTask(.matchRuleItemPattern(.suffix("7187679823f38a2a940e0043cdf9d637-common-args.resp"))) { task, contents in
+                results.checkWriteAuxiliaryFileTask(.matchRuleItemPattern(.suffix("-common-args.resp"))) { task, contents in
                     let stringContents = contents.asString
                     #expect(stringContents.contains("-target"))
                     let blocksFlag = switch runDestination {
@@ -348,7 +348,7 @@ fileprivate struct ClangResponseFileTaskConstructionTests: CoreBasedTests {
             let core = try await getCore()
             let tester = try TaskConstructionTester(core, testProject)
             await tester.checkBuild(runDestination: .host) { results in
-                results.checkWriteAuxiliaryFileTask(.matchRuleItemPattern(.suffix("7187679823f38a2a940e0043cdf9d637-common-args.resp"))) { task, contents in
+                results.checkWriteAuxiliaryFileTask(.matchRuleItemPattern(.suffix("-common-args.resp"))) { task, contents in
                     let stringContents = contents.asString
                     #expect(stringContents.contains("-Xclang -Wno-shorten-64-to-32"))
                     results.checkTask(.matchRuleType("CompileC"), .matchRuleItemPattern(.suffix("a.c"))) { compileTask in

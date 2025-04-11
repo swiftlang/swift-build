@@ -77,7 +77,7 @@ private struct CreateXCFrameworkHandler: MessageHandler {
         guard let buildService = request.service as? BuildService else {
             throw StubError.error("service object is not of type BuildService")
         }
-        let (result, output) = try await XCFramework.createXCFramework(commandLine: message.commandLine, currentWorkingDirectory: message.currentWorkingDirectory, infoLookup: buildService.sharedCore(developerPath: message.effectiveDeveloperPath))
+        let (result, output) = try await XCFramework.createXCFramework(commandLine: message.commandLine, currentWorkingDirectory: message.currentWorkingDirectory, infoLookup: buildService.sharedCore(developerPath: message.effectiveDeveloperPath.map { .xcode($0) }))
         if !result {
             throw StubError.error(output)
         }
@@ -113,7 +113,7 @@ private struct ProductTypeSupportsMacCatalystHandler: MessageHandler {
         guard let buildService = request.service as? BuildService else {
             throw StubError.error("service object is not of type BuildService")
         }
-        return try await BoolResponse(buildService.sharedCore(developerPath: message.effectiveDeveloperPath).productTypeSupportsMacCatalyst(productTypeIdentifier: message.productTypeIdentifier))
+        return try await BoolResponse(buildService.sharedCore(developerPath: message.effectiveDeveloperPath.map { .xcode($0) }).productTypeSupportsMacCatalyst(productTypeIdentifier: message.productTypeIdentifier))
     }
 }
 
@@ -122,8 +122,16 @@ private struct ProductTypeSupportsMacCatalystHandler: MessageHandler {
 private struct CreateSessionHandler: MessageHandler {
     func handle(request: Request, message: CreateSessionRequest) async throws -> CreateSessionResponse {
         let service = request.buildService
+        let developerPath: DeveloperPath?
+        if let devPath = message.developerPath2 {
+            developerPath = devPath
+        } else if let devPath = message.effectiveDeveloperPath {
+            developerPath = .xcode(devPath)
+        } else {
+            developerPath = nil
+        }
         let (core, diagnostics) = await service.sharedCore(
-            developerPath: message.effectiveDeveloperPath,
+            developerPath: developerPath,
             resourceSearchPaths: message.resourceSearchPaths ?? [],
             inferiorProducts: message.inferiorProductsPath,
             environment: message.environment ?? [:]
@@ -184,7 +192,7 @@ extension SetSessionWorkspaceContainerPathRequest: PIFProvidingRequest {
             try fs.createDirectory(dir, recursive: true)
             let pifPath = dir.join(Foundation.UUID().description + ".json")
             let argument = isProject ? "-project" : "-workspace"
-            let result = try await Process.getOutput(url: URL(fileURLWithPath: "/usr/bin/xcrun"), arguments: ["xcodebuild", "-dumpPIF", pifPath.str, argument, path.str], currentDirectoryURL: URL(fileURLWithPath: containerPath.dirname.str, isDirectory: true), environment: Environment.current.addingContents(of: [.developerDir: session.core.developerPath.str]))
+            let result = try await Process.getOutput(url: URL(fileURLWithPath: "/usr/bin/xcrun"), arguments: ["xcodebuild", "-dumpPIF", pifPath.str, argument, path.str], currentDirectoryURL: URL(fileURLWithPath: containerPath.dirname.str, isDirectory: true), environment: Environment.current.addingContents(of: [.developerDir: session.core.developerPath.path.str]))
             if !result.exitStatus.isSuccess {
                 throw StubError.error("Could not dump PIF for '\(path.str)': \(String(decoding: result.stderr, as: UTF8.self))")
             }
@@ -1200,7 +1208,7 @@ private struct ClientExchangeResponseMsg<MessageType: ClientExchangeMessage & Re
 private struct DeveloperPathHandler: MessageHandler {
     func handle(request: Request, message: DeveloperPathRequest) throws -> StringResponse {
         let session = try request.session(for: message)
-        return StringResponse(session.core.developerPath.str)
+        return StringResponse(session.core.developerPath.path.str)
     }
 }
 
@@ -1469,7 +1477,7 @@ private struct ExecuteCommandLineToolMsg: MessageHandler {
                     request.service.send(message.replyChannel, BoolResponse(false))
                     return
                 }
-                let (core, diagnostics) = await buildService.sharedCore(developerPath: message.developerPath)
+                let (core, diagnostics) = await buildService.sharedCore(developerPath: message.developerPath.map { .xcode($0) })
                 guard let core else {
                     for diagnostic in diagnostics where diagnostic.behavior == .error {
                         request.service.send(message.replyChannel, ErrorResponse(diagnostic.formatLocalizedDescription(.messageOnly)))

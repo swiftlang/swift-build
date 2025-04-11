@@ -217,7 +217,6 @@
         Description = "Unit Test Bundle";
         DefaultBuildSettings = {
             WRAPPER_SUFFIX = "xctest";
-            ENABLE_BITCODE = NO;
         };
         ProductReference = {
             FileType = wrapper.cfbundle;
@@ -234,7 +233,6 @@
         Description = "External Test Bundle";
         DefaultBuildSettings = {
             WRAPPER_SUFFIX = "externaltest";
-            ENABLE_BITCODE = NO;
         };
         ProductReference = {
             FileType = wrapper.cfbundle;

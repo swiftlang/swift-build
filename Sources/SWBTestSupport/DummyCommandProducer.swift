@@ -59,8 +59,18 @@ package struct MockCommandProducer: CommandProducer, Sendable {
             for path in platform?.executableSearchPaths.paths ?? [] {
                 paths.append(path)
             }
-            paths.append(core.developerPath.join("usr").join("bin"))
-            paths.append(core.developerPath.join("usr").join("local").join("bin"))
+            switch core.developerPath {
+            case .xcode(let path), .fallback(let path):
+                paths.append(path.join("usr").join("bin"))
+                paths.append(path.join("usr").join("local").join("bin"))
+            case .swiftToolchain(let path, xcodeDeveloperPath: let xcodeDeveloperPath):
+                paths.append(path.join("usr").join("bin"))
+                paths.append(path.join("usr").join("local").join("bin"))
+                if let xcodeDeveloperPath {
+                    paths.append(xcodeDeveloperPath.join("usr").join("bin"))
+                    paths.append(xcodeDeveloperPath.join("usr").join("local").join("bin"))
+                }
+            }
         }
         self.executableSearchPaths = StackedSearchPath(paths: [Path](paths), fs: fs)
         self.toolchains = toolchain.map { [$0] } ?? []

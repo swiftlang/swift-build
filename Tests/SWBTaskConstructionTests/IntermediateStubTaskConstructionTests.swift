@@ -127,41 +127,6 @@ fileprivate struct IntermediateStubTaskConstructionTests: CoreBasedTests {
         }
     }
 
-    @Test(.requireSDKs(.iOS), .userDefaults(["EnableBitcodeSupport": "1"]))
-    func targetWithFullBitcodeGeneratesNoStubs() async throws {
-        let testProject = try await TestProject(
-            "aProject",
-            groupTree: TestGroup(
-                "SomeFiles", path: "Sources",
-                children: [
-                    TestFile("Fwk.swift"),
-                ]),
-            buildConfigurations: [
-                TestBuildConfiguration("Debug", buildSettings: [
-                    "CODE_SIGN_IDENTITY": "",
-                    "PRODUCT_NAME": "$(TARGET_NAME)",
-                    "SDKROOT": "iphoneos",
-                    "SWIFT_EXEC": swiftCompilerPath.str,
-                    "SWIFT_VERSION": swiftVersion,
-                    "TAPI_EXEC": tapiToolPath.str,
-                    "ENABLE_BITCODE": "YES",
-                    "BITCODE_GENERATION_MODE": "bitcode"
-                ])],
-            targets: [
-                TestStandardTarget(
-                    "Fwk",
-                    type: .framework,
-                    buildPhases: [
-                        TestSourcesBuildPhase(["Fwk.swift"])
-                    ]),
-            ])
-        let tester = try await TaskConstructionTester(getCore(), testProject)
-        await tester.checkBuild(BuildParameters(action: .build, configuration: "Debug"), runDestination: .iOS) { results in
-            results.checkNoTask(.matchRuleType("GenerateTAPI"))
-            results.checkWarning(.contains("Building with bitcode is deprecated"))
-        }
-    }
-
     @Test(.requireSDKs(.macOS))
     func targetInstallingStubsGeneratesNoIntermediateStubs() async throws {
         let testProject = try await TestProject(

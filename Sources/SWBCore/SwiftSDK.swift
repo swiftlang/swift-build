@@ -69,20 +69,24 @@ public struct SwiftSDK: Sendable {
     }
 
     /// The default location storing Swift SDKs installed by SwiftPM.
-    static var defaultSwiftSDKsDirectory: Path {
-        get throws {
-            try FileManager.default.url(
+    static func defaultSwiftSDKsDirectory(hostOperatingSystem: OperatingSystem) throws -> Path {
+        let spmURL: URL
+        if hostOperatingSystem == .macOS {
+            spmURL = try FileManager.default.url(
                 for: .libraryDirectory,
                 in: .userDomainMask,
                 appropriateFor: nil,
                 create: false
-            ).appendingPathComponent("org.swift.swiftpm").appendingPathComponent("swift-sdks").filePath
+            ).appendingPathComponent("org.swift.swiftpm")
+        } else {
+            spmURL = FileManager.default.homeDirectoryForCurrentUser.appendingPathComponent(".swiftpm")
         }
+        return try spmURL.appendingPathComponent("swift-sdks").filePath
     }
 
     /// Find Swift SDKs installed by SwiftPM.
-    public static func findSDKs(targetTriples: [String], fs: any FSProxy) throws -> [SwiftSDK] {
-        return try findSDKs(swiftSDKsDirectory: defaultSwiftSDKsDirectory, targetTriples: targetTriples, fs: fs)
+    public static func findSDKs(targetTriples: [String], fs: any FSProxy, hostOperatingSystem: OperatingSystem) throws -> [SwiftSDK] {
+        return try findSDKs(swiftSDKsDirectory: defaultSwiftSDKsDirectory(hostOperatingSystem: hostOperatingSystem), targetTriples: targetTriples, fs: fs)
     }
 
     private static func findSDKs(swiftSDKsDirectory: Path, targetTriples: [String], fs: any FSProxy) throws -> [SwiftSDK] {

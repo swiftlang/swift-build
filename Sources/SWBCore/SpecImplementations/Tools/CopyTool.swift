@@ -42,8 +42,6 @@ public final class CopyToolSpec : CompilerSpec, SpecIdentifierType, @unchecked S
         let outputPath = cbc.output
 
         // Lookup function for computing the command line.
-        let enableBitcode = cbc.scope.evaluate(BuiltinMacros.ENABLE_BITCODE)
-        let bitcodeGenerationMode = cbc.scope.evaluate(BuiltinMacros.BITCODE_GENERATION_MODE)
         func lookup(_ macro: MacroDeclaration) -> MacroExpression? {
             switch macro {
             case BuiltinMacros.COPY_PHASE_STRIP, BuiltinMacros.PBXCP_STRIP_UNSIGNED_BINARIES:
@@ -63,41 +61,22 @@ public final class CopyToolSpec : CompilerSpec, SpecIdentifierType, @unchecked S
                 guard stripBitcode else {
                     return nil
                 }
-                // If we have been directed to strip bitcode, and bitcode is either disabled or is turned to a level less than 'bitcode' (i.e., less than full bitcode), then we should strip bitcode from binaries we copy.
-                if !enableBitcode || bitcodeGenerationMode != "bitcode" {
-                    return Static { cbc.scope.namespace.parseLiteralString("YES") } as MacroStringExpression
-                }
-                return nil
+                // Always strip all bitcode.
+                return Static { cbc.scope.namespace.parseLiteralString("YES") } as MacroStringExpression
             case BuiltinMacros.PBXCP_BITCODE_STRIP_MODE:
                 guard stripBitcode else {
                     return nil
                 }
-                if !enableBitcode {
-                    // If bitcode is not enabled then strip all bitcode.
-                    return Static { cbc.scope.namespace.parseLiteralString("all") } as MacroStringExpression
-                }
-                else if bitcodeGenerationMode != "bitcode" {
-                    // If bitcode level is less than full, then strip bitcode.
-                    if bitcodeGenerationMode == "marker" {
-                        // If bitcode is enabled but to generate the marker, then strip down to a marker.
-                        return Static { cbc.scope.namespace.parseLiteralString("replace-with-marker") } as MacroStringExpression
-                    }
-                    else {
-                        // Otherwise strip all bitcode.
-                        return Static { cbc.scope.namespace.parseLiteralString("all") } as MacroStringExpression
-                    }
-                }
-                return nil
+                // Always strip all bitcode.
+                return Static { cbc.scope.namespace.parseLiteralString("all") } as MacroStringExpression
             case BuiltinMacros.PBXCP_BITCODE_STRIP_TOOL:
                 guard stripBitcode else {
                     return nil
                 }
                 // FIXME: We should change the .xcspec file to make this setting conditional on $(PBXCP_STRIP_BITCODE).  Then we can just always generate this value.
-                if !enableBitcode || bitcodeGenerationMode != "bitcode" {
-                    // Find bitcode_strip in our effective toolchains.
-                    if let bitcodeStripPath = cbc.producer.toolchains.lazy.compactMap({ $0.executableSearchPaths.lookup(Path("bitcode_strip")) }).first {
-                        return cbc.scope.namespace.parseLiteralString(bitcodeStripPath.str) as MacroStringExpression
-                    }
+                // Find bitcode_strip in our effective toolchains.
+                if let bitcodeStripPath = cbc.producer.toolchains.lazy.compactMap({ $0.executableSearchPaths.lookup(Path("bitcode_strip")) }).first {
+                    return cbc.scope.namespace.parseLiteralString(bitcodeStripPath.str) as MacroStringExpression
                 }
                 return nil
             case BuiltinMacros.PBXCP_EXCLUDE_SUBPATHS:

@@ -273,6 +273,8 @@ package final class TestFile: TestInternalStructureItem, CustomStringConvertible
             return "text.json.xcstrings"
         case ".swift":
             return "sourcecode.swift"
+        case ".tbd":
+            return "sourcecode.text-based-dylib-definition"
         case ".tif", ".tiff":
             return "image.tiff"
         case ".txt":

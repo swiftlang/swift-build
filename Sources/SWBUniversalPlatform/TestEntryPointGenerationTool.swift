@@ -10,17 +10,14 @@
 //
 //===----------------------------------------------------------------------===//
 
-public import SWBUtil
+import SWBUtil
+import SWBMacro
+import SWBCore
 
-public struct InputFileGroupingStrategyExtensionPoint: ExtensionPoint, Sendable {
-    public typealias ExtensionProtocol = InputFileGroupingStrategyExtension
+final class TestEntryPointGenerationToolSpec: GenericCommandLineToolSpec, SpecIdentifierType, @unchecked Sendable {
+    static let identifier = "org.swift.test-entry-point-generator"
 
-    public static let name = "InputFileGroupingStrategyExtensionPoint"
-
-    public init() {}
-}
-
-public protocol InputFileGroupingStrategyExtension: Sendable {
-    func groupingStrategies() -> [String: any InputFileGroupingStrategyFactory]
-    func fileTypesCompilingToSwiftSources() -> [String]
+    override func createTaskAction(_ cbc: CommandBuildContext, _ delegate: any TaskGenerationDelegate) -> (any PlannedTaskAction)? {
+        TestEntryPointGenerationTaskAction()
+    }
 }

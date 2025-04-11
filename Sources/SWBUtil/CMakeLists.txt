@@ -108,5 +108,4 @@ target_link_libraries(SWBUtil PUBLIC
   SWBCSupport
   SWBLibc
   ArgumentParser
-  $<$<AND:$<NOT:$<PLATFORM_ID:Windows>>,$<NOT:$<PLATFORM_ID:Darwin>>>:Crypto::Crypto>
   $<$<NOT:$<PLATFORM_ID:Darwin>>:SwiftSystem::SystemPackage>)

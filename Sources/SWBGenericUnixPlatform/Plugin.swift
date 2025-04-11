@@ -15,10 +15,22 @@ import SWBCore
 import Foundation
 
 @PluginExtensionSystemActor public func initializePlugin(_ manager: PluginManager) {
+    manager.register(GenericUnixDeveloperDirectoryExtension(), type: DeveloperDirectoryExtensionPoint.self)
     manager.register(GenericUnixPlatformSpecsExtension(), type: SpecificationsExtensionPoint.self)
     manager.register(GenericUnixPlatformInfoExtension(), type: PlatformInfoExtensionPoint.self)
     manager.register(GenericUnixSDKRegistryExtension(), type: SDKRegistryExtensionPoint.self)
     manager.register(GenericUnixToolchainRegistryExtension(), type: ToolchainRegistryExtensionPoint.self)
+}
+
+struct GenericUnixDeveloperDirectoryExtension: DeveloperDirectoryExtension {
+    func fallbackDeveloperDirectory(hostOperatingSystem: OperatingSystem) async throws -> Path? {
+        if hostOperatingSystem == .windows || hostOperatingSystem == .macOS {
+            // Handled by the Windows and Apple plugins
+            return nil
+        }
+
+        return .root
+    }
 }
 
 struct GenericUnixPlatformSpecsExtension: SpecificationsExtension {

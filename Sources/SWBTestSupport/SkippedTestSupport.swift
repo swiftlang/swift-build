@@ -115,15 +115,17 @@ extension Trait where Self == Testing.ConditionTrait {
     package static func requireSDKs(_ knownSDKs: KnownSDK..., comment: Comment? = nil) -> Self {
         enabled(comment != nil ? "required SDKs are not installed: \(comment?.description ?? "")" : "required SDKs are not installed.", {
             let sdkRegistry = try await ConditionTraitContext.shared.getCore().sdkRegistry
-            let missingSDKs = await knownSDKs.asyncFilter { sdkRegistry.lookup($0.sdkName) == nil }.sorted()
+            let missingSDKs = await knownSDKs.asyncFilter { knownSDK in
+                sdkRegistry.lookup(knownSDK.sdkName) == nil && sdkRegistry.allSDKs.count(where: { $0.aliases.contains(knownSDK.sdkName) }) == 0
+            }.sorted()
             return missingSDKs.isEmpty
         })
     }
 
     /// Constructs a condition trait that causes a test to be disabled if not running on the specified host OS.
     /// - parameter when: An additional constraint to apply such that the host OS requirement is only applied if this parameter is _also_ true. Defaults to true.
-    package static func requireHostOS(_ os: OperatingSystem, when condition: Bool = true) -> Self {
-        enabled("This test requires a \(os) host OS.", { try ProcessInfo.processInfo.hostOperatingSystem() == os && condition })
+    package static func requireHostOS(_ os: OperatingSystem..., when condition: Bool = true) -> Self {
+        enabled("This test requires a \(os) host OS.", { os.contains(try ProcessInfo.processInfo.hostOperatingSystem()) && condition })
     }
 
     /// Constructs a condition trait that causes a test to be disabled if running on the specified host OS.
@@ -134,6 +136,13 @@ extension Trait where Self == Testing.ConditionTrait {
     /// Constructs a condition trait that causes a test to be disabled if process spawning is unavailable (for example, on Apple embedded platforms).
     package static var requireProcessSpawning: Self {
         disabled("Process spawning is unavailable.", { try ProcessInfo.processInfo.hostOperatingSystem().isAppleEmbedded || ProcessInfo.processInfo.isMacCatalystApp })
+    }
+
+    /// Constructs a condition trait that causes a test to be disabled if the developer directory is pointing at an Xcode developer directory.
+    package static var skipXcodeToolchain: Self {
+        disabled("This test is incompatible with Xcode toolchains.", {
+            try await ConditionTraitContext.shared.getCore().developerPath.path.str.contains(".app/Contents/Developer")
+        })
     }
 
     /// Constructs a condition trait that causes a test to be disabled if the Foundation process spawning implementation is not using `posix_spawn_file_actions_addchdir`.
@@ -321,7 +330,7 @@ extension Trait where Self == Testing.ConditionTrait {
 extension Trait where Self == Testing.ConditionTrait {
     package static var skipDeveloperDirectoryWithEqualSign: Self {
         disabled {
-            try await ConditionTraitContext.shared.getCore().developerPath.str.contains("=")
+            try await ConditionTraitContext.shared.getCore().developerPath.path.str.contains("=")
         }
     }
 
@@ -399,7 +408,7 @@ extension Trait where Self == Testing.ConditionTrait {
 package func casOptions() async throws -> (canUseCASPlugin: Bool, canUseCASPruning: Bool, canCheckCASUpToDate: Bool) {
     let libclang = try #require(try await ConditionTraitContext.shared.libclang)
     let core = try await ConditionTraitContext.shared.getCore()
-    let canUseCASPlugin = libclang.supportsCASPlugin && localFS.exists(core.developerPath.join("usr/lib/libToolchainCASPlugin.dylib"))
+    let canUseCASPlugin = libclang.supportsCASPlugin && localFS.exists(core.developerPath.path.join("usr/lib/libToolchainCASPlugin.dylib"))
     let canUseCASPruning = libclang.supportsCASPruning
     let canCheckCASUpToDate = libclang.supportsCASUpToDateChecks
     return (canUseCASPlugin, canUseCASPruning, canCheckCASUpToDate)

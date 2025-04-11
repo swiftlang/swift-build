@@ -71,7 +71,7 @@ fileprivate extension FSProxy {
 
     /// Returns the signature of a list of files.
     func filesSignature(_ statInfos: [(Path, stat?)]) -> ByteString {
-        let md5Context = MD5Context()
+        let md5Context = InsecureHashContext()
         for (path, statInfo) in statInfos {
             md5Context.add(string: path.str)
             if let statInfo {

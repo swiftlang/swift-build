@@ -247,7 +247,7 @@ fileprivate struct PackageBuildOperationTests: CoreBasedTests {
 
                 try results.checkTask(.matchRuleType("RealityAssetsCompile")) { task in
                     task.checkCommandLineContainsUninterrupted([
-                        core.developerPath.join("usr/bin/realitytool").str, "compile", "--platform", "xros", "--deployment-target", results.runDestinationSDK.defaultDeploymentTarget,
+                        core.developerPath.path.join("usr/bin/realitytool").str, "compile", "--platform", "xros", "--deployment-target", results.runDestinationSDK.defaultDeploymentTarget,
                         "-o", "\(workspace.sourceRoot.str)/aProject/build/Debug-xros/PackageLib.bundle/test.reality",
                         "\(packageRKAssetsFile.str)",
                         "--schema-file",
@@ -275,7 +275,7 @@ fileprivate struct PackageBuildOperationTests: CoreBasedTests {
 
                 try results.checkTask(.matchRuleType("RealityAssetsCompile")) { task in
                     task.checkCommandLineContainsUninterrupted([
-                        core.developerPath.join("usr/bin/realitytool").str, "compile", "--platform", "xros", "--deployment-target", results.runDestinationSDK.defaultDeploymentTarget,
+                        core.developerPath.path.join("usr/bin/realitytool").str, "compile", "--platform", "xros", "--deployment-target", results.runDestinationSDK.defaultDeploymentTarget,
                         "-o", "\(workspace.sourceRoot.str)/aProject/build/Debug-xros/PackageLib.bundle/test.reality",
                         "\(packageRKAssetsFile.str)",
                         "--schema-file",

@@ -690,7 +690,7 @@ public class ClangCompilerSpec : CompilerSpec, SpecIdentifierType, GCCCompatible
                 previousArg = argAsByteString
             }
 
-            let ctx = MD5Context()
+            let ctx = InsecureHashContext()
             ctx.add(string: inputFileType.identifier)
             ctx.add(string: self.identifier)
 
@@ -1412,7 +1412,7 @@ public class ClangCompilerSpec : CompilerSpec, SpecIdentifierType, GCCCompatible
             return nil
         }
 
-        let md5 = MD5Context()
+        let md5 = InsecureHashContext()
         md5.add(string: prefixHeader.str)
         let sharingIdentHashValue = md5.signature
         let baseCachePath = scope.evaluate(BuiltinMacros.SHARED_PRECOMPS_DIR)

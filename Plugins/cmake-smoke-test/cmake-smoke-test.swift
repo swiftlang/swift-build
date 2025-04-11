@@ -41,12 +41,6 @@ struct CMakeSmokeTest: CommandPlugin {
         let swiftSystemURL = try findSiblingRepository("swift-system", swiftBuildURL: swiftBuildURL)
         let swiftSystemBuildURL = context.pluginWorkDirectoryURL.appending(component: "swift-system")
 
-        let swiftAsn1URL = try findSiblingRepository("swift-asn1", swiftBuildURL: swiftBuildURL)
-        let swiftAsn1BuildURL = context.pluginWorkDirectoryURL.appending(component: "swift-asn1")
-
-        let swiftCryptoURL = try findSiblingRepository("swift-crypto", swiftBuildURL: swiftBuildURL)
-        let swiftCryptoBuildURL = context.pluginWorkDirectoryURL.appending(component: "swift-crypto")
-
         let llbuildURL = try findSiblingRepository("llbuild", swiftBuildURL: swiftBuildURL)
         let llbuildBuildURL = context.pluginWorkDirectoryURL.appending(component: "llbuild")
 
@@ -56,7 +50,7 @@ struct CMakeSmokeTest: CommandPlugin {
         let swiftDriverURL = try findSiblingRepository("swift-driver", swiftBuildURL: swiftBuildURL)
         let swiftDriverBuildURL = context.pluginWorkDirectoryURL.appending(component: "swift-driver")
 
-        for url in [swiftToolsSupportCoreBuildURL, swiftAsn1BuildURL, swiftCryptoBuildURL, swiftSystemBuildURL, llbuildBuildURL, swiftArgumentParserBuildURL, swiftDriverBuildURL, swiftBuildBuildURL] {
+        for url in [swiftToolsSupportCoreBuildURL, swiftSystemBuildURL, llbuildBuildURL, swiftArgumentParserBuildURL, swiftDriverBuildURL, swiftBuildBuildURL] {
             try FileManager.default.createDirectory(at: url, withIntermediateDirectories: true)
         }
 
@@ -69,8 +63,6 @@ struct CMakeSmokeTest: CommandPlugin {
             "-DArgumentParser_DIR=\(swiftArgumentParserBuildURL.appending(components: "cmake", "modules").path())",
             "-DLLBuild_DIR=\(llbuildBuildURL.appending(components: "cmake", "modules").path())",
             "-DTSC_DIR=\(swiftToolsSupportCoreBuildURL.appending(components: "cmake", "modules").path())",
-            "-DSwiftASN1_DIR=\(swiftAsn1BuildURL.appending(components: "cmake", "modules").path())",
-            "-DSwiftCrypto_DIR=\(swiftCryptoBuildURL.appending(components: "cmake", "modules").path())",
             "-DSwiftDriver_DIR=\(swiftDriverBuildURL.appending(components: "cmake", "modules").path())",
             "-DSwiftSystem_DIR=\(swiftSystemBuildURL.appending(components: "cmake", "modules").path())"
         ]
@@ -86,18 +78,6 @@ struct CMakeSmokeTest: CommandPlugin {
         try await Process.checkNonZeroExit(url: cmakeURL, arguments: sharedCMakeArgs + [swiftToolsSupportCoreURL.path()], workingDirectory: swiftToolsSupportCoreBuildURL)
         try await Process.checkNonZeroExit(url: ninjaURL, arguments: [], workingDirectory: swiftToolsSupportCoreBuildURL)
         print("Built swift-tools-support-core")
-
-        if hostOS != .macOS && hostOS != .windows {
-            print("Building swift-asn1")
-            try await Process.checkNonZeroExit(url: cmakeURL, arguments: sharedCMakeArgs + [swiftAsn1URL.path()], workingDirectory: swiftAsn1BuildURL)
-            try await Process.checkNonZeroExit(url: ninjaURL, arguments: [], workingDirectory: swiftAsn1BuildURL)
-            print("Built swift-asn1")
-
-            print("Building swift-crypto")
-            try await Process.checkNonZeroExit(url: cmakeURL, arguments: sharedCMakeArgs + [swiftCryptoURL.path()], workingDirectory: swiftCryptoBuildURL)
-            try await Process.checkNonZeroExit(url: ninjaURL, arguments: [], workingDirectory: swiftCryptoBuildURL)
-            print("Built swift-crypto")
-        }
 
         if hostOS != .macOS {
             print("Building swift-system")

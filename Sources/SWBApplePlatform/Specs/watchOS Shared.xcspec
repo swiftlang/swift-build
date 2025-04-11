@@ -117,50 +117,6 @@
         BasedOn = "com.apple.product-type.app-extension";
     },
 
-    // --- LLVM Compiler
-    {
-        _Domain = watchos-shared;
-        Type = Compiler;
-        Identifier = "com.apple.compilers.llvm.clang.1_0.compiler";
-        BasedOn = "default:com.apple.compilers.llvm.clang.1_0.compiler";
-        InputFileTypes = (
-            "sourcecode.c.c",
-            "sourcecode.c.objc",
-            "sourcecode.cpp.cpp",
-            "sourcecode.cpp.objcpp",
-            {
-                "FileType" = "sourcecode.asm";
-                "Condition" = "! $(ENABLE_BITCODE)";
-                "ErrorMessage" = "$(InputFileName): Assembly files are not supported for the $(PLATFORM_DISPLAY_NAME) platform (arch $(CURRENT_ARCH)).";
-            },
-        );
-        Options = (
-            // Generate bitcode options - not visible in the build settings.
-            {
-                Name = "CLANG_BITCODE_GENERATION_MODE";
-                Type = Enumeration;
-                Values = (
-                    none,
-                    marker,
-                    bitcode,
-                );
-                DefaultValue = "$(BITCODE_GENERATION_MODE)";
-                Condition = "$(ENABLE_BITCODE)";
-                CommandLineArgs = {
-                    none = ();
-                    marker = (
-                        "-fembed-bitcode-marker",
-                        "-fno-gnu-inline-asm",
-                    );
-                    bitcode = (
-                        "-fembed-bitcode",
-                        "-fno-gnu-inline-asm",
-                    );
-                };
-            },
-        );
-    },
-
     // Actool ATV specific bits
     {
         _Domain = watchos-shared;

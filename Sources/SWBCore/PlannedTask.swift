@@ -28,7 +28,7 @@ public struct TaskIdentifier: Comparable, Hashable, Serializable, CustomStringCo
     }
 
     public var sandboxProfileSentinel: String {
-        let taskIdentifierChecksumContext = MD5Context()
+        let taskIdentifierChecksumContext = InsecureHashContext()
         taskIdentifierChecksumContext.add(string: self.rawValue)
         return taskIdentifierChecksumContext.signature.asString
     }
@@ -45,7 +45,7 @@ extension TaskIdentifier {
     }
 
     public init(forTarget: ConfiguredTarget?, dynamicTaskPayload: ByteString, priority: TaskPriority) {
-        let ctx = MD5Context()
+        let ctx = InsecureHashContext()
         ctx.add(bytes: dynamicTaskPayload)
         self.rawValue = "P\(priority.rawValue):\(forTarget?.guid.stringValue ?? ""):\(forTarget?.parameters.configuration ?? ""):\(ctx.signature.asString)"
     }

@@ -838,6 +838,10 @@ final class SourcesTaskProducer: FilesBasedBuildPhaseTaskProducerBase, FilesBase
                         result.append((embedInCodeAccessorResult.fileToBuild, embedInCodeAccessorResult.fileToBuildFileType, /* shouldUsePrefixHeader */ false))
                     }
 
+                    if scope.evaluate(BuiltinMacros.GENERATE_TEST_ENTRY_POINT) {
+                        result.append((scope.evaluate(BuiltinMacros.GENERATED_TEST_ENTRY_POINT_PATH), context.lookupFileType(fileName: "sourcecode.swift")!,  /* shouldUsePrefixHeader */ false))
+                    }
+
                     return result
                 }())
 
@@ -1185,7 +1189,7 @@ final class SourcesTaskProducer: FilesBasedBuildPhaseTaskProducerBase, FilesBase
                 let productBinaryPath = scope.evaluate(BuiltinMacros.TARGET_BUILD_DIR).join(scope.evaluate(BuiltinMacros.EXECUTABLE_PATH))
                 if singleArchBinaryPath != productBinaryPath {
                     await appendGeneratedTasks(&tasks, options: [.linking, .linkingRequirement, .unsignedProductRequirement]) { delegate in
-                        await context.copySpec.constructCopyTasks(CommandBuildContext(producer: context, scope: scope, inputs: [FileToBuild(context: context, absolutePath: singleArchBinaryPath)], output: productBinaryPath, commandOrderingOutputs: [linkedBinaryNode]), delegate, executionDescription: "Copy binary to product", stripUnsignedBinaries: false, stripBitcode: false)
+                        await context.copySpec.constructCopyTasks(CommandBuildContext(producer: context, scope: scope, inputs: [FileToBuild(context: context, absolutePath: singleArchBinaryPath)], output: productBinaryPath, commandOrderingOutputs: [linkedBinaryNode]), delegate, executionDescription: "Copy binary to product", stripUnsignedBinaries: false)
                     }
                 }
             }

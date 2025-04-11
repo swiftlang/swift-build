@@ -701,7 +701,6 @@ fileprivate struct SwiftModuleOnlyTaskConstructionTests: CoreBasedTests {
             }
 
             #expect(fileDict["object"] == nil)
-            #expect(fileDict["llvm-bc"] == nil)
 
             #expect(fileDict.count == 4)
             #expect(fileDict["diagnostics"]?.stringValue == archBuildDir.join("\(basename)\(platformSuffix).dia").str)

@@ -90,7 +90,7 @@ package final class CompilationCachingDataPruner: Sendable {
         startedAction()
         let serializer = MsgPackSerializer()
         key.serialize(to: serializer)
-        let signatureCtx = MD5Context()
+        let signatureCtx = InsecureHashContext()
         signatureCtx.add(string: "ClangCachingPruneData")
         signatureCtx.add(bytes: serializer.byteString)
         let signature = signatureCtx.signature
@@ -159,7 +159,7 @@ package final class CompilationCachingDataPruner: Sendable {
         startedAction()
         let serializer = MsgPackSerializer()
         key.serialize(to: serializer)
-        let signatureCtx = MD5Context()
+        let signatureCtx = InsecureHashContext()
         signatureCtx.add(string: "ClangCachingPruneData")
         signatureCtx.add(bytes: serializer.byteString)
         let signature = signatureCtx.signature

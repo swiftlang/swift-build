@@ -224,11 +224,9 @@ public final class BuiltinMacros {
 
     public static let ACTION = BuiltinMacros.declareStringMacro("ACTION")
     public static let ARCHS = BuiltinMacros.declareStringListMacro("ARCHS")
-    public static let BITCODE_GENERATION_MODE = BuiltinMacros.declareStringMacro("BITCODE_GENERATION_MODE")
     public static let BUILD_COMPONENTS = BuiltinMacros.declareStringListMacro("BUILD_COMPONENTS")
     public static let DEPLOYMENT_LOCATION = BuiltinMacros.declareBooleanMacro("DEPLOYMENT_LOCATION")
     public static let DEPLOYMENT_POSTPROCESSING = BuiltinMacros.declareBooleanMacro("DEPLOYMENT_POSTPROCESSING")
-    public static let ENABLE_BITCODE = BuiltinMacros.declareBooleanMacro("ENABLE_BITCODE")
     public static let ENABLE_TESTABILITY = BuiltinMacros.declareBooleanMacro("ENABLE_TESTABILITY")
     public static let ENABLE_TESTING_SEARCH_PATHS = BuiltinMacros.declareBooleanMacro("ENABLE_TESTING_SEARCH_PATHS")
     public static let ENABLE_PRIVATE_TESTING_SEARCH_PATHS = BuiltinMacros.declareBooleanMacro("ENABLE_PRIVATE_TESTING_SEARCH_PATHS")
@@ -721,6 +719,8 @@ public final class BuiltinMacros {
     public static let GENERATE_MASTER_OBJECT_FILE = BuiltinMacros.declareBooleanMacro("GENERATE_MASTER_OBJECT_FILE")
     public static let GENERATE_PKGINFO_FILE = BuiltinMacros.declareBooleanMacro("GENERATE_PKGINFO_FILE")
     public static let GENERATE_RESOURCE_ACCESSORS = BuiltinMacros.declareBooleanMacro("GENERATE_RESOURCE_ACCESSORS")
+    public static let GENERATE_TEST_ENTRY_POINT = BuiltinMacros.declareBooleanMacro("GENERATE_TEST_ENTRY_POINT")
+    public static let GENERATED_TEST_ENTRY_POINT_PATH = BuiltinMacros.declarePathMacro("GENERATED_TEST_ENTRY_POINT_PATH")
     public static let GENERATE_TEXT_BASED_STUBS = BuiltinMacros.declareBooleanMacro("GENERATE_TEXT_BASED_STUBS")
     public static let GENERATE_INTERMEDIATE_TEXT_BASED_STUBS = BuiltinMacros.declareBooleanMacro("GENERATE_INTERMEDIATE_TEXT_BASED_STUBS")
     public static let GLOBAL_API_NOTES_PATH = BuiltinMacros.declareStringMacro("GLOBAL_API_NOTES_PATH")
@@ -800,7 +800,6 @@ public final class BuiltinMacros {
     public static let __KNOWN_SPI_INSTALL_PATHS = BuiltinMacros.declareStringListMacro("__KNOWN_SPI_INSTALL_PATHS")
     public static let LD = BuiltinMacros.declareStringMacro("LD")
     public static let LDPLUSPLUS = BuiltinMacros.declareStringMacro("LDPLUSPLUS")
-    public static let LD_BITCODE_GENERATION_MODE = BuiltinMacros.declareStringMacro("LD_BITCODE_GENERATION_MODE")
     public static let LD_CLIENT_NAME = BuiltinMacros.declareStringMacro("LD_CLIENT_NAME")
     public static let LD_DEPENDENCY_INFO_FILE = BuiltinMacros.declarePathMacro("LD_DEPENDENCY_INFO_FILE")
     public static let LD_DYLIB_INSTALL_NAME = BuiltinMacros.declareStringMacro("LD_DYLIB_INSTALL_NAME")
@@ -1424,7 +1423,6 @@ public final class BuiltinMacros {
         AdditionalCommandLineArguments,
         AppIdentifierPrefix,
         BLOCKLISTS_PATH,
-        BITCODE_GENERATION_MODE,
         BUILD_COMPONENTS,
         BUILD_DESCRIPTION_CACHE_DIR,
         BUILD_DIR,
@@ -1665,7 +1663,6 @@ public final class BuiltinMacros {
         ENABLE_DEFAULT_SEARCH_PATHS_IN_LIBRARY_SEARCH_PATHS,
         ENABLE_DEFAULT_SEARCH_PATHS_IN_REZ_SEARCH_PATHS,
         ENABLE_DEFAULT_SEARCH_PATHS_IN_SWIFT_INCLUDE_PATHS,
-        ENABLE_BITCODE,
         ENABLE_CLOUD_SIGNING,
         ENABLE_GENERIC_TASK_CACHING,
         GENERIC_TASK_CACHE_ENABLE_DIAGNOSTIC_REMARKS,
@@ -1757,6 +1754,8 @@ public final class BuiltinMacros {
         GENERATE_MASTER_OBJECT_FILE,
         GENERATE_PKGINFO_FILE,
         GENERATE_RESOURCE_ACCESSORS,
+        GENERATE_TEST_ENTRY_POINT,
+        GENERATED_TEST_ENTRY_POINT_PATH,
         GENERATE_TEXT_BASED_STUBS,
         GENERATE_INTERMEDIATE_TEXT_BASED_STUBS,
         GID,
@@ -1859,7 +1858,6 @@ public final class BuiltinMacros {
         LAUNCH_CONSTRAINT_SELF,
         LD,
         LDPLUSPLUS,
-        LD_BITCODE_GENERATION_MODE,
         LD_CLIENT_NAME,
         LD_DEPENDENCY_INFO_FILE,
         LD_DYLIB_INSTALL_NAME,

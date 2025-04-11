@@ -25,6 +25,10 @@ struct WebAssemblyPlatformSpecsExtension: SpecificationsExtension {
     func specificationFiles(resourceSearchPaths: [Path]) -> Bundle? {
         findResourceBundle(nameWhenInstalledInToolchain: "SwiftBuild_SWBWebAssemblyPlatform", resourceSearchPaths: resourceSearchPaths, defaultBundle: Bundle.module)
     }
+
+    func specificationDomains() -> [String: [String]] {
+        ["webassembly": ["generic-unix"]]
+    }
 }
 
 struct WebAssemblyPlatformExtension: PlatformInfoExtension {
@@ -76,7 +80,8 @@ struct WebAssemblySDKRegistryExtension: SDKRegistryExtension {
 
         let wasmSwiftSDKs = (try? SwiftSDK.findSDKs(
             targetTriples: Array(supportedTriples.keys),
-            fs: context.fs
+            fs: context.fs,
+            hostOperatingSystem: context.hostOperatingSystem
         )) ?? []
 
         var wasmSDKs: [(path: Path, platform: SWBCore.Platform?, data: [String: PropertyListItem])] = []
@@ -94,6 +99,7 @@ struct WebAssemblySDKRegistryExtension: SDKRegistryExtension {
                     "Type": .plString("SDK"),
                     "Version": .plString("1.0.0"),
                     "CanonicalName": .plString(wasmSDK.identifier),
+                    "Aliases": ["webassembly", "wasi"],
                     "IsBaseSDK": .plBool(true),
                     "DefaultProperties": .plDict([
                         "PLATFORM_NAME": .plString("webassembly"),

@@ -970,14 +970,14 @@ public final class LdLinkerSpec : GenericLinkerSpec, SpecIdentifierType, @unchec
         let argPrefix = "-Xlinker"
 
         // Args without parameters
-        for arg in ["-dynamiclib", "-bundle", "-r", "-fembed-bitcode-marker", "-dead_strip", "-nostdlib", "-rdynamic"] {
+        for arg in ["-dynamiclib", "-bundle", "-r", "-dead_strip", "-nostdlib", "-rdynamic"] {
             while let index = commandLine.firstIndex(of: arg) {
                 commandLine.remove(at: index)
             }
         }
 
         // Args without parameters (-Xlinker-prefixed, e.g. -Xlinker)
-        for arg in ["-bitcode_verify", "-export_dynamic", "-sdk_imports_each_object"] {
+        for arg in ["-export_dynamic", "-sdk_imports_each_object"] {
             while let index = commandLine.firstIndex(of: arg) {
                 guard index > 0, commandLine[index - 1] == argPrefix else { break }
                 commandLine.removeSubrange(index - 1 ... index)
@@ -996,7 +996,7 @@ public final class LdLinkerSpec : GenericLinkerSpec, SpecIdentifierType, @unchec
         }
 
         // Args with a parameter (-Xlinker-prefixed, e.g. -Xlinker arg -Xlinker param)
-        for arg in ["-object_path_lto", "-add_ast_path", "-dependency_info", "-map", "-order_file", "-bitcode_symbol_map", "-final_output", "-allowable_client", "-sdk_imports"] {
+        for arg in ["-object_path_lto", "-add_ast_path", "-dependency_info", "-map", "-order_file", "-final_output", "-allowable_client", "-sdk_imports"] {
             while let index = commandLine.firstIndex(of: arg) {
                 guard index > 0,
                     index + 2 < commandLine.count,
@@ -1120,6 +1120,13 @@ public final class LdLinkerSpec : GenericLinkerSpec, SpecIdentifierType, @unchec
 
             return Path(computeExecutablePath(cbc))
         }
+    }
+
+    override public func environmentFromSpec(_ cbc: CommandBuildContext, _ delegate: any DiagnosticProducingDelegate, lookup: ((MacroDeclaration) -> MacroExpression?)? = nil) -> [(String, String)] {
+        var env: [(String, String)] = super.environmentFromSpec(cbc, delegate, lookup: lookup)
+        // The linker driver and linker may not be adjacent, so set PATH so the former can find the latter.
+        env.append(("PATH", cbc.producer.executableSearchPaths.environmentRepresentation))
+        return env
     }
 
     /// Compute the list of command line arguments and inputs to pass to the linker, given a list of library specifiers.

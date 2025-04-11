@@ -41,6 +41,7 @@ import Foundation
                     TestFile("libFoo.dylib"),
                     TestFile("libBar.a"),
                     TestFile("libBaz.a"),
+                    TestFile("libQux.tbd"),
                 ]),
             buildConfigurations: [
                 TestBuildConfiguration(
@@ -124,6 +125,7 @@ import Foundation
                         TestFrameworksBuildPhase([
                             "Foundation.framework",
                             "libBar.a",
+                            "libQux.tbd",
                         ])
                     ]
                 ),
@@ -218,6 +220,10 @@ import Foundation
                     #expect(input.linkType == .searchPath)
                 }
                 results.checkTargetInputName(target, .name("libBar.a")) { input in
+                    #expect(input.inputType == .library)
+                    #expect(input.linkType == .searchPath)
+                }
+                results.checkTargetInputName(target, .name("libQux.tbd")) { input in
                     #expect(input.inputType == .library)
                     #expect(input.linkType == .searchPath)
                 }
@@ -325,6 +331,8 @@ import Foundation
 
                                     "-Xlinker -reexport-lXlinkerLib",
                                     "-Wl,-reexport-lQuoteLib",
+
+                                    // TODO: we should support positional arguments as well but that requires a complete understanding of all possible linker args, will come back to this
                                 ].joined(separator: " ")
                             ]),
                     ],

@@ -106,7 +106,7 @@ package final class ClangModuleDependencyGraph {
         /// For example, for a source file, it contains the original command line plus the arguments that configure the
         /// compilation with explicit modules. For module dependencies, it contains the command line arguments to build
         /// the pcm file. There may be multiple command lines if a single clang driver invocation expands to multiple jobs
-        /// for example, when using `-save-temps` or `-fembed-bitcode`.
+        /// for example, when using `-save-temps`.
         package let commands: [CompileCommand]
 
         package let transitiveIncludeTreeIDs: OrderedSet<String>

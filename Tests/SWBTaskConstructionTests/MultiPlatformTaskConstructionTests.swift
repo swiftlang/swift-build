@@ -369,9 +369,9 @@ fileprivate struct MultiPlatformTaskConstructionTests: CoreBasedTests {
             ]
         )
 
-        try fs.createDirectory(core.developerPath.join("usr/bin"), recursive: true)
-        try await fs.writeFileContents(core.developerPath.join("usr/bin/actool")) { $0 <<< "binary" }
-        try await fs.writeFileContents(core.developerPath.join("usr/bin/ibtool")) { $0 <<< "binary" }
+        try fs.createDirectory(core.developerPath.path.join("usr/bin"), recursive: true)
+        try await fs.writeFileContents(core.developerPath.path.join("usr/bin/actool")) { $0 <<< "binary" }
+        try await fs.writeFileContents(core.developerPath.path.join("usr/bin/ibtool")) { $0 <<< "binary" }
 
         // Create files in the filesystem so they're known to exist.
         try await fs.writeFileContents(swiftCompilerPath) { $0 <<< "binary" }

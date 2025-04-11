@@ -450,7 +450,7 @@ fileprivate struct XCFrameworkTaskConstructionTests: CoreBasedTests {
                     // There needs to be a strong dependency on the XCFramework processing.
                     results.checkTaskFollows(task, antecedent: try #require(processSupportXCFrameworkTask))
 
-                    task.checkCommandLine(["clang", "-Xlinker", "-reproducible", "-target", "x86_64-apple-macos\(core.loadSDK(.macOS).defaultDeploymentTarget)", "-isysroot", core.loadSDK(.macOS).path.str, "-Os", "-L\(SRCROOT)/build/EagerLinkingTBDs/Debug", "-L\(SRCROOT)/build/Debug", "-F\(SRCROOT)/build/EagerLinkingTBDs/Debug", "-F\(SRCROOT)/build/Debug", "-filelist", "\(SRCROOT)/build/aProject.build/Debug/App.build/Objects-normal/x86_64/App.LinkFileList", "-Xlinker", "-object_path_lto", "-Xlinker", "\(SRCROOT)/build/aProject.build/Debug/App.build/Objects-normal/x86_64/App_lto.o", "-Xlinker", "-dependency_info", "-Xlinker", "\(SRCROOT)/build/aProject.build/Debug/App.build/Objects-normal/x86_64/App_dependency_info.dat", "-fobjc-link-runtime", "-L\(core.developerPath.str)/Toolchains/XcodeDefault.xctoolchain/usr/lib/swift/macosx", "-L/usr/lib/swift", "-Xlinker", "-add_ast_path", "-Xlinker", "\(SRCROOT)/build/aProject.build/Debug/App.build/Objects-normal/x86_64/App.swiftmodule", "-framework", "Support", "-Xlinker", "-no_adhoc_codesign", "-o", "\(SRCROOT)/build/Debug/App.app/Contents/MacOS/App"])
+                    task.checkCommandLine(["clang", "-Xlinker", "-reproducible", "-target", "x86_64-apple-macos\(core.loadSDK(.macOS).defaultDeploymentTarget)", "-isysroot", core.loadSDK(.macOS).path.str, "-Os", "-L\(SRCROOT)/build/EagerLinkingTBDs/Debug", "-L\(SRCROOT)/build/Debug", "-F\(SRCROOT)/build/EagerLinkingTBDs/Debug", "-F\(SRCROOT)/build/Debug", "-filelist", "\(SRCROOT)/build/aProject.build/Debug/App.build/Objects-normal/x86_64/App.LinkFileList", "-Xlinker", "-object_path_lto", "-Xlinker", "\(SRCROOT)/build/aProject.build/Debug/App.build/Objects-normal/x86_64/App_lto.o", "-Xlinker", "-dependency_info", "-Xlinker", "\(SRCROOT)/build/aProject.build/Debug/App.build/Objects-normal/x86_64/App_dependency_info.dat", "-fobjc-link-runtime", "-L\(core.developerPath.path.str)/Toolchains/XcodeDefault.xctoolchain/usr/lib/swift/macosx", "-L/usr/lib/swift", "-Xlinker", "-add_ast_path", "-Xlinker", "\(SRCROOT)/build/aProject.build/Debug/App.build/Objects-normal/x86_64/App.swiftmodule", "-framework", "Support", "-Xlinker", "-no_adhoc_codesign", "-o", "\(SRCROOT)/build/Debug/App.app/Contents/MacOS/App"])
                 }
             }
         }
@@ -538,7 +538,7 @@ fileprivate struct XCFrameworkTaskConstructionTests: CoreBasedTests {
         try fs.createDirectory(Path(SRCROOT), recursive: true)
         try fs.write(Path(SRCROOT).join("file.c"), contents: "int f() { return 0; }")
 
-        let xctrunnerPath = core.developerPath.join("Platforms/MacOSX.platform/Developer/Library/Xcode/Agents/XCTRunner.app")
+        let xctrunnerPath = core.developerPath.path.join("Platforms/MacOSX.platform/Developer/Library/Xcode/Agents/XCTRunner.app")
         try await fs.writeXCTRunnerApp(xctrunnerPath, archs: ["arm64", "arm64e", "x86_64"], platform: .macOS, infoLookup: core)
 
         let supportXCFramework = try XCFramework(version: Version(1, 0), libraries: [

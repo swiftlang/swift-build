@@ -203,10 +203,6 @@ public enum UserDefaults: Sendable {
         return hasValue(forKey: "EnableSDKStatCaching") ? bool(forKey: "EnableSDKStatCaching") : true
     }
 
-    public static var enableBitcodeSupport: Bool {
-        return hasValue(forKey: "EnableBitcodeSupport") ? bool(forKey: "EnableBitcodeSupport") : false
-    }
-
     public static var useTargetDependenciesForImpartedBuildSettings: Bool {
         return bool(forKey: "UseTargetDependenciesForImpartedBuildSettings")
     }
@@ -350,7 +346,6 @@ public let xcodeUserDefaultsToExportToSwiftBuild = [
     "AttemptDependencyCycleResolution",
     "IgnoreFileSystemDeviceInodeChanges",
     "FileSystemMode",
-    "EnableBitcodeSupport",
     "DVTExtraPlatformFolders",
 
     // Legacy build system defaults also supported by Swift Build.

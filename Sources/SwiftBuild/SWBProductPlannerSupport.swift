@@ -233,7 +233,7 @@ public struct SWBProductDescription: Equatable, Sendable {
     /// CLI tools might not have one.
     public let buildVersion: String?
 
-    /// Bitcode
+    /// Bitcode - no longer used, but preserved for compatibility with Xcode.
     public let enableBitcode: Bool
 
     /// Codesigning
@@ -294,7 +294,7 @@ public struct SWBProductDescription: Equatable, Sendable {
         self.deploymentTarget = deploymentTarget
         self.marketingVersion = marketingVersion
         self.buildVersion = buildVersion
-        self.enableBitcode = enableBitcode
+        self.enableBitcode = false
         self.codesign = codesign
         self.team = team
         self.infoPlistPath = infoPlistPath

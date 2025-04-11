@@ -58,7 +58,6 @@
         Description = "OCUnit Test Bundle";
         DefaultBuildSettings = {
             WRAPPER_SUFFIX = "octest";
-            ENABLE_BITCODE = NO;
         };
         ProductReference = {
             FileType = wrapper.cfbundle;
