@@ -18,6 +18,7 @@ import SWBTestSupport
 import SWBUtil
 
 import SWBTaskConstruction
+import SWBProtocol
 
 @Suite(.requireXcode16())
 fileprivate struct TrackedDomainTaskConstructionTests: CoreBasedTests {

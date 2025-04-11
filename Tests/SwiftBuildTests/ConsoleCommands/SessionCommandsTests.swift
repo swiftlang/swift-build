@@ -12,6 +12,7 @@
 
 import SWBTestSupport
 import Testing
+import SWBUtil
 
 @Suite
 fileprivate struct SessionCommandsTests {

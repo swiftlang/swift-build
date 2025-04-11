@@ -21,6 +21,7 @@ import SWBLibc
 
 import class SWBBuildSystem.BuildOperation
 import class SWBTaskExecution.Task
+import SWBProtocol
 
 private final class MockTaskTypeDescription: TaskTypeDescription {
     init(isUnsafeToInterrupt: Bool = false) {

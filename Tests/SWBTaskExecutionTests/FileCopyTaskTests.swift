@@ -15,6 +15,7 @@ import Testing
 import SWBTestSupport
 import SWBUtil
 import SWBTaskExecution
+import SWBCore
 
 @Suite
 fileprivate struct FileCopyTaskTests {

@@ -14,6 +14,8 @@ import Testing
 import SWBCore
 import SWBTaskConstruction
 import SWBTestSupport
+import SWBUtil
+import SWBProtocol
 
 @Suite
 fileprivate struct KernelExtensionTaskConstructionTests: CoreBasedTests {

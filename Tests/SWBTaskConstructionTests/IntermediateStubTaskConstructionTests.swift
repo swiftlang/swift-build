@@ -16,6 +16,7 @@ import SWBCore
 import SWBTestSupport
 import SWBUtil
 import SWBTaskConstruction
+import SWBProtocol
 
 @Suite
 fileprivate struct IntermediateStubTaskConstructionTests: CoreBasedTests {

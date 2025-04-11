@@ -16,6 +16,7 @@ import SWBCore
 import SWBUtil
 import SWBTaskExecution
 import SWBMacro
+import SWBTestSupport
 
 @Suite
 fileprivate struct ProcessProductEntitlementsTaskActionTests {

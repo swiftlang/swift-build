@@ -15,6 +15,8 @@ import Testing
 import SWBCore
 
 import SWBTestSupport
+import SWBUtil
+import SWBProtocol
 
 /// Test interesting characteristics of install builds.
 @Suite

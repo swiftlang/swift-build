@@ -19,6 +19,7 @@ import SWBTestSupport
 import SWBLLBuild
 
 import SWBCore
+import SWBTaskExecution
 
 @Suite(.requireLLBuild(apiVersion: 12), .requireXcode16())
 fileprivate struct SwiftDriverTests: CoreBasedTests {

@@ -17,6 +17,7 @@ import SWBProtocol
 import SWBTaskConstruction
 import SWBTestSupport
 import SWBUtil
+import SWBCore
 
 @Suite
 fileprivate struct OnDemandResourcesTaskConstructionTests: CoreBasedTests {

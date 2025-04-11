@@ -14,6 +14,8 @@ import SWBCore
 import SWBTestSupport
 import SWBUtil
 import Testing
+import SWBProtocol
+import SWBTaskExecution
 
 @Suite
 fileprivate struct InfoPlistBuildOperationTests: CoreBasedTests {

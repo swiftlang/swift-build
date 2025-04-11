@@ -13,6 +13,7 @@
 import Foundation
 import Testing
 import SWBUtil
+import Synchronization
 
 @Suite fileprivate struct CacheTests {
     @Test

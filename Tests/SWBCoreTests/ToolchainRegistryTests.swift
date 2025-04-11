@@ -16,6 +16,7 @@ import SWBTestSupport
 import SWBUtil
 
 @_spi(Testing) import SWBCore
+import SWBServiceCore
 
 @Suite fileprivate struct ToolchainRegistryTests: CoreBasedTests {
     let fs: any FSProxy = localFS

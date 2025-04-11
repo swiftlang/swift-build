@@ -17,6 +17,8 @@ import SWBProtocol
 import SWBTaskConstruction
 import SWBTestSupport
 import SWBUtil
+import Foundation
+import SWBTaskExecution
 
 @Suite(.requireXcode16())
 fileprivate struct AppIntentsMetadataTaskConstructionTests: CoreBasedTests {

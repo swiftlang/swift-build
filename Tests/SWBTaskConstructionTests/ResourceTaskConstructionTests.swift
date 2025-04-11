@@ -17,6 +17,7 @@ import SWBTestSupport
 import SWBUtil
 
 import SWBTaskConstruction
+import SWBProtocol
 
 /// Task construction tests related to resource processing.
 @Suite

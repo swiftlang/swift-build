@@ -15,6 +15,7 @@ import SWBUtil
 import SWBCore
 import SWBMacro
 import SWBTestSupport
+import Synchronization
 
 @Suite(.performance)
 fileprivate struct SerializationPerfTests: CoreBasedTests, PerfTests {

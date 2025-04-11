@@ -17,6 +17,7 @@ import SWBCore
 import SWBTaskConstruction
 import SWBTestSupport
 @_spi(Testing) import SWBUtil
+import SWBProtocol
 
 @Suite
 fileprivate struct DriverKitTaskConstructionTests: CoreBasedTests {

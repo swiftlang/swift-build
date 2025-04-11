@@ -18,6 +18,11 @@ import SwiftBuildTestSupport
 import struct SWBProtocol.RunDestinationInfo
 import SWBCore
 import class SwiftBuild.SWBBuildService
+import SWBTaskExecution
+
+#if canImport(Darwin)
+import MachO
+#endif
 
 @Suite(.requireXcode16())
 fileprivate struct MergeableLibrariesBuildOperationTests: CoreBasedTests {

@@ -18,6 +18,8 @@ import SWBTestSupport
 import SWBProtocol
 import SWBCore
 @_spi(Testing) import SWBBuildService
+import SWBTaskExecution
+import SwiftBuildTestSupport
 
 @Suite(.requireXcode16())
 fileprivate struct PreviewsBuildOperationTests: CoreBasedTests {

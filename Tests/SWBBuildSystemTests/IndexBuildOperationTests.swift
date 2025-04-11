@@ -22,6 +22,7 @@ import class SWBTaskConstruction.ProductPlan
 import SWBTestSupport
 import SWBTaskExecution
 import SWBUtil
+import SWBMacro
 
 @Suite
 fileprivate struct IndexBuildOperationTests: CoreBasedTests {

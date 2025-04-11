@@ -13,6 +13,7 @@
 import Foundation
 import Testing
 @_spi(Testing) import SWBUtil
+import Synchronization
 
 @Suite
 fileprivate struct HeavyCacheTests {

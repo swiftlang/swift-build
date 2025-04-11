@@ -15,6 +15,8 @@ import Testing
 import SWBCore
 import SWBUtil
 import SWBTestSupport
+import SWBTaskExecution
+import SWBProtocol
 
 @Suite
 fileprivate struct DevelopmentAssetsDiagnosticTests: CoreBasedTests {

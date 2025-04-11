@@ -19,6 +19,7 @@ import SWBTestSupport
 import SWBUtil
 
 import SWBTaskExecution
+import SWBProtocol
 
 @Suite
 fileprivate struct StaleFileRemovalTests: CoreBasedTests {

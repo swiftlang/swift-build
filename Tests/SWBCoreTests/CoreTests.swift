@@ -18,6 +18,7 @@ import SWBTestSupport
 import Foundation
 
 @_spi(Testing) import SWBCore
+import SWBServiceCore
 
 @Suite fileprivate struct CoreTests: CoreBasedTests {
     @Test

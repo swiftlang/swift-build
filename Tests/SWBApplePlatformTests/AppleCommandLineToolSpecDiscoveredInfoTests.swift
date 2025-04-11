@@ -16,6 +16,7 @@ import Testing
 import SWBCore
 import SWBTestSupport
 import SWBUtil
+import SWBProtocol
 
 @Suite
 fileprivate struct AppleCommandLineToolSpecDiscoveredInfoTests: CoreBasedTests {

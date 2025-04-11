@@ -13,6 +13,7 @@
 import SWBTestSupport
 import SWBUtil
 import Testing
+import SWBCore
 
 @Suite
 fileprivate struct WatchBuildOperationTests: CoreBasedTests {

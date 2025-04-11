@@ -21,6 +21,7 @@ import SWBUtil
 import enum SWBProtocol.ExternalToolResult
 import struct SWBProtocol.BuildOperationMetrics
 import SWBMacro
+import Synchronization
 
 struct MockExecutionDelegate: TaskExecutionDelegate {
     struct Lookup: PlatformInfoLookup {
