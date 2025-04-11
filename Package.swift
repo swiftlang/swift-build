@@ -31,16 +31,20 @@ func swiftSettings(languageMode: SwiftLanguageMode) -> [SwiftSetting] {
             .enableUpcomingFeature("ConciseMagicFile"),
             .enableUpcomingFeature("DeprecateApplicationMain"),
             .enableUpcomingFeature("DisableOutwardActorInference"),
+            //.enableUpcomingFeature("DynamicActorIsolation"),
             .enableUpcomingFeature("ForwardTrailingClosures"),
+            .enableUpcomingFeature("GlobalActorIsolatedTypesUsability"),
             .enableUpcomingFeature("GlobalConcurrency"),
             .enableUpcomingFeature("ImplicitOpenExistentials"),
             .enableUpcomingFeature("ImportObjcForwardDeclarations"),
             .enableUpcomingFeature("InferSendableFromCaptures"),
             .enableUpcomingFeature("IsolatedDefaultValues"),
+            .enableUpcomingFeature("NonfrozenEnumExhaustivity"),
             //.enableUpcomingFeature("RegionBasedIsolation"), // rdar://137809703
 
             // Future Swift features
             .enableUpcomingFeature("ExistentialAny"),
+            .enableUpcomingFeature("MemberImportVisibility"),
             .enableUpcomingFeature("InternalImportsByDefault"),
 
             .swiftLanguageMode(.v5),
@@ -51,6 +55,7 @@ func swiftSettings(languageMode: SwiftLanguageMode) -> [SwiftSetting] {
         return [
             // Future Swift features
             .enableUpcomingFeature("ExistentialAny"),
+            .enableUpcomingFeature("MemberImportVisibility"),
             .enableUpcomingFeature("InternalImportsByDefault"),
 
             .swiftLanguageMode(.v6),
