@@ -35,3 +35,8 @@ target_link_libraries(SWBGenericUnixPlatform PUBLIC
   SWBUtil)
 target_sources(SWBGenericUnixPlatform PRIVATE
   "${CMAKE_CURRENT_BINARY_DIR}/resource_bundle_accessor.swift")
+SwiftBuild_Bundle(MODULE SWBGenericUnixPlatform FILES
+  Unix.xcspec
+  UnixCompile.xcspec
+  UnixLd.xcspec
+  UnixLibtool.xcspec)
