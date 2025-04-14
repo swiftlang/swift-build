@@ -79,7 +79,7 @@ public struct SwiftSDK: Sendable {
                 create: false
             ).appendingPathComponent("org.swift.swiftpm")
         } else {
-            spmURL = FileManager.default.homeDirectoryForCurrentUser.appendingPathComponent(".swiftpm")
+            spmURL = URL.homeDirectory.appendingPathComponent(".swiftpm")
         }
         return try spmURL.appendingPathComponent("swift-sdks").filePath
     }
