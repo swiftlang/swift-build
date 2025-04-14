@@ -126,14 +126,93 @@ fileprivate struct SwiftCompilationCachingTests: CoreBasedTests {
             #expect(try readMetrics("two").contains("\"swiftCacheHits\":\(numCompile),\"swiftCacheMisses\":0"))
         }
     }
+
+    @Test(.requireSDKs(.macOS))
+    func swiftCASLimiting() async throws {
+        try await withTemporaryDirectory { (tmpDirPath: Path) async throws -> Void in
+            let testWorkspace = try await TestWorkspace(
+                "Test",
+                sourceRoot: tmpDirPath.join("Test"),
+                projects: [
+                    TestProject(
+                        "aProject",
+                        groupTree: TestGroup(
+                            "Sources",
+                            children: [
+                                TestFile("main.swift"),
+                            ]),
+                        buildConfigurations: [
+                            TestBuildConfiguration(
+                                "Debug",
+                                buildSettings: [
+                                    "PRODUCT_NAME": "$(TARGET_NAME)",
+                                    "SDKROOT": "macosx",
+                                    "SWIFT_VERSION": swiftVersion,
+                                    "SWIFT_ENABLE_EXPLICIT_MODULES": "YES",
+                                    "SWIFT_ENABLE_COMPILE_CACHE": "YES",
+                                    "COMPILATION_CACHE_ENABLE_DIAGNOSTIC_REMARKS": "YES",
+                                    "COMPILATION_CACHE_LIMIT_SIZE": "1",
+                                    "COMPILATION_CACHE_CAS_PATH": tmpDirPath.join("CompilationCache").str,
+                                    "DSTROOT": tmpDirPath.join("dstroot").str,
+                                ]),
+                        ],
+                        targets: [
+                            TestStandardTarget(
+                                "tool",
+                                type: .framework,
+                                buildPhases: [
+                                    TestSourcesBuildPhase([
+                                        "main.swift",
+                                    ]),
+                                ]
+                            )
+                        ])
+                ])
+            let tester = try await BuildOperationTester(getCore(), testWorkspace, simulated: false)
+
+            try await tester.fs.writeFileContents(tmpDirPath.join("Test/aProject/main.swift")) {
+                $0 <<< "let x = 1\n"
+            }
+
+            try await tester.checkBuild(runDestination: .macOS, persistent: true) { results in
+                results.checkTask(.matchRuleType("SwiftCompile")) { results.checkKeyQueryCacheMiss($0) }
+            }
+            try await tester.checkBuild(runDestination: .macOS, buildCommand: .cleanBuildFolder(style: .regular), body: { _ in })
+
+            // Update the source file and rebuild.
+            try await tester.fs.writeFileContents(tmpDirPath.join("Test/aProject/main.swift")) {
+                $0 <<< "let x = 2\n"
+            }
+            try await tester.checkBuild(runDestination: .macOS, persistent: true) { results in
+                results.checkTask(.matchRuleType("SwiftCompile")) { results.checkKeyQueryCacheMiss($0) }
+            }
+            try await tester.checkBuild(runDestination: .macOS, buildCommand: .cleanBuildFolder(style: .regular), body: { _ in })
+
+            // Revert the source change and rebuild. It should still be a cache miss because of CAS size limiting.
+            try await tester.fs.writeFileContents(tmpDirPath.join("Test/aProject/main.swift")) {
+                $0 <<< "let x = 1\n"
+            }
+            try await tester.checkBuild(runDestination: .macOS, persistent: true) { results in
+                results.checkTask(.matchRuleType("SwiftCompile")) { results.checkKeyQueryCacheMiss($0) }
+            }
+        }
+    }
 }
 
 extension BuildOperationTester.BuildResults {
-    fileprivate func checkKeyQueryCacheMiss(_ task: Task, file: StaticString = #file, line: UInt = #line) {
-        checkRemark(.contains("cache key query miss"))
+    fileprivate func checkKeyQueryCacheMiss(_ task: Task, sourceLocation: SourceLocation = #_sourceLocation) {
+        let found = (getDiagnosticMessageForTask(.contains("cache miss"), kind: .remark, task: task) != nil)
+        guard found else {
+            Issue.record("Unable to find cache miss diagnostic for task \(task)", sourceLocation: sourceLocation)
+            return
+        }
     }
 
-    fileprivate func checkKeyQueryCacheHit(_ task: Task, file: StaticString = #file, line: UInt = #line) {
-        checkRemark(.contains("cache key query hit"))
+    fileprivate func checkKeyQueryCacheHit(_ task: Task, sourceLocation: SourceLocation = #_sourceLocation) {
+        let found = (getDiagnosticMessageForTask(.contains("cache found for key"), kind: .remark, task: task) != nil)
+        guard found else {
+            Issue.record("Unable to find cache hit diagnostic for task \(task)", sourceLocation: sourceLocation)
+            return
+        }
     }
 }

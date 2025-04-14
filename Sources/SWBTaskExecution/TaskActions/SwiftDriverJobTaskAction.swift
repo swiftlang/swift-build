@@ -494,6 +494,17 @@ public final class SwiftDriverJobTaskAction: TaskAction, BuildValueValidatingTas
             if let casOpts = payload.casOptions, casOpts.enableIntegratedCacheQueries {
                 let swiftModuleDependencyGraph = dynamicExecutionDelegate.operationContext.swiftModuleDependencyGraph
                 cas = try swiftModuleDependencyGraph.getCASDatabases(casOptions: casOpts, compilerLocation: payload.compilerLocation)
+
+                let casKey = ClangCachingPruneDataTaskKey(
+                    path: payload.compilerLocation.compilerOrLibraryPath,
+                    casOptions: casOpts
+                )
+                dynamicExecutionDelegate.operationContext.compilationCachingDataPruner.pruneCAS(
+                    cas!,
+                    key: casKey,
+                    activityReporter: dynamicExecutionDelegate,
+                    fileSystem: executionDelegate.fs
+                )
             } else {
                 cas = nil
             }
