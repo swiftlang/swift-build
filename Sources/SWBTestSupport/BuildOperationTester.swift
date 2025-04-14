@@ -631,6 +631,25 @@ package final class BuildOperationTester {
             return nil
         }
 
+        package func getDiagnosticMessageForTask(_ pattern: StringPattern, kind: DiagnosticKind, task: Task) -> String? {
+            for (index, event) in self.events.enumerated() {
+                switch event {
+                case .taskHadEvent(let eventTask, event: .hadDiagnostic(let diagnostic)) where diagnostic.behavior == kind:
+                    guard eventTask == task else {
+                        continue
+                    }
+                    let message = diagnostic.formatLocalizedDescription(.debugWithoutBehavior, task: eventTask)
+                    if pattern ~= message {
+                        _eventList.remove(at: index)
+                        return message
+                    }
+                default:
+                    continue
+                }
+            }
+            return nil
+        }
+
         package func check(_ pattern: StringPattern, kind: BuildOperationTester.DiagnosticKind, failIfNotFound: Bool, sourceLocation: SourceLocation, checkDiagnostic: (Diagnostic) -> Bool) -> Bool {
             let found = (getDiagnosticMessage(pattern, kind: kind, checkDiagnostic: checkDiagnostic) != nil)
             if !found, failIfNotFound {

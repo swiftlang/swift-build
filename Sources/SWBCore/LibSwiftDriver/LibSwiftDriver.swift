@@ -461,6 +461,15 @@ public final class LibSwiftDriver {
         case path(Path)
         case library(libSwiftScanPath: Path)
 
+        public var compilerOrLibraryPath: Path {
+            switch self {
+            case .path(let path):
+                return path
+            case .library(let path):
+                return path
+            }
+        }
+
         public var description: String {
             switch self {
             case .path(let path):
@@ -752,6 +761,14 @@ public final class SwiftCASDatabases {
     init(_ cas: SwiftScanCAS) {
         self.cas = cas
     }
+
+    public var supportsSizeManagement: Bool { cas.supportsSizeManagement }
+
+    public func getStorageSize() throws -> Int64? { try cas.getStorageSize() }
+
+    public func setSizeLimit(_ size: Int64) throws { try cas.setSizeLimit(size) }
+
+    public func prune() throws { try cas.prune() }
 
     public func queryCacheKey(_ key: String, globally: Bool) async throws -> SwiftCachedCompilation? {
         guard let comp = try await cas.queryCacheKey(key, globally: globally) else { return nil }
