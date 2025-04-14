@@ -4879,7 +4879,7 @@ fileprivate struct SwiftDriverTests: CoreBasedTests {
                 do {
                     let params = BuildParameters(configuration: "Debug")
                     try await tester.checkBuild(runDestination: .macOS, buildRequest: parameterizedBuildRequest(params)) { results in
-                        results.checkWarnings([.contains("Enabling the Swift language feature 'DeprecateApplicationMain' is recommended; set 'SWIFT_UPCOMING_FEATURE_DEPRECATE_APPLICATION_MAIN = YES'")], failIfNotFound: true)
+                        results.checkWarnings([.contains("Enabling the Swift language feature 'DeprecateApplicationMain' will become a requirement in the future; set 'SWIFT_UPCOMING_FEATURE_DEPRECATE_APPLICATION_MAIN = YES'")], failIfNotFound: true)
                         results.checkNotes([.contains("Learn more about 'DeprecateApplicationMain' by visiting https://www.swift.org/swift-evolution/")])
                         results.checkNoErrors()
                     }
