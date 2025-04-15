@@ -5041,4 +5041,106 @@ fileprivate struct SwiftDriverTests: CoreBasedTests {
             }
         }
     }
+
+    @Test(.requireSDKs(.macOS))
+    func incrementalExplicitModulesLinkerSwiftmoduleRegistration() async throws {
+        try await withTemporaryDirectory { tmpDirPath async throws -> Void in
+            let testWorkspace = try await TestWorkspace(
+                "Test",
+                sourceRoot: tmpDirPath.join("Test"),
+                projects: [
+                    TestProject(
+                        "aProject",
+                        groupTree: TestGroup(
+                            "Sources",
+                            path: "Sources",
+                            children: [
+                                TestFile("fileA1.swift"),
+                            ]),
+                        buildConfigurations: [
+                            TestBuildConfiguration(
+                                "Debug",
+                                buildSettings: [
+                                    "PRODUCT_NAME": "$(TARGET_NAME)",
+                                    "SWIFT_VERSION": swiftVersion,
+                                    "BUILD_VARIANTS": "normal",
+                                    "SWIFT_USE_INTEGRATED_DRIVER": "YES",
+                                    "SWIFT_ENABLE_EXPLICIT_MODULES": "YES",
+                                ])
+                        ],
+                        targets: [
+                            TestStandardTarget(
+                                "TargetA",
+                                type: .framework,
+                                buildPhases: [
+                                    TestSourcesBuildPhase([
+                                        "fileA1.swift",
+                                    ]),
+                                ]),
+                        ])
+                ])
+
+            let tester = try await BuildOperationTester(getCore(), testWorkspace, simulated: false)
+            tester.userInfo = tester.userInfo.withAdditionalEnvironment(environment: ["SWIFT_FORCE_MODULE_LOADING": "only-interface"])
+            let parameters = BuildParameters(configuration: "Debug", overrides: [
+                // Redirect the prebuilt cache so we always build modules from source
+                "SWIFT_OVERLOAD_PREBUILT_MODULE_CACHE_PATH": tmpDirPath.str
+            ])
+            let buildRequest = BuildRequest(parameters: parameters, buildTargets: tester.workspace.projects[0].targets.map({ BuildRequest.BuildTargetInfo(parameters: parameters, target: $0) }), continueBuildingAfterErrors: false, useParallelTargets: true, useImplicitDependencies: false, useDryRun: false)
+            let SRCROOT = testWorkspace.sourceRoot.join("aProject")
+
+            // Create the source files.
+            try await tester.fs.writeFileContents(SRCROOT.join("Sources/fileA1.swift")) { file in
+                file <<<
+                        """
+                        public struct A {
+                            public init() { }
+                        }
+                        """
+            }
+
+            var cleanResponseFileContents: ByteString? = nil
+            try await tester.checkBuild(runDestination: .macOS, buildRequest: buildRequest, persistent: true) { results in
+                var responseFile: Path? = nil
+                results.checkTask(.matchRuleType("SwiftDriver Compilation Requirements")) { driverTask in
+                    responseFile = driverTask.outputPaths.filter { $0.str.hasSuffix("-linker-args.resp") }.only
+                }
+                try results.checkTask(.matchRuleType("Ld")) { linkTask in
+                    linkTask.checkCommandLineContains("@\(try #require(responseFile).str)")
+                }
+                let responseFileContents = try tester.fs.read(try #require(responseFile))
+                #expect(!responseFileContents.isEmpty)
+                cleanResponseFileContents = responseFileContents
+            }
+
+            try await tester.fs.writeFileContents(SRCROOT.join("Sources/fileA1.swift")) { file in
+                file <<<
+                        """
+                        public struct A {
+                            public init() { }
+                        }
+                        
+                        public func foo() { }
+                        """
+            }
+
+            var incrementalResponseFileContents: ByteString? = nil
+            try await tester.checkBuild(runDestination: .macOS, buildRequest: buildRequest, persistent: true) { results in
+                var responseFile: Path? = nil
+                results.checkTask(.matchRuleType("SwiftDriver Compilation Requirements")) { driverTask in
+                    responseFile = driverTask.outputPaths.filter { $0.str.hasSuffix("-linker-args.resp") }.only
+                }
+                try results.checkTask(.matchRuleType("Ld")) { linkTask in
+                    linkTask.checkCommandLineContains("@\(try #require(responseFile).str)")
+                }
+                let responseFileContents = try tester.fs.read(try #require(responseFile))
+                #expect(!responseFileContents.isEmpty)
+                incrementalResponseFileContents = responseFileContents
+            }
+
+            let cleanContents = try #require(cleanResponseFileContents)
+            let incrementalContents = try #require(incrementalResponseFileContents)
+            #expect(cleanContents == incrementalContents)
+        }
+    }
 }
