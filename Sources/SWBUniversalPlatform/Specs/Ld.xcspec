@@ -400,9 +400,9 @@
                 CommandLineArgs = {
                     "" = ();
                     "<<otherwise>>" = (
-                        "-Xlinker",
-                        "-dylib_install_name",
-                        "-Xlinker",
+                        "-Xclang-linker",
+                        "-install_name",
+                        "-Xclang-linker",
                         "$(value)",
                     );
                 };
@@ -509,7 +509,7 @@
                 Condition = "$(LINKER_DRIVER) == swiftc";
                 CommandLineArgs = {
                     YES = (
-                        "-Xlinker", "-export_dynamic"
+                        "-Xclang-linker", "-rdynamic"
                     );
                     NO = ();
                 };

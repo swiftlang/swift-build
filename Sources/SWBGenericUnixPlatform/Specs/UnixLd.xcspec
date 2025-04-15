@@ -146,18 +146,6 @@
                 Condition = "NO";
             },
             {
-                Name = "SWIFTC_LD_EXPORT_GLOBAL_SYMBOLS";
-                Type = Boolean;
-                DefaultValue = "$(LD_EXPORT_GLOBAL_SYMBOLS)";
-                Condition = "$(LINKER_DRIVER) == swiftc";
-                CommandLineArgs = {
-                    YES = (
-                        "-Xlinker", "--export-dynamic"
-                    );
-                    NO = ();
-                };
-            },
-            {
                 Name = "__INPUT_FILE_LIST_PATH__";
                 Type = Path;
                 DefaultValue = "$(LINK_FILE_LIST_$(variant)_$(arch))";
