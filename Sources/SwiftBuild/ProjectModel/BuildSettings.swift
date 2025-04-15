@@ -162,6 +162,7 @@ extension ProjectModel {
             case windows
             case wasi
             case openbsd
+            case freebsd
 
             public var asConditionStrings: [String] {
                 let filters = self.toPlatformFilter().map { (filter: ProjectModel.PlatformFilter) -> String in
@@ -262,6 +263,9 @@ public extension ProjectModel.BuildSettings.Platform {
 
         case .openbsd:
             result.append(.init(platform: "openbsd"))
+
+        case .freebsd:
+            result.append(.init(platform: "freebsd"))
         }
         return result
     }
