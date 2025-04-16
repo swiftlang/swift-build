@@ -570,7 +570,6 @@ class FilesBasedBuildPhaseTaskProducerBase: PhasedTaskProducer {
             }
         }
 
-        let sourceFiles = (self.targetContext.configuredTarget?.target as? SWBCore.StandardTarget)?.sourcesBuildPhase?.buildFiles.count ?? 0
         var compileToSwiftFileTypes : [String] = []
         for groupingStragegyExtensions in await context.workspaceContext.core.pluginManager.extensions(of: InputFileGroupingStrategyExtensionPoint.self) {
             compileToSwiftFileTypes.append(contentsOf: groupingStragegyExtensions.fileTypesCompilingToSwiftSources())
