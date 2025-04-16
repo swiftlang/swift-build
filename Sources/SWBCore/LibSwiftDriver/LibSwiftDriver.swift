@@ -177,6 +177,36 @@ public final class SwiftModuleDependencyGraph: SwiftGlobalExplicitDependencyGrap
         }
     }
 
+    public func querySwiftmodulesNeedingRegistrationForDebugging(for key: String) throws -> [String] {
+        let graph = try registryQueue.blocking_sync {
+            guard let driver = registry[key] else {
+                throw StubError.error("Unable to find jobs for key \(key). Be sure to plan the build ahead of fetching results.")
+            }
+            return driver.intermoduleDependencyGraph
+        }
+        guard let graph else { return [] }
+        var swiftmodulePaths: [String] = []
+        swiftmodulePaths.reserveCapacity(graph.modules.values.count)
+        for (_, moduleInfo) in graph.modules.sorted(byKey: { $0.moduleName < $1.moduleName }) {
+            guard moduleInfo != graph.mainModule else {
+                continue
+            }
+            switch moduleInfo.details {
+            case .swift:
+                if let modulePath = VirtualPath.lookup(moduleInfo.modulePath.path).absolutePath {
+                    swiftmodulePaths.append(modulePath.pathString)
+                }
+            case .swiftPrebuiltExternal(let details):
+                if let modulePath = VirtualPath.lookup(details.compiledModulePath.path).absolutePath {
+                    swiftmodulePaths.append(modulePath.pathString)
+                }
+            case .clang, .swiftPlaceholder:
+                break
+            }
+        }
+        return swiftmodulePaths
+    }
+
     public func queryPlanningDependencies(for key: String) throws -> [String] {
         let graph = try registryQueue.blocking_sync {
             guard let driver = registry[key] else {
@@ -185,13 +215,10 @@ public final class SwiftModuleDependencyGraph: SwiftGlobalExplicitDependencyGrap
             return driver.intermoduleDependencyGraph
         }
         guard let graph else { return [] }
-        let directDependencies = graph.mainModule.directDependencies ?? []
-        let transitiveDependencies = Set(directDependencies + SWBUtil.transitiveClosure(directDependencies, successors: { moduleID in graph.modules[moduleID]?.directDependencies ?? [] }).0)
-
         var fileDependencies: [String] = []
-        fileDependencies.reserveCapacity(transitiveDependencies.count * 10)
-        for dependencyID in transitiveDependencies {
-            guard let moduleInfo = graph.modules[dependencyID] else {
+        fileDependencies.reserveCapacity(graph.modules.values.count * 10)
+        for (_, moduleInfo) in graph.modules.sorted(byKey: { $0.moduleName < $1.moduleName }) {
+            guard moduleInfo != graph.mainModule else {
                 continue
             }
             fileDependencies.append(contentsOf: moduleInfo.sourceFiles ?? [])
