@@ -2970,9 +2970,9 @@ fileprivate struct ClangExplicitModulesTests: CoreBasedTests {
                 try await tester.checkBuild(runDestination: destination, buildRequest: buildRequest, persistent: true) { results in
                     switch warningLevel {
                     case .yes:
-                        results.checkWarning("'Framework2' is missing a dependency on 'Framework1' because dependency scan of 'file_2.c' discovered a dependency on 'Framework1'")
+                        results.checkWarning("'Framework2' is missing a dependency on 'Framework1' because dependency scan of 'file_2.c' discovered a dependency on 'Framework1' (in target 'Framework2' from project 'aProject')")
                     case .yesError:
-                        results.checkError("'Framework2' is missing a dependency on 'Framework1' because dependency scan of 'file_2.c' discovered a dependency on 'Framework1'")
+                        results.checkError("'Framework2' is missing a dependency on 'Framework1' because dependency scan of 'file_2.c' discovered a dependency on 'Framework1' (in target 'Framework2' from project 'aProject')")
                     default:
                         break
                     }

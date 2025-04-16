@@ -4613,11 +4613,11 @@ fileprivate struct SwiftDriverTests: CoreBasedTests {
                 try await tester.checkBuild(runDestination: .macOS, buildRequest: buildRequest, persistent: true) { results in
                     switch warningLevel {
                     case .yes:
-                        results.checkWarning("'Framework3' is missing a dependency on 'Framework1' because dependency scan of Swift module 'Framework3' discovered a dependency on 'Framework1'")
-                        results.checkWarning("'Framework3' is missing a dependency on 'Framework2' because dependency scan of Swift module 'Framework3' discovered a dependency on 'Framework2'")
+                        results.checkWarning("'Framework3' is missing a dependency on 'Framework1' because dependency scan of Swift module 'Framework3' discovered a dependency on 'Framework1' (in target 'Framework3' from project 'aProject')")
+                        results.checkWarning("'Framework3' is missing a dependency on 'Framework2' because dependency scan of Swift module 'Framework3' discovered a dependency on 'Framework2' (in target 'Framework3' from project 'aProject')")
                     case .yesError:
-                        results.checkError("'Framework3' is missing a dependency on 'Framework1' because dependency scan of Swift module 'Framework3' discovered a dependency on 'Framework1'")
-                        results.checkError("'Framework3' is missing a dependency on 'Framework2' because dependency scan of Swift module 'Framework3' discovered a dependency on 'Framework2'")
+                        results.checkError("'Framework3' is missing a dependency on 'Framework1' because dependency scan of Swift module 'Framework3' discovered a dependency on 'Framework1' (in target 'Framework3' from project 'aProject')")
+                        results.checkError("'Framework3' is missing a dependency on 'Framework2' because dependency scan of Swift module 'Framework3' discovered a dependency on 'Framework2' (in target 'Framework3' from project 'aProject')")
                     default:
                         break
                     }
