@@ -10,18 +10,20 @@
 //
 //===----------------------------------------------------------------------===//
 
-private import SWBLibc
+#if canImport(os)
+public import os
+#elseif os(Windows)
+public import WinSDK
+#else
+public import SWBLibc
+#endif
 
 // FIXME: Replace the contents of this file with the Swift standard library's Mutex type once it's available everywhere we deploy.
 
 /// A more efficient lock than a DispatchQueue (esp. under contention).
 #if canImport(os)
-public import os
 public typealias Lock = OSAllocatedUnfairLock
 #else
-#if os(Windows)
-public import WinSDK
-#endif
 public final class Lock: @unchecked Sendable {
     #if os(Windows)
     @usableFromInline
