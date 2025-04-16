@@ -879,8 +879,15 @@ package final class BuildOperation: BuildSystemOperation {
     }
 
     package func taskDiscoveredRequiredTargetDependency(target: ConfiguredTarget, antecedent: ConfiguredTarget, reason: RequiredTargetDependencyReason, warningLevel: BooleanWarningLevel) {
-        if !transitiveDependencyExists(target: target, antecedent: antecedent) {
+        let diagnosticBehavior: SWBUtil.Diagnostic.Behavior
+        switch warningLevel {
+        case .yesError: diagnosticBehavior = .error
+        case .yes: diagnosticBehavior = .warning
+        case .no: return
+        }
+        let targetDiagnosticsEngine = buildOutputDelegate.diagnosticsEngine(for: target)
 
+        if !transitiveDependencyExists(target: target, antecedent: antecedent) {
             // Ensure we only diagnose missing dependencies when platform and SDK variant match. We perform this check as late as possible since computing settings can be expensive.
             let targetSettings = requestContext.getCachedSettings(target.parameters, target: target.target)
             let antecedentSettings = requestContext.getCachedSettings(antecedent.parameters, target: antecedent.target)
@@ -898,14 +905,8 @@ package final class BuildOperation: BuildSystemOperation {
             } else {
                 message = DiagnosticData("'\(target.target.name)' is missing a dependency on '\(antecedent.target.name)' because \(reason)")
             }
-            switch warningLevel {
-            case .yes:
-                buildOutputDelegate.emit(Diagnostic(behavior: .warning, location: .unknown, data: message))
-            case .yesError:
-                buildOutputDelegate.emit(Diagnostic(behavior: .error, location: .unknown, data: message))
-            default:
-                break
-            }
+
+            targetDiagnosticsEngine.emit(Diagnostic(behavior: diagnosticBehavior, location: .unknown, data: message))
         }
     }
 }
