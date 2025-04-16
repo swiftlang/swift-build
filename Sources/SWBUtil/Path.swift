@@ -49,7 +49,7 @@ public struct Path: Serializable, Sendable {
 
     /// The path's file system representation as a string.
     public var str: String {
-        return _str
+        return FilePath(_str).string
     }
     /// The system path separator.
     #if os(Windows)
@@ -255,7 +255,6 @@ public struct Path: Serializable, Sendable {
     public var isConformant: Bool {
         #if os(Windows)
         //FIXME: The legacy implementation of will not work for windows roots. By default on windows we never use the legacy implementation.
-        precondition(!useLegacyImplementation)
         if let root = _impl.root?.string {
             if root.rangeOfCharacter(from: Path.reservedRootPathCharacters) != nil {
                 return false
