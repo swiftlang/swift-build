@@ -109,7 +109,7 @@ fileprivate struct SwiftCompilationCachingTests: CoreBasedTests {
                     numCompile += tasks.count
                 }
 
-                results.check(contains: .activityEmittedData(ruleInfo: "CompilationCacheMetrics", ByteString(encodingAsUTF8: "Swift compiler: 0 hits (0%), 4 misses").bytes))
+                results.checkNote("0 hits (0%), 4 misses")
 
                 results.checkNoTask()
             }
@@ -121,7 +121,7 @@ fileprivate struct SwiftCompilationCachingTests: CoreBasedTests {
 
             tester.userInfo = rawUserInfo.withAdditionalEnvironment(environment: metricsEnv("two"))
             try await tester.checkBuild(runDestination: .anyiOSDevice, persistent: true) { results in
-                results.check(contains: .activityEmittedData(ruleInfo: "CompilationCacheMetrics", ByteString(encodingAsUTF8: "Swift compiler: 4 hits (100%), 0 misses").bytes))
+                results.checkNote("4 hits (100%), 0 misses")
             }
             #expect(try readMetrics("two").contains("\"swiftCacheHits\":\(numCompile),\"swiftCacheMisses\":0"))
         }
