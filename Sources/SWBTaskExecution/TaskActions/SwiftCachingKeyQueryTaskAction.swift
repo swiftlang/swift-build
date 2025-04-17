@@ -49,7 +49,7 @@ public final class SwiftCachingKeyQueryTaskAction: TaskAction {
                 for cacheKey in key.cacheKeys {
                     let cacheHit = try await cas.queryCacheKey(cacheKey, globally: true) != nil
                     if key.casOptions.enableDiagnosticRemarks {
-                        outputDelegate.remark("cache key query \(cacheHit ? "hit" : "miss")")
+                        outputDelegate.note("cache key query \(cacheHit ? "hit" : "miss")")
                     }
                     guard cacheHit else {
                         // return on first failure.
@@ -60,7 +60,7 @@ public final class SwiftCachingKeyQueryTaskAction: TaskAction {
                 guard !key.casOptions.enableStrictCASErrors else { throw error }
                 outputDelegate.warning(error.localizedDescription)
                 if key.casOptions.enableDiagnosticRemarks {
-                    outputDelegate.remark("cache key query failed")
+                    outputDelegate.note("cache key query failed")
                 }
             }
             return .succeeded

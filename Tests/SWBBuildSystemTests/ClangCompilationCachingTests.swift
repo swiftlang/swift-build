@@ -1672,7 +1672,7 @@ fileprivate struct ClangCompilationCachingTests: CoreBasedTests {
 
                 results.check(contains: .activityStarted(ruleInfo: "ClangCachingPruneData \(path.str)/builtin \(libClangPath.str)"))
                 results.check(contains: .activityEnded(ruleInfo: "ClangCachingPruneData \(path.str)/builtin \(libClangPath.str)", status: .succeeded))
-                results.checkRemark(.contains("cache miss: "))
+                results.checkNote(.contains("cache miss: "))
                 results.checkNoRemarks()
             }
 
@@ -1686,7 +1686,7 @@ fileprivate struct ClangCompilationCachingTests: CoreBasedTests {
                 results.check(notContains: .activityEnded(ruleInfo: "CleanupCompileCache \(path.str)", status: .succeeded))
 
                 if canUseCASPruning {
-                    results.checkRemark(.regex(try Regex("cache size \\(.*\\) larger than size limit")))
+                    results.checkNote(.regex(try Regex("cache size \\(.*\\) larger than size limit")))
                 }
             }
 
@@ -1708,7 +1708,7 @@ fileprivate struct ClangCompilationCachingTests: CoreBasedTests {
 
                 results.check(contains: .activityStarted(ruleInfo: "ClangCachingPruneData \(path.str)/builtin \(libClangPath.str)"))
                 results.check(contains: .activityEnded(ruleInfo: "ClangCachingPruneData \(path.str)/builtin \(libClangPath.str)", status: .succeeded))
-                results.checkRemark(.contains("cache miss: "))
+                results.checkNote(.contains("cache miss: "))
                 results.checkNoRemarks()
             }
         }
@@ -1836,12 +1836,20 @@ fileprivate struct ClangCompilationCachingTests: CoreBasedTests {
 }
 
 extension BuildOperationTester.BuildResults {
-    fileprivate func checkCompileCacheMiss(_ task: Task, file: StaticString = #file, line: UInt = #line) {
-        checkRemark(.contains("cache miss: "))
+    fileprivate func checkCompileCacheMiss(_ task: Task, sourceLocation: SourceLocation = #_sourceLocation) {
+        let found = (getDiagnosticMessageForTask(.contains("cache miss: "), kind: .note, task: task) != nil)
+        guard found else {
+            Issue.record("Unable to find cache miss diagnostic for task \(task)", sourceLocation: sourceLocation)
+            return
+        }
     }
 
-    fileprivate func checkCompileCacheHit(_ task: Task, file: StaticString = #file, line: UInt = #line) {
-        checkRemark(.contains("cache hit: "))
-        while checkRemark(.contains("using CAS output"), failIfNotFound: false) {}
+    fileprivate func checkCompileCacheHit(_ task: Task, sourceLocation: SourceLocation = #_sourceLocation) {
+        let found = (getDiagnosticMessageForTask(.contains("cache hit: "), kind: .note, task: task) != nil)
+        guard found else {
+            Issue.record("Unable to find cache hit diagnostic for task \(task)", sourceLocation: sourceLocation)
+            return
+        }
+        while getDiagnosticMessageForTask(.contains("using CAS output"), kind: .note, task: task) != nil {}
     }
 }

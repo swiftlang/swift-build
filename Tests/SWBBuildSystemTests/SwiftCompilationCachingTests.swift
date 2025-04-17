@@ -201,7 +201,7 @@ fileprivate struct SwiftCompilationCachingTests: CoreBasedTests {
 
 extension BuildOperationTester.BuildResults {
     fileprivate func checkKeyQueryCacheMiss(_ task: Task, sourceLocation: SourceLocation = #_sourceLocation) {
-        let found = (getDiagnosticMessageForTask(.contains("cache miss"), kind: .remark, task: task) != nil)
+        let found = (getDiagnosticMessageForTask(.contains("cache miss"), kind: .note, task: task) != nil)
         guard found else {
             Issue.record("Unable to find cache miss diagnostic for task \(task)", sourceLocation: sourceLocation)
             return
@@ -209,7 +209,7 @@ extension BuildOperationTester.BuildResults {
     }
 
     fileprivate func checkKeyQueryCacheHit(_ task: Task, sourceLocation: SourceLocation = #_sourceLocation) {
-        let found = (getDiagnosticMessageForTask(.contains("cache found for key"), kind: .remark, task: task) != nil)
+        let found = (getDiagnosticMessageForTask(.contains("cache found for key"), kind: .note, task: task) != nil)
         guard found else {
             Issue.record("Unable to find cache hit diagnostic for task \(task)", sourceLocation: sourceLocation)
             return

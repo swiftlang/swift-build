@@ -599,24 +599,24 @@ public final class SwiftDriverJobTaskAction: TaskAction, BuildValueValidatingTas
                 // If any of the key misses, return cache miss.
                 guard let comp = try cas.queryLocalCacheKey(cacheKey) else {
                     if enableDiagnosticRemarks {
-                        outputDelegate.remark("local cache miss for key: \(cacheKey)")
+                        outputDelegate.note("local cache miss for key: \(cacheKey)")
                     }
                     return false
                 }
                 if enableDiagnosticRemarks {
-                    outputDelegate.remark("local cache found for key: \(cacheKey)")
+                    outputDelegate.note("local cache found for key: \(cacheKey)")
                 }
                 // Check all outputs are materialized.
                 // Doing the check immediately after the key allows associating the output remarks with the right key.
                 for output in try comp.getOutputs() {
                     if !output.isMaterialized {
                         if enableDiagnosticRemarks {
-                            outputDelegate.remark("cached output \(output.kindName) not available locally: \(output.casID)")
+                            outputDelegate.note("cached output \(output.kindName) not available locally: \(output.casID)")
                         }
                         return false
                     }
                     if enableDiagnosticRemarks {
-                        outputDelegate.remark("using CAS output \(output.kindName): \(output.casID)")
+                        outputDelegate.note("using CAS output \(output.kindName): \(output.casID)")
                     }
                 }
                 comps.append(comp)
@@ -642,7 +642,7 @@ public final class SwiftDriverJobTaskAction: TaskAction, BuildValueValidatingTas
 
         let result = try await replayCachedCommandImpl()
         if enableDiagnosticRemarks {
-            outputDelegate.remark("replay cache \(result ? "hit" : "miss")")
+            outputDelegate.note("replay cache \(result ? "hit" : "miss")")
         }
         if result {
             outputDelegate.incrementSwiftCacheHit()

@@ -82,7 +82,7 @@ package final class CompilationCachingUploader {
         if enableDiagnosticRemarks {
             for output in clangCompilation.getOutputs() {
                 activityReporter.emit(
-                    diagnostic: Diagnostic(behavior: .remark, location: .unknown, data: DiagnosticData("uploaded CAS output \(output.name): \(output.casID)")),
+                    diagnostic: Diagnostic(behavior: .note, location: .unknown, data: DiagnosticData("uploaded CAS output \(output.name): \(output.casID)")),
                     for: activityID,
                     signature: signature
                 )
@@ -144,7 +144,7 @@ package final class CompilationCachingUploader {
             if enableDiagnosticRemarks {
                 for output in try swiftCompilation.getOutputs() {
                     activityReporter.emit(
-                        diagnostic: Diagnostic(behavior: .remark,
+                        diagnostic: Diagnostic(behavior: .note,
                                                location: .unknown,
                                                data: DiagnosticData("uploaded CAS output \(output.kindName): \(output.casID)")),
                         for: activityID,

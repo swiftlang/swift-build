@@ -59,7 +59,7 @@ public final class ClangCachingOutputMaterializerTaskAction: TaskAction {
             }
             if obj == nil {
                 if key.casOptions.enableDiagnosticRemarks {
-                    outputDelegate.remark("missing CAS object: \(key.casID)")
+                    outputDelegate.note("missing CAS object: \(key.casID)")
                 }
             }
             return .succeeded
