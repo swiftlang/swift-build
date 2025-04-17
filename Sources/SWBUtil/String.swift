@@ -768,7 +768,7 @@ fileprivate struct BinaryDataIterator<C, T: UnsignedInteger & FixedWidthInteger>
     }
 }
 
-#if canImport(CoreFoundation)
+#if canImport(Darwin)
 public import class CoreFoundation.CFString
 public import enum CoreFoundation.CFStringBuiltInEncodings
 public import func CoreFoundation.CFStringCreateWithCString

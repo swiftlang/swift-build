@@ -10,7 +10,7 @@
 //
 //===----------------------------------------------------------------------===//
 
-#if canImport(CoreFoundation)
+#if canImport(Darwin)
 import class CoreFoundation.CFBoolean
 import func CoreFoundation.CFBooleanGetTypeID
 import func CoreFoundation.CFBooleanGetValue
@@ -68,7 +68,7 @@ extension PropertyListConversionError: CustomStringConvertible {
 }
 
 public struct OpaquePropertyListItem: Equatable, Hashable, @unchecked Sendable {
-#if canImport(CoreFoundation)
+#if canImport(Darwin)
     fileprivate var wrappedValue: CFTypeRef
 
     fileprivate init(_ wrappedValue: CFTypeRef) {
@@ -639,7 +639,7 @@ extension PropertyListItem: Equatable {
 
 private func convertToPropertyListItem(_ item: Any) -> PropertyListItem {
     switch(item) {
-#if canImport(CoreFoundation)
+#if canImport(Darwin)
     case let asBool as CFBoolean where CFGetTypeID(asBool) == CFBooleanGetTypeID():
         return .plBool(CFBooleanGetValue(asBool))
 
@@ -683,7 +683,7 @@ private func convertToPropertyListItem(_ item: Any) -> PropertyListItem {
         }
         return .plDict(result)
 
-#if canImport(CoreFoundation)
+#if canImport(Darwin)
     case let asCFType as CFTypeRef:
         return .plOpaque(.init(asCFType))
 #else
