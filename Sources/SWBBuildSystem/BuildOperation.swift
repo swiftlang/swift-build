@@ -666,22 +666,24 @@ package final class BuildOperation: BuildSystemOperation {
         let aggregatedCounters = await adaptor.getAggregatedCounters()
         let aggregatedTaskCounters = await adaptor.getAggregatedTaskCounters()
         do {
-            let swiftCacheHits = aggregatedCounters[.swiftCacheHits, default: 0]
-            let swiftCacheMisses = aggregatedCounters[.swiftCacheMisses, default: 0]
-            let clangCacheHits = aggregatedCounters[.clangCacheHits, default: 0]
-            let clangCacheMisses = aggregatedCounters[.clangCacheMisses, default: 0]
-            if swiftCacheHits + swiftCacheMisses > 0 || clangCacheHits + clangCacheMisses > 0 {
-                adaptor.withActivity(ruleInfo: "CompilationCacheMetrics", executionDescription: "Report compilation cache metrics", signature: "compilation_cache_metrics", target: nil, parentActivity: nil) { activity in
+            let cacheHits: Int
+            let cacheMisses: Int
+            do {
+                let swiftCacheHits = aggregatedCounters[.swiftCacheHits, default: 0]
+                let swiftCacheMisses = aggregatedCounters[.swiftCacheMisses, default: 0]
+                let clangCacheHits = aggregatedCounters[.clangCacheHits, default: 0]
+                let clangCacheMisses = aggregatedCounters[.clangCacheMisses, default: 0]
+                cacheHits = swiftCacheHits + clangCacheHits
+                cacheMisses = swiftCacheMisses + clangCacheMisses
+            }
+            if cacheHits + cacheMisses > 0 {
+                let signature = ByteString(encodingAsUTF8: "compilation_cache_metrics")
+                adaptor.withActivity(ruleInfo: "CompilationCacheMetrics", executionDescription: "Report compilation cache metrics", signature: signature, target: nil, parentActivity: nil) { activity in
                     func getSummary(hits: Int, misses: Int) -> String {
                         let hitPercent = Int((Double(hits) / Double(hits + misses) * 100).rounded())
                         return "\(hits) hit\(hits == 1 ? "" : "s") (\(hitPercent)%), \(misses) miss\(misses == 1 ? "" : "es")"
                     }
-                    if swiftCacheHits + swiftCacheMisses > 0 {
-                        delegate.emit(data: ByteString(encodingAsUTF8: "Swift compiler: \(getSummary(hits: swiftCacheHits, misses: swiftCacheMisses))").bytes, for: activity, signature: "compilation_cache_metrics")
-                    }
-                    if clangCacheHits + clangCacheMisses > 0 {
-                        delegate.emit(data: ByteString(encodingAsUTF8: "Clang compiler: \(getSummary(hits: clangCacheHits, misses: clangCacheMisses))").bytes, for: activity, signature: "compilation_cache_metrics")
-                    }
+                    delegate.emit(diagnostic: Diagnostic(behavior: .note, location: .unknown, data: DiagnosticData(getSummary(hits: cacheHits, misses: cacheMisses))), for: activity, signature: signature)
                     return .succeeded
                 }
 
