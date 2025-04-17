@@ -369,7 +369,7 @@ public final class ClangCompileTaskAction: TaskAction, BuildValueValidatingTaskA
         }
         guard let cachedComp = try casDBs.getLocalCachedCompilation(cacheKey: cacheKey) else {
             if enableDiagnosticRemarks {
-                outputDelegate.remark("cache miss: \(cacheKey)")
+                outputDelegate.note("cache miss: \(cacheKey)")
             }
             outputDelegate.incrementClangCacheMiss()
             outputDelegate.incrementTaskCounter(.cacheMisses)
@@ -380,8 +380,8 @@ public final class ClangCompileTaskAction: TaskAction, BuildValueValidatingTaskA
         for output in outputs {
             guard cachedComp.isOutputMaterialized(output) else {
                 if enableDiagnosticRemarks {
-                    outputDelegate.remark("missing CAS output \(output.name): \(output.casID)")
-                    outputDelegate.remark("cache miss: \(cacheKey)")
+                    outputDelegate.note("missing CAS output \(output.name): \(output.casID)")
+                    outputDelegate.note("cache miss: \(cacheKey)")
                 }
                 outputDelegate.incrementClangCacheMiss()
                 outputDelegate.incrementTaskCounter(.cacheMisses)
@@ -390,9 +390,9 @@ public final class ClangCompileTaskAction: TaskAction, BuildValueValidatingTaskA
         }
         let diagnosticText = try cachedComp.replay(commandLine: command.arguments, workingDirectory: workingDirectory.str)
         if enableDiagnosticRemarks {
-            outputDelegate.remark("replayed cache hit: \(cacheKey)")
+            outputDelegate.note("replayed cache hit: \(cacheKey)")
             for output in outputs {
-                outputDelegate.remark("using CAS output \(output.name): \(output.casID)")
+                outputDelegate.note("using CAS output \(output.name): \(output.casID)")
             }
         }
         outputDelegate.incrementClangCacheHit()
@@ -415,7 +415,7 @@ public final class ClangCompileTaskAction: TaskAction, BuildValueValidatingTaskA
         guard let cachedComp = try casDBs.getLocalCachedCompilation(cacheKey: cacheKey) else {
             // This can happen if caching an invocation is skipped due to using date/time macros which makes the output non-deterministic.
             if enableDiagnosticRemarks {
-                outputDelegate.remark("compilation was not cached for key: \(cacheKey)")
+                outputDelegate.note("compilation was not cached for key: \(cacheKey)")
             }
             return
         }

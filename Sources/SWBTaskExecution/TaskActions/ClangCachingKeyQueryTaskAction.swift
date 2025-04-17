@@ -64,7 +64,7 @@ public final class ClangCachingKeyQueryTaskAction: TaskAction {
                 cachedComp = nil
             }
             if key.casOptions.enableDiagnosticRemarks {
-                outputDelegate.remark("cache \(cachedComp != nil ? "hit" : "miss")")
+                outputDelegate.note("cache \(cachedComp != nil ? "hit" : "miss")")
             }
             return .succeeded
         } catch {

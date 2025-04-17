@@ -114,10 +114,10 @@ package final class CompilationCachingDataPruner: Sendable {
                 do {
                     let dbSize = try casDBs.getOndiskSize()
                     let sizeLimit = try computeCASSizeLimit(casOptions: casOpts, dbSize: dbSize, fileSystem: fs)
-                    if casOpts.enableDiagnosticRemarks, let dbSize, let sizeLimit, sizeLimit < dbSize {
+                    if let dbSize, let sizeLimit, sizeLimit < dbSize {
                         activityReporter.emit(
                             diagnostic: Diagnostic(
-                                behavior: .remark,
+                                behavior: .note,
                                 location: .unknown,
                                 data: DiagnosticData("cache size (\(dbSize)) larger than size limit (\(sizeLimit))")
                             ),
@@ -183,10 +183,10 @@ package final class CompilationCachingDataPruner: Sendable {
                 do {
                     let dbSize = try casDBs.getStorageSize()
                     let sizeLimit = try computeCASSizeLimit(casOptions: casOpts, dbSize: dbSize.map{Int($0)}, fileSystem: fs)
-                    if casOpts.enableDiagnosticRemarks, let dbSize, let sizeLimit, sizeLimit < dbSize {
+                    if let dbSize, let sizeLimit, sizeLimit < dbSize {
                         activityReporter.emit(
                             diagnostic: Diagnostic(
-                                behavior: .remark,
+                                behavior: .note,
                                 location: .unknown,
                                 data: DiagnosticData("cache size (\(dbSize)) larger than size limit (\(sizeLimit))")
                             ),
@@ -252,10 +252,10 @@ package final class CompilationCachingDataPruner: Sendable {
                 do {
                     let dbSize = (try? toolchainCAS.getOnDiskSize()).map { Int($0) }
                     let sizeLimit = try computeCASSizeLimit(casOptions: casOpts, dbSize: dbSize, fileSystem: fs).map { Int64($0) }
-                    if casOpts.enableDiagnosticRemarks, let dbSize, let sizeLimit, sizeLimit < dbSize {
+                    if let dbSize, let sizeLimit, sizeLimit < dbSize {
                         activityReporter.emit(
                             diagnostic: Diagnostic(
-                                behavior: .remark,
+                                behavior: .note,
                                 location: .unknown,
                                 data: DiagnosticData("cache size (\(dbSize)) larger than size limit (\(sizeLimit))")
                             ),
