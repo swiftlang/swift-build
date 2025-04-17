@@ -151,6 +151,10 @@ final class CLIConnection {
             _ = try? await exitStatus
         }
 
+        // Consume the rest of the output before closing the handle to ensure the dispatch IO is closed
+        while let _ = try? await outputStreamIterator.next() {
+        }
+
         try? monitorHandle.close()
     }
 
