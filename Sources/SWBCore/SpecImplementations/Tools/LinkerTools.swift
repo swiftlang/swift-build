@@ -304,6 +304,12 @@ public final class LdLinkerSpec : GenericLinkerSpec, SpecIdentifierType, @unchec
         return runpathSearchPaths
     }
 
+    override public func environmentFromSpec(_ cbc: CommandBuildContext, _ delegate: any DiagnosticProducingDelegate, lookup: ((MacroDeclaration) -> MacroExpression?)? = nil) -> [(String, String)] {
+        var env: [(String, String)] = super.environmentFromSpec(cbc, delegate, lookup: lookup)
+        env.append(("PATH", cbc.producer.executableSearchPaths.environmentRepresentation))
+        return env
+    }
+
     override public func constructLinkerTasks(_ cbc: CommandBuildContext, _ delegate: any TaskGenerationDelegate, libraries: [LibrarySpecifier], usedTools: [CommandLineToolSpec: Set<FileTypeSpec>]) async {
         // Validate that OTHER_LDFLAGS doesn't contain flags for constructs which we have dedicated settings for. This should be expanded over time.
         let dyldEnvDiagnosticBehavior: Diagnostic.Behavior = SWBFeatureFlag.useStrictLdEnvironmentBuildSetting.value ? .error : .warning
