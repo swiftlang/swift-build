@@ -20,3 +20,8 @@ target_link_libraries(SWBBuildServiceBundle PRIVATE
   SWBCore)
 
 install(TARGETS SWBBuildServiceBundle)
+
+target_include_directories(SWBBuildServiceBundle PUBLIC
+  ${CMAKE_CURRENT_BINARY_DIR})
+
+set_property(GLOBAL APPEND PROPERTY SWIFTBUILD_EXPORTS SWBBuildServiceBundle)

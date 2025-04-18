@@ -8,7 +8,7 @@ See http://swift.org/LICENSE.txt for license information
 See http://swift.org/CONTRIBUTORS.txt for Swift project authors
 ]]
 
-add_library(SwiftBuild
+add_library(SwiftBuild STATIC
   CompatibilityShims.swift
   ConsoleCommands/SWBServiceConsoleBuildCommand.swift
   ConsoleCommands/SWBServiceConsoleBuildCommandProtocol.swift
@@ -66,3 +66,8 @@ target_link_libraries(SwiftBuild PUBLIC
   SWBProtocol
   SWBUtil
   SWBProjectModel)
+
+target_include_directories(SwiftBuild PUBLIC
+  ${CMAKE_CURRENT_BINARY_DIR})
+
+set_property(GLOBAL APPEND PROPERTY SWIFTBUILD_EXPORTS SwiftBuild)

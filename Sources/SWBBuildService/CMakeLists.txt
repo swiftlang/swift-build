@@ -8,7 +8,7 @@ See http://swift.org/LICENSE.txt for license information
 See http://swift.org/CONTRIBUTORS.txt for Swift project authors
 ]]
 
-add_library(SWBBuildService
+add_library(SWBBuildService STATIC
   BuildDependencyInfo.swift
   BuildOperationMessages.swift
   BuildService.swift
@@ -37,3 +37,8 @@ target_link_libraries(SWBBuildService PUBLIC
   SWBWebAssemblyPlatform
   SWBWindowsPlatform
   $<$<NOT:$<PLATFORM_ID:Darwin>>:SwiftSystem::SystemPackage>)
+
+target_include_directories(SWBBuildService PUBLIC
+  ${CMAKE_CURRENT_BINARY_DIR})
+
+set_property(GLOBAL APPEND PROPERTY SWIFTBUILD_EXPORTS SWBBuildService)

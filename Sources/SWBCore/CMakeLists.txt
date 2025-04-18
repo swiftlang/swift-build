@@ -28,7 +28,7 @@ file(CONFIGURE
   ]]
   ESCAPE_QUOTES @ONLY NEWLINE_STYLE LF)
 
-add_library(SWBCore
+add_library(SWBCore STATIC
   ActivityReporting.swift
   Apple/DeviceFamily.swift
   Apple/InterfaceBuilderShared.swift
@@ -207,3 +207,8 @@ target_link_libraries(SWBCore PUBLIC
   SwiftDriver)
 target_sources(SWBCore PRIVATE
   "${CMAKE_CURRENT_BINARY_DIR}/resource_bundle_accessor.swift")
+
+target_include_directories(SWBCore PUBLIC
+  ${CMAKE_CURRENT_BINARY_DIR})
+
+set_property(GLOBAL APPEND PROPERTY SWIFTBUILD_EXPORTS SWBCore)

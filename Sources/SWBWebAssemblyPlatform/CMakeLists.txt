@@ -36,3 +36,8 @@ target_link_libraries(SWBWebAssemblyPlatform PUBLIC
   SWBUtil)
 target_sources(SWBWebAssemblyPlatform PRIVATE
   "${CMAKE_CURRENT_BINARY_DIR}/resource_bundle_accessor.swift")
+
+target_include_directories(SWBWebAssemblyPlatform PUBLIC
+  ${CMAKE_CURRENT_BINARY_DIR})
+
+set_property(GLOBAL APPEND PROPERTY SWIFTBUILD_EXPORTS SWBWebAssemblyPlatform)

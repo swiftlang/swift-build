@@ -8,7 +8,12 @@ See http://swift.org/LICENSE.txt for license information
 See http://swift.org/CONTRIBUTORS.txt for Swift project authors
 ]]
 
-add_library(SWBCLibc
+add_library(SWBCLibc STATIC
   libc.c)
 target_include_directories(SWBCLibc INTERFACE
   include)
+
+target_include_directories(SWBCLibc PUBLIC
+  ${CMAKE_CURRENT_BINARY_DIR})
+
+set_property(GLOBAL APPEND PROPERTY SWIFTBUILD_EXPORTS SWBCLibc)

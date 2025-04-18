@@ -8,7 +8,7 @@ See http://swift.org/LICENSE.txt for license information
 See http://swift.org/CONTRIBUTORS.txt for Swift project authors
 ]]
 
-add_library(SWBMacro
+add_library(SWBMacro STATIC
   MacroCondition.swift
   MacroConditionExpression.swift
   MacroConditionParameter.swift
@@ -33,3 +33,5 @@ target_link_libraries(SWBMacro PUBLIC
 
 target_include_directories(SWBMacro PUBLIC
   ${CMAKE_CURRENT_BINARY_DIR})
+
+set_property(GLOBAL APPEND PROPERTY SWIFTBUILD_EXPORTS SWBMacro)
