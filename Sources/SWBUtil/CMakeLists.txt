@@ -68,6 +68,7 @@ add_library(SWBUtil
   OutputByteStream.swift
   Pair.swift
   Path.swift
+  PathWindows.swift
   PbxCp.swift
   PluginManager.swift
   PluginManagerCommon.swift

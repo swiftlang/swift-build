@@ -616,9 +616,11 @@ class LocalFS: FSProxy, @unchecked Sendable {
 
     func touch(_ path: Path) throws {
         #if os(Windows)
-        let handle: HANDLE = path.withPlatformString {
-            CreateFileW($0, DWORD(GENERIC_WRITE), DWORD(FILE_SHARE_READ), nil,
-                        DWORD(OPEN_EXISTING), DWORD(FILE_FLAG_BACKUP_SEMANTICS), nil)
+        let handle: HANDLE = try path.withPlatformString { platformPath in
+            try platformPath.withCanonicalPathRepresentation {
+                CreateFileW($0, DWORD(GENERIC_WRITE), DWORD(FILE_SHARE_READ), nil,
+                            DWORD(OPEN_EXISTING), DWORD(FILE_FLAG_BACKUP_SEMANTICS), nil)
+            }
         }
         if handle == INVALID_HANDLE_VALUE {
             throw StubError.error("Failed to update file time")
@@ -643,9 +645,11 @@ class LocalFS: FSProxy, @unchecked Sendable {
 
     func setFileTimestamp(_ path: Path, timestamp: Int) throws {
         #if os(Windows)
-        let handle: HANDLE = path.withPlatformString {
-            CreateFileW($0, DWORD(GENERIC_WRITE), DWORD(FILE_SHARE_READ), nil,
-                        DWORD(OPEN_EXISTING), DWORD(FILE_FLAG_BACKUP_SEMANTICS), nil)
+        let handle: HANDLE = try path.withPlatformString { platformPath in
+            try platformPath.withCanonicalPathRepresentation {
+                CreateFileW($0, DWORD(GENERIC_WRITE), DWORD(FILE_SHARE_READ), nil,
+                            DWORD(OPEN_EXISTING), DWORD(FILE_FLAG_BACKUP_SEMANTICS), nil)
+            }
         }
         if handle == INVALID_HANDLE_VALUE {
             throw StubError.error("Failed to update file time")
@@ -875,9 +879,11 @@ class LocalFS: FSProxy, @unchecked Sendable {
 
     func realpath(_ path: Path) throws -> Path {
         #if os(Windows)
-        let handle: HANDLE = path.withPlatformString {
-            CreateFileW($0, GENERIC_READ, DWORD(FILE_SHARE_READ), nil,
-                        DWORD(OPEN_EXISTING), DWORD(FILE_FLAG_BACKUP_SEMANTICS), nil)
+        let handle: HANDLE = try path.withPlatformString { platformPath in
+            try platformPath.withCanonicalPathRepresentation {
+                CreateFileW($0, GENERIC_READ, DWORD(FILE_SHARE_READ), nil,
+                            DWORD(OPEN_EXISTING), DWORD(FILE_FLAG_BACKUP_SEMANTICS), nil)
+            }
         }
         if handle == INVALID_HANDLE_VALUE {
             throw POSIXError(ENOENT, context: "realpath", path.str)
