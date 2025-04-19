@@ -33,7 +33,7 @@ public enum Library: Sendable {
     @_alwaysEmitIntoClient
     public static func open(_ path: Path) throws -> LibraryHandle {
         #if os(Windows)
-        guard let handle = path.withPlatformString(LoadLibraryW) else {
+        guard let handle = try path.withPlatformString({ p in try p.withCanonicalPathRepresentation({ LoadLibraryW($0) }) }) else {
             throw LibraryOpenError(message: Win32Error(GetLastError()).description)
         }
         return LibraryHandle(rawValue: handle)
