@@ -104,6 +104,7 @@ extension ProjectModel {
             case SWIFT_USER_MODULE_VERSION
             case TAPI_DYLIB_INSTALL_NAME
             case TARGETED_DEVICE_FAMILY
+            case LINKER_DRIVER
         }
 
         public enum MultipleValueSetting: String, CaseIterable, Sendable, Hashable, Codable {
