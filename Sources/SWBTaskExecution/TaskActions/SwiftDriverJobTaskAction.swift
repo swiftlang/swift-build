@@ -647,9 +647,11 @@ public final class SwiftDriverJobTaskAction: TaskAction, BuildValueValidatingTas
         if result {
             outputDelegate.incrementSwiftCacheHit()
             outputDelegate.incrementTaskCounter(.cacheHits)
+            outputDelegate.emitOutput("Cache hit\n")
         } else {
             outputDelegate.incrementSwiftCacheMiss()
             outputDelegate.incrementTaskCounter(.cacheMisses)
+            outputDelegate.emitOutput("Cache miss\n")
         }
         return result
     }

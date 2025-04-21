@@ -373,6 +373,7 @@ public final class ClangCompileTaskAction: TaskAction, BuildValueValidatingTaskA
             }
             outputDelegate.incrementClangCacheMiss()
             outputDelegate.incrementTaskCounter(.cacheMisses)
+            outputDelegate.emitOutput("Cache miss\n")
             return false
         }
 
@@ -385,6 +386,7 @@ public final class ClangCompileTaskAction: TaskAction, BuildValueValidatingTaskA
                 }
                 outputDelegate.incrementClangCacheMiss()
                 outputDelegate.incrementTaskCounter(.cacheMisses)
+                outputDelegate.emitOutput("Cache miss\n")
                 return false
             }
         }
@@ -397,6 +399,7 @@ public final class ClangCompileTaskAction: TaskAction, BuildValueValidatingTaskA
         }
         outputDelegate.incrementClangCacheHit()
         outputDelegate.incrementTaskCounter(.cacheHits)
+        outputDelegate.emitOutput("Cache hit\n")
         outputDelegate.emitOutput(ByteString(encodingAsUTF8: diagnosticText))
         return true
     }
