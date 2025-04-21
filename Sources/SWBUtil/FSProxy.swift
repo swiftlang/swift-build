@@ -615,69 +615,15 @@ class LocalFS: FSProxy, @unchecked Sendable {
     }
 
     func touch(_ path: Path) throws {
-        #if os(Windows)
-        let handle: HANDLE = path.withPlatformString {
-            CreateFileW($0, DWORD(GENERIC_WRITE), DWORD(FILE_SHARE_READ), nil,
-                        DWORD(OPEN_EXISTING), DWORD(FILE_FLAG_BACKUP_SEMANTICS), nil)
-        }
-        if handle == INVALID_HANDLE_VALUE {
-            throw Win32Error(GetLastError())
-        }
-        try handle.closeAfter {
-            var ft = FILETIME()
-            var st = SYSTEMTIME()
-            GetSystemTime(&st)
-            SystemTimeToFileTime(&st, &ft)
-            if !SetFileTime(handle, nil, &ft, &ft) {
-                Win32Error(GetLastError())
-            }
-        }
-        #else
-        try eintrLoop {
-            guard utimensat(AT_FDCWD, path.str, nil, 0) == 0 else {
-                throw POSIXError(errno, context: "utimensat", "AT_FDCWD", path.str)
-            }
-        }
-        #endif
+        try _setFileTimestamp(path, timestamp: Date())
     }
 
     func setFileTimestamp(_ path: Path, timestamp: Int) throws {
-        #if os(Windows)
-        let handle: HANDLE = path.withPlatformString {
-            CreateFileW($0, DWORD(GENERIC_WRITE), DWORD(FILE_SHARE_READ), nil,
-                        DWORD(OPEN_EXISTING), DWORD(FILE_FLAG_BACKUP_SEMANTICS), nil)
-        }
-        if handle == INVALID_HANDLE_VALUE {
-            throw Win32Error(GetLastError())
-        }
-        try handle.closeAfter {
-            // Number of 100ns intervals between 1601 and 1970 epochs
-            let delta = 116444736000000000
+        try _setFileTimestamp(path, timestamp: Date(timeIntervalSince1970: Double(timestamp)))
+    }
 
-            let ll = UInt64((timestamp * 10000000) + delta)
-
-            var timeInt = ULARGE_INTEGER()
-            timeInt.QuadPart = ll
-
-            var ft = FILETIME()
-            ft.dwLowDateTime = timeInt.LowPart
-            ft.dwHighDateTime = timeInt.HighPart
-            if !SetFileTime(handle, nil, &ft, &ft) {
-                throw Win32Error(GetLastError())
-            }
-        }
-        #else
-        try eintrLoop {
-            #if os(Linux) || os(Android)
-            let UTIME_OMIT = 1073741822
-            #endif
-            let atime = timespec(tv_sec: 0, tv_nsec: Int(UTIME_OMIT))
-            let mtime = timespec(tv_sec: time_t(timestamp), tv_nsec: 0)
-            guard utimensat(AT_FDCWD, path.str, [atime, mtime], 0) == 0 else {
-                throw POSIXError(errno, context: "utimensat", "AT_FDCWD", path.str, String(timestamp))
-            }
-        }
-        #endif
+    private func _setFileTimestamp(_ path: Path, timestamp: Date) throws {
+        try fileManager.setAttributes([.modificationDate: timestamp], ofItemAtPath: path.str)
     }
 
     func getFileInfo(_ path: Path) throws -> FileInfo {
@@ -875,28 +821,10 @@ class LocalFS: FSProxy, @unchecked Sendable {
 
     func realpath(_ path: Path) throws -> Path {
         #if os(Windows)
-        let handle: HANDLE = path.withPlatformString {
-            CreateFileW($0, GENERIC_READ, DWORD(FILE_SHARE_READ), nil,
-                        DWORD(OPEN_EXISTING), DWORD(FILE_FLAG_BACKUP_SEMANTICS), nil)
-        }
-        if handle == INVALID_HANDLE_VALUE {
+        guard exists(path) else {
             throw POSIXError(ENOENT, context: "realpath", path.str)
         }
-        return try handle.closeAfter {
-            let dwLength: DWORD = GetFinalPathNameByHandleW(handle, nil, 0, DWORD(FILE_NAME_NORMALIZED))
-            return try withUnsafeTemporaryAllocation(of: WCHAR.self, capacity: Int(dwLength)) {
-                guard GetFinalPathNameByHandleW(handle, $0.baseAddress!, DWORD($0.count),
-                                                DWORD(FILE_NAME_NORMALIZED)) == dwLength - 1 else {
-                    throw Win32Error(GetLastError())
-                }
-                let path = String(platformString: $0.baseAddress!)
-                // Drop UNC prefix if present
-                if path.hasPrefix(#"\\?\"#) {
-                    return Path(path.dropFirst(4))
-                }
-                return Path(path)
-            }
-        }
+        return Path(path.str.standardizingPath)
         #else
         guard let result = SWBLibc.realpath(path.str, nil) else { throw POSIXError(errno, context: "realpath", path.str) }
         defer { free(result) }
