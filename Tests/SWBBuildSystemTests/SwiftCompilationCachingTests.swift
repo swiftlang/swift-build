@@ -96,6 +96,7 @@ fileprivate struct SwiftCompilationCachingTests: CoreBasedTests {
                 results.checkTask(.matchTargetName("Application"), .matchRule(["SwiftCompile", "normal", "arm64", "Compiling App.swift", "\(tmpDirPath.str)/Test/aProject/App.swift"])) { task in
                     task.checkCommandLineMatches([.suffix("swift-frontend"), .anySequence, "-cache-compile-job", .anySequence])
                     numCompile += 1
+                    results.checkKeyQueryCacheMiss(task)
                 }
                 results.checkTask(.matchTargetName("Application"), .matchRule(["SwiftEmitModule", "normal", "arm64", "Emitting module for Application"])) { _ in }
 
@@ -121,6 +122,10 @@ fileprivate struct SwiftCompilationCachingTests: CoreBasedTests {
 
             tester.userInfo = rawUserInfo.withAdditionalEnvironment(environment: metricsEnv("two"))
             try await tester.checkBuild(runDestination: .anyiOSDevice, persistent: true) { results in
+                results.checkTask(.matchRule(["SwiftCompile", "normal", "arm64", "Compiling App.swift", "\(tmpDirPath.str)/Test/aProject/App.swift"])) { task in
+                    results.checkKeyQueryCacheHit(task)
+                }
+
                 results.checkNote("4 hits (100%), 0 misses")
             }
             #expect(try readMetrics("two").contains("\"swiftCacheHits\":\(numCompile),\"swiftCacheMisses\":0"))
@@ -206,6 +211,7 @@ extension BuildOperationTester.BuildResults {
             Issue.record("Unable to find cache miss diagnostic for task \(task)", sourceLocation: sourceLocation)
             return
         }
+        check(contains: .taskHadEvent(task, event: .hadOutput(contents: "Cache miss\n")), sourceLocation: sourceLocation)
     }
 
     fileprivate func checkKeyQueryCacheHit(_ task: Task, sourceLocation: SourceLocation = #_sourceLocation) {
@@ -214,5 +220,6 @@ extension BuildOperationTester.BuildResults {
             Issue.record("Unable to find cache hit diagnostic for task \(task)", sourceLocation: sourceLocation)
             return
         }
+        check(contains: .taskHadEvent(task, event: .hadOutput(contents: "Cache hit\n")), sourceLocation: sourceLocation)
     }
 }

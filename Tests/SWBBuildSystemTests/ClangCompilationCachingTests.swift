@@ -1842,6 +1842,7 @@ extension BuildOperationTester.BuildResults {
             Issue.record("Unable to find cache miss diagnostic for task \(task)", sourceLocation: sourceLocation)
             return
         }
+        check(contains: .taskHadEvent(task, event: .hadOutput(contents: "Cache miss\n")), sourceLocation: sourceLocation)
     }
 
     fileprivate func checkCompileCacheHit(_ task: Task, sourceLocation: SourceLocation = #_sourceLocation) {
@@ -1851,5 +1852,6 @@ extension BuildOperationTester.BuildResults {
             return
         }
         while getDiagnosticMessageForTask(.contains("using CAS output"), kind: .note, task: task) != nil {}
+        check(contains: .taskHadEvent(task, event: .hadOutput(contents: "Cache hit\n")), sourceLocation: sourceLocation)
     }
 }
