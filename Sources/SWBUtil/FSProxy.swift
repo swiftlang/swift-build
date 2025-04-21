@@ -621,7 +621,7 @@ class LocalFS: FSProxy, @unchecked Sendable {
                         DWORD(OPEN_EXISTING), DWORD(FILE_FLAG_BACKUP_SEMANTICS), nil)
         }
         if handle == INVALID_HANDLE_VALUE {
-            throw StubError.error("Failed to update file time")
+            throw Win32Error(GetLastError())
         }
         try handle.closeAfter {
             var ft = FILETIME()
@@ -629,7 +629,7 @@ class LocalFS: FSProxy, @unchecked Sendable {
             GetSystemTime(&st)
             SystemTimeToFileTime(&st, &ft)
             if !SetFileTime(handle, nil, &ft, &ft) {
-                throw StubError.error("Failed to update file time")
+                Win32Error(GetLastError())
             }
         }
         #else
@@ -648,7 +648,7 @@ class LocalFS: FSProxy, @unchecked Sendable {
                         DWORD(OPEN_EXISTING), DWORD(FILE_FLAG_BACKUP_SEMANTICS), nil)
         }
         if handle == INVALID_HANDLE_VALUE {
-            throw StubError.error("Failed to update file time")
+            throw Win32Error(GetLastError())
         }
         try handle.closeAfter {
             // Number of 100ns intervals between 1601 and 1970 epochs
@@ -663,7 +663,7 @@ class LocalFS: FSProxy, @unchecked Sendable {
             ft.dwLowDateTime = timeInt.LowPart
             ft.dwHighDateTime = timeInt.HighPart
             if !SetFileTime(handle, nil, &ft, &ft) {
-                throw StubError.error("Failed to update file time")
+                throw Win32Error(GetLastError())
             }
         }
         #else
@@ -887,7 +887,7 @@ class LocalFS: FSProxy, @unchecked Sendable {
             return try withUnsafeTemporaryAllocation(of: WCHAR.self, capacity: Int(dwLength)) {
                 guard GetFinalPathNameByHandleW(handle, $0.baseAddress!, DWORD($0.count),
                                                 DWORD(FILE_NAME_NORMALIZED)) == dwLength - 1 else {
-                    throw StubError.error("GetFinalPathNameByHandleW failed")
+                    throw Win32Error(GetLastError())
                 }
                 let path = String(platformString: $0.baseAddress!)
                 // Drop UNC prefix if present
@@ -1641,13 +1641,6 @@ extension HANDLE {
         if !CloseHandle(self) {
             throw Win32Error(GetLastError())
         }
-    }
-}
-
-fileprivate struct Win32Error: Error {
-    let error: DWORD
-    init(_ error: DWORD) {
-        self.error = error
     }
 }
 #endif
