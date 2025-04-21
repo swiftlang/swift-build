@@ -131,12 +131,12 @@ extension Processes {
         let promise = Promise<Void, any Error>()
         #if os(Windows)
         guard let proc: HANDLE = OpenProcess(SYNCHRONIZE, false, DWORD(pid)) else {
-            throw StubError.error("OpenProcess failed with error \(GetLastError())")
+            throw Win32Error(GetLastError())
         }
         defer { CloseHandle(proc) }
         Thread.detachNewThread {
             if WaitForSingleObject(proc, INFINITE) == WAIT_FAILED {
-                promise.fail(throwing: StubError.error("WaitForSingleObject failed with error \(GetLastError())"))
+                promise.fail(throwing: Win32Error(GetLastError()))
                 return
             }
             promise.fulfill(with: ())

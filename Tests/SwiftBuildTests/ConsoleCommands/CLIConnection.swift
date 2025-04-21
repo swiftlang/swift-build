@@ -165,11 +165,11 @@ final class CLIConnection {
     static func terminate(processIdentifier: Int32) throws {
         #if os(Windows)
         guard let proc = OpenProcess(DWORD(PROCESS_TERMINATE), false, DWORD(processIdentifier)) else {
-            throw StubError.error("OpenProcess failed with error \(GetLastError())")
+            throw Win32Error(GetLastError())
         }
         defer { CloseHandle(proc) }
         if !TerminateProcess(proc, UINT(0xC0000000 | DWORD(9))) {
-            throw StubError.error("TerminateProcess returned \(GetLastError())")
+            throw Win32Error(GetLastError())
         }
         #else
         if SWBLibc.kill(processIdentifier, SIGKILL) != 0 {
@@ -317,7 +317,7 @@ fileprivate func swiftRuntimePath() throws -> Path? {
     let name = "swiftCore.dll"
     return try name.withCString(encodedAs: CInterop.PlatformUnicodeEncoding.self) { wName in
         guard let handle = GetModuleHandleW(wName) else {
-            throw POSIXError(errno, context: "GetModuleHandleW", name)
+            throw Win32Error(GetLastError())
         }
 
         var capacity = MAX_PATH
@@ -327,7 +327,7 @@ fileprivate func swiftRuntimePath() throws -> Path? {
                 let dwLength = GetModuleFileNameW(handle, $0.baseAddress!, DWORD($0.count))
                 switch dwLength {
                 case 0:
-                    throw POSIXError(errno, context: "GetModuleFileNameW", String(dwLength))
+                    throw Win32Error(GetLastError())
                 default:
                     if GetLastError() == ERROR_INSUFFICIENT_BUFFER {
                         capacity *= 2
@@ -348,12 +348,12 @@ fileprivate func systemRoot() throws -> Path? {
     #if os(Windows)
     let dwLength: DWORD = GetWindowsDirectoryW(nil, 0)
     if dwLength == 0 {
-        throw POSIXError(errno, context: "GetWindowsDirectoryW")
+        throw Win32Error(GetLastError())
     }
     return try withUnsafeTemporaryAllocation(of: WCHAR.self, capacity: Int(dwLength)) {
         switch GetWindowsDirectoryW($0.baseAddress!, DWORD($0.count)) {
         case 0:
-            throw POSIXError(errno, context: "GetWindowsDirectoryW", String($0.count))
+            throw Win32Error(GetLastError())
         default:
             return Path(String(decodingCString: $0.baseAddress!, as: CInterop.PlatformUnicodeEncoding.self))
         }

@@ -100,6 +100,7 @@ add_library(SWBUtil
   VFS.swift
   WaitCondition.swift
   WeakRef.swift
+  Win32Error.swift
   XCBuildDataArchive.swift
   Xcode.swift)
 set_target_properties(SWBUtil PROPERTIES
