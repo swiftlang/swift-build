@@ -64,15 +64,18 @@ public enum Library: Sendable {
     }
 
     public static func locate<T>(_ pointer: T.Type) -> Path {
-        let outPointer: UnsafeMutablePointer<CInterop.PlatformChar>
         #if os(Windows)
         var handle: HMODULE?
-        GetModuleHandleExW(DWORD(GET_MODULE_HANDLE_EX_FLAG_FROM_ADDRESS | GET_MODULE_HANDLE_EX_FLAG_UNCHANGED_REFCOUNT), unsafeBitCast(pointer, to: LPCWSTR?.self), &handle)
-        let capacity = 260
-        outPointer = .allocate(capacity: capacity)
-        defer { outPointer.deallocate() }
-        GetModuleFileNameW(handle, outPointer, DWORD(capacity))
+        guard GetModuleHandleExW(DWORD(GET_MODULE_HANDLE_EX_FLAG_FROM_ADDRESS | GET_MODULE_HANDLE_EX_FLAG_UNCHANGED_REFCOUNT), unsafeBitCast(pointer, to: LPCWSTR?.self), &handle) else {
+            return Path("")
+        }
+        do {
+            return try Path(SWB_GetModuleFileNameW(handle))
+        } catch {
+            return Path("")
+        }
         #else
+        let outPointer: UnsafeMutablePointer<CInterop.PlatformChar>
         var info = Dl_info()
         #if os(Android)
         dladdr(unsafeBitCast(pointer, to: UnsafeMutableRawPointer.self), &info)
@@ -81,8 +84,8 @@ public enum Library: Sendable {
         dladdr(unsafeBitCast(pointer, to: UnsafeMutableRawPointer?.self), &info)
         outPointer = UnsafeMutablePointer(mutating: info.dli_fname)
         #endif
-        #endif
         return Path(platformString: outPointer)
+        #endif
     }
 }
 
@@ -114,3 +117,32 @@ public struct LibraryHandle: @unchecked Sendable {
         self.rawValue = rawValue
     }
 }
+
+#if os(Windows)
+@_spi(Testing) public func SWB_GetModuleFileNameW(_ hModule: HMODULE?) throws -> String {
+#if DEBUG
+    var bufferCount = Int(1) // force looping
+#else
+    var bufferCount = Int(MAX_PATH)
+#endif
+    while true {
+        if let result = try withUnsafeTemporaryAllocation(of: WCHAR.self, capacity: bufferCount, { buffer in
+            switch (GetModuleFileNameW(hModule, buffer.baseAddress!, DWORD(buffer.count)), GetLastError()) {
+            case (1..<DWORD(bufferCount), DWORD(ERROR_SUCCESS)):
+                guard let result = String.decodeCString(buffer.baseAddress!, as: UTF16.self)?.result else {
+                    throw Win32Error(DWORD(ERROR_ILLEGAL_CHARACTER))
+                }
+                return result
+            case (DWORD(bufferCount), DWORD(ERROR_INSUFFICIENT_BUFFER)):
+                bufferCount += Int(MAX_PATH)
+                return nil
+            case (_, let errorCode):
+                throw Win32Error(errorCode)
+            }
+        }) {
+            return result
+        }
+    }
+    preconditionFailure("unreachable")
+}
+#endif
