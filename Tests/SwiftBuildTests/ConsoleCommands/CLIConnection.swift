@@ -12,7 +12,7 @@
 
 import Foundation
 import SWBTestSupport
-import SWBUtil
+@_spi(Testing) import SWBUtil
 import SWBCore
 import SWBLibc
 import SwiftBuild
@@ -319,25 +319,7 @@ fileprivate func swiftRuntimePath() throws -> Path? {
         guard let handle = GetModuleHandleW(wName) else {
             throw Win32Error(GetLastError())
         }
-
-        var capacity = MAX_PATH
-        var path = ""
-        while path.isEmpty {
-            try withUnsafeTemporaryAllocation(of: WCHAR.self, capacity: Int(capacity)) {
-                let dwLength = GetModuleFileNameW(handle, $0.baseAddress!, DWORD($0.count))
-                switch dwLength {
-                case 0:
-                    throw Win32Error(GetLastError())
-                default:
-                    if GetLastError() == ERROR_INSUFFICIENT_BUFFER {
-                        capacity *= 2
-                    } else {
-                        path = String(decodingCString: $0.baseAddress!, as: CInterop.PlatformUnicodeEncoding.self)
-                    }
-                }
-            }
-        }
-        return Path(path).dirname
+        return try Path(SWB_GetModuleFileNameW(handle)).dirname
     }
     #else
     return nil
@@ -352,10 +334,12 @@ fileprivate func systemRoot() throws -> Path? {
     }
     return try withUnsafeTemporaryAllocation(of: WCHAR.self, capacity: Int(dwLength)) {
         switch GetWindowsDirectoryW($0.baseAddress!, DWORD($0.count)) {
+        case 1..<dwLength:
+            return Path(String(decodingCString: $0.baseAddress!, as: CInterop.PlatformUnicodeEncoding.self))
         case 0:
             throw Win32Error(GetLastError())
         default:
-            return Path(String(decodingCString: $0.baseAddress!, as: CInterop.PlatformUnicodeEncoding.self))
+            throw Win32Error(DWORD(ERROR_INSUFFICIENT_BUFFER))
         }
     }
     #else

@@ -35,7 +35,7 @@ public enum POSIX: Sendable {
             }
             return try withUnsafeTemporaryAllocation(of: WCHAR.self, capacity: Int(dwLength)) {
                 switch GetEnvironmentVariableW(wName, $0.baseAddress!, DWORD($0.count)) {
-                case dwLength - 1:
+                case 1..<dwLength:
                     return String(decodingCString: $0.baseAddress!, as: CInterop.PlatformUnicodeEncoding.self)
                 case 0 where GetLastError() == ERROR_ENVVAR_NOT_FOUND:
                     return nil

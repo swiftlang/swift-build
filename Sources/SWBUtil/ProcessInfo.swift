@@ -62,8 +62,10 @@ extension ProcessInfo {
         var capacity = UNLEN + 1
         let pointer = UnsafeMutablePointer<CInterop.PlatformChar>.allocate(capacity: Int(capacity))
         defer { pointer.deallocate() }
-        GetUserNameW(pointer, &capacity)
-        return String(platformString: pointer)
+        if GetUserNameW(pointer, &capacity) {
+            return String(platformString: pointer)
+        }
+        return ""
         #else
         let uid = geteuid().orIfZero(getuid())
         return (getpwuid(uid)?.pointee.pw_name).map { String(cString: $0) } ?? String(uid)
