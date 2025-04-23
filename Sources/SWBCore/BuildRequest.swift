@@ -248,6 +248,15 @@ public final class BuildRequest: CustomStringConvertible, Sendable {
         return parameters.action == .indexBuild
     }
 
+    /// Whether or not this request is for building the index workspace description (as opposed to the target or
+    /// package description).
+    ///
+    /// Note that this is only valid when *building* the description, subsequent requests that use it will have a run
+    /// destination set (and thus return false).
+    public var buildsIndexWorkspaceDescription: Bool {
+        return enableIndexBuildArena && parameters.activeRunDestination == nil
+    }
+
     /// The quality-of-service to use for this request.
     public let qos: SWBQoS
 

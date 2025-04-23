@@ -285,7 +285,7 @@ package final class BuildDescriptionManager: Sendable {
         }
 
         var isIndexWorkspaceDescription: Bool {
-            return isForIndex && buildRequest.parameters.activeRunDestination == nil
+            return buildRequest.buildsIndexWorkspaceDescription
         }
 
         func signature(cacheDir: Path) throws -> BuildDescriptionSignature {

@@ -58,7 +58,7 @@ import SWBUtil
                     ])])
 
         let tester = try await BuildOperationTester(core, workspace, simulated: false)
-        try await tester.checkIndexBuildGraph(targets: [appTarget]) { results in
+        try await tester.checkIndexBuildGraph(targets: [appTarget], workspaceOperation: true) { results in
             try results.checkSelectedPlatform(of: appTarget, "macos", "iphoneos", .macOS, expectedPlatform: "macos")
             try results.checkSelectedPlatform(of: appTarget, "iosmac", "macos", .macOS, expectedPlatform: "macos")
             try results.checkSelectedPlatform(of: appTarget, "macos", "iosmac", .watchOS, expectedPlatform: "macos")
