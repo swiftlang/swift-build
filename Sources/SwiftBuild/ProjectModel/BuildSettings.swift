@@ -105,6 +105,7 @@ extension ProjectModel {
             case TAPI_DYLIB_INSTALL_NAME
             case TARGETED_DEVICE_FAMILY
             case LINKER_DRIVER
+            case LD_WARN_DUPLICATE_LIBRARIES
         }
 
         public enum MultipleValueSetting: String, CaseIterable, Sendable, Hashable, Codable {
