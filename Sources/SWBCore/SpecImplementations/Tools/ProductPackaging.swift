@@ -114,15 +114,12 @@ public final class ProductPackagingToolSpec : GenericCommandLineToolSpec, SpecId
                     entitlementsDictionary["com.apple.security.get-task-allow"] = nil
                 }
 
-                let isAppSandboxEnabled = cbc.scope.evaluate(BuiltinMacros.ENABLE_APP_SANDBOX)
-                let isHardenedRuntimeEnabled = cbc.scope.evaluate(BuiltinMacros.ENABLE_HARDENED_RUNTIME)
-
                 // rdar://142845111 (Turn on `AppSandboxConflictingValuesEmitsWarning` by default)
                 if SWBFeatureFlag.enableAppSandboxConflictingValuesEmitsWarning.value {
                     EntitlementConflictDiagnosticEmitter.checkForConflicts(cbc, delegate, entitlementsDictionary: entitlementsDictionary, entitlementsPath: codeSignEntitlementsInput?.absolutePath)
                 }
 
-                if isAppSandboxEnabled || isHardenedRuntimeEnabled {
+                if cbc.producer.platform?.signingContext.supportsAppSandboxAndHardenedRuntime() == true {
                     // Inject entitlements that are settable via build settings.
                     // This is only supported when App Sandbox or Hardened Runtime is enabled.
                     for (buildSetting, entitlementPrefix) in Self.sandboxFileAccessSettingsAndEntitlements {
