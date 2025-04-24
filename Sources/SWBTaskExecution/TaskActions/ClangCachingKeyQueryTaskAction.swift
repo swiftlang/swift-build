@@ -12,6 +12,7 @@
 
 public import SWBUtil
 public import SWBCore
+import Foundation
 
 /// Used only when remote caching is enabled, for remote cache key querying.
 /// After the task completes, if the remote key is found, the local CAS will
@@ -63,7 +64,7 @@ public final class ClangCachingKeyQueryTaskAction: TaskAction {
                 cachedComp = nil
             }
             if key.casOptions.enableDiagnosticRemarks {
-                outputDelegate.remark("cache \(cachedComp != nil ? "hit" : "miss")")
+                outputDelegate.note("cache \(cachedComp != nil ? "hit" : "miss")")
             }
             return .succeeded
         } catch {

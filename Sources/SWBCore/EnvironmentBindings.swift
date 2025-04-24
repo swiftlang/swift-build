@@ -41,7 +41,7 @@ public struct EnvironmentBindings: Sendable {
     }
 
     /// Add a signature of the bindings into the given context.
-    public func computeSignature(into ctx: MD5Context) {
+    public func computeSignature(into ctx: InsecureHashContext) {
         for (variable, val) in bindings {
             // The signature computation should record the variable name and value data, and the positions which divide them.
             ctx.add(string: variable)

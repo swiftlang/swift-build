@@ -17,6 +17,7 @@ import SWBTestSupport
 import SWBUtil
 
 import SWBTaskConstruction
+import SWBProtocol
 
 /// Task construction tests related to resource processing.
 @Suite
@@ -64,7 +65,7 @@ fileprivate struct ResourcesTaskConstructionTests: CoreBasedTests {
         let SRCROOT = tester.workspace.projects[0].sourceRoot.str
 
         let fs = PseudoFS()
-        let rezPath = core.developerPath.join("usr/bin/Rez")
+        let rezPath = core.developerPath.path.join("usr/bin/Rez")
         try fs.createDirectory(rezPath.dirname, recursive: true)
         try await fs.writeFileContents(rezPath) { _ in }
 
@@ -568,7 +569,7 @@ fileprivate struct ResourcesTaskConstructionTests: CoreBasedTests {
                         .path("\(SRCROOT)/build/aProject.build/Debug/App.build/foo-PartialInfo.plist"),])
 
                     task.checkEnvironment([
-                        "XCODE_DEVELOPER_USR_PATH": .equal("\(core.developerPath.str)/usr/bin/.."),
+                        "XCODE_DEVELOPER_USR_PATH": .equal("\(core.developerPath.path.str)/usr/bin/.."),
                     ], exact: true)
                 }
 
@@ -709,7 +710,7 @@ fileprivate struct ResourcesTaskConstructionTests: CoreBasedTests {
                         .path("\(SRCROOT)/build/aProject.build/Debug/App.build/foo-PartialInfo.plist"),])
 
                     task.checkEnvironment([
-                        "XCODE_DEVELOPER_USR_PATH": .equal("\(core.developerPath.str)/usr/bin/.."),
+                        "XCODE_DEVELOPER_USR_PATH": .equal("\(core.developerPath.path.str)/usr/bin/.."),
                     ], exact: true)
                 }
 
@@ -850,7 +851,7 @@ fileprivate struct ResourcesTaskConstructionTests: CoreBasedTests {
                         .path("\(SRCROOT)/build/aProject.build/Debug/App.build/Base.lproj/foo-PartialInfo.plist"),])
 
                     task.checkEnvironment([
-                        "XCODE_DEVELOPER_USR_PATH": .equal("\(core.developerPath.str)/usr/bin/.."),
+                        "XCODE_DEVELOPER_USR_PATH": .equal("\(core.developerPath.path.str)/usr/bin/.."),
                     ], exact: true)
                 }
 
@@ -1010,7 +1011,7 @@ fileprivate struct ResourcesTaskConstructionTests: CoreBasedTests {
                     ])
 
                     task.checkEnvironment([
-                        "XCODE_DEVELOPER_USR_PATH": .equal("\(core.developerPath.str)/usr/bin/.."),
+                        "XCODE_DEVELOPER_USR_PATH": .equal("\(core.developerPath.path.str)/usr/bin/.."),
                     ], exact: true)
                 }
 
@@ -1033,7 +1034,7 @@ fileprivate struct ResourcesTaskConstructionTests: CoreBasedTests {
                     ])
 
                     task.checkEnvironment([
-                        "XCODE_DEVELOPER_USR_PATH": .equal("\(core.developerPath.str)/usr/bin/.."),
+                        "XCODE_DEVELOPER_USR_PATH": .equal("\(core.developerPath.path.str)/usr/bin/.."),
                     ], exact: true)
                 }
 
@@ -1074,7 +1075,7 @@ fileprivate struct ResourcesTaskConstructionTests: CoreBasedTests {
                     ])
 
                     task.checkEnvironment([
-                        "XCODE_DEVELOPER_USR_PATH": .equal("\(core.developerPath.str)/usr/bin/.."),
+                        "XCODE_DEVELOPER_USR_PATH": .equal("\(core.developerPath.path.str)/usr/bin/.."),
                     ], exact: true)
                 }
 
@@ -1229,7 +1230,7 @@ fileprivate struct ResourcesTaskConstructionTests: CoreBasedTests {
                             .path("\(SRCROOT)/build/aProject.build/Debug/App.build/\(region).lproj/foo-PartialInfo.plist"),])
 
                         task.checkEnvironment([
-                            "XCODE_DEVELOPER_USR_PATH": .equal("\(core.developerPath.str)/usr/bin/.."),
+                            "XCODE_DEVELOPER_USR_PATH": .equal("\(core.developerPath.path.str)/usr/bin/.."),
                         ], exact: true)
                     }
                 }

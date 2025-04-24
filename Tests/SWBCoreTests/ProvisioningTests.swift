@@ -16,8 +16,9 @@ import Testing
 import SWBTestSupport
 import SWBUtil
 import SWBMacro
+import SWBProtocol
 
-private func createMockProject() throws -> Project {
+private func createMockProject() throws -> SWBCore.Project {
     let projectPIF: [String: PropertyListItem] = [
         "guid": "some-project-guid",
         "path": "/tmp/SomeProject/aProject.xcodeproj",
@@ -190,7 +191,7 @@ private func setupMacroEvaluationScope(_ settings: [MacroDeclaration:String] = [
         let workspaceContext = WorkspaceContext(core: core, workspace: testWorkspace, processExecutionCache: .sharedForTesting)
         let buildRequestContext = BuildRequestContext(workspaceContext: workspaceContext)
 
-        guard let target = testWorkspace.projects.first?.targets.first as? StandardTarget else {
+        guard let target = testWorkspace.projects.first?.targets.first as? SWBCore.StandardTarget else {
             Issue.record("unable to find target in test workspace")
             return
         }

@@ -12,6 +12,7 @@
 
 import SWBProtocol
 import SWBUtil
+import Foundation
 
 @frozen public enum SWBProvisioningStyle: Sendable {
     case automatic

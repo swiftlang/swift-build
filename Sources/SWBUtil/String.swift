@@ -694,7 +694,7 @@ public func ==<T: Collection>(lhs: T, rhs: String) -> Bool where T.Iterator.Elem
 extension String {
     /// Returns MD5 hex string representation.
     public func md5() -> String {
-        let context = MD5Context()
+        let context = InsecureHashContext()
         context.add(string: self)
         return context.signature.asString
     }
@@ -768,7 +768,7 @@ fileprivate struct BinaryDataIterator<C, T: UnsignedInteger & FixedWidthInteger>
     }
 }
 
-#if canImport(CoreFoundation)
+#if canImport(Darwin)
 public import class CoreFoundation.CFString
 public import enum CoreFoundation.CFStringBuiltInEncodings
 public import func CoreFoundation.CFStringCreateWithCString

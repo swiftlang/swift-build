@@ -397,6 +397,103 @@ fileprivate struct BuildOperationTests: CoreBasedTests {
         }
     }
 
+    @Test(.skipHostOS(.macOS), .skipHostOS(.windows, "cannot find testing library"), .requireThreadSafeWorkingDirectory)
+    func unitTestWithGeneratedEntryPoint() async throws {
+        try await withTemporaryDirectory { (tmpDir: Path) in
+            let testProject = try await TestProject(
+                "TestProject",
+                sourceRoot: tmpDir,
+                groupTree: TestGroup(
+                    "SomeFiles",
+                    children: [
+                        TestFile("library.swift"),
+                        TestFile("test.swift"),
+                    ]),
+                buildConfigurations: [
+                    TestBuildConfiguration("Debug", buildSettings: [
+                        "ARCHS": "$(ARCHS_STANDARD)",
+                        "CODE_SIGNING_ALLOWED": "NO",
+                        "PRODUCT_NAME": "$(TARGET_NAME)",
+                        "SDKROOT": "$(HOST_PLATFORM)",
+                        "SUPPORTED_PLATFORMS": "$(HOST_PLATFORM)",
+                        "SWIFT_VERSION": swiftVersion,
+                    ])
+                ],
+                targets: [
+                    TestStandardTarget(
+                        "test",
+                        type: .unitTest,
+                        buildConfigurations: [
+                            TestBuildConfiguration("Debug", buildSettings: [
+                                "LD_RUNPATH_SEARCH_PATHS": "@loader_path/",
+                            ])
+                        ],
+                        buildPhases: [
+                            TestSourcesBuildPhase(["test.swift"]),
+                            TestFrameworksBuildPhase([
+                                TestBuildFile(.target("library")),
+                            ])
+                        ],
+                        dependencies: [
+                            "library"
+                        ]
+                    ),
+                    TestStandardTarget(
+                        "library",
+                        type: .dynamicLibrary,
+                        buildConfigurations: [
+                            TestBuildConfiguration("Debug", buildSettings: [
+                                "DYLIB_INSTALL_NAME_BASE": "$ORIGIN",
+
+                                // FIXME: Find a way to make these default
+                                "EXECUTABLE_PREFIX": "lib",
+                                "EXECUTABLE_PREFIX[sdk=windows*]": "",
+                            ])
+                        ],
+                        buildPhases: [
+                            TestSourcesBuildPhase(["library.swift"]),
+                        ],
+                    ),
+                ])
+            let core = try await getCore()
+            let tester = try await BuildOperationTester(core, testProject, simulated: false)
+
+            let projectDir = tester.workspace.projects[0].sourceRoot
+
+            try await tester.fs.writeFileContents(projectDir.join("library.swift")) { stream in
+                stream <<< "public func foo() -> Int { 42 }\n"
+            }
+
+            try await tester.fs.writeFileContents(projectDir.join("test.swift")) { stream in
+                stream <<< """
+                    import Testing
+                    import library
+                    @Suite struct MySuite {
+                        @Test func myTest() async throws {
+                            #expect(foo() == 42)
+                        }
+                    }
+                """
+            }
+
+            let destination: RunDestinationInfo = .host
+            try await tester.checkBuild(runDestination: destination, persistent: true) { results in
+                results.checkNoErrors()
+
+                let toolchain = try #require(try await getCore().toolchainRegistry.defaultToolchain)
+                let environment: Environment
+                if destination.platform == "linux" {
+                    environment = ["LD_LIBRARY_PATH": toolchain.path.join("usr/lib/swift/linux").str]
+                } else {
+                    environment = .init()
+                }
+
+                let executionResult = try await Process.getOutput(url: URL(fileURLWithPath: projectDir.join("build").join("Debug\(destination.builtProductsDirSuffix)").join(core.hostOperatingSystem.imageFormat.executableName(basename: "test.xctest")).str), arguments: ["--testing-library", "swift-testing"], environment: environment)
+                #expect(String(decoding: executionResult.stderr, as: UTF8.self).contains("Test run started"))
+            }
+        }
+    }
+
     /// Check that environment variables are propagated from the user environment correctly.
     @Test(.requireSDKs(.host), .skipHostOS(.windows), .requireSystemPackages(apt: "yacc", yum: "byacc"))
     func userEnvironment() async throws {
@@ -2773,7 +2870,6 @@ That command depends on command in Target 'agg2' (project \'aProject\'): script 
                                 "GENERATE_INFOPLIST_FILE": "YES",
                                 "FRAMEWORK_SEARCH_PATHS": "$(inherited) \(tmpDirPath.str)",
                                 "COPY_PHASE_STRIP": "NO",
-                                "STRIP_BITCODE_FROM_COPIED_FILES": "NO",
                                 "SDKROOT": "macosx",
                                 "INSTALLLOC_LANGUAGE": "ja",
                                 "DSTROOT": tmpDirPath.join("DSTROOT").str
@@ -2912,6 +3008,7 @@ That command depends on command in Target 'agg2' (project \'aProject\'): script 
                                 "GENERATE_INFOPLIST_FILE": "YES",
                                 "FRAMEWORK_SEARCH_PATHS": "$(inherited) \(tmpDirPath.str)",
                                 "COPY_PHASE_STRIP": "NO",
+                                // Stripping bitcode varies by platform, and since it's not what we're testing here, we just turn it off.
                                 "STRIP_BITCODE_FROM_COPIED_FILES": "NO",
                                 "SDKROOT": runDestination.sdk,
                                 "SUPPORTS_MACCATALYST": runDestination.sdkVariant == MacCatalystInfo.sdkVariantName ? "YES" : "NO"
@@ -3792,8 +3889,8 @@ That command depends on command in Target 'agg2' (project \'aProject\'): script 
                     }
 
                     if !shouldFilterSwiftLibs {
-                        #expect(dependencyInfo.inputs.contains(core.developerPath.join("Toolchains/XcodeDefault.xctoolchain/usr/lib/swift-5.0/macosx/libswiftCore.dylib").str))
-                        #expect(dependencyInfo.inputs.contains(core.developerPath.join("Toolchains/XcodeDefault.xctoolchain/usr/lib/swift-5.0/macosx/libswiftFoundation.dylib").str))
+                        #expect(dependencyInfo.inputs.contains(core.developerPath.path.join("Toolchains/XcodeDefault.xctoolchain/usr/lib/swift-5.0/macosx/libswiftCore.dylib").str))
+                        #expect(dependencyInfo.inputs.contains(core.developerPath.path.join("Toolchains/XcodeDefault.xctoolchain/usr/lib/swift-5.0/macosx/libswiftFoundation.dylib").str))
                         #expect(dependencyInfo.outputs.sorted().contains(expectedDependencyInfo.outputs.sorted()))
                         #expect(dependencyInfo.outputs.contains(buildDir.join("App.app/Contents/Frameworks/libswiftCore.dylib").str))
                         #expect(dependencyInfo.outputs.contains(buildDir.join("App.app/Contents/Frameworks/libswiftFoundation.dylib").str))
@@ -3801,8 +3898,8 @@ That command depends on command in Target 'agg2' (project \'aProject\'): script 
 
                     if shouldBackDeploySwiftConcurrency {
                         // Note all toolchains have this yet...
-                        if tester.fs.exists(core.developerPath.join("Toolchains/XcodeDefault.xctoolchain/usr/lib/swift-5.5/macosx/libswift_Concurrency.dylib")) {
-                            #expect(dependencyInfo.inputs.contains(core.developerPath.join("Toolchains/XcodeDefault.xctoolchain/usr/lib/swift-5.5/macosx/libswift_Concurrency.dylib").str))
+                        if tester.fs.exists(core.developerPath.path.join("Toolchains/XcodeDefault.xctoolchain/usr/lib/swift-5.5/macosx/libswift_Concurrency.dylib")) {
+                            #expect(dependencyInfo.inputs.contains(core.developerPath.path.join("Toolchains/XcodeDefault.xctoolchain/usr/lib/swift-5.5/macosx/libswift_Concurrency.dylib").str))
                             #expect(dependencyInfo.outputs.contains(buildDir.join("App.app/Contents/Frameworks/libswift_Concurrency.dylib").str))
                         }
                     }
@@ -3821,7 +3918,7 @@ That command depends on command in Target 'agg2' (project \'aProject\'): script 
                     let unitTestsExpectedDependencyInfo = DependencyInfo(
                         version: "swift-stdlib-tool",
                         inputs: ([
-                            core.developerPath.join("Platforms/MacOSX.platform/Developer/usr/lib/libXCTestSwiftSupport.dylib").str,
+                            core.developerPath.path.join("Platforms/MacOSX.platform/Developer/usr/lib/libXCTestSwiftSupport.dylib").str,
                             buildDir.join("UnitTests.xctest/Contents/MacOS/UnitTests").str,
                         ]).sorted(),
                         missing: [],
@@ -3838,8 +3935,8 @@ That command depends on command in Target 'agg2' (project \'aProject\'): script 
 
                     if !shouldFilterSwiftLibs {
                         if (try Version(core.loadSDK(.macOS).defaultDeploymentTarget)) < Version(10, 15) {
-                            #expect(unitTestsDependencyInfo.inputs.contains(core.developerPath.join("Toolchains/XcodeDefault.xctoolchain/usr/lib/swift-5.0/macosx/libswiftCore.dylib").str))
-                            #expect(unitTestsDependencyInfo.inputs.contains(core.developerPath.join("Toolchains/XcodeDefault.xctoolchain/usr/lib/swift-5.0/macosx/libswiftFoundation.dylib").str))
+                            #expect(unitTestsDependencyInfo.inputs.contains(core.developerPath.path.join("Toolchains/XcodeDefault.xctoolchain/usr/lib/swift-5.0/macosx/libswiftCore.dylib").str))
+                            #expect(unitTestsDependencyInfo.inputs.contains(core.developerPath.path.join("Toolchains/XcodeDefault.xctoolchain/usr/lib/swift-5.0/macosx/libswiftFoundation.dylib").str))
                         }
                         #expect(unitTestsDependencyInfo.outputs.sorted().contains(unitTestsExpectedDependencyInfo.outputs.sorted()))
                         if (try Version(core.loadSDK(.macOS).defaultDeploymentTarget)) < Version(10, 15) {
@@ -3852,8 +3949,8 @@ That command depends on command in Target 'agg2' (project \'aProject\'): script 
                         // NOTE: Tests have their deployment target overridden.
                         if (try Version(core.loadSDK(.macOS).defaultDeploymentTarget)) < Version(10, 15) {
                             // Note all toolchains have this yet...
-                            if tester.fs.exists(core.developerPath.join("Toolchains/XcodeDefault.xctoolchain/usr/lib/swift-5.5/macosx/libswift_Concurrency.dylib")) {
-                                #expect(unitTestsDependencyInfo.inputs.contains(core.developerPath.join("Toolchains/XcodeDefault.xctoolchain/usr/lib/swift-5.5/macosx/libswift_Concurrency.dylib").str))
+                            if tester.fs.exists(core.developerPath.path.join("Toolchains/XcodeDefault.xctoolchain/usr/lib/swift-5.5/macosx/libswift_Concurrency.dylib")) {
+                                #expect(unitTestsDependencyInfo.inputs.contains(core.developerPath.path.join("Toolchains/XcodeDefault.xctoolchain/usr/lib/swift-5.5/macosx/libswift_Concurrency.dylib").str))
                                 #expect(unitTestsDependencyInfo.outputs.contains(buildDir.join("SwiftlessApp.app/Contents/Frameworks/libswift_Concurrency.dylib").str))
                             }
                         }
@@ -3867,8 +3964,8 @@ That command depends on command in Target 'agg2' (project \'aProject\'): script 
 
                     if shouldBackDeploySwiftConcurrency {
                         // Note all toolchains have this yet...
-                        if tester.fs.exists(core.developerPath.join("Toolchains/XcodeDefault.xctoolchain/usr/lib/swift-5.5/macosx/libswift_Concurrency.dylib")) {
-                            #expect(dependencyInfo.inputs.contains(core.developerPath.join("Toolchains/XcodeDefault.xctoolchain/usr/lib/swift-5.5/macosx/libswift_Concurrency.dylib").str))
+                        if tester.fs.exists(core.developerPath.path.join("Toolchains/XcodeDefault.xctoolchain/usr/lib/swift-5.5/macosx/libswift_Concurrency.dylib")) {
+                            #expect(dependencyInfo.inputs.contains(core.developerPath.path.join("Toolchains/XcodeDefault.xctoolchain/usr/lib/swift-5.5/macosx/libswift_Concurrency.dylib").str))
                             #expect(dependencyInfo.outputs.contains(buildDir.join("SwiftlessSysExApp.app/Contents/Frameworks/libswift_Concurrency.dylib").str))
                         }
                     }

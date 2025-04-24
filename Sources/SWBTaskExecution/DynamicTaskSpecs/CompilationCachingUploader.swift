@@ -13,6 +13,11 @@
 package import SWBCore
 import SWBProtocol
 import SWBUtil
+import Foundation
+
+#if canImport(os)
+import os
+#endif
 
 /// Manages uploading compilation caching outputs in the background, when a remote cache is enabled.
 /// The network tasks are managed using Swift concurrency, without blocking execution lanes
@@ -62,7 +67,7 @@ package final class CompilationCachingUploader {
         }
 
         startedUpload()
-        let signatureCtx = MD5Context()
+        let signatureCtx = InsecureHashContext()
         signatureCtx.add(string: "ClangCachingUpload")
         signatureCtx.add(string: cacheKey)
         let signature = signatureCtx.signature
@@ -77,7 +82,7 @@ package final class CompilationCachingUploader {
         if enableDiagnosticRemarks {
             for output in clangCompilation.getOutputs() {
                 activityReporter.emit(
-                    diagnostic: Diagnostic(behavior: .remark, location: .unknown, data: DiagnosticData("uploaded CAS output \(output.name): \(output.casID)")),
+                    diagnostic: Diagnostic(behavior: .note, location: .unknown, data: DiagnosticData("uploaded CAS output \(output.name): \(output.casID)")),
                     for: activityID,
                     signature: signature
                 )
@@ -122,7 +127,7 @@ package final class CompilationCachingUploader {
         }
 
         startedUpload()
-        let signatureCtx = MD5Context()
+        let signatureCtx = InsecureHashContext()
         signatureCtx.add(string: "SwiftCachingUpload")
         signatureCtx.add(string: cacheKey)
         let signature = signatureCtx.signature
@@ -139,7 +144,7 @@ package final class CompilationCachingUploader {
             if enableDiagnosticRemarks {
                 for output in try swiftCompilation.getOutputs() {
                     activityReporter.emit(
-                        diagnostic: Diagnostic(behavior: .remark,
+                        diagnostic: Diagnostic(behavior: .note,
                                                location: .unknown,
                                                data: DiagnosticData("uploaded CAS output \(output.kindName): \(output.casID)")),
                         for: activityID,

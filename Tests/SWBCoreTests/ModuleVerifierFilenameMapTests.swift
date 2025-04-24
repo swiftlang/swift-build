@@ -14,6 +14,7 @@ import Foundation
 import SWBCore
 import SWBUtil
 import Testing
+import SWBTestSupport
 
 @Suite fileprivate struct ModuleVerifierFilenameMapTests {
     @Test

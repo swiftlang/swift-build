@@ -2708,28 +2708,6 @@
                 };
             },
 
-            // Generate bitcode options - not visible in the build settings.
-            {
-                Name = "CLANG_BITCODE_GENERATION_MODE";
-                Type = Enumeration;
-                Values = (
-                    none,
-                    marker,
-                    bitcode,
-                );
-                DefaultValue = "$(BITCODE_GENERATION_MODE)";
-                Architectures = ( arm64, arm64e, armv7, armv7s, armv7k, arm64_32 );
-                Condition = "$(ENABLE_BITCODE)";
-                CommandLineArgs = {
-                    marker = (
-                        "-fembed-bitcode-marker",
-                    );
-                    bitcode = (
-                        "-fembed-bitcode",
-                    );
-                };
-            },
-
             // Address Sanitizer options.
             {
                 Name = "CLANG_ADDRESS_SANITIZER";
@@ -2968,6 +2946,12 @@
                     );
                     NO = ();
                 };
+            },
+
+            {
+                Name = "CLANG_ENABLE_COMPILE_CACHE";
+                Type = Boolean;
+                DefaultValue = "$(COMPILATION_CACHE_ENABLE_CACHING)";
             },
 
             // Thread Sanitizer options.

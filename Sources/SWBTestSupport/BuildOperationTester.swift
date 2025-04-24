@@ -19,7 +19,7 @@ package import SWBBuildSystem
 @_spi(Testing) package import SWBCore
 package import SWBTaskConstruction
 package import SWBTaskExecution
-package import SWBUtil
+@_spi(Testing) package import SWBUtil
 
 private import class SWBLLBuild.BuildDB
 private import class SWBLLBuild.BuildKey
@@ -36,6 +36,7 @@ package import struct SWBProtocol.BuildOperationMetrics
 
 // FIXME: Workaround: <rdar://problem/26249252> Unable to prefer my own type over NS renamed types
 package import class SWBTaskExecution.Task
+import SWBMacro
 
 extension BuildRequest {
     func with(parameters: BuildParameters, buildTargets: [BuildTargetInfo]) -> BuildRequest {
@@ -50,6 +51,8 @@ extension BuildRequest {
             useDryRun: useDryRun,
             enableStaleFileRemoval: enableStaleFileRemoval,
             showNonLoggedProgress: showNonLoggedProgress,
+            recordBuildBacktraces: recordBuildBacktraces,
+            generatePrecompiledModulesReport: generatePrecompiledModulesReport,
             buildDescriptionID: buildDescriptionID,
             qos: qos,
             buildPlanDiagnosticsDirPath: buildPlanDiagnosticsDirPath,
@@ -628,6 +631,25 @@ package final class BuildOperationTester {
             return nil
         }
 
+        package func getDiagnosticMessageForTask(_ pattern: StringPattern, kind: DiagnosticKind, task: Task) -> String? {
+            for (index, event) in self.events.enumerated() {
+                switch event {
+                case .taskHadEvent(let eventTask, event: .hadDiagnostic(let diagnostic)) where diagnostic.behavior == kind:
+                    guard eventTask == task else {
+                        continue
+                    }
+                    let message = diagnostic.formatLocalizedDescription(.debugWithoutBehavior, task: eventTask)
+                    if pattern ~= message {
+                        _eventList.remove(at: index)
+                        return message
+                    }
+                default:
+                    continue
+                }
+            }
+            return nil
+        }
+
         package func check(_ pattern: StringPattern, kind: BuildOperationTester.DiagnosticKind, failIfNotFound: Bool, sourceLocation: SourceLocation, checkDiagnostic: (Diagnostic) -> Bool) -> Bool {
             let found = (getDiagnosticMessage(pattern, kind: kind, checkDiagnostic: checkDiagnostic) != nil)
             if !found, failIfNotFound {
@@ -711,6 +733,18 @@ package final class BuildOperationTester {
                 self.rawTrace = rawTrace
             }
 
+        }
+
+        package func checkNoTaskWithBacktraces(_ conditions: TaskCondition..., sourceLocation: SourceLocation = #_sourceLocation) {
+            for matchedTask in findMatchingTasks(conditions) {
+                Issue.record("found unexpected task matching conditions '\(conditions)', found: \(matchedTask)", sourceLocation: sourceLocation)
+
+                if let frameID = getBacktraceID(matchedTask, sourceLocation: sourceLocation) {
+                    enumerateBacktraces(frameID) { _, category, description in
+                        Issue.record("...<category='\(category)' description='\(description)'>", sourceLocation: sourceLocation)
+                    }
+                }
+            }
         }
 
         /// Check whether the results contains a dependency cycle error. If so, then consume the error and create a `CycleChecking` object and pass it to the block. Otherwise fail.
@@ -1011,8 +1045,21 @@ package final class BuildOperationTester {
             startedTasks.remove(task)
         }
 
-        package func checkBacktrace(_ identifier: BuildOperationBacktraceFrameEmitted.Identifier, _ patterns: [StringPattern], sourceLocation: SourceLocation = #_sourceLocation) {
-            var frameDescriptions: [String] = []
+        private func getBacktraceID(_ task: Task, sourceLocation: SourceLocation = #_sourceLocation) -> BuildOperationBacktraceFrameEmitted.Identifier? {
+            guard let frameID: BuildOperationBacktraceFrameEmitted.Identifier = events.compactMap ({ (event) -> BuildOperationBacktraceFrameEmitted.Identifier? in
+                guard case .emittedBuildBacktraceFrame(identifier: let identifier, previousFrameIdentifier: _, category: _, description: _) = event, case .task(let signature) = identifier, BuildOperationTaskSignature.taskIdentifier(ByteString(encodingAsUTF8: task.identifier.rawValue)) == signature else {
+                    return nil
+                }
+                return identifier
+                // Iff the task is a dynamic task, there may be more than one corresponding frame if it was requested multiple times, in which case we choose the first. Non-dynamic tasks always have a 1-1 relationship with frames.
+            }).sorted().first else {
+                Issue.record("Did not find a single build backtrace frame for task: \(task.identifier)", sourceLocation: sourceLocation)
+                return nil
+            }
+            return frameID
+        }
+
+        private func enumerateBacktraces(_ identifier: BuildOperationBacktraceFrameEmitted.Identifier, _ handleFrameInfo: (_ identifier: BuildOperationBacktraceFrameEmitted.Identifier?, _ category: BuildOperationBacktraceFrameEmitted.Category, _ description: String) -> ()) {
             var currentFrameID: BuildOperationBacktraceFrameEmitted.Identifier? = identifier
             while let id = currentFrameID {
                 if let frameInfo: (BuildOperationBacktraceFrameEmitted.Identifier?, BuildOperationBacktraceFrameEmitted.Category, String) = events.compactMap({ (event) -> (BuildOperationBacktraceFrameEmitted.Identifier?, BuildOperationBacktraceFrameEmitted.Category, String)? in
@@ -1022,28 +1069,29 @@ package final class BuildOperationTester {
                     return (previousFrameIdentifier, category, description)
                     // Iff the task is a dynamic task, there may be more than one corresponding frame if it was requested multiple times, in which case we choose the first. Non-dynamic tasks always have a 1-1 relationship with frames.
                 }).sorted(by: { $0.0 }).first {
-                    frameDescriptions.append("<category='\(frameInfo.1)' description='\(frameInfo.2)'>")
+                    handleFrameInfo(frameInfo.0, frameInfo.1, frameInfo.2)
                     currentFrameID = frameInfo.0
                 } else {
                     currentFrameID = nil
                 }
+            }
+        }
+
+        package func checkBacktrace(_ identifier: BuildOperationBacktraceFrameEmitted.Identifier, _ patterns: [StringPattern], sourceLocation: SourceLocation = #_sourceLocation) {
+            var frameDescriptions: [String] = []
+            enumerateBacktraces(identifier) { (_, category, description) in
+                frameDescriptions.append("<category='\(category)' description='\(description)'>")
             }
 
             XCTAssertMatch(frameDescriptions, patterns, sourceLocation: sourceLocation)
         }
 
         package func checkBacktrace(_ task: Task, _ patterns: [StringPattern], sourceLocation: SourceLocation = #_sourceLocation) {
-            guard let frameID: BuildOperationBacktraceFrameEmitted.Identifier = events.compactMap ({ (event) -> BuildOperationBacktraceFrameEmitted.Identifier? in
-                guard case .emittedBuildBacktraceFrame(identifier: let identifier, previousFrameIdentifier: _, category: _, description: _) = event, case .task(let signature) = identifier, BuildOperationTaskSignature.taskIdentifier(ByteString(encodingAsUTF8: task.identifier.rawValue)) == signature else {
-                    return nil
-                }
-                return identifier
-                // Iff the task is a dynamic task, there may be more than one corresponding frame if it was requested multiple times, in which case we choose the first. Non-dynamic tasks always have a 1-1 relationship with frames.
-            }).sorted().first else {
-                Issue.record("Did not find a single build backtrace frame for task: \(task.identifier)", sourceLocation: sourceLocation)
-                return
+            if let frameID = getBacktraceID(task, sourceLocation: sourceLocation) {
+                checkBacktrace(frameID, patterns, sourceLocation: sourceLocation)
+            } else {
+                // already recorded an issue
             }
-            checkBacktrace(frameID, patterns, sourceLocation: sourceLocation)
         }
 
         private class TaskDependencyResolver {
@@ -1520,7 +1568,7 @@ package final class BuildOperationTester {
 
         func body(results: BuildResults) throws -> Void {
             results.consumeTasksMatchingRuleTypes(excludedTasks)
-            results.checkNoTask(sourceLocation: sourceLocation)
+            results.checkNoTaskWithBacktraces(sourceLocation: sourceLocation)
 
             results.checkNote(.equal("Building targets in dependency order"), failIfNotFound: false)
             results.checkNote(.prefix("Target dependency graph"), failIfNotFound: false)
@@ -1546,7 +1594,9 @@ package final class BuildOperationTester {
             }
         }
 
-        try await checkBuild(name, parameters: parameters, runDestination: runDestination, buildRequest: inputBuildRequest, buildCommand: buildCommand, schemeCommand: schemeCommand, persistent: persistent, serial: serial, buildOutputMap: buildOutputMap, signableTargets: signableTargets, signableTargetInputs: signableTargetInputs, clientDelegate: clientDelegate, sourceLocation: sourceLocation, body: body)
+        try await UserDefaults.withEnvironment(["EnableBuildBacktraceRecording": "true"]) {
+            try await checkBuild(name, parameters: parameters, runDestination: runDestination, buildRequest: inputBuildRequest, buildCommand: buildCommand, schemeCommand: schemeCommand, persistent: persistent, serial: serial, buildOutputMap: buildOutputMap, signableTargets: signableTargets, signableTargetInputs: signableTargetInputs, clientDelegate: clientDelegate, sourceLocation: sourceLocation, body: body)
+        }
     }
 
     package static func buildRequestForIndexOperation(

@@ -10,6 +10,10 @@
 //
 //===----------------------------------------------------------------------===//
 
+#if canImport(os)
+import os
+#endif
+
 /// Base protocol used for global operations over generic type.
 private protocol _HeavyCacheBase: AnyObject {
     /// Clear the cache.
@@ -33,8 +37,22 @@ public func clearAllHeavyCaches() {
     }
 }
 
-@_spi(Testing) public func withHeavyCacheGlobalState<T>(_ body: () async throws -> T) async rethrows -> T {
-    try await $allHeavyCaches.withValue(.init([])) {
+public func withHeavyCacheGlobalState<T>(isolated: Bool = true, _ body: () throws -> T) rethrows -> T {
+    if isolated {
+        try $allHeavyCaches.withValue(.init([])) {
+            try body()
+        }
+    } else {
+        try body()
+    }
+}
+
+@_spi(Testing) public func withHeavyCacheGlobalState<T>(isolated: Bool = true, _ body: () async throws -> T) async rethrows -> T {
+    if isolated {
+        try await $allHeavyCaches.withValue(.init([])) {
+            try await body()
+        }
+    } else {
         try await body()
     }
 }

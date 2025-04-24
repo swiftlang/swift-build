@@ -11,6 +11,7 @@
 //===----------------------------------------------------------------------===//
 
 public import SWBUtil
+import Foundation
 
 public struct ModuleVerifierTarget: Equatable {
     public let value: String

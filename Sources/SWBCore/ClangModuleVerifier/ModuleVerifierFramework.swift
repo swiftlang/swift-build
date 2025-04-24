@@ -11,6 +11,7 @@
 //===----------------------------------------------------------------------===//
 
 public import SWBUtil
+import Foundation
 
 public struct ModuleVerifierFramework {
     @_spi(Testing) public let directory: Path

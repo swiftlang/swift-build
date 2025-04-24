@@ -15,6 +15,7 @@ import class Foundation.FileHandle
 
 import SWBCore
 import SWBUtil
+import SWBMacro
 
 /// Produces tasks for a runtime-synthesized build phase includes linked frameworks produced by package targets, into non-package targets.
 final class SwiftPackageCopyFilesTaskProducer: CopyFilesTaskProducer {

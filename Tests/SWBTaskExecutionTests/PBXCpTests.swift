@@ -14,6 +14,13 @@ import Foundation
 import Testing
 import SWBUtil
 import SWBTestSupport
+import SWBCore
+
+#if canImport(System)
+import System
+#else
+import SystemPackage
+#endif
 
 @Suite
 fileprivate struct PBXCpTests: CoreBasedTests {
@@ -470,7 +477,7 @@ fileprivate struct PBXCpTests: CoreBasedTests {
     }
 
 
-    /// Check that we can invoke bitcode_strip.
+    /// Check that we can invoke `bitcode_strip`.
     @Test
     func bitcodeStrip() async throws {
         try await withTemporaryDirectory { tmp in
@@ -487,11 +494,12 @@ fileprivate struct PBXCpTests: CoreBasedTests {
             // Check that we run the bitcode_strip tool and capture its output.  Note that bitcode_strip is in the default toolchain, so we need to pass the path to it there.
             let defaultToolchain = try #require(try await getCore().toolchainRegistry.defaultToolchain)
             let bitcodeStripPath = defaultToolchain.path.join("usr/bin/bitcode_strip")
+            // Note that we always strip all bitcode (-r), even if 'replace-with-marker' is passed.
             let result = await pbxcp(["builtin-copy", "-dry-run", "-bitcode-strip", "replace-with-marker", "-bitcode-strip-tool", bitcodeStripPath.str, src.str + Path.pathSeparatorString, dst.str], cwd: Path("/"))
             #expect(result.success == true)
             #expect(result.output == (
                 bitcodeStripPath.str +
-                " \(src.join("fake-bin").str) -m -o \(dst.join("fake-bin").str)\n"))
+                " \(src.join("fake-bin").str) -r -o \(dst.join("fake-bin").str)\n"))
         }
     }
 
@@ -511,11 +519,12 @@ fileprivate struct PBXCpTests: CoreBasedTests {
             // Check that we run the bitcode_strip tool and capture its output.  Note that bitcode_strip is in the default toolchain, so we need to pass the path to it there.
             let defaultToolchain = try #require(try await getCore().toolchainRegistry.defaultToolchain)
             let bitcodeStripPath = defaultToolchain.path.join("usr/bin/bitcode_strip")
+            // Note that we always strip all bitcode (-r), even if 'replace-with-marker' is passed.
             let result = await pbxcp(["builtin-copy", "-dry-run", "-strip-unsigned-binaries", "-bitcode-strip", "replace-with-marker", "-bitcode-strip-tool", bitcodeStripPath.str, src.str + Path.pathSeparatorString, dst.str], cwd: Path("/"))
             #expect(result.success == true)
             #expect(result.output.contains(
                 bitcodeStripPath.str +
-                " \(dst.join("fake-bin").str) -m -o \(dst.join("fake-bin").str)\n"))
+                " \(dst.join("fake-bin").str) -r -o \(dst.join("fake-bin").str)\n"))
         }
     }
 

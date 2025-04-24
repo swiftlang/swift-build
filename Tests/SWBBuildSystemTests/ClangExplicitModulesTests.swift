@@ -617,7 +617,7 @@ fileprivate struct ClangExplicitModulesTests: CoreBasedTests {
                                 "CLANG_ENABLE_MODULES": "YES",
                                 "_EXPERIMENTAL_CLANG_EXPLICIT_MODULES": "YES",
                                 // This makes the Clang driver invocation expand into multiple -cc1 invocations.
-                                "OTHER_CFLAGS": "-fembed-bitcode -save-temps=obj",
+                                "OTHER_CFLAGS": "-save-temps=obj",
                             ])],
                         targets: [
                             TestStandardTarget(
@@ -668,7 +668,6 @@ fileprivate struct ClangExplicitModulesTests: CoreBasedTests {
 
                 // From -save-times=obj
                 outputs.append(Path(obj.withoutSuffix + ".i"))
-                outputs.append(Path(obj.withoutSuffix + ".bc"))
                 outputs.append(Path(obj.withoutSuffix + ".s"))
 
                 for path in outputs {
@@ -2970,9 +2969,9 @@ fileprivate struct ClangExplicitModulesTests: CoreBasedTests {
                 try await tester.checkBuild(runDestination: destination, buildRequest: buildRequest, persistent: true) { results in
                     switch warningLevel {
                     case .yes:
-                        results.checkWarning("'Framework2' is missing a dependency on 'Framework1' because dependency scan of 'file_2.c' discovered a dependency on 'Framework1'")
+                        results.checkWarning("'Framework2' is missing a dependency on 'Framework1' because dependency scan of 'file_2.c' discovered a dependency on 'Framework1' (in target 'Framework2' from project 'aProject')")
                     case .yesError:
-                        results.checkError("'Framework2' is missing a dependency on 'Framework1' because dependency scan of 'file_2.c' discovered a dependency on 'Framework1'")
+                        results.checkError("'Framework2' is missing a dependency on 'Framework1' because dependency scan of 'file_2.c' discovered a dependency on 'Framework1' (in target 'Framework2' from project 'aProject')")
                     default:
                         break
                     }

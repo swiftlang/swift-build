@@ -18,6 +18,8 @@ import SWBTaskExecution
 package import SWBUtil
 import Testing
 package import SWBMacro
+import Foundation
+import Synchronization
 
 extension PlannedTask {
     package var dependencyData: DependencyDataStyle? {
@@ -316,7 +318,7 @@ package class TestTaskPlanningDelegate: TaskPlanningDelegate, @unchecked Sendabl
     }
 
     package func recordAttachment(contents: SWBUtil.ByteString) -> SWBUtil.Path {
-        let digester = MD5Context()
+        let digester = InsecureHashContext()
         digester.add(bytes: contents)
         if let path = tmpDir?.path.join(digester.signature.asString) {
             do {

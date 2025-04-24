@@ -13,6 +13,7 @@
 import SWBTestSupport
 import SWBUtil
 import Testing
+import SWBCore
 
 @Suite
 fileprivate struct WatchBuildOperationTests: CoreBasedTests {
@@ -132,9 +133,9 @@ fileprivate struct WatchBuildOperationTests: CoreBasedTests {
 
             // Create files in the filesystem so they're known to exist.
             let fs = tester.fs
-            try fs.createDirectory(core.developerPath.join("usr/bin"), recursive: true)
-            try await fs.writeFileContents(core.developerPath.join("usr/bin/actool")) { $0 <<< "binary" }
-            try await fs.writeFileContents(core.developerPath.join("usr/bin/ibtool")) { $0 <<< "binary" }
+            try fs.createDirectory(core.developerPath.path.join("usr/bin"), recursive: true)
+            try await fs.writeFileContents(core.developerPath.path.join("usr/bin/actool")) { $0 <<< "binary" }
+            try await fs.writeFileContents(core.developerPath.path.join("usr/bin/ibtool")) { $0 <<< "binary" }
 
             try await fs.writeFileContents(swiftCompilerPath) { $0 <<< "binary" }
             try fs.createDirectory(Path("/Users/whoever/Library/MobileDevice/Provisioning Profiles"), recursive: true)

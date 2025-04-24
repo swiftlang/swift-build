@@ -16,6 +16,7 @@ import Foundation
 
 @PluginExtensionSystemActor public func initializePlugin(_ manager: PluginManager) {
     let plugin = WindowsPlugin()
+    manager.register(WindowsDeveloperDirectoryExtension(), type: DeveloperDirectoryExtensionPoint.self)
     manager.register(WindowsPlatformSpecsExtension(), type: SpecificationsExtensionPoint.self)
     manager.register(WindowsEnvironmentExtension(plugin: plugin), type: EnvironmentExtensionPoint.self)
     manager.register(WindowsPlatformExtension(plugin: plugin), type: PlatformInfoExtensionPoint.self)
@@ -51,6 +52,18 @@ public final class WindowsPlugin: Sendable {
     }
 }
 
+struct WindowsDeveloperDirectoryExtension: DeveloperDirectoryExtension {
+    func fallbackDeveloperDirectory(hostOperatingSystem: OperatingSystem) async throws -> Path? {
+        guard hostOperatingSystem == .windows else {
+            return nil
+        }
+        guard let userProgramFiles = URL.userProgramFiles, let swiftPath = try? userProgramFiles.appending(component: "Swift").filePath else {
+            throw StubError.error("Could not determine path to user program files")
+        }
+        return swiftPath
+    }
+}
+
 struct WindowsPlatformSpecsExtension: SpecificationsExtension {
     func specificationFiles(resourceSearchPaths: [Path]) -> Bundle? {
         findResourceBundle(nameWhenInstalledInToolchain: "SwiftBuild_SWBWindowsPlatform", resourceSearchPaths: resourceSearchPaths, defaultBundle: Bundle.module)
@@ -81,7 +94,15 @@ struct WindowsPlatformExtension: PlatformInfoExtension {
             return []
         }
 
-        let platformsPath = context.developerPath.join("Platforms")
+        let platformsPath: Path
+        switch context.developerPath {
+        case .xcode(let path):
+            platformsPath = path.join("Platforms")
+        case .swiftToolchain(let path, _):
+            platformsPath = path.join("Platforms")
+        case .fallback(let path):
+            platformsPath = path.join("Platforms")
+        }
         return try context.fs.listdir(platformsPath).compactMap { version in
             let versionedPlatformsPath = platformsPath.join(version)
             guard context.fs.isDirectory(versionedPlatformsPath) else {

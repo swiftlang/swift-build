@@ -40,7 +40,7 @@ public final class Core: Sendable {
     /// Get a configured instance of the core.
     ///
     /// - returns: An initialized Core instance on which all discovery and loading will have been completed. If there are errors during that process, they will be logged to `stderr` and no instance will be returned. Otherwise, the initialized object is returned.
-    public static func getInitializedCore(_ delegate: any CoreDelegate, pluginManager: PluginManager, developerPath: Path? = nil, resourceSearchPaths: [Path] = [], inferiorProductsPath: Path? = nil, extraPluginRegistration: @PluginExtensionSystemActor (_ pluginPaths: [Path]) -> Void = { _ in }, additionalContentPaths: [Path] = [], environment: [String:String] = [:], buildServiceModTime: Date, connectionMode: ServiceHostConnectionMode) async -> Core? {
+    public static func getInitializedCore(_ delegate: any CoreDelegate, pluginManager: PluginManager, developerPath: DeveloperPath? = nil, resourceSearchPaths: [Path] = [], inferiorProductsPath: Path? = nil, extraPluginRegistration: @PluginExtensionSystemActor (_ pluginPaths: [Path]) -> Void = { _ in }, additionalContentPaths: [Path] = [], environment: [String:String] = [:], buildServiceModTime: Date, connectionMode: ServiceHostConnectionMode) async -> Core? {
         // Enable macro expression interning during loading.
         return await MacroNamespace.withExpressionInterningEnabled {
             let hostOperatingSystem: OperatingSystem
@@ -51,20 +51,35 @@ public final class Core: Sendable {
                 return nil
             }
 
-            let resolvedDeveloperPath: String
+            #if USE_STATIC_PLUGIN_INITIALIZATION
+            // In a package context, plugins are statically linked into the build system.
+            // Load specs from service plugins if requested since we don't have a Service in certain tests
+            // Here we don't have access to `core.pluginPaths` like we do in the call below,
+            // but it doesn't matter because it will return an empty array when USE_STATIC_PLUGIN_INITIALIZATION is defined.
+            await extraPluginRegistration([])
+            #endif
+
+            let resolvedDeveloperPath: DeveloperPath
             do {
-                if let resolved = developerPath?.nilIfEmpty?.str {
+                if let resolved = developerPath {
                     resolvedDeveloperPath = resolved
-                } else if hostOperatingSystem == .macOS {
-                    resolvedDeveloperPath = try await Xcode.getActiveDeveloperDirectoryPath().str
-                } else if hostOperatingSystem == .windows {
-                    guard let userProgramFiles = URL.userProgramFiles, let swiftPath = try? userProgramFiles.appending(component: "Swift").filePath else {
-                        delegate.error("Could not determine path to user program files")
+                } else {
+                    let values = try await Set(pluginManager.extensions(of: DeveloperDirectoryExtensionPoint.self).asyncMap { try await $0.fallbackDeveloperDirectory(hostOperatingSystem: hostOperatingSystem) }).compactMap { $0 }
+                    switch values.count {
+                    case 0:
+                        delegate.error("Could not determine path to developer directory because no extensions provided a fallback value")
+                        return nil
+                    case 1:
+                        let path = values[0]
+                        if path.str.hasSuffix(".app/Contents/Developer") {
+                            resolvedDeveloperPath = .xcode(path)
+                        } else {
+                            resolvedDeveloperPath = .fallback(values[0])
+                        }
+                    default:
+                        delegate.error("Could not determine path to developer directory because multiple extensions provided conflicting fallback values: \(values.sorted().map { $0.str }.joined(separator: ", "))")
                         return nil
                     }
-                    resolvedDeveloperPath = swiftPath.str
-                } else {
-                    resolvedDeveloperPath = "/"
                 }
             } catch {
                 delegate.error("Could not determine path to developer directory: \(error)")
@@ -93,8 +108,11 @@ public final class Core: Sendable {
                 }
             }
 
+            #if !USE_STATIC_PLUGIN_INITIALIZATION
+            // In a package context, plugins are statically linked into the build system.
             // Load specs from service plugins if requested since we don't have a Service in certain tests
             await extraPluginRegistration(core.pluginPaths)
+            #endif
 
             await core.initializeSpecRegistry()
 
@@ -156,8 +174,26 @@ public final class Core: Sendable {
 
     public let pluginManager: PluginManager
 
+    public enum DeveloperPath: Sendable, Hashable {
+        // A path to an Xcode install's "/Contents/Developer" directory
+        case xcode(Path)
+
+        // A path to the root of a Swift toolchain, optionally paired with the developer path of an installed Xcode
+        case swiftToolchain(Path, xcodeDeveloperPath: Path?)
+
+        // A fallback resolved path.
+        case fallback(Path)
+
+        public var path: Path {
+            switch self {
+            case .xcode(let path), .swiftToolchain(let path, xcodeDeveloperPath: _), .fallback(let path):
+                return path
+            }
+        }
+    }
+
     /// The path to the "Developer" directory.
-    public let developerPath: Path
+    public let developerPath: DeveloperPath
 
     /// Additional search paths to be used when looking up resource bundles.
     public let resourceSearchPaths: [Path]
@@ -192,11 +228,11 @@ public final class Core: Sendable {
 
     public let connectionMode: ServiceHostConnectionMode
 
-    @_spi(Testing) public init(delegate: any CoreDelegate, hostOperatingSystem: OperatingSystem, pluginManager: PluginManager, developerPath: String, resourceSearchPaths: [Path], inferiorProductsPath: Path?, additionalContentPaths: [Path], environment: [String:String], buildServiceModTime: Date, connectionMode: ServiceHostConnectionMode) async throws {
+    @_spi(Testing) public init(delegate: any CoreDelegate, hostOperatingSystem: OperatingSystem, pluginManager: PluginManager, developerPath: DeveloperPath, resourceSearchPaths: [Path], inferiorProductsPath: Path?, additionalContentPaths: [Path], environment: [String:String], buildServiceModTime: Date, connectionMode: ServiceHostConnectionMode) async throws {
         self.delegate = delegate
         self.hostOperatingSystem = hostOperatingSystem
         self.pluginManager = pluginManager
-        self.developerPath = Path(developerPath)
+        self.developerPath = developerPath
         self.resourceSearchPaths = resourceSearchPaths
         self.inferiorProductsPath = inferiorProductsPath
         self.additionalContentPaths = additionalContentPaths
@@ -204,19 +240,27 @@ public final class Core: Sendable {
         self.connectionMode = connectionMode
         self.environment = environment
 
-        let versionPath = self.developerPath.dirname.join("version.plist")
+        switch developerPath {
+        case .xcode(let path):
+            let versionPath = path.dirname.join("version.plist")
 
-        // Load the containing app (Xcode or Playgrounds) version information, if available.
-        //
-        // We make this optional so tests do not need to provide it.
-        if let info = try XcodeVersionInfo.versionInfo(versionPath: versionPath) {
-            self.xcodeVersion = info.shortVersion
+            // Load the containing app (Xcode or Playgrounds) version information, if available.
+            //
+            // We make this optional so tests do not need to provide it.
+            if let info = try XcodeVersionInfo.versionInfo(versionPath: versionPath) {
+                self.xcodeVersion = info.shortVersion
 
-            // If the ProductBuildVersion key is missing, we use "UNKNOWN" as the value.
-            self.xcodeProductBuildVersion = info.productBuildVersion ?? ProductBuildVersion(major: 0, train: "A", build: 0, buildSuffix: "")
-            self.xcodeProductBuildVersionString = info.productBuildVersion?.description ?? "UNKNOWN"
-        } else {
-            // Set an arbitrary version for testing purposes.
+                // If the ProductBuildVersion key is missing, we use "UNKNOWN" as the value.
+                self.xcodeProductBuildVersion = info.productBuildVersion ?? ProductBuildVersion(major: 0, train: "A", build: 0, buildSuffix: "")
+                self.xcodeProductBuildVersionString = info.productBuildVersion?.description ?? "UNKNOWN"
+            } else {
+                // Set an arbitrary version for testing purposes.
+                self.xcodeVersion = Version(99, 99, 99)
+                self.xcodeProductBuildVersion = ProductBuildVersion(major: 99, train: "T", build: 999)
+                self.xcodeProductBuildVersionString = xcodeProductBuildVersion.description
+            }
+        case .swiftToolchain, .fallback:
+            // FIXME: Eliminate this requirment for Swift toolchains
             self.xcodeVersion = Version(99, 99, 99)
             self.xcodeProductBuildVersion = ProductBuildVersion(major: 99, train: "T", build: 999)
             self.xcodeProductBuildVersionString = xcodeProductBuildVersion.description
@@ -229,7 +273,17 @@ public final class Core: Sendable {
         self.toolchainPaths = {
             var toolchainPaths = [(Path, strict: Bool)]()
 
-            toolchainPaths.append((Path(developerPath).join("Toolchains"), strict: developerPath.hasSuffix(".app/Contents/Developer")))
+            switch developerPath {
+            case .xcode(let path):
+                toolchainPaths.append((path.join("Toolchains"), strict: path.str.hasSuffix(".app/Contents/Developer")))
+            case .swiftToolchain(let path, xcodeDeveloperPath: let xcodeDeveloperPath):
+                toolchainPaths.append((path, strict: true))
+                if let xcodeDeveloperPath {
+                    toolchainPaths.append((xcodeDeveloperPath.join("Toolchains"), strict: xcodeDeveloperPath.str.hasSuffix(".app/Contents/Developer")))
+                }
+            case .fallback(let path):
+                toolchainPaths.append((path.join("Toolchains"), strict: false))
+            }
 
             // FIXME: We should support building the toolchain locally (for `inferiorProductsPath`).
 
@@ -359,12 +413,14 @@ public final class Core: Sendable {
     public func lookupCASPlugin() -> ToolchainCASPlugin? {
         return casPlugin.withLock { casPlugin in
             if casPlugin == nil {
-                if hostOperatingSystem == .macOS {
-                    let pluginPath = developerPath.join("usr/lib/libToolchainCASPlugin.dylib")
+                switch developerPath {
+                case .xcode(let path):
+                    let pluginPath = path.join("usr/lib/libToolchainCASPlugin.dylib")
                     let plugin = try? ToolchainCASPlugin(dylib: pluginPath)
                     casPlugin = plugin
-                } else {
+                case .swiftToolchain, .fallback:
                     // Unimplemented
+                    break
                 }
             }
             return casPlugin
@@ -388,8 +444,19 @@ public final class Core: Sendable {
         if let onlySearchAdditionalPlatformPaths = getEnvironmentVariable("XCODE_ONLY_EXTRA_PLATFORM_FOLDERS"), onlySearchAdditionalPlatformPaths.boolValue {
             searchPaths = []
         } else {
-            let platformsDir = self.developerPath.join("Platforms")
-            searchPaths = [platformsDir]
+            switch developerPath {
+            case .xcode(let path):
+                let platformsDir = path.join("Platforms")
+                searchPaths = [platformsDir]
+            case .swiftToolchain(_, let xcodeDeveloperDirectoryPath):
+                if let xcodeDeveloperDirectoryPath {
+                    searchPaths = [xcodeDeveloperDirectoryPath.join("Platforms")]
+                } else {
+                    searchPaths = []
+                }
+            case .fallback:
+                searchPaths = []
+            }
         }
         if let additionalPlatformSearchPaths = getEnvironmentVariable("XCODE_EXTRA_PLATFORM_FOLDERS") {
             for searchPath in additionalPlatformSearchPaths.split(separator: Path.pathEnvironmentSeparator) {
@@ -677,7 +744,7 @@ struct CoreRegistryDelegate : PlatformRegistryDelegate, SDKRegistryDelegate, Spe
         core.pluginManager
     }
 
-    var developerPath: Path {
+    var developerPath: Core.DeveloperPath {
         core.developerPath
     }
 }

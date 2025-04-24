@@ -11,6 +11,7 @@
 //===----------------------------------------------------------------------===//
 
 public import SWBUtil
+import SWBMacro
 
 public final class MergeInfoPlistSpec: CommandLineToolSpec, SpecImplementationType, @unchecked Sendable {
     public static func construct(registry: SpecRegistry, proxy: SpecProxy) -> Spec {

@@ -666,22 +666,24 @@ package final class BuildOperation: BuildSystemOperation {
         let aggregatedCounters = await adaptor.getAggregatedCounters()
         let aggregatedTaskCounters = await adaptor.getAggregatedTaskCounters()
         do {
-            let swiftCacheHits = aggregatedCounters[.swiftCacheHits, default: 0]
-            let swiftCacheMisses = aggregatedCounters[.swiftCacheMisses, default: 0]
-            let clangCacheHits = aggregatedCounters[.clangCacheHits, default: 0]
-            let clangCacheMisses = aggregatedCounters[.clangCacheMisses, default: 0]
-            if swiftCacheHits + swiftCacheMisses > 0 || clangCacheHits + clangCacheMisses > 0 {
-                adaptor.withActivity(ruleInfo: "CompilationCacheMetrics", executionDescription: "Report compilation cache metrics", signature: "compilation_cache_metrics", target: nil, parentActivity: nil) { activity in
+            let cacheHits: Int
+            let cacheMisses: Int
+            do {
+                let swiftCacheHits = aggregatedCounters[.swiftCacheHits, default: 0]
+                let swiftCacheMisses = aggregatedCounters[.swiftCacheMisses, default: 0]
+                let clangCacheHits = aggregatedCounters[.clangCacheHits, default: 0]
+                let clangCacheMisses = aggregatedCounters[.clangCacheMisses, default: 0]
+                cacheHits = swiftCacheHits + clangCacheHits
+                cacheMisses = swiftCacheMisses + clangCacheMisses
+            }
+            if cacheHits + cacheMisses > 0 {
+                let signature = ByteString(encodingAsUTF8: "compilation_cache_metrics")
+                adaptor.withActivity(ruleInfo: "CompilationCacheMetrics", executionDescription: "Report compilation cache metrics", signature: signature, target: nil, parentActivity: nil) { activity in
                     func getSummary(hits: Int, misses: Int) -> String {
                         let hitPercent = Int((Double(hits) / Double(hits + misses) * 100).rounded())
                         return "\(hits) hit\(hits == 1 ? "" : "s") (\(hitPercent)%), \(misses) miss\(misses == 1 ? "" : "es")"
                     }
-                    if swiftCacheHits + swiftCacheMisses > 0 {
-                        delegate.emit(data: ByteString(encodingAsUTF8: "Swift compiler: \(getSummary(hits: swiftCacheHits, misses: swiftCacheMisses))").bytes, for: activity, signature: "compilation_cache_metrics")
-                    }
-                    if clangCacheHits + clangCacheMisses > 0 {
-                        delegate.emit(data: ByteString(encodingAsUTF8: "Clang compiler: \(getSummary(hits: clangCacheHits, misses: clangCacheMisses))").bytes, for: activity, signature: "compilation_cache_metrics")
-                    }
+                    delegate.emit(diagnostic: Diagnostic(behavior: .note, location: .unknown, data: DiagnosticData(getSummary(hits: cacheHits, misses: cacheMisses))), for: activity, signature: signature)
                     return .succeeded
                 }
 
@@ -879,8 +881,15 @@ package final class BuildOperation: BuildSystemOperation {
     }
 
     package func taskDiscoveredRequiredTargetDependency(target: ConfiguredTarget, antecedent: ConfiguredTarget, reason: RequiredTargetDependencyReason, warningLevel: BooleanWarningLevel) {
-        if !transitiveDependencyExists(target: target, antecedent: antecedent) {
+        let diagnosticBehavior: SWBUtil.Diagnostic.Behavior
+        switch warningLevel {
+        case .yesError: diagnosticBehavior = .error
+        case .yes: diagnosticBehavior = .warning
+        case .no: return
+        }
+        let targetDiagnosticsEngine = buildOutputDelegate.diagnosticsEngine(for: target)
 
+        if !transitiveDependencyExists(target: target, antecedent: antecedent) {
             // Ensure we only diagnose missing dependencies when platform and SDK variant match. We perform this check as late as possible since computing settings can be expensive.
             let targetSettings = requestContext.getCachedSettings(target.parameters, target: target.target)
             let antecedentSettings = requestContext.getCachedSettings(antecedent.parameters, target: antecedent.target)
@@ -898,14 +907,8 @@ package final class BuildOperation: BuildSystemOperation {
             } else {
                 message = DiagnosticData("'\(target.target.name)' is missing a dependency on '\(antecedent.target.name)' because \(reason)")
             }
-            switch warningLevel {
-            case .yes:
-                buildOutputDelegate.emit(Diagnostic(behavior: .warning, location: .unknown, data: message))
-            case .yesError:
-                buildOutputDelegate.emit(Diagnostic(behavior: .error, location: .unknown, data: message))
-            default:
-                break
-            }
+
+            targetDiagnosticsEngine.emit(Diagnostic(behavior: diagnosticBehavior, location: .unknown, data: message))
         }
     }
 }
@@ -1530,7 +1533,7 @@ internal final class OperationSystemAdaptor: SWBLLBuild.BuildSystemDelegate, Act
             return
         }
 
-        let signatureCtx = MD5Context()
+        let signatureCtx = InsecureHashContext()
         signatureCtx.add(string: "CleanupCompileCache")
         signatureCtx.add(string: cachePath.str)
         let signature = signatureCtx.signature

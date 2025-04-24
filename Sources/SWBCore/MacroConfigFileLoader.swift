@@ -12,6 +12,7 @@
 
 public import SWBUtil
 public import SWBMacro
+import Foundation
 
 /// Information on a macro config file.
 @_spi(Testing) public struct MacroConfigInfo: Sendable {
@@ -118,7 +119,7 @@ final class MacroConfigFileLoader: Sendable {
             let nestedConfigurations: NestedConfigurations
             /// A collection of included xcconfig files leading to the one currently being parsed. The element currently being parsed is the last one in the array.
             let ancestorIncludes: AncestorIncludes
-            let developerPath: Path
+            let developerPath: Core.DeveloperPath
 
             /// If a #include(?) directive has been found then this method creates and returns a parser to parse that file.  The delegate of the subparser will share the macro value assignment table and diagnostics object of this delegate, so that the include file's information will be added to that of the file that included it.
             /// - parameter fileName: The file to be included.  If this is not an absolute path, then it will be searched for in the base path of the file included it, and any defined search paths.
@@ -131,7 +132,10 @@ final class MacroConfigFileLoader: Sendable {
                 //
                 // FIXME: Move this to its proper home, and support the other special cases Xcode has (PLATFORM_DIR and SDK_DIR). This should move to using a generic facility, e.g., source trees: <rdar://problem/23576831> Add search paths for .xcconfig macros to match what Xcode has
                 if path.str.hasPrefix("<DEVELOPER_DIR>") {
-                    path = Path(path.str.replacingOccurrences(of: "<DEVELOPER_DIR>", with: developerPath.str))
+                    switch developerPath {
+                    case .xcode(let developerPath), .swiftToolchain(let developerPath, _), .fallback(let developerPath):
+                        path = Path(path.str.replacingOccurrences(of: "<DEVELOPER_DIR>", with: developerPath.str))
+                    }
                 }
 
                 let allSearchPaths: [Path] = basePath != nil ? [basePath!] + searchPaths : searchPaths

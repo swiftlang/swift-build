@@ -17,6 +17,7 @@ package import SWBUtil
 package import struct SWBProtocol.BuildDescriptionID
 package import struct SWBProtocol.BuildOperationTaskEnded
 package import struct SWBProtocol.TargetDependencyRelationship
+import Synchronization
 
 /// An empty delegate implementation.
 package final class MockTestBuildDescriptionConstructionDelegate: BuildDescriptionConstructionDelegate, Sendable {

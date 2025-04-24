@@ -17,6 +17,7 @@ import SWBTestSupport
 import SWBCore
 import SWBProtocol
 import SWBUtil
+import SWBTaskExecution
 
 
 @Suite
@@ -1267,65 +1268,6 @@ fileprivate struct UnitTestBuildOperationTests: CoreBasedTests {
                 else {
                     Issue.record("Could not get path to Info.plist for XCTRunner.app from rule: \(task.ruleInfo)")
                 }
-            }
-        }
-    }
-
-    /// Validates that a project building for a platform which uses bitcode is able to build successfully when linking to XCTest.
-    /// Testing frameworks like XCTest are not built with bitcode because they aren't intended to be shipped, and so dependencies of these targets should have bitcode disabled.
-    /// This is especially important for packages, which cannot disable bitcode.
-    @Test(.requireSDKs(.iOS))
-    func testingFrameworksWithBitcode() async throws {
-        try await withTemporaryDirectory { tmpDir in
-            let testWorkspace = TestWorkspace(
-                "Test",
-                sourceRoot: tmpDir.join("Test"),
-                projects: [
-                    TestProject(
-                        "aProject",
-                        groupTree: TestGroup(
-                            "Framework",
-                            children: [
-                                TestFile("Test.swift"),
-                                TestFile("XCTest.framework")
-                            ]),
-                        buildConfigurations: [
-                            TestBuildConfiguration(
-                                "Debug",
-                                buildSettings: [:]),
-                        ],
-                        targets: [
-                            TestStandardTarget(
-                                "Framework",
-                                type: .framework,
-                                buildConfigurations: [
-                                    TestBuildConfiguration(
-                                        "Debug",
-                                        buildSettings: [
-                                            "ENABLE_BITCODE": "YES",
-                                            "PRODUCT_NAME": "$(TARGET_NAME)",
-                                            "SDKROOT": "iphoneos",
-                                            "SWIFT_VERSION": "5.0",
-                                        ]),
-                                ],
-                                buildPhases: [
-                                    TestSourcesBuildPhase([
-                                        "Test.swift",
-                                    ]),
-                                    TestFrameworksBuildPhase([
-                                        "XCTest.framework"
-                                    ])
-                                ]
-                            )
-                        ])
-                ])
-            let tester = try await BuildOperationTester(getCore(), testWorkspace, simulated: false)
-
-            try tester.fs.createDirectory(testWorkspace.sourceRoot.join("aProject"), recursive: true)
-            try tester.fs.write(testWorkspace.sourceRoot.join("aProject").join("Test.swift"), contents: "import XCTest")
-
-            try await tester.checkBuild(runDestination: .iOS) { results in
-                results.checkNoDiagnostics()
             }
         }
     }

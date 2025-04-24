@@ -14,6 +14,7 @@ package import SWBCore
 import SWBProtocol
 package import SWBUtil
 package import SWBCAS
+import Foundation
 
 package struct ClangCachingPruneDataTaskKey: Hashable, Serializable, CustomDebugStringConvertible, Sendable {
     let path: Path
@@ -90,7 +91,7 @@ package final class CompilationCachingDataPruner: Sendable {
         startedAction()
         let serializer = MsgPackSerializer()
         key.serialize(to: serializer)
-        let signatureCtx = MD5Context()
+        let signatureCtx = InsecureHashContext()
         signatureCtx.add(string: "ClangCachingPruneData")
         signatureCtx.add(bytes: serializer.byteString)
         let signature = signatureCtx.signature
@@ -113,12 +114,12 @@ package final class CompilationCachingDataPruner: Sendable {
                 do {
                     let dbSize = try casDBs.getOndiskSize()
                     let sizeLimit = try computeCASSizeLimit(casOptions: casOpts, dbSize: dbSize, fileSystem: fs)
-                    if casOpts.enableDiagnosticRemarks, let dbSize, let sizeLimit, sizeLimit < dbSize {
+                    if let dbSize, let sizeLimit, sizeLimit < dbSize {
                         activityReporter.emit(
                             diagnostic: Diagnostic(
-                                behavior: .remark,
+                                behavior: .note,
                                 location: .unknown,
-                                data: DiagnosticData("cache size (\(dbSize)) larger than size limit (\(sizeLimit)")
+                                data: DiagnosticData("cache size (\(dbSize)) larger than size limit (\(sizeLimit))")
                             ),
                             for: activityID,
                             signature: signature
@@ -126,6 +127,75 @@ package final class CompilationCachingDataPruner: Sendable {
                     }
                     try casDBs.setOndiskSizeLimit(sizeLimit ?? 0)
                     try casDBs.pruneOndiskData()
+                    status = .succeeded
+                } catch {
+                    activityReporter.emit(
+                        diagnostic: Diagnostic(behavior: .error, location: .unknown, data: DiagnosticData(error.localizedDescription)),
+                        for: activityID,
+                        signature: signature
+                    )
+                    status = .failed
+                }
+                return status
+            }
+            self.finishedAction()
+        }
+    }
+
+    package func pruneCAS(
+        _ casDBs: SwiftCASDatabases,
+        key: ClangCachingPruneDataTaskKey,
+        activityReporter: any ActivityReporter,
+        fileSystem fs: any FSProxy
+    ) {
+        let casOpts = key.casOptions
+        guard casOpts.limitingStrategy != .discarded else {
+            return // No need to prune, CAS directory is getting deleted.
+        }
+        let inserted = state.withLock { $0.prunedCASes.insert(key).inserted }
+        guard inserted else {
+            return // already pruned
+        }
+
+        startedAction()
+        let serializer = MsgPackSerializer()
+        key.serialize(to: serializer)
+        let signatureCtx = InsecureHashContext()
+        signatureCtx.add(string: "SwiftCachingPruneData")
+        signatureCtx.add(bytes: serializer.byteString)
+        let signature = signatureCtx.signature
+
+        let casPath = casOpts.casPath.str
+        let swiftscanPath = key.path.str
+
+        // Avoiding the swift concurrency variant because it may lead to starvation when `waitForCompletion()`
+        // blocks on such tasks. Before using a swift concurrency task here make sure there's no deadlock
+        // when setting `LIBDISPATCH_COOPERATIVE_POOL_STRICT`.
+        queue.async {
+            activityReporter.withActivity(
+                ruleInfo: "SwiftCachingPruneData \(casPath) \(swiftscanPath)",
+                executionDescription: "Swift caching pruning \(casPath) using \(swiftscanPath)",
+                signature: signature,
+                target: nil,
+                parentActivity: nil)
+            { activityID in
+                let status: BuildOperationTaskEnded.Status
+                do {
+                    let dbSize = try casDBs.getStorageSize()
+                    let sizeLimit = try computeCASSizeLimit(casOptions: casOpts, dbSize: dbSize.map{Int($0)}, fileSystem: fs)
+                    if let dbSize, let sizeLimit, sizeLimit < dbSize {
+                        activityReporter.emit(
+                            diagnostic: Diagnostic(
+                                behavior: .note,
+                                location: .unknown,
+                                data: DiagnosticData("cache size (\(dbSize)) larger than size limit (\(sizeLimit))")
+                            ),
+                            for: activityID,
+                            signature: signature
+                        )
+                    }
+                    try casDBs.setSizeLimit(Int64(sizeLimit ?? 0))
+                    try casDBs.prune()
                     status = .succeeded
                 } catch {
                     activityReporter.emit(
@@ -159,7 +229,7 @@ package final class CompilationCachingDataPruner: Sendable {
         startedAction()
         let serializer = MsgPackSerializer()
         key.serialize(to: serializer)
-        let signatureCtx = MD5Context()
+        let signatureCtx = InsecureHashContext()
         signatureCtx.add(string: "ClangCachingPruneData")
         signatureCtx.add(bytes: serializer.byteString)
         let signature = signatureCtx.signature
@@ -182,12 +252,12 @@ package final class CompilationCachingDataPruner: Sendable {
                 do {
                     let dbSize = (try? toolchainCAS.getOnDiskSize()).map { Int($0) }
                     let sizeLimit = try computeCASSizeLimit(casOptions: casOpts, dbSize: dbSize, fileSystem: fs).map { Int64($0) }
-                    if casOpts.enableDiagnosticRemarks, let dbSize, let sizeLimit, sizeLimit < dbSize {
+                    if let dbSize, let sizeLimit, sizeLimit < dbSize {
                         activityReporter.emit(
                             diagnostic: Diagnostic(
-                                behavior: .remark,
+                                behavior: .note,
                                 location: .unknown,
-                                data: DiagnosticData("cache size (\(dbSize)) larger than size limit (\(sizeLimit)")
+                                data: DiagnosticData("cache size (\(dbSize)) larger than size limit (\(sizeLimit))")
                             ),
                             for: activityID,
                             signature: signature

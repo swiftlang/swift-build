@@ -12,6 +12,7 @@
 
 public import SWBCore
 import SWBUtil
+import Foundation
 
 public final class ConcatenateTaskAction: TaskAction {
     public override class var toolIdentifier: String {

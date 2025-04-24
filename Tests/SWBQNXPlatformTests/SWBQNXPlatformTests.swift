@@ -15,6 +15,7 @@ import SWBProtocol
 import SWBTestSupport
 import SWBTaskExecution
 import SWBUtil
+import SWBCore
 
 @Suite
 fileprivate struct QNXBuildOperationTests: CoreBasedTests {

@@ -12,6 +12,7 @@
 
 import SWBCore
 import SWBUtil
+import SWBMacro
 
 /// This produces the tasks which create the build directories which are conceptually not part of any target, such as the `SYMROOT`, `OBJROOT` and `DSTROOT`.
 final class CreateBuildDirectoryTaskProducer: StandardTaskProducer, TaskProducer {

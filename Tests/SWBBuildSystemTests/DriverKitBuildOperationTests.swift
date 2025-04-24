@@ -15,6 +15,7 @@ import Testing
 import SWBCore
 import SWBUtil
 import SWBTestSupport
+import Foundation
 
 @Suite
 fileprivate struct DriverKitBuildOperationTests: CoreBasedTests {

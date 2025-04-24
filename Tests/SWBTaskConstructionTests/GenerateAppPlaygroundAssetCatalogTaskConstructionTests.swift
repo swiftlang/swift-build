@@ -18,6 +18,7 @@ import SWBCore
 import SWBUtil
 
 import SWBTaskConstruction
+import SWBProtocol
 
 @Suite
 fileprivate struct GenerateAppPlaygroundAssetCatalogTaskConstructionTests: CoreBasedTests {

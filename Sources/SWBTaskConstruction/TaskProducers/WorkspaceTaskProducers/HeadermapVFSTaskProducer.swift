@@ -12,6 +12,9 @@
 
 import SWBCore
 import SWBUtil
+import SWBMacro
+import Foundation
+import SWBProtocol
 
 final class HeadermapVFSTaskProducer: StandardTaskProducer, TaskProducer {
 
@@ -33,7 +36,7 @@ final class HeadermapVFSTaskProducer: StandardTaskProducer, TaskProducer {
             let vfsContentsByPath = try Dictionary(try await targetContexts.concurrentMap(maximumParallelism: 100) { (targetContext: TaskProducerContext) async throws -> (Path, ByteString)? in
                 let targetScope = targetContext.settings.globalScope
                 let vfsSetting = targetScope.evaluate(BuiltinMacros.CPP_HEADERMAP_PRODUCT_HEADERS_VFS_FILE)
-                guard targetContext.configuredTarget?.target is StandardTarget, targetScope.evaluate(BuiltinMacros.USE_HEADERMAP), !vfsSetting.isEmpty else {
+                guard targetContext.configuredTarget?.target is SWBCore.StandardTarget, targetScope.evaluate(BuiltinMacros.USE_HEADERMAP), !vfsSetting.isEmpty else {
                     return nil
                 }
                 let vfsPath = self.context.makeAbsolute(vfsSetting)
@@ -80,7 +83,7 @@ extension TaskProducerContext {
         return try PropertyListItem(vfs.toVFSOverlay()).asJSONFragment()
     }
 
-    func forEachBuildProductToSourceMapping(mapToTempFilesOnly: Bool, _ body: ((target: Target, isActiveTarget: Bool, builtFile: Path, originalSource: Path)) throws -> Void) async rethrows {
+    func forEachBuildProductToSourceMapping(mapToTempFilesOnly: Bool, _ body: ((target: SWBCore.Target, isActiveTarget: Bool, builtFile: Path, originalSource: Path)) throws -> Void) async rethrows {
 
         let index = await workspaceContext.headerIndex
 
@@ -96,7 +99,7 @@ extension TaskProducerContext {
 
         let hasEnabledIndexBuildArena = settings.globalScope.evaluate(BuiltinMacros.INDEX_ENABLE_BUILD_ARENA)
         let effectivePlatformName = settings.globalScope.evaluate(BuiltinMacros.EFFECTIVE_PLATFORM_NAME)
-        var settingsByTarget: [Target: Settings] = [:]
+        var settingsByTarget: [SWBCore.Target: Settings] = [:]
         for configuredTarget in globalProductPlan.allTargets {
             guard workspaceContext.workspace.project(for: configuredTarget.target) == project else { continue }
             let settings = globalProductPlan.getTargetSettings(configuredTarget)
@@ -147,7 +150,7 @@ extension TaskProducerContext {
             let privateHeadersFolderPseudoPath = headerDestPaths.privatePath
 
             // Add the public and private headers.
-            func addEntry(_ fileRef: FileReference, installDir: Path) throws {
+            func addEntry(_ fileRef: SWBCore.FileReference, installDir: Path) throws {
                 // Compute the header path.
                 //
                 // FIXME: This isn't the correct file resolver to use.

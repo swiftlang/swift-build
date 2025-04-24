@@ -12,6 +12,7 @@
 
 public import SWBUtil
 public import SWBCore
+import Foundation
 
 /// Used only when remote caching is enabled for downloading a compilation output,
 /// using its ID, into the local CAS.
@@ -48,13 +49,13 @@ public final class SwiftCachingOutputMaterializerTaskAction: TaskAction {
             do {
                 let loaded = try await cas.download(with: key.casID)
                 if !loaded && key.casOptions.enableDiagnosticRemarks {
-                    outputDelegate.remark("cached output \(key.casID) not found")
+                    outputDelegate.note("cached output \(key.casID) not found")
                 }
             } catch {
                 guard !key.casOptions.enableStrictCASErrors else { throw error }
                 outputDelegate.warning(error.localizedDescription)
                 if key.casOptions.enableDiagnosticRemarks {
-                    outputDelegate.remark("cached output \(key.casID) downloading failed")
+                    outputDelegate.note("cached output \(key.casID) downloading failed")
                 }
             }
             return .succeeded

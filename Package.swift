@@ -31,16 +31,20 @@ func swiftSettings(languageMode: SwiftLanguageMode) -> [SwiftSetting] {
             .enableUpcomingFeature("ConciseMagicFile"),
             .enableUpcomingFeature("DeprecateApplicationMain"),
             .enableUpcomingFeature("DisableOutwardActorInference"),
+            //.enableUpcomingFeature("DynamicActorIsolation"),
             .enableUpcomingFeature("ForwardTrailingClosures"),
+            .enableUpcomingFeature("GlobalActorIsolatedTypesUsability"),
             .enableUpcomingFeature("GlobalConcurrency"),
             .enableUpcomingFeature("ImplicitOpenExistentials"),
             .enableUpcomingFeature("ImportObjcForwardDeclarations"),
             .enableUpcomingFeature("InferSendableFromCaptures"),
             .enableUpcomingFeature("IsolatedDefaultValues"),
+            .enableUpcomingFeature("NonfrozenEnumExhaustivity"),
             //.enableUpcomingFeature("RegionBasedIsolation"), // rdar://137809703
 
             // Future Swift features
             .enableUpcomingFeature("ExistentialAny"),
+            .enableUpcomingFeature("MemberImportVisibility"),
             .enableUpcomingFeature("InternalImportsByDefault"),
 
             .swiftLanguageMode(.v5),
@@ -51,6 +55,7 @@ func swiftSettings(languageMode: SwiftLanguageMode) -> [SwiftSetting] {
         return [
             // Future Swift features
             .enableUpcomingFeature("ExistentialAny"),
+            .enableUpcomingFeature("MemberImportVisibility"),
             .enableUpcomingFeature("InternalImportsByDefault"),
 
             .swiftLanguageMode(.v6),
@@ -195,7 +200,6 @@ let package = Package(
                 "SWBCSupport",
                 "SWBLibc",
                 .product(name: "ArgumentParser", package: "swift-argument-parser"),
-                .product(name: "Crypto", package: "swift-crypto", condition: .when(platforms: [.linux, .openbsd, .android])),
                 .product(name: "SystemPackage", package: "swift-system", condition: .when(platforms: [.linux, .android, .windows])),
             ],
             exclude: ["CMakeLists.txt"],
@@ -232,7 +236,14 @@ let package = Package(
             swiftSettings: swiftSettings(languageMode: .v6)),
         .target(
             name: "SWBUniversalPlatform",
-            dependencies: ["SWBCore", "SWBMacro", "SWBUtil"],
+            dependencies: [
+                "SWBCore",
+                "SWBMacro",
+                "SWBUtil",
+                "SWBTaskConstruction",
+                "SWBTaskExecution",
+                .product(name: "ArgumentParser", package: "swift-argument-parser"),
+            ],
             exclude: ["CMakeLists.txt"],
             resources: [.process("Specs")],
             swiftSettings: swiftSettings(languageMode: .v6)),
@@ -427,7 +438,6 @@ for target in package.targets {
 // `SWIFTCI_USE_LOCAL_DEPS` configures if dependencies are locally available to build
 if useLocalDependencies {
     package.dependencies += [
-        .package(path: "../swift-crypto"),
         .package(path: "../swift-driver"),
         .package(path: "../swift-system"),
         .package(path: "../swift-argument-parser"),
@@ -437,7 +447,6 @@ if useLocalDependencies {
     }
 } else {
     package.dependencies += [
-        .package(url: "https://github.com/apple/swift-crypto.git", "2.0.0"..<"4.0.0"),
         .package(url: "https://github.com/swiftlang/swift-driver.git", branch: "release/6.2"),
         .package(url: "https://github.com/apple/swift-system.git", .upToNextMajor(from: "1.4.1")),
         .package(url: "https://github.com/apple/swift-argument-parser.git", from: "1.0.3"),

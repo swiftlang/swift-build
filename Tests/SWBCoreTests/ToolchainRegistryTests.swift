@@ -16,6 +16,7 @@ import SWBTestSupport
 import SWBUtil
 
 @_spi(Testing) import SWBCore
+import SWBServiceCore
 
 @Suite fileprivate struct ToolchainRegistryTests: CoreBasedTests {
     let fs: any FSProxy = localFS
@@ -70,9 +71,15 @@ import SWBUtil
             }
 
             let pluginManager = await PluginManager(skipLoadingPluginIdentifiers: [])
+            await pluginManager.registerExtensionPoint(DeveloperDirectoryExtensionPoint())
             await pluginManager.registerExtensionPoint(SpecificationsExtensionPoint())
             await pluginManager.registerExtensionPoint(ToolchainRegistryExtensionPoint())
             await pluginManager.register(BuiltinSpecsExtension(), type: SpecificationsExtensionPoint.self)
+            struct MockDeveloperDirectoryExtensionPoint: DeveloperDirectoryExtension {
+                func fallbackDeveloperDirectory(hostOperatingSystem: OperatingSystem) async throws -> Path? {
+                    .root
+                }
+            }
             struct MockToolchainExtension: ToolchainRegistryExtension {
                 func additionalToolchains(context: any ToolchainRegistryExtensionAdditionalToolchainsContext) async throws -> [Toolchain] {
                     guard context.toolchainRegistry.lookup(ToolchainRegistry.defaultToolchainIdentifier) == nil else {
@@ -81,8 +88,20 @@ import SWBUtil
                     return [Toolchain(identifier: ToolchainRegistry.defaultToolchainIdentifier, displayName: "Mock", version: Version(), aliases: ["default"], path: .root, frameworkPaths: [], libraryPaths: [], defaultSettings: [:], overrideSettings: [:], defaultSettingsWhenPrimary: [:], executableSearchPaths: [], testingLibraryPlatformNames: [], fs: context.fs)]
                 }
             }
+            await pluginManager.register(MockDeveloperDirectoryExtensionPoint(), type: DeveloperDirectoryExtensionPoint.self)
             await pluginManager.register(MockToolchainExtension(), type: ToolchainRegistryExtensionPoint.self)
-            let core = try #require(await Core.getInitializedCore(TestingCoreDelegate(), pluginManager: pluginManager, inferiorProductsPath: Path.root.join("invalid"), environment: [:], buildServiceModTime: Date(), connectionMode: .inProcess))
+            let coreDelegate = TestingCoreDelegate()
+            let core = await Core.getInitializedCore(coreDelegate, pluginManager: pluginManager, inferiorProductsPath: Path.root.join("invalid"), environment: [:], buildServiceModTime: Date(), connectionMode: .inProcess)
+            guard let core else {
+                let errors = coreDelegate.diagnostics.filter { $0.behavior == .error }
+                for error in errors {
+                    Issue.record(Comment(rawValue: error.formatLocalizedDescription(.debugWithoutBehavior)))
+                }
+                if errors.isEmpty {
+                    Issue.record("Failed to initialize core but no errors were provided")
+                }
+                return
+            }
             let delegate = TestDataDelegate(pluginManager: core.pluginManager)
             let registry = await ToolchainRegistry(delegate: delegate, searchPaths: [(tmpDirPath, strict: strict)], fs: fs, hostOperatingSystem: core.hostOperatingSystem)
             try perform(registry, delegate.warnings, delegate.errors)

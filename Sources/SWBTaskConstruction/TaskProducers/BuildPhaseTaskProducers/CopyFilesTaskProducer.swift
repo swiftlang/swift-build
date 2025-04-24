@@ -13,12 +13,14 @@
 import SWBCore
 import SWBUtil
 import SWBMacro
+import SWBProtocol
+import Foundation
 
 /// Produces tasks for files in a Copy Files build phase in an Xcode target.
 ///
 /// Also subclassed by ``SwiftPackageCopyFilesTaskProducer``.
 class CopyFilesTaskProducer: FilesBasedBuildPhaseTaskProducerBase, FilesBasedBuildPhaseTaskProducer {
-    typealias ManagedBuildPhase = CopyFilesBuildPhase
+    typealias ManagedBuildPhase = SWBCore.CopyFilesBuildPhase
 
     func prepare() {
         let scope = context.settings.globalScope
@@ -237,7 +239,8 @@ class CopyFilesTaskProducer: FilesBasedBuildPhaseTaskProducerBase, FilesBasedBui
         // Determine whether we should re-sign on copy.  This is only done if the file-to-build wants it, *and* the file type supports it.
         let codeSignAfterCopying = ftb.codeSignOnCopy && ftb.fileType.codeSignOnCopy
 
-        // Determine whether we should strip bitcode during copying.  The default value of STRIP_BITCODE_FROM_COPIED_FILES is set on a per-SDK basis.
+        // Determine whether we should strip bitcode during copying.
+        // STRIP_BITCODE_FROM_COPIED_FILES is set to YES for non-simulator embedded platforms, so we don't need to spend time stripping it for other platforms.
         let stripBitcode = scope.evaluate(BuiltinMacros.STRIP_BITCODE_FROM_COPIED_FILES) && codeSignAfterCopying
 
         // SUPPORT FOR MERGEABLE LIBRARIES
@@ -323,7 +326,7 @@ class CopyFilesTaskProducer: FilesBasedBuildPhaseTaskProducerBase, FilesBasedBui
                             for cTarget in [configuredTarget] + context.globalProductPlan.dependencies(of: configuredTarget) {
                                 // FIXME: Perhaps knowing "does this target link this XCFramework" is something that the GlobalProductPlan or XCFrameworkContext should know.
                                 var didFindBuildFile = false
-                                if let frameworksBuildPhase = (cTarget.target as? BuildPhaseTarget)?.frameworksBuildPhase {
+                                if let frameworksBuildPhase = (cTarget.target as? SWBCore.BuildPhaseTarget)?.frameworksBuildPhase {
                                     for linkedBuildFile in frameworksBuildPhase.buildFiles {
                                         // FIXME: This is sketchy: It's using the current context to evaluate a build file in potentially a different target. This might rarely matter since this code only applies to XCFrameworks, but it feels wrong.
                                         if let resolvedLinkedBuildFile = try? context.resolveBuildFileReference(linkedBuildFile), resolvedLinkedBuildFile.fileType.identifier == "wrapper.xcframework", resolvedBuildFile.absolutePath == resolvedLinkedBuildFile.absolutePath {

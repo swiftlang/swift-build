@@ -17,6 +17,7 @@ public import class Foundation.PropertyListDecoder
 public import class Foundation.PropertyListEncoder
 public import protocol Foundation.LocalizedError
 public import SWBMacro
+import Synchronization
 
 /// Represents the various types of error cases possible when constructing an `XCFramework` type.
 ///
@@ -45,9 +46,6 @@ public enum XCFrameworkValidationError: Error, Equatable {
 
     /// The debug symbols path is empty.
     case debugSymbolsPathEmpty(libraryIdentifier: String)
-
-    /// The bitcode symbol maps path is empty.
-    case bitcodeSymbolMapsPathEmpty(libraryIdentifier: String)
 
     /// The platform variant is empty.
     case platformVariantEmpty(libraryIdentifier: String)
@@ -110,9 +108,6 @@ extension XCFrameworkValidationError: LocalizedError {
 
         case let .debugSymbolsPathEmpty(libraryIdentifier):
             return libraryErrorMessage("The '\(XCFrameworkInfoPlist_V1.Library.CodingKeys.debugSymbolsPath.stringValue)' is empty", libraryIdentifier: libraryIdentifier)
-
-        case let .bitcodeSymbolMapsPathEmpty(libraryIdentifier):
-            return libraryErrorMessage("The '\(XCFrameworkInfoPlist_V1.Library.CodingKeys.bitcodeSymbolMapsPath.stringValue)' is empty", libraryIdentifier: libraryIdentifier)
 
         case let .platformVariantEmpty(libraryIdentifier):
             return libraryErrorMessage("The '\(XCFrameworkInfoPlist_V1.Library.CodingKeys.platformVariant.stringValue)' is empty", libraryIdentifier: libraryIdentifier)
@@ -291,13 +286,10 @@ public struct XCFramework: Hashable, Sendable {
         /// - remark: XCFrameworks which declare this property can only be used by Xcodes which support v1.1 or later.
         public let mergeableMetadata: Bool
 
-        /// The relative path to the bitcode symbol maps. Typically 'BCSymbolMaps'.
-        public let bitcodeSymbolMapsPath: Path?
-
         /// The library type for the given `Library`.
         public let libraryType: LibraryType
 
-        public init(libraryIdentifier: String, supportedPlatform: String, supportedArchitectures: OrderedSet<String>, platformVariant: String?, libraryPath: Path, binaryPath: Path?, headersPath: Path?, debugSymbolsPath: Path? = nil, mergeableMetadata: Bool = false, bitcodeSymbolMapsPath: Path? = nil) {
+        public init(libraryIdentifier: String, supportedPlatform: String, supportedArchitectures: OrderedSet<String>, platformVariant: String?, libraryPath: Path, binaryPath: Path?, headersPath: Path?, debugSymbolsPath: Path? = nil, mergeableMetadata: Bool = false) {
             self.libraryIdentifier = libraryIdentifier
             self.supportedPlatform = supportedPlatform
             self.supportedArchitectures = supportedArchitectures
@@ -306,7 +298,6 @@ public struct XCFramework: Hashable, Sendable {
             self.binaryPath = binaryPath
             self.headersPath = headersPath
             self.debugSymbolsPath = debugSymbolsPath
-            self.bitcodeSymbolMapsPath = bitcodeSymbolMapsPath
             self.mergeableMetadata = mergeableMetadata
 
             self.libraryType = XCFramework.LibraryType(fileExtension: libraryPath.fileExtension)
@@ -450,12 +441,6 @@ extension XCFramework {
                 }
             }
 
-            if let bitcodeSymbolMapsPath = library.bitcodeSymbolMapsPath {
-                guard !bitcodeSymbolMapsPath.isEmpty else {
-                    throw XCFrameworkValidationError.bitcodeSymbolMapsPathEmpty(libraryIdentifier: library.libraryIdentifier)
-                }
-            }
-
             if let platformVariant = library.platformVariant {
                 guard !platformVariant.isEmpty else {
                     throw XCFrameworkValidationError.platformVariantEmpty(libraryIdentifier: library.libraryIdentifier)
@@ -522,7 +507,6 @@ extension XCFramework.Library: Hashable {
         let debugSymbolsPath: String?
         // This is optional because we only want to encode it if the XCFramework is at least of the version which supports it, but this struct doesn't know what that is, so we capture that characteristic in XCFramework.serialize() where the version is available.
         let mergeableMetadata: Bool?
-        let bitcodeSymbolMapsPath: String?
 
         enum CodingKeys: String, CodingKey {
             case libraryIdentifier = "LibraryIdentifier"
@@ -534,10 +518,11 @@ extension XCFramework.Library: Hashable {
             case headersPath = "HeadersPath"
             case debugSymbolsPath = "DebugSymbolsPath"
             case mergeableMetadata = "MergeableMetadata"
+            // Bitcode is no longer supported, but we still recognize the key for older XCFrameworks which define it.
             case bitcodeSymbolMapsPath = "BitcodeSymbolMapsPath"
         }
 
-        init(libraryIdentifier: String, supportedPlatform: String, supportedArchitectures: [String], platformVariant: String?, libraryPath: String, binaryPath: String?, headersPath: String?, debugSymbolsPath: String?, mergeableMetadata: Bool?, bitcodeSymbolMapsPath: String?) {
+        init(libraryIdentifier: String, supportedPlatform: String, supportedArchitectures: [String], platformVariant: String?, libraryPath: String, binaryPath: String?, headersPath: String?, debugSymbolsPath: String?, mergeableMetadata: Bool?) {
             self.libraryIdentifier = libraryIdentifier
             self.supportedPlatform = supportedPlatform
             self.supportedArchitectures = supportedArchitectures
@@ -547,7 +532,6 @@ extension XCFramework.Library: Hashable {
             self.headersPath = headersPath
             self.debugSymbolsPath = debugSymbolsPath
             self.mergeableMetadata = mergeableMetadata
-            self.bitcodeSymbolMapsPath = bitcodeSymbolMapsPath
         }
 
         // NOTE: The mappings for maccatalyst are so that "macabi" is used as that is what is directly matched in the LC_BUILD_VERSION info.
@@ -570,7 +554,6 @@ extension XCFramework.Library: Hashable {
             try container.encodeIfPresent(headersPath, forKey: .headersPath)
             try container.encodeIfPresent(debugSymbolsPath, forKey: .debugSymbolsPath)
             try container.encodeIfPresent(mergeableMetadata, forKey: .mergeableMetadata)
-            try container.encodeIfPresent(bitcodeSymbolMapsPath, forKey: .bitcodeSymbolMapsPath)
         }
 
         init(from decoder: any Decoder) throws {
@@ -589,7 +572,8 @@ extension XCFramework.Library: Hashable {
             self.headersPath = try container.decodeIfPresent(String.self, forKey: .headersPath)
             self.debugSymbolsPath = try container.decodeIfPresent(String.self, forKey: .debugSymbolsPath)
             self.mergeableMetadata = try container.decodeIfPresent(Bool.self, forKey: .mergeableMetadata)
-            self.bitcodeSymbolMapsPath = try container.decodeIfPresent(String.self, forKey: .bitcodeSymbolMapsPath)
+            // Bitcode is no longer supported, but we still recognize the key for older XCFrameworks which define it.
+            let _ = try container.decodeIfPresent(String.self, forKey: .bitcodeSymbolMapsPath)
         }
     }
 
@@ -651,7 +635,7 @@ extension XCFramework {
         let libraries = self.libraries.map { lib in
             // We only archive the mergeableMetadata property if we're the version which supports it or higher, so we set it to nil if we're a lower version.
             let mergeableMetadata: Bool? = (version >= type(of: self).mergeableMetadataVersion) ? lib.mergeableMetadata : nil
-            return XCFrameworkInfoPlist_V1.Library(libraryIdentifier: lib.libraryIdentifier, supportedPlatform: lib.supportedPlatform, supportedArchitectures: lib.supportedArchitectures.elements, platformVariant: lib.platformVariant, libraryPath: lib.libraryPath.str, binaryPath: lib.binaryPath?.str, headersPath: lib.headersPath?.str, debugSymbolsPath: lib.debugSymbolsPath?.str, mergeableMetadata: mergeableMetadata, bitcodeSymbolMapsPath: lib.bitcodeSymbolMapsPath?.str)
+            return XCFrameworkInfoPlist_V1.Library(libraryIdentifier: lib.libraryIdentifier, supportedPlatform: lib.supportedPlatform, supportedArchitectures: lib.supportedArchitectures.elements, platformVariant: lib.platformVariant, libraryPath: lib.libraryPath.str, binaryPath: lib.binaryPath?.str, headersPath: lib.headersPath?.str, debugSymbolsPath: lib.debugSymbolsPath?.str, mergeableMetadata: mergeableMetadata)
         }
         let xcframeworkV1 = XCFrameworkInfoPlist_V1(version: version.description, libraries: libraries)
 
@@ -674,9 +658,8 @@ extension XCFramework.Library {
         let headersPath = other.headersPath.flatMap { Path($0) }
         let debugSymbolsPath = other.debugSymbolsPath.flatMap { Path($0) }
         let mergeableMetadata = other.mergeableMetadata ?? false
-        let bitcodeSymbolMapsPath = other.bitcodeSymbolMapsPath.flatMap { Path($0) }
 
-        self.init(libraryIdentifier: libraryIdentifier, supportedPlatform: supportedPlatform, supportedArchitectures: supportedArchitectures, platformVariant: platformVariant, libraryPath: libraryPath, binaryPath: binaryPath, headersPath: headersPath, debugSymbolsPath: debugSymbolsPath, mergeableMetadata: mergeableMetadata, bitcodeSymbolMapsPath: bitcodeSymbolMapsPath)
+        self.init(libraryIdentifier: libraryIdentifier, supportedPlatform: supportedPlatform, supportedArchitectures: supportedArchitectures, platformVariant: platformVariant, libraryPath: libraryPath, binaryPath: binaryPath, headersPath: headersPath, debugSymbolsPath: debugSymbolsPath, mergeableMetadata: mergeableMetadata)
     }
 }
 
@@ -767,12 +750,6 @@ extension XCFramework {
             if fs.isDirectory(dsym) || fs.exists(dsym) {
                 newCommandLine.append("-debug-symbols")
                 newCommandLine.append(dsym.str)
-            }
-
-            let bcsymbolmap = archiveRoot.join("BCSymbolMaps").join("\(name).bcsymbolmap")
-            if fs.exists(bcsymbolmap) {
-                newCommandLine.append("-debug-symbols")
-                newCommandLine.append(bcsymbolmap.str)
             }
         }
 
@@ -1088,9 +1065,8 @@ extension XCFramework {
 
         // There are two types of debugging symbols to concern ourselves with: dSYMs and BCSymbolMaps. Both are passed in via the commandline using the -debug-symbols flag. However, within the XCFramework itself, we store these in the same way that an xcarchive does, in a dSYMs and BCSymbolMaps folders.
         let debugSymbolsPath = debugSymbolPaths.contains { $0.fileExtension == "dSYM" } ? Path("dSYMs") : nil
-        let bitcodeSymbolMapsPath = debugSymbolPaths.contains { $0.fileExtension == "bcsymbolmap" } ? Path("BCSymbolMaps") : nil
 
-        return .success(XCFramework.Library(libraryIdentifier: libraryIdentifier, supportedPlatform: resolvedSupportedPlatform, supportedArchitectures: supportedArchs, platformVariant: supportedEnvironment, libraryPath: Path(libPath.basename), binaryPath: relativeBinaryPath, headersPath: headersPath, debugSymbolsPath: debugSymbolsPath, mergeableMetadata: containsMergeableMetadata, bitcodeSymbolMapsPath: bitcodeSymbolMapsPath))
+        return .success(XCFramework.Library(libraryIdentifier: libraryIdentifier, supportedPlatform: resolvedSupportedPlatform, supportedArchitectures: supportedArchs, platformVariant: supportedEnvironment, libraryPath: Path(libPath.basename), binaryPath: relativeBinaryPath, headersPath: headersPath, debugSymbolsPath: debugSymbolsPath, mergeableMetadata: containsMergeableMetadata))
     }
 
     /// A key that holds the primary paths for xcframework contents.
@@ -1215,15 +1191,6 @@ extension XCFramework {
                     }
                 }
 
-                // Process the bitcode symbol maps, if any.
-                if let bitcodeSymbolMapsPath = library.bitcodeSymbolMapsPath {
-                    for pathToBitcodeSymbolMap in path.debugSymbolPaths.filter({ $0.fileExtension == "bcsymbolmap" }) {
-                        let destinationPath = libraryIdentifierPath.join(bitcodeSymbolMapsPath).join(pathToBitcodeSymbolMap.basename)
-                        try fs.createDirectory(destinationPath.dirname, recursive: true)
-                        try fs.copy(pathToBitcodeSymbolMap, to: destinationPath)
-                    }
-                }
-
                 // If there are any of the special Swift files, pick these up to.
                 let libraryName = library.libraryPath.basenameWithoutSuffix
                 let baseLibraryName = libraryName.hasPrefix("lib") ? libraryName.withoutPrefix("lib") : libraryName
@@ -1344,19 +1311,6 @@ extension XCFramework {
             let copyDebugSymbolsToPath = copyLibraryToPath
             for file in try fs.listdir(copyDebugSymbolsFromPath) {
                 try copy(copyDebugSymbolsFromPath.join(file), to: copyDebugSymbolsToPath.join(file))
-            }
-        }
-
-        // Copy over any bitcode symbols that may exist.
-        if let bitcodeSymbolMapsPath = library.bitcodeSymbolMapsPath {
-            let copyBitcodeSymbolMapsFromPath = rootPathToLibrary.join(bitcodeSymbolMapsPath)
-            guard fs.exists(copyBitcodeSymbolMapsFromPath) else {
-                throw XCFrameworkValidationError.missingPathEntry(xcframeworkPath: xcframeworkPath, libraryIdentifier: library.libraryIdentifier, plistKey: XCFrameworkInfoPlist_V1.Library.CodingKeys.bitcodeSymbolMapsPath.stringValue, plistValue: library.bitcodeSymbolMapsPath?.str ?? "<empty value>")
-            }
-
-            let copyBitcodeSymbolMapsToPath = copyLibraryToPath
-            for file in try fs.listdir(copyBitcodeSymbolMapsFromPath) {
-                try copy(copyBitcodeSymbolMapsFromPath.join(file), to: copyBitcodeSymbolMapsToPath.join(file))
             }
         }
 

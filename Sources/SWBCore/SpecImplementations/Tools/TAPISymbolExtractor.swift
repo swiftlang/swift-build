@@ -13,6 +13,7 @@
 import Foundation
 public import SWBUtil
 public import SWBMacro
+import SWBProtocol
 
 final public class TAPISymbolExtractor: GenericCompilerSpec, GCCCompatibleCompilerCommandLineBuilder, SpecIdentifierType, @unchecked Sendable {
     public static let identifier = "com.apple.compilers.documentation.objc-symbol-extract"

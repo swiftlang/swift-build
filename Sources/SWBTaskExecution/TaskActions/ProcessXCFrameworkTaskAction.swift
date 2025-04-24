@@ -13,6 +13,7 @@
 public import SWBCore
 import SWBLibc
 import SWBUtil
+import Foundation
 
 /// Performs the processing of a given XCFramework, doing the work to process an individual slice and outputting into a location that can be used during the build.
 public final class ProcessXCFrameworkTaskAction: TaskAction {

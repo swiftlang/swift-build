@@ -14,6 +14,8 @@ import SWBCore
 import SWBTestSupport
 import SWBUtil
 import Testing
+import SWBProtocol
+import SWBTaskExecution
 
 @Suite
 fileprivate struct InfoPlistBuildOperationTests: CoreBasedTests {
@@ -116,14 +118,14 @@ fileprivate struct InfoPlistBuildOperationTests: CoreBasedTests {
                 for arch in ["arm64", "x86_64"] {
                     // There should be an Info.plist processing task, and associated Preprocess (we explicitly enable it).
                     results.checkTask(.matchTargetName("Tool"), .matchRule(["Preprocess", "\(SRCROOT)/build/aProject.build/Release/Tool.build/normal/\(arch)/Preprocessed-Info.plist", "\(SRCROOT)/Tool.plist"])) { task in
-                        task.checkCommandLine(["\(core.developerPath.str)/Toolchains/XcodeDefault.xctoolchain/usr/bin/cc", "-E", "-P", "-x", "c", "-Wno-trigraphs", "\(SRCROOT)/Tool.plist", "-F\(SRCROOT)/build/Release", "-target", "\(arch)-apple-macos\(core.loadSDK(.macOS).defaultDeploymentTarget)", "-isysroot", core.loadSDK(.macOS).path.str, "-o", "\(SRCROOT)/build/aProject.build/Release/Tool.build/normal/\(arch)/Preprocessed-Info.plist"])
+                        task.checkCommandLine(["\(core.developerPath.path.str)/Toolchains/XcodeDefault.xctoolchain/usr/bin/cc", "-E", "-P", "-x", "c", "-Wno-trigraphs", "\(SRCROOT)/Tool.plist", "-F\(SRCROOT)/build/Release", "-target", "\(arch)-apple-macos\(core.loadSDK(.macOS).defaultDeploymentTarget)", "-isysroot", core.loadSDK(.macOS).path.str, "-o", "\(SRCROOT)/build/aProject.build/Release/Tool.build/normal/\(arch)/Preprocessed-Info.plist"])
                     }
                 }
 
                 for arch in ["arm64", "x86_64"] {
                     // There should be an Info.plist processing task, and associated Preprocess (we explicitly enable it).
                     results.checkTask(.matchTargetName("App"), .matchRule(["Preprocess", "\(SRCROOT)/build/aProject.build/Release/App.build/normal/\(arch)/Preprocessed-Info.plist", "\(SRCROOT)/Tool.plist"])) { task in
-                        task.checkCommandLine(["\(core.developerPath.str)/Toolchains/XcodeDefault.xctoolchain/usr/bin/cc", "-E", "-P", "-x", "c", "-Wno-trigraphs", "\(SRCROOT)/Tool.plist", "-F\(SRCROOT)/build/Release", "-target", "\(arch)-apple-macos\(core.loadSDK(.macOS).defaultDeploymentTarget)", "-isysroot", core.loadSDK(.macOS).path.str, "-o", "\(SRCROOT)/build/aProject.build/Release/App.build/normal/\(arch)/Preprocessed-Info.plist"])
+                        task.checkCommandLine(["\(core.developerPath.path.str)/Toolchains/XcodeDefault.xctoolchain/usr/bin/cc", "-E", "-P", "-x", "c", "-Wno-trigraphs", "\(SRCROOT)/Tool.plist", "-F\(SRCROOT)/build/Release", "-target", "\(arch)-apple-macos\(core.loadSDK(.macOS).defaultDeploymentTarget)", "-isysroot", core.loadSDK(.macOS).path.str, "-o", "\(SRCROOT)/build/aProject.build/Release/App.build/normal/\(arch)/Preprocessed-Info.plist"])
                     }
                 }
 

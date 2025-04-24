@@ -19,6 +19,7 @@ import SWBTestSupport
 import SWBLLBuild
 
 import SWBCore
+import SWBTaskExecution
 
 @Suite(.requireLLBuild(apiVersion: 12), .requireXcode16())
 fileprivate struct SwiftDriverTests: CoreBasedTests {
@@ -3162,8 +3163,6 @@ fileprivate struct SwiftDriverTests: CoreBasedTests {
                                     "ARCHS": "arm64e",
                                     "SWIFT_WHOLE_MODULE_OPTIMIZATION": "YES",
                                     "SWIFT_ENABLE_LIBRARY_EVOLUTION": "YES",
-                                    "ENABLE_BITCODE": "YES",
-                                    "BITCODE_GENERATION_MODE": "bitcode",
                                     "SDKROOT": "iphoneos",
                                     "SWIFT_USE_INTEGRATED_DRIVER": "YES",
                                 ])
@@ -3229,15 +3228,6 @@ fileprivate struct SwiftDriverTests: CoreBasedTests {
             // Check that subtasks progress events are reported as expected.
             try await tester.checkBuild(runDestination: .anyiOSDevice, buildRequest: buildRequest, persistent: true) { results in
 
-                if UserDefaults.enableBitcodeSupport {
-                    results.checkWarning(.equal("Building with bitcode is deprecated. Please update your project and/or target settings to disable bitcode. (in target 'TargetA' from project 'aProject')"))
-                    results.checkWarning(.equal("Building with bitcode is deprecated. Please update your project and/or target settings to disable bitcode. (in target 'TargetB' from project 'aProject')"))
-                }
-                else {
-                    results.checkWarning(.equal("Ignoring ENABLE_BITCODE because building with bitcode is no longer supported. (in target 'TargetA' from project 'aProject')"))
-                    results.checkWarning(.equal("Ignoring ENABLE_BITCODE because building with bitcode is no longer supported. (in target 'TargetB' from project 'aProject')"))
-                }
-
                 results.checkNoErrors()
 
                 let compilationRequirementA = try #require(results.getTask(.matchTargetName("TargetA"), .matchRuleType("SwiftDriver Compilation Requirements")))
@@ -3273,16 +3263,10 @@ fileprivate struct SwiftDriverTests: CoreBasedTests {
                         #expect(compilationTask.execDescription == "Compile \(targetName) (arm64e)")
 
                         results.checkTaskRequested(compilationTask, .matchTargetName(targetName), .matchRuleType("SwiftCompile"), .matchRuleItem(SRCROOT.join("Sources/file\(targetNameSuffix)1.swift").str), .matchRuleItem(SRCROOT.join("Sources/file\(targetNameSuffix)2.swift").str))
-
-                        if UserDefaults.enableBitcodeSupport {
-                            results.checkTaskRequested(compilationTask, .matchTargetName(targetName), .matchRuleType("SwiftBackend"), .matchRuleItemPattern(.suffix("file\(targetNameSuffix)1.bc")))
-                            results.checkTaskRequested(compilationTask, .matchTargetName(targetName), .matchRuleType("SwiftBackend"), .matchRuleItemPattern(.suffix("file\(targetNameSuffix)2.bc")))
-                        }
                     }
 
                     results.checkTask(.matchTargetName(targetName), .matchRulePattern(["SwiftCompile", "normal", "arm64e", "Compiling file\(targetNameSuffix)1.swift, file\(targetNameSuffix)2.swift", .equal(SRCROOT.join("Sources/file\(targetNameSuffix)1.swift").str), .equal(SRCROOT.join("Sources/file\(targetNameSuffix)2.swift").str)])) { compileFileTask in
-                        let fileSuffix = UserDefaults.enableBitcodeSupport ? "bc" : "o"
-                        compileFileTask.checkCommandLineMatches([.suffix("swift-frontend"), .anySequence, .equal(SRCROOT.join("Sources/file\(targetNameSuffix)1.swift").str), .anySequence, "-o", .suffix("file\(targetNameSuffix)1.\(fileSuffix)"), "-o", .suffix("file\(targetNameSuffix)2.\(fileSuffix)")])
+                        compileFileTask.checkCommandLineMatches([.suffix("swift-frontend"), .anySequence, .equal(SRCROOT.join("Sources/file\(targetNameSuffix)1.swift").str), .anySequence, "-o", .suffix("file\(targetNameSuffix)1.o"), "-o", .suffix("file\(targetNameSuffix)2.o")])
                     }
                 }
             }
@@ -4613,11 +4597,11 @@ fileprivate struct SwiftDriverTests: CoreBasedTests {
                 try await tester.checkBuild(runDestination: .macOS, buildRequest: buildRequest, persistent: true) { results in
                     switch warningLevel {
                     case .yes:
-                        results.checkWarning("'Framework3' is missing a dependency on 'Framework1' because dependency scan of Swift module 'Framework3' discovered a dependency on 'Framework1'")
-                        results.checkWarning("'Framework3' is missing a dependency on 'Framework2' because dependency scan of Swift module 'Framework3' discovered a dependency on 'Framework2'")
+                        results.checkWarning("'Framework3' is missing a dependency on 'Framework1' because dependency scan of Swift module 'Framework3' discovered a dependency on 'Framework1' (in target 'Framework3' from project 'aProject')")
+                        results.checkWarning("'Framework3' is missing a dependency on 'Framework2' because dependency scan of Swift module 'Framework3' discovered a dependency on 'Framework2' (in target 'Framework3' from project 'aProject')")
                     case .yesError:
-                        results.checkError("'Framework3' is missing a dependency on 'Framework1' because dependency scan of Swift module 'Framework3' discovered a dependency on 'Framework1'")
-                        results.checkError("'Framework3' is missing a dependency on 'Framework2' because dependency scan of Swift module 'Framework3' discovered a dependency on 'Framework2'")
+                        results.checkError("'Framework3' is missing a dependency on 'Framework1' because dependency scan of Swift module 'Framework3' discovered a dependency on 'Framework1' (in target 'Framework3' from project 'aProject')")
+                        results.checkError("'Framework3' is missing a dependency on 'Framework2' because dependency scan of Swift module 'Framework3' discovered a dependency on 'Framework2' (in target 'Framework3' from project 'aProject')")
                     default:
                         break
                     }
@@ -4895,7 +4879,7 @@ fileprivate struct SwiftDriverTests: CoreBasedTests {
                 do {
                     let params = BuildParameters(configuration: "Debug")
                     try await tester.checkBuild(runDestination: .macOS, buildRequest: parameterizedBuildRequest(params)) { results in
-                        results.checkWarnings([.contains("Enabling the Swift language feature 'DeprecateApplicationMain' is recommended; set 'SWIFT_UPCOMING_FEATURE_DEPRECATE_APPLICATION_MAIN = YES'")], failIfNotFound: true)
+                        results.checkWarnings([.contains("Enabling the Swift language feature 'DeprecateApplicationMain' will become a requirement in the future; set 'SWIFT_UPCOMING_FEATURE_DEPRECATE_APPLICATION_MAIN = YES'")], failIfNotFound: true)
                         results.checkNotes([.contains("Learn more about 'DeprecateApplicationMain' by visiting https://www.swift.org/swift-evolution/")])
                         results.checkNoErrors()
                     }
@@ -5055,6 +5039,108 @@ fileprivate struct SwiftDriverTests: CoreBasedTests {
                 let responseFileContents = try tester.fs.read(try #require(responseFile))
                 #expect(!responseFileContents.isEmpty)
             }
+        }
+    }
+
+    @Test(.requireSDKs(.macOS))
+    func incrementalExplicitModulesLinkerSwiftmoduleRegistration() async throws {
+        try await withTemporaryDirectory { tmpDirPath async throws -> Void in
+            let testWorkspace = try await TestWorkspace(
+                "Test",
+                sourceRoot: tmpDirPath.join("Test"),
+                projects: [
+                    TestProject(
+                        "aProject",
+                        groupTree: TestGroup(
+                            "Sources",
+                            path: "Sources",
+                            children: [
+                                TestFile("fileA1.swift"),
+                            ]),
+                        buildConfigurations: [
+                            TestBuildConfiguration(
+                                "Debug",
+                                buildSettings: [
+                                    "PRODUCT_NAME": "$(TARGET_NAME)",
+                                    "SWIFT_VERSION": swiftVersion,
+                                    "BUILD_VARIANTS": "normal",
+                                    "SWIFT_USE_INTEGRATED_DRIVER": "YES",
+                                    "SWIFT_ENABLE_EXPLICIT_MODULES": "YES",
+                                ])
+                        ],
+                        targets: [
+                            TestStandardTarget(
+                                "TargetA",
+                                type: .framework,
+                                buildPhases: [
+                                    TestSourcesBuildPhase([
+                                        "fileA1.swift",
+                                    ]),
+                                ]),
+                        ])
+                ])
+
+            let tester = try await BuildOperationTester(getCore(), testWorkspace, simulated: false)
+            tester.userInfo = tester.userInfo.withAdditionalEnvironment(environment: ["SWIFT_FORCE_MODULE_LOADING": "only-interface"])
+            let parameters = BuildParameters(configuration: "Debug", overrides: [
+                // Redirect the prebuilt cache so we always build modules from source
+                "SWIFT_OVERLOAD_PREBUILT_MODULE_CACHE_PATH": tmpDirPath.str
+            ])
+            let buildRequest = BuildRequest(parameters: parameters, buildTargets: tester.workspace.projects[0].targets.map({ BuildRequest.BuildTargetInfo(parameters: parameters, target: $0) }), continueBuildingAfterErrors: false, useParallelTargets: true, useImplicitDependencies: false, useDryRun: false)
+            let SRCROOT = testWorkspace.sourceRoot.join("aProject")
+
+            // Create the source files.
+            try await tester.fs.writeFileContents(SRCROOT.join("Sources/fileA1.swift")) { file in
+                file <<<
+                        """
+                        public struct A {
+                            public init() { }
+                        }
+                        """
+            }
+
+            var cleanResponseFileContents: ByteString? = nil
+            try await tester.checkBuild(runDestination: .macOS, buildRequest: buildRequest, persistent: true) { results in
+                var responseFile: Path? = nil
+                results.checkTask(.matchRuleType("SwiftDriver Compilation Requirements")) { driverTask in
+                    responseFile = driverTask.outputPaths.filter { $0.str.hasSuffix("-linker-args.resp") }.only
+                }
+                try results.checkTask(.matchRuleType("Ld")) { linkTask in
+                    linkTask.checkCommandLineContains("@\(try #require(responseFile).str)")
+                }
+                let responseFileContents = try tester.fs.read(try #require(responseFile))
+                #expect(!responseFileContents.isEmpty)
+                cleanResponseFileContents = responseFileContents
+            }
+
+            try await tester.fs.writeFileContents(SRCROOT.join("Sources/fileA1.swift")) { file in
+                file <<<
+                        """
+                        public struct A {
+                            public init() { }
+                        }
+                        
+                        public func foo() { }
+                        """
+            }
+
+            var incrementalResponseFileContents: ByteString? = nil
+            try await tester.checkBuild(runDestination: .macOS, buildRequest: buildRequest, persistent: true) { results in
+                var responseFile: Path? = nil
+                results.checkTask(.matchRuleType("SwiftDriver Compilation Requirements")) { driverTask in
+                    responseFile = driverTask.outputPaths.filter { $0.str.hasSuffix("-linker-args.resp") }.only
+                }
+                try results.checkTask(.matchRuleType("Ld")) { linkTask in
+                    linkTask.checkCommandLineContains("@\(try #require(responseFile).str)")
+                }
+                let responseFileContents = try tester.fs.read(try #require(responseFile))
+                #expect(!responseFileContents.isEmpty)
+                incrementalResponseFileContents = responseFileContents
+            }
+
+            let cleanContents = try #require(cleanResponseFileContents)
+            let incrementalContents = try #require(incrementalResponseFileContents)
+            #expect(cleanContents == incrementalContents)
         }
     }
 }

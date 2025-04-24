@@ -17,6 +17,7 @@ import SWBCore
 import SWBTestSupport
 import SWBTaskExecution
 import SWBUtil
+import SWBProtocol
 
 @Suite(.requireXcode16())
 fileprivate struct AppShortcutsStringsValidationTests: CoreBasedTests {

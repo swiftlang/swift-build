@@ -13,6 +13,8 @@
 import SWBLibc
 public import SWBUtil
 public import SWBMacro
+import Foundation
+import Synchronization
 
 /// Delegate protocol used by the registry to report diagnostics.
 @_spi(Testing) public protocol SpecRegistryDelegate: DiagnosticProducingDelegate {}

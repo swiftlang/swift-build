@@ -14,6 +14,8 @@ import Testing
 
 import SWBCore
 import SWBTestSupport
+import SWBProtocol
+import SWBUtil
 
 /// Tests of debug formats and dSYM generation.
 @Suite

@@ -15,6 +15,7 @@ import SWBTestSupport
 
 import SWBCore
 import SWBUtil
+import SWBProtocol
 
 @Suite
 fileprivate struct AppExtensionTaskConstructionTests: CoreBasedTests {

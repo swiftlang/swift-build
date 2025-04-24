@@ -13,6 +13,7 @@
 import Foundation
 package import SWBCore
 import SWBUtil
+import SWBMacro
 
 //---------------------
 //

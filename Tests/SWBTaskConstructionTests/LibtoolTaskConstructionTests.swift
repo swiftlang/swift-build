@@ -15,6 +15,7 @@ import Testing
 import SWBCore
 import SWBTaskConstruction
 import SWBTestSupport
+import SWBUtil
 
 @Suite
 fileprivate struct LibtoolTaskConstructionTests: CoreBasedTests {

@@ -12,6 +12,7 @@
 
 public import SWBUtil
 public import SWBCore
+import Foundation
 
 /// Used only when remote caching is enabled for downloading a compilation output,
 /// using its ID, into the local CAS.
@@ -58,7 +59,7 @@ public final class ClangCachingOutputMaterializerTaskAction: TaskAction {
             }
             if obj == nil {
                 if key.casOptions.enableDiagnosticRemarks {
-                    outputDelegate.remark("missing CAS object: \(key.casID)")
+                    outputDelegate.note("missing CAS object: \(key.casID)")
                 }
             }
             return .succeeded

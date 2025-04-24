@@ -17,6 +17,7 @@ import SWBTestSupport
 
 import SWBCore
 @_spi(Testing) import SWBTaskConstruction
+import SWBProtocol
 
 @Suite
 fileprivate struct ObjectiveCSymbolExtractorTests: CoreBasedTests {
@@ -61,7 +62,7 @@ fileprivate struct ObjectiveCSymbolExtractorTests: CoreBasedTests {
                 buildPhases.insert(TestHeadersBuildPhase(headerBuildPhaseFiles), at: 0)
             }
 
-            let toolchainPath = core.developerPath.join("Toolchains/XcodeDefault.xctoolchain")
+            let toolchainPath = core.developerPath.path.join("Toolchains/XcodeDefault.xctoolchain")
             let testProject = try await TestProject(
                 "aProject",
                 groupTree: TestGroup(
@@ -241,7 +242,7 @@ fileprivate struct ObjectiveCSymbolExtractorTests: CoreBasedTests {
                                 "PRODUCT_NAME": "$(TARGET_NAME)",
                                 "PRODUCT_BUNDLE_IDENTIFIER": "test.bundle.identifier",
                                 "CURRENT_PROJECT_VERSION": "0.0.1",
-                                "TOOLCHAIN_DIR": core.developerPath.join("Toolchains/XcodeDefault.xctoolchain").str,
+                                "TOOLCHAIN_DIR": core.developerPath.path.join("Toolchains/XcodeDefault.xctoolchain").str,
                             ].merging(extraBuildSettings, uniquingKeysWith: { _, new in new }).compactMapValues({ $0 })
                         )
                     ],
@@ -374,7 +375,7 @@ fileprivate struct ObjectiveCSymbolExtractorTests: CoreBasedTests {
                                     "PRODUCT_NAME": "$(TARGET_NAME)",
                                     "PRODUCT_BUNDLE_IDENTIFIER": "test.bundle.identifier",
                                     "CURRENT_PROJECT_VERSION": "0.0.1",
-                                    "TOOLCHAIN_DIR": core.developerPath.join("Toolchains/XcodeDefault.xctoolchain").str,
+                                    "TOOLCHAIN_DIR": core.developerPath.path.join("Toolchains/XcodeDefault.xctoolchain").str,
                                 ]
                             )
                         ],
@@ -406,7 +407,7 @@ fileprivate struct ObjectiveCSymbolExtractorTests: CoreBasedTests {
                                     "PRODUCT_NAME": "$(TARGET_NAME)",
                                     "PRODUCT_BUNDLE_IDENTIFIER": "test.bundle.identifier",
                                     "CURRENT_PROJECT_VERSION": "0.0.1",
-                                    "TOOLCHAIN_DIR": core.developerPath.join("Toolchains/XcodeDefault.xctoolchain").str,
+                                    "TOOLCHAIN_DIR": core.developerPath.path.join("Toolchains/XcodeDefault.xctoolchain").str,
                                 ]
                             )
                         ],
@@ -621,7 +622,7 @@ fileprivate struct ObjectiveCSymbolExtractorTests: CoreBasedTests {
                                     "PRODUCT_NAME": "$(TARGET_NAME)",
                                     "PRODUCT_BUNDLE_IDENTIFIER": "test.bundle.sub-dependency",
                                     "CURRENT_PROJECT_VERSION": "0.0.1",
-                                    "TOOLCHAIN_DIR": core.developerPath.join("Toolchains/XcodeDefault.xctoolchain").str,
+                                    "TOOLCHAIN_DIR": core.developerPath.path.join("Toolchains/XcodeDefault.xctoolchain").str,
                                 ]
                             )
                         ],
@@ -651,7 +652,7 @@ fileprivate struct ObjectiveCSymbolExtractorTests: CoreBasedTests {
                                     "PRODUCT_NAME": "$(TARGET_NAME)",
                                     "PRODUCT_BUNDLE_IDENTIFIER": "test.bundle.dependency",
                                     "CURRENT_PROJECT_VERSION": "0.0.1",
-                                    "TOOLCHAIN_DIR": core.developerPath.join("Toolchains/XcodeDefault.xctoolchain").str,
+                                    "TOOLCHAIN_DIR": core.developerPath.path.join("Toolchains/XcodeDefault.xctoolchain").str,
                                 ]
                             )
                         ],
@@ -680,7 +681,7 @@ fileprivate struct ObjectiveCSymbolExtractorTests: CoreBasedTests {
                                     "PRODUCT_NAME": "$(TARGET_NAME)",
                                     "PRODUCT_BUNDLE_IDENTIFIER": "test.bundle.app",
                                     "CURRENT_PROJECT_VERSION": "0.0.1",
-                                    "TOOLCHAIN_DIR": core.developerPath.join("Toolchains/XcodeDefault.xctoolchain").str,
+                                    "TOOLCHAIN_DIR": core.developerPath.path.join("Toolchains/XcodeDefault.xctoolchain").str,
                                     // Set the real swift compiler path so we can determine the location of compatibility headers ignores file
                                     "SWIFT_EXEC": swiftCompilerPath.str,
                                     // Set the real clang tool path so that we can check it's features.json file

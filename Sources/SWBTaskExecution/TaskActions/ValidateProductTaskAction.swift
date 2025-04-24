@@ -13,6 +13,8 @@
 public import SWBCore
 import SWBLibc
 public import SWBUtil
+import SWBProtocol
+import Foundation
 
 /// Concrete implementation of task for validating a a product.
 public final class ValidateProductTaskAction: TaskAction {

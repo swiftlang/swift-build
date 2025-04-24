@@ -15,6 +15,7 @@ import SWBUtil
 import SWBCore
 
 import SWBTestSupport
+import SWBProtocol
 
 @Suite(.requireXcode16())
 fileprivate struct BuildActionTaskConstructionTests: CoreBasedTests {

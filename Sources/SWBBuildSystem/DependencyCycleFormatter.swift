@@ -15,6 +15,7 @@ import SWBTaskExecution
 import SWBUtil
 import Foundation
 private import SWBLLBuild
+import SWBTaskConstruction
 
 /// Convenience enum to encode whether a task is the beginning or end of a target, or something else.
 /// "End of a target" in this case is a task which tasks in other targets may be directly depending on, and so can mark the point at which we cross a target boundary.

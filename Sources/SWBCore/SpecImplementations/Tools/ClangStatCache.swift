@@ -10,6 +10,8 @@
 //
 //===----------------------------------------------------------------------===//
 
+import SWBUtil
+
 final public class ClangStatCacheSpec: GenericCommandLineToolSpec, SpecIdentifierType, @unchecked Sendable {
     public static let identifier = "com.apple.compilers.clang-stat-cache"
 

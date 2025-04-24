@@ -281,25 +281,6 @@
                 DefaultValue = NO;
             },
             {
-                Name = "ENABLE_BITCODE";
-                Type = bool;
-                DefaultValue = NO;
-            },
-            {
-                Name = "HIDE_BITCODE_SYMBOLS";
-                Type = bool;
-                DefaultValue = YES;
-            },
-            {
-                Name = "BITCODE_GENERATION_MODE";
-                Type = enum;
-                Values = (
-                    "marker",
-                    "bitcode",
-                );
-                DefaultValue = marker;
-            },
-            {
                 Name = "STRIP_BITCODE_FROM_COPIED_FILES";
                 Type = bool;
                 DefaultValue = NO;
@@ -1340,29 +1321,6 @@ When `GENERATE_INFOPLIST_FILE` is enabled, sets the value of the [CFBundleIdenti
                 DefaultValue = NO;
             },
             {
-                Name = "ENABLE_BITCODE";
-                Type = Boolean;
-                DefaultValue = NO;
-            },
-            {
-                Name = "BITCODE_GENERATION_MODE";
-                Type = Enumeration;
-                Values = (
-                    {
-                        Value = "marker";
-                    },
-                    {
-                        Value = "bitcode";
-                    },
-                );
-                DefaultValue = marker;
-            },
-            {
-                Name = "HIDE_BITCODE_SYMBOLS";
-                Type = Boolean;
-                DefaultValue = YES;
-            },
-            {
                 Name = "STRIP_BITCODE_FROM_COPIED_FILES";
                 Type = Boolean;
                 DefaultValue = NO;
@@ -1788,6 +1746,22 @@ For more information on mergeable libraries, see [Configuring your project to us
                 Name = "MAKE_MERGEABLE";
                 Type = Boolean;
                 DefaultValue = NO;
+            },
+
+            {
+                Name = "COMPILATION_CACHE_ENABLE_CACHING";
+                Type = Boolean;
+                Category = "Compilation Caching";
+                DefaultValue = "$(COMPILATION_CACHE_ENABLE_CACHING_DEFAULT)";
+                DisplayName = "Enable Compilation Caching";
+                Description = "Caches the results of compilations for a particular set of inputs.";
+            },
+            {
+                Name = "COMPILATION_CACHE_ENABLE_DIAGNOSTIC_REMARKS";
+                Type = Boolean;
+                Category = "Compilation Caching";
+                DisplayName = "Compilation Caching Diagnostic Info";
+                Description = "Emits diagnostic information for cached compilation tasks.";
             },
 
             // FIXME: The TAPI settings should not need to be here in order to have them appear in the project editor UI.

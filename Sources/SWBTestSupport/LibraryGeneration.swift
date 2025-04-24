@@ -11,6 +11,7 @@
 //===----------------------------------------------------------------------===//
 
 package import SWBUtil
+import Foundation
 
 /// Helpers for creating frameworks and libraries for use in unit tests.
 extension InstalledXcode {

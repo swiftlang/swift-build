@@ -13,6 +13,8 @@
 import SWBCore
 import SWBUtil
 import SWBMacro
+import SWBProtocol
+import Foundation
 
 /// Returns an array of build variant-macro evaluation scope pairs for the given scope for a list of build variants.
 /// - parameter scope: The base scope for which to return the varianted subscopes.
@@ -367,10 +369,6 @@ final class ProductPostprocessingTaskProducer: PhasedTaskProducer, TaskProducer 
                 }
                 guard !context.globalProductPlan.duplicatedProductNames.contains(scope.evaluate(BuiltinMacros.PRODUCT_NAME)) else {
                     // If multiple targets in the build share a product name, they may compute clashing tbd paths in EagerLinkingTBDs. This is rare, so for now we just skip the optimization if it happens.
-                    return
-                }
-                guard !scope.evaluate(BuiltinMacros.ENABLE_BITCODE) || scope.evaluate(BuiltinMacros.BITCODE_GENERATION_MODE) != "bitcode" else {
-                    // If building with full bitcode, the linker will not allow linking against a target's stub, because it doesn't have any.
                     return
                 }
             }
@@ -774,7 +772,7 @@ private extension ProductTypeSpec {
         struct FilteringContext: PathResolvingBuildFileFilteringContext {
             let excludedSourceFileNames: [String]
             let includedSourceFileNames: [String]
-            let currentPlatformFilter: PlatformFilter?
+            let currentPlatformFilter: SWBCore.PlatformFilter?
             let filePathResolver: FilePathResolver
         }
         let filteringContext = FilteringContext(

@@ -12,6 +12,7 @@
 
 public import SWBProtocol
 import SWBUtil
+import Synchronization
 
 /// An individual request made by a service client.
 ///

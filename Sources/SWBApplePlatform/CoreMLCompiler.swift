@@ -13,6 +13,7 @@
 public import SWBUtil
 public import SWBCore
 public import SWBMacro
+import SWBProtocol
 
 public struct DiscoveredCoreMLToolSpecInfo: DiscoveredCommandLineToolSpecInfo {
     public let toolPath: Path
@@ -151,7 +152,7 @@ public final class CoreMLCompilerSpec : GenericCompilerSpec, SpecIdentifierType,
         // When the build setting is empty or is set to Automatic, then use an appropriate string based on the predominant source code language for the target.
         if languageSettingValue.isEmpty || languageSettingValue == "Automatic" {
             // Note that it would be pretty weird here to not have a configured target, or to have a target which is not a StandardTarget.
-            let predominantSourceCodeLanguage = (cbc.producer.configuredTarget?.target as? StandardTarget)?.predominantSourceCodeLanguage ?? .undefined
+            let predominantSourceCodeLanguage = (cbc.producer.configuredTarget?.target as? SWBCore.StandardTarget)?.predominantSourceCodeLanguage ?? .undefined
             switch predominantSourceCodeLanguage {
             case .swift:
                 codegenLanguage = "Swift"
@@ -289,7 +290,7 @@ public final class CoreMLCompilerSpec : GenericCompilerSpec, SpecIdentifierType,
                 }
 
                 guard
-                    let target = cbc.producer.configuredTarget?.target as? BuildPhaseTarget,
+                    let target = cbc.producer.configuredTarget?.target as? SWBCore.BuildPhaseTarget,
                     let outputPath = headerOutputPath,
                     target.headersBuildPhase != nil else { continue }
 

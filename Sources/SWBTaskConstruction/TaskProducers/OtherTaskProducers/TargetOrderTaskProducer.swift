@@ -12,6 +12,7 @@
 
 import SWBCore
 import SWBUtil
+import SWBMacro
 
 /// Wrapper for capturing the task information needed for the `TargetOrderTaskProducer`.
 ///

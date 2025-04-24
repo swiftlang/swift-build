@@ -15,6 +15,7 @@ import Foundation
 public import SWBCore
 public import SWBUtil
 public import SWBLLBuild
+import SWBProtocol
 
 public final class SwiftDriverJobTaskAction: TaskAction, BuildValueValidatingTaskAction {
     public override class var toolIdentifier: String {
@@ -164,7 +165,7 @@ public final class SwiftDriverJobTaskAction: TaskAction, BuildValueValidatingTas
     private var state = State()
 
     public override func getSignature(_ task: any ExecutableTask, executionDelegate: any TaskExecutionDelegate) -> ByteString {
-        let md5 = MD5Context()
+        let md5 = InsecureHashContext()
         // We intentionally do not integrate the superclass signature here, because the driver job's signature captures the same information without requiring expensive serialization.
         md5.add(bytes: driverJob.driverJob.signature)
         task.environment.computeSignature(into: md5)
@@ -493,6 +494,17 @@ public final class SwiftDriverJobTaskAction: TaskAction, BuildValueValidatingTas
             if let casOpts = payload.casOptions, casOpts.enableIntegratedCacheQueries {
                 let swiftModuleDependencyGraph = dynamicExecutionDelegate.operationContext.swiftModuleDependencyGraph
                 cas = try swiftModuleDependencyGraph.getCASDatabases(casOptions: casOpts, compilerLocation: payload.compilerLocation)
+
+                let casKey = ClangCachingPruneDataTaskKey(
+                    path: payload.compilerLocation.compilerOrLibraryPath,
+                    casOptions: casOpts
+                )
+                dynamicExecutionDelegate.operationContext.compilationCachingDataPruner.pruneCAS(
+                    cas!,
+                    key: casKey,
+                    activityReporter: dynamicExecutionDelegate,
+                    fileSystem: executionDelegate.fs
+                )
             } else {
                 cas = nil
             }
@@ -587,24 +599,24 @@ public final class SwiftDriverJobTaskAction: TaskAction, BuildValueValidatingTas
                 // If any of the key misses, return cache miss.
                 guard let comp = try cas.queryLocalCacheKey(cacheKey) else {
                     if enableDiagnosticRemarks {
-                        outputDelegate.remark("local cache miss for key: \(cacheKey)")
+                        outputDelegate.note("local cache miss for key: \(cacheKey)")
                     }
                     return false
                 }
                 if enableDiagnosticRemarks {
-                    outputDelegate.remark("local cache found for key: \(cacheKey)")
+                    outputDelegate.note("local cache found for key: \(cacheKey)")
                 }
                 // Check all outputs are materialized.
                 // Doing the check immediately after the key allows associating the output remarks with the right key.
                 for output in try comp.getOutputs() {
                     if !output.isMaterialized {
                         if enableDiagnosticRemarks {
-                            outputDelegate.remark("cached output \(output.kindName) not available locally: \(output.casID)")
+                            outputDelegate.note("cached output \(output.kindName) not available locally: \(output.casID)")
                         }
                         return false
                     }
                     if enableDiagnosticRemarks {
-                        outputDelegate.remark("using CAS output \(output.kindName): \(output.casID)")
+                        outputDelegate.note("using CAS output \(output.kindName): \(output.casID)")
                     }
                 }
                 comps.append(comp)
@@ -630,14 +642,16 @@ public final class SwiftDriverJobTaskAction: TaskAction, BuildValueValidatingTas
 
         let result = try await replayCachedCommandImpl()
         if enableDiagnosticRemarks {
-            outputDelegate.remark("replay cache \(result ? "hit" : "miss")")
+            outputDelegate.note("replay cache \(result ? "hit" : "miss")")
         }
         if result {
             outputDelegate.incrementSwiftCacheHit()
             outputDelegate.incrementTaskCounter(.cacheHits)
+            outputDelegate.emitOutput("Cache hit\n")
         } else {
             outputDelegate.incrementSwiftCacheMiss()
             outputDelegate.incrementTaskCounter(.cacheMisses)
+            outputDelegate.emitOutput("Cache miss\n")
         }
         return result
     }

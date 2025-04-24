@@ -12,6 +12,7 @@
 
 import SWBMacro
 import SWBCore
+import SWBUtil
 
 final class CopyPlistFileSpec: GenericCommandLineToolSpec, SpecIdentifierType, @unchecked Sendable {
     static let identifier = "com.apple.build-tasks.copy-plist-file"

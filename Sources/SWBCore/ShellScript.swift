@@ -216,7 +216,7 @@ public func computeScriptEnvironment(_ type: ScriptType, scope: MacroEvaluationS
     // Ensure that BUILD_DESCRIPTION_CACHE_DIR is never exported as it is *not* something we want customers to use.
     result.removeValue(forKey: BuiltinMacros.BUILD_DESCRIPTION_CACHE_DIR.name)
 
-    if scope.evaluate(BuiltinMacros.CLANG_ENABLE_COMPILE_CACHE) == .enabled {
+    if scope.evaluate(BuiltinMacros.CLANG_ENABLE_COMPILE_CACHE) {
         // Make sure the cache directory is not going to be deleted via an `xcodebuild` invocation from the script.
         result["COMPILATION_CACHE_KEEP_CAS_DIRECTORY"] = "YES"
     }

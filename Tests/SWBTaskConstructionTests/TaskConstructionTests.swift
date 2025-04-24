@@ -21,6 +21,8 @@ import SWBUtil
 
 import SWBTaskConstruction
 
+import class SWBMacro.StringMacroDeclaration
+
 @Suite
 fileprivate struct TaskConstructionTests: CoreBasedTests {
     @Test(.requireSDKs(.macOS))
@@ -518,9 +520,6 @@ fileprivate struct TaskConstructionTests: CoreBasedTests {
                             .path("\(SRCROOT)/build/aProject.build/Debug/AppTarget.build/Objects-normal/x86_64/AppTarget_lto.o"),
                             .path("\(SRCROOT)/build/aProject.build/Debug/AppTarget.build/Objects-normal/x86_64/AppTarget_dependency_info.dat"),
                         ])
-
-                        // We used to pass the deployment target to the linker in the environment, but this is supposedly no longer necessary.
-                        task.checkEnvironment([:], exact: true)
                     }
 
                     // There should be two CpHeader tasks.
@@ -659,7 +658,7 @@ fileprivate struct TaskConstructionTests: CoreBasedTests {
                             "SCRIPT_INPUT_FILE_1": .equal(""),
                             "SCRIPT_INPUT_FILE_COUNT": .equal("2"),
                             "SCRIPT_OUTPUT_FILE_COUNT": .equal("0"),
-                            "TOOLCHAIN_DIR": .equal("\(core.developerPath.str)/Toolchains/XcodeDefault.xctoolchain"),
+                            "TOOLCHAIN_DIR": .equal("\(core.developerPath.path.str)/Toolchains/XcodeDefault.xctoolchain"),
                         ]
                         // Validate that MACOSX_DEPLOYMENT_TARGET is present in the environment, but deployment targets for other platforms are not.
                         scriptVariables["MACOSX_DEPLOYMENT_TARGET"] = StringPattern.equal(MACOSX_DEPLOYMENT_TARGET)
@@ -1340,9 +1339,6 @@ fileprivate struct TaskConstructionTests: CoreBasedTests {
                         ["-dynamiclib", "-isysroot", core.loadSDK(.macOS).path.str, "-Os", "-L\(SRCROOT)/build/EagerLinkingTBDs/Debug", "-L\(SRCROOT)/build/Debug", "-F\(SRCROOT)/build/EagerLinkingTBDs/Debug", "-F\(SRCROOT)/build/Debug", "-filelist", "\(SRCROOT)/build/aProject.build/Debug/FrameworkTarget.build/Objects-normal/x86_64/FrameworkTarget.LinkFileList", "-install_name", "/Library/Frameworks/FrameworkTarget.framework/Versions/A/FrameworkTarget"],
                         ["-Xlinker", "-object_path_lto", "-Xlinker", "\(SRCROOT)/build/aProject.build/Debug/FrameworkTarget.build/Objects-normal/x86_64/FrameworkTarget_lto.o", "-Xlinker", "-dependency_info", "-Xlinker", "\(SRCROOT)/build/aProject.build/Debug/FrameworkTarget.build/Objects-normal/x86_64/FrameworkTarget_dependency_info.dat", "-fobjc-link-runtime", "-lstatic", "-ldynamic", "-Xlinker", "-no_adhoc_codesign", "-o", "\(SRCROOT)/build/Debug/FrameworkTarget.framework/Versions/A/FrameworkTarget"]
                     ].reduce([], +))
-
-                    // We used to pass the deployment target to the linker in the environment, but this is supposedly no longer necessary.
-                    task.checkEnvironment([:], exact: true)
                 }
 
                 // There should be three CpHeader tasks.
@@ -1485,9 +1481,6 @@ fileprivate struct TaskConstructionTests: CoreBasedTests {
                         .path("\(SRCROOT)/build/aProject.build/Release/FrameworkTarget.build/Objects-normal/x86_64/FrameworkTarget_lto.o"),
                         .path("\(SRCROOT)/build/aProject.build/Release/FrameworkTarget.build/Objects-normal/x86_64/FrameworkTarget_dependency_info.dat"),
                     ])
-
-                    // We used to pass the deployment target to the linker in the environment, but this is supposedly no longer necessary.
-                    task.checkEnvironment([:], exact: true)
                 }
 
                 results.checkTask(.matchTarget(target), .matchRuleType("GenerateTAPI")) { task in
@@ -2339,21 +2332,21 @@ fileprivate struct TaskConstructionTests: CoreBasedTests {
                     switch runDestination.platform {
                     case "macosx":
                         platformSearchPaths = [
-                            developerPath.join("Toolchains/XcodeDefault.xctoolchain/usr/bin"),
-                            developerPath.join("Toolchains/XcodeDefault.xctoolchain/usr/local/bin"),
-                            developerPath.join("Toolchains/XcodeDefault.xctoolchain/usr/libexec"),
-                            developerPath.join("Platforms/MacOSX.platform/usr/bin"),
-                            developerPath.join("Platforms/MacOSX.platform/usr/local/bin"),
-                            developerPath.join("Platforms/MacOSX.platform/Developer/usr/bin"),
-                            developerPath.join("Platforms/MacOSX.platform/Developer/usr/local/bin"),
+                            developerPath.path.join("Toolchains/XcodeDefault.xctoolchain/usr/bin"),
+                            developerPath.path.join("Toolchains/XcodeDefault.xctoolchain/usr/local/bin"),
+                            developerPath.path.join("Toolchains/XcodeDefault.xctoolchain/usr/libexec"),
+                            developerPath.path.join("Platforms/MacOSX.platform/usr/bin"),
+                            developerPath.path.join("Platforms/MacOSX.platform/usr/local/bin"),
+                            developerPath.path.join("Platforms/MacOSX.platform/Developer/usr/bin"),
+                            developerPath.path.join("Platforms/MacOSX.platform/Developer/usr/local/bin"),
                         ]
                     default:
                         platformSearchPaths = []
                     }
 
                     for path in searchPaths + platformSearchPaths.map(\.str) + [
-                        developerPath.join("usr/bin").str,
-                        developerPath.join("usr/local/bin").str,
+                        developerPath.path.join("usr/bin").str,
+                        developerPath.path.join("usr/local/bin").str,
                         "/usr/local/bin"
                     ] {
                         #expect(task.environment.bindingsDictionary["PATH"]?.contains(path) == true, "PATH environment variable did not contain entry: \(path)")
@@ -4052,7 +4045,7 @@ fileprivate struct TaskConstructionTests: CoreBasedTests {
                         }
                     }
                     // Note that system framework search paths are presently not deduplicated for the linker args.
-                    #expect(searchPaths == ["-L\(SRCROOT)/build/EagerLinkingTBDs/Debug", "-L\(SRCROOT)/build/Debug", "-L/Local/Library/Libs", "-F\(SRCROOT)/build/EagerLinkingTBDs/Debug", "-F\(SRCROOT)/build/Debug", "-F/Local/Library/Frameworks", "-F/Local/Library/Frameworks", "-iframework", "/System/Library/PrivateFrameworks", "-iframework", "/Local/Library/Frameworks", "-iframework", "/Local/Library/Frameworks", "-L\(core.developerPath.str)/Toolchains/XcodeDefault.xctoolchain/usr/lib/swift/macosx", "-L/usr/lib/swift"])
+                    #expect(searchPaths == ["-L\(SRCROOT)/build/EagerLinkingTBDs/Debug", "-L\(SRCROOT)/build/Debug", "-L/Local/Library/Libs", "-F\(SRCROOT)/build/EagerLinkingTBDs/Debug", "-F\(SRCROOT)/build/Debug", "-F/Local/Library/Frameworks", "-F/Local/Library/Frameworks", "-iframework", "/System/Library/PrivateFrameworks", "-iframework", "/Local/Library/Frameworks", "-iframework", "/Local/Library/Frameworks", "-L\(core.developerPath.path.str)/Toolchains/XcodeDefault.xctoolchain/usr/lib/swift/macosx", "-L/usr/lib/swift"])
                     // FIXME: <rdar://problem/37033578> [Swift Build] Extra "//" in framework search path for Ld command
                 }
             }
@@ -4110,7 +4103,7 @@ fileprivate struct TaskConstructionTests: CoreBasedTests {
 
             try fs.write(Path(SRCROOT).join("Info.plist"), contents: "<dict/>")
 
-            let clangTool = try await discoveredClangToolInfo(toolPath: Path("\(core.developerPath.str)/Toolchains/XcodeDefault.xctoolchain/usr/bin/clang"), arch: RunDestinationInfo.macOS.targetArchitecture, sysroot: nil)
+            let clangTool = try await discoveredClangToolInfo(toolPath: Path("\(core.developerPath.path.str)/Toolchains/XcodeDefault.xctoolchain/usr/bin/clang"), arch: RunDestinationInfo.macOS.targetArchitecture, sysroot: nil)
             guard let clangLibDarwinPath = clangTool.getLibDarwinPath() else {
                 Issue.record("Could not get lib darwin path")
                 return
@@ -4122,12 +4115,12 @@ fileprivate struct TaskConstructionTests: CoreBasedTests {
                     // There should be one CompileC task, which includes the ASan option, and which puts its output in a -asan directory.
                     results.checkTask(.matchTarget(target), .matchRuleType("CompileC")) { task in
                         task.checkRuleInfo([.equal("CompileC"), .equal("\(SRCROOT)/build/aProject.build/Debug/\(targetName).build/Objects-normal-asan/x86_64/SourceFile.o"), .suffix("SourceFile.m"), .any, .any, .any, .any])
-                        task.checkCommandLineContains(["\(core.developerPath.str)/Toolchains/XcodeDefault.xctoolchain/usr/bin/clang", "-fsanitize=address", "-fsanitize-stable-abi", "\(SRCROOT)/build/aProject.build/Debug/\(targetName).build/Objects-normal-asan/x86_64/SourceFile.o"])
+                        task.checkCommandLineContains(["\(core.developerPath.path.str)/Toolchains/XcodeDefault.xctoolchain/usr/bin/clang", "-fsanitize=address", "-fsanitize-stable-abi", "\(SRCROOT)/build/aProject.build/Debug/\(targetName).build/Objects-normal-asan/x86_64/SourceFile.o"])
                     }
                     //There should be no task to copy dylib. While testing for -fsanitize-stable-abi is a temporary test. This test should remain.
                     results.checkNoTask(.matchTarget(target), .matchRuleType("Copy"), .matchRuleItemBasename("libclang_rt.asan_osx_dynamic.dylib"))
                     results.checkTask(.matchTarget(target), .matchRuleType("SwiftDriver Compilation")) { task in
-                        task.checkCommandLineContains(["\(core.developerPath.str)/Toolchains/XcodeDefault.xctoolchain/usr/bin/swiftc", "-sanitize=address", "-sanitize-stable-abi", "\(SRCROOT)/build/aProject.build/Debug/\(targetName).build/Objects-normal-asan/x86_64/\(targetName)-OutputFileMap.json"])
+                        task.checkCommandLineContains(["\(core.developerPath.path.str)/Toolchains/XcodeDefault.xctoolchain/usr/bin/swiftc", "-sanitize=address", "-sanitize-stable-abi", "\(SRCROOT)/build/aProject.build/Debug/\(targetName).build/Objects-normal-asan/x86_64/\(targetName)-OutputFileMap.json"])
                     }
                     results.checkTask(.matchTarget(target), .matchRuleType("Ld")) { task in
                         task.checkCommandLineContains(
@@ -4142,18 +4135,18 @@ fileprivate struct TaskConstructionTests: CoreBasedTests {
                     // There should be one CompileC task, which includes the ASan option, and which puts its output in a -asan directory.
                     results.checkTask(.matchTarget(target), .matchRuleType("CompileC")) { task in
                         task.checkRuleInfo([.equal("CompileC"), .equal("\(SRCROOT)/build/aProject.build/Debug/\(targetName).build/Objects-normal-asan/x86_64/SourceFile.o"), .suffix("SourceFile.m"), .any, .any, .any, .any])
-                        task.checkCommandLineContains(["\(core.developerPath.str)/Toolchains/XcodeDefault.xctoolchain/usr/bin/clang", "-fsanitize=address", "-D_LIBCPP_HAS_NO_ASAN", "\(SRCROOT)/build/aProject.build/Debug/\(targetName).build/Objects-normal-asan/x86_64/SourceFile.o"])
+                        task.checkCommandLineContains(["\(core.developerPath.path.str)/Toolchains/XcodeDefault.xctoolchain/usr/bin/clang", "-fsanitize=address", "-D_LIBCPP_HAS_NO_ASAN", "\(SRCROOT)/build/aProject.build/Debug/\(targetName).build/Objects-normal-asan/x86_64/SourceFile.o"])
                     }
 
                     // There should be one CompileSwiftSources task, which includes the ASan option, and which puts its output in a -asan directory.
                     results.checkTask(.matchTarget(target), .matchRuleType("SwiftDriver Compilation")) { task in
-                        task.checkCommandLineContains(["\(core.developerPath.str)/Toolchains/XcodeDefault.xctoolchain/usr/bin/swiftc", "-sanitize=address", "\(SRCROOT)/build/aProject.build/Debug/\(targetName).build/Objects-normal-asan/x86_64/\(targetName)-OutputFileMap.json"])
+                        task.checkCommandLineContains(["\(core.developerPath.path.str)/Toolchains/XcodeDefault.xctoolchain/usr/bin/swiftc", "-sanitize=address", "\(SRCROOT)/build/aProject.build/Debug/\(targetName).build/Objects-normal-asan/x86_64/\(targetName)-OutputFileMap.json"])
                     }
 
                     // There should be one Ld task.
                     results.checkTask(.matchTarget(target), .matchRuleType("Ld")) { task in
                         task.checkRuleInfo([.equal("Ld"), .equal("\(SRCROOT)/build/Debug/\(targetName).app/Contents/MacOS/\(targetName)"), .any])
-                        task.checkCommandLineContains(["\(core.developerPath.str)/Toolchains/XcodeDefault.xctoolchain/usr/bin/clang", "\(SRCROOT)/build/Debug/\(targetName).app/Contents/MacOS/\(targetName)"])
+                        task.checkCommandLineContains(["\(core.developerPath.path.str)/Toolchains/XcodeDefault.xctoolchain/usr/bin/clang", "\(SRCROOT)/build/Debug/\(targetName).app/Contents/MacOS/\(targetName)"])
                     }
 
                     // There should be one task to copy the Asan library into the product.
@@ -4276,18 +4269,18 @@ fileprivate struct TaskConstructionTests: CoreBasedTests {
                     // There should be one CompileC task, which includes the TSan option, and which puts its output in a -tsan directory.
                     results.checkTask(.matchTarget(target), .matchRuleType("CompileC")) { task in
                         task.checkRuleInfo([.equal("CompileC"), .equal("\(SRCROOT)/build/aProject.build/Debug/\(targetName).build/Objects-normal-tsan/x86_64/SourceFile.o"), .suffix("SourceFile.m"), .any, .any, .any, .any])
-                        task.checkCommandLineContains(["\(core.developerPath.str)/Toolchains/XcodeDefault.xctoolchain/usr/bin/clang", "-fsanitize=thread", "\(SRCROOT)/build/aProject.build/Debug/\(targetName).build/Objects-normal-tsan/x86_64/SourceFile.o"])
+                        task.checkCommandLineContains(["\(core.developerPath.path.str)/Toolchains/XcodeDefault.xctoolchain/usr/bin/clang", "-fsanitize=thread", "\(SRCROOT)/build/aProject.build/Debug/\(targetName).build/Objects-normal-tsan/x86_64/SourceFile.o"])
                     }
 
                     // There should be one CompileSwiftSources task, which includes the TSan option, and which puts its output in a -tsan directory.
                     results.checkTask(.matchTarget(target), .matchRuleType("SwiftDriver Compilation")) { task in
-                        task.checkCommandLineContains(["\(core.developerPath.str)/Toolchains/XcodeDefault.xctoolchain/usr/bin/swiftc", "-sanitize=thread", "\(SRCROOT)/build/aProject.build/Debug/\(targetName).build/Objects-normal-tsan/x86_64/\(targetName)-OutputFileMap.json"])
+                        task.checkCommandLineContains(["\(core.developerPath.path.str)/Toolchains/XcodeDefault.xctoolchain/usr/bin/swiftc", "-sanitize=thread", "\(SRCROOT)/build/aProject.build/Debug/\(targetName).build/Objects-normal-tsan/x86_64/\(targetName)-OutputFileMap.json"])
                     }
 
                     // There should be one Ld task.
                     results.checkTask(.matchTarget(target), .matchRuleType("Ld")) { task in
                         task.checkRuleInfo([.equal("Ld"), .equal("\(SRCROOT)/build/Debug/\(targetName).app/Contents/MacOS/\(targetName)"), .any])
-                        task.checkCommandLineContains(["\(core.developerPath.str)/Toolchains/XcodeDefault.xctoolchain/usr/bin/clang", "\(SRCROOT)/build/Debug/\(targetName).app/Contents/MacOS/\(targetName)"])
+                        task.checkCommandLineContains(["\(core.developerPath.path.str)/Toolchains/XcodeDefault.xctoolchain/usr/bin/clang", "\(SRCROOT)/build/Debug/\(targetName).app/Contents/MacOS/\(targetName)"])
                     }
 
                     // There should be one task to copy the TSan library into the product.
@@ -4331,18 +4324,18 @@ fileprivate struct TaskConstructionTests: CoreBasedTests {
                     // There should be one CompileC task, which includes the UBSan option, and which puts its output in a -ubsan directory.
                     results.checkTask(.matchTarget(target), .matchRuleType("CompileC")) { task in
                         task.checkRuleInfo([.equal("CompileC"), .equal("\(SRCROOT)/build/aProject.build/Debug/\(targetName).build/Objects-normal-ubsan/x86_64/SourceFile.o"), .suffix("SourceFile.m"), .any, .any, .any, .any])
-                        task.checkCommandLineContains(["\(core.developerPath.str)/Toolchains/XcodeDefault.xctoolchain/usr/bin/clang", "-fsanitize=undefined", "\(SRCROOT)/build/aProject.build/Debug/\(targetName).build/Objects-normal-ubsan/x86_64/SourceFile.o"])
+                        task.checkCommandLineContains(["\(core.developerPath.path.str)/Toolchains/XcodeDefault.xctoolchain/usr/bin/clang", "-fsanitize=undefined", "\(SRCROOT)/build/aProject.build/Debug/\(targetName).build/Objects-normal-ubsan/x86_64/SourceFile.o"])
                     }
 
                     // There should be one CompileSwiftSources task, which puts its output in a -ubsan directory.  But the UBSan option is not passed for swift.
                     results.checkTask(.matchTarget(target), .matchRuleType("SwiftDriver Compilation")) { task in
-                        task.checkCommandLineContains(["\(core.developerPath.str)/Toolchains/XcodeDefault.xctoolchain/usr/bin/swiftc", "\(SRCROOT)/build/aProject.build/Debug/\(targetName).build/Objects-normal-ubsan/x86_64/\(targetName)-OutputFileMap.json"])
+                        task.checkCommandLineContains(["\(core.developerPath.path.str)/Toolchains/XcodeDefault.xctoolchain/usr/bin/swiftc", "\(SRCROOT)/build/aProject.build/Debug/\(targetName).build/Objects-normal-ubsan/x86_64/\(targetName)-OutputFileMap.json"])
                     }
 
                     // There should be one Ld task.
                     results.checkTask(.matchTarget(target), .matchRuleType("Ld")) { task in
                         task.checkRuleInfo([.equal("Ld"), .equal("\(SRCROOT)/build/Debug/\(targetName).app/Contents/MacOS/\(targetName)"), .any])
-                        task.checkCommandLineContains(["\(core.developerPath.str)/Toolchains/XcodeDefault.xctoolchain/usr/bin/clang", "\(SRCROOT)/build/Debug/\(targetName).app/Contents/MacOS/\(targetName)"])
+                        task.checkCommandLineContains(["\(core.developerPath.path.str)/Toolchains/XcodeDefault.xctoolchain/usr/bin/clang", "\(SRCROOT)/build/Debug/\(targetName).app/Contents/MacOS/\(targetName)"])
                     }
 
                     // There should be one task to copy the UBSan library into the product.
@@ -6953,7 +6946,7 @@ fileprivate struct TaskConstructionTests: CoreBasedTests {
                         "SCRIPT_OUTPUT_FILE_LIST_1": .equal("\(SRCROOT)/build/aProject.build/Debug/App.build/OutputFileList-FileList-output2-49b85065e1ab5f8726dafd7606a852ce-resolved.xcfilelist"),
                         "SCRIPT_OUTPUT_FILE_LIST_COUNT": .equal("2"),
 
-                        "TOOLCHAIN_DIR": .equal("\(core.developerPath.str)/Toolchains/XcodeDefault.xctoolchain"),
+                        "TOOLCHAIN_DIR": .equal("\(core.developerPath.path.str)/Toolchains/XcodeDefault.xctoolchain"),
                     ]
                     task.checkEnvironment(scriptVariables)
                 }
@@ -7020,7 +7013,7 @@ fileprivate struct TaskConstructionTests: CoreBasedTests {
                         "SCRIPT_OUTPUT_FILE_LIST_1": .equal("\(SRCROOT)/build/aProject.build/Debug/App.build/OutputFileList-FileList-output2-49b85065e1ab5f8726dafd7606a852ce-resolved.xcfilelist"),
                         "SCRIPT_OUTPUT_FILE_LIST_COUNT": .equal("2"),
 
-                        "TOOLCHAIN_DIR": .equal("\(core.developerPath.str)/Toolchains/XcodeDefault.xctoolchain"),
+                        "TOOLCHAIN_DIR": .equal("\(core.developerPath.path.str)/Toolchains/XcodeDefault.xctoolchain"),
                     ]
                     task.checkEnvironment(scriptVariables)
                 }

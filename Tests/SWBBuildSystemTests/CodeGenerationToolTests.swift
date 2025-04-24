@@ -17,6 +17,7 @@ import SWBTaskExecution
 import SWBTestSupport
 import SWBUtil
 import Testing
+import SWBProtocol
 
 @Suite
 fileprivate struct CodeGenerationToolTests: CoreBasedTests {

@@ -11,6 +11,7 @@
 //===----------------------------------------------------------------------===//
 
 import SWBLibc
+import Synchronization
 
 // Workaround compiler crash: rdar://138854389 (Compiler crashes when compiling code using a Mutex with an Optional)
 #if os(Windows)

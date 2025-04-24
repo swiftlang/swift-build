@@ -15,6 +15,7 @@ import Testing
 import SWBCore
 import SWBTestSupport
 import SWBUtil
+import SWBProtocol
 
 @Suite(.performance)
 fileprivate struct ModulesVerifierPerfTests: CoreBasedTests, PerfTests {

@@ -12,6 +12,7 @@
 
 import SWBUtil
 public import SWBCore
+import Foundation
 
 /// Concrete implementation of task for registering a built app.
 public final class LSRegisterURLTaskAction: TaskAction {

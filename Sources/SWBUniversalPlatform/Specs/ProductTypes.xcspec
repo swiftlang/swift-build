@@ -290,7 +290,7 @@
         DefaultBuildProperties = {
             WRAPPER_EXTENSION = "xctest";
             ENABLE_TESTING_SEARCH_PATHS = YES;
-            PRODUCT_SPECIFIC_LDFLAGS = "-framework XCTest -lXCTestSwiftSupport";
+            PRODUCT_SPECIFIC_LDFLAGS = "-Xlinker -needed_framework -Xlinker XCTest -framework XCTest -Xlinker -needed-lXCTestSwiftSupport -lXCTestSwiftSupport";
             PRODUCT_TYPE_SWIFT_STDLIB_TOOL_FLAGS = "--scan-executable \"$(PLATFORM_DIR)/Developer/usr/lib/libXCTestSwiftSupport.dylib\"";
             XCTRUNNER_PATH = "$(XCTRUNNER_PATH$(TEST_BUILD_STYLE))";
             LD_RUNPATH_SEARCH_PATHS = "$(inherited) $(LD_RUNPATH_SEARCH_PATHS_SHALLOW_BUNDLE_$(SHALLOW_BUNDLE))";
@@ -300,7 +300,6 @@
             INSTALL_PATH_XCTRUNNER_YES = "$(DEFAULT_TEST_RUNNER_APP_INSTALL_PATH)";
             INSTALL_PATH_XCTRUNNER_NO = "$(DEFAULT_TEST_BUNDLE_INSTALL_PATH)";
 
-            ENABLE_BITCODE = NO;
             ENTITLEMENTS_REQUIRED = NO;
 
             PROVISIONING_PROFILE_SUPPORTED = YES;

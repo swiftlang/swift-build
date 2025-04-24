@@ -104,6 +104,8 @@ extension ProjectModel {
             case SWIFT_USER_MODULE_VERSION
             case TAPI_DYLIB_INSTALL_NAME
             case TARGETED_DEVICE_FAMILY
+            case LINKER_DRIVER
+            case LD_WARN_DUPLICATE_LIBRARIES
         }
 
         public enum MultipleValueSetting: String, CaseIterable, Sendable, Hashable, Codable {
@@ -162,6 +164,7 @@ extension ProjectModel {
             case windows
             case wasi
             case openbsd
+            case freebsd
 
             public var asConditionStrings: [String] {
                 let filters = self.toPlatformFilter().map { (filter: ProjectModel.PlatformFilter) -> String in
@@ -262,6 +265,9 @@ public extension ProjectModel.BuildSettings.Platform {
 
         case .openbsd:
             result.append(.init(platform: "openbsd"))
+
+        case .freebsd:
+            result.append(.init(platform: "freebsd"))
         }
         return result
     }

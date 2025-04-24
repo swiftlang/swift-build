@@ -10,6 +10,8 @@
 //
 //===----------------------------------------------------------------------===//
 
+import Synchronization
+
 /// The component of a diagnostic.
 public enum Component: Serializable, Equatable, Hashable, Sendable, Codable {
     case `default`

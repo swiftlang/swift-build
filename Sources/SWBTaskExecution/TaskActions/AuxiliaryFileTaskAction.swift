@@ -13,6 +13,7 @@
 public import SWBUtil
 import SWBLibc
 public import SWBCore
+import Foundation
 
 public final class AuxiliaryFileTaskAction: TaskAction {
     public override class var toolIdentifier: String {
@@ -117,7 +118,7 @@ public final class AuxiliaryFileTaskAction: TaskAction {
             serializer.serialize(context.logContents)
             super.serialize(to: serializer)
         }
-        let md5 = MD5Context()
+        let md5 = InsecureHashContext()
         md5.add(bytes: serializer.byteString)
         return md5.signature
     }

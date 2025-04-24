@@ -90,7 +90,7 @@ import SWBMacro
         #expect(settings.tableForTesting.lookupMacro(BuiltinMacros.OutputPath) === nil)
 
         // Verify that the computed path defaults were added.
-        #expect(settings.tableForTesting.lookupMacro(BuiltinMacros.DEVELOPER_DIR)?.expression.stringRep == core.developerPath.str)
+        #expect(settings.tableForTesting.lookupMacro(BuiltinMacros.DEVELOPER_DIR)?.expression.stringRep == core.developerPath.path.str)
         #expect(settings.tableForTesting.lookupMacro(BuiltinMacros.AVAILABLE_PLATFORMS)?.expression.stringRep.contains("macosx") == true)
 
         // Verify that the CACHE_ROOT was added.
@@ -263,16 +263,14 @@ import SWBMacro
                                                                                                     "USER_TARGET_SETTING": "USER_TARGET_VALUE"])],
                                                                                                buildPhases: [TestSourcesBuildPhase(["Mock.cpp"])])])]).load(core)
             let context = try await contextForTestData(testWorkspace,
-                                                       environment: [
-                                                        "ENABLE_BITCODE": "YES",
-                                                       ],
-                                                       files: [
-                                                        core.loadSDK(.macOS).path.join("Cocoa.pch"): "",
-                                                        core.loadSDK(.macOS).path.join("System/Library/Frameworks/mock.txt"): "",
-                                                        core.loadSDK(.macOS).path.join("usr/include/mock.txt"): "",
-                                                        additionalSDKPath.join("Applications/Xcode.app/mock.txt"): "",
-                                                        additionalSDKPath.join("usr/mock.txt"): "",
-                                                       ])
+                files: [
+                    core.loadSDK(.macOS).path.join("Cocoa.pch"): "",
+                    core.loadSDK(.macOS).path.join("System/Library/Frameworks/mock.txt"): "",
+                    core.loadSDK(.macOS).path.join("usr/include/mock.txt"): "",
+                    additionalSDKPath.join("Applications/Xcode.app/mock.txt"): "",
+                    additionalSDKPath.join("usr/mock.txt"): "",
+                ]
+            )
             let buildRequestContext = BuildRequestContext(workspaceContext: context)
             let testProject = context.workspace.projects[0]
             let testTarget = testProject.targets[0]
@@ -591,7 +589,7 @@ import SWBMacro
         // Aggregate targets' settings are substantially similar to standard targets, but it is common for certain values to not be defined for aggregate targets.
         #expect(settings.tableForTesting.lookupMacro(BuiltinMacros.TARGET_NAME)?.expression.stringRep == "AggregateTarget1")
 
-        #expect(settings.tableForTesting.lookupMacro(BuiltinMacros.SDKROOT)?.expression.stringRep.hasPrefix(try context.fs.realpath(core.developerPath).str) == true)
+        #expect(settings.tableForTesting.lookupMacro(BuiltinMacros.SDKROOT)?.expression.stringRep.hasPrefix(try context.fs.realpath(core.developerPath.path).str) == true)
 
         #expect(settings.tableForTesting.lookupMacro(BuiltinMacros.TARGET_BUILD_DIR)?.expression.stringRep == "$(UNINSTALLED_PRODUCTS_DIR)$(TARGET_BUILD_SUBPATH)")
         // Subsequent definitions will have overwritten the previous definition.
@@ -631,17 +629,17 @@ import SWBMacro
         }
 
         // Check we can find clang in the toolchain.
-        #expect(settings.executableSearchPaths.lookup(Path("clang")) == core.developerPath.join("Toolchains/XcodeDefault.xctoolchain/usr/bin/clang"))
+        #expect(settings.executableSearchPaths.lookup(Path("clang")) == core.developerPath.path.join("Toolchains/XcodeDefault.xctoolchain/usr/bin/clang"))
 
         // Check that we find ibtool outside the toolchain.
-        #expect(settings.executableSearchPaths.lookup(Path("ibtool")) == core.developerPath.join("usr/bin/ibtool"))
+        #expect(settings.executableSearchPaths.lookup(Path("ibtool")) == core.developerPath.path.join("usr/bin/ibtool"))
 
         // Check the paths directly.
         let paths = settings.executableSearchPaths.paths
-        let toolchainPathIndex = paths.firstIndex(of: core.developerPath.join("Toolchains/XcodeDefault.xctoolchain/usr/bin")) ?? Int.max
-        let platformPathIndex = paths.firstIndex(of: core.developerPath.join("Platforms/MacOSX.platform/usr/bin")) ?? Int.max
-        let developerLocalBinIndex = paths.firstIndex(of: core.developerPath.join("usr/local/bin")) ?? Int.max
-        let developerBinIndex = paths.firstIndex(of: core.developerPath.join("usr/bin")) ?? Int.max
+        let toolchainPathIndex = paths.firstIndex(of: core.developerPath.path.join("Toolchains/XcodeDefault.xctoolchain/usr/bin")) ?? Int.max
+        let platformPathIndex = paths.firstIndex(of: core.developerPath.path.join("Platforms/MacOSX.platform/usr/bin")) ?? Int.max
+        let developerLocalBinIndex = paths.firstIndex(of: core.developerPath.path.join("usr/local/bin")) ?? Int.max
+        let developerBinIndex = paths.firstIndex(of: core.developerPath.path.join("usr/bin")) ?? Int.max
         #expect(toolchainPathIndex < platformPathIndex)
         #expect(platformPathIndex < developerBinIndex)
         #expect(developerBinIndex < developerLocalBinIndex)
@@ -3133,11 +3131,11 @@ import SWBMacro
                                                                                                             "USER_TARGET_SETTING": "USER_TARGET_VALUE"])],
                                                                                                        buildPhases: [TestSourcesBuildPhase(["Mock.cpp"])])])]).load(getCore())
         let context = try await contextForTestData(testWorkspace,
-                                                   environment: [
-                                                    "ENABLE_BITCODE": "YES",
-                                                    "RC_ARCHS": "x86_64 x86_64h",
-                                                   ],
-                                                   files: [:])
+            environment: [
+                "RC_ARCHS": "x86_64 x86_64h",
+            ],
+            files: [:]
+        )
         let buildRequestContext = BuildRequestContext(workspaceContext: context)
         let testProject = context.workspace.projects[0]
         let testTarget = testProject.targets[0]
@@ -4995,34 +4993,6 @@ import SWBMacro
         let settings = Settings(workspaceContext: context, buildRequestContext: buildRequestContext, parameters: parameters, project: testProject, target: testTarget,  impartedBuildProperties: [buildProperties])
 
         #expect(settings.globalScope.evaluate(BuiltinMacros.OTHER_CFLAGS) == ["-best"])
-    }
-
-    @Test
-    func packagesAllowTestingSearchPathsAndBitcodeSimultaneously() async throws {
-        let testWorkspace = try await TestWorkspace("Test", projects: [
-            TestPackageProject("aPackageProject", groupTree: TestGroup("Sources", path: "Sources", children: [TestFile("best.swift"), TestFile("Info.plist"),]), targets: [
-                TestStandardTarget("Target",
-                                   type: .application,
-                                   buildConfigurations: [
-                    TestBuildConfiguration("Debug", buildSettings: [
-                        "ENABLE_TESTING_SEARCH_PATHS": "YES",
-                        "INFOPLIST_FILE": "Sources/Info.plist",
-                        "SUPPORTED_PLATFORMS": "$(AVAILABLE_PLATFORMS)",
-                    ])
-                ])
-            ])
-        ]).load(getCore())
-
-        let context = try await contextForTestData(testWorkspace)
-        let buildRequestContext = BuildRequestContext(workspaceContext: context)
-        let testProject = context.workspace.projects[0]
-        let testTarget = testProject.targets[0]
-
-        let parameters = BuildParameters(configuration: "Debug", activeRunDestination: .iOS)
-        let settings = Settings(workspaceContext: context, buildRequestContext: buildRequestContext, parameters: parameters, project: testProject, target: testTarget)
-
-        #expect(!settings.globalScope.evaluate(BuiltinMacros.ENABLE_BITCODE))
-        #expect(settings.globalScope.evaluate(BuiltinMacros.ENABLE_TESTING_SEARCH_PATHS))
     }
 
     @Test(.requireSDKs(.macOS))

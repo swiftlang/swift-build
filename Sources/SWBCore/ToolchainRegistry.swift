@@ -14,6 +14,7 @@ public import SWBUtil
 
 import struct Foundation.CharacterSet
 import Foundation
+import SWBMacro
 
 /// Delegate protocol used to report diagnostics.
 @_spi(Testing) public protocol ToolchainRegistryDelegate: DiagnosticProducingDelegate {

@@ -951,7 +951,7 @@ public final class SwiftCommandOutputParser: TaskOutputParser {
                 ruleInfo = "\(ruleInfo) \(path.str.quotedDescription)"
             }
             let signature: ByteString = {
-                let md5 = MD5Context()
+                let md5 = InsecureHashContext()
                 md5.add(string: ruleInfo)
                 return md5.signature
             }()
@@ -1412,7 +1412,7 @@ public final class SwiftCompilerSpec : CompilerSpec, SpecIdentifierType, SwiftDi
     private func swiftCachingEnabled(_ cbc: CommandBuildContext, _ delegate: any TaskGenerationDelegate, _ moduleName: String, _ useIntegratedDriver: Bool, _ explicitModuleBuildEnabled: Bool, _ disabledPCHCompile: Bool) async -> Bool {
         guard cbc.producer.supportsCompilationCaching else { return false }
 
-        guard cbc.scope.evaluate(BuiltinMacros.SWIFT_ENABLE_COMPILE_CACHE) == .enabled else {
+        guard cbc.scope.evaluate(BuiltinMacros.SWIFT_ENABLE_COMPILE_CACHE) else {
             return false
         }
         if cbc.scope.evaluate(BuiltinMacros.INDEX_ENABLE_BUILD_ARENA) {
@@ -1490,7 +1490,7 @@ public final class SwiftCompilerSpec : CompilerSpec, SpecIdentifierType, SwiftDi
 
             switch feature.level {
             case .warn:
-                delegate.warning("Enabling the Swift language feature '\(identifier)' is recommended; \(supplementaryMessage)")
+                delegate.warning("Enabling the Swift language feature '\(identifier)' will become a requirement in the future; \(supplementaryMessage)")
             case .error:
                 delegate.error("Enabling the Swift language feature '\(identifier)' is required; \(supplementaryMessage)")
             case .ignore:
@@ -3061,12 +3061,6 @@ public final class SwiftCompilerSpec : CompilerSpec, SpecIdentifierType, SwiftDi
                     fileMapEntry.indexUnitOutputPath = indexObjectPath.str
                 }
             }
-            let objectFilePrefix = objectFilePath.basenameWithoutSuffix
-            // The bitcode file.
-            if compilationMode.compileSources {
-                let bitcodeFilePath = objectFileDir.join(objectFilePrefix + ".bc")
-                fileMapEntry.llvmBitcode = bitcodeFilePath.str
-            }
             return (objectFilePath, fileMapEntry)
         }
 
@@ -3308,10 +3302,6 @@ public final class SwiftCompilerSpec : CompilerSpec, SpecIdentifierType, SwiftDi
             // Previews only work on unoptimized build products.
             "-O",
             "-Osize",
-
-            // _Very_ deprecated, but continuing to strip for backwards compatibility
-            "-embed-bitcode",
-            "-embed-bitcode-marker",
 
             // Previews does not use compiler output
             "-parseable-output",
@@ -3584,7 +3574,7 @@ extension SwiftCompilerSpec {
     static public func computeRuleInfoAndSignatureForPerFileVirtualBatchSubtask(variant: String, arch: String, path: Path) -> ([String], ByteString) {
         let ruleInfo = ["SwiftCompile", variant, arch, path.str.quotedDescription]
         let signature: ByteString = {
-            let md5 = MD5Context()
+            let md5 = InsecureHashContext()
             md5.add(string: ruleInfo.joined(separator: " "))
             return md5.signature
         }()
@@ -3784,7 +3774,6 @@ struct SwiftOutputFileMap: Codable {
     struct Entry: Codable {
         var object: String?
         var indexUnitOutputPath: String?
-        var llvmBitcode: String?
         var remap: String?
         var diagnostics: String?
         var emitModuleDiagnostics: String?
@@ -3798,7 +3787,6 @@ struct SwiftOutputFileMap: Codable {
         enum CodingKeys: String, CodingKey {
             case object
             case indexUnitOutputPath = "index-unit-output-path"
-            case llvmBitcode = "llvm-bc"
             case remap
             case diagnostics
             case emitModuleDiagnostics = "emit-module-diagnostics"

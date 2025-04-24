@@ -133,6 +133,12 @@
                 Condition = "NO";
             },
             {
+                // Unsupported
+                Name = "LD_WARN_DUPLICATE_LIBRARIES";
+                Type = Boolean;
+                Condition = "NO";
+            },
+            {
                 // Don't deduplicate is broken in gold
                 Name = "LD_DONT_RUN_DEDUPLICATION";
                 Type = Boolean;

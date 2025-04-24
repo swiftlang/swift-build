@@ -22,4 +22,5 @@ public struct InputFileGroupingStrategyExtensionPoint: ExtensionPoint, Sendable 
 
 public protocol InputFileGroupingStrategyExtension: Sendable {
     func groupingStrategies() -> [String: any InputFileGroupingStrategyFactory]
+    func fileTypesCompilingToSwiftSources() -> [String]
 }

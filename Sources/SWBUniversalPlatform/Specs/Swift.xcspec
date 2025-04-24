@@ -931,6 +931,11 @@
                 Description = "Coordinates the build of the main module's modular dependencies via explicit tasks scheduled by the build system.";
             },
             {
+                Name = "SWIFT_ENABLE_COMPILE_CACHE";
+                Type = Boolean;
+                DefaultValue = "$(COMPILATION_CACHE_ENABLE_CACHING)";
+            },
+            {
                 Name = "SWIFT_GENERATE_ADDITIONAL_LINKER_ARGS";
                 Type = Boolean;
                 DefaultValue = "$(_EXPERIMENTAL_SWIFT_EXPLICIT_MODULES:default=$(SWIFT_ENABLE_EXPLICIT_MODULES))";
@@ -1029,28 +1034,6 @@
                 };
                 Category = "General";
                 DisplayName = "Reflection Metadata Level";
-            },
-
-            // Generate bitcode options
-            {
-                Name = "SWIFT_BITCODE_GENERATION_MODE";
-                Type = Enumeration;
-                Values = (
-                    marker,
-                    bitcode,
-                );
-                DefaultValue = "$(BITCODE_GENERATION_MODE)";
-                Architectures = ( arm64, arm64e, armv7, armv7s, armv7k, arm64_32 );
-                Condition = "$(ENABLE_BITCODE)";
-                CommandLineArgs = {
-                    marker = (
-                        "-embed-bitcode-marker",
-                    );
-                    bitcode = (
-                        "-embed-bitcode",
-                    );
-                };
-                // Not visible in the build settings editor
             },
 
             // Fuzzer option.

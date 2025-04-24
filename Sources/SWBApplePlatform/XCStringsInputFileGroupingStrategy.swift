@@ -11,6 +11,7 @@
 //===----------------------------------------------------------------------===//
 
 public import SWBCore
+import SWBUtil
 
 /// A grouping strategy that places each xcstrings table in its own group, along with any other .strings or .stringsdicts with the same basename.
 ///

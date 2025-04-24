@@ -12,6 +12,7 @@
 
 package import SWBUtil
 package import Testing
+import Synchronization
 
 package indirect enum StringPattern: Sendable {
     /// Matches only the start, when matching a list of inputs.

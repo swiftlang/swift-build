@@ -10,6 +10,7 @@ import Testing
 @_spi(Testing) import SWBCore
 import SWBTestSupport
 import SWBUtil
+import SWBProtocol
 
 @Suite
 fileprivate struct ProductTypesTests: CoreBasedTests {

@@ -156,9 +156,15 @@ fileprivate struct PreOverridesSettings {
         // NOTE: All of these settings must depend only on the core, and be immutable, as these values are cached in the universal defaults table.
 
         // FIXME: These need to translate to "fake-VFS" paths, for the pseudo-SWB testing.
-        let developerPath = core.developerPath
+        let developerPath = core.developerPath.path
 
-        let legacyDeveloperPath = core.developerPath.dirname.join("PlugIns/Xcode3Core.ideplugin/Contents/SharedSupport/Developer")
+        switch core.developerPath {
+        case .xcode(let path):
+            let legacyDeveloperPath = path.dirname.join("PlugIns/Xcode3Core.ideplugin/Contents/SharedSupport/Developer")
+            table.push(BuiltinMacros.LEGACY_DEVELOPER_DIR, literal: legacyDeveloperPath.str)
+        default:
+            break
+        }
 
         let developerToolsPath = developerPath.join("Tools")
         let developerAppsPath = developerPath.join("Applications")
@@ -185,7 +191,6 @@ fileprivate struct PreOverridesSettings {
         // FIXME: We should see if any of these can be deprecated, once we support that.
         table.push(BuiltinMacros.SYSTEM_DEVELOPER_DIR, literal: developerPath.str)
         table.push(BuiltinMacros.DEVELOPER_DIR, literal: developerPath.str)
-        table.push(BuiltinMacros.LEGACY_DEVELOPER_DIR, literal: legacyDeveloperPath.str)
         table.push(BuiltinMacros.SYSTEM_DEVELOPER_APPS_DIR, literal: developerAppsPath.str)
         table.push(BuiltinMacros.DEVELOPER_APPLICATIONS_DIR, literal: developerAppsPath.str)
         table.push(BuiltinMacros.DEVELOPER_LIBRARY_DIR, literal: developerLibPath.str)
@@ -576,11 +581,11 @@ final class WorkspaceSettings: Sendable {
         }
 
         if SWBFeatureFlag.enableClangCachingByDefault.value {
-            table.push(BuiltinMacros.CLANG_ENABLE_COMPILE_CACHE, literal: .enabled)
+            table.push(BuiltinMacros.CLANG_ENABLE_COMPILE_CACHE, literal: true)
         }
 
         if SWBFeatureFlag.enableSwiftCachingByDefault.value {
-            table.push(BuiltinMacros.SWIFT_ENABLE_COMPILE_CACHE, literal: .enabled)
+            table.push(BuiltinMacros.SWIFT_ENABLE_COMPILE_CACHE, literal: true)
         }
 
         return table
@@ -1020,8 +1025,18 @@ extension WorkspaceContext {
             }
 
             // Add the standard search paths.
-            paths.append(core.developerPath.join("usr").join("bin"))
-            paths.append(core.developerPath.join("usr").join("local").join("bin"))
+            switch core.developerPath {
+            case .xcode(let path), .fallback(let path):
+                paths.append(path.join("usr").join("bin"))
+                paths.append(path.join("usr").join("local").join("bin"))
+            case .swiftToolchain(let path, let xcodeDeveloperPath):
+                paths.append(path.join("usr").join("bin"))
+                paths.append(path.join("usr").join("local").join("bin"))
+                if let xcodeDeveloperPath {
+                    paths.append(xcodeDeveloperPath.join("usr").join("bin"))
+                    paths.append(xcodeDeveloperPath.join("usr").join("local").join("bin"))
+                }
+            }
 
             // Add the entries from PATH.
             if let value = userInfo?.buildSystemEnvironment["PATH"] {
@@ -1857,6 +1872,15 @@ private class SettingsBuilder {
             // FIXME: We need to report an error here if the toolchain couldn't be found.
             return core.toolchainRegistry.lookup(name)
         }
+
+        // If the build system was initialized as part of a swift toolchain, push that toolchain ahead of the default toolchain, if they are not the same (e.g. when on macOS where an Xcode install exists).
+        if case .swiftToolchain(let path, xcodeDeveloperPath: _) = core.developerPath {
+            if let developerPathToolchain = core.toolchainRegistry.toolchains.first(where: { $0.path.normalize() == path.normalize() }),
+               developerPathToolchain != coreSettings.defaultToolchain {
+                toolchains.append(developerPathToolchain)
+            }
+        }
+
         // Add the default toolchain at the end, if not present.
         if let defaultToolchain = coreSettings.defaultToolchain, toolchains.firstIndex(of: defaultToolchain) == nil {
             toolchains.append(defaultToolchain)
@@ -2593,7 +2617,7 @@ private class SettingsBuilder {
     // FIXME: Why is this logic not part of loading the SDK in SDKRegistry.registerSDK()?  I think all of the information currently used by this method should be available there.
     func addPlatformSDKSettings(_ platform: Platform?, _ sdk: SDK, _ sdkVariant: SDKVariant?) {
         pushTable(.exported) { table in
-            // bitcode
+            // Bitcode is no longer supported, so we want to continue to strip bitcode from non-simulator embedded platforms as we always have.
             if let platform, !platform.isSimulator, platform.correspondingSimulatorPlatformName != nil {
                 table.push(BuiltinMacros.STRIP_BITCODE_FROM_COPIED_FILES, literal: true)
             }
@@ -3791,6 +3815,11 @@ private class SettingsBuilder {
             table.push(BuiltinMacros.EFFECTIVE_PLATFORM_NAME, literal: MacCatalystInfo.publicSDKBuiltProductsDirSuffix)
         }
 
+        table.push(BuiltinMacros.SWIFT_ENABLE_EXPLICIT_MODULES, literal: .disabled)
+        table.push(BuiltinMacros._EXPERIMENTAL_SWIFT_EXPLICIT_MODULES, literal: .disabled)
+        table.push(BuiltinMacros.CLANG_ENABLE_EXPLICIT_MODULES, literal: false)
+        table.push(BuiltinMacros._EXPERIMENTAL_CLANG_EXPLICIT_MODULES, literal: false)
+
         push(table, .exported)
     }
 
@@ -4069,12 +4098,6 @@ private class SettingsBuilder {
         // Determine a preferred architecture for indexing, single-file actions, and the static analyzer.
         self.preferredArch = getPreferredArch(effectiveArchs)
 
-        // For installation and deployment, we need to generate proper bitcode: -fembed-bitcode/-embed-bitcode.
-        // NOTE! Do not simply check DEPLOYMENT_POSTPROCESSING as it may not be in-scope yet.
-        if parameters.action.isInstallAction || scope.evaluate(BuiltinMacros.DEPLOYMENT_POSTPROCESSING) {
-            table.push(BuiltinMacros.BITCODE_GENERATION_MODE, literal: "bitcode")
-        }
-
         // Set `ARCHS` to the list of architectures we ended up with, and save the original value.
         table.push(BuiltinMacros.__ARCHS__, literal: originalArchs)
         table.push(BuiltinMacros.ARCHS, literal: effectiveArchs.removingDuplicates())
@@ -4092,10 +4115,6 @@ private class SettingsBuilder {
 
         table.push(BuiltinMacros.__SWIFT_MODULE_ONLY_ARCHS__, literal: originalModuleOnlyArchs)
         table.push(BuiltinMacros.SWIFT_MODULE_ONLY_ARCHS, literal: moduleOnlyArchs)
-
-        if (scope.evaluate(BuiltinMacros.ENABLE_TESTING_SEARCH_PATHS) && project?.isPackage != true) || !["iphoneos", "appletvos", "watchos"].contains(specLookupContext.platform?.name) {
-            table.push(BuiltinMacros.ENABLE_BITCODE, literal: false)
-        }
 
         // FIXME: There is a more random, but questionable stuff here. To be added in a test case driven fashion.
 
@@ -4174,21 +4193,6 @@ private class SettingsBuilder {
             table.push(BuiltinMacros.ALL_SETTINGS, literal: macros.map({ macro in
                 "\(macro)=" + shellCodec.encode([scope.evaluate(scope.namespace.parseString("$\(macro)"))])
             }))
-        }
-
-        // Bitcode support was deprecated in Xcode 14 and is being turned off by default in Xcode 15, but there is a user default which can enable it.
-        if scope.evaluate(BuiltinMacros.ENABLE_BITCODE) {
-            if UserDefaults.enableBitcodeSupport {
-                // If we're going to generate bitcode, then symbol editing must be done by the linker, not by a separate nmedit invocation.
-                table.push(BuiltinMacros.SEPARATE_SYMBOL_EDIT, literal: false)
-
-                self.targetDiagnostics.append(Diagnostic(behavior: .warning, location: .buildSetting(BuiltinMacros.ENABLE_BITCODE), data: DiagnosticData("Building with bitcode is deprecated. Please update your project and/or target settings to disable bitcode.")))
-            }
-            else {
-                table.push(BuiltinMacros.ENABLE_BITCODE, literal: false)
-
-                self.targetDiagnostics.append(Diagnostic(behavior: .warning, location: .buildSetting(BuiltinMacros.ENABLE_BITCODE), data: DiagnosticData("Ignoring ENABLE_BITCODE because building with bitcode is no longer supported.")))
-            }
         }
 
         // If testability is enabled, then that overrides certain other settings, and in a way that the user cannot override: They're either using testability, or they're not.

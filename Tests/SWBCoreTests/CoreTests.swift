@@ -18,6 +18,7 @@ import SWBTestSupport
 import Foundation
 
 @_spi(Testing) import SWBCore
+import SWBServiceCore
 
 @Suite fileprivate struct CoreTests: CoreBasedTests {
     @Test
@@ -25,11 +26,11 @@ import Foundation
         let core = try await getCore()
         switch try ProcessInfo.processInfo.hostOperatingSystem() {
         case .macOS:
-            XCTAssertMatch(core.developerPath.str, .suffix(".app/Contents/Developer"))
+            XCTAssertMatch(core.developerPath.path.str, .suffix(".app/Contents/Developer"))
         case .windows:
-            XCTAssertMatch(core.developerPath.str, .suffix("\\AppData\\Local\\Programs\\Swift"))
+            XCTAssertMatch(core.developerPath.path.str, .suffix("\\AppData\\Local\\Programs\\Swift"))
         default:
-            #expect(core.developerPath.str == "/")
+            #expect(core.developerPath.path.str == "/")
         }
     }
 
@@ -333,7 +334,7 @@ import Foundation
             let pluginManager = await PluginManager(skipLoadingPluginIdentifiers: [])
             await pluginManager.registerExtensionPoint(SpecificationsExtensionPoint())
             await pluginManager.register(BuiltinSpecsExtension(), type: SpecificationsExtensionPoint.self)
-            let core = await Core.getInitializedCore(delegate, pluginManager: pluginManager, developerPath: tmpDirPath, buildServiceModTime: Date(), connectionMode: .inProcess)
+            let core = await Core.getInitializedCore(delegate, pluginManager: pluginManager, developerPath: .fallback(tmpDirPath), buildServiceModTime: Date(), connectionMode: .inProcess)
             #expect(core == nil)
 
             let results = CoreDelegateResults(delegate.diagnostics)
@@ -378,9 +379,15 @@ import Foundation
     func toolchainPathsCount() async throws -> Int {
         let delegate = Delegate()
         let pluginManager = await PluginManager(skipLoadingPluginIdentifiers: [])
+        await pluginManager.registerExtensionPoint(DeveloperDirectoryExtensionPoint())
         await pluginManager.registerExtensionPoint(SpecificationsExtensionPoint())
         await pluginManager.registerExtensionPoint(ToolchainRegistryExtensionPoint())
         await pluginManager.register(BuiltinSpecsExtension(), type: SpecificationsExtensionPoint.self)
+        struct MockDeveloperDirectoryExtensionPoint: DeveloperDirectoryExtension {
+            func fallbackDeveloperDirectory(hostOperatingSystem: OperatingSystem) async throws -> Path? {
+                .root
+            }
+        }
         struct MockToolchainExtension: ToolchainRegistryExtension {
             func additionalToolchains(context: any ToolchainRegistryExtensionAdditionalToolchainsContext) async throws -> [Toolchain] {
                 guard context.toolchainRegistry.lookup(ToolchainRegistry.defaultToolchainIdentifier) == nil else {
@@ -389,6 +396,7 @@ import Foundation
                 return [Toolchain(identifier: ToolchainRegistry.defaultToolchainIdentifier, displayName: "Mock", version: Version(), aliases: ["default"], path: .root, frameworkPaths: [], libraryPaths: [], defaultSettings: [:], overrideSettings: [:], defaultSettingsWhenPrimary: [:], executableSearchPaths: [], testingLibraryPlatformNames: [], fs: context.fs)]
             }
         }
+        await pluginManager.register(MockDeveloperDirectoryExtensionPoint(), type: DeveloperDirectoryExtensionPoint.self)
         await pluginManager.register(MockToolchainExtension(), type: ToolchainRegistryExtensionPoint.self)
         let core = await Core.getInitializedCore(delegate, pluginManager: pluginManager, inferiorProductsPath: Path.root.join("invalid"), environment: [:], buildServiceModTime: Date(), connectionMode: .inProcess)
         for diagnostic in delegate.diagnostics {
@@ -416,9 +424,15 @@ import Foundation
     func testExternalToolchainPath(environmentOverrides: [String:String], expecting expectedPathStrings: [String], _ originalToolchainCount: Int) async throws {
         let delegate = Delegate()
         let pluginManager = await PluginManager(skipLoadingPluginIdentifiers: [])
+        await pluginManager.registerExtensionPoint(DeveloperDirectoryExtensionPoint())
         await pluginManager.registerExtensionPoint(SpecificationsExtensionPoint())
         await pluginManager.registerExtensionPoint(ToolchainRegistryExtensionPoint())
         await pluginManager.register(BuiltinSpecsExtension(), type: SpecificationsExtensionPoint.self)
+        struct MockDeveloperDirectoryExtensionPoint: DeveloperDirectoryExtension {
+            func fallbackDeveloperDirectory(hostOperatingSystem: OperatingSystem) async throws -> Path? {
+                .root
+            }
+        }
         struct MockToolchainExtension: ToolchainRegistryExtension {
             func additionalToolchains(context: any ToolchainRegistryExtensionAdditionalToolchainsContext) async throws -> [Toolchain] {
                 guard context.toolchainRegistry.lookup(ToolchainRegistry.defaultToolchainIdentifier) == nil else {
@@ -427,6 +441,7 @@ import Foundation
                 return [Toolchain(identifier: ToolchainRegistry.defaultToolchainIdentifier, displayName: "Mock", version: Version(), aliases: ["default"], path: .root, frameworkPaths: [], libraryPaths: [], defaultSettings: [:], overrideSettings: [:], defaultSettingsWhenPrimary: [:], executableSearchPaths: [], testingLibraryPlatformNames: [], fs: context.fs)]
             }
         }
+        await pluginManager.register(MockDeveloperDirectoryExtensionPoint(), type: DeveloperDirectoryExtensionPoint.self)
         await pluginManager.register(MockToolchainExtension(), type: ToolchainRegistryExtensionPoint.self)
         let core = await Core.getInitializedCore(delegate, pluginManager: pluginManager, inferiorProductsPath: Path.root.join("invalid"), environment: environmentOverrides, buildServiceModTime: Date(), connectionMode: .inProcess)
         for diagnostic in delegate.diagnostics {

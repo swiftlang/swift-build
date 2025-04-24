@@ -109,14 +109,9 @@ final public class SwiftDriverTaskAction: TaskAction, BuildValueValidatingTaskAc
 
             if let linkerResponseFilePath = driverPayload.linkerResponseFilePath {
                 var responseFileCommandLine: [String] = []
-                let plannedBuild = try dependencyGraph.queryPlannedBuild(for: driverPayload.uniqueID)
                 if driverPayload.explicitModulesEnabled {
-                    for job in plannedBuild.explicitModulesPlannedDriverJobs() {
-                        for output in job.driverJob.outputs {
-                            if output.fileExtension == "swiftmodule" {
-                                responseFileCommandLine.append(contentsOf: ["-Wl,-add_ast_path", "-Wl,\(output.str)"])
-                            }
-                        }
+                    for swiftmodulePath in try dependencyGraph.querySwiftmodulesNeedingRegistrationForDebugging(for: driverPayload.uniqueID) {
+                        responseFileCommandLine.append(contentsOf: ["-Xlinker", "-add_ast_path", "-Xlinker", "\(swiftmodulePath)"])
                     }
                 }
                 let contents = ByteString(encodingAsUTF8: ResponseFiles.responseFileContents(args: responseFileCommandLine))

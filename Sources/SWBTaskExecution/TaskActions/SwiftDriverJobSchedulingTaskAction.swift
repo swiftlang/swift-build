@@ -14,6 +14,8 @@ import SWBUtil
 import SWBLibc
 public import SWBCore
 public import enum SWBLLBuild.BuildValueKind
+import Foundation
+import SWBProtocol
 
 open class SwiftDriverJobSchedulingTaskAction: TaskAction {
     public override class var toolIdentifier: String {
@@ -137,7 +139,7 @@ open class SwiftDriverJobSchedulingTaskAction: TaskAction {
                         return
                     }
 
-                    let signatureCtx = MD5Context()
+                    let signatureCtx = InsecureHashContext()
                     signatureCtx.add(string: task.identifier.rawValue)
                     signatureCtx.add(string: "swiftdriverjobdiscoveryactivity")
                     signatureCtx.add(number: dependencyID)

@@ -569,9 +569,8 @@ public func pbxcp(_ argv: [String], cwd: Path) async -> (success: Bool, output: 
     }
 
     if let bitcodeStripFlag = options.bitcodeStripFlag {
-        if bitcodeStripFlag == "replace-with-marker" {
-            options.bitcodeStripFlag = "-m"
-        } else if bitcodeStripFlag == "all" {
+        // Always strip all bitcode if we were passed a valid option.
+        if bitcodeStripFlag == "replace-with-marker" || bitcodeStripFlag == "all" {
             options.bitcodeStripFlag = "-r"
         } else {
             return (false, CopyOptions.helpMessage())

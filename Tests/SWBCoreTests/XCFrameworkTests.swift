@@ -14,6 +14,7 @@ import Foundation
 import Testing
 import SWBTestSupport
 import SWBUtil
+import SWBMacro
 
 @_spi(Testing) import SWBCore
 
@@ -321,7 +322,6 @@ import SWBUtil
                     "LibraryPath": .plString("XCSample.dylib"),
                     "BinaryPath": .plString("XCSample.dylib"),
                     "HeadersPath": .plString("Headers"),
-                    "BitcodeSymbolMapsPath": .plString("BCSymbolMaps"),
                 ]),
                 .plDict([
                     "LibraryIdentifier": .plString("x86_64-apple-iphonesimulator13.0"),
@@ -330,7 +330,6 @@ import SWBUtil
                     "LibraryPath": .plString("XCSample.dylib"),
                     // Missing BinaryPath to exercise this case
                     "HeadersPath": .plString("Headers"),
-                    "BitcodeSymbolMapsPath": .plString("BCSymbolMaps"),
                 ]),
             ])
         ])
@@ -364,7 +363,6 @@ import SWBUtil
             #expect(library.libraryPath.str == "XCSample.dylib")
             #expect(library.binaryPath?.str == "XCSample.dylib")
             #expect(library.headersPath?.str == "Headers")
-            #expect(library.bitcodeSymbolMapsPath?.str == "BCSymbolMaps")
         }
 
         do {
@@ -374,7 +372,6 @@ import SWBUtil
             #expect(library.libraryPath.str == "XCSample.dylib")
             #expect(library.binaryPath == nil)
             #expect(library.headersPath?.str == "Headers")
-            #expect(library.bitcodeSymbolMapsPath?.str == "BCSymbolMaps")
         }
     }
 
@@ -998,7 +995,6 @@ fileprivate struct XCFrameworkCreationCommandTests: CoreBasedTests {
             else {
                 #expect(library.debugSymbolsPath == nil)
             }
-            #expect(library.bitcodeSymbolMapsPath == nil)
             #expect(library.libraryType == .framework)
         }
     }
@@ -1152,12 +1148,12 @@ fileprivate struct XCFrameworkCreationCommandTests: CoreBasedTests {
     }
 
     @Test
-    func iOSFrameworkWithDebugSymbolsAndBitCodeMaps_swift() async throws {
+    func iOSFrameworkWithDebugSymbols_swift() async throws {
         try await _testiOSFramework(useSwift: true, withDebugSymbols: true)
     }
 
     @Test
-    func iOSFrameworkWithDebugSymbolsAndBitCodeMaps_nonswift() async throws {
+    func iOSFrameworkWithDebugSymbols_nonswift() async throws {
         try await _testiOSFramework(useSwift: false,  withDebugSymbols: true)
     }
 
@@ -1170,7 +1166,6 @@ fileprivate struct XCFrameworkCreationCommandTests: CoreBasedTests {
             if withDebugSymbols {
                 debugSymbolPaths = [
                     tmpDir.join(path.basenameWithoutSuffix + ".framework.dSYM"),
-                    tmpDir.join(path.basenameWithoutSuffix + ".bcsymbolmap")
                 ]
             }
             else {
@@ -1192,11 +1187,9 @@ fileprivate struct XCFrameworkCreationCommandTests: CoreBasedTests {
             #expect(library.headersPath == nil)
             if withDebugSymbols {
                 #expect(library.debugSymbolsPath?.str == "dSYMs")
-                #expect(library.bitcodeSymbolMapsPath?.str == "BCSymbolMaps")
             }
             else {
                 #expect(library.debugSymbolsPath == nil)
-                #expect(library.bitcodeSymbolMapsPath == nil)
             }
             #expect(library.libraryType == .framework)
         }
@@ -1518,11 +1511,9 @@ fileprivate struct XCFrameworkCreationCommandTests: CoreBasedTests {
             }
             let dsymPath1 = try createFakeDebugFile(at: path1, bundle: true)
             let dsymPath3 = try createFakeDebugFile(at: path3)
-            let bcsymPath3a = try createFakeDebugFile(at: path3, basename: "bitcode1", fileExtension: "bcsymbolmap")
-            let bcsymPath3b = try createFakeDebugFile(at: path3, basename: "bitcode2", fileExtension: "bcsymbolmap")
 
             let commandLine: [String]
-            commandLine = ["createXCFramework", "-library", path1.str, "-debug-symbols", dsymPath1.str, "-headers", path1.dirname.join("include").str, "-library", path2.str, "-headers", path2.dirname.join("include").str, "-library", path3.str, "-headers", path3.dirname.join("include").str, "-debug-symbols", dsymPath3.str, "-debug-symbols", bcsymPath3a.str, "-debug-symbols", bcsymPath3b.str, "-output", outputPath.str] + (allowInternalDistribution ? ["-allow-internal-distribution"] : [])
+            commandLine = ["createXCFramework", "-library", path1.str, "-debug-symbols", dsymPath1.str, "-headers", path1.dirname.join("include").str, "-library", path2.str, "-headers", path2.dirname.join("include").str, "-library", path3.str, "-headers", path3.dirname.join("include").str, "-debug-symbols", dsymPath3.str, "-output", outputPath.str] + (allowInternalDistribution ? ["-allow-internal-distribution"] : [])
 
             // Validate that the output is correct.
             let (passed, output) = XCFramework.createXCFramework(commandLine: commandLine, currentWorkingDirectory: tmpDir, infoLookup: infoLookup)
@@ -1556,7 +1547,6 @@ fileprivate struct XCFrameworkCreationCommandTests: CoreBasedTests {
             #expect(macos.supportedArchitectures == ["x86_64"])
             #expect(macos.headersPath?.str == expectedHeadersPath)
             #expect(macos.debugSymbolsPath?.str == "dSYMs")
-            #expect(macos.bitcodeSymbolMapsPath == nil)
             #expect(macos.platformVariant == nil)
 
             #expect(iphoneos.libraryPath.str == "libsample.dylib")
@@ -1566,7 +1556,6 @@ fileprivate struct XCFrameworkCreationCommandTests: CoreBasedTests {
             #expect(iphoneos.supportedArchitectures == ["arm64", "arm64e"])
             #expect(iphoneos.headersPath?.str == expectedHeadersPath)
             #expect(iphoneos.debugSymbolsPath == nil)
-            #expect(iphoneos.bitcodeSymbolMapsPath == nil)
             #expect(iphoneos.platformVariant == nil)
 
             #expect(iphonesimulator.libraryPath.str == "libsample.dylib")
@@ -1577,7 +1566,6 @@ fileprivate struct XCFrameworkCreationCommandTests: CoreBasedTests {
             #expect(iphonesimulator.platformVariant == "simulator")
             #expect(iphonesimulator.headersPath?.str == expectedHeadersPath)
             #expect(iphonesimulator.debugSymbolsPath?.str == "dSYMs")
-            #expect(iphonesimulator.bitcodeSymbolMapsPath?.str == "BCSymbolMaps")
 
             // Validate that there are actually files on disk in the correct location.
             #expect(localFS.exists(outputPath.join(macos.libraryIdentifier).join(macos.libraryPath)))
@@ -1594,8 +1582,6 @@ fileprivate struct XCFrameworkCreationCommandTests: CoreBasedTests {
             // Validate the bcsymbolmaps are in place.
             #expect(!localFS.exists(outputPath.join(macos.libraryIdentifier).join("BCSymbolMaps")))
             #expect(!localFS.exists(outputPath.join(iphoneos.libraryIdentifier).join("BCSymbolMaps")))
-            #expect(localFS.exists(outputPath.join(iphonesimulator.libraryIdentifier).join("BCSymbolMaps").join("bitcode1.bcsymbolmap")))
-            #expect(localFS.exists(outputPath.join(iphonesimulator.libraryIdentifier).join("BCSymbolMaps").join("bitcode2.bcsymbolmap")))
 
             if useSwift {
                 let macosSwiftModuleDir = outputPath.join(macos.libraryIdentifier).join(macos.headersPath!).join("sample.swiftmodule")
@@ -1646,9 +1632,6 @@ fileprivate struct XCFrameworkCreationCommandTests: CoreBasedTests {
         try fs.createDirectory(Path("/var/tmp/hi.xcarchive/dSYMs/libhi.a.dSYM"), recursive: true)
         // explicitly missing dSYM for 'hi.dylib'
         try fs.createDirectory(Path("/var/tmp/hi.xcarchive/BCSymbolMaps"), recursive: true)
-        try fs.write(Path("/var/tmp/hi.xcarchive/BCSymbolMaps/hi.framework.bcsymbolmap"), contents: "symbols!")
-        // explicitly missing bcsymbolmap for 'libhi.a'
-        try fs.write(Path("/var/tmp/hi.xcarchive/BCSymbolMaps/hi.dylib.bcsymbolmap"), contents: "symbols!")
 
         try fs.createDirectory(Path("/var/tmp/bye.xcarchive/Products/Library/Frameworks/bye.framework"), recursive: true)
         try fs.createDirectory(Path("/var/tmp/bye.xcarchive/Products/usr/local/lib"), recursive: true)
@@ -1657,7 +1640,6 @@ fileprivate struct XCFrameworkCreationCommandTests: CoreBasedTests {
         try fs.createDirectory(Path("/var/tmp/bye.xcarchive/dSYMs/bye.framework.dSYM"), recursive: true)
         // explicitly missing dSYM
         try fs.createDirectory(Path("/var/tmp/bye.xcarchive/BCSymbolMaps"), recursive: true)
-        try fs.write(Path("/var/tmp/bye.xcarchive/BCSymbolMaps/bye.framework.bcsymbolmap"), contents: "symbols!")
 
         try testCommandLineRewrite([
             "-create-xcframework",
@@ -1680,8 +1662,8 @@ fileprivate struct XCFrameworkCreationCommandTests: CoreBasedTests {
         ],
                                    expected: [
                                     "-create-xcframework",
-                                    "-framework", "/var/tmp/hi.xcarchive/Products/Library/Frameworks/hi.framework", "-debug-symbols", "/var/tmp/hi.xcarchive/dSYMs/hi.framework.dSYM", "-debug-symbols", "/var/tmp/hi.xcarchive/BCSymbolMaps/hi.framework.bcsymbolmap",
-                                    "-framework", "/var/tmp/bye.xcarchive/Products/Library/Frameworks/bye.framework", "-debug-symbols", "/var/tmp/bye.xcarchive/dSYMs/bye.framework.dSYM", "-debug-symbols", "/var/tmp/bye.xcarchive/BCSymbolMaps/bye.framework.bcsymbolmap",
+                                    "-framework", "/var/tmp/hi.xcarchive/Products/Library/Frameworks/hi.framework", "-debug-symbols", "/var/tmp/hi.xcarchive/dSYMs/hi.framework.dSYM",
+                                    "-framework", "/var/tmp/bye.xcarchive/Products/Library/Frameworks/bye.framework", "-debug-symbols", "/var/tmp/bye.xcarchive/dSYMs/bye.framework.dSYM",
                                     "-output", "/var/tmp/my.xcframework",
                                    ])
 
@@ -1695,7 +1677,7 @@ fileprivate struct XCFrameworkCreationCommandTests: CoreBasedTests {
                                    expected: [
                                     "-create-xcframework",
                                     "-library", "/var/tmp/hi.xcarchive/Products/usr/local/lib/libhi.a", "-headers", "/var/tmp/hi.xcarchive/Products/usr/local/include", "-debug-symbols", "/var/tmp/hi.xcarchive/dSYMs/libhi.a.dSYM",
-                                    "-library", "/var/tmp/hi.xcarchive/Products/usr/local/lib/hi.dylib", "-headers", "/var/tmp/hi.xcarchive/Products/usr/local/include", "-debug-symbols", "/var/tmp/hi.xcarchive/BCSymbolMaps/hi.dylib.bcsymbolmap",
+                                    "-library", "/var/tmp/hi.xcarchive/Products/usr/local/lib/hi.dylib", "-headers", "/var/tmp/hi.xcarchive/Products/usr/local/include",
                                     "-library", "/var/tmp/bye.xcarchive/Products/usr/local/lib/libbye.a",
                                     "-output", "/var/tmp/my.xcframework",
                                    ])
@@ -1710,7 +1692,7 @@ fileprivate struct XCFrameworkCreationCommandTests: CoreBasedTests {
                                    expected: [
                                     "-create-xcframework",
                                     "-library", "/var/tmp/hi.xcarchive/Products/usr/local/lib/libhi.a", "-headers", "/var/tmp/hi.xcarchive/Products/usr/local/include", "-debug-symbols", "/var/tmp/hi.xcarchive/dSYMs/libhi.a.dSYM",
-                                    "-library", "/var/tmp/hi.xcarchive/Products/usr/local/lib/hi.dylib", "-headers", "/var/tmp/hi.xcarchive/Products/usr/local/include", "-debug-symbols", "/var/tmp/hi.xcarchive/BCSymbolMaps/hi.dylib.bcsymbolmap",
+                                    "-library", "/var/tmp/hi.xcarchive/Products/usr/local/lib/hi.dylib", "-headers", "/var/tmp/hi.xcarchive/Products/usr/local/include",
                                     "-library", "/var/tmp/bye.xcarchive/Products/usr/local/lib/libbye.a",
                                     "-output", "/var/tmp/my.xcframework",
                                    ])
@@ -1718,7 +1700,7 @@ fileprivate struct XCFrameworkCreationCommandTests: CoreBasedTests {
         // This will create an invalid command-line, but the only test consideration here is that the rewriting happens appropriately.
         let expectedCommandLine = [
             "-create-xcframework",
-            "-framework", "/var/tmp/hi.xcarchive/Products/Library/Frameworks/hi.framework", "-debug-symbols", "/var/tmp/hi.xcarchive/dSYMs/hi.framework.dSYM", "-debug-symbols", "/var/tmp/hi.xcarchive/BCSymbolMaps/hi.framework.bcsymbolmap",
+            "-framework", "/var/tmp/hi.xcarchive/Products/Library/Frameworks/hi.framework", "-debug-symbols", "/var/tmp/hi.xcarchive/dSYMs/hi.framework.dSYM",
             "-library", "/var/tmp/hi.xcarchive/Products/usr/local/lib/-allow-internal-distribution", "-headers", "/var/tmp/hi.xcarchive/Products/usr/local/include",
             "-output", "/var/tmp/my.xcframework",
         ]

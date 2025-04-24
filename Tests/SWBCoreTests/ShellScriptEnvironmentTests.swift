@@ -15,6 +15,7 @@ import Testing
 import SWBUtil
 import SWBCore
 import SWBTestSupport
+import SWBProtocol
 
 @Suite fileprivate struct ShellScriptEnvironmentTests: CoreBasedTests {
     @Test(.requireHostOS(.macOS))
@@ -72,7 +73,6 @@ import SWBTestSupport
             "DERIVED_SOURCES_DIR": srcroot.join("build/aProject.build/Debug/Target1.build/DerivedSources").str,
             "DOCUMENTATION_FOLDER_PATH": "Target1.app/Contents/Resources/English.lproj/Documentation",
             "DWARF_DSYM_FILE_NAME": "Target1.app.dSYM",
-            "ENABLE_BITCODE": "NO",
             "ENABLE_ON_DEMAND_RESOURCES": "NO",
             "ENABLE_TESTABILITY": "NO",
             "EXECUTABLES_FOLDER_PATH": "Target1.app/Contents/Executables",

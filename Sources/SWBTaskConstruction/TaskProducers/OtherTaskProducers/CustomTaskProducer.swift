@@ -12,6 +12,7 @@
 
 import SWBCore
 import SWBUtil
+import SWBMacro
 
 /// A task producer responsible for adding custom tasks specified in the project model to the graph.
 final class CustomTaskProducer: PhasedTaskProducer, TaskProducer {
@@ -37,7 +38,7 @@ final class CustomTaskProducer: PhasedTaskProducer, TaskProducer {
                 
                 if outputs.isEmpty {
                     // If there are no outputs, create a virtual output that can be wired up to gates
-                    let md5Context = MD5Context()
+                    let md5Context = InsecureHashContext()
                     for arg in commandLine {
                         md5Context.add(string: arg)
                     }

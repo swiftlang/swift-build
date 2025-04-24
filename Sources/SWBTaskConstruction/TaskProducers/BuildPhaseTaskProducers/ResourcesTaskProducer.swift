@@ -13,6 +13,7 @@
 import SWBCore
 import SWBUtil
 import SWBMacro
+import Foundation
 
 /// Produces tasks for files in a Copy Resources build phase in an Xcode target.
 final class ResourcesTaskProducer: FilesBasedBuildPhaseTaskProducerBase, FilesBasedBuildPhaseTaskProducer {

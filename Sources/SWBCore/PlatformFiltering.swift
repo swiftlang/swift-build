@@ -11,6 +11,7 @@
 //===----------------------------------------------------------------------===//
 
 public import SWBMacro
+import SWBUtil
 
 extension PlatformFilter {
     public convenience init?(_ scope: MacroEvaluationScope) {

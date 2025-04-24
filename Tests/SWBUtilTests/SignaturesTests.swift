@@ -13,6 +13,7 @@
 import Foundation
 import Testing
 import SWBUtil
+import SWBTestSupport
 
 @Suite(.requireHostOS(.macOS), .requireSDKs(.macOS))
 fileprivate struct SignaturesTests {

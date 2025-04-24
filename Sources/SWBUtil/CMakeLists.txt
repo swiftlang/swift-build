@@ -68,6 +68,7 @@ add_library(SWBUtil
   OutputByteStream.swift
   Pair.swift
   Path.swift
+  PathWindows.swift
   PbxCp.swift
   PluginManager.swift
   PluginManagerCommon.swift
@@ -100,6 +101,7 @@ add_library(SWBUtil
   VFS.swift
   WaitCondition.swift
   WeakRef.swift
+  Win32Error.swift
   XCBuildDataArchive.swift
   Xcode.swift)
 set_target_properties(SWBUtil PROPERTIES
@@ -108,5 +110,4 @@ target_link_libraries(SWBUtil PUBLIC
   SWBCSupport
   SWBLibc
   ArgumentParser
-  $<$<AND:$<NOT:$<PLATFORM_ID:Windows>>,$<NOT:$<PLATFORM_ID:Darwin>>>:Crypto::Crypto>
   $<$<NOT:$<PLATFORM_ID:Darwin>>:SwiftSystem::SystemPackage>)

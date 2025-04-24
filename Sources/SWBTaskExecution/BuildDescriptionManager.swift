@@ -20,6 +20,7 @@ package import SWBUtil
 package import struct SWBProtocol.BuildDescriptionID
 package import struct SWBProtocol.BuildOperationTaskEnded
 import SWBMacro
+import Synchronization
 
 /// An enum describing from where the build description was retrieved, for testing purposes.
 package enum BuildDescriptionRetrievalSource {
@@ -57,7 +58,7 @@ package struct BuildDescriptionRetrievalInfo {
 }
 
 /// Controls the non-deterministic eviction policy of the cache. Note that this is distinct from deterministic _pruning_ (due to TTL or size limits).
-package enum BuildDescriptionMemoryCacheEvictionPolicy: Sendable {
+package enum BuildDescriptionMemoryCacheEvictionPolicy: Sendable, Hashable {
     /// Never evict due to memory pressure.
     case never
 
@@ -104,20 +105,22 @@ package final class BuildDescriptionManager: Sendable {
 
     package init(fs: any FSProxy, buildDescriptionMemoryCacheEvictionPolicy: BuildDescriptionMemoryCacheEvictionPolicy, maxCacheSize: (inMemory: Int, onDisk: Int) = (4, 4)) {
         self.fs = fs
-        self.inMemoryCachedBuildDescriptions = HeavyCache(maximumSize: maxCacheSize.inMemory, evictionPolicy: {
-            switch buildDescriptionMemoryCacheEvictionPolicy {
-            case .never:
-                .never
-            case .default(let totalCostLimit):
-                .default(totalCostLimit: totalCostLimit, willEvictCallback: { buildDescription in
-                    // Capture the path to a local variable so that the buildDescription instance isn't retained by OSLog's autoclosure message parameter.
-                    let packagePath = buildDescription.packagePath
-                    #if canImport(os)
-                    OSLog.log("Evicted cached build description at '\(packagePath.str)'")
-                    #endif
-                })
-            }
-        }())
+        self.inMemoryCachedBuildDescriptions = withHeavyCacheGlobalState(isolated: buildDescriptionMemoryCacheEvictionPolicy == .never) {
+            HeavyCache(maximumSize: maxCacheSize.inMemory, evictionPolicy: {
+                switch buildDescriptionMemoryCacheEvictionPolicy {
+                case .never:
+                    .never
+                case .default(let totalCostLimit):
+                    .default(totalCostLimit: totalCostLimit, willEvictCallback: { buildDescription in
+                        // Capture the path to a local variable so that the buildDescription instance isn't retained by OSLog's autoclosure message parameter.
+                        let packagePath = buildDescription.packagePath
+                        #if canImport(os)
+                        OSLog.log("Evicted cached build description at '\(packagePath.str)'")
+                        #endif
+                    })
+                }
+            }())
+        }
         self.maxCacheSize = maxCacheSize
     }
 
@@ -728,7 +731,7 @@ private final class BuildSystemTaskPlanningDelegate: TaskPlanningDelegate {
     }
 
     package func recordAttachment(contents: SWBUtil.ByteString) -> SWBUtil.Path {
-        let digester = MD5Context()
+        let digester = InsecureHashContext()
         digester.add(bytes: contents)
         let path = descriptionPath.join("attachments").join(digester.signature.asString)
         do {

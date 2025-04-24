@@ -11,6 +11,7 @@
 //===----------------------------------------------------------------------===//
 
 public import SWBUtil
+import Foundation
 
 public struct SchemeInput: Equatable, Hashable, Serializable, Sendable {
     public let name: String
@@ -448,7 +449,7 @@ public struct ProductDescription: Equatable, Hashable, Serializable, Sendable {
     /// CLI tools might not have one.
     public let buildVersion: String?
 
-    /// Bitcode
+    /// Bitcode - no longer supported
     public let enableBitcode: Bool
 
     /// Codesigning
@@ -520,7 +521,6 @@ public struct ProductDescription: Equatable, Hashable, Serializable, Sendable {
         deploymentTarget: Version,
         marketingVersion: String?,
         buildVersion: String?,
-        enableBitcode: Bool,
         codesign: CodesignMode?,
         team: String?,
         infoPlistPath: String?,
@@ -536,7 +536,7 @@ public struct ProductDescription: Equatable, Hashable, Serializable, Sendable {
         self.deploymentTarget = deploymentTarget
         self.marketingVersion = marketingVersion
         self.buildVersion = buildVersion
-        self.enableBitcode = enableBitcode
+        self.enableBitcode = false
         self.codesign = codesign
         self.team = team
         self.infoPlistPath = infoPlistPath
@@ -544,7 +544,7 @@ public struct ProductDescription: Equatable, Hashable, Serializable, Sendable {
     }
 
     public init(from deserializer: any Deserializer) throws {
-        try deserializer.beginAggregate(15)
+        try deserializer.beginAggregate(14)
         self.displayName = try deserializer.deserialize()
         self.productName = try deserializer.deserialize()
         self.identifier = try deserializer.deserialize()
@@ -557,7 +557,7 @@ public struct ProductDescription: Equatable, Hashable, Serializable, Sendable {
         self.deploymentTarget = try Version(deploymentTarget)
         self.marketingVersion = try deserializer.deserialize()
         self.buildVersion = try deserializer.deserialize()
-        self.enableBitcode = try deserializer.deserialize()
+        self.enableBitcode = false
         let codesign: String? = try deserializer.deserialize()
         self.codesign = codesign.map { CodesignMode.fromString($0) }
         self.team = try deserializer.deserialize()
@@ -566,7 +566,7 @@ public struct ProductDescription: Equatable, Hashable, Serializable, Sendable {
     }
 
     public func serialize<T: Serializer>(to serializer: T) {
-        serializer.beginAggregate(15)
+        serializer.beginAggregate(14)
         serializer.serialize(self.displayName)
         serializer.serialize(self.productName)
         serializer.serialize(self.identifier)
@@ -577,7 +577,6 @@ public struct ProductDescription: Equatable, Hashable, Serializable, Sendable {
         serializer.serialize(self.deploymentTarget.description)
         serializer.serialize(self.marketingVersion)
         serializer.serialize(self.buildVersion)
-        serializer.serialize(self.enableBitcode)
         serializer.serialize(self.codesign?.asString())
         serializer.serialize(self.team)
         serializer.serialize(self.infoPlistPath)

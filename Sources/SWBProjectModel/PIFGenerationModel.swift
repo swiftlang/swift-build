@@ -980,7 +980,9 @@ public enum PIF {
         public var IS_ZIPPERED: String?
         public var KEEP_PRIVATE_EXTERNS: String?
         public var LD_RUNPATH_SEARCH_PATHS: [String]?
+        public var LD_WARN_DUPLICATE_LIBRARIES: String?
         public var LIBRARY_SEARCH_PATHS: [String]?
+        public var LINKER_DRIVER: String?
         public var CLANG_COVERAGE_MAPPING_LINKER_ARGS: String?
         public var CURRENT_PROJECT_VERSION: String?
         public var MACH_O_TYPE: String?

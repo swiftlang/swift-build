@@ -15,6 +15,7 @@ import Foundation
 public import SWBUtil
 public import struct SWBProtocol.RunDestinationInfo
 public import SWBMacro
+import Synchronization
 
 /// Wrapper for user context information.
 public struct UserInfo: Codable, Hashable, Sendable {

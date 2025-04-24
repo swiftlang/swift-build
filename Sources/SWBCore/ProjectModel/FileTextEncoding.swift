@@ -19,7 +19,7 @@ public import struct Foundation.Data
 public import class Foundation.NSNumber
 public import class Foundation.NSString
 
-#if canImport(CoreFoundation)
+#if canImport(Darwin)
 import class CoreFoundation.CFString
 import var CoreFoundation.kCFStringEncodingInvalidId
 import func CoreFoundation.CFStringConvertEncodingToNSStringEncoding
@@ -38,7 +38,7 @@ public import struct Foundation.StringEncodingDetectionOptionsKey
 // encodings (except UTF-8) DO add a BOM based on the host byte order. Be aware.
 public extension FileTextEncoding {
     init?(stringEncoding: String.Encoding) {
-        #if canImport(CoreFoundation)
+        #if canImport(Darwin)
         let cfencoding = CFStringConvertNSStringEncodingToEncoding(stringEncoding.rawValue)
         if cfencoding != kCFStringEncodingInvalidId, let name = CFStringConvertEncodingToIANACharSetName(cfencoding).map(String.init) {
             self.init(name)
@@ -50,7 +50,7 @@ public extension FileTextEncoding {
 
     /// Convert the given encoding to an `NSStringEncoding`.
     var stringEncoding: String.Encoding? {
-        #if canImport(CoreFoundation)
+        #if canImport(Darwin)
         let cfencoding = CFStringConvertIANACharSetNameToEncoding(rawValue.asCFString)
         if cfencoding != kCFStringEncodingInvalidId {
             return String.Encoding(rawValue: CFStringConvertEncodingToNSStringEncoding(cfencoding))

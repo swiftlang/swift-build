@@ -16,6 +16,7 @@ import SWBTestSupport
 import SwiftBuildTestSupport
 import SWBUtil
 import Testing
+import Foundation
 
 /// Tests the behavior of various alternative build commands of a build request, including single-file compiles.
 @Suite

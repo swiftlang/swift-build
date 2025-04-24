@@ -11,6 +11,7 @@
 //===----------------------------------------------------------------------===//
 
 import SWBUtil
+import SWBMacro
 
 /// Spec to use the linker to run `ld -r` to create a prelinked object file (a.k.a. "master object file").
 final class MasterObjectLinkSpec: CommandLineToolSpec, SpecImplementationType, @unchecked Sendable {
@@ -33,18 +34,6 @@ final class MasterObjectLinkSpec: CommandLineToolSpec, SpecImplementationType, @
 
         var commandLine = [toolSpecInfo.toolPath.str]
         commandLine += ["-r", "-arch", arch]
-
-        let supportsBitcode = await !cbc.producer.ldLinkerSpec.commandLineFromMacroDeclaration(cbc, delegate, optionContext: toolSpecInfo, BuiltinMacros.LD_BITCODE_GENERATION_MODE).isEmpty
-
-        if cbc.scope.evaluate(BuiltinMacros.ENABLE_BITCODE) && supportsBitcode {
-            // LD_BITCODE_GENERATION_MODE is the linker setting which controls passing bitcode options to the linker; but since we're invoking the linker directly here, rather than the compiler driver, we pass -bitcode_bundle rather than -fembed-bitcode*.
-            commandLine += ["-bitcode_bundle"]
-
-            // If we're generating full bitcode, then we also want to pass -bitcode_verify to make sure all the objects it links against also contain full bitcode.
-            if cbc.scope.evaluate(BuiltinMacros.BITCODE_GENERATION_MODE) == "bitcode" {
-                commandLine += ["-bitcode_verify"]
-            }
-        }
 
         // We do not pass the deployment target to the linker here.  Instead the linker infers the platform and deployment target from the .o files being collected.  We did briefly pass it to the linker to silence a linker warning - if we ever see issues here we should confer with the linker folks to make sure we do the right thing.  See <rdar://problem/51800525> for more about the history here.
 

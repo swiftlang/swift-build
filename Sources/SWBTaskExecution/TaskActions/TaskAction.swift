@@ -52,7 +52,7 @@ open class TaskAction: PlannedTaskAction, PolymorphicSerializable
         // FIXME: This is quite inefficient as practically used by the build system, because we end up serializing every task action twice, effectively. We could do a lot better if we were willing to lift this signature out somewhere else, but this is simply and ensures that by default we tend to capture every interesting piece of information in the signature.
         let sz = MsgPackSerializer()
         serialize(to: sz)
-        let md5 = MD5Context()
+        let md5 = InsecureHashContext()
         md5.add(bytes: sz.byteString)
         return md5.signature
     }
@@ -67,7 +67,7 @@ open class TaskAction: PlannedTaskAction, PolymorphicSerializable
     /// This is checked to determine if the command needs to rebuild versus the last time it was run.
     open func getSignature(_ task: any ExecutableTask, executionDelegate: any TaskExecutionDelegate) -> ByteString
     {
-        let md5 = MD5Context()
+        let md5 = InsecureHashContext()
         md5.add(bytes: serializedRepresentationSignature!)
         for arg in task.commandLine {
             md5.add(bytes: arg.asByteString)

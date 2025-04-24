@@ -17,6 +17,8 @@ package import struct SWBProtocol.RunDestinationInfo
 package import SWBTaskConstruction
 import SWBTaskExecution
 package import Testing
+import SWBMacro
+import Foundation
 
 /// Helper class for testing task construction.
 package final class TaskConstructionTester {

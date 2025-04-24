@@ -12,6 +12,8 @@
 
 import SWBUtil
 public import SWBCore
+import SWBProtocol
+import SWBMacro
 
 /// Payload information for Intents tasks.
 fileprivate struct IntentsTaskPayload: TaskPayload, Encodable {
@@ -122,7 +124,7 @@ public final class IntentsCompilerSpec : GenericCompilerSpec, SpecIdentifierType
         let outputDir = cbc.scope.evaluate(BuiltinMacros.DERIVED_FILE_DIR).join("IntentDefinitionGenerated").join(modelName).normalize()
 
         guard
-            let target = cbc.producer.configuredTarget?.target as? BuildPhaseTarget,
+            let target = cbc.producer.configuredTarget?.target as? SWBCore.BuildPhaseTarget,
             target.sourcesBuildPhase != nil,
             let intentsCodegenVisibility = input.intentsCodegenVisibility else { return }
 
@@ -136,7 +138,7 @@ public final class IntentsCompilerSpec : GenericCompilerSpec, SpecIdentifierType
         // When the build setting is empty or is set to Automatic, then use an appropriate string based on the predominant source code language for the target.
         if languageSettingValue.isEmpty || languageSettingValue == "Automatic" {
             // Note that it would be pretty weird here to not have a configured target, or to have a target which is not a StandardTarget.
-            let predominantSourceCodeLanguage = (cbc.producer.configuredTarget?.target as? StandardTarget)?.predominantSourceCodeLanguage ?? .undefined
+            let predominantSourceCodeLanguage = (cbc.producer.configuredTarget?.target as? SWBCore.StandardTarget)?.predominantSourceCodeLanguage ?? .undefined
             switch predominantSourceCodeLanguage {
             case .swift:
                 codegenLanguage = "Swift"
@@ -236,7 +238,7 @@ public final class IntentsCompilerSpec : GenericCompilerSpec, SpecIdentifierType
                 }
 
                 guard
-                    let target = cbc.producer.configuredTarget?.target as? BuildPhaseTarget,
+                    let target = cbc.producer.configuredTarget?.target as? SWBCore.BuildPhaseTarget,
                     let outputPath = headerOutputPath,
                     target.headersBuildPhase != nil else { continue }
 

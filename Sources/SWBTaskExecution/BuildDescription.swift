@@ -18,6 +18,7 @@ package import struct SWBProtocol.BuildOperationTaskEnded
 package import struct SWBProtocol.TargetDependencyRelationship
 import class SWBTaskConstruction.ProductPlan
 package import SWBMacro
+import Synchronization
 
 /// The delegate for constructing a build description.
 package protocol BuildDescriptionConstructionDelegate: ActivityReporter {
@@ -928,7 +929,7 @@ package final class BuildDescriptionBuilder {
     }
 
     package static func computeShellToolSignature(args: [ByteString], environment: EnvironmentBindings?, dependencyData: DependencyDataStyle?, isUnsafeToInterrupt: Bool, additionalSignatureData: String) -> ByteString {
-        let ctx = MD5Context()
+        let ctx = InsecureHashContext()
         for arg in args {
             ctx.add(bytes: arg)
         }

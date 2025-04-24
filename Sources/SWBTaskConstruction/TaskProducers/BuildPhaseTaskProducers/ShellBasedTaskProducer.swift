@@ -13,6 +13,7 @@
 import SWBUtil
 import SWBCore
 import SWBMacro
+import Foundation
 
 protocol ShellBasedTaskProducer {
     func handleFileLists(_ tasks: inout [any PlannedTask], _ inputs: inout [any PlannedNode], _ outputs: inout [any PlannedNode], _ environment: inout [String: String] , _ scope: MacroEvaluationScope, _ inputFileLists: [any PlannedNode], _ outputFileLists: [any PlannedNode], lookup: @escaping ((MacroDeclaration) -> MacroExpression?)) async

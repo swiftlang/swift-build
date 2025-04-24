@@ -12,6 +12,7 @@
 
 public import SWBUtil
 public import SWBMacro
+import Foundation
 
 
 /// Abstract C Compiler.  This is not a concrete implementation, but rather it uses various information in the command build context to choose a specific compiler and to call `constructTasks()` on that compiler.  This provides a level of indirection for projects that just want their source files compiled using the default C compiler.  Depending on the context, the default C compiler for any particular combination of platform, architecture, and other factors may be Clang, ICC, GCC, or some other compiler.
@@ -690,7 +691,7 @@ public class ClangCompilerSpec : CompilerSpec, SpecIdentifierType, GCCCompatible
                 previousArg = argAsByteString
             }
 
-            let ctx = MD5Context()
+            let ctx = InsecureHashContext()
             ctx.add(string: inputFileType.identifier)
             ctx.add(string: self.identifier)
 
@@ -846,7 +847,7 @@ public class ClangCompilerSpec : CompilerSpec, SpecIdentifierType, GCCCompatible
             return false
         }
 
-        let buildSettingEnabled = cbc.scope.evaluate(BuiltinMacros.CLANG_ENABLE_COMPILE_CACHE) == .enabled
+        let buildSettingEnabled = cbc.scope.evaluate(BuiltinMacros.CLANG_ENABLE_COMPILE_CACHE)
 
         // If a blocklist is provided in the toolchain, use it to determine the default for the current project
         guard let blocklist = clangInfo?.clangCachingBlocklist else {
@@ -1412,7 +1413,7 @@ public class ClangCompilerSpec : CompilerSpec, SpecIdentifierType, GCCCompatible
             return nil
         }
 
-        let md5 = MD5Context()
+        let md5 = InsecureHashContext()
         md5.add(string: prefixHeader.str)
         let sharingIdentHashValue = md5.signature
         let baseCachePath = scope.evaluate(BuiltinMacros.SHARED_PRECOMPS_DIR)

@@ -13,6 +13,9 @@
 import Foundation
 import Testing
 import SWBCore
+import SWBProtocol
+import SWBUtil
+import SWBTestSupport
 
 @Suite fileprivate struct FileTextEncodingTests {
     @Test
@@ -23,7 +26,8 @@ import SWBCore
         #expect(FileTextEncoding("utf8") != FileTextEncoding.utf8)
     }
 
-    @Test(.skipHostOS(.windows, "feature not available on Windows due to missing CF APIs"))
+    @Test(.skipHostOS(.windows, "feature not available on Windows due to missing CF APIs"),
+          .skipHostOS(.linux, "feature not available on Linux due to missing CF APIs"))
     func encoding() throws {
         #expect(FileTextEncoding.utf8.stringEncoding == String.Encoding.utf8)
         #expect(FileTextEncoding.utf16.stringEncoding == String.Encoding.utf16)

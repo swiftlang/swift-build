@@ -155,7 +155,6 @@
         Description = "OCUnit Test Bundle";
         DefaultBuildProperties = {
             WRAPPER_EXTENSION = "octest";
-            ENABLE_BITCODE = NO;
             ENTITLEMENTS_REQUIRED = NO;
         };
         PackageTypes = (

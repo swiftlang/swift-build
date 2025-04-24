@@ -39,7 +39,7 @@ struct QNXSDP: Sendable {
 
         self.version = try await {
             if let compilerPath = hostPath?.join("usr").join("bin").join(host.imageFormat.executableName(basename: "qcc")) {
-                let output = try await Process.getMergedOutput(url: URL(fileURLWithPath: compilerPath.str), arguments: ["-dM", "E", "-x", "c", "-c", Path.null.str], environment: environment)
+                let output = try await Process.getMergedOutput(url: URL(fileURLWithPath: compilerPath.str), arguments: ["-dM", "E", "-x", "c", "-c", Path.null.str, "-o", Path.null.str], environment: environment)
                 if output.exitStatus.isSuccess, !output.output.isEmpty {
                     let prefix = "#define __QNX__ "
                     if let versionString = String(decoding: output.output, as: UTF8.self).split(separator: "\n").map(String.init).first(where: { $0.hasPrefix(prefix) })?.dropFirst(prefix.count), let version = Int(versionString) {

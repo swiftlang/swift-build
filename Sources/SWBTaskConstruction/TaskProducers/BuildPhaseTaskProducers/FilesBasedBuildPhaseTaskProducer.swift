@@ -14,6 +14,8 @@ public import SWBCore
 import SWBLibc
 public import SWBUtil
 package import SWBMacro
+import SWBProtocol
+import Foundation
 
 /// Convenience initializers for FileToBuild.
 extension FileToBuild {
@@ -40,7 +42,7 @@ extension TaskProducerContext: InputFileGroupingStrategyContext {
 package final class BuildFilesProcessingContext: BuildFileFilteringContext {
     package let excludedSourceFileNames: [String]
     package let includedSourceFileNames: [String]
-    package let currentPlatformFilter: PlatformFilter?
+    package let currentPlatformFilter: SWBCore.PlatformFilter?
 
     // FIXME: It would be better to have simple heuristics for ordering these groups, but this logic was how the old build system worked.
     //
@@ -273,7 +275,7 @@ final class BuildPhaseFileWarningContext {
     }
 
     // Warn the user if this build phase contains a file reference with a path which is being handled by a build setting.
-    func emitBuildPhaseFileWarningDiagnostics(buildPhase: BuildPhase, buildFile: BuildFile?, path: Path) {
+    func emitBuildPhaseFileWarningDiagnostics(buildPhase: SWBCore.BuildPhase, buildFile: SWBCore.BuildFile?, path: Path) {
         for (settingFilePath, kind) in paths where path == settingFilePath {
             context.emitBuildPhaseFileWarning(buildPhase: buildPhase, buildFile: buildFile, message: "The \(buildPhase.name) build phase contains this target's \(kind) file '\(settingFilePath.str)'.")
         }
@@ -281,7 +283,7 @@ final class BuildPhaseFileWarningContext {
 }
 
 extension TaskProducerContext {
-    func emitBuildPhaseFileWarning(buildPhase: BuildPhase, buildFile: BuildFile?, message: String) {
+    func emitBuildPhaseFileWarning(buildPhase: SWBCore.BuildPhase, buildFile: SWBCore.BuildFile?, message: String) {
         let diagnosticLocation: Diagnostic.Location
         if let buildFile, let target = configuredTarget?.target {
             diagnosticLocation = .buildFile(buildFileGUID: buildFile.guid, buildPhaseGUID: buildPhase.guid, targetGUID: target.guid)
@@ -299,10 +301,10 @@ extension TaskProducerContext {
 /// Protocol for build phase tasks producers which are based around processing file references.
 protocol FilesBasedBuildPhaseTaskProducer: AnyObject, TaskProducer {
     /// The type of build phase managed by this producer.
-    associatedtype ManagedBuildPhase: BuildPhaseWithBuildFiles
+    associatedtype ManagedBuildPhase: SWBCore.BuildPhaseWithBuildFiles
 
     /// The build phase managed by the producer.
-    var buildPhase: BuildPhaseWithBuildFiles { get }
+    var buildPhase: SWBCore.BuildPhaseWithBuildFiles { get }
 
     /// The managed build phase instance (equivalent to the buildPhase but with the appropriate type).
     var managedBuildPhase: ManagedBuildPhase { get }
@@ -332,7 +334,7 @@ class FilesBasedBuildPhaseTaskProducerBase: PhasedTaskProducer {
     }
 
     /// The build phase managed by this producer.
-    unowned let buildPhase: BuildPhaseWithBuildFiles
+    unowned let buildPhase: SWBCore.BuildPhaseWithBuildFiles
 
     /// The map of compilers used during file processing, and the file types they processed.
     var usedTools = [CommandLineToolSpec: Set<FileTypeSpec>]()
@@ -344,13 +346,13 @@ class FilesBasedBuildPhaseTaskProducerBase: PhasedTaskProducer {
     ///
     /// - phaseStartNode: A virtual node which should be used as an input for all tasks produced by the phase.
     /// - phaseEndNode: A virtual node which should be have as inputs all tasks produced by the phase.
-    init(_ context: TargetTaskProducerContext, buildPhase: BuildPhaseWithBuildFiles, phaseStartNodes: [any PlannedNode], phaseEndNode: any PlannedNode, phaseEndTask: any PlannedTask) {
+    init(_ context: TargetTaskProducerContext, buildPhase: SWBCore.BuildPhaseWithBuildFiles, phaseStartNodes: [any PlannedNode], phaseEndNode: any PlannedNode, phaseEndTask: any PlannedTask) {
         self.buildPhase = buildPhase
         super.init(context, phaseStartNodes: phaseStartNodes, phaseEndNode: phaseEndNode, phaseEndTask: phaseEndTask)
     }
 
     /// Allows subclasses to contribute additional build files.
-    func additionalBuildFiles(_ scope: MacroEvaluationScope) -> [BuildFile] {
+    func additionalBuildFiles(_ scope: MacroEvaluationScope) -> [SWBCore.BuildFile] {
         return []
     }
 
@@ -369,13 +371,13 @@ class FilesBasedBuildPhaseTaskProducerBase: PhasedTaskProducer {
         // FIXME: We should cache this, for phases which iterate over the build files multiple times.
         var seenBases = Set<String>()
         var nonUniqueBases = Set<String>()
-        typealias ResolvedBuildFile = (buildFile: BuildFile?, buildableReference: Reference?, path: Path, basename: String, fileTypeSpec: FileTypeSpec, shouldUsePrefixHeader: Bool)
+        typealias ResolvedBuildFile = (buildFile: SWBCore.BuildFile?, buildableReference: SWBCore.Reference?, path: Path, basename: String, fileTypeSpec: FileTypeSpec, shouldUsePrefixHeader: Bool)
         var resolvedBuildFiles: [ResolvedBuildFile] = []
 
         let buildPhaseFileWarningContext = BuildPhaseFileWarningContext(context, scope)
 
         // Helper function for adding a resolved item.  The build file can be nil here if the client wants to add a file divorced from any build file (e.g., because the build file contains context which shouldn't be applied to this file).
-        func addResolvedItem(buildFile: BuildFile?, path: Path, reference: Reference?, fileType: FileTypeSpec, shouldUsePrefixHeader: Bool = true) {
+        func addResolvedItem(buildFile: SWBCore.BuildFile?, path: Path, reference: SWBCore.Reference?, fileType: FileTypeSpec, shouldUsePrefixHeader: Bool = true) {
             let base = path.basenameWithoutSuffix.lowercased()
             if seenBases.contains(base) {
                 nonUniqueBases.insert(base)
@@ -403,10 +405,10 @@ class FilesBasedBuildPhaseTaskProducerBase: PhasedTaskProducer {
             do {
                 let (reference, path, fileType) = try context.resolveBuildFileReference(buildFile)
 
-                let sourceFiles = (self.targetContext.configuredTarget?.target as? StandardTarget)?.sourcesBuildPhase?.buildFiles.count ?? 0
+                let sourceFiles = (self.targetContext.configuredTarget?.target as? SWBCore.StandardTarget)?.sourcesBuildPhase?.buildFiles.count ?? 0
                 if scope.evaluate(BuiltinMacros.ASSETCATALOG_COMPILER_GENERATE_ASSET_SYMBOLS) && (sourceFiles > 0) {
                     // Ignore xcassets in Resource Copy Phase since they're now added to the Compile Sources phase for codegen.
-                    if producer.buildPhase is ResourcesBuildPhase && fileType.conformsTo(identifier: "folder.abstractassetcatalog") {
+                    if producer.buildPhase is SWBCore.ResourcesBuildPhase && fileType.conformsTo(identifier: "folder.abstractassetcatalog") {
                         continue
                     }
                 }
@@ -418,7 +420,7 @@ class FilesBasedBuildPhaseTaskProducerBase: PhasedTaskProducer {
                 guard !fileType.conformsTo(identifier: "folder.rkassets") else { continue }
 
                 // Utility function to unwrap a variant group and add each child as a separate item.
-                func unwrapResolveAndAdd(variantGroup: VariantGroup, for buildFile: BuildFile) throws {
+                func unwrapResolveAndAdd(variantGroup: SWBCore.VariantGroup, for buildFile: SWBCore.BuildFile) throws {
                     for childReference in variantGroup.children {
                         let (reference, path, fileType) = try context.resolveBuildFileReference(buildFile, reference: childReference)
                         addResolvedItem(buildFile: buildFile, path: path, reference: reference, fileType: fileType)
@@ -431,7 +433,7 @@ class FilesBasedBuildPhaseTaskProducerBase: PhasedTaskProducer {
                 // If this is a variant group and the file type doesn't expect to be grouped, expand it.
                 //
                 // FIXME: This is a very invasive way of handling the problem that variant groups can be built both as a single item (XIB + resources) or as an exploded list. We should push this higher into the model, or lower down into the actual rule. Or we might be able to just always unwrap if ibtool doesn't need combined compilation anymore.
-                if let asVariantGroup = reference as? VariantGroup {
+                if let asVariantGroup = reference as? SWBCore.VariantGroup {
                     // If we're processing a single language for installLoc, then unwrap the variant group into a separate item for each of its child references.
                     if installlocSpecificLanguages {
                         try unwrapResolveAndAdd(variantGroup: asVariantGroup, for: buildFile)
@@ -439,8 +441,8 @@ class FilesBasedBuildPhaseTaskProducerBase: PhasedTaskProducer {
                     else {
                         // If the first item in the variant group is an IB document with Base localization, then we need to handle it specially, since it may contain a mix of IB documents and strings files.
                         // An exception to this is when String Catalogs are in play.
-                        if let baseReference = asVariantGroup.children.first as? FileReference, SpecRegistry.interfaceBuilderDocumentFileTypeIdentifiers.contains(baseReference.fileTypeIdentifier), baseReference.regionVariantName == "Base" {
-                            var ibDocRefs = [FileReference]() // These are specifically override nibs, not including Base.
+                        if let baseReference = asVariantGroup.children.first as? SWBCore.FileReference, SpecRegistry.interfaceBuilderDocumentFileTypeIdentifiers.contains(baseReference.fileTypeIdentifier), baseReference.regionVariantName == "Base" {
+                            var ibDocRefs = [SWBCore.FileReference]() // These are specifically override nibs, not including Base.
                             var hasStringCatalog = false
 
                             // Iterate over the children of the group - skipping the first reference - to put them into buckets.
@@ -449,7 +451,7 @@ class FilesBasedBuildPhaseTaskProducerBase: PhasedTaskProducer {
                                     continue
                                 }
                                 // FIXME: It's only valid to have a single item in the variant group for any given localization, and we should emit an issue (an error?) about that.  (It seems hard to get into that situation other than an SCM merge conflict.)  Also maybe emit an issue if there's an item in the group with no localization.
-                                if let fileRef = ref as? FileReference {
+                                if let fileRef = ref as? SWBCore.FileReference {
                                     if SpecRegistry.interfaceBuilderDocumentFileTypeIdentifiers.contains(fileRef.fileTypeIdentifier) {
                                         // If it's an IB document, then remember it.
                                         ibDocRefs.append(fileRef)
@@ -568,21 +570,23 @@ class FilesBasedBuildPhaseTaskProducerBase: PhasedTaskProducer {
             }
         }
 
-        let sourceFiles = (self.targetContext.configuredTarget?.target as? StandardTarget)?.sourcesBuildPhase?.buildFiles.count ?? 0
-        if scope.evaluate(BuiltinMacros.ASSETCATALOG_COMPILER_GENERATE_ASSET_SYMBOLS) && (sourceFiles > 0) {
-            // Process asset catalogs first to workaround issue where generated sources aren't added to main source code group.
-            // rdar://102834701 (File grouping for 'collection groups' is sensitive to ordering of build phase members)
-            var assetCatalogBuildFiles = [ResolvedBuildFile]()
-            var otherBuildFiles = [ResolvedBuildFile]()
-            for resolvedBuildFile in resolvedBuildFiles {
-                if resolvedBuildFile.fileTypeSpec.conformsTo(identifier: "folder.abstractassetcatalog") {
-                    assetCatalogBuildFiles.append(resolvedBuildFile)
-                }
-                else {
-                    otherBuildFiles.append(resolvedBuildFile)
-                }
+        var compileToSwiftFileTypes : [String] = []
+        for groupingStragegyExtensions in await context.workspaceContext.core.pluginManager.extensions(of: InputFileGroupingStrategyExtensionPoint.self) {
+            compileToSwiftFileTypes.append(contentsOf: groupingStragegyExtensions.fileTypesCompilingToSwiftSources())
+        }
+
+        // Reorder resolvedBuildFiles so that file types which compile to Swift appear first in the list and so are processed first.
+        // This is needed because generated sources aren't added to the the main source code list.
+        // rdar://102834701 (File grouping for 'collection groups' is sensitive to ordering of build phase members)
+        var compileToSwiftFiles = [ResolvedBuildFile]()
+        var otherBuildFiles = [ResolvedBuildFile]()
+        for resolvedBuildFile in resolvedBuildFiles {
+            if compileToSwiftFileTypes.contains (where: { identifier in resolvedBuildFile.fileTypeSpec.conformsTo(identifier: identifier)}) {
+                compileToSwiftFiles.append(resolvedBuildFile)
+            } else {
+                otherBuildFiles.append(resolvedBuildFile)
             }
-            resolvedBuildFiles = assetCatalogBuildFiles + otherBuildFiles
+            resolvedBuildFiles = compileToSwiftFiles + otherBuildFiles
         }
 
         // Allow subclasses to provide additional content
