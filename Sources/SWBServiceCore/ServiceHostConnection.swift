@@ -46,9 +46,6 @@ final class ServiceHostConnection: @unchecked Sendable {
     /// Whether the queue is suspended.
     private let isSuspended = LockedValue(true)
 
-    /// The queue used to read incoming messages.
-    private let receiveQueue: SWBQueue
-
     /// The queue used to send outgoing messages.
     private let sendQueue: SWBQueue
 
@@ -69,7 +66,6 @@ final class ServiceHostConnection: @unchecked Sendable {
         self.inputFD = inputFD
         self.outputFD = outputFD
         // The queues for the service host connection are given .userInitiated QOS (not .utility, which most queues in Swift Build have) because we don't know whether we're servicing a user interaction request.  Most requests should be shunted to a background thread unless there's a reason to send a quick response at high priority.
-        self.receiveQueue = SWBQueue(label: "SWBBuildService.ServiceHostConnection.receiveQueue", qos: .userInitiated, autoreleaseFrequency: .workItem)
         self.sendQueue = SWBQueue(label: "SWBBuildService.ServiceHostConnection.sendQueue", qos: .userInitiated, autoreleaseFrequency: .workItem)
     }
 
@@ -136,7 +132,7 @@ final class ServiceHostConnection: @unchecked Sendable {
 
         // Otherwise, launch the receive pump.
         isSuspended.withLock { $0 = false }
-        receiveQueue.async {
+        Task<Void, Never>(priority: .userInitiated) {
             // Read data forever.
             var data: [UInt8] = []
             let tmpBufferSize = 4096

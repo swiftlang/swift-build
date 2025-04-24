@@ -282,17 +282,8 @@ public final class SWBQueue: Sendable {
         }
     }
 
-    public func async(group: SWBDispatchGroup? = nil, execute body: @escaping @Sendable () -> Void) {
-        return queue.async(group: group?.group, execute: body)
-    }
-
-    // Temporary hack until rdar://98401196 (Use Swift Concurrency for low-level IO in ServiceHostConnection) lands. This should be safe because we only ever call `async` once in the place we use this.
-    public func async(qos: SWBQoS = .unspecified, execute work: @Sendable @escaping () async -> Void) {
-        queue.async(group: nil, qos: qos.dispatchQoS, flags: []) {
-            Task {
-                await work()
-            }
-        }
+    public func async(group: SWBDispatchGroup? = nil, qos: SWBQoS = .unspecified, execute body: @escaping @Sendable () -> Void) {
+        return queue.async(group: group?.group, qos: qos.dispatchQoS, execute: body)
     }
 
     public static func global() -> Self {
