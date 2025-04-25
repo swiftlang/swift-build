@@ -8,7 +8,7 @@ Usage
 
 ### With SwiftPM
 
-When building SwiftPM from sources which include Swift Build integration, passing `--build-system swiftbuild` will enable the new build-system. This functionality is not currently available in nightly toolchains.
+When building SwiftPM from sources which include Swift Build integration, passing `--build-system next` will enable the new build-system. This functionality is not currently available in nightly toolchains.
 
 ### With Xcode
 
