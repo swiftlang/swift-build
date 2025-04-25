@@ -694,10 +694,11 @@ extension SpecializationParameters {
             let dependencySettings = buildRequestContext.getCachedSettings(ct.parameters, target: ct.target)
             let dependencyPlatform = dependencySettings.platform
             let dependencySdkVariant = dependencySettings.sdkVariant?.name
+            let dependencyToolchains = dependencySettings.toolchains
             guard Ref(dependencyPlatform) == platform && dependencySdkVariant == sdkVariant else { return false }
             // For dependencies with 'auto' SDKROOT, they get their SDK 'imposed', including if it is internal vs public SDK, not just what platform it is.
             // For such dependencies also confirm that the existing configured dependency matches 'internal vs public' for the SDK.
-            if dependencyHasAutoSDKRoot, let dependencySDK = dependencySettings.sdk, let dependentSDK = sdk, dependencySDK !== dependentSDK {
+            if dependencyHasAutoSDKRoot, let dependencySDK = dependencySettings.sdk, let dependentSDK = sdk, dependencySDK !== dependentSDK || settings.toolchains != dependencyToolchains {
                 return false
             }
             return true
@@ -742,8 +743,9 @@ extension SpecializationParameters {
                             continue
                         }
 
+                        let behavior: Diagnostic.Behavior = buildRequest.enableIndexBuildArena ? .warning : .error
                         let data = DiagnosticData("multiple configured targets of '\(target.name)' are being created for \(currentSettings.platform?.displayName ?? "")")
-                        delegate.emit(Diagnostic(behavior: .error, location: .unknown, data: data))
+                        delegate.emit(Diagnostic(behavior: behavior, location: .unknown, data: data))
                         hasMultipleTargets = true
                     }
                 }
