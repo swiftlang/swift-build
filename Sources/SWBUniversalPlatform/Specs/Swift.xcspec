@@ -569,7 +569,22 @@
                 Category = "Upcoming Features";
                 Description = "Enables strict concurrency checking to produce warnings for possible data races. This is always 'complete' when in the Swift 6 language mode and produces errors instead of warnings.";
             },
-
+            {
+                Name = "SWIFT_DEFAULT_ACTOR_ISOLATION";
+                Type = Enumeration;
+                Values = (
+                    nonisolated,
+                    MainActor
+                );
+                DefaultValue = "nonisolated";
+                CommandLineArgs = {
+                    nonisolated = ();
+                    MainActor = ( "-default-isolation=MainActor" );
+                };
+                DisplayName = "Default Actor Isolation";
+                Category = "Language";
+                Description = "Controls default actor isolation for unannotated code. When set to 'MainActor', `@MainActor` isolation will be inferred by default to mitigate false-positive data-race safety errors in sequential code.";
+            },
             {
                 Name = "SWIFT_STRICT_MEMORY_SAFETY";
                 Type = Boolean;

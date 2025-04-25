@@ -3468,6 +3468,94 @@ fileprivate struct SwiftTaskConstructionTests: CoreBasedTests {
         }
     }
 
+    @Test(.requireSDKs(.macOS))
+    func defaultIsolationFlag() async throws {
+        try await withTemporaryDirectory { tmpDir in
+            let srcRoot = tmpDir.join("srcroot")
+            let testProject = try await TestProject(
+                "ProjectName",
+                sourceRoot: srcRoot,
+                groupTree: TestGroup(
+                    "SomeFiles", path: "Sources",
+                    children: [
+                        TestFile("File1.swift"),
+                        TestFile("File2.swift"),
+                        TestFile("File3.swift"),
+                    ]),
+                targets: [
+                    TestStandardTarget(
+                        "Default",
+                        type: .framework,
+                        buildConfigurations: [
+                            TestBuildConfiguration("Debug", buildSettings: [
+                                "GENERATE_INFOPLIST_FILE": "YES",
+                                "PRODUCT_NAME": "$(TARGET_NAME)",
+                                "SWIFT_EXEC": swiftCompilerPath.str,
+                                "SWIFT_VERSION": "5.0",
+                            ]),
+                        ],
+                        buildPhases: [
+                            TestSourcesBuildPhase([
+                                TestBuildFile("File1.swift"),
+                            ]),
+                        ], dependencies: ["Nonisolated", "MainActor"]),
+                    TestStandardTarget(
+                        "Nonisolated",
+                        type: .framework,
+                        buildConfigurations: [
+                            TestBuildConfiguration("Debug", buildSettings: [
+                                "GENERATE_INFOPLIST_FILE": "YES",
+                                "PRODUCT_NAME": "$(TARGET_NAME)",
+                                "SWIFT_EXEC": swiftCompilerPath.str,
+                                "SWIFT_VERSION": "5.0",
+                                "SWIFT_DEFAULT_ACTOR_ISOLATION": "nonisolated",
+                            ]),
+                        ],
+                        buildPhases: [
+                            TestSourcesBuildPhase([
+                                TestBuildFile("File2.swift"),
+                            ]),
+                        ]),
+                    TestStandardTarget(
+                        "MainActor",
+                        type: .framework,
+                        buildConfigurations: [
+                            TestBuildConfiguration("Debug", buildSettings: [
+                                "GENERATE_INFOPLIST_FILE": "YES",
+                                "PRODUCT_NAME": "$(TARGET_NAME)",
+                                "SWIFT_EXEC": swiftCompilerPath.str,
+                                "SWIFT_VERSION": "5.0",
+                                "SWIFT_DEFAULT_ACTOR_ISOLATION": "MainActor",
+                            ]),
+                        ],
+                        buildPhases: [
+                            TestSourcesBuildPhase([
+                                TestBuildFile("File3.swift"),
+                            ]),
+                        ]),
+                ])
+
+            let tester = try await TaskConstructionTester(getCore(), testProject)
+            await tester.checkBuild(BuildParameters(action: .install, configuration: "Debug"), runDestination: .macOS) { results in
+                results.checkTarget("Default") { target in
+                    results.checkTask(.matchTarget(target), .matchRuleType("SwiftDriver Compilation")) { task in
+                        task.checkCommandLineNoMatch([.prefix("-default-isolation")])
+                    }
+                }
+                results.checkTarget("Nonisolated") { target in
+                    results.checkTask(.matchTarget(target), .matchRuleType("SwiftDriver Compilation")) { task in
+                        task.checkCommandLineNoMatch([.prefix("-default-isolation")])
+                    }
+                }
+                results.checkTarget("MainActor") { target in
+                    results.checkTask(.matchTarget(target), .matchRuleType("SwiftDriver Compilation")) { task in
+                        task.checkCommandLineContains(["-default-isolation=MainActor"])
+                    }
+                }
+            }
+        }
+    }
+
     // Test frontend flag -library-level inference from the INSTALL_PATH.
     @Test(.requireSDKs(.macOS))
     func libraryLevel() async throws {
