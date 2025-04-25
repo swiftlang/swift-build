@@ -190,7 +190,7 @@ struct SpecializationParameters: Hashable, CustomStringConvertible {
         let toolchain = effectiveToolchainOverride(originalParameters: configuredTarget.parameters, workspaceContext: workspaceContext)
         return (platform == nil || platform === settings.platform) &&
             (sdkVariant == nil || sdkVariant?.name == settings.sdkVariant?.name) &&
-            (toolchain == nil || toolchain == settings.globalScope.evaluate(BuiltinMacros.EFFECTIVE_TOOLCHAINS_DIRS)) &&
+            (toolchain == nil || toolchain == settings.globalScope.evaluate(BuiltinMacros.TOOLCHAINS)) &&
         (canonicalNameSuffix == nil || canonicalNameSuffix?.nilIfEmpty == settings.sdk?.canonicalNameSuffix)
     }
 
