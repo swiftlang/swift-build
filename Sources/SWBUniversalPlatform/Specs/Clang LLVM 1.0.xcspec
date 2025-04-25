@@ -2927,6 +2927,11 @@
                   YES = ("-ftyped-cxx-new-delete");
                   NO  = ("-fno-typed-cxx-new-delete");
                 };
+                AdditionalLinkerArgs = {
+                    compiler-default = ();
+                    YES = ("-ftyped-cxx-new-delete");
+                    NO = ();
+                };
             },
             // Index-while-building options, not visible in build settings.
             {
