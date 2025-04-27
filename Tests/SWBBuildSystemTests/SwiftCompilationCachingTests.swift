@@ -110,7 +110,7 @@ fileprivate struct SwiftCompilationCachingTests: CoreBasedTests {
                     numCompile += tasks.count
                 }
 
-                results.checkNote("0 hits (0%), 4 misses")
+                results.checkNote("0 hits / 4 cacheable tasks (0%)")
 
                 results.checkNoTask()
             }
@@ -126,7 +126,7 @@ fileprivate struct SwiftCompilationCachingTests: CoreBasedTests {
                     results.checkKeyQueryCacheHit(task)
                 }
 
-                results.checkNote("4 hits (100%), 0 misses")
+                results.checkNote("4 hits / 4 cacheable tasks (100%)")
             }
             #expect(try readMetrics("two").contains("\"swiftCacheHits\":\(numCompile),\"swiftCacheMisses\":0"))
         }

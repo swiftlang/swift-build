@@ -681,7 +681,8 @@ package final class BuildOperation: BuildSystemOperation {
                 adaptor.withActivity(ruleInfo: "CompilationCacheMetrics", executionDescription: "Report compilation cache metrics", signature: signature, target: nil, parentActivity: nil) { activity in
                     func getSummary(hits: Int, misses: Int) -> String {
                         let hitPercent = Int((Double(hits) / Double(hits + misses) * 100).rounded())
-                        return "\(hits) hit\(hits == 1 ? "" : "s") (\(hitPercent)%), \(misses) miss\(misses == 1 ? "" : "es")"
+                        let total = hits + misses
+                        return "\(hits) hit\(hits == 1 ? "" : "s") / \(total) cacheable task\(total == 1 ? "" : "s") (\(hitPercent)%)"
                     }
                     delegate.emit(diagnostic: Diagnostic(behavior: .note, location: .unknown, data: DiagnosticData(getSummary(hits: cacheHits, misses: cacheMisses))), for: activity, signature: signature)
                     return .succeeded

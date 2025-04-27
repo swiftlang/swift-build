@@ -234,7 +234,7 @@ fileprivate struct ClangCompilationCachingTests: CoreBasedTests {
                 // Make sure scanning happens before compilation...
                 results.check(event: .taskHadEvent(scanTask, event: .completed), precedes: .taskHadEvent(compileTask, event: .started))
 
-                results.checkNote("0 hits (0%), 1 miss")
+                results.checkNote("0 hits / 1 cacheable task (0%)")
                 results.checkCompileCacheMiss(compileTask)
                 results.checkNoDiagnostics()
             }
@@ -262,7 +262,7 @@ fileprivate struct ClangCompilationCachingTests: CoreBasedTests {
                     // Make sure scanning happens before compilation.
                     results.check(event: .taskHadEvent(scanTask, event: .completed), precedes: .taskHadEvent(compileTask, event: .started))
 
-                    results.checkNote("1 hit (100%), 0 misses")
+                    results.checkNote("1 hit / 1 cacheable task (100%)")
                     results.checkCompileCacheHit(compileTask)
                 }
                 results.checkNoDiagnostics()
