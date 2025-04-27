@@ -14,3 +14,5 @@ jobs:
   soundness:
     name: Soundness
     uses: swiftlang/github-workflows/.github/workflows/soundness.yml@main
+    with:
+       license_header_check_project_name: "Swift"
