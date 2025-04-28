@@ -172,6 +172,10 @@ extension Trait where Self == Testing.ConditionTrait {
         #endif
     }
 
+    package static func skipInGitHubActions(_ comment: Comment? = nil) -> Self {
+        return .skipIfEnvironmentVariableSet(key: "GITHUB_ACTIONS")
+    }
+
     package static func requireClangFeatures(_ requiredFeatures: DiscoveredClangToolSpecInfo.FeatureFlag...) -> Self {
         enabled("Clang compiler does not support features: \(requiredFeatures)") {
             let features = try await ConditionTraitContext.shared.clangFeatures
@@ -235,8 +239,8 @@ extension Trait where Self == Testing.ConditionTrait {
         }
     }
 
-    package static func skipIfEnvironmentVariableSet(key: EnvironmentKey) -> Self {
-        disabled("environment sets '\(key)'") {
+    package static func skipIfEnvironmentVariableSet(key: EnvironmentKey, _ comment: Comment? = nil) -> Self {
+        disabled(comment ?? "environment sets '\(key)'") {
             getEnvironmentVariable(key) != nil
         }
     }
