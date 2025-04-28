@@ -239,8 +239,8 @@ fileprivate struct EntitlementsBuildOperationTests: CoreBasedTests {
     }
 
     /// Test that the `ProcessProductEntitlementsTaskAction` does not embed build settings that only apply to macOS.
-    @Test(.requireSDKs(.iOS))
-    func iOSAppSandboxAndHardnedRuntimeBuildSettingEnabled() async throws {
+    @Test(.requireSDKs(.macOS, .iOS))
+    func iOSAppSandboxAndHardenedRuntimeBuildSettingEnabled() async throws {
         try await withTemporaryDirectory { tmpDirPath async throws -> Void in
             let testWorkspace = entitlementsTestWorkspace(
                 sourceRoot: tmpDirPath,
