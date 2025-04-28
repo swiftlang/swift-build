@@ -453,7 +453,7 @@ fileprivate struct BuildOperationTests: CoreBasedTests {
                         buildPhases: [
                             TestSourcesBuildPhase(["library.swift"]),
                         ],
-                    ),
+                    )
                 ])
             let core = try await getCore()
             let tester = try await BuildOperationTester(core, testProject, simulated: false)
