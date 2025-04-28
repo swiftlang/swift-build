@@ -3067,6 +3067,12 @@ public final class SwiftCompilerSpec : CompilerSpec, SpecIdentifierType, SwiftDi
                     fileMapEntry.indexUnitOutputPath = indexObjectPath.str
                 }
             }
+            let objectFilePrefix = objectFilePath.basenameWithoutSuffix
+            // The path to the bitcode file.  This is used, for example, by LTO.
+            if compilationMode.compileSources {
+                let bitcodeFilePath = objectFileDir.join(objectFilePrefix + ".bc")
+                fileMapEntry.llvmBitcode = bitcodeFilePath.str
+            }
             return (objectFilePath, fileMapEntry)
         }
 
@@ -3782,6 +3788,7 @@ struct SwiftOutputFileMap: Codable {
     struct Entry: Codable {
         var object: String?
         var indexUnitOutputPath: String?
+        var llvmBitcode: String?
         var remap: String?
         var diagnostics: String?
         var emitModuleDiagnostics: String?
@@ -3795,6 +3802,7 @@ struct SwiftOutputFileMap: Codable {
         enum CodingKeys: String, CodingKey {
             case object
             case indexUnitOutputPath = "index-unit-output-path"
+            case llvmBitcode = "llvm-bc"
             case remap
             case diagnostics
             case emitModuleDiagnostics = "emit-module-diagnostics"
