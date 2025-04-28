@@ -3,6 +3,6 @@
 set -euo pipefail
 
 __dir="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-cd ${__dir}/..
+cd "${__dir}"/..
 
 swift test -c release --filter Perf
