@@ -13,15 +13,15 @@
 import SWBUtil
 import SWBMacro
 
-/// Spec to use the linker to run `ld -r` to create a prelinked object file (a.k.a. "master object file").
-final class MasterObjectLinkSpec: CommandLineToolSpec, SpecImplementationType, @unchecked Sendable {
-    static let identifier = "com.apple.build-tools.master-object-link"
+/// Spec to use the linker to run `ld -r` to create a prelinked object file.
+public final class PrelinkedObjectLinkSpec: CommandLineToolSpec, SpecImplementationType, @unchecked Sendable {
+    public static let identifier = "com.apple.build-tools.prelinked-object-link"
 
-    class func construct(registry: SpecRegistry, proxy: SpecProxy) -> Spec {
-        return MasterObjectLinkSpec(registry, proxy, ruleInfoTemplate: [], commandLineTemplate: [])
+    public class func construct(registry: SpecRegistry, proxy: SpecProxy) -> Spec {
+        return PrelinkedObjectLinkSpec(registry, proxy, ruleInfoTemplate: [], commandLineTemplate: [])
     }
 
-    override func constructTasks(_ cbc: CommandBuildContext, _ delegate: any TaskGenerationDelegate) async {
+    public override func constructTasks(_ cbc: CommandBuildContext, _ delegate: any TaskGenerationDelegate) async {
         guard let toolSpecInfo = await cbc.producer.ldLinkerSpec.discoveredCommandLineToolSpecInfo(cbc.producer, cbc.scope, delegate) as? DiscoveredLdLinkerToolSpecInfo else {
             delegate.error("Could not find path to ld binary")
             return
@@ -62,7 +62,7 @@ final class MasterObjectLinkSpec: CommandLineToolSpec, SpecImplementationType, @
         commandLine += cbc.scope.evaluate(BuiltinMacros.PRELINK_FLAGS)
         let warningLdFlags = cbc.scope.evaluate(BuiltinMacros.WARNING_LDFLAGS)
         if !warningLdFlags.isEmpty {
-            // WARNING_LDFLAGS for some reason is only used for creating the master object file.
+            // WARNING_LDFLAGS for some reason is only used for creating the prelinked object file.
             delegate.warning("WARNING_LDFLAGS is deprecated; use OTHER_LDFLAGS instead.", location: .buildSetting(BuiltinMacros.WARNING_LDFLAGS))
             commandLine += warningLdFlags
         }
@@ -70,6 +70,6 @@ final class MasterObjectLinkSpec: CommandLineToolSpec, SpecImplementationType, @
         commandLine += cbc.scope.evaluate(BuiltinMacros.PRELINK_LIBS)
         commandLine += ["-o", outputPath.str]
 
-        delegate.createTask(type: self, ruleInfo: ["MasterObjectLink", outputPath.str], commandLine: commandLine, environment: EnvironmentBindings(), workingDirectory: cbc.producer.defaultWorkingDirectory, inputs: cbc.inputs.map({ $0.absolutePath }), outputs: [outputPath], action: nil, execDescription: "Link \(outputPath.basename)", enableSandboxing: enableSandboxing)
+        delegate.createTask(type: self, ruleInfo: ["PrelinkedObjectLink", outputPath.str], commandLine: commandLine, environment: EnvironmentBindings(), workingDirectory: cbc.producer.defaultWorkingDirectory, inputs: cbc.inputs.map({ $0.absolutePath }), outputs: [outputPath], action: nil, execDescription: "Link \(outputPath.basename)", enableSandboxing: enableSandboxing)
     }
 }

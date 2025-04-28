@@ -155,11 +155,11 @@ add_library(SWBCore
   SpecImplementations/Tools/LaunchServicesRegisterTool.swift
   SpecImplementations/Tools/LinkerTools.swift
   SpecImplementations/Tools/Lipo.swift
-  SpecImplementations/Tools/MasterObjectLink.swift
   SpecImplementations/Tools/MergeInfoPlist.swift
   SpecImplementations/Tools/MkdirTool.swift
   SpecImplementations/Tools/ModulesVerifierTool.swift
   SpecImplementations/Tools/PLUtilTool.swift
+  SpecImplementations/Tools/PrelinkedObjectLink.swift
   SpecImplementations/Tools/ProcessSDKImports.swift
   SpecImplementations/Tools/ProcessXCFrameworkLibrary.swift
   SpecImplementations/Tools/ProductPackaging.swift

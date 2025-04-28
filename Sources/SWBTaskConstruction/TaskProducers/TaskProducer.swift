@@ -228,7 +228,7 @@ public class TaskProducerContext: StaleFileRemovalContext, BuildFileResolution
     public let ldLinkerSpec: LdLinkerSpec
     public let libtoolLinkerSpec: LibtoolLinkerSpec
     public let lipoSpec: LipoToolSpec
-    let masterObjectLinkSpec: CommandLineToolSpec
+    let prelinkedObjectLinkSpec: CommandLineToolSpec
     public let mkdirSpec: MkdirToolSpec
     let modulesVerifierSpec: ModulesVerifierToolSpec
     let clangModuleVerifierInputGeneratorSpec: ClangModuleVerifierInputGeneratorSpec
@@ -354,7 +354,7 @@ public class TaskProducerContext: StaleFileRemovalContext, BuildFileResolution
         self.ldLinkerSpec = try! workspaceContext.core.specRegistry.getSpec(domain: domain) as LdLinkerSpec
         self.libtoolLinkerSpec = try! workspaceContext.core.specRegistry.getSpec(domain: domain) as LibtoolLinkerSpec
         self.lipoSpec = workspaceContext.core.specRegistry.getSpec("com.apple.xcode.linkers.lipo", domain: domain) as! LipoToolSpec
-        self.masterObjectLinkSpec = workspaceContext.core.specRegistry.getSpec("com.apple.build-tools.master-object-link", domain: domain) as! CommandLineToolSpec
+        self.prelinkedObjectLinkSpec = workspaceContext.core.specRegistry.getSpec(PrelinkedObjectLinkSpec.identifier, domain: domain) as! CommandLineToolSpec
         self.mkdirSpec = workspaceContext.core.specRegistry.getSpec("com.apple.tools.mkdir", domain: domain) as! MkdirToolSpec
         self.modulesVerifierSpec = workspaceContext.core.specRegistry.getSpec("com.apple.build-tools.modules-verifier", domain: domain) as! ModulesVerifierToolSpec
         self.clangModuleVerifierInputGeneratorSpec = workspaceContext.core.specRegistry.getSpec("com.apple.build-tools.module-verifier-input-generator", domain: domain) as! ClangModuleVerifierInputGeneratorSpec
@@ -724,9 +724,9 @@ public class TaskProducerContext: StaleFileRemovalContext, BuildFileResolution
             return false
         }
 
-        // If this target is generating a master object file, then we assume it will produce a binary.
-        // FIXME: This is nasty.  See SourcesTaskProducer.generateTasks() for handling of GENERATE_MASTER_OBJECT_FILE.
-        guard !scope.evaluate(BuiltinMacros.GENERATE_MASTER_OBJECT_FILE) else {
+        // If this target is generating a prelinked object file, then we assume it will produce a binary.
+        // FIXME: This is nasty.  See SourcesTaskProducer.generateTasks() for handling of GENERATE_PRELINK_OBJECT_FILE.
+        guard !scope.evaluate(BuiltinMacros.GENERATE_PRELINK_OBJECT_FILE) else {
             return true
         }
 
