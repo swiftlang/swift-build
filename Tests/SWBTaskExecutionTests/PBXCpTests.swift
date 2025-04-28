@@ -442,7 +442,8 @@ fileprivate struct PBXCpTests: CoreBasedTests {
     fileprivate let buffer0 = [UInt8](repeating: 0xAA, count: 1024 * 513)
     fileprivate let buffer1 = [UInt8](repeating: 0x55, count: 1024 * 513)
 
-    @Test(.skipHostOS(.windows, "LocalFS needs to use stat64 on windows...."))
+    @Test(.skipHostOS(.windows, "LocalFS needs to use stat64 on windows...."),
+          .skipInGitHubActions("GitHub action runners do not have enough storage space for this test"))
     func largerFile() async throws {
         try await withTemporaryDirectory { tmp in
             // Test copying a large file.
