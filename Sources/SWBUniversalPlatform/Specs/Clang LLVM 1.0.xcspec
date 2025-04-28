@@ -2925,12 +2925,12 @@
                 DefaultValue = compiler-default;
                 CommandLineArgs = {
                   compiler-default = ();
-                  YES = ("-ftyped-cxx-new-delete");
-                  NO  = ("-fno-typed-cxx-new-delete");
+                  YES = ("-ftyped-cxx-new-delete", "-ftyped-cxx-delete");
+                  NO  = ("-fno-typed-cxx-new-delete", "-fno-typed-cxx-delete");
                 };
                 AdditionalLinkerArgs = {
                     compiler-default = ();
-                    YES = ("-ftyped-cxx-new-delete");
+                    YES = ("-ftyped-cxx-new-delete", "-ftyped-cxx-delete");
                     NO = ();
                 };
             },
