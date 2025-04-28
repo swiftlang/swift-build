@@ -442,9 +442,9 @@
                 };
             },
             {
-                Name = "GENERATE_MASTER_OBJECT_FILE";
+                Name = "GENERATE_PRELINK_OBJECT_FILE";
                 Type = bool;
-                DefaultValue = NO;
+                DefaultValue = "$(GENERATE_MASTER_OBJECT_FILE:default=NO)"; // ignore-unacceptable-language; kept for compatibility
             },
             {
                 Name = "PRELINK_LIBS";
@@ -1598,10 +1598,10 @@ When `GENERATE_INFOPLIST_FILE` is enabled, sets the value of the [CFBundleIdenti
                 );
             },
             {
-                Name = "GENERATE_MASTER_OBJECT_FILE";
+                Name = "GENERATE_PRELINK_OBJECT_FILE";
                 Type = Boolean;
                 Category = "Linking - General";
-                DefaultValue = NO;
+                DefaultValue = "$(GENERATE_MASTER_OBJECT_FILE:default=NO)"; // ignore-unacceptable-language; kept for compatibility
                 ConditionFlavors = (
                     arch,
                     sdk,

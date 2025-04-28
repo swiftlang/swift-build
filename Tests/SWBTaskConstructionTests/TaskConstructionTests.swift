@@ -97,7 +97,7 @@ fileprivate struct TaskConstructionTests: CoreBasedTests {
                         "ALTERNATE_OWNER": "fooOwner",
                         "ALTERNATE_GROUP": "",
                         "ALTERNATE_MODE": "",
-                        "GENERATE_MASTER_OBJECT_FILE": "YES",
+                        "GENERATE_PRELINK_OBJECT_FILE": "YES",
                     ]),
                 ],
                 targets: [
@@ -885,9 +885,9 @@ fileprivate struct TaskConstructionTests: CoreBasedTests {
                     }
                     results.checkNoTask(.matchTarget(target), .matchRuleType("Copy"))
 
-                    // There should be one master object link task.
-                    results.checkTask(.matchTarget(target), .matchRuleType("MasterObjectLink")) { task in
-                        task.checkRuleInfo(["MasterObjectLink", "\(SRCROOT)/build/aProject.build/Release/AppTarget.build/Objects-normal/AppTarget-x86_64-master.o"])
+                    // There should be one prelinked object link task.
+                    results.checkTask(.matchTarget(target), .matchRuleType("PrelinkedObjectLink")) { task in
+                        task.checkRuleInfo(["PrelinkedObjectLink", "\(SRCROOT)/build/aProject.build/Release/AppTarget.build/Objects-normal/AppTarget-x86_64-prelink.o"])
                         let nonUniqueObjs = task.commandLineAsStrings.filter { $0.contains("NonUnique") }
                         if nonUniqueObjs.count != 2 {
                             #expect(nonUniqueObjs.count == 2)
@@ -895,7 +895,7 @@ fileprivate struct TaskConstructionTests: CoreBasedTests {
                         }
 
                         #expect(nonUniqueObjs[0] != nonUniqueObjs[1])
-                        task.checkCommandLineMatches([StringPattern.suffix("ld"), "-r", "-arch", "x86_64", "-syslibroot", .equal(core.loadSDK(.macOS).path.str), .equal("\(SRCROOT)/build/aProject.build/Release/AppTarget.build/Objects-normal/x86_64/SourceFile.o"), .equal("\(SRCROOT)/build/aProject.build/Release/AppTarget.build/Objects-normal/x86_64/SourceFile-Matched-Excluded.o"), .equal("\(SRCROOT)/build/aProject.build/Release/AppTarget.build/Objects-normal/x86_64/SourceFile-Matched-Included.o"), .equal(nonUniqueObjs[0]), .equal(nonUniqueObjs[1]), .equal("\(SRCROOT)/build/aProject.build/Release/AppTarget.build/Objects-normal/x86_64/SourceFile_MRR.o"), .equal("\(SRCROOT)/build/aProject.build/Release/AppTarget.build/Objects-normal/x86_64/Lex.yy.o"), .equal("\(SRCROOT)/build/aProject.build/Release/AppTarget.build/Objects-normal/x86_64/y.tab.o"), .equal("\(SRCROOT)/build/aProject.build/Release/AppTarget.build/Objects-normal/x86_64/Script-Output-Custom-SourceFile.o"), .equal("\(SRCROOT)/build/aProject.build/Release/AppTarget.build/Objects-normal/x86_64/Script-Output-Standard-SourceFile.o"), "-o", .equal("\(SRCROOT)/build/aProject.build/Release/AppTarget.build/Objects-normal/AppTarget-x86_64-master.o")])
+                        task.checkCommandLineMatches([StringPattern.suffix("ld"), "-r", "-arch", "x86_64", "-syslibroot", .equal(core.loadSDK(.macOS).path.str), .equal("\(SRCROOT)/build/aProject.build/Release/AppTarget.build/Objects-normal/x86_64/SourceFile.o"), .equal("\(SRCROOT)/build/aProject.build/Release/AppTarget.build/Objects-normal/x86_64/SourceFile-Matched-Excluded.o"), .equal("\(SRCROOT)/build/aProject.build/Release/AppTarget.build/Objects-normal/x86_64/SourceFile-Matched-Included.o"), .equal(nonUniqueObjs[0]), .equal(nonUniqueObjs[1]), .equal("\(SRCROOT)/build/aProject.build/Release/AppTarget.build/Objects-normal/x86_64/SourceFile_MRR.o"), .equal("\(SRCROOT)/build/aProject.build/Release/AppTarget.build/Objects-normal/x86_64/Lex.yy.o"), .equal("\(SRCROOT)/build/aProject.build/Release/AppTarget.build/Objects-normal/x86_64/y.tab.o"), .equal("\(SRCROOT)/build/aProject.build/Release/AppTarget.build/Objects-normal/x86_64/Script-Output-Custom-SourceFile.o"), .equal("\(SRCROOT)/build/aProject.build/Release/AppTarget.build/Objects-normal/x86_64/Script-Output-Standard-SourceFile.o"), "-o", .equal("\(SRCROOT)/build/aProject.build/Release/AppTarget.build/Objects-normal/AppTarget-x86_64-prelink.o")])
 
                         task.checkInputs([
                             .path("\(SRCROOT)/build/aProject.build/Release/AppTarget.build/Objects-normal/x86_64/SourceFile.o"),
@@ -915,7 +915,7 @@ fileprivate struct TaskConstructionTests: CoreBasedTests {
                             .namePattern(.prefix("target-"))])
 
                         task.checkOutputs([
-                            .path("\(SRCROOT)/build/aProject.build/Release/AppTarget.build/Objects-normal/AppTarget-x86_64-master.o"),])
+                            .path("\(SRCROOT)/build/aProject.build/Release/AppTarget.build/Objects-normal/AppTarget-x86_64-prelink.o"),])
 
                     }
 
