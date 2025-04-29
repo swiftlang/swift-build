@@ -12,6 +12,18 @@ cmake_minimum_required(VERSION 3.26...3.29)
 project(SwiftBuild
   LANGUAGES C CXX Swift)
 
+set(CMAKE_ARCHIVE_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/lib)
+set(CMAKE_LIBRARY_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/lib)
+set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/bin)
+
+set(CMAKE_INSTALL_RPATH "$<IF:$<PLATFORM_ID:Darwin>,@loader_path/..,$ORIGIN>")
+set(CMAKE_INSTALL_REMOVE_ENVIRONMENT_RPATH YES)
+
+set(CMAKE_MSVC_RUNTIME_LIBRARY MultiThreadedDLL)
+set(CMAKE_Swift_MODULE_DIRECTORY ${CMAKE_BINARY_DIR}/swift)
+
+option(BUILD_SHARED_LIBS "Build shared libraries by default" YES)
+
 set(CMAKE_C_VISIBILITY hidden)
 set(CMAKE_CXX_VISIBILITY hidden)
 set(CMAKE_CXX_STANDARD 17)
@@ -35,7 +47,33 @@ add_compile_options("$<$<COMPILE_LANGUAGE:Swift>:SHELL:-package-name SwiftBuild>
                     # rdar://137809703
                     # "$<$<COMPILE_LANGUAGE:Swift>:SHELL:-enable-upcoming-feature RegionBasedIsolation>"
                     "$<$<COMPILE_LANGUAGE:Swift>:SHELL:-enable-upcoming-feature ExistentialAny>"
-                    "$<$<COMPILE_LANGUAGE:Swift>:SHELL:-enable-upcoming-feature InternalImportsByDefault>")
+                    "$<$<COMPILE_LANGUAGE:Swift>:SHELL:-enable-upcoming-feature InternalImportsByDefault>"
+                    "$<$<COMPILE_LANGUAGE:Swift>:SHELL:-no-toolchain-stdlib-rpath>"
+                    # Turn off autolinking within this project to reduce linker overhead.
+                    "$<$<COMPILE_LANGUAGE:Swift>:SHELL:-Xfrontend -disable-autolink-library -Xfrontend SWBLibc>"
+                    "$<$<COMPILE_LANGUAGE:Swift>:SHELL:-Xfrontend -disable-autolink-library -Xfrontend SWBAndroidPlatform>"
+                    "$<$<COMPILE_LANGUAGE:Swift>:SHELL:-Xfrontend -disable-autolink-library -Xfrontend SWBApplePlatform>"
+                    "$<$<COMPILE_LANGUAGE:Swift>:SHELL:-Xfrontend -disable-autolink-library -Xfrontend SWBBuildService>"
+                    "$<$<COMPILE_LANGUAGE:Swift>:SHELL:-Xfrontend -disable-autolink-library -Xfrontend SWBCLibc>"
+                    "$<$<COMPILE_LANGUAGE:Swift>:SHELL:-Xfrontend -disable-autolink-library -Xfrontend SWBGenericUnixPlatform>"
+                    "$<$<COMPILE_LANGUAGE:Swift>:SHELL:-Xfrontend -disable-autolink-library -Xfrontend SWBTaskConstruction>"
+                    "$<$<COMPILE_LANGUAGE:Swift>:SHELL:-Xfrontend -disable-autolink-library -Xfrontend SWBUtil>"
+                    "$<$<COMPILE_LANGUAGE:Swift>:SHELL:-Xfrontend -disable-autolink-library -Xfrontend SWBUniversalPlatform>"
+                    "$<$<COMPILE_LANGUAGE:Swift>:SHELL:-Xfrontend -disable-autolink-library -Xfrontend SWBWindowsPlatform>"
+                    "$<$<COMPILE_LANGUAGE:Swift>:SHELL:-Xfrontend -disable-autolink-library -Xfrontend SwiftBuild>"
+                    "$<$<COMPILE_LANGUAGE:Swift>:SHELL:-Xfrontend -disable-autolink-library -Xfrontend SWBWebAssemblyPlatform>"
+                    "$<$<COMPILE_LANGUAGE:Swift>:SHELL:-Xfrontend -disable-autolink-library -Xfrontend SWBCSupport>"
+                    "$<$<COMPILE_LANGUAGE:Swift>:SHELL:-Xfrontend -disable-autolink-library -Xfrontend SWBMacro>"
+                    "$<$<COMPILE_LANGUAGE:Swift>:SHELL:-Xfrontend -disable-autolink-library -Xfrontend SWBProjectModel>"
+                    "$<$<COMPILE_LANGUAGE:Swift>:SHELL:-Xfrontend -disable-autolink-library -Xfrontend SWBTaskExecution>"
+                    "$<$<COMPILE_LANGUAGE:Swift>:SHELL:-Xfrontend -disable-autolink-library -Xfrontend SWBServiceCore>"
+                    "$<$<COMPILE_LANGUAGE:Swift>:SHELL:-Xfrontend -disable-autolink-library -Xfrontend SWBQNXPlatform>"
+                    "$<$<COMPILE_LANGUAGE:Swift>:SHELL:-Xfrontend -disable-autolink-library -Xfrontend SWBProtocol>"
+                    "$<$<COMPILE_LANGUAGE:Swift>:SHELL:-Xfrontend -disable-autolink-library -Xfrontend SWBLLBuild>"
+                    "$<$<COMPILE_LANGUAGE:Swift>:SHELL:-Xfrontend -disable-autolink-library -Xfrontend SWBCore>"
+                    "$<$<COMPILE_LANGUAGE:Swift>:SHELL:-Xfrontend -disable-autolink-library -Xfrontend SWBCAS>"
+                    "$<$<COMPILE_LANGUAGE:Swift>:SHELL:-Xfrontend -disable-autolink-library -Xfrontend SWBBuildSystem>"
+                    "$<$<COMPILE_LANGUAGE:Swift>:SHELL:-Xfrontend -disable-autolink-library -Xfrontend SWBCore>")
 
 # Prefer the static initialization for the plugins.
 add_compile_definitions(USE_STATIC_PLUGIN_INITIALIZATION)
@@ -50,3 +88,4 @@ find_package(Threads)
 find_package(SQLite3)
 
 add_subdirectory(Sources)
+add_subdirectory(cmake/modules)

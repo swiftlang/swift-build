@@ -37,3 +37,11 @@ target_link_libraries(SWBBuildService PUBLIC
   SWBWebAssemblyPlatform
   SWBWindowsPlatform
   $<$<NOT:$<PLATFORM_ID:Darwin>>:SwiftSystem::SystemPackage>)
+
+set_target_properties(SWBBuildService PROPERTIES
+  INTERFACE_INCLUDE_DIRECTORIES ${CMAKE_Swift_MODULE_DIRECTORY})
+
+set_property(GLOBAL APPEND PROPERTY SWIFTBUILD_EXPORTS SWBBuildService)
+
+install(TARGETS SWBBuildService
+    ARCHIVE DESTINATION "${SwiftBuild_INSTALL_LIBDIR}")

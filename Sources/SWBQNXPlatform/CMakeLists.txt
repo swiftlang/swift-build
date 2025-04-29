@@ -28,7 +28,7 @@ file(CONFIGURE
   ]]
   ESCAPE_QUOTES @ONLY NEWLINE_STYLE LF)
 
-add_library(SWBQNXPlatform STATIC
+add_library(SWBQNXPlatform
   Plugin.swift
   QNXSDP.swift)
 target_link_libraries(SWBQNXPlatform PUBLIC
@@ -37,3 +37,11 @@ target_link_libraries(SWBQNXPlatform PUBLIC
   SWBUtil)
 target_sources(SWBQNXPlatform PRIVATE
   "${CMAKE_CURRENT_BINARY_DIR}/resource_bundle_accessor.swift")
+
+set_target_properties(SWBQNXPlatform PROPERTIES
+  INTERFACE_INCLUDE_DIRECTORIES ${CMAKE_Swift_MODULE_DIRECTORY})
+
+set_property(GLOBAL APPEND PROPERTY SWIFTBUILD_EXPORTS SWBQNXPlatform)
+
+install(TARGETS SWBQNXPlatform
+    ARCHIVE DESTINATION "${SwiftBuild_INSTALL_LIBDIR}")

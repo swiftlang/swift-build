@@ -12,3 +12,11 @@ add_library(SWBCLibc
   libc.c)
 target_include_directories(SWBCLibc INTERFACE
   include)
+
+target_include_directories(SWBCLibc PUBLIC
+  ${CMAKE_CURRENT_BINARY_DIR})
+
+set_property(GLOBAL APPEND PROPERTY SWIFTBUILD_EXPORTS SWBCLibc)
+
+install(TARGETS SWBCLibc
+    ARCHIVE DESTINATION "${SwiftBuild_INSTALL_LIBDIR}")
