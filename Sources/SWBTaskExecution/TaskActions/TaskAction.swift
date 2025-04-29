@@ -276,3 +276,11 @@ enum TaskActionMessage
     case warning(String)
     case note(String)
 }
+
+public struct TaskExecutionContext {
+    public let task: any ExecutableTask
+    public let dynamicExecutionDelegate: any DynamicTaskExecutionDelegate
+    public let executionDelegate: any TaskExecutionDelegate
+    public let clientDelegate: any TaskExecutionClientDelegate
+    public let outputDelegate: any TaskOutputDelegate
+}

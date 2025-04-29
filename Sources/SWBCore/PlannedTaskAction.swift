@@ -330,6 +330,7 @@ public protocol TaskActionCreationDelegate
     func createValidateProductTaskAction() -> any PlannedTaskAction
     func createConstructStubExecutorInputFileListTaskAction() -> any PlannedTaskAction
     func createClangCompileTaskAction() -> any PlannedTaskAction
+    func createClangNonModularCompileTaskAction() -> any PlannedTaskAction
     func createClangScanTaskAction() -> any PlannedTaskAction
     func createSwiftDriverTaskAction() -> any PlannedTaskAction
     func createSwiftCompilationRequirementTaskAction() -> any PlannedTaskAction
@@ -339,6 +340,7 @@ public protocol TaskActionCreationDelegate
     func createSignatureCollectionTaskAction() -> any PlannedTaskAction
     func createClangModuleVerifierInputGeneratorTaskAction() -> any PlannedTaskAction
     func createProcessSDKImportsTaskAction() -> any PlannedTaskAction
+    func createLdTaskAction() -> any PlannedTaskAction
 }
 
 extension TaskActionCreationDelegate {

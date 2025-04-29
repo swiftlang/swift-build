@@ -24,7 +24,7 @@ public final class DeferredExecutionTaskAction: TaskAction {
     public override func performTaskAction(_ task: any ExecutableTask, dynamicExecutionDelegate: any DynamicTaskExecutionDelegate, executionDelegate: any TaskExecutionDelegate, clientDelegate: any TaskExecutionClientDelegate, outputDelegate: any TaskOutputDelegate) async -> CommandResult {
         let processDelegate = TaskProcessDelegate(outputDelegate: outputDelegate)
         do {
-            try await spawn(commandLine: Array(task.commandLineAsStrings), environment: task.environment.bindingsDictionary, workingDirectory: task.workingDirectory.str, dynamicExecutionDelegate: dynamicExecutionDelegate, clientDelegate: clientDelegate, processDelegate: processDelegate)
+            try await TaskAction.spawn(commandLine: Array(task.commandLineAsStrings), environment: task.environment.bindingsDictionary, workingDirectory: task.workingDirectory.str, dynamicExecutionDelegate: dynamicExecutionDelegate, clientDelegate: clientDelegate, processDelegate: processDelegate)
         } catch {
             outputDelegate.error(error.localizedDescription)
             return .failed
@@ -50,7 +50,7 @@ fileprivate extension CommandResult {
 }
 
 extension TaskAction {
-    func spawn(commandLine: [String], environment: [String: String], workingDirectory: String, dynamicExecutionDelegate: any DynamicTaskExecutionDelegate, clientDelegate: any TaskExecutionClientDelegate, processDelegate: any ProcessDelegate) async throws {
+    static func spawn(commandLine: [String], environment: [String: String], workingDirectory: String, dynamicExecutionDelegate: any DynamicTaskExecutionDelegate, clientDelegate: any TaskExecutionClientDelegate, processDelegate: any ProcessDelegate) async throws {
         guard dynamicExecutionDelegate.allowsExternalToolExecution else {
             try await dynamicExecutionDelegate.spawn(commandLine: commandLine, environment: environment, workingDirectory: workingDirectory, processDelegate: processDelegate)
             return
