@@ -1511,3 +1511,15 @@ extension BuildDescription.CASValidationInfo: Serializable {
     }
 }
 
+// Note: for the purposes of validation we intentionally ignore irrelevant
+// differences in CASOptions. However, we need to keep the llvm-cas executable
+// in case there are multiple cas format versions sharing the path.
+extension BuildDescription.CASValidationInfo: Hashable {
+    package func hash(into hasher: inout Hasher) {
+        hasher.combine(options.casPath)
+        hasher.combine(llvmCasExec)
+    }
+    static package func ==(lhs: Self, rhs: Self) -> Bool {
+        return lhs.options.casPath == rhs.options.casPath && lhs.llvmCasExec == rhs.llvmCasExec
+    }
+}

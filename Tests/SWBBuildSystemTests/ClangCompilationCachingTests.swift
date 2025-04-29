@@ -1879,17 +1879,20 @@ fileprivate struct ClangCompilationCachingTests: CoreBasedTests {
                 """
             }
 
+            let specificCAS = casPath.join(usePlugin ? "plugin" : "builtin")
+            let ruleInfo = "ValidateCAS \(specificCAS.str) \(try await ConditionTraitContext.shared.llvmCasToolPath.str)"
+
             let checkBuild = { (expectedOutput: ByteString?) in
                 try await tester.checkBuild(runDestination: .macOS, persistent: true) { results in
-                    let specificCAS = casPath.join(usePlugin ? "plugin" : "builtin")
+
                     if enableCaching {
-                        results.check(contains: .activityStarted(ruleInfo: "ValidateCAS \(specificCAS.str)"))
+                        results.check(contains: .activityStarted(ruleInfo: ruleInfo))
                         if let expectedOutput {
-                            results.check(contains: .activityEmittedData(ruleInfo: "ValidateCAS \(specificCAS.str)", expectedOutput.bytes))
+                            results.check(contains: .activityEmittedData(ruleInfo: ruleInfo, expectedOutput.bytes))
                         }
-                        results.check(contains: .activityEnded(ruleInfo: "ValidateCAS \(specificCAS.str)", status: .succeeded))
+                        results.check(contains: .activityEnded(ruleInfo: ruleInfo, status: .succeeded))
                     } else {
-                        results.check(notContains: .activityStarted(ruleInfo: "ValidateCAS \(specificCAS.str)"))
+                        results.check(notContains: .activityStarted(ruleInfo: ruleInfo))
                     }
                     results.checkNoDiagnostics()
                 }
@@ -1947,14 +1950,16 @@ fileprivate struct ClangCompilationCachingTests: CoreBasedTests {
                 """
             }
 
+            let specificCAS = casPath.join("builtin")
+            let ruleInfo = "ValidateCAS \(specificCAS.str) \(try await ConditionTraitContext.shared.llvmCasToolPath.str)"
+
             let checkBuild = { (expectedOutput: ByteString?) in
                 try await tester.checkBuild(runDestination: .macOS, persistent: true) { results in
-                    let specificCAS = casPath.join("builtin")
-                    results.check(contains: .activityStarted(ruleInfo: "ValidateCAS \(specificCAS.str)"))
+                    results.check(contains: .activityStarted(ruleInfo: ruleInfo))
                     if let expectedOutput {
-                        results.check(contains: .activityEmittedData(ruleInfo: "ValidateCAS \(specificCAS.str)", expectedOutput.bytes))
+                        results.check(contains: .activityEmittedData(ruleInfo: ruleInfo, expectedOutput.bytes))
                     }
-                    results.check(contains: .activityEnded(ruleInfo: "ValidateCAS \(specificCAS.str)", status: .succeeded))
+                    results.check(contains: .activityEnded(ruleInfo: ruleInfo, status: .succeeded))
                     results.checkNoDiagnostics()
                 }
             }
@@ -1967,6 +1972,76 @@ fileprivate struct ClangCompilationCachingTests: CoreBasedTests {
                 stream <<< "0"
             }
             try await checkBuild("recovered from invalid data\n")
+        }
+    }
+
+    @Test(.requireCASValidation, .requireSDKs(.macOS))
+    func validateCASMultipleExec() async throws {
+        try await withTemporaryDirectory { (tmpDirPath: Path) in
+            let casPath = tmpDirPath.join("CompilationCache")
+            let buildSettings: [String: String] = [
+                "PRODUCT_NAME": "$(TARGET_NAME)",
+                "CLANG_ENABLE_COMPILE_CACHE": "YES",
+                "CLANG_ENABLE_MODULES": "NO",
+                "COMPILATION_CACHE_CAS_PATH": casPath.str,
+            ]
+            let llvmCasExec = try await ConditionTraitContext.shared.llvmCasToolPath
+            // Create a trivially different path. If we ever canonicalize the path it will be harder to test this.
+            let llvmCasExec2 = Path("\(llvmCasExec.dirname.str)\(Path.pathSeparator)\(Path.pathSeparator)\(llvmCasExec.basename)")
+            let testWorkspace = TestWorkspace(
+                "Test",
+                sourceRoot: tmpDirPath.join("Test"),
+                projects: [
+                    TestProject(
+                        "aProject",
+                        groupTree: TestGroup(
+                            "Sources",
+                            children: [
+                                TestFile("file.c"),
+                            ]),
+                        buildConfigurations: [TestBuildConfiguration(
+                            "Debug",
+                            buildSettings: buildSettings)],
+                        targets: [
+                            TestStandardTarget(
+                                "Library1",
+                                type: .staticLibrary,
+                                buildPhases: [
+                                    TestSourcesBuildPhase(["file.c"]),
+                                ]),
+                            TestStandardTarget(
+                                "Library2",
+                                type: .staticLibrary,
+                                buildConfigurations: [TestBuildConfiguration(
+                                    "Debug",
+                                    buildSettings: [
+                                        "VALIDATE_CAS_EXEC": llvmCasExec2.str,
+                                    ])],
+                                buildPhases: [
+                                    TestSourcesBuildPhase(["file.c"]),
+                                ]),
+                        ])])
+
+            let tester = try await BuildOperationTester(getCore(), testWorkspace, simulated: false)
+            try await tester.fs.writeFileContents(testWorkspace.sourceRoot.join("aProject/file.c")) { stream in
+                stream <<<
+                """
+                #include <stdio.h>
+                int something = 1;
+                """
+            }
+
+            let specificCAS = casPath.join("builtin")
+            let parameters = BuildParameters(configuration: "Debug", activeRunDestination: .macOS)
+            let targets = tester.workspace.allTargets.map({ BuildRequest.BuildTargetInfo(parameters: parameters, target: $0) })
+
+            try await tester.checkBuild(runDestination: .macOS, buildRequest: BuildRequest(parameters: parameters, buildTargets: targets, continueBuildingAfterErrors: false, useParallelTargets: true, useImplicitDependencies: true, useDryRun: false), persistent: true) { results in
+                for ruleInfo in ["ValidateCAS \(specificCAS.str) \(llvmCasExec.str)", "ValidateCAS \(specificCAS.str) \(llvmCasExec2.str)"] {
+                    results.check(contains: .activityStarted(ruleInfo: ruleInfo))
+                    results.check(contains: .activityEnded(ruleInfo: ruleInfo, status: .succeeded))
+                }
+                results.checkNoDiagnostics()
+            }
         }
     }
 }

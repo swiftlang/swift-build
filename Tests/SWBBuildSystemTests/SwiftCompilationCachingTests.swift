@@ -247,14 +247,16 @@ fileprivate struct SwiftCompilationCachingTests: CoreBasedTests {
                 """
             }
 
+            let specificCAS = casPath.join("builtin")
+            let ruleInfo = "ValidateCAS \(specificCAS.str) \(try await ConditionTraitContext.shared.llvmCasToolPath.str)"
+
             let checkBuild = { (expectedOutput: ByteString?) in
                 try await tester.checkBuild(runDestination: .macOS, persistent: true) { results in
-                    let specificCAS = casPath.join("builtin")
-                    results.check(contains: .activityStarted(ruleInfo: "ValidateCAS \(specificCAS.str)"))
+                    results.check(contains: .activityStarted(ruleInfo: ruleInfo))
                     if let expectedOutput {
-                        results.check(contains: .activityEmittedData(ruleInfo: "ValidateCAS \(specificCAS.str)", expectedOutput.bytes))
+                        results.check(contains: .activityEmittedData(ruleInfo: ruleInfo, expectedOutput.bytes))
                     }
-                    results.check(contains: .activityEnded(ruleInfo: "ValidateCAS \(specificCAS.str)", status: .succeeded))
+                    results.check(contains: .activityEnded(ruleInfo: ruleInfo, status: .succeeded))
                     results.checkNoDiagnostics()
                 }
             }

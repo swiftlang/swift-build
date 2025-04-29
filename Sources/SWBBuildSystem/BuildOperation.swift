@@ -846,13 +846,15 @@ package final class BuildOperation: BuildSystemOperation {
         assert(UserDefaults.enableCASValidation)
 
         let casPath = info.options.casPath
+        let ruleInfo = "ValidateCAS \(casPath.str) \(info.llvmCasExec.str)"
 
         let signatureCtx = InsecureHashContext()
         signatureCtx.add(string: "ValidateCAS")
         signatureCtx.add(string: casPath.str)
+        signatureCtx.add(string: info.llvmCasExec.str)
         let signature = signatureCtx.signature
 
-        let activityId = delegate.beginActivity(self, ruleInfo: "ValidateCAS \(casPath.str)", executionDescription: "Validate CAS contents at \(casPath.str)", signature: signature, target: nil, parentActivity: nil)
+        let activityId = delegate.beginActivity(self, ruleInfo: ruleInfo, executionDescription: "Validate CAS contents at \(casPath.str)", signature: signature, target: nil, parentActivity: nil)
         var status: BuildOperationTaskEnded.Status = .failed
         defer {
             delegate.endActivity(self, id: activityId, signature: signature, status: status)
