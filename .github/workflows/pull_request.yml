@@ -15,6 +15,7 @@ jobs:
     with:
       linux_os_versions: '["noble", "jammy", "focal", "rhel-ubi9"]'
       linux_pre_build_command: command -v apt >/dev/null 2>&1 && apt update && apt install -y libsqlite3-dev libncurses-dev || (command -v yum >/dev/null 2>&1 && yum update -y && yum install -y sqlite-devel ncurses-devel)
+      linux_build_command: 'swift test --no-parallel'
       linux_swift_versions: '["nightly-main", "nightly-6.2"]'
       windows_swift_versions: '["nightly-main"]'
   soundness:
