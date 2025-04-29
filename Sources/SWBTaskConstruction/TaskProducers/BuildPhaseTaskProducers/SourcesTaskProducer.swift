@@ -865,14 +865,14 @@ final class SourcesTaskProducer: FilesBasedBuildPhaseTaskProducerBase, FilesBase
                     }
                 }
 
-                // Handle linking prelinked objects.  Presently we always do this if GENERATE_PRELINK_OBJECT_FILE even if there are no other tasks, since PRELINK_LIBS or PRELINK_FLAGS might be set to values which will cause a prelinked object file to be generated.
-                // FIXME: The implicitly means that if GENERATE_PRELINK_OBJECT_FILE is enabled then we will always try to link.  That's arguably not correct.
-                if !isForAPI && scope.evaluate(BuiltinMacros.GENERATE_PRELINK_OBJECT_FILE) {
-                    let executableName = scope.evaluate(BuiltinMacros.EXECUTABLE_NAME) + "-" + arch + "-prelink.o"
+                // Handle linking master objects.  Presently we always do this if GENERATE_MASTER_OBJECT_FILE even if there are no other tasks, since PRELINK_LIBS or PRELINK_FLAGS might be set to values which will cause a master object file to be generated.
+                // FIXME: The implicitly means that if GENERATE_MASTER_OBJECT_FILE is enabled then we will always try to link.  That's arguably not correct.
+                if !isForAPI && scope.evaluate(BuiltinMacros.GENERATE_MASTER_OBJECT_FILE) {
+                    let executableName = scope.evaluate(BuiltinMacros.EXECUTABLE_NAME) + "-" + arch + "-master.o"
                     // FIXME: It would be more consistent to put this in the per-arch directory.
                     let output = Path(scope.evaluate(BuiltinMacros.PER_VARIANT_OBJECT_FILE_DIR)).join(executableName)
                     await appendGeneratedTasks(&perArchTasks, options: [.linking, .linkingRequirement, .unsignedProductRequirement]) { delegate in
-                        await context.prelinkedObjectLinkSpec.constructTasks(CommandBuildContext(producer: context, scope: scope, inputs: linkerInputNodes.map { FileToBuild(context: context, absolutePath: $0.path) }, output: output), delegate)
+                        await context.masterObjectLinkSpec.constructTasks(CommandBuildContext(producer: context, scope: scope, inputs: linkerInputNodes.map { FileToBuild(context: context, absolutePath: $0.path) }, output: output), delegate)
                     }
                     linkerInputNodes = [context.createNode(output)]
                 }
@@ -912,7 +912,7 @@ final class SourcesTaskProducer: FilesBasedBuildPhaseTaskProducerBase, FilesBase
                     continue
                 }
 
-                // Create the linker task.  If we have no input files but decide to create the task anyway, then this task will rely on gate tasks to be properly ordered (which is what happens for the prelinked object file task above if there are no input files).
+                // Create the linker task.  If we have no input files but decide to create the task anyway, then this task will rely on gate tasks to be properly ordered (which is what happens for the master object file task above if there are no input files).
                 if !linkerInputNodes.isEmpty || (components.contains("build") && scope.evaluate(BuiltinMacros.MERGE_LINKED_LIBRARIES)) {
                     // Compute the output path.
                     let output: Path

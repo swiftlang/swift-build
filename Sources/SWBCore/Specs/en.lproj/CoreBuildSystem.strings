@@ -409,8 +409,8 @@ Generally you should not specify an order file in Debug or Development configura
 "[LINKER_DISPLAYS_MANGLED_NAMES]-name" = "Display Mangled Names";
 "[LINKER_DISPLAYS_MANGLED_NAMES]-description" = "Activating this setting causes the linker to display mangled names for C++ symbols. Normally, this is not recommended, but turning it on can help to diagnose and solve C++ link errors.";
 
-"[GENERATE_PRELINK_OBJECT_FILE]-name" = "Perform Single-Object Prelink";
-"[GENERATE_PRELINK_OBJECT_FILE]-description" = "Activating this setting will cause the object files built by a target to be prelinked using `ld -r` into a single object file, and that object file will then be linked into the final product. This is useful to force the linker to resolve symbols and link the object files into a single module before building a static library. Also, a separate set of link flags can be applied to the prelink allowing additional control over, for instance, exported symbols.";
+"[GENERATE_MASTER_OBJECT_FILE]-name" = "Perform Single-Object Prelink";
+"[GENERATE_MASTER_OBJECT_FILE]-description" = "Activating this setting will cause the object files built by a target to be prelinked using `ld -r` into a single object file, and that object file will then be linked into the final product. This is useful to force the linker to resolve symbols and link the object files into a single module before building a static library. Also, a separate set of link flags can be applied to the prelink allowing additional control over, for instance, exported symbols.";
 
 "[PRELINK_LIBS]-name" = "Prelink libraries";
 "[PRELINK_LIBS]-description" = "Additional libraries to pass when performing a single-object prelink.";

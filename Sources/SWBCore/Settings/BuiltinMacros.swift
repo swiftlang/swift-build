@@ -717,7 +717,7 @@ public final class BuiltinMacros {
     public static let GENERATE_EMBED_IN_CODE_ACCESSORS = BuiltinMacros.declareBooleanMacro("GENERATE_EMBED_IN_CODE_ACCESSORS")
     public static let GENERATE_INFOPLIST_FILE = BuiltinMacros.declareBooleanMacro("GENERATE_INFOPLIST_FILE")
     public static let GENERATE_KERNEL_MODULE_INFO_FILE = BuiltinMacros.declareBooleanMacro("GENERATE_KERNEL_MODULE_INFO_FILE")
-    public static let GENERATE_PRELINK_OBJECT_FILE = BuiltinMacros.declareBooleanMacro("GENERATE_PRELINK_OBJECT_FILE")
+    public static let GENERATE_MASTER_OBJECT_FILE = BuiltinMacros.declareBooleanMacro("GENERATE_MASTER_OBJECT_FILE")
     public static let GENERATE_PKGINFO_FILE = BuiltinMacros.declareBooleanMacro("GENERATE_PKGINFO_FILE")
     public static let GENERATE_RESOURCE_ACCESSORS = BuiltinMacros.declareBooleanMacro("GENERATE_RESOURCE_ACCESSORS")
     public static let GENERATE_TEST_ENTRY_POINT = BuiltinMacros.declareBooleanMacro("GENERATE_TEST_ENTRY_POINT")
@@ -1753,7 +1753,7 @@ public final class BuiltinMacros {
         GENERATE_EMBED_IN_CODE_ACCESSORS,
         GENERATE_INFOPLIST_FILE,
         GENERATE_KERNEL_MODULE_INFO_FILE,
-        GENERATE_PRELINK_OBJECT_FILE,
+        GENERATE_MASTER_OBJECT_FILE,
         GENERATE_PKGINFO_FILE,
         GENERATE_RESOURCE_ACCESSORS,
         GENERATE_TEST_ENTRY_POINT,

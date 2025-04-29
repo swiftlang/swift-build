@@ -40,7 +40,7 @@ extension ProjectModel {
             case GENERATE_INFOPLIST_FILE
             case GCC_C_LANGUAGE_STANDARD
             case GCC_OPTIMIZATION_LEVEL
-            case GENERATE_PRELINK_OBJECT_FILE
+            case GENERATE_MASTER_OBJECT_FILE
             case INFOPLIST_FILE
             case IPHONEOS_DEPLOYMENT_TARGET
             case KEEP_PRIVATE_EXTERNS

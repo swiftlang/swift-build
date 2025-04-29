@@ -129,7 +129,7 @@ public struct BuiltinSpecsExtension: SpecificationsExtension {
             ValidateDevelopmentAssets.self,
             ConstructStubExecutorFileListToolSpec.self,
             GateSpec.self,
-            PrelinkedObjectLinkSpec.self,
+            MasterObjectLinkSpec.self,
             SetAttributesSpec.self,
             WriteFileSpec.self,
             SignatureCollectionSpec.self,
