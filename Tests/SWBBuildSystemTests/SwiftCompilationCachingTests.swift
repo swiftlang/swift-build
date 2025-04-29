@@ -17,6 +17,7 @@ import SWBTestSupport
 import SWBUtil
 
 import SWBTaskExecution
+import SWBProtocol
 
 @Suite(.requireSwiftFeatures(.compilationCaching), .requireCompilationCaching,
        .flaky("A handful of Swift Build CAS tests fail when running the entire test suite"), .bug("rdar://146781403"))
@@ -200,6 +201,71 @@ fileprivate struct SwiftCompilationCachingTests: CoreBasedTests {
             try await tester.checkBuild(runDestination: .macOS, persistent: true) { results in
                 results.checkTask(.matchRuleType("SwiftCompile")) { results.checkKeyQueryCacheMiss($0) }
             }
+        }
+    }
+
+    @Test(.requireCASValidation, .requireSDKs(.macOS))
+    func validateCAS() async throws {
+        try await withTemporaryDirectory { tmpDirPath in
+            let casPath = tmpDirPath.join("CompilationCache")
+            let buildSettings: [String: String] = [
+                "PRODUCT_NAME": "$(TARGET_NAME)",
+                "SWIFT_VERSION": try await swiftVersion,
+                "SWIFT_ENABLE_COMPILE_CACHE": "YES",
+                "SWIFT_ENABLE_EXPLICIT_MODULES": "YES",
+                "COMPILATION_CACHE_CAS_PATH": casPath.str,
+                "DSTROOT": tmpDirPath.join("dstroot").str,
+            ]
+            let testWorkspace = TestWorkspace(
+                "Test",
+                sourceRoot: tmpDirPath.join("Test"),
+                projects: [
+                    TestProject(
+                        "aProject",
+                        groupTree: TestGroup(
+                            "Sources",
+                            children: [
+                                TestFile("file.swift"),
+                            ]),
+                        buildConfigurations: [TestBuildConfiguration(
+                            "Debug",
+                            buildSettings: buildSettings)],
+                        targets: [
+                            TestStandardTarget(
+                                "Library",
+                                type: .staticLibrary,
+                                buildPhases: [
+                                    TestSourcesBuildPhase(["file.swift"]),
+                                ]),
+                        ])])
+
+            let tester = try await BuildOperationTester(getCore(), testWorkspace, simulated: false)
+            try await tester.fs.writeFileContents(testWorkspace.sourceRoot.join("aProject/file.swift")) { stream in
+                stream <<<
+                """
+                public func libFunc() {}
+                """
+            }
+
+            let checkBuild = { (expectedOutput: ByteString?) in
+                try await tester.checkBuild(runDestination: .macOS, persistent: true) { results in
+                    let specificCAS = casPath.join("builtin")
+                    results.check(contains: .activityStarted(ruleInfo: "ValidateCAS \(specificCAS.str)"))
+                    if let expectedOutput {
+                        results.check(contains: .activityEmittedData(ruleInfo: "ValidateCAS \(specificCAS.str)", expectedOutput.bytes))
+                    }
+                    results.check(contains: .activityEnded(ruleInfo: "ValidateCAS \(specificCAS.str)", status: .succeeded))
+                    results.checkNoDiagnostics()
+                }
+            }
+
+            // Ignore output for plugin CAS since it may not yet support validation.
+            try await checkBuild("validated successfully\n")
+            // The second build should not require validation.
+            try await checkBuild("validation skipped\n")
+            // Including clean builds.
+            try await tester.checkBuild(runDestination: .macOS, buildCommand: .cleanBuildFolder(style: .regular), body: { _ in })
+            try await checkBuild("validation skipped\n")
         }
     }
 }

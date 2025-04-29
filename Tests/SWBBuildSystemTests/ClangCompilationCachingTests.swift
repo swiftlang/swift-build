@@ -1833,6 +1833,142 @@ fileprivate struct ClangCompilationCachingTests: CoreBasedTests {
             }
         }
     }
+
+    @Test(.requireCASValidation, .requireSDKs(.macOS), arguments: [(true, true), (false, true), (false, false)])
+    func validateCAS(usePlugin: Bool, enableCaching: Bool) async throws {
+        try await withTemporaryDirectory { tmpDirPath in
+            let casPath = tmpDirPath.join("CompilationCache")
+            var buildSettings: [String: String] = [
+                "PRODUCT_NAME": "$(TARGET_NAME)",
+                "CLANG_ENABLE_COMPILE_CACHE": enableCaching ? "YES" : "NO",
+                "CLANG_ENABLE_MODULES": "NO",
+                "COMPILATION_CACHE_CAS_PATH": casPath.str,
+            ]
+            if usePlugin {
+                buildSettings["COMPILATION_CACHE_ENABLE_PLUGIN"] = "YES"
+            }
+            let testWorkspace = TestWorkspace(
+                "Test",
+                sourceRoot: tmpDirPath.join("Test"),
+                projects: [
+                    TestProject(
+                        "aProject",
+                        groupTree: TestGroup(
+                            "Sources",
+                            children: [
+                                TestFile("file.c"),
+                            ]),
+                        buildConfigurations: [TestBuildConfiguration(
+                            "Debug",
+                            buildSettings: buildSettings)],
+                        targets: [
+                            TestStandardTarget(
+                                "Library",
+                                type: .staticLibrary,
+                                buildPhases: [
+                                    TestSourcesBuildPhase(["file.c"]),
+                                ]),
+                        ])])
+
+            let tester = try await BuildOperationTester(getCore(), testWorkspace, simulated: false)
+            try await tester.fs.writeFileContents(testWorkspace.sourceRoot.join("aProject/file.c")) { stream in
+                stream <<<
+                """
+                #include <stdio.h>
+                int something = 1;
+                """
+            }
+
+            let checkBuild = { (expectedOutput: ByteString?) in
+                try await tester.checkBuild(runDestination: .macOS, persistent: true) { results in
+                    let specificCAS = casPath.join(usePlugin ? "plugin" : "builtin")
+                    if enableCaching {
+                        results.check(contains: .activityStarted(ruleInfo: "ValidateCAS \(specificCAS.str)"))
+                        if let expectedOutput {
+                            results.check(contains: .activityEmittedData(ruleInfo: "ValidateCAS \(specificCAS.str)", expectedOutput.bytes))
+                        }
+                        results.check(contains: .activityEnded(ruleInfo: "ValidateCAS \(specificCAS.str)", status: .succeeded))
+                    } else {
+                        results.check(notContains: .activityStarted(ruleInfo: "ValidateCAS \(specificCAS.str)"))
+                    }
+                    results.checkNoDiagnostics()
+                }
+            }
+
+            // Ignore output for plugin CAS since it may not yet support validation.
+            try await checkBuild(usePlugin ? nil : "validated successfully\n")
+            // The second build should not require validation.
+            try await checkBuild("validation skipped\n")
+            // Including clean builds.
+            try await tester.checkBuild(runDestination: .macOS, buildCommand: .cleanBuildFolder(style: .regular), body: { _ in })
+            try await checkBuild("validation skipped\n")
+        }
+    }
+
+    @Test(.requireCASValidation, .requireSDKs(.macOS))
+    func validateCASRecovery() async throws {
+        try await withTemporaryDirectory { tmpDirPath in
+            let casPath = tmpDirPath.join("CompilationCache")
+            let buildSettings: [String: String] = [
+                "PRODUCT_NAME": "$(TARGET_NAME)",
+                "CLANG_ENABLE_COMPILE_CACHE": "YES",
+                "CLANG_ENABLE_MODULES": "NO",
+                "COMPILATION_CACHE_CAS_PATH": casPath.str,
+            ]
+            let testWorkspace = TestWorkspace(
+                "Test",
+                sourceRoot: tmpDirPath.join("Test"),
+                projects: [
+                    TestProject(
+                        "aProject",
+                        groupTree: TestGroup(
+                            "Sources",
+                            children: [
+                                TestFile("file.c"),
+                            ]),
+                        buildConfigurations: [TestBuildConfiguration(
+                            "Debug",
+                            buildSettings: buildSettings)],
+                        targets: [
+                            TestStandardTarget(
+                                "Library",
+                                type: .staticLibrary,
+                                buildPhases: [
+                                    TestSourcesBuildPhase(["file.c"]),
+                                ]),
+                        ])])
+
+            let tester = try await BuildOperationTester(getCore(), testWorkspace, simulated: false)
+            try await tester.fs.writeFileContents(testWorkspace.sourceRoot.join("aProject/file.c")) { stream in
+                stream <<<
+                """
+                #include <stdio.h>
+                int something = 1;
+                """
+            }
+
+            let checkBuild = { (expectedOutput: ByteString?) in
+                try await tester.checkBuild(runDestination: .macOS, persistent: true) { results in
+                    let specificCAS = casPath.join("builtin")
+                    results.check(contains: .activityStarted(ruleInfo: "ValidateCAS \(specificCAS.str)"))
+                    if let expectedOutput {
+                        results.check(contains: .activityEmittedData(ruleInfo: "ValidateCAS \(specificCAS.str)", expectedOutput.bytes))
+                    }
+                    results.check(contains: .activityEnded(ruleInfo: "ValidateCAS \(specificCAS.str)", status: .succeeded))
+                    results.checkNoDiagnostics()
+                }
+            }
+
+            // Ignore output for plugin CAS since it may not yet support validation.
+            try await checkBuild("validated successfully\n")
+            // Create an error and trigger revalidation by messing with the validation data.
+            try tester.fs.move(casPath.join("builtin/v1.1/v8.data"), to: casPath.join("builtin/v1.1/v8.data.moved"))
+            try await tester.fs.writeFileContents(casPath.join("builtin/v1.validation")) { stream in
+                stream <<< "0"
+            }
+            try await checkBuild("recovered from invalid data\n")
+        }
+    }
 }
 
 extension BuildOperationTester.BuildResults {

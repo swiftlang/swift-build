@@ -180,7 +180,9 @@ package final class BuildDescriptionManager: Sendable {
         var settingsPerTarget = [ConfiguredTarget:Settings]()
         var rootPathsPerTarget = [ConfiguredTarget:[Path]]()
         var moduleCachePathsPerTarget = [ConfiguredTarget: [Path]]()
+        var casValidationInfos: [Path: BuildDescription.CASValidationInfo] = [:]
         let buildGraph = planRequest.buildGraph
+        let shouldValidateCAS = Settings.supportsCompilationCaching(plan.workspaceContext.core) && UserDefaults.enableCASValidation
 
         // Add the SFR identifier for target-independent tasks.
         staleFileRemovalIdentifierPerTarget[nil] = plan.staleFileRemovalTaskIdentifier(for: nil)
@@ -198,6 +200,19 @@ package final class BuildDescriptionManager: Sendable {
                 Path(settings.globalScope.evaluate(BuiltinMacros.SWIFT_EXPLICIT_MODULES_OUTPUT_PATH)),
                 Path(settings.globalScope.evaluate(BuiltinMacros.CLANG_EXPLICIT_MODULES_OUTPUT_PATH)),
             ]
+
+            if shouldValidateCAS, settings.globalScope.evaluate(BuiltinMacros.CLANG_ENABLE_COMPILE_CACHE) || settings.globalScope.evaluate(BuiltinMacros.SWIFT_ENABLE_COMPILE_CACHE) {
+                // FIXME: currently we only handle the compiler cache here, because the plugin configuration for the generic CAS is not configured by build settings.
+                for purpose in [CASOptions.Purpose.compiler(.c)] {
+                    if let casOpts = try? CASOptions.create(settings.globalScope, purpose),
+                       !casValidationInfos.contains(casOpts.casPath) {
+                        let execName = settings.globalScope.evaluate(BuiltinMacros.VALIDATE_CAS_EXEC).nilIfEmpty ?? "llvm-cas"
+                        if let execPath = settings.executableSearchPaths.lookup(Path(execName)) {
+                            casValidationInfos[casOpts.casPath] = .init(options: casOpts, llvmCasExec: execPath)
+                        }
+                    }
+                }
+            }
 
             staleFileRemovalIdentifierPerTarget[target] = plan.staleFileRemovalTaskIdentifier(for: target)
             settingsPerTarget[target] = settings
@@ -231,7 +246,7 @@ package final class BuildDescriptionManager: Sendable {
         }
 
         // Create the build description.
-        return try await BuildDescription.construct(workspace: buildGraph.workspaceContext.workspace, tasks: plan.tasks, path: path, signature: signature, buildCommand: planRequest.buildRequest.buildCommand, diagnostics: planningDiagnostics, indexingInfo: [], fs: fs, bypassActualTasks: bypassActualTasks, targetsBuildInParallel: buildGraph.targetsBuildInParallel, emitFrontendCommandLines: plan.emitFrontendCommandLines, moduleSessionFilePath: planRequest.workspaceContext.getModuleSessionFilePath(planRequest.buildRequest.parameters), invalidationPaths: plan.invalidationPaths, recursiveSearchPathResults: plan.recursiveSearchPathResults, copiedPathMap: plan.copiedPathMap, rootPathsPerTarget: rootPathsPerTarget, moduleCachePathsPerTarget: moduleCachePathsPerTarget, staleFileRemovalIdentifierPerTarget: staleFileRemovalIdentifierPerTarget, settingsPerTarget: settingsPerTarget, delegate: delegate, targetDependencies: buildGraph.targetDependenciesByGuid, definingTargetsByModuleName: definingTargetsByModuleName, capturedBuildInfo: capturedBuildInfo, userPreferences: buildGraph.workspaceContext.userPreferences)
+        return try await BuildDescription.construct(workspace: buildGraph.workspaceContext.workspace, tasks: plan.tasks, path: path, signature: signature, buildCommand: planRequest.buildRequest.buildCommand, diagnostics: planningDiagnostics, indexingInfo: [], fs: fs, bypassActualTasks: bypassActualTasks, targetsBuildInParallel: buildGraph.targetsBuildInParallel, emitFrontendCommandLines: plan.emitFrontendCommandLines, moduleSessionFilePath: planRequest.workspaceContext.getModuleSessionFilePath(planRequest.buildRequest.parameters), invalidationPaths: plan.invalidationPaths, recursiveSearchPathResults: plan.recursiveSearchPathResults, copiedPathMap: plan.copiedPathMap, rootPathsPerTarget: rootPathsPerTarget, moduleCachePathsPerTarget: moduleCachePathsPerTarget, casValidationInfos: casValidationInfos.values.sorted(by: \.options.casPath), staleFileRemovalIdentifierPerTarget: staleFileRemovalIdentifierPerTarget, settingsPerTarget: settingsPerTarget, delegate: delegate, targetDependencies: buildGraph.targetDependenciesByGuid, definingTargetsByModuleName: definingTargetsByModuleName, capturedBuildInfo: capturedBuildInfo, userPreferences: buildGraph.workspaceContext.userPreferences)
     }
 
     /// Encapsulates the two ways `getNewOrCachedBuildDescription` can be called, whether we want to retrieve or create a build description based on a plan or whether we have an explicit build description ID that we want to retrieve and we don't need to create a new one.

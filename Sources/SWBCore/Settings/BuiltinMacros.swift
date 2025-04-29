@@ -1126,6 +1126,7 @@ public final class BuiltinMacros {
     public static let TAPI_HEADER_SEARCH_PATHS = BuiltinMacros.declarePathListMacro("TAPI_HEADER_SEARCH_PATHS")
     public static let USE_HEADER_SYMLINKS = BuiltinMacros.declareBooleanMacro("USE_HEADER_SYMLINKS")
     public static let USE_HIERARCHICAL_LAYOUT_FOR_COPIED_ASIDE_PRODUCTS = BuiltinMacros.declareBooleanMacro("USE_HIERARCHICAL_LAYOUT_FOR_COPIED_ASIDE_PRODUCTS")
+    public static let VALIDATE_CAS_EXEC = BuiltinMacros.declareStringMacro("VALIDATE_CAS_EXEC")
     public static let VALIDATE_PLIST_FILES_WHILE_COPYING = BuiltinMacros.declareBooleanMacro("VALIDATE_PLIST_FILES_WHILE_COPYING")
     public static let VALIDATE_PRODUCT = BuiltinMacros.declareBooleanMacro("VALIDATE_PRODUCT")
     public static let VALIDATE_DEPENDENCIES = BuiltinMacros.declareEnumMacro("VALIDATE_DEPENDENCIES") as EnumMacroDeclaration<BooleanWarningLevel>
@@ -2327,6 +2328,7 @@ public final class BuiltinMacros {
         USE_HEADER_SYMLINKS,
         USE_HIERARCHICAL_LAYOUT_FOR_COPIED_ASIDE_PRODUCTS,
         VALIDATE_PLIST_FILES_WHILE_COPYING,
+        VALIDATE_CAS_EXEC,
         VALIDATE_PRODUCT,
         VALIDATE_DEPENDENCIES,
         VALIDATE_DEVELOPMENT_ASSET_PATHS,
