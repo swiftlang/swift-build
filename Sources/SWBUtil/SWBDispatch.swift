@@ -15,7 +15,7 @@
 
 private import Dispatch
 public import SWBLibc
-import Foundation
+public import Foundation
 
 #if canImport(System)
 public import System
@@ -123,6 +123,12 @@ extension SWBDispatchData: RandomAccessCollection {
     }
 }
 
+extension SWBDispatchData: DataProtocol {
+    public var regions: DispatchData.Regions {
+        dispatchData.regions
+    }
+}
+
 /// Thin wrapper for `DispatchSemaphore` to isolate it from the rest of the codebase and help migration away from it.
 internal final class SWBDispatchSemaphore: Sendable {
     private let semaphore: DispatchSemaphore
@@ -181,6 +187,13 @@ public final class SWBDispatchIO: Sendable {
 
     public init(fileDescriptor: Int32, queue: SWBQueue, cleanupHandler: @escaping (Int32) -> Void) {
         io = DispatchIO(type: .stream, fileDescriptor: numericCast(fileDescriptor), queue: queue.queue, cleanupHandler: cleanupHandler)
+    }
+
+    public static func read(fromFileDescriptor fileDescriptor: DispatchFD, maxLength: Int, runningHandlerOn queue: SWBQueue, handler: @escaping (SWBDispatchData, Int32) -> Void) {
+        // Most of the dispatch APIs take a parameter called "fileDescriptor". On Windows (except makeReadSource and makeWriteSource) it is actually a HANDLE, so convert it accordingly.
+        DispatchIO.read(fromFileDescriptor: numericCast(fileDescriptor.rawValue), maxLength: maxLength, runningHandlerOn: queue.queue) { data, error in
+            handler(SWBDispatchData(data), error)
+        }
     }
 
     public static func stream(fileDescriptor: DispatchFD, queue: SWBQueue, cleanupHandler: @escaping (Int32) -> Void) -> SWBDispatchIO {
