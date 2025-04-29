@@ -148,10 +148,13 @@ final class ServiceHostConnection: @unchecked Sendable {
                 #endif
 
                 // Read data.
-                let result = read(self.inputFD.rawValue, tmp.baseAddress, numericCast(tmpBufferSize))
-                if result < 0 {
-                    if errno == EINTR { continue }
-                    error = ServiceHostIOError(message: "read from client failed", cause: SWBUtil.POSIXError(errno, context: "read"))
+                let result: Int
+                do {
+                    let buf = try await DispatchFD(fileDescriptor: self.inputFD).readChunk(upToLength: tmpBufferSize)
+                    result = buf.count
+                    buf.copyBytes(to: tmp)
+                } catch let readError {
+                    error = ServiceHostIOError(message: "read from client failed", cause: readError)
                     break
                 }
                 if result == 0 {
