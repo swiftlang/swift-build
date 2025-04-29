@@ -313,6 +313,7 @@ import Foundation
                                     "-merge_framework MergeFwk",
                                     "-no_merge_framework NoMergeFwk",
                                     "-lazy_framework LazyFwk",
+                                    "-upward_framework UpwardFwk",
 
                                     // Apparently both of these uses of -Xlinker are valid
                                     "-Xlinker -reexport_framework -Xlinker XlinkXlinkFwk",
@@ -328,6 +329,7 @@ import Foundation
                                     "-merge-lMergeLib",
                                     "-no_merge-lNoMergeLib",
                                     "-lazy-lLazyLib",
+                                    "-upward-lUpwardLib",
 
                                     "-Xlinker -reexport-lXlinkerLib",
                                     "-Wl,-reexport-lQuoteLib",
@@ -397,6 +399,15 @@ import Foundation
                     }
                 }
 
+                // Check upward framework
+                for fwkStem in ["UpwardFwk"] {
+                    results.checkTargetInputName(target, .stem(fwkStem)) { input in
+                        #expect(input.inputType == .framework)
+                        #expect(input.linkType == .searchPath)
+                        #expect(input.libraryType == .upward)
+                    }
+                }
+
                 // Check library linkage
                 for fwkStem in ["Lib", "WeakLib", "ReexportLib", "MergeLib", "NoMergeLib", "LazyLib"] {
                     results.checkTargetInputName(target, .stem(fwkStem)) { input in
@@ -410,6 +421,15 @@ import Foundation
                     results.checkTargetInputName(target, .stem(fwkStem)) { input in
                         #expect(input.inputType == .library)
                         #expect(input.linkType == .searchPath)
+                    }
+                }
+
+                // Check upward library
+                for fwkStem in ["UpwardLib"] {
+                    results.checkTargetInputName(target, .stem(fwkStem)) { input in
+                        #expect(input.inputType == .library)
+                        #expect(input.linkType == .searchPath)
+                        #expect(input.libraryType == .upward)
                     }
                 }
 

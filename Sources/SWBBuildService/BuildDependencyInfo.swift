@@ -117,6 +117,7 @@ package struct BuildDependencyInfo: Codable {
             package enum LibraryType: String, Codable, Sendable {
                 case dynamic
                 case `static`
+                case upward
                 case unknown
             }
 
@@ -434,9 +435,11 @@ extension BuildDependencyInfo {
     /// - remark: This is written somewhat generically (with the callback blocks) in the hopes that `LinkageDependencyResolver.dependencies(for:...)` can someday adopt it, as the general approach was stolen from there.
     package static func findLinkedInputsFromBuildSettings(_ settings: Settings, addFramework: @Sendable (TargetDependencyInfo.Input) async -> Void, addLibrary: @Sendable (TargetDependencyInfo.Input) async -> Void, addError: @Sendable (String) async -> Void) async {
         await LdLinkerSpec.processLinkerSettingsForLibraryOptions(settings: settings) { macro, flag, stem in
-            await addFramework(TargetDependencyInfo.Input(inputType: .framework, name: .stem(stem), linkType: .searchPath, libraryType: .dynamic))
+            let libType: TargetDependencyInfo.Input.LibraryType = (flag == "-upward_framework") ? .upward : .dynamic
+            await addFramework(TargetDependencyInfo.Input(inputType: .framework, name: .stem(stem), linkType: .searchPath, libraryType: libType))
         } addLibrary: { macro, flag, stem in
-            await addLibrary(TargetDependencyInfo.Input(inputType: .library, name: .stem(stem), linkType: .searchPath, libraryType: .unknown))
+            let libType: TargetDependencyInfo.Input.LibraryType = (flag == "-upward-l") ? .upward : .unknown
+            await addLibrary(TargetDependencyInfo.Input(inputType: .library, name: .stem(stem), linkType: .searchPath, libraryType: libType))
         } addError: { error in
             await addError(error)
         }
