@@ -415,7 +415,7 @@ struct ClangModuleVerifierPayload: ClangModuleVerifierPayloadType {
     }
 }
 
-public struct ClangTaskPayload: ClangModuleVerifierPayloadType, DependencyInfoEditableTaskPayload, Encodable {
+public struct ClangTaskPayload: ClangModuleVerifierPayloadType, DependencyInfoEditableTaskPayload, TaskDependencySettingsPayload, Encodable {
     let dependencyInfoEditPayload: DependencyInfoEditPayload?
 
     /// The path to the serialized diagnostic output.  Every clang task must provide this path.
@@ -432,7 +432,9 @@ public struct ClangTaskPayload: ClangModuleVerifierPayloadType, DependencyInfoEd
 
     public let fileNameMapPath: Path?
 
-    fileprivate init(serializedDiagnosticsPath: Path?, indexingPayload: ClangIndexingPayload?, explicitModulesPayload: ClangExplicitModulesPayload? = nil, outputObjectFilePath: Path? = nil, fileNameMapPath: Path? = nil, developerPathString: String? = nil) {
+    public let taskDependencySettings: TaskDependencySettings?
+
+    fileprivate init(serializedDiagnosticsPath: Path?, indexingPayload: ClangIndexingPayload?, explicitModulesPayload: ClangExplicitModulesPayload? = nil, outputObjectFilePath: Path? = nil, fileNameMapPath: Path? = nil, developerPathString: String? = nil, taskDependencySettings: TaskDependencySettings? = nil) {
         if let developerPathString, explicitModulesPayload == nil {
             self.dependencyInfoEditPayload = .init(removablePaths: [], removableBasenames: [], developerPath: Path(developerPathString))
         } else {
@@ -443,16 +445,18 @@ public struct ClangTaskPayload: ClangModuleVerifierPayloadType, DependencyInfoEd
         self.explicitModulesPayload = explicitModulesPayload
         self.outputObjectFilePath = outputObjectFilePath
         self.fileNameMapPath = fileNameMapPath
+        self.taskDependencySettings = taskDependencySettings
     }
 
     public func serialize<T: Serializer>(to serializer: T) {
-        serializer.serializeAggregate(6) {
+        serializer.serializeAggregate(7) {
             serializer.serialize(serializedDiagnosticsPath)
             serializer.serialize(indexingPayload)
             serializer.serialize(explicitModulesPayload)
             serializer.serialize(outputObjectFilePath)
             serializer.serialize(fileNameMapPath)
             serializer.serialize(dependencyInfoEditPayload)
+            serializer.serialize(taskDependencySettings)
         }
     }
 
@@ -464,6 +468,7 @@ public struct ClangTaskPayload: ClangModuleVerifierPayloadType, DependencyInfoEd
         self.outputObjectFilePath = try deserializer.deserialize()
         self.fileNameMapPath = try deserializer.deserialize()
         self.dependencyInfoEditPayload = try deserializer.deserialize()
+        self.taskDependencySettings = try deserializer.deserialize()
     }
 }
 
@@ -1158,6 +1163,24 @@ public class ClangCompilerSpec : CompilerSpec, SpecIdentifierType, GCCCompatible
             dependencyData = nil
         }
 
+        let taskDependencySettings = TaskDependencySettings(
+            traceFile: Path(outputNode.path.str + ".trace.json"),
+            dependencySettings: DependencySettings(cbc.scope)
+        )
+
+        if (taskDependencySettings.dependencySettings.verification) {
+            commandLine += [
+                "-Xclang",
+                "-header-include-file",
+                "-Xclang",
+                taskDependencySettings.traceFile.str,
+                "-Xclang",
+                "-header-include-filtering=only-direct-system",
+                "-Xclang",
+                "-header-include-format=json"
+            ]
+        }
+
         // Add the diagnostics serialization flag.  We currently place the diagnostics file right next to the output object file.
         let diagFilePath: Path?
         if let serializedDiagnosticsOptions = self.serializedDiagnosticsOptions(scope: cbc.scope, outputPath: outputNode.path) {
@@ -1268,7 +1291,8 @@ public class ClangCompilerSpec : CompilerSpec, SpecIdentifierType, GCCCompatible
             explicitModulesPayload: explicitModulesPayload,
             outputObjectFilePath: shouldGenerateRemarks ? outputNode.path : nil,
             fileNameMapPath: verifierPayload?.fileNameMapPath,
-            developerPathString: recordSystemHeaderDepsOutsideSysroot ? cbc.scope.evaluate(BuiltinMacros.DEVELOPER_DIR).str : nil
+            developerPathString: recordSystemHeaderDepsOutsideSysroot ? cbc.scope.evaluate(BuiltinMacros.DEVELOPER_DIR).str : nil,
+            taskDependencySettings: taskDependencySettings
         )
 
         var inputNodes: [any PlannedNode] = inputDeps.map { delegate.createNode($0) }
@@ -1318,8 +1342,10 @@ public class ClangCompilerSpec : CompilerSpec, SpecIdentifierType, GCCCompatible
             extraInputs = []
         }
 
+        additionalSignatureData += taskDependencySettings.signatureData()
+
         // Finally, create the task.
-        delegate.createTask(type: self, dependencyData: dependencyData, payload: payload, ruleInfo: ruleInfo, additionalSignatureData: additionalSignatureData, commandLine: commandLine, additionalOutput: additionalOutput, environment: environmentBindings, workingDirectory: compilerWorkingDirectory(cbc), inputs: inputNodes + extraInputs, outputs: [outputNode], action: action ?? delegate.taskActionCreationDelegate.createDeferredExecutionTaskActionIfRequested(userPreferences: cbc.producer.userPreferences), execDescription: resolveExecutionDescription(cbc, delegate), enableSandboxing: enableSandboxing, additionalTaskOrderingOptions: [.compilationForIndexableSourceFile], usesExecutionInputs: usesExecutionInputs, showEnvironment: true, priority: .preferred)
+        delegate.createTask(type: self, dependencyData: dependencyData, payload: payload, ruleInfo: ruleInfo, additionalSignatureData: additionalSignatureData, commandLine: commandLine, additionalOutput: additionalOutput, environment: environmentBindings, workingDirectory: compilerWorkingDirectory(cbc), inputs: inputNodes + extraInputs, outputs: [outputNode], action: action ?? delegate.taskActionCreationDelegate.createClangNonModularCompileTaskAction(), execDescription: resolveExecutionDescription(cbc, delegate), enableSandboxing: enableSandboxing, additionalTaskOrderingOptions: [.compilationForIndexableSourceFile], usesExecutionInputs: usesExecutionInputs, showEnvironment: true, priority: .preferred)
 
         // If the object file verifier is enabled and we are building with explicit modules, also create a job to produce adjacent objects using implicit modules, then compare the results.
         if cbc.scope.evaluate(BuiltinMacros.CLANG_ENABLE_EXPLICIT_MODULES_OBJECT_FILE_VERIFIER) && action != nil {

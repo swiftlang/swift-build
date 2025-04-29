@@ -198,6 +198,10 @@ extension CapturingTaskGenerationDelegate: TaskActionCreationDelegate {
         return ClangCompileTaskAction()
     }
 
+    public func createClangNonModularCompileTaskAction() -> any PlannedTaskAction {
+        return ClangNonModularCompileTaskAction()
+    }
+
     public func createClangScanTaskAction() -> any PlannedTaskAction {
         return ClangScanTaskAction()
     }

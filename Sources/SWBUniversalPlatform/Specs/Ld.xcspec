@@ -725,6 +725,12 @@
             },
 
             {
+                Name = "LD_TRACE_FILE";
+                Type = Path;
+                DefaultValue = "$(OBJECT_FILE_DIR_$(CURRENT_VARIANT))/$(CURRENT_ARCH)/$(PRODUCT_NAME)_trace.json";
+            },
+
+            {
                 Name = "__CREATE_INFOPLIST_SECTION_IN_BINARY";
                 Type = Boolean;
                 DefaultValue = "$(CREATE_INFOPLIST_SECTION_IN_BINARY)";

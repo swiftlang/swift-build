@@ -132,7 +132,7 @@ public final class FileCopyTaskAction: TaskAction
                     }
 
                     for commandLine in commandLine.compileAndLink.flatMap({ [$0.compile, $0.link] }) + [commandLine.lipo] {
-                        try await spawn(commandLine: commandLine, environment: task.environment.bindingsDictionary, workingDirectory: task.workingDirectory.str, dynamicExecutionDelegate: dynamicExecutionDelegate, clientDelegate: clientDelegate, processDelegate: processDelegate)
+                        try await TaskAction.spawn(commandLine: commandLine, environment: task.environment.bindingsDictionary, workingDirectory: task.workingDirectory.str, dynamicExecutionDelegate: dynamicExecutionDelegate, clientDelegate: clientDelegate, processDelegate: processDelegate)
                     }
                 }
             }

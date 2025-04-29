@@ -432,6 +432,10 @@ extension TestTaskPlanningDelegate: TaskActionCreationDelegate {
         return ClangCompileTaskAction()
     }
 
+    package func createClangNonModularCompileTaskAction() -> any PlannedTaskAction {
+        return ClangNonModularCompileTaskAction()
+    }
+
     package func createClangScanTaskAction() -> any PlannedTaskAction {
         return ClangScanTaskAction()
     }
@@ -466,6 +470,10 @@ extension TestTaskPlanningDelegate: TaskActionCreationDelegate {
 
     package func createProcessSDKImportsTaskAction() -> any PlannedTaskAction {
         return ProcessSDKImportsTaskAction()
+    }
+
+    package func createLdTaskAction() -> any PlannedTaskAction {
+        return LdTaskAction()
     }
 }
 

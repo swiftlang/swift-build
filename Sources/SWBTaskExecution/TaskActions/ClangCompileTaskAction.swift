@@ -266,7 +266,7 @@ public final class ClangCompileTaskAction: TaskAction, BuildValueValidatingTaskA
                 let commandLine = command.arguments
                 let delegate = TaskProcessDelegate(outputDelegate: outputDelegate)
                 // The frontend invocations should be unaffected by the environment, pass an empty one.
-                try await spawn(commandLine: commandLine, environment: [:], workingDirectory: task.workingDirectory.str, dynamicExecutionDelegate: dynamicExecutionDelegate, clientDelegate: clientDelegate, processDelegate: delegate)
+                try await TaskAction.spawn(commandLine: commandLine, environment: [:], workingDirectory: task.workingDirectory.str, dynamicExecutionDelegate: dynamicExecutionDelegate, clientDelegate: clientDelegate, processDelegate: delegate)
                 lastResult = delegate.commandResult
 
                 if lastResult == .succeeded {
@@ -287,6 +287,7 @@ public final class ClangCompileTaskAction: TaskAction, BuildValueValidatingTaskA
 
                 switch lastResult {
                 case .some(.succeeded), .some(.skipped):
+                    // TODO: Verify dependency trace if feature enabled
                     continue
                 default:
                     // Emit the frontend command which failed, unless we have debugging enabled and printed it already
@@ -430,4 +431,69 @@ public final class ClangCompileTaskAction: TaskAction, BuildValueValidatingTaskA
             activityReporter: dynamicExecutionDelegate
         )
     }
+}
+
+public final class ClangNonModularCompileTaskAction: TaskAction {
+    public override class var toolIdentifier: String {
+        return "ccompile"
+    }
+
+    override public func performTaskAction(
+        _ task: any ExecutableTask,
+        dynamicExecutionDelegate: any DynamicTaskExecutionDelegate,
+        executionDelegate: any TaskExecutionDelegate,
+        clientDelegate: any TaskExecutionClientDelegate,
+        outputDelegate: any TaskOutputDelegate,
+    ) async -> CommandResult {
+        return await TaskDependencyVerification.exec(
+            ctx: TaskExecutionContext(
+                task: task,
+                dynamicExecutionDelegate: dynamicExecutionDelegate,
+                executionDelegate: executionDelegate,
+                clientDelegate: clientDelegate,
+                outputDelegate: outputDelegate
+            ),
+            adapter: ClangAdapter()
+        )
+    }
+
+    private struct ClangAdapter: TaskDependencyVerification.Adapter {
+        typealias T = TraceData
+
+        var outerTraceFileEnvVar = "CC_PRINT_HEADERS_FILE"
+
+        func exec(ctx: TaskExecutionContext, env: [String : String]) async throws -> CommandResult {
+            var env = env
+            if let format = env.removeValue(forKey: "CC_PRINT_HEADERS_FORMAT") {
+                if format != "json" {
+                    throw StubError.error("Incompatible 'CC_PRINT_HEADERS_FORMAT' environment variable value '\(format)'. Only 'json' is supported.")
+                }
+            }
+
+            if let filtering = env.removeValue(forKey: "CC_PRINT_HEADERS_FILTERING") {
+                if filtering != "only-direct-system" {
+                    throw StubError.error("Incompatible 'CC_PRINT_HEADERS_FILTERING' environment variable value '\(filtering)'. Only 'only-direct-system' is supported.")
+                }
+            }
+
+            return try await spawn(ctx: ctx, env: env)
+        }
+
+        func verify(
+            ctx: TaskExecutionContext,
+            traceData: ClangNonModularCompileTaskAction.TraceData,
+            dependencySettings: DependencySettings
+        ) throws -> Bool {
+            return try verifyFiles(
+                ctx: ctx,
+                files: traceData.includes ?? [],
+                dependencySettings: dependencySettings
+            )
+        }
+    }
+
+    private struct TraceData: Decodable {
+        let includes: [Path]?
+    }
+
 }
