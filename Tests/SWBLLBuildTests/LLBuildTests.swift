@@ -17,15 +17,26 @@ import SWBUtil
 
 import struct SWBLLBuild.Diagnostic
 import Foundation
+import Synchronization
 
 fileprivate class LoggingDelegate: BuildSystemDelegate {
-    let queue = SWBQueue(label: "LLBuildTests.LoggingDelegate.queue", qos: UserDefaults.defaultRequestQoS)
     var buildSystem: BuildSystem? = nil
     let fs: (any SWBLLBuild.FileSystem)?
     let fsProxy: any FSProxy
-    var log: [String] = []
-    var errors: [String] = []
+    private struct Output: Sendable {
+        var log: [String] = []
+        var errors: [String] = []
+    }
+    private let output = SWBMutex<Output>(.init())
     let ignoreStatusChanges: Bool
+
+    var log: [String] {
+        output.withLock { $0.log }
+    }
+
+    var errors: [String] {
+        output.withLock { $0.errors }
+    }
 
     init(fs: any FSProxy, ignoreStatusChanges: Bool = false) {
         self.fs = SWBLLBuild.FileSystemImpl(fs)
@@ -33,121 +44,127 @@ fileprivate class LoggingDelegate: BuildSystemDelegate {
         self.ignoreStatusChanges = ignoreStatusChanges
     }
 
+    func append(log: String) {
+        output.withLock { output in
+            output.log.append(log)
+        }
+    }
+
     func lookupTool(_ name: String) -> (any Tool)? {
         return nil
     }
 
     func hadCommandFailure() {
-        queue.blocking_sync {
-            self.log.append("had-command-failure")
+        output.withLock { output in
+            output.log.append("had-command-failure")
         }
         buildSystem?.cancel()
     }
 
     func handleDiagnostic(_ diagnostic: Diagnostic) {
-        queue.blocking_sync {
-            self.log.append("\(diagnostic.kind): \(diagnostic.message)")
-            self.errors.append("\(diagnostic.kind): \(diagnostic.message)")
+        output.withLock { output in
+            output.log.append("\(diagnostic.kind): \(diagnostic.message)")
+            output.errors.append("\(diagnostic.kind): \(diagnostic.message)")
         }
     }
 
     func commandStatusChanged(_ command: Command, kind: CommandStatusKind) {
         if !ignoreStatusChanges {
-            queue.blocking_sync {
-                self.log.append("command-status-changed: \(command.name), to: \(kind)")
+            output.withLock { output in
+                output.log.append("command-status-changed: \(command.name), to: \(kind)")
             }
         }
     }
     func commandPreparing(_ command: Command) {
-        queue.blocking_sync {
-            self.log.append("command-preparing: \(command.name)")
+        output.withLock { output in
+            output.log.append("command-preparing: \(command.name)")
         }
     }
     func commandStarted(_ command: Command) {
-        queue.blocking_sync {
-            self.log.append("command-started: \(command.name)")
+        output.withLock { output in
+            output.log.append("command-started: \(command.name)")
         }
     }
     func shouldCommandStart(_ command: Command) -> Bool {
-        queue.blocking_sync {
-            self.log.append("should-command-start: \(command.name)")
+        output.withLock { output in
+            output.log.append("should-command-start: \(command.name)")
         }
         return true
     }
     func commandFinished(_ command: Command, result: CommandResult) {
-        queue.blocking_sync {
-            self.log.append("command-finished: \(command.name)")
+        output.withLock { output in
+            output.log.append("command-finished: \(command.name)")
         }
     }
     func commandFoundDiscoveredDependency(_ command: Command, path: String, kind: DiscoveredDependencyKind) {
-        queue.blocking_sync {
-            self.log.append("command-found-discovered-dependency: \(path) \(kind)")
+        output.withLock { output in
+            output.log.append("command-found-discovered-dependency: \(path) \(kind)")
         }
     }
     func commandHadError(_ command: Command, message: String) {
-        queue.blocking_sync {
-            self.log.append("command-had-error: \(command.name): \(message)")
-            self.errors.append("command-had-error: \(command.name): \(message)")
+        output.withLock { output in
+            output.log.append("command-had-error: \(command.name): \(message)")
+            output.errors.append("command-had-error: \(command.name): \(message)")
         }
     }
     func commandHadNote(_ command: Command, message: String) {
-        queue.blocking_sync {
-            self.log.append("command-had-note: \(command.name): \(message)")
+        output.withLock { output in
+            output.log.append("command-had-note: \(command.name): \(message)")
         }
     }
     func commandHadWarning(_ command: Command, message: String) {
-        queue.blocking_sync {
-            self.log.append("command-had-warning: \(command.name): \(message)")
+        output.withLock { output in
+            output.log.append("command-had-warning: \(command.name): \(message)")
         }
     }
     func commandProcessStarted(_ command: Command, process: ProcessHandle) {
-        queue.blocking_sync {
-            self.log.append("command-process-started: \(command.name) -- \(command.description)")
+        output.withLock { output in
+            output.log.append("command-process-started: \(command.name) -- \(command.description)")
         }
     }
     func commandProcessHadError(_ command: Command, process: ProcessHandle, message: String) {
-        queue.blocking_sync {
-            self.log.append("command-process-error: \(message)")
+        output.withLock { output in
+            output.log.append("command-process-error: \(message)")
         }
     }
     func commandProcessHadOutput(_ command: Command, process: ProcessHandle, data: [UInt8]) {
-        queue.blocking_sync {
-            self.log.append("command-process-output: \(command.name): \(ByteString(data).bytes.asReadableString().debugDescription)")
+        output.withLock { output in
+            output.log.append("command-process-output: \(command.name): \(ByteString(data).bytes.asReadableString().debugDescription)")
         }
     }
     func commandProcessFinished(_ command: Command, process: ProcessHandle, result: CommandExtendedResult) {
-        queue.blocking_sync {
-            self.log.append("command-process-finished: \(command.name)")
+        output.withLock { output in
+            output.log.append("command-process-finished: \(command.name)")
         }
     }
     func determinedRuleNeedsToRun(_ rule: BuildKey, reason: RuleRunReason, inputRule: BuildKey?) {
-        queue.blocking_sync {
-            self.log.append("determined-rule-needs-to-run: \(rule.description)")
+        output.withLock { output in
+            output.log.append("determined-rule-needs-to-run: \(rule.description)")
         }
     }
     func cycleDetected(rules: [BuildKey]) {
-        queue.blocking_sync {
-            self.log.append("cycle-detected: \(rules.map{ $0.key })")
+        output.withLock { output in
+            output.log.append("cycle-detected: \(rules.map{ $0.key })")
         }
     }
     func commandCannotBuildOutputDueToMissingInputs(_ command: Command, output: BuildKey, inputs: [BuildKey]) {
-        queue.blocking_sync {
+        self.output.withLock { outputBox in
             let msg = "commandCannotBuildOutputDueToMissingInputs: \(command.name) \(output.key) \(inputs.map { $0.key })"
-            self.log.append(msg)
-            self.errors.append(msg)
+            outputBox.log.append(msg)
+            outputBox.errors.append(msg)
         }
     }
     func cannotBuildNodeDueToMultipleProducers(output: BuildKey, commands: [Command]) {
-        queue.blocking_sync {
+        self.output.withLock { outputBox in
             let msg = "cannotBuildNodeDueToMultipleProducers: \(output.key) \(commands.map { $0.name })"
-            self.log.append(msg)
-            self.errors.append(msg)
+            outputBox.log.append(msg)
+            outputBox.errors.append(msg)
         }
     }
 
     func shouldResolveCycle(rules: [BuildKey], candidate: BuildKey, action: CycleAction) -> Bool {
-        queue.blocking_sync {
-            self.log.append("should-resolve-cycle: \(rules.map{ $0.key })")
+        output.withLock { output in
+            output.log.append("should-resolve-cycle: \(rules.map{ $0.key })")
         }
         return false;
     }
@@ -521,7 +538,7 @@ fileprivate class LoggingDelegate: BuildSystemDelegate {
             }
 
             func execute(_ command: Command, _ commandInterface: BuildSystemCommandInterface) -> Bool {
-                delegate.log.append("write-command: execute")
+                delegate.append(log: "write-command: execute")
                 do {
                     try delegate.fsProxy.write(Static.outputPath, contents: [])
                     return true
