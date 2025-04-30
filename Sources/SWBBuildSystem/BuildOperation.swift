@@ -1254,7 +1254,7 @@ private class InProcessCommand: SWBLLBuild.ExternalCommand, SWBLLBuild.ExternalD
         // Get the current output delegate from the adaptor.
         //
         // FIXME: This should never fail (since we are executing), but we have seen a crash here with that assumption. For now we are defensive until the source can be tracked down: <rdar://problem/31670274> Diagnose unexpected missing output delegate from: <rdar://problem/31669245> Crash in InProcessCommand.execute()
-        guard let outputDelegate = adaptor.getActiveOutputDelegate(command) else {
+        guard let outputDelegate = await adaptor.getActiveOutputDelegate(command) else {
             return .failed
         }
 
@@ -1604,9 +1604,9 @@ internal final class OperationSystemAdaptor: SWBLLBuild.BuildSystemDelegate, Act
     /// Get the active output delegate for an executing command.
     ///
     /// - returns: The active delegate, or nil if not found.
-    func getActiveOutputDelegate(_ command: Command) -> (any TaskOutputDelegate)? {
+    func getActiveOutputDelegate(_ command: Command) async -> (any TaskOutputDelegate)? {
         // FIXME: This is a very bad idea, doing a sync against the response queue is introducing artificial latency when an in-process command needs to wait for the response queue to flush. However, we also can't simply move to a decoupled lock, because we don't want the command to start reporting output before it has been fully reported as having started. We need to move in-process task to another model.
-        return queue.blocking_sync {
+        return await queue.sync {
             self.commandOutputDelegates[command]
         }
     }

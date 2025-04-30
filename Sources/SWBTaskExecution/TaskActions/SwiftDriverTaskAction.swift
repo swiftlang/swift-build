@@ -94,7 +94,7 @@ final public class SwiftDriverTaskAction: TaskAction, BuildValueValidatingTaskAc
             }
 
             if driverPayload.reportRequiredTargetDependencies != .no && driverPayload.explicitModulesEnabled, let target = task.forTarget {
-                let dependencyModuleNames = try dependencyGraph.queryTransitiveDependencyModuleNames(for: driverPayload.uniqueID)
+                let dependencyModuleNames = try await dependencyGraph.queryTransitiveDependencyModuleNames(for: driverPayload.uniqueID)
                 for dependencyModuleName in dependencyModuleNames {
                     if let targetDependencies = dynamicExecutionDelegate.operationContext.definingTargetsByModuleName[dependencyModuleName] {
                         for targetDependency in targetDependencies {
