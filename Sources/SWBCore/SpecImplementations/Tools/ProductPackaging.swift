@@ -124,18 +124,26 @@ public final class ProductPackagingToolSpec : GenericCommandLineToolSpec, SpecId
                     // This is only supported when App Sandbox or Hardened Runtime is enabled.
                     for (buildSetting, entitlementPrefix) in Self.sandboxFileAccessSettingsAndEntitlements {
                         let fileAccessValue = cbc.scope.evaluate(buildSetting)
+                        let correspondingEntitlementKey: String?
+
                         switch fileAccessValue {
                         case .readOnly:
-                            entitlementsDictionary["\(entitlementPrefix).read-only"] = .plBool(true)
+                            correspondingEntitlementKey = "\(entitlementPrefix).read-only"
                         case .readWrite:
-                            entitlementsDictionary["\(entitlementPrefix).read-write"] = .plBool(true)
+                            correspondingEntitlementKey = "\(entitlementPrefix).read-write"
                         case .none:
-                            break
+                            correspondingEntitlementKey = nil
+                        }
+
+                        // The entitlements file is the ultimate authority, so if this is already configured there the build system should respect that.
+                        if let correspondingEntitlementKey, entitlementsDictionary[correspondingEntitlementKey] == nil {
+                            entitlementsDictionary[correspondingEntitlementKey] = .plBool(true)
                         }
                     }
 
                     for (buildSetting, entitlement) in Self.sandboxAndHardenedRuntimeBooleanEntitlements {
-                        if cbc.scope.evaluate(buildSetting) {
+                        // The entitlements file is the ultimate authority, so if this is already configured there the build system should respect that.
+                        if cbc.scope.evaluate(buildSetting) && entitlementsDictionary[entitlement] == nil {
                             entitlementsDictionary[entitlement] = .plBool(true)
                         }
                     }
