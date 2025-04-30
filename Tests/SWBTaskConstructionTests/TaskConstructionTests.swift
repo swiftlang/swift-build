@@ -8478,12 +8478,14 @@ fileprivate struct TaskConstructionTests: CoreBasedTests {
                     }
                 } else if let val = overrides[typedMemoryOperationsCXX] {
                     if val == "YES" {
-                        task.checkCommandLineContains(["-ftyped-cxx-new-delete"])
+                        task.checkCommandLineContains(["-ftyped-cxx-new-delete", "-ftyped-cxx-delete"])
                     } else if val == "NO" {
-                        task.checkCommandLineContains(["-fno-typed-cxx-new-delete"])
+                        task.checkCommandLineContains(["-fno-typed-cxx-new-delete", "-fno-typed-cxx-delete"])
                     } else if val == "compiler-default" {
                         task.checkCommandLineDoesNotContain("-ftyped-cxx-new-delete")
+                        task.checkCommandLineDoesNotContain("-ftyped-cxx-delete")
                         task.checkCommandLineDoesNotContain("-fno-typed-cxx-new-delete")
+                        task.checkCommandLineDoesNotContain("-fno-typed-cxx-delete")
                     }
                 }
             }
@@ -8501,6 +8503,11 @@ fileprivate struct TaskConstructionTests: CoreBasedTests {
                 await tester.checkBuild(BuildParameters(configuration: "Debug", overrides: override), runDestination: .macOS, fs: fs) { results -> Void in
                     results.checkTarget("AppTarget") { target -> Void in
                         results.checkTask(.matchTarget(target), .matchRuleType("CompileC"), body: {task in test(task: task, overrides: override)})
+                        if let val = override[typedMemoryOperationsCXX], val == "YES" {
+                            results.checkTask(.matchTarget(target), .matchRuleType("Ld"), body: {task in
+                                task.checkCommandLineContains(["-ftyped-cxx-new-delete", "-ftyped-cxx-delete"])
+                            })
+                        }
                     }
                 }
             }
