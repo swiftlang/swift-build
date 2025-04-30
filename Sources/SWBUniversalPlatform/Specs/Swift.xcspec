@@ -806,6 +806,19 @@
                 Description = "Changes existential types to require explicit annotation with the `any` keyword.";
             },
 
+            {
+                Name = "SWIFT_UPCOMING_FEATURE_INFER_ISOLATED_CONFORMANCES";
+                Type = Boolean;
+                DefaultValue = NO;
+                CommandLineArgs = {
+                    YES = ( "-enable-upcoming-feature", "InferIsolatedConformances" );
+                    NO  = ();
+                };
+                DisplayName = "Infer Isolated Conformances";
+                Category = "Upcoming Features";
+                Description = "Infer conformances of global-actor isolated types as isolated to the same actor unless isolation is explicitly specified as `nonisolated`.";
+            },
+
             // Experimental features
             {
                 Name = "SWIFT_EXPERIMENTAL_FEATURE_DEBUG_DESCRIPTION_MACRO";
