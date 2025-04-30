@@ -23,16 +23,8 @@ public struct DependencySettings : Serializable, Sendable, Encodable {
     public let dependencies: OrderedSet<String>
     public let verification: Bool
 
-
-    public init(_ scope: MacroEvaluationScope) {
-        self.init(
-            dependencies: scope.evaluate(BuiltinMacros.DEPENDENCIES),
-            verification: scope.evaluate(BuiltinMacros.DEPENDENCIES_VERIFICATION)
-        )
-    }
-
     public init(
-        dependencies: [String],
+        dependencies: any Sequence<String>,
         verification: Bool
     ) {
         self.dependencies = OrderedSet(dependencies)
@@ -51,7 +43,22 @@ public struct DependencySettings : Serializable, Sendable, Encodable {
         self.dependencies = try deserializer.deserialize()
         self.verification = try deserializer.deserialize()
     }
+}
 
+extension DependencySettings {
+    public init(_ scope: MacroEvaluationScope) {
+        let dependencies = scope.evaluate(BuiltinMacros.DEPENDENCIES)
+
+        // We cannot distinguish between "DEPENDENCIES" not set and set to an empty list.
+        // Turn verification off it we have an empty list, assuming that it is not set.
+        // This means that there is no way at the moment to declare that a project with no dependencies should have verification enabled.
+        let verification = !dependencies.isEmpty && scope.evaluate(BuiltinMacros.DEPENDENCIES_VERIFICATION)
+
+        self.init(
+            dependencies: dependencies,
+            verification: verification
+        )
+    }
 }
 
 // Task-specific settings
