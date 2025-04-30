@@ -13,9 +13,6 @@
 public import SWBUtil
 public import SWBMacro
 
-// Needed to resolve BuiltinMacros … why?
-import SWBCore
-
 import Foundation
 
 // Global/target dependency settings
