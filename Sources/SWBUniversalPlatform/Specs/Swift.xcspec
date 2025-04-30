@@ -819,6 +819,19 @@
                 Description = "Infer conformances of global-actor isolated types as isolated to the same actor unless isolation is explicitly specified as `nonisolated`.";
             },
 
+            {
+                Name = "SWIFT_UPCOMING_FEATURE_NONISOLATED_NONSENDING_BY_DEFAULT";
+                Type = Boolean;
+                DefaultValue = NO;
+                CommandLineArgs = {
+                    YES = ( "-enable-upcoming-feature", "NonisolatedNonsendingByDefault" );
+                    NO  = ();
+                };
+                DisplayName = "Nonisolated Nonsending By Default";
+                Category = "Upcoming Features";
+                Description = "Runs nonisolated async functions on the caller's actor by default unless the function is explicitly marked `@concurrent`.";
+            },
+
             // Experimental features
             {
                 Name = "SWIFT_EXPERIMENTAL_FEATURE_DEBUG_DESCRIPTION_MACRO";
