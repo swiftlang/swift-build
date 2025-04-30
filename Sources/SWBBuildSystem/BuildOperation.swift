@@ -1850,14 +1850,18 @@ internal final class OperationSystemAdaptor: SWBLLBuild.BuildSystemDelegate, Act
             return
         }
 
-        queue.async {
-            // Find the output delegate, and remove it from the active set.
-            guard let outputDelegate = self.commandOutputDelegates.removeValue(forKey: command) else {
-                // If there's no outputDelegate, the command never started (i.e. it was skipped by shouldCommandStart().
-                return
-            }
+        guard let outputDelegate = (queue.blocking_sync { self.commandOutputDelegates.removeValue(forKey: command) }) else {
+            // If there's no outputDelegate, the command never started (i.e. it was skipped by shouldCommandStart().
+            return
+        }
 
-            outputDelegate.emitSandboxingViolations(task: task, commandResult: result)
+        // We can call this here because we're on an llbuild worker thread. This shouldn't be used while on `self.queue` because we have Swift async work elsewhere which blocks on that queue.
+        let sandboxViolations = task.isSandboxed && result == .failed ? task.extractSandboxViolationMessages_ASYNC_UNSAFE(startTime: outputDelegate.startTime) : []
+
+        queue.async {
+            for message in sandboxViolations {
+                outputDelegate.emit(Diagnostic(behavior: .error, location: .unknown, data: DiagnosticData(message)))
+            }
 
             // This may be updated by commandProcessFinished if it was an
             // ExternalCommand, so only update the exit status in output delegate if

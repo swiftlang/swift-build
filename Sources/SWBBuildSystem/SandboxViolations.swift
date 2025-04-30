@@ -10,38 +10,33 @@
 //
 //===----------------------------------------------------------------------===//
 
-import Foundation
+package import Foundation
 import SWBUtil
 package import SWBCore
-package import SWBTaskExecution
 
 #if os(macOS)
 import OSLog
 #endif
 
-extension TaskOutputDelegate {
-    package func emitSandboxingViolations(task: any ExecutableTask, commandResult result: CommandResult) {
-        guard task.isSandboxed && result == .failed else {
-            return
-        }
-
-        for message in task.extractSandboxViolationMessages(startTime: startTime) {
-            emit(Diagnostic(behavior: .error, location: .unknown, data: DiagnosticData(message)))
-        }
-    }
-}
-
 extension ExecutableTask {
     /// Whether or not this task is being executed within a sandbox which restricts filesystem access to declared inputs and outputs.
     ///
     /// - note: Currently this will be true for any task whose executable is `sandbox-exec`, not only tasks which were created using _Swift Builds_ sandboxing mechanism and therefore whose diagnostics contain the message sentinel that we look for. However, this shouldn't really matter in practice at this time as if this property is true for a task not sandboxed _by Swift Build_, we'll simply not extract any diagnostics for it. The only way to get into this situation is to create such tasks in the PIF, which end-users can't do.
-    fileprivate var isSandboxed: Bool {
+    package var isSandboxed: Bool {
         return commandLine.first?.asByteString == ByteString(encodingAsUTF8: "/usr/bin/sandbox-exec")
     }
 
-    fileprivate func extractSandboxViolationMessages(startTime: Date) -> [String] {
+    /// This must be called from threads which aren't Swift async worker threads. This func uses OSLog which kicks off async work and waits for it on a semaphore, causing deadlocks when invoked from Swift Concurrency worker threads.
+    @available(*, noasync)
+    package func extractSandboxViolationMessages_ASYNC_UNSAFE(startTime: Date) -> [String] {
         var res: [String] = []
         #if os(macOS)
+        withUnsafeCurrentTask { task in
+            if task != nil {
+                preconditionFailure("This function should not be invoked from the Swift Concurrency thread pool as it may lead to deadlock via thread starvation.")
+            }
+        }
+
         if let store = try? OSLogStore.local() {
             let query = String("((processID == 0 AND senderImagePath CONTAINS[c] \"/Sandbox\") OR (process == \"sandboxd\" AND subsystem == \"com.apple.sandbox.reporting\")) AND (eventMessage CONTAINS[c] %@)")
             let endTime = Date()
