@@ -5,6 +5,9 @@
       location = "container:../../swift-build">
    </FileRef>
    <FileRef
-      location = "container:../../swiftpm">
+      location = "container:../../swift-llbuild">
+   </FileRef>
+   <FileRef
+      location = "container:../../swift-package-manager">
    </FileRef>
 </Workspace>
