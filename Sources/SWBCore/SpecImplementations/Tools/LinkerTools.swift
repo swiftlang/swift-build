@@ -675,7 +675,7 @@ public final class LdLinkerSpec : GenericLinkerSpec, SpecIdentifierType, @unchec
             dependencySettings: DependencySettings(cbc.scope)
         )
 
-        if (taskDependencySettings.dependencySettings.verification) {
+        if taskDependencySettings.dependencySettings.verification {
             commandLine += [
                 "-Xlinker",
                 "-trace_file",

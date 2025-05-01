@@ -41,7 +41,7 @@ public struct TaskDependencyVerification {
     ) async -> CommandResult where T : Decodable {
         do {
             if let taskDependencySettings = (ctx.task.payload as? (any TaskDependencySettingsPayload))?.taskDependencySettings {
-                if (taskDependencySettings.dependencySettings.verification) {
+                if taskDependencySettings.dependencySettings.verification {
                     return try await execWithDependencyVerification(
                         ctx: ctx,
                         taskDependencySettings: taskDependencySettings,
@@ -67,7 +67,7 @@ public struct TaskDependencyVerification {
     ) async throws -> CommandResult where T : Decodable {
 
         let traceFile = taskDependencySettings.traceFile
-        if (ctx.executionDelegate.fs.exists(traceFile)) {
+        if ctx.executionDelegate.fs.exists(traceFile) {
             try ctx.executionDelegate.fs.remove(traceFile)
         }
 
@@ -78,7 +78,7 @@ public struct TaskDependencyVerification {
 
         let execResult = try await adapter.exec(ctx: ctx, env: env)
 
-        if (execResult == .succeeded) {
+        if execResult == .succeeded) {
             let traceData = try readAndMaybeMergeTraceFile(
                 type: T.self,
                 fs: ctx.executionDelegate.fs,
@@ -92,7 +92,7 @@ public struct TaskDependencyVerification {
                 dependencySettings: taskDependencySettings.dependencySettings,
             )
 
-            if (!verified) {
+            if !verified {
                 return .failed
             }
         }
@@ -167,7 +167,7 @@ extension TaskDependencyVerification.Adapter {
         }
 
         // Any left are undeclared dependencies
-        if (!used.isEmpty) {
+        if !used.isEmpty {
             let undeclared = used.map {
                 $0.key + "\n  " + $0.value.map { "  - " + $0.str }.joined(separator: "\n  ")
             }
