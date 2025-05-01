@@ -10,9 +10,10 @@
 //
 //===----------------------------------------------------------------------===//
 
-public import SWBUtil
+
 public import SWBCore
 
+import SWBUtil
 import Foundation
 
 // A harness for use in a task action implementation to perform trace-file-based dependency verification
@@ -153,7 +154,7 @@ extension TaskDependencyVerification.Adapter {
         // Group used files by inferred logical dependency name
         var used = Dictionary(
             grouping: files,
-            by: { $0.inferDependencyName() ?? "" }
+            by: { inferDependencyName($0) ?? "" }
         )
             .mapValues { OrderedSet($0)}
 
@@ -179,23 +180,24 @@ extension TaskDependencyVerification.Adapter {
 
         return true
     }
-}
 
-public extension Path {
-    func inferDependencyName() -> String? {
-        findFrameworkName() ?? findLibraryName()
+    // The following is a provisional/incomplete mechanism for resolving a logical dependency from a file path.
+    // Ultimately, a discrete subsystem will be required that is more sophisticated than just interrogating components of the path.
+    // This is currently the minimal viable implementation to satisfy a functional milestone and is not intended for general use.
+    private func inferDependencyName(_ file: Path) -> String? {
+        findFrameworkName(file) ?? findLibraryName(file)
     }
 
-    func findFrameworkName() -> String? {
-        if fileExtension == "framework" {
-            return basenameWithoutSuffix
+    private func findFrameworkName(_ file: Path) -> String? {
+        if file.fileExtension == "framework" {
+            return file.basenameWithoutSuffix
         }
-        return dirname.isEmpty || dirname.isRoot ? nil : dirname.findFrameworkName()
+        return file.dirname.isEmpty || file.dirname.isRoot ? nil : findFrameworkName(file.dirname)
     }
 
-    func findLibraryName() -> String? {
-        if fileExtension == "a" && basename.starts(with: "lib") {
-            return String(basenameWithoutSuffix.suffix(from: str.index(str.startIndex, offsetBy: 3)))
+    private func findLibraryName(_ file: Path) -> String? {
+        if file.fileExtension == "a" && file.basename.starts(with: "lib") {
+            return String(file.basenameWithoutSuffix.suffix(from: file.str.index(file.str.startIndex, offsetBy: 3)))
         }
         return nil
     }
