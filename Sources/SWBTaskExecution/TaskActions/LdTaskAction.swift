@@ -41,7 +41,7 @@ public final class LdTaskAction: TaskAction {
     private struct LdAdapter: TaskDependencyVerification.Adapter {
         typealias T = TraceData
 
-        var outerTraceFileEnvVar = "LD_TRACE_FILE"
+        let outerTraceFileEnvVar = "LD_TRACE_FILE"
 
         private static let inherentDependencies = [
             "libSystem.B.tbd",

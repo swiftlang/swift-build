@@ -460,7 +460,7 @@ public final class ClangNonModularCompileTaskAction: TaskAction {
     private struct ClangAdapter: TaskDependencyVerification.Adapter {
         typealias T = TraceData
 
-        var outerTraceFileEnvVar = "CC_PRINT_HEADERS_FILE"
+        let outerTraceFileEnvVar = "CC_PRINT_HEADERS_FILE"
 
         func exec(ctx: TaskExecutionContext, env: [String : String]) async throws -> CommandResult {
             var env = env
