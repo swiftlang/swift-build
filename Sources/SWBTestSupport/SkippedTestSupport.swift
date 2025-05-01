@@ -12,6 +12,7 @@
 
 import class Foundation.FileManager
 import class Foundation.ProcessInfo
+import struct Foundation.URL
 
 package import SWBUtil
 package import SWBCore
@@ -391,6 +392,19 @@ extension Trait where Self == Testing.ConditionTrait {
 
                 return false
             }
+        }
+    }
+
+    package static var requireCASValidation: Self {
+        enabled {
+            guard try await ConditionTraitContext.shared.supportsCompilationCaching, UserDefaults.enableCASValidation else {
+                return false
+            }
+            guard let path = try? await ConditionTraitContext.shared.llvmCasToolPath else {
+                return false
+            }
+            let result = try await Process.getOutput(url: URL(fileURLWithPath: path.str), arguments: ["--help"])
+            return result.stdout.contains(ByteString("validate-if-needed"))
         }
     }
 

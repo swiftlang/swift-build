@@ -148,6 +148,8 @@ fileprivate struct DeferredExecutionTests: CoreBasedTests {
                         case "derq":
                             defer { derqExpectation.confirm() }
                             return .result(status: .exit(0), stdout: Data(), stderr: Data())
+                        case "llvm-cas":
+                            break
                         default:
                             Issue.record("Unexpected deferred execution request for command line: \(commandLine), workingDirectory: \(String(describing: workingDirectory)), environment: \(environment)")
                         }

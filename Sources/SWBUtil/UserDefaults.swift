@@ -203,6 +203,10 @@ public enum UserDefaults: Sendable {
         return hasValue(forKey: "EnableSDKStatCaching") ? bool(forKey: "EnableSDKStatCaching") : true
     }
 
+    public static var enableCASValidation: Bool {
+        return hasValue(forKey: "EnableCASValidation") ? bool(forKey: "EnableCASValidation") : true
+    }
+
     public static var useTargetDependenciesForImpartedBuildSettings: Bool {
         return bool(forKey: "UseTargetDependenciesForImpartedBuildSettings")
     }

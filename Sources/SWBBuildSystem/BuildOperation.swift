@@ -419,7 +419,7 @@ package final class BuildOperation: BuildSystemOperation {
         }
 
         // Perform any needed steps before we kick off the build.
-        if let (warnings, errors) = prepareForBuilding() {
+        if let (warnings, errors) = await prepareForBuilding() {
             // Emit any warnings and errors.  If there were any errors, then bail out.
             for message in warnings { buildOutputDelegate.warning(message) }
             for message in errors { buildOutputDelegate.error(message) }
@@ -809,7 +809,7 @@ package final class BuildOperation: BuildSystemOperation {
         return delegate.buildComplete(self, status: effectiveStatus, delegate: buildOutputDelegate, metrics: .init(counters: aggregatedCounters))
     }
 
-    func prepareForBuilding() -> ([String], [String])? {
+    func prepareForBuilding() async -> ([String], [String])? {
         let warnings = [String]()       // Not presently used
         var errors = [String]()
 
@@ -829,7 +829,59 @@ package final class BuildOperation: BuildSystemOperation {
             }
         }
 
+        if UserDefaults.enableCASValidation {
+            for info in buildDescription.casValidationInfos {
+                do {
+                    try await validateCAS(info)
+                } catch {
+                    errors.append("cas validation failed for \(info.options.casPath.str)")
+                }
+            }
+        }
+
         return (warnings.count > 0 || errors.count > 0) ? (warnings, errors) : nil
+    }
+
+    func validateCAS(_ info: BuildDescription.CASValidationInfo) async throws {
+        assert(UserDefaults.enableCASValidation)
+
+        let casPath = info.options.casPath
+        let ruleInfo = "ValidateCAS \(casPath.str) \(info.llvmCasExec.str)"
+
+        let signatureCtx = InsecureHashContext()
+        signatureCtx.add(string: "ValidateCAS")
+        signatureCtx.add(string: casPath.str)
+        signatureCtx.add(string: info.llvmCasExec.str)
+        let signature = signatureCtx.signature
+
+        let activityId = delegate.beginActivity(self, ruleInfo: ruleInfo, executionDescription: "Validate CAS contents at \(casPath.str)", signature: signature, target: nil, parentActivity: nil)
+        var status: BuildOperationTaskEnded.Status = .failed
+        defer {
+            delegate.endActivity(self, id: activityId, signature: signature, status: status)
+        }
+
+        var commandLine = [
+            info.llvmCasExec.str,
+            "-cas", casPath.str,
+            "-validate-if-needed",
+            "-check-hash",
+            "-allow-recovery",
+        ]
+        if let pluginPath = info.options.pluginPath {
+            commandLine.append(contentsOf: [
+                "-fcas-plugin-path", pluginPath.str
+            ])
+        }
+        let result: Processes.ExecutionResult = try await clientDelegate.executeExternalTool(commandLine: commandLine)
+        // In a task we might use a discovered tool info to detect if the tool supports validation, but without that scaffolding, just check the specific error.
+        if result.exitStatus == .exit(1) && result.stderr.contains(ByteString("Unknown command line argument '-validate-if-needed'")) {
+            delegate.emit(data: ByteString("validation not supported").bytes, for: activityId, signature: signature)
+            status = .succeeded
+        } else {
+            delegate.emit(data: ByteString(result.stderr).bytes, for: activityId, signature: signature)
+            delegate.emit(data: ByteString(result.stdout).bytes, for: activityId, signature: signature)
+            status = result.exitStatus.isSuccess ? .succeeded : result.exitStatus.wasCanceled ? .cancelled : .failed
+        }
     }
 
     /// Cancel the executing build operation.

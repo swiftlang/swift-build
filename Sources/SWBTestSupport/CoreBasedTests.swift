@@ -159,6 +159,14 @@ extension CoreBasedTests {
         }
     }
 
+    /// The path to llvm-cas in the default toolchain.
+    package var llvmCasToolPath: Path {
+        get async throws {
+            let (core, defaultToolchain) = try await coreAndToolchain()
+            return try #require(defaultToolchain.executableSearchPaths.findExecutable(operatingSystem: core.hostOperatingSystem, basename: "llvm-cas"), "couldn't find llvm-cas in default toolchain")
+        }
+    }
+
     /// The path to the TAPI tool in the default toolchain.
     package var tapiToolPath: Path {
         get async throws {
