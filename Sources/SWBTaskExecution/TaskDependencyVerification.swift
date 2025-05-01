@@ -78,7 +78,7 @@ public struct TaskDependencyVerification {
 
         let execResult = try await adapter.exec(ctx: ctx, env: env)
 
-        if execResult == .succeeded) {
+        if execResult == .succeeded {
             let traceData = try readAndMaybeMergeTraceFile(
                 type: T.self,
                 fs: ctx.executionDelegate.fs,
