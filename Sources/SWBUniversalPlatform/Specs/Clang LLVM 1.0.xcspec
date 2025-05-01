@@ -2736,6 +2736,7 @@
                     YES = ();
                     NO = (
                         "-D_LIBCPP_HAS_NO_ASAN",
+                        "-D_LIBCPP_HAS_ASAN=0",
                     );
                 };
                 Condition = "$(CLANG_ADDRESS_SANITIZER)";
@@ -2924,8 +2925,13 @@
                 DefaultValue = compiler-default;
                 CommandLineArgs = {
                   compiler-default = ();
-                  YES = ("-ftyped-cxx-new-delete");
-                  NO  = ("-fno-typed-cxx-new-delete");
+                  YES = ("-ftyped-cxx-new-delete", "-ftyped-cxx-delete");
+                  NO  = ("-fno-typed-cxx-new-delete", "-fno-typed-cxx-delete");
+                };
+                AdditionalLinkerArgs = {
+                    compiler-default = ();
+                    YES = ("-ftyped-cxx-new-delete", "-ftyped-cxx-delete");
+                    NO = ();
                 };
             },
             // Index-while-building options, not visible in build settings.

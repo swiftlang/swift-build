@@ -40,7 +40,7 @@ extension ProjectModel {
             case GENERATE_INFOPLIST_FILE
             case GCC_C_LANGUAGE_STANDARD
             case GCC_OPTIMIZATION_LEVEL
-            case GENERATE_MASTER_OBJECT_FILE
+            case GENERATE_PRELINK_OBJECT_FILE
             case INFOPLIST_FILE
             case IPHONEOS_DEPLOYMENT_TARGET
             case KEEP_PRIVATE_EXTERNS
@@ -106,6 +106,9 @@ extension ProjectModel {
             case TARGETED_DEVICE_FAMILY
             case LINKER_DRIVER
             case LD_WARN_DUPLICATE_LIBRARIES
+
+            // @available(*, deprecated, renamed: "GENERATE_PRELINK_OBJECT_FILE") // can't add @available because it breaks CaseIterable
+            case GENERATE_MASTER_OBJECT_FILE // ignore-unacceptable-language
         }
 
         public enum MultipleValueSetting: String, CaseIterable, Sendable, Hashable, Codable {

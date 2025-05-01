@@ -17,8 +17,11 @@ import Foundation
 struct CMakeSmokeTest: CommandPlugin {
     func performCommand(context: PluginContext, arguments: [String]) async throws {
         var args = ArgumentExtractor(arguments)
-
         let hostOS = try OS.host()
+
+        guard args.extractFlag(named: "disable-sandbox") > 0 else {
+            throw Errors.missingRequiredOption("--disable-sandbox")
+        }
 
         guard let cmakePath = args.extractOption(named: "cmake-path").last else { throw Errors.missingRequiredOption("--cmake-path") }
         print("using cmake at \(cmakePath)")
@@ -26,8 +29,10 @@ struct CMakeSmokeTest: CommandPlugin {
         guard let ninjaPath = args.extractOption(named: "ninja-path").last else { throw Errors.missingRequiredOption("--ninja-path") }
         print("using ninja at \(ninjaPath)")
         let ninjaURL = URL(filePath: ninjaPath)
-        guard let sysrootPath = args.extractOption(named: "sysroot-path").last else { throw Errors.missingRequiredOption("--sysroot-path") }
-        print("using sysroot at \(sysrootPath)")
+        let sysrootPath = args.extractOption(named: "sysroot-path").last
+        if let sysrootPath {
+            print("using sysroot at \(sysrootPath)")
+        }
 
         let moduleCachePath = context.pluginWorkDirectoryURL.appending(component: "module-cache").path()
 
@@ -35,29 +40,32 @@ struct CMakeSmokeTest: CommandPlugin {
         let swiftBuildBuildURL = context.pluginWorkDirectoryURL.appending(component: "swift-build")
         print("swift-build: \(swiftBuildURL.path())")
 
-        let swiftToolsSupportCoreURL = try findSiblingRepository("swift-tools-support-core", swiftBuildURL: swiftBuildURL)
+        let swiftToolsSupportCoreURL = try findDependency("swift-tools-support-core", pluginContext: context)
         let swiftToolsSupportCoreBuildURL = context.pluginWorkDirectoryURL.appending(component: "swift-tools-support-core")
 
-        let swiftSystemURL = try findSiblingRepository("swift-system", swiftBuildURL: swiftBuildURL)
+        let swiftSystemURL = try findDependency("swift-system", pluginContext: context)
         let swiftSystemBuildURL = context.pluginWorkDirectoryURL.appending(component: "swift-system")
 
-        let llbuildURL = try findSiblingRepository("llbuild", swiftBuildURL: swiftBuildURL)
+        let llbuildURL = try findDependency("swift-llbuild", pluginContext: context)
         let llbuildBuildURL = context.pluginWorkDirectoryURL.appending(component: "llbuild")
 
-        let swiftArgumentParserURL = try findSiblingRepository("swift-argument-parser", swiftBuildURL: swiftBuildURL)
+        let swiftArgumentParserURL = try findDependency("swift-argument-parser", pluginContext: context)
         let swiftArgumentParserBuildURL = context.pluginWorkDirectoryURL.appending(component: "swift-argument-parser")
 
-        let swiftDriverURL = try findSiblingRepository("swift-driver", swiftBuildURL: swiftBuildURL)
+        let swiftDriverURL = try findDependency("swift-driver", pluginContext: context)
         let swiftDriverBuildURL = context.pluginWorkDirectoryURL.appending(component: "swift-driver")
 
         for url in [swiftToolsSupportCoreBuildURL, swiftSystemBuildURL, llbuildBuildURL, swiftArgumentParserBuildURL, swiftDriverBuildURL, swiftBuildBuildURL] {
             try FileManager.default.createDirectory(at: url, withIntermediateDirectories: true)
         }
 
-        let sharedSwiftFlags = [
-            "-sdk", sysrootPath,
+        var sharedSwiftFlags = [
             "-module-cache-path", moduleCachePath
         ]
+
+        if let sysrootPath {
+            sharedSwiftFlags += ["-sdk", sysrootPath]
+        }
 
         let cMakeProjectArgs = [
             "-DArgumentParser_DIR=\(swiftArgumentParserBuildURL.appending(components: "cmake", "modules").path())",
@@ -107,11 +115,28 @@ struct CMakeSmokeTest: CommandPlugin {
         print("Built swift-build")
     }
 
-    func findSiblingRepository(_ name: String, swiftBuildURL: URL) throws -> URL {
-        let url = swiftBuildURL.deletingLastPathComponent().appending(component: name)
-        print("\(name): \(url.path())")
-        guard FileManager.default.fileExists(atPath: url.path()) else { throw Errors.missingRepository(url.path()) }
-        return url
+    func findDependency(_ name: String, pluginContext: PluginContext) throws -> URL {
+        var stack: [Package] = pluginContext.package.dependencies.map { $0.package }
+        var visited = Set(stack.map { $0.id })
+        var transitiveDependencies = pluginContext.package.dependencies.map { $0.package }
+        while let current = stack.popLast() {
+            for dependency in current.dependencies {
+                guard visited.insert(dependency.package.id).inserted else {
+                    continue
+                }
+                transitiveDependencies.append(dependency.package)
+                stack.append(dependency.package)
+            }
+        }
+        guard let dependency = transitiveDependencies.first(where: { $0.id == name }) else {
+            throw Errors.missingRepository(name)
+        }
+        let dependencyURL = dependency.directoryURL
+        print("\(name): \(dependencyURL.path())")
+        guard FileManager.default.fileExists(atPath: dependencyURL.path()) else {
+            throw Errors.missingRepository(dependencyURL.path())
+        }
+        return dependencyURL
     }
 }
 

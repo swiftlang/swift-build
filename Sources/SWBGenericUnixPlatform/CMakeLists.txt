@@ -28,10 +28,18 @@ file(CONFIGURE
   ]]
   ESCAPE_QUOTES @ONLY NEWLINE_STYLE LF)
 
-add_library(SWBGenericUnixPlatform STATIC
+add_library(SWBGenericUnixPlatform
   Plugin.swift)
 target_link_libraries(SWBGenericUnixPlatform PUBLIC
   SWBCore
   SWBUtil)
 target_sources(SWBGenericUnixPlatform PRIVATE
   "${CMAKE_CURRENT_BINARY_DIR}/resource_bundle_accessor.swift")
+
+set_target_properties(SWBGenericUnixPlatform PROPERTIES
+  INTERFACE_INCLUDE_DIRECTORIES ${CMAKE_Swift_MODULE_DIRECTORY})
+
+set_property(GLOBAL APPEND PROPERTY SWIFTBUILD_EXPORTS SWBGenericUnixPlatform)
+
+install(TARGETS SWBGenericUnixPlatform
+    ARCHIVE DESTINATION "${SwiftBuild_INSTALL_LIBDIR}")

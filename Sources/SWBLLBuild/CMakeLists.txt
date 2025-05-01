@@ -14,5 +14,12 @@ set_target_properties(SWBLLBuild PROPERTIES
   Swift_LANGUAGE_VERSION 6)
 target_link_libraries(SWBLLBuild PUBLIC
   SWBUtil
-  $<$<NOT:$<BOOL:${SwiftBuild_USE_LLBUILD_FRAMEWORK}>>:libllbuild>
   $<$<NOT:$<BOOL:${SwiftBuild_USE_LLBUILD_FRAMEWORK}>>:llbuildSwift>)
+
+set_target_properties(SWBLLBuild PROPERTIES
+  INTERFACE_INCLUDE_DIRECTORIES ${CMAKE_Swift_MODULE_DIRECTORY})
+
+set_property(GLOBAL APPEND PROPERTY SWIFTBUILD_EXPORTS SWBLLBuild)
+
+install(TARGETS SWBLLBuild
+    ARCHIVE DESTINATION "${SwiftBuild_INSTALL_LIBDIR}")

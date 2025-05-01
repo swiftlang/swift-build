@@ -326,10 +326,11 @@ fileprivate struct SwiftTaskConstructionTests: CoreBasedTests {
                             #expect(fileDict["dependencies"]?.stringValue == "\(SRCROOT)/build/aProject.build/Debug/AppTarget.build/Objects-normal/x86_64/\(filename).d")
                             #expect(fileDict["swift-dependencies"]?.stringValue == "\(SRCROOT)/build/aProject.build/Debug/AppTarget.build/Objects-normal/x86_64/\(filename).swiftdeps")
                             #expect(fileDict["swiftmodule"]?.stringValue == "\(SRCROOT)/build/aProject.build/Debug/AppTarget.build/Objects-normal/x86_64/\(filename)~partial.swiftmodule")
+                            #expect(fileDict["llvm-bc"]?.stringValue == "\(SRCROOT)/build/aProject.build/Debug/AppTarget.build/Objects-normal/x86_64/\(filename).bc")
                             #expect(fileDict["const-values"]?.stringValue == "\(SRCROOT)/build/aProject.build/Debug/AppTarget.build/Objects-normal/x86_64/\(filename).swiftconstvalues")
                             if swiftFeatures.has(.indexUnitOutputPathWithoutWarning) {
                                 #expect(fileDict["index-unit-output-path"]?.stringValue == "/aProject.build/Debug/AppTarget.build/Objects-normal/x86_64/\(filename).o")
-                                #expect(fileDict.count == 7)
+                                #expect(fileDict.count == 8)
                             } else {
                                 #expect(fileDict.count == 6)
                             }
@@ -645,6 +646,7 @@ fileprivate struct SwiftTaskConstructionTests: CoreBasedTests {
                                                 "SWIFT_PACKAGE_NAME": "FooPkg",
                                                 "SWIFT_EMIT_MODULE_INTERFACE": "YES",
                                                 "SWIFT_ENABLE_EXPLICIT_MODULES": "YES",
+                                                "SWIFT_DISABLE_INCREMENTAL_SCAN": "YES",
                                                ]),
                     ],
                     buildPhases: [
@@ -830,6 +832,7 @@ fileprivate struct SwiftTaskConstructionTests: CoreBasedTests {
                                                 "DEFINES_MODULE": "YES",
                                                 "SWIFT_VERSION": swiftVersion,
                                                 "SWIFT_EMIT_MODULE_INTERFACE": "YES",
+                                                "SWIFT_DISABLE_INCREMENTAL_SCAN": "YES",
                                                ]),
                     ],
                     buildPhases: [
@@ -1263,9 +1266,11 @@ fileprivate struct SwiftTaskConstructionTests: CoreBasedTests {
                         } else {
                             compileTask.checkCommandLineContains(["-lto=llvm-thin"])
                         }
+                        compileTask.checkOutputs(contain: [.namePattern(.suffix("Bar.bc"))])
                     }
                     results.checkTask(.matchTarget(target), .matchRuleType("Libtool")) { archiverTask in
                         results.checkTaskFollows(archiverTask, .matchTarget(target), .matchRuleType("SwiftDriver Compilation"))
+                        archiverTask.checkInputs(contain: [.namePattern(.suffix("Bar.bc"))])
                     }
                 }
                 results.checkTarget("CoreFoo") { target in
@@ -1275,9 +1280,11 @@ fileprivate struct SwiftTaskConstructionTests: CoreBasedTests {
                         } else {
                             compileTask.checkCommandLineContains(["-lto=llvm-thin"])
                         }
+                        compileTask.checkOutputs(contain: [.namePattern(.suffix("Foo.bc"))])
                     }
                     results.checkTask(.matchTarget(target), .matchRuleType("Ld")) { linkerTask in
                         results.checkTaskFollows(linkerTask, .matchTarget(target), .matchRuleType("SwiftDriver Compilation"))
+                        linkerTask.checkInputs(contain: [.namePattern(.suffix("Foo.bc"))])
                         if ltoSetting == "YES_THIN" {
                             linkerTask.checkCommandLineMatches([.anySequence, "-Xlinker", "-cache_path_lto", "-Xlinker", .suffix("/LTOCache"), .anySequence])
                         }
@@ -1524,6 +1531,64 @@ fileprivate struct SwiftTaskConstructionTests: CoreBasedTests {
             results.checkTarget("Exec") { target in
                 results.checkTask(.matchTarget(target), .matchRuleType("SwiftDriver Compilation Requirements")) { task in
                     task.checkCommandLineDoesNotContain("-explicit-module-build")
+                }
+            }
+            results.checkNoDiagnostics()
+        }
+    }
+
+    @Test(.requireSDKs(.macOS), .enabled(if: LibSwiftDriver.supportsDriverFlag(spelled: "-incremental-dependency-scan")))
+    func optOutIncrementalScanning() async throws {
+        let testProject = try await TestProject(
+            "aProject",
+            groupTree: TestGroup(
+                "SomeFiles", path: "Sources",
+                children: [
+                    TestFile("main.swift"),
+                ]),
+            buildConfigurations: [
+                TestBuildConfiguration(
+                    "Debug",
+                    buildSettings: [
+                        "PRODUCT_NAME": "$(TARGET_NAME)",
+                        "SWIFT_ENABLE_EXPLICIT_MODULES": "YES",
+                    ]),
+            ],
+            targets: [
+                TestStandardTarget(
+                    "Exec", type: .commandLineTool,
+                    buildConfigurations: [
+                        TestBuildConfiguration("Debug",
+                                               buildSettings: [
+                                                "SWIFT_EXEC": swiftCompilerPath.str,
+                                                "SWIFT_VERSION": swiftVersion,
+                                               ]),
+                    ],
+                    buildPhases: [
+                        TestSourcesBuildPhase([
+                            "main.swift",
+                        ]),
+                    ])
+            ])
+        let tester = try await TaskConstructionTester(getCore(), testProject)
+
+        await tester.checkBuild(runDestination: .macOS) { results in
+            results.checkTarget("Exec") { target in
+                results.checkTask(.matchTarget(target), .matchRuleType("SwiftDriver Compilation Requirements")) { task in
+                    task.checkCommandLineContains(["-explicit-module-build"])
+                    task.checkCommandLineContains(["-incremental"])
+                    task.checkCommandLineContains(["-incremental-dependency-scan"])
+                }
+            }
+            results.checkNoDiagnostics()
+        }
+
+        await tester.checkBuild(BuildParameters(configuration: "Debug", overrides: ["SWIFT_DISABLE_INCREMENTAL_SCAN": "YES"]), runDestination: .macOS) { results in
+            results.checkTarget("Exec") { target in
+                results.checkTask(.matchTarget(target), .matchRuleType("SwiftDriver Compilation Requirements")) { task in
+                    task.checkCommandLineContains(["-explicit-module-build"])
+                    task.checkCommandLineContains(["-incremental"])
+                    task.checkCommandLineDoesNotContain("-incremental-dependency-scan")
                 }
             }
             results.checkNoDiagnostics()
@@ -3462,6 +3527,94 @@ fileprivate struct SwiftTaskConstructionTests: CoreBasedTests {
                 results.checkTarget("Complete") { target in
                     results.checkTask(.matchTarget(target), .matchRuleType("SwiftDriver Compilation")) { task in
                         task.checkCommandLineContains(["-enable-upcoming-feature", "StrictConcurrency"])
+                    }
+                }
+            }
+        }
+    }
+
+    @Test(.requireSDKs(.macOS))
+    func defaultIsolationFlag() async throws {
+        try await withTemporaryDirectory { tmpDir in
+            let srcRoot = tmpDir.join("srcroot")
+            let testProject = try await TestProject(
+                "ProjectName",
+                sourceRoot: srcRoot,
+                groupTree: TestGroup(
+                    "SomeFiles", path: "Sources",
+                    children: [
+                        TestFile("File1.swift"),
+                        TestFile("File2.swift"),
+                        TestFile("File3.swift"),
+                    ]),
+                targets: [
+                    TestStandardTarget(
+                        "Default",
+                        type: .framework,
+                        buildConfigurations: [
+                            TestBuildConfiguration("Debug", buildSettings: [
+                                "GENERATE_INFOPLIST_FILE": "YES",
+                                "PRODUCT_NAME": "$(TARGET_NAME)",
+                                "SWIFT_EXEC": swiftCompilerPath.str,
+                                "SWIFT_VERSION": "5.0",
+                            ]),
+                        ],
+                        buildPhases: [
+                            TestSourcesBuildPhase([
+                                TestBuildFile("File1.swift"),
+                            ]),
+                        ], dependencies: ["Nonisolated", "MainActor"]),
+                    TestStandardTarget(
+                        "Nonisolated",
+                        type: .framework,
+                        buildConfigurations: [
+                            TestBuildConfiguration("Debug", buildSettings: [
+                                "GENERATE_INFOPLIST_FILE": "YES",
+                                "PRODUCT_NAME": "$(TARGET_NAME)",
+                                "SWIFT_EXEC": swiftCompilerPath.str,
+                                "SWIFT_VERSION": "5.0",
+                                "SWIFT_DEFAULT_ACTOR_ISOLATION": "nonisolated",
+                            ]),
+                        ],
+                        buildPhases: [
+                            TestSourcesBuildPhase([
+                                TestBuildFile("File2.swift"),
+                            ]),
+                        ]),
+                    TestStandardTarget(
+                        "MainActor",
+                        type: .framework,
+                        buildConfigurations: [
+                            TestBuildConfiguration("Debug", buildSettings: [
+                                "GENERATE_INFOPLIST_FILE": "YES",
+                                "PRODUCT_NAME": "$(TARGET_NAME)",
+                                "SWIFT_EXEC": swiftCompilerPath.str,
+                                "SWIFT_VERSION": "5.0",
+                                "SWIFT_DEFAULT_ACTOR_ISOLATION": "MainActor",
+                            ]),
+                        ],
+                        buildPhases: [
+                            TestSourcesBuildPhase([
+                                TestBuildFile("File3.swift"),
+                            ]),
+                        ]),
+                ])
+
+            let tester = try await TaskConstructionTester(getCore(), testProject)
+            await tester.checkBuild(BuildParameters(action: .install, configuration: "Debug"), runDestination: .macOS) { results in
+                results.checkTarget("Default") { target in
+                    results.checkTask(.matchTarget(target), .matchRuleType("SwiftDriver Compilation")) { task in
+                        task.checkCommandLineNoMatch([.prefix("-default-isolation")])
+                    }
+                }
+                results.checkTarget("Nonisolated") { target in
+                    results.checkTask(.matchTarget(target), .matchRuleType("SwiftDriver Compilation")) { task in
+                        task.checkCommandLineNoMatch([.prefix("-default-isolation")])
+                    }
+                }
+                results.checkTarget("MainActor") { target in
+                    results.checkTask(.matchTarget(target), .matchRuleType("SwiftDriver Compilation")) { task in
+                        task.checkCommandLineContains(["-default-isolation=MainActor"])
                     }
                 }
             }

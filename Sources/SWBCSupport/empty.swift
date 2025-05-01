@@ -10,3 +10,7 @@
 //
 //===----------------------------------------------------------------------===//
 
+// This file is intentionally left blank. When built with CMake,
+// SWBCSupport sets the link language to Swift w/ C++ interop
+// to find libblocksruntime, and requires at least one Swift
+// source file to avoid downstream issues.

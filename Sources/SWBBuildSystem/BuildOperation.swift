@@ -681,7 +681,8 @@ package final class BuildOperation: BuildSystemOperation {
                 adaptor.withActivity(ruleInfo: "CompilationCacheMetrics", executionDescription: "Report compilation cache metrics", signature: signature, target: nil, parentActivity: nil) { activity in
                     func getSummary(hits: Int, misses: Int) -> String {
                         let hitPercent = Int((Double(hits) / Double(hits + misses) * 100).rounded())
-                        return "\(hits) hit\(hits == 1 ? "" : "s") (\(hitPercent)%), \(misses) miss\(misses == 1 ? "" : "es")"
+                        let total = hits + misses
+                        return "\(hits) hit\(hits == 1 ? "" : "s") / \(total) cacheable task\(total == 1 ? "" : "s") (\(hitPercent)%)"
                     }
                     delegate.emit(diagnostic: Diagnostic(behavior: .note, location: .unknown, data: DiagnosticData(getSummary(hits: cacheHits, misses: cacheMisses))), for: activity, signature: signature)
                     return .succeeded
@@ -881,15 +882,8 @@ package final class BuildOperation: BuildSystemOperation {
     }
 
     package func taskDiscoveredRequiredTargetDependency(target: ConfiguredTarget, antecedent: ConfiguredTarget, reason: RequiredTargetDependencyReason, warningLevel: BooleanWarningLevel) {
-        let diagnosticBehavior: SWBUtil.Diagnostic.Behavior
-        switch warningLevel {
-        case .yesError: diagnosticBehavior = .error
-        case .yes: diagnosticBehavior = .warning
-        case .no: return
-        }
-        let targetDiagnosticsEngine = buildOutputDelegate.diagnosticsEngine(for: target)
-
         if !transitiveDependencyExists(target: target, antecedent: antecedent) {
+
             // Ensure we only diagnose missing dependencies when platform and SDK variant match. We perform this check as late as possible since computing settings can be expensive.
             let targetSettings = requestContext.getCachedSettings(target.parameters, target: target.target)
             let antecedentSettings = requestContext.getCachedSettings(antecedent.parameters, target: antecedent.target)
@@ -907,8 +901,14 @@ package final class BuildOperation: BuildSystemOperation {
             } else {
                 message = DiagnosticData("'\(target.target.name)' is missing a dependency on '\(antecedent.target.name)' because \(reason)")
             }
-
-            targetDiagnosticsEngine.emit(Diagnostic(behavior: diagnosticBehavior, location: .unknown, data: message))
+            switch warningLevel {
+            case .yes:
+                buildOutputDelegate.emit(Diagnostic(behavior: .warning, location: .unknown, data: message))
+            case .yesError:
+                buildOutputDelegate.emit(Diagnostic(behavior: .error, location: .unknown, data: message))
+            default:
+                break
+            }
         }
     }
 }

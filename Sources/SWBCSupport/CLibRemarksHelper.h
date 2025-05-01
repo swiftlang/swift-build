@@ -15,8 +15,10 @@
 
 #include <stdbool.h>
 
+#include "CSupportDefines.h"
+
 // Swift has no way of checking if a weak_import symbol is available.
 // This function checks if LLVMRemarkVersion from libRemarks.dylib is available, which should be enough to assert the whole library is available as well.
-bool isLibRemarksAvailable(void);
+CSUPPORT_EXPORT bool isLibRemarksAvailable(void);
 
 #endif /* CLibRemarksHelper_h */

@@ -31,5 +31,10 @@ target_link_libraries(SWBMacro PUBLIC
   SwiftDriver
   TSCBasic)
 
-target_include_directories(SWBMacro PUBLIC
-  ${CMAKE_CURRENT_BINARY_DIR})
+set_target_properties(SWBMacro PROPERTIES
+  INTERFACE_INCLUDE_DIRECTORIES ${CMAKE_Swift_MODULE_DIRECTORY})
+
+set_property(GLOBAL APPEND PROPERTY SWIFTBUILD_EXPORTS SWBMacro)
+
+install(TARGETS SWBMacro
+    ARCHIVE DESTINATION "${SwiftBuild_INSTALL_LIBDIR}")

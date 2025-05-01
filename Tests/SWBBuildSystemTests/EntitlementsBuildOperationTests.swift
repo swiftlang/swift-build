@@ -238,24 +238,24 @@ fileprivate struct EntitlementsBuildOperationTests: CoreBasedTests {
         }
     }
 
-    /// Test that the `ProcessProductEntitlementsTaskAction` does not embed build settings based entitlements that are dependent on App Sandbox being enabled, when App Sandbox is disabled.
-    @Test(.requireSDKs(.macOS))
-    func macOSAppSandboxEnabledEntitlementsWithSandboxDisabled() async throws {
+    /// Test that the `ProcessProductEntitlementsTaskAction` does not embed build settings that only apply to macOS.
+    @Test(.requireSDKs(.macOS, .iOS))
+    func iOSAppSandboxAndHardenedRuntimeBuildSettingEnabled() async throws {
         try await withTemporaryDirectory { tmpDirPath async throws -> Void in
             let testWorkspace = entitlementsTestWorkspace(
                 sourceRoot: tmpDirPath,
                 buildSettings: [
                     "PRODUCT_NAME": "$(TARGET_NAME)",
                     "INFOPLIST_FILE": "Info.plist",
-                    "CODE_SIGN_IDENTITY": "-",
-                    "RUNTIME_EXCEPTION_ALLOW_DYLD_ENVIRONMENT_VARIABLES": "NO",
-                    "RUNTIME_EXCEPTION_ALLOW_JIT": "NO",
-                    "RUNTIME_EXCEPTION_ALLOW_UNSIGNED_EXECUTABLE_MEMORY": "NO",
-                    "AUTOMATION_APPLE_EVENTS": "NO",
-                    "RUNTIME_EXCEPTION_DEBUGGING_TOOL": "NO",
-                    "RUNTIME_EXCEPTION_DISABLE_EXECUTABLE_PAGE_PROTECTION": "NO",
-                    "RUNTIME_EXCEPTION_DISABLE_LIBRARY_VALIDATION": "NO",
-                    "ENABLE_APP_SANDBOX": "NO",
+                    "AD_HOC_CODE_SIGNING_ALLOWED": "YES",
+                    "RUNTIME_EXCEPTION_ALLOW_DYLD_ENVIRONMENT_VARIABLES": "YES",
+                    "RUNTIME_EXCEPTION_ALLOW_JIT": "YES",
+                    "RUNTIME_EXCEPTION_ALLOW_UNSIGNED_EXECUTABLE_MEMORY": "YES",
+                    "AUTOMATION_APPLE_EVENTS": "YES",
+                    "RUNTIME_EXCEPTION_DEBUGGING_TOOL": "YES",
+                    "RUNTIME_EXCEPTION_DISABLE_EXECUTABLE_PAGE_PROTECTION": "YES",
+                    "RUNTIME_EXCEPTION_DISABLE_LIBRARY_VALIDATION": "YES",
+                    "ENABLE_APP_SANDBOX": "YES",
                     "ENABLE_FILE_ACCESS_DOWNLOADS_FOLDER": "readwrite",
                     "ENABLE_FILE_ACCESS_PICTURE_FOLDER": "readonly",
                     "ENABLE_FILE_ACCESS_MUSIC_FOLDER": "readwrite",
@@ -271,7 +271,7 @@ fileprivate struct EntitlementsBuildOperationTests: CoreBasedTests {
                     "ENABLE_RESOURCE_ACCESS_PHOTO_LIBRARY": "YES",
                     "ENABLE_RESOURCE_ACCESS_USB": "YES",
                     "ENABLE_RESOURCE_ACCESS_PRINTING": "YES",
-                    "SDKROOT": "macosx"
+                    "SDKROOT": "iphoneos"
                 ]
             )
 
@@ -478,47 +478,6 @@ fileprivate struct EntitlementsBuildOperationTests: CoreBasedTests {
                     "com.apple.security.network.server": .plBool(true),
                 ]
             )
-        }
-    }
-
-    /// Test that the `ProcessProductEntitlementsTaskAction` does not embed build settings based entitlements that are dependent on Hardened Runtime being enabled, when Hardened Runtime is disabled.
-    @Test(.requireSDKs(.macOS))
-    func macOSHardenedRuntimeEnabledEntitlementsWithHardenedRuntimeDisabled() async throws {
-        try await withTemporaryDirectory { tmpDirPath async throws -> Void in
-            let testWorkspace = entitlementsTestWorkspace(
-                sourceRoot: tmpDirPath,
-                buildSettings: [
-                    "PRODUCT_NAME": "$(TARGET_NAME)",
-                    "INFOPLIST_FILE": "Info.plist",
-                    "CODE_SIGN_IDENTITY": "-",
-                    "ENABLE_HARDENED_RUNTIME": "NO",
-                    "RUNTIME_EXCEPTION_ALLOW_DYLD_ENVIRONMENT_VARIABLES": "YES",
-                    "RUNTIME_EXCEPTION_ALLOW_JIT": "YES",
-                    "RUNTIME_EXCEPTION_ALLOW_UNSIGNED_EXECUTABLE_MEMORY": "YES",
-                    "AUTOMATION_APPLE_EVENTS": "YES",
-                    "RUNTIME_EXCEPTION_DEBUGGING_TOOL": "YES",
-                    "RUNTIME_EXCEPTION_DISABLE_EXECUTABLE_PAGE_PROTECTION": "YES",
-                    "RUNTIME_EXCEPTION_DISABLE_LIBRARY_VALIDATION": "YES",
-                    "ENABLE_FILE_ACCESS_DOWNLOADS_FOLDER": "readwrite",
-                    "ENABLE_FILE_ACCESS_PICTURE_FOLDER": "readonly",
-                    "ENABLE_FILE_ACCESS_MUSIC_FOLDER": "readwrite",
-                    "ENABLE_FILE_ACCESS_MOVIES_FOLDER": "readonly",
-                    "ENABLE_INCOMING_NETWORK_CONNECTIONS": "YES",
-                    "ENABLE_OUTGOING_NETWORK_CONNECTIONS": "YES",
-                    "ENABLE_RESOURCE_ACCESS_AUDIO_INPUT": "YES",
-                    "ENABLE_RESOURCE_ACCESS_BLUETOOTH": "YES",
-                    "ENABLE_RESOURCE_ACCESS_CALENDARS": "YES",
-                    "ENABLE_RESOURCE_ACCESS_CAMERA": "YES",
-                    "ENABLE_RESOURCE_ACCESS_CONTACTS": "YES",
-                    "ENABLE_RESOURCE_ACCESS_LOCATION": "YES",
-                    "ENABLE_RESOURCE_ACCESS_PHOTO_LIBRARY": "YES",
-                    "SDKROOT": "macosx"
-                ]
-            )
-
-            try await buildTestBinaryAndValidateEntitlements(testWorkspace: testWorkspace, expectedEntitlements: [
-                "com.apple.application-identifier": "$(AppIdentifierPrefix)$(CFBundleIdentifier)",
-            ])
         }
     }
 

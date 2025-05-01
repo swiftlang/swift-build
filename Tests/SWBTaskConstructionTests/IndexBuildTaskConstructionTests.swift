@@ -366,7 +366,7 @@ fileprivate struct IndexBuildTaskConstructionTests: CoreBasedTests {
             results.checkNoDiagnostics()
         }
 
-        try await tester.checkIndexBuild(targets: [fwkTarget1]) { results in
+        try await tester.checkIndexBuild(targets: [fwkTarget1], workspaceOperation: true) { results in
             results.checkWriteAuxiliaryFileTask(.matchRulePattern(["WriteAuxiliaryFile", .suffix("VFS-iphonesimulator/all-product-headers.yaml")])) { task, contents in
                 #expect(contents == vfs_sim)
             }

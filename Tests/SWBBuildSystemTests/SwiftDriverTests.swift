@@ -3616,6 +3616,7 @@ fileprivate struct SwiftDriverTests: CoreBasedTests {
                                             "ENABLE_PREVIEWS": "YES",
                                             "SWIFT_USE_INTEGRATED_DRIVER": useIntegratedDriver ? "YES" : "NO",
                                             "SWIFT_ENABLE_EXPLICIT_MODULES": useIntegratedDriver ? "YES" : "NO",
+                                            "SWIFT_DISABLE_INCREMENTAL_SCAN": "YES",
                                             "_EXPERIMENTAL_SWIFT_EXPLICIT_MODULES": useIntegratedDriver ? "YES" : "NO",
                                             // Eager linking is not supported when using the driver binary.
                                             "EAGER_LINKING": "NO",
@@ -4597,11 +4598,11 @@ fileprivate struct SwiftDriverTests: CoreBasedTests {
                 try await tester.checkBuild(runDestination: .macOS, buildRequest: buildRequest, persistent: true) { results in
                     switch warningLevel {
                     case .yes:
-                        results.checkWarning("'Framework3' is missing a dependency on 'Framework1' because dependency scan of Swift module 'Framework3' discovered a dependency on 'Framework1' (in target 'Framework3' from project 'aProject')")
-                        results.checkWarning("'Framework3' is missing a dependency on 'Framework2' because dependency scan of Swift module 'Framework3' discovered a dependency on 'Framework2' (in target 'Framework3' from project 'aProject')")
+                        results.checkWarning("'Framework3' is missing a dependency on 'Framework1' because dependency scan of Swift module 'Framework3' discovered a dependency on 'Framework1'")
+                        results.checkWarning("'Framework3' is missing a dependency on 'Framework2' because dependency scan of Swift module 'Framework3' discovered a dependency on 'Framework2'")
                     case .yesError:
-                        results.checkError("'Framework3' is missing a dependency on 'Framework1' because dependency scan of Swift module 'Framework3' discovered a dependency on 'Framework1' (in target 'Framework3' from project 'aProject')")
-                        results.checkError("'Framework3' is missing a dependency on 'Framework2' because dependency scan of Swift module 'Framework3' discovered a dependency on 'Framework2' (in target 'Framework3' from project 'aProject')")
+                        results.checkError("'Framework3' is missing a dependency on 'Framework1' because dependency scan of Swift module 'Framework3' discovered a dependency on 'Framework1'")
+                        results.checkError("'Framework3' is missing a dependency on 'Framework2' because dependency scan of Swift module 'Framework3' discovered a dependency on 'Framework2'")
                     default:
                         break
                     }

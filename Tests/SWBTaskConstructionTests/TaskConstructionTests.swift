@@ -97,7 +97,7 @@ fileprivate struct TaskConstructionTests: CoreBasedTests {
                         "ALTERNATE_OWNER": "fooOwner",
                         "ALTERNATE_GROUP": "",
                         "ALTERNATE_MODE": "",
-                        "GENERATE_MASTER_OBJECT_FILE": "YES",
+                        "GENERATE_PRELINK_OBJECT_FILE": "YES",
                     ]),
                 ],
                 targets: [
@@ -885,9 +885,9 @@ fileprivate struct TaskConstructionTests: CoreBasedTests {
                     }
                     results.checkNoTask(.matchTarget(target), .matchRuleType("Copy"))
 
-                    // There should be one master object link task.
-                    results.checkTask(.matchTarget(target), .matchRuleType("MasterObjectLink")) { task in
-                        task.checkRuleInfo(["MasterObjectLink", "\(SRCROOT)/build/aProject.build/Release/AppTarget.build/Objects-normal/AppTarget-x86_64-master.o"])
+                    // There should be one prelinked object link task.
+                    results.checkTask(.matchTarget(target), .matchRuleType("PrelinkedObjectLink")) { task in
+                        task.checkRuleInfo(["PrelinkedObjectLink", "\(SRCROOT)/build/aProject.build/Release/AppTarget.build/Objects-normal/AppTarget-x86_64-prelink.o"])
                         let nonUniqueObjs = task.commandLineAsStrings.filter { $0.contains("NonUnique") }
                         if nonUniqueObjs.count != 2 {
                             #expect(nonUniqueObjs.count == 2)
@@ -895,7 +895,7 @@ fileprivate struct TaskConstructionTests: CoreBasedTests {
                         }
 
                         #expect(nonUniqueObjs[0] != nonUniqueObjs[1])
-                        task.checkCommandLineMatches([StringPattern.suffix("ld"), "-r", "-arch", "x86_64", "-syslibroot", .equal(core.loadSDK(.macOS).path.str), .equal("\(SRCROOT)/build/aProject.build/Release/AppTarget.build/Objects-normal/x86_64/SourceFile.o"), .equal("\(SRCROOT)/build/aProject.build/Release/AppTarget.build/Objects-normal/x86_64/SourceFile-Matched-Excluded.o"), .equal("\(SRCROOT)/build/aProject.build/Release/AppTarget.build/Objects-normal/x86_64/SourceFile-Matched-Included.o"), .equal(nonUniqueObjs[0]), .equal(nonUniqueObjs[1]), .equal("\(SRCROOT)/build/aProject.build/Release/AppTarget.build/Objects-normal/x86_64/SourceFile_MRR.o"), .equal("\(SRCROOT)/build/aProject.build/Release/AppTarget.build/Objects-normal/x86_64/Lex.yy.o"), .equal("\(SRCROOT)/build/aProject.build/Release/AppTarget.build/Objects-normal/x86_64/y.tab.o"), .equal("\(SRCROOT)/build/aProject.build/Release/AppTarget.build/Objects-normal/x86_64/Script-Output-Custom-SourceFile.o"), .equal("\(SRCROOT)/build/aProject.build/Release/AppTarget.build/Objects-normal/x86_64/Script-Output-Standard-SourceFile.o"), "-o", .equal("\(SRCROOT)/build/aProject.build/Release/AppTarget.build/Objects-normal/AppTarget-x86_64-master.o")])
+                        task.checkCommandLineMatches([StringPattern.suffix("ld"), "-r", "-arch", "x86_64", "-syslibroot", .equal(core.loadSDK(.macOS).path.str), .equal("\(SRCROOT)/build/aProject.build/Release/AppTarget.build/Objects-normal/x86_64/SourceFile.o"), .equal("\(SRCROOT)/build/aProject.build/Release/AppTarget.build/Objects-normal/x86_64/SourceFile-Matched-Excluded.o"), .equal("\(SRCROOT)/build/aProject.build/Release/AppTarget.build/Objects-normal/x86_64/SourceFile-Matched-Included.o"), .equal(nonUniqueObjs[0]), .equal(nonUniqueObjs[1]), .equal("\(SRCROOT)/build/aProject.build/Release/AppTarget.build/Objects-normal/x86_64/SourceFile_MRR.o"), .equal("\(SRCROOT)/build/aProject.build/Release/AppTarget.build/Objects-normal/x86_64/Lex.yy.o"), .equal("\(SRCROOT)/build/aProject.build/Release/AppTarget.build/Objects-normal/x86_64/y.tab.o"), .equal("\(SRCROOT)/build/aProject.build/Release/AppTarget.build/Objects-normal/x86_64/Script-Output-Custom-SourceFile.o"), .equal("\(SRCROOT)/build/aProject.build/Release/AppTarget.build/Objects-normal/x86_64/Script-Output-Standard-SourceFile.o"), "-o", .equal("\(SRCROOT)/build/aProject.build/Release/AppTarget.build/Objects-normal/AppTarget-x86_64-prelink.o")])
 
                         task.checkInputs([
                             .path("\(SRCROOT)/build/aProject.build/Release/AppTarget.build/Objects-normal/x86_64/SourceFile.o"),
@@ -915,7 +915,7 @@ fileprivate struct TaskConstructionTests: CoreBasedTests {
                             .namePattern(.prefix("target-"))])
 
                         task.checkOutputs([
-                            .path("\(SRCROOT)/build/aProject.build/Release/AppTarget.build/Objects-normal/AppTarget-x86_64-master.o"),])
+                            .path("\(SRCROOT)/build/aProject.build/Release/AppTarget.build/Objects-normal/AppTarget-x86_64-prelink.o"),])
 
                     }
 
@@ -4135,7 +4135,7 @@ fileprivate struct TaskConstructionTests: CoreBasedTests {
                     // There should be one CompileC task, which includes the ASan option, and which puts its output in a -asan directory.
                     results.checkTask(.matchTarget(target), .matchRuleType("CompileC")) { task in
                         task.checkRuleInfo([.equal("CompileC"), .equal("\(SRCROOT)/build/aProject.build/Debug/\(targetName).build/Objects-normal-asan/x86_64/SourceFile.o"), .suffix("SourceFile.m"), .any, .any, .any, .any])
-                        task.checkCommandLineContains(["\(core.developerPath.path.str)/Toolchains/XcodeDefault.xctoolchain/usr/bin/clang", "-fsanitize=address", "-D_LIBCPP_HAS_NO_ASAN", "\(SRCROOT)/build/aProject.build/Debug/\(targetName).build/Objects-normal-asan/x86_64/SourceFile.o"])
+                        task.checkCommandLineContains(["\(core.developerPath.path.str)/Toolchains/XcodeDefault.xctoolchain/usr/bin/clang", "-fsanitize=address", "-D_LIBCPP_HAS_NO_ASAN", "-D_LIBCPP_HAS_ASAN=0", "\(SRCROOT)/build/aProject.build/Debug/\(targetName).build/Objects-normal-asan/x86_64/SourceFile.o"])
                     }
 
                     // There should be one CompileSwiftSources task, which includes the ASan option, and which puts its output in a -asan directory.
@@ -8478,12 +8478,14 @@ fileprivate struct TaskConstructionTests: CoreBasedTests {
                     }
                 } else if let val = overrides[typedMemoryOperationsCXX] {
                     if val == "YES" {
-                        task.checkCommandLineContains(["-ftyped-cxx-new-delete"])
+                        task.checkCommandLineContains(["-ftyped-cxx-new-delete", "-ftyped-cxx-delete"])
                     } else if val == "NO" {
-                        task.checkCommandLineContains(["-fno-typed-cxx-new-delete"])
+                        task.checkCommandLineContains(["-fno-typed-cxx-new-delete", "-fno-typed-cxx-delete"])
                     } else if val == "compiler-default" {
                         task.checkCommandLineDoesNotContain("-ftyped-cxx-new-delete")
+                        task.checkCommandLineDoesNotContain("-ftyped-cxx-delete")
                         task.checkCommandLineDoesNotContain("-fno-typed-cxx-new-delete")
+                        task.checkCommandLineDoesNotContain("-fno-typed-cxx-delete")
                     }
                 }
             }
@@ -8501,6 +8503,11 @@ fileprivate struct TaskConstructionTests: CoreBasedTests {
                 await tester.checkBuild(BuildParameters(configuration: "Debug", overrides: override), runDestination: .macOS, fs: fs) { results -> Void in
                     results.checkTarget("AppTarget") { target -> Void in
                         results.checkTask(.matchTarget(target), .matchRuleType("CompileC"), body: {task in test(task: task, overrides: override)})
+                        if let val = override[typedMemoryOperationsCXX], val == "YES" {
+                            results.checkTask(.matchTarget(target), .matchRuleType("Ld"), body: {task in
+                                task.checkCommandLineContains(["-ftyped-cxx-new-delete", "-ftyped-cxx-delete"])
+                            })
+                        }
                     }
                 }
             }

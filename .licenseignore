@@ -1,0 +1,9 @@
+**/*.mlmodel
+**/*.pbxproj
+**/*.png
+**/*.xcworkspacedata
+**/Package.swift
+.dir-locals.el
+.editorconfig
+CODEOWNERS
+Package.swift

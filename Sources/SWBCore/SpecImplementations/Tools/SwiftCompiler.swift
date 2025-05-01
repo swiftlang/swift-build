@@ -119,6 +119,7 @@ public struct SwiftSourceFileIndexingInfo: SourceFileIndexingInfo {
         "-emit-dependencies",
         "-serialize-diagnostics",
         "-incremental",
+        "-incremental-dependency-scan",
         "-parseable-output",
         "-use-frontend-parseable-output",
         "-whole-module-optimization",
@@ -153,6 +154,7 @@ public struct SwiftSourceFileIndexingInfo: SourceFileIndexingInfo {
     // can be removed after we use the new driver instead (rdar://75851402).
     private static let newDriverFlags: Set<ByteString> = [
         "-driver-print-graphviz",
+        "-incremental-dependency-scan",
         "-explicit-module-build",
         "-experimental-explicit-module-build",
         "-nonlib-dependency-scanner",
@@ -1743,6 +1745,10 @@ public final class SwiftCompilerSpec : CompilerSpec, SpecIdentifierType, SwiftDi
 
                 if cbc.scope.evaluate(BuiltinMacros.SWIFT_ENABLE_INCREMENTAL_COMPILATION) {
                     args.append("-incremental")
+                    if LibSwiftDriver.supportsDriverFlag(spelled: "-incremental-dependency-scan"),
+                       !cbc.scope.evaluate(BuiltinMacros.SWIFT_DISABLE_INCREMENTAL_SCAN) {
+                        args.append("-incremental-dependency-scan")
+                    }
                 }
             }
 
@@ -3061,6 +3067,12 @@ public final class SwiftCompilerSpec : CompilerSpec, SpecIdentifierType, SwiftDi
                     fileMapEntry.indexUnitOutputPath = indexObjectPath.str
                 }
             }
+            let objectFilePrefix = objectFilePath.basenameWithoutSuffix
+            // The path to the bitcode file.  This is used, for example, by LTO.
+            if compilationMode.compileSources {
+                let bitcodeFilePath = objectFileDir.join(objectFilePrefix + ".bc")
+                fileMapEntry.llvmBitcode = bitcodeFilePath.str
+            }
             return (objectFilePath, fileMapEntry)
         }
 
@@ -3279,6 +3291,8 @@ public final class SwiftCompilerSpec : CompilerSpec, SpecIdentifierType, SwiftDi
         for arg in [
             // Should strip this because it saves some work and avoids writing a useless incremental build record
             "-incremental",
+            // Same as above
+            "-incremental-dependency-scan",
 
             // Stripped because we want to end up in single file mode
             "-enable-batch-mode",
@@ -3774,6 +3788,7 @@ struct SwiftOutputFileMap: Codable {
     struct Entry: Codable {
         var object: String?
         var indexUnitOutputPath: String?
+        var llvmBitcode: String?
         var remap: String?
         var diagnostics: String?
         var emitModuleDiagnostics: String?
@@ -3787,6 +3802,7 @@ struct SwiftOutputFileMap: Codable {
         enum CodingKeys: String, CodingKey {
             case object
             case indexUnitOutputPath = "index-unit-output-path"
+            case llvmBitcode = "llvm-bc"
             case remap
             case diagnostics
             case emitModuleDiagnostics = "emit-module-diagnostics"

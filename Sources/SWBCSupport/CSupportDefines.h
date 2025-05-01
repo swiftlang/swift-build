@@ -10,3 +10,8 @@
 //
 //===----------------------------------------------------------------------===//
 
+#ifdef _WIN32
+#define CSUPPORT_EXPORT __declspec(dllexport)
+#else
+#define CSUPPORT_EXPORT
+#endif

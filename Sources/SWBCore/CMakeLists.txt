@@ -155,11 +155,11 @@ add_library(SWBCore
   SpecImplementations/Tools/LaunchServicesRegisterTool.swift
   SpecImplementations/Tools/LinkerTools.swift
   SpecImplementations/Tools/Lipo.swift
-  SpecImplementations/Tools/MasterObjectLink.swift
   SpecImplementations/Tools/MergeInfoPlist.swift
   SpecImplementations/Tools/MkdirTool.swift
   SpecImplementations/Tools/ModulesVerifierTool.swift
   SpecImplementations/Tools/PLUtilTool.swift
+  SpecImplementations/Tools/PrelinkedObjectLink.swift
   SpecImplementations/Tools/ProcessSDKImports.swift
   SpecImplementations/Tools/ProcessXCFrameworkLibrary.swift
   SpecImplementations/Tools/ProductPackaging.swift
@@ -207,3 +207,11 @@ target_link_libraries(SWBCore PUBLIC
   SwiftDriver)
 target_sources(SWBCore PRIVATE
   "${CMAKE_CURRENT_BINARY_DIR}/resource_bundle_accessor.swift")
+
+set_target_properties(SWBCore PROPERTIES
+  INTERFACE_INCLUDE_DIRECTORIES ${CMAKE_Swift_MODULE_DIRECTORY})
+
+set_property(GLOBAL APPEND PROPERTY SWIFTBUILD_EXPORTS SWBCore)
+
+install(TARGETS SWBCore
+    ARCHIVE DESTINATION "${SwiftBuild_INSTALL_LIBDIR}")

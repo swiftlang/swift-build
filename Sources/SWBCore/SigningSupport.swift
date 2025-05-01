@@ -30,6 +30,8 @@ public protocol PlatformSigningContext
     func shouldPassEntitlementsFileContentToCodeSign() -> Bool
 
     func requiresEntitlements(_ scope: MacroEvaluationScope, hasProfile: Bool, productFileType: FileTypeSpec) -> Bool
+
+    func supportsAppSandboxAndHardenedRuntime() -> Bool
 }
 
 extension PlatformSigningContext
@@ -58,12 +60,19 @@ extension PlatformSigningContext
     {
         return hasProfile || scope.evaluate(BuiltinMacros.ENTITLEMENTS_REQUIRED)
     }
+
+    @_spi(Testing) public func supportsAppSandboxAndHardenedRuntime() -> Bool {
+        return false
+    }
 }
 
 
 /// Provides behavior for code signing for the macOS platform.
 @_spi(Testing) public struct MacSigningContext: PlatformSigningContext
 {
+    @_spi(Testing) public func supportsAppSandboxAndHardenedRuntime() -> Bool {
+        return true
+    }
 }
 
 

@@ -82,3 +82,11 @@ target_link_libraries(SWBTaskExecution PUBLIC
   SWBLLBuild
   SWBTaskConstruction
   SWBUtil)
+
+set_target_properties(SWBTaskExecution PROPERTIES
+  INTERFACE_INCLUDE_DIRECTORIES ${CMAKE_Swift_MODULE_DIRECTORY})
+
+set_property(GLOBAL APPEND PROPERTY SWIFTBUILD_EXPORTS SWBTaskExecution)
+
+install(TARGETS SWBTaskExecution
+    ARCHIVE DESTINATION "${SwiftBuild_INSTALL_LIBDIR}")

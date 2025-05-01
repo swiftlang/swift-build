@@ -397,7 +397,7 @@ fileprivate struct BuildOperationTests: CoreBasedTests {
         }
     }
 
-    @Test(.skipHostOS(.macOS), .skipHostOS(.windows, "cannot find testing library"), .requireThreadSafeWorkingDirectory)
+    @Test(.requireSDKs(.host), .skipHostOS(.macOS), .skipHostOS(.windows, "cannot find testing library"), .requireThreadSafeWorkingDirectory)
     func unitTestWithGeneratedEntryPoint() async throws {
         try await withTemporaryDirectory { (tmpDir: Path) in
             let testProject = try await TestProject(
@@ -453,7 +453,7 @@ fileprivate struct BuildOperationTests: CoreBasedTests {
                         buildPhases: [
                             TestSourcesBuildPhase(["library.swift"]),
                         ],
-                    ),
+                    )
                 ])
             let core = try await getCore()
             let tester = try await BuildOperationTester(core, testProject, simulated: false)

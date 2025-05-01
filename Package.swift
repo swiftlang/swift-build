@@ -135,6 +135,7 @@ let package = Package(
             swiftSettings: swiftSettings(languageMode: .v5)),
         .target(
             name: "SWBCSupport",
+            exclude: ["empty.swift"],
             publicHeadersPath: ".",
             cSettings: [
                 .define("_CRT_SECURE_NO_WARNINGS", .when(platforms: [.windows])),

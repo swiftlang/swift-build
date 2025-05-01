@@ -18,3 +18,11 @@ set_target_properties(SWBServiceCore PROPERTIES
   Swift_LANGUAGE_VERSION 6)
 target_link_libraries(SWBServiceCore PUBLIC
   SWBProtocol)
+
+set_target_properties(SWBServiceCore PROPERTIES
+  INTERFACE_INCLUDE_DIRECTORIES ${CMAKE_Swift_MODULE_DIRECTORY})
+
+set_property(GLOBAL APPEND PROPERTY SWIFTBUILD_EXPORTS SWBServiceCore)
+
+install(TARGETS SWBServiceCore
+    ARCHIVE DESTINATION "${SwiftBuild_INSTALL_LIBDIR}")

@@ -20,3 +20,5 @@ target_link_libraries(SWBBuildServiceBundle PRIVATE
   SWBCore)
 
 install(TARGETS SWBBuildServiceBundle)
+
+set_property(GLOBAL APPEND PROPERTY SWIFTBUILD_EXPORTS SWBBuildServiceBundle)

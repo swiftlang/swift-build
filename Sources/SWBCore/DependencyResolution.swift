@@ -190,7 +190,7 @@ struct SpecializationParameters: Hashable, CustomStringConvertible {
         let toolchain = effectiveToolchainOverride(originalParameters: configuredTarget.parameters, workspaceContext: workspaceContext)
         return (platform == nil || platform === settings.platform) &&
             (sdkVariant == nil || sdkVariant?.name == settings.sdkVariant?.name) &&
-            (toolchain == nil || toolchain == settings.globalScope.evaluate(BuiltinMacros.EFFECTIVE_TOOLCHAINS_DIRS)) &&
+            (toolchain == nil || toolchain == settings.globalScope.evaluate(BuiltinMacros.TOOLCHAINS)) &&
         (canonicalNameSuffix == nil || canonicalNameSuffix?.nilIfEmpty == settings.sdk?.canonicalNameSuffix)
     }
 
@@ -493,7 +493,7 @@ extension SpecializationParameters {
         self.workspaceContext = workspaceContext
         self.delegate = delegate
 
-        if buildRequest.enableIndexBuildArena {
+        if buildRequest.buildsIndexWorkspaceDescription {
             // For the index build, multiple build parameters are applied during configuration of a target (to configure for multiple platforms) and the build parameters for each target in the build request is not relevant.
             // Keep this dictionary empty so that `LinkageDependencyResolver` fallbacks to using the build parameters of the configured targets, which are the relevant ones.
             self.buildParametersByTarget = [:]
@@ -507,7 +507,7 @@ extension SpecializationParameters {
 
         self.defaultImposedParameters = SpecializationParameters.default(workspaceContext: workspaceContext, buildRequestContext: buildRequestContext, parameters: buildRequest.parameters)
 
-        if buildRequest.enableIndexBuildArena {
+        if buildRequest.buildsIndexWorkspaceDescription {
             let hostOS = (try? workspaceContext.core.hostOperatingSystem.xcodePlatformName) ?? "unknown"
 
             // Create the build parameters for each available platform.
@@ -577,19 +577,13 @@ extension SpecializationParameters {
     func lookupTopLevelConfiguredTarget(_ targetInfo: BuildRequest.BuildTargetInfo) -> [ConfiguredTarget] {
         guard !Task.isCancelled else { return [] }
         let (target, parameters) = (targetInfo.target, targetInfo.parameters)
-        if !buildRequest.enableIndexBuildArena {
+        if !buildRequest.buildsIndexWorkspaceDescription {
             // Top-level targets get defaults imposed, in case that they are themselves using "auto" anywhere.
             return [lookupConfiguredTarget(target, parameters: parameters, imposedParameters: defaultImposedParameters, isTopLevelLookup: true)]
         }
 
         // Aggregate targets are only configured as dependencies.
         guard target.type != .aggregate else { return [] }
-
-        let isFromPackage = workspaceContext.workspace.project(for: target).isPackage
-        if isFromPackage {
-            // Configure top-level package targets using the run-destination of the build request.
-            return [lookupConfiguredTarget(target, parameters: parameters, imposedParameters: defaultImposedParameters, isTopLevelLookup: true)]
-        }
 
         var configuredTargets: [ConfiguredTarget] = []
         let unconfiguredSettings = buildRequestContext.getCachedSettings(targetInfo.parameters, target: target)
@@ -694,10 +688,11 @@ extension SpecializationParameters {
             let dependencySettings = buildRequestContext.getCachedSettings(ct.parameters, target: ct.target)
             let dependencyPlatform = dependencySettings.platform
             let dependencySdkVariant = dependencySettings.sdkVariant?.name
+            let dependencyToolchains = dependencySettings.toolchains
             guard Ref(dependencyPlatform) == platform && dependencySdkVariant == sdkVariant else { return false }
             // For dependencies with 'auto' SDKROOT, they get their SDK 'imposed', including if it is internal vs public SDK, not just what platform it is.
             // For such dependencies also confirm that the existing configured dependency matches 'internal vs public' for the SDK.
-            if dependencyHasAutoSDKRoot, let dependencySDK = dependencySettings.sdk, let dependentSDK = sdk, dependencySDK !== dependentSDK {
+            if dependencyHasAutoSDKRoot, let dependencySDK = dependencySettings.sdk, let dependentSDK = sdk, dependencySDK !== dependentSDK || settings.toolchains != dependencyToolchains {
                 return false
             }
             return true
@@ -742,8 +737,9 @@ extension SpecializationParameters {
                             continue
                         }
 
+                        let behavior: Diagnostic.Behavior = buildRequest.enableIndexBuildArena ? .warning : .error
                         let data = DiagnosticData("multiple configured targets of '\(target.name)' are being created for \(currentSettings.platform?.displayName ?? "")")
-                        delegate.emit(Diagnostic(behavior: .error, location: .unknown, data: data))
+                        delegate.emit(Diagnostic(behavior: behavior, location: .unknown, data: data))
                         hasMultipleTargets = true
                     }
                 }
@@ -757,7 +753,7 @@ extension SpecializationParameters {
             }
 
             // At this point we know there is not a configured target for this target and parameters in our cache, so create one and return it.
-            let configuredTarget = ConfiguredTarget(parameters: parameters, target: target, specializeGuidForActiveRunDestination: buildRequest.enableIndexBuildArena)
+            let configuredTarget = ConfiguredTarget(parameters: parameters, target: target, specializeGuidForActiveRunDestination: buildRequest.buildsIndexWorkspaceDescription)
             configuredTargetsByTarget[configuredTarget.target, default: []].insert(configuredTarget)
             addSuperimposedProperties(for: configuredTarget, superimposedProperties: superimposedProperties)
             return configuredTarget
@@ -772,7 +768,7 @@ extension SpecializationParameters {
         }
 
         var parameters = parameters
-        if buildRequest.enableIndexBuildArena {
+        if buildRequest.buildsIndexWorkspaceDescription {
             // Avoid forced propagation of "auto" overrides to targets that don't need them. If this is a host tool,
             // force its parameters to the host platform to avoid creating duplicate configured targets after it has
             // been specialized.

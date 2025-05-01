@@ -19,6 +19,8 @@
 #include <stdint.h>
 #include <stddef.h>
 
+#include "CSupportDefines.h"
+
 #ifdef __cplusplus
 extern "C" {
 #endif
@@ -85,85 +87,85 @@ typedef enum {
 /// Open an interface to libclang, from a given path.
 ///
 /// \returns nullptr on error.
-libclang_t libclang_open(const char* path);
+CSUPPORT_EXPORT libclang_t libclang_open(const char* path);
 
 /// Intentionally leak libclang interface.
-void libclang_leak(libclang_t lib);
+CSUPPORT_EXPORT void libclang_leak(libclang_t lib);
 
 /// Close an open libclang interface.
-void libclang_close(libclang_t lib);
+CSUPPORT_EXPORT void libclang_close(libclang_t lib);
 
 /// Get the clang version string.
-void libclang_get_clang_version(libclang_t lib, void (^callback)(const char*));
+CSUPPORT_EXPORT void libclang_get_clang_version(libclang_t lib, void (^callback)(const char*));
 
 /// Whether the libclang has the minimal set of required API.
-bool libclang_has_required_api(libclang_t lib);
+CSUPPORT_EXPORT bool libclang_has_required_api(libclang_t lib);
 
 /// Whether the libclang has dependency scanning support.
-bool libclang_has_scanner(libclang_t lib);
+CSUPPORT_EXPORT bool libclang_has_scanner(libclang_t lib);
 
 /// Whether libclang supports reporting structured scanning diagnostics.
-bool libclang_has_structured_scanner_diagnostics(libclang_t lib);
+CSUPPORT_EXPORT bool libclang_has_structured_scanner_diagnostics(libclang_t lib);
 
 /// Create a new scanner instance with optional CAS databases.
-libclang_scanner_t libclang_scanner_create(libclang_t lib, libclang_casdatabases_t, libclang_casoptions_t);
+CSUPPORT_EXPORT libclang_scanner_t libclang_scanner_create(libclang_t lib, libclang_casdatabases_t, libclang_casoptions_t);
 
 /// Dispose of a scanner.
-void libclang_scanner_dispose(libclang_scanner_t scanner);
+CSUPPORT_EXPORT void libclang_scanner_dispose(libclang_scanner_t scanner);
 
 /// Whether the libclang has CAS support.
-bool libclang_has_cas(libclang_t lib);
+CSUPPORT_EXPORT bool libclang_has_cas(libclang_t lib);
 
 /// Whether the libclang has CAS plugin support.
-bool libclang_has_cas_plugin_feature(libclang_t lib);
+CSUPPORT_EXPORT bool libclang_has_cas_plugin_feature(libclang_t lib);
 
 /// Whether the libclang has CAS pruning support.
-bool libclang_has_cas_pruning_feature(libclang_t lib);
+CSUPPORT_EXPORT bool libclang_has_cas_pruning_feature(libclang_t lib);
 
 /// Whether the libclang has CAS up-to-date checking support.
-bool libclang_has_cas_up_to_date_checks_feature(libclang_t lib);
+CSUPPORT_EXPORT bool libclang_has_cas_up_to_date_checks_feature(libclang_t lib);
 
 /// Whether the libclang has current working directory optimization support.
-bool libclang_has_current_working_directory_optimization(libclang_t lib);
+CSUPPORT_EXPORT bool libclang_has_current_working_directory_optimization(libclang_t lib);
 
 /// Create the CAS options object.
-libclang_casoptions_t libclang_casoptions_create(libclang_t lib);
+CSUPPORT_EXPORT libclang_casoptions_t libclang_casoptions_create(libclang_t lib);
 
 /// Dispose of the CAS options object.
-void libclang_casoptions_dispose(libclang_casoptions_t);
+CSUPPORT_EXPORT void libclang_casoptions_dispose(libclang_casoptions_t);
 
 /// Set the on-disk path to be used for the CAS database instances.
-void libclang_casoptions_setondiskpath(libclang_casoptions_t, const char *path);
+CSUPPORT_EXPORT void libclang_casoptions_setondiskpath(libclang_casoptions_t, const char *path);
 
 /// Set the plugin library path to be used for the CAS database instances.
-void libclang_casoptions_setpluginpath(libclang_casoptions_t, const char *path);
+CSUPPORT_EXPORT void libclang_casoptions_setpluginpath(libclang_casoptions_t, const char *path);
 
 /// Set a value for a named option that the CAS plugin supports.
-void libclang_casoptions_setpluginoption(libclang_casoptions_t, const char *name, const char *value);
+CSUPPORT_EXPORT void libclang_casoptions_setpluginoption(libclang_casoptions_t, const char *name, const char *value);
 
 /// Create the CAS database instances.
-libclang_casdatabases_t libclang_casdatabases_create(libclang_casoptions_t, void (^error_callback)(const char *));
+CSUPPORT_EXPORT libclang_casdatabases_t libclang_casdatabases_create(libclang_casoptions_t, void (^error_callback)(const char *));
 
 /// Dispose of the CAS databases instances.
-void libclang_casdatabases_dispose(libclang_casdatabases_t);
+CSUPPORT_EXPORT void libclang_casdatabases_dispose(libclang_casdatabases_t);
 
 /// Get the local storage size of the CAS/cache data in bytes.
 ///
 /// \returns the local storage size, or -1 if the implementation does not support
 /// reporting such size, or -2 if an error occurred.
-int64_t libclang_casdatabases_get_ondisk_size(libclang_casdatabases_t, void (^error_callback)(const char *));
+CSUPPORT_EXPORT int64_t libclang_casdatabases_get_ondisk_size(libclang_casdatabases_t, void (^error_callback)(const char *));
 
 /// Set the size for limiting disk storage growth.
 ///
 /// \param size_limit the maximum size limit in bytes. 0 means no limit. Negative values are invalid.
 /// \returns true if there was an error, false otherwise.
-bool libclang_casdatabases_set_ondisk_size_limit(libclang_casdatabases_t, int64_t size_limit, void (^error_callback)(const char *));
+CSUPPORT_EXPORT bool libclang_casdatabases_set_ondisk_size_limit(libclang_casdatabases_t, int64_t size_limit, void (^error_callback)(const char *));
 
 /// Prune local storage to reduce its size according to the desired size limit.
 /// Pruning can happen concurrently with other operations.
 ///
 /// \returns true if there was an error, false otherwise.
-bool libclang_casdatabases_prune_ondisk_data(libclang_casdatabases_t, void (^error_callback)(const char *));
+CSUPPORT_EXPORT bool libclang_casdatabases_prune_ondisk_data(libclang_casdatabases_t, void (^error_callback)(const char *));
 
 /// A callback to get the name of a given output.
 ///
@@ -193,7 +195,7 @@ typedef size_t (^module_lookup_output_t)(
 /// \param callback - A block to invoke for each discovered dependency.
 /// \param error_callback - A block to invoke on an error.
 /// \returns True on success, false if the scanner failed.
-bool libclang_scanner_scan_dependencies(
+CSUPPORT_EXPORT bool libclang_scanner_scan_dependencies(
     libclang_scanner_t scanner, int argc, char *const *argv, const char *workingDirectory,
     __attribute__((noescape)) module_lookup_output_t module_lookup_output,
     __attribute__((noescape)) void (^modules_callback)(clang_module_dependency_set_t, bool),
@@ -210,13 +212,13 @@ bool libclang_scanner_scan_dependencies(
 /// \param envp - A null terminated array of KEY=VALUE pairs (`envp`-style).
 /// \returns True on success, false on failure (including if the libclang cannot
 /// support).
-bool libclang_driver_get_actions(libclang_t wrapped_lib,
-                                 int argc,
-                                 char* const* argv,
-                                 char* const* envp,
-                                 const char* working_directory,
-                                 void (^callback)(int argc, const char** argv),
-                                 void (^error_callback)(const char*));
+CSUPPORT_EXPORT bool libclang_driver_get_actions(libclang_t wrapped_lib,
+                                                 int argc,
+                                                 char* const* argv,
+                                                 char* const* envp,
+                                                 const char* working_directory,
+                                                 void (^callback)(int argc, const char** argv),
+                                                 void (^error_callback)(const char*));
 
 struct libclang_diagnostic_t_ {
     char *file_name;
@@ -255,31 +257,31 @@ struct libclang_diagnostic_set_t_ {
     libclang_diagnostic_t *diagnostics;
 };
 
-libclang_diagnostic_set_t libclang_read_diagnostics(libclang_t wrapped_lib,
-                                                    const char* path,
-                                                    const char** error_string);
+CSUPPORT_EXPORT libclang_diagnostic_set_t libclang_read_diagnostics(libclang_t wrapped_lib,
+                                                                    const char* path,
+                                                                    const char** error_string);
 
-void libclang_diagnostic_set_dispose(libclang_diagnostic_set_t diagnostic_set);
+CSUPPORT_EXPORT void libclang_diagnostic_set_dispose(libclang_diagnostic_set_t diagnostic_set);
 
-void libclang_cas_load_object_async(libclang_casdatabases_t, const char *casid, void (^callback)(libclang_cas_casobject_t, const char *error));
-void libclang_cas_casobject_dispose(libclang_cas_casobject_t);
+CSUPPORT_EXPORT void libclang_cas_load_object_async(libclang_casdatabases_t, const char *casid, void (^callback)(libclang_cas_casobject_t, const char *error));
+CSUPPORT_EXPORT void libclang_cas_casobject_dispose(libclang_cas_casobject_t);
 
-bool libclang_cas_casobject_is_materialized(libclang_casdatabases_t, const char *casid, void (^error_callback)(const char *));
+CSUPPORT_EXPORT bool libclang_cas_casobject_is_materialized(libclang_casdatabases_t, const char *casid, void (^error_callback)(const char *));
 
-libclang_cas_cached_compilation_t libclang_cas_get_cached_compilation(libclang_casdatabases_t, const char *cache_key, bool globally, void (^error_callback)(const char *));
-void libclang_cas_get_cached_compilation_async(libclang_casdatabases_t, const char *cache_key, bool globally, void (^callback)(libclang_cas_cached_compilation_t, const char *error));
+CSUPPORT_EXPORT libclang_cas_cached_compilation_t libclang_cas_get_cached_compilation(libclang_casdatabases_t, const char *cache_key, bool globally, void (^error_callback)(const char *));
+CSUPPORT_EXPORT void libclang_cas_get_cached_compilation_async(libclang_casdatabases_t, const char *cache_key, bool globally, void (^callback)(libclang_cas_cached_compilation_t, const char *error));
 
-void libclang_cas_cached_compilation_dispose(libclang_cas_cached_compilation_t);
+CSUPPORT_EXPORT void libclang_cas_cached_compilation_dispose(libclang_cas_cached_compilation_t);
 
-size_t libclang_cas_cached_compilation_get_num_outputs(libclang_cas_cached_compilation_t);
-void libclang_cas_cached_compilation_get_output_name(libclang_cas_cached_compilation_t, size_t output_idx, void (^callback)(const char*));
-void libclang_cas_cached_compilation_get_output_casid(libclang_cas_cached_compilation_t, size_t output_idx, void (^callback)(const char*));
-bool libclang_cas_cached_compilation_is_output_materialized(libclang_cas_cached_compilation_t, size_t output_idx);
-void libclang_cas_cached_compilation_make_global_async(libclang_cas_cached_compilation_t, void (^callback)(const char *error));
+CSUPPORT_EXPORT size_t libclang_cas_cached_compilation_get_num_outputs(libclang_cas_cached_compilation_t);
+CSUPPORT_EXPORT void libclang_cas_cached_compilation_get_output_name(libclang_cas_cached_compilation_t, size_t output_idx, void (^callback)(const char*));
+CSUPPORT_EXPORT void libclang_cas_cached_compilation_get_output_casid(libclang_cas_cached_compilation_t, size_t output_idx, void (^callback)(const char*));
+CSUPPORT_EXPORT bool libclang_cas_cached_compilation_is_output_materialized(libclang_cas_cached_compilation_t, size_t output_idx);
+CSUPPORT_EXPORT void libclang_cas_cached_compilation_make_global_async(libclang_cas_cached_compilation_t, void (^callback)(const char *error));
 
 /// Synchronous call.
 /// \returns True on success, false on failure.
-bool libclang_cas_replay_compilation(libclang_cas_cached_compilation_t, int argc, char *const *argv, const char *workingDirectory, void (^callback)(const char* diagnostic_text, const char *error));
+CSUPPORT_EXPORT bool libclang_cas_replay_compilation(libclang_cas_cached_compilation_t, int argc, char *const *argv, const char *workingDirectory, void (^callback)(const char* diagnostic_text, const char *error));
 
 #ifdef __cplusplus
 }

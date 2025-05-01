@@ -13,7 +13,7 @@
 // This file contains helpers used to bridge GCD and Swift Concurrency.
 // In the long term, these ideally all go away.
 
-private import Foundation
+import Foundation
 
 /// Runs an async function and synchronously waits for the response.
 /// - warning: This function is extremely dangerous because it blocks the calling thread and may lead to deadlock, and should only be used as a temporary transitional aid.
@@ -39,6 +39,24 @@ public func runAsyncAndBlock<T: Sendable, E>(_ block: @Sendable @escaping () asy
         }
     }
     return try result.value!.get()
+}
+
+extension DispatchFD {
+    public func readChunk(upToLength maxLength: Int) async throws -> SWBDispatchData {
+        return try await withCheckedThrowingContinuation { continuation in
+            SWBDispatchIO.read(
+                fromFileDescriptor: self,
+                maxLength: maxLength,
+                runningHandlerOn: .global()
+            ) { data, error in
+                if error != 0 {
+                    continuation.resume(throwing: POSIXError(error))
+                    return
+                }
+                continuation.resume(returning: data)
+            }
+        }
+    }
 }
 
 extension AsyncThrowingStream where Element == UInt8, Failure == any Error {
