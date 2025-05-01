@@ -231,8 +231,8 @@ private extension ProductPackagingToolSpec {
                     } else {
                         message = "The '\(buildSettingName)' build setting is set to '\(buildSettingValue)', but entitlement '\(entitlement)' is set to '\(entitlementValue ? "YES" : "NO")' in your entitlements file."
                         childDiagnostics = [
-                            .init(behavior: .note, location: .buildSettings(names: [buildSettingName]), data: .init("To enable '\(buildSettingName)', remove the entitlement from your entitlements file, and enable '\(buildSettingName)' in build settings.")),
-                            .init(behavior: .note, location: entitlementsLocation, data: .init("To disable '\(buildSettingName)', remove the entitlement from your entitlements file."))
+                            .init(behavior: .note, location: entitlementsLocation, data: .init("To disable '\(buildSettingName)', remove the entitlement from your entitlements file.")),
+                            .init(behavior: .note, location: .buildSettings(names: [buildSettingName]), data: .init("To enable '\(buildSettingName)', remove the entitlement from your entitlements file, and enable '\(buildSettingName)' in build settings."))
                         ]
                     }
 
