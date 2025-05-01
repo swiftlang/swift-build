@@ -831,7 +831,6 @@ fileprivate struct PreviewsBuildOperationTests: CoreBasedTests {
                             "ENABLE_PREVIEWS": "YES",
                             "CLANG_ENABLE_MODULES": "YES",
                             "SDK_STAT_CACHE_ENABLE": "NO",
-                            "SWIFT_DISABLE_INCREMENTAL_SCAN": "YES",
 
                             "SWIFT_ENABLE_EXPLICIT_MODULES": explicitModules ? "YES" : "NO",
 
