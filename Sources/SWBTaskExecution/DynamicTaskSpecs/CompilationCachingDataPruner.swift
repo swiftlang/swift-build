@@ -112,7 +112,7 @@ package final class CompilationCachingDataPruner: Sendable {
             { activityID in
                 let status: BuildOperationTaskEnded.Status
                 do {
-                    let dbSize = try casDBs.getOndiskSize()
+                    let dbSize = try ByteCount(casDBs.getOndiskSize())
                     let sizeLimit = try computeCASSizeLimit(casOptions: casOpts, dbSize: dbSize, fileSystem: fs)
                     if let dbSize, let sizeLimit, sizeLimit < dbSize {
                         activityReporter.emit(
@@ -125,7 +125,7 @@ package final class CompilationCachingDataPruner: Sendable {
                             signature: signature
                         )
                     }
-                    try casDBs.setOndiskSizeLimit(sizeLimit ?? 0)
+                    try casDBs.setOndiskSizeLimit(sizeLimit?.count ?? 0)
                     try casDBs.pruneOndiskData()
                     status = .succeeded
                 } catch {
@@ -181,8 +181,8 @@ package final class CompilationCachingDataPruner: Sendable {
             { activityID in
                 let status: BuildOperationTaskEnded.Status
                 do {
-                    let dbSize = try casDBs.getStorageSize()
-                    let sizeLimit = try computeCASSizeLimit(casOptions: casOpts, dbSize: dbSize.map{Int($0)}, fileSystem: fs)
+                    let dbSize = try ByteCount(casDBs.getStorageSize())
+                    let sizeLimit = try computeCASSizeLimit(casOptions: casOpts, dbSize: dbSize, fileSystem: fs)
                     if let dbSize, let sizeLimit, sizeLimit < dbSize {
                         activityReporter.emit(
                             diagnostic: Diagnostic(
@@ -194,7 +194,7 @@ package final class CompilationCachingDataPruner: Sendable {
                             signature: signature
                         )
                     }
-                    try casDBs.setSizeLimit(Int64(sizeLimit ?? 0))
+                    try casDBs.setSizeLimit(sizeLimit?.count ?? 0)
                     try casDBs.prune()
                     status = .succeeded
                 } catch {
@@ -250,8 +250,8 @@ package final class CompilationCachingDataPruner: Sendable {
             { activityID in
                 let status: BuildOperationTaskEnded.Status
                 do {
-                    let dbSize = (try? toolchainCAS.getOnDiskSize()).map { Int($0) }
-                    let sizeLimit = try computeCASSizeLimit(casOptions: casOpts, dbSize: dbSize, fileSystem: fs).map { Int64($0) }
+                    let dbSize = try? ByteCount(toolchainCAS.getOnDiskSize())
+                    let sizeLimit = try computeCASSizeLimit(casOptions: casOpts, dbSize: dbSize, fileSystem: fs)
                     if let dbSize, let sizeLimit, sizeLimit < dbSize {
                         activityReporter.emit(
                             diagnostic: Diagnostic(
@@ -263,7 +263,7 @@ package final class CompilationCachingDataPruner: Sendable {
                             signature: signature
                         )
                     }
-                    try toolchainCAS.setOnDiskSizeLimit(sizeLimit ?? 0)
+                    try toolchainCAS.setOnDiskSizeLimit(sizeLimit?.count ?? 0)
                     try toolchainCAS.prune()
                     status = .succeeded
                 } catch {
@@ -287,9 +287,9 @@ package final class CompilationCachingDataPruner: Sendable {
 
 fileprivate func computeCASSizeLimit(
     casOptions: CASOptions,
-    dbSize: Int?,
+    dbSize: ByteCount?,
     fileSystem fs: any FSProxy
-) throws -> Int? {
+) throws -> ByteCount? {
     guard let dbSize else { return nil }
     switch casOptions.limitingStrategy {
     case .discarded:
@@ -304,6 +304,6 @@ fileprivate func computeCASSizeLimit(
             return nil
         }
         let availableSpace = dbSize + freeSpace
-        return availableSpace * percent / 100
+        return ByteCount(availableSpace.count * Int64(percent) / 100)
     }
 }

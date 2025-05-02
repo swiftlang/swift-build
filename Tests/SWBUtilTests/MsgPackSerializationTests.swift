@@ -371,7 +371,7 @@ import SWBUtil
                 "one": IntRange(uncheckedBounds: (1, 4)),
                 "two": IntRange(uncheckedBounds: (-13, -2)),
                 "three": IntRange(uncheckedBounds: (-99, -3)),
-                "infinity": IntRange(uncheckedBounds: (0, 43793218932)),
+                "infinity": IntRange(uncheckedBounds: (0, 2147483647)),
             ]
 
             // Serialize!

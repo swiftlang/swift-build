@@ -19,6 +19,7 @@ add_library(SWBUtil
   AsyncOperationQueue.swift
   AsyncSingleValueCache.swift
   AsyncStreamController.swift
+  ByteCount.swift
   ByteString.swift
   Cache.swift
   Collection.swift
