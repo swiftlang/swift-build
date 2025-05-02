@@ -26,22 +26,10 @@ public enum POSIX: Sendable {
     public static func getenv(_ name: String) throws -> String? {
         #if os(Windows)
         try name.withCString(encodedAs: CInterop.PlatformUnicodeEncoding.self) { wName in
-            let dwLength: DWORD = GetEnvironmentVariableW(wName, nil, 0)
-            if dwLength == 0 {
-                if GetLastError() == ERROR_ENVVAR_NOT_FOUND {
-                    return nil
-                }
-                throw POSIXError(errno, context: "GetEnvironmentVariableW", name)
-            }
-            return try withUnsafeTemporaryAllocation(of: WCHAR.self, capacity: Int(dwLength)) {
-                switch GetEnvironmentVariableW(wName, $0.baseAddress!, DWORD($0.count)) {
-                case 1..<dwLength:
-                    return String(decodingCString: $0.baseAddress!, as: CInterop.PlatformUnicodeEncoding.self)
-                case 0 where GetLastError() == ERROR_ENVVAR_NOT_FOUND:
-                    return nil
-                default:
-                    throw POSIXError(errno, context: "GetEnvironmentVariableW", name)
-                }
+            do {
+                return try SWB_GetEnvironmentVariableW(wName)
+            } catch let error as Win32Error where error.error == ERROR_ENVVAR_NOT_FOUND {
+                return nil
             }
         }
         #else
