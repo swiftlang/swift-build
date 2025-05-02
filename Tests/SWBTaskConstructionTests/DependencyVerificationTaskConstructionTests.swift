@@ -31,7 +31,7 @@ fileprivate struct DependencyVerificationTaskConstructionTests: CoreBasedTests {
 
     @Test
     func addsTraceArgsWhenDependenciesDeclared() async throws {
-        try await testWith(dependencies: ["Foo"]) { tester, srcroot in
+        try await testWith(["DEPENDENCIES": "Foo"]) { tester, srcroot in
             await tester.checkBuild(runDestination: .macOS) { results in
                 results.checkTask(.matchRuleType("Ld")) { task in
                     task.checkCommandLineContains([
@@ -44,7 +44,7 @@ fileprivate struct DependencyVerificationTaskConstructionTests: CoreBasedTests {
                         "-Xclang", "-header-include-file",
                         "-Xclang", outputFile(srcroot, "\(sourceBaseName).o.trace.json"),
                         "-Xclang", "-header-include-filtering=only-direct-system",
-                        "-Xclang", "-header-include-format=json"
+                        "-Xclang", "-header-include-format=json",
                     ])
                 }
             }
@@ -53,7 +53,7 @@ fileprivate struct DependencyVerificationTaskConstructionTests: CoreBasedTests {
 
     @Test
     func noTraceArgsWhenDependenciesDeclared() async throws {
-        try await testWith(dependencies: []) { tester, srcroot in
+        try await testWith([:]) { tester, srcroot in
             await tester.checkBuild(runDestination: .macOS) { results in
                 results.checkTask(.matchRuleType("Ld")) { task in
                     task.checkCommandLineDoesNotContain("-trace_file")
@@ -65,7 +65,21 @@ fileprivate struct DependencyVerificationTaskConstructionTests: CoreBasedTests {
         }
     }
 
-    private func testWith(dependencies: [String], _ assertions: (_ tester: TaskConstructionTester, _ srcroot: Path) async throws -> Void) async throws {
+    @Test
+    func canEnableVerificationOfNoDependencies() async throws {
+        try await testWith(["DEPENDENCIES_VERIFICATION": "YES"]) { tester, srcroot in
+            await tester.checkBuild(runDestination: .macOS) { results in
+                results.checkTask(.matchRuleType("Ld")) { task in
+                    task.checkCommandLineContains(["-Xlinker", "-trace_file",])
+                }
+            }
+        }
+    }
+
+    private func testWith(
+        _ buildSettings: [String: String],
+        _ assertions: (_ tester: TaskConstructionTester, _ srcroot: Path) async throws -> Void
+    ) async throws {
         let testProject = TestProject(
             project,
             groupTree: TestGroup(
@@ -77,11 +91,11 @@ fileprivate struct DependencyVerificationTaskConstructionTests: CoreBasedTests {
                 TestBuildConfiguration(
                     "Debug",
                     buildSettings: [
-                        "DEPENDENCIES": dependencies.joined(separator: " "),
                         "PRODUCT_NAME": "$(TARGET_NAME)",
                         "GENERATE_INFOPLIST_FILE": "YES",
-                        "CLANG_ENABLE_MODULES": "YES"
-                    ])
+                        "CLANG_ENABLE_MODULES": "YES",
+                    ].merging(buildSettings) { _, new in new }
+                )
             ],
             targets: [
                 TestStandardTarget(
