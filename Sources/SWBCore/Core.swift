@@ -721,7 +721,7 @@ extension Core {
 /// The delegate used to convey information to registry subsystems about the core, including a channel for those registries to report diagnostics.  This struct is created by the core itself and refers to the core.  It exists as a struct separate from core to avoid creating an ownership cycle between the core and the registry objects.
 ///
 /// Although primarily used by registries during the loading of the core, this delegate is persisted since registries may need to report additional information after loading.  For example, new toolchains may be downloaded.
-struct CoreRegistryDelegate : PlatformRegistryDelegate, SDKRegistryDelegate, SpecRegistryDelegate, ToolchainRegistryDelegate, SpecRegistryProvider {
+struct CoreRegistryDelegate : PlatformRegistryDelegate, SDKRegistryDelegate, SpecRegistryDelegate, ToolchainRegistryDelegate, SpecRegistryProvider, Sendable {
     unowned let core: Core
 
     var diagnosticsEngine: DiagnosticProducingDelegateProtocolPrivate<DiagnosticsEngine> {

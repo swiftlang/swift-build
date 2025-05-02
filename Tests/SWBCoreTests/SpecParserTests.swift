@@ -29,7 +29,7 @@ fileprivate final class MockSpecType: SpecType {
 
 @Suite fileprivate struct SpecParserTests {
     final class TestDataDelegate : SpecParserDelegate {
-        class MockSpecRegistryDelegate : SpecRegistryDelegate {
+        final class MockSpecRegistryDelegate: SpecRegistryDelegate, Sendable {
             private let _diagnosticsEngine: DiagnosticsEngine
 
             init(_ diagnosticsEngine: DiagnosticsEngine) {
