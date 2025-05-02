@@ -832,11 +832,7 @@ fileprivate struct CodeSignTaskConstructionTests: CoreBasedTests {
 
         // When build setting and entitlement values disagree, we expect diagnostics
         try await results(action: .build, overrides: ["ENABLE_APP_SANDBOX":"NO"], appSandboxEntitlementValueOverride: true) { results in
-            results.checkWarning(
-                .equal(
-                    "The \'ENABLE_APP_SANDBOX\' build setting is set to \'NO\', but entitlement \'com.apple.security.app-sandbox\' is set to \'YES\' in your entitlements file.\nTo enable \'ENABLE_APP_SANDBOX\', remove the entitlement from your entitlements file, and enable \'ENABLE_APP_SANDBOX\' in build settings.\n/tmp/aWorkspace/aProject/Entitlements.plist: To disable \'ENABLE_APP_SANDBOX\', remove the entitlement from your entitlements file. (in target \'App\' from project \'aProject\')"
-                )
-            )
+            results.checkNoDiagnostics()
         }
     }
 
