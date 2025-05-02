@@ -19,14 +19,13 @@ public final class BuiltinMacros {
     // MARK: Built-in Macro Conditions
 
     public static let archCondition = BuiltinMacros.declareConditionParameter("arch")
-    public static let compilerCondition = BuiltinMacros.declareConditionParameter("compiler")
     public static let sdkCondition = BuiltinMacros.declareConditionParameter("sdk")
     public static let variantCondition = BuiltinMacros.declareConditionParameter("variant")
     public static let configurationCondition = BuiltinMacros.declareConditionParameter("config")
     public static let platformCondition = BuiltinMacros.declareConditionParameter("__platform_filter")
     public static let sdkBuildVersionCondition = BuiltinMacros.declareConditionParameter("_sdk_build_version")
 
-    private static let allBuiltinConditionParameters = [archCondition, compilerCondition, sdkCondition, variantCondition, configurationCondition, platformCondition, sdkBuildVersionCondition]
+    private static let allBuiltinConditionParameters = [archCondition, sdkCondition, variantCondition, configurationCondition, platformCondition, sdkBuildVersionCondition]
 
     // MARK: Built-in Macro Definitions
 
