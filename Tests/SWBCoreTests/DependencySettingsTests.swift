@@ -22,16 +22,29 @@ import SWBMacro
 
     @Test
     func emptyDependenciesValueDisablesVerification() throws {
-        var table1 = MacroValueAssignmentTable(namespace: BuiltinMacros.namespace)
-        table1.push(BuiltinMacros.DEPENDENCIES_VERIFICATION, literal: true)
-        let scope1 = MacroEvaluationScope(table: table1)
-        #expect(!DependencySettings(scope1).verification)
+        #expect(!settings().verification)
+        #expect(settings(dependencies: ["Foo"]).verification)
+        #expect(settings(verification: .enabled).verification)
+        #expect(!settings(dependencies: ["Foo"], verification: .disabled).verification)
+    }
 
-        var table2 = MacroValueAssignmentTable(namespace: BuiltinMacros.namespace)
-        table2.push(BuiltinMacros.DEPENDENCIES_VERIFICATION, literal: true)
-        table2.push(BuiltinMacros.DEPENDENCIES, literal: ["Foo"])
-        let scope2 = MacroEvaluationScope(table: table2)
-        #expect(DependencySettings(scope2).verification)
+    @Test
+    func dependenciesAreOrderedAndUnique() throws {
+        #expect(Array(settings(dependencies: ["B", "A", "B", "A"]).dependencies) == ["A", "B"])
+    }
+
+    func settings(dependencies: [String]? = nil, verification: DependenciesVerificationSetting? = nil) -> DependencySettings {
+        var table = MacroValueAssignmentTable(namespace: BuiltinMacros.namespace)
+        if let verification {
+            table.push(BuiltinMacros.DEPENDENCIES_VERIFICATION, literal: verification)
+        }
+        if let dependencies {
+            table.push(BuiltinMacros.DEPENDENCIES, literal: dependencies)
+        }
+
+        let scope = MacroEvaluationScope(table: table)
+        return DependencySettings(scope)
+
     }
 
 }

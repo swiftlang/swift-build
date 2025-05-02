@@ -16,15 +16,15 @@ public import SWBMacro
 import Foundation
 
 // Global/target dependency settings
-public struct DependencySettings : Serializable, Sendable, Encodable {
-    public let dependencies: OrderedSet<String>
+public struct DependencySettings: Serializable, Sendable, Encodable {
+    public let dependencies: [String]  // lexicographically ordered and uniqued
     public let verification: Bool
 
     public init(
         dependencies: any Sequence<String>,
         verification: Bool
     ) {
-        self.dependencies = OrderedSet(dependencies)
+        self.dependencies = Array(OrderedSet(dependencies).sorted())
         self.verification = verification
     }
 
@@ -45,21 +45,16 @@ public struct DependencySettings : Serializable, Sendable, Encodable {
 extension DependencySettings {
     public init(_ scope: MacroEvaluationScope) {
         let dependencies = scope.evaluate(BuiltinMacros.DEPENDENCIES)
-
-        // We cannot distinguish between "DEPENDENCIES" not set and set to an empty list.
-        // Turn verification off it we have an empty list, assuming that it is not set.
-        // This means that there is no way at the moment to declare that a project with no dependencies should have verification enabled.
-        let verification = !dependencies.isEmpty && scope.evaluate(BuiltinMacros.DEPENDENCIES_VERIFICATION)
-
         self.init(
             dependencies: dependencies,
-            verification: verification
+            verification: scope.evaluate(BuiltinMacros.DEPENDENCIES_VERIFICATION)
+                .isEnabled(onNotSet: !dependencies.isEmpty),
         )
     }
 }
 
 // Task-specific settings
-public struct TaskDependencySettings : Serializable, Sendable, Encodable {
+public struct TaskDependencySettings: Serializable, Sendable, Encodable {
 
     public let traceFile: Path
     public let dependencySettings: DependencySettings

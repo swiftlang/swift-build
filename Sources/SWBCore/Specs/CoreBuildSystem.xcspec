@@ -4536,11 +4536,6 @@ When this setting is enabled:
                 Name = "DEPENDENCIES";
                 Type = StringList;
             },
-            {
-                Name = "DEPENDENCIES_VERIFICATION";
-                Type = Boolean;
-                DefaultValue = YES;
-            },
         );
     },
 )

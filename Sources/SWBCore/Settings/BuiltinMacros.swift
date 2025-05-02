@@ -585,7 +585,7 @@ public final class BuiltinMacros {
     public static let DEFAULT_KEXT_INSTALL_PATH = BuiltinMacros.declareStringMacro("DEFAULT_KEXT_INSTALL_PATH")
     public static let DEFINES_MODULE = BuiltinMacros.declareBooleanMacro("DEFINES_MODULE")
     public static let DEPENDENCIES = BuiltinMacros.declareStringListMacro("DEPENDENCIES")
-    public static let DEPENDENCIES_VERIFICATION = BuiltinMacros.declareBooleanMacro("DEPENDENCIES_VERIFICATION")
+    public static let DEPENDENCIES_VERIFICATION = BuiltinMacros.declareEnumMacro("DEPENDENCIES_VERIFICATION") as EnumMacroDeclaration<DependenciesVerificationSetting>
     public static let DEPENDENCY_SCOPE_INCLUDES_DIRECT_DEPENDENCIES = BuiltinMacros.declareBooleanMacro("DEPENDENCY_SCOPE_INCLUDES_DIRECT_DEPENDENCIES")
     public static let DERIVE_MACCATALYST_PRODUCT_BUNDLE_IDENTIFIER = BuiltinMacros.declareBooleanMacro("DERIVE_MACCATALYST_PRODUCT_BUNDLE_IDENTIFIER")
     public static let __DIAGNOSE_DERIVE_MACCATALYST_PRODUCT_BUNDLE_IDENTIFIER_ERROR = BuiltinMacros.declareBooleanMacro("__DIAGNOSE_DERIVE_MACCATALYST_PRODUCT_BUNDLE_IDENTIFIER_ERROR")
@@ -2830,5 +2830,24 @@ extension BuildVersion.Platform {
             fatalError("Mach-O based platforms must provide a deployment target setting name")
         }
         return dtsn
+    }
+}
+
+public enum DependenciesVerificationSetting: String, Equatable, Hashable, EnumerationMacroType {
+    public static let defaultValue = DependenciesVerificationSetting.notset
+
+    case notset = "NOT_SET"
+    case enabled = "YES"
+    case disabled = "NO"
+
+    func isEnabled(onNotSet: Bool) -> Bool {
+        return switch self {
+        case .notset:
+            onNotSet
+        case .enabled:
+            true
+        case .disabled:
+            false
+        }
     }
 }
