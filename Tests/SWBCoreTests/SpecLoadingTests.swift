@@ -21,7 +21,7 @@ import SWBMacro
     var specDataCaches = Registry<Spec, any SpecDataCache>()
 
     class TestDataDelegate : SpecParserDelegate {
-        class MockSpecRegistryDelegate : SpecRegistryDelegate {
+        final class MockSpecRegistryDelegate: SpecRegistryDelegate, Sendable {
             private let _diagnosticsEngine: DiagnosticsEngine
 
             init(_ diagnosticsEngine: DiagnosticsEngine) {

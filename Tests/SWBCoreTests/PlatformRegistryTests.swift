@@ -19,7 +19,7 @@ import SWBMacro
 
 @Suite fileprivate struct PlatformRegistryTests {
     final class TestDataDelegate: PlatformRegistryDelegate {
-        final class MockSpecRegistryDelegate : SpecRegistryDelegate {
+        final class MockSpecRegistryDelegate: SpecRegistryDelegate, Sendable {
             let diagnosticsEngine: DiagnosticProducingDelegateProtocolPrivate<DiagnosticsEngine>
 
             init(_ diagnosticsEngine: DiagnosticsEngine) {
