@@ -255,7 +255,7 @@ public protocol FSProxy: AnyObject, Sendable {
     func isOnPotentiallyRemoteFileSystem(_ path: Path) -> Bool
 
     /// Returns the free disk space of the volume of `path` in bytes, or `nil` if the underlying FS implementation doesn't support this.
-    func getFreeDiskSpace(_ path: Path) throws -> Int?
+    func getFreeDiskSpace(_ path: Path) throws -> ByteCount?
 }
 
 public extension FSProxy {
@@ -287,7 +287,7 @@ public extension FSProxy {
         return false
     }
 
-    func getFreeDiskSpace(_ path: Path) throws -> Int? {
+    func getFreeDiskSpace(_ path: Path) throws -> ByteCount? {
         return nil
     }
 
@@ -296,8 +296,8 @@ public extension FSProxy {
         return isSymlink(path, &exists)
     }
 
-    func getFileSize(_ path: Path) throws -> Int64 {
-        try Int64(getFileInfo(path).statBuf.st_size)
+    func getFileSize(_ path: Path) throws -> ByteCount {
+        try ByteCount(Int64(getFileInfo(path).statBuf.st_size))
     }
 }
 
@@ -860,12 +860,12 @@ class LocalFS: FSProxy, @unchecked Sendable {
         #endif
     }
 
-    func getFreeDiskSpace(_ path: Path) throws -> Int? {
+    func getFreeDiskSpace(_ path: Path) throws -> ByteCount? {
         let systemAttributes = try fileManager.attributesOfFileSystem(forPath: path.str)
         guard let freeSpace = (systemAttributes[FileAttributeKey.systemFreeSize] as? NSNumber)?.int64Value else {
             return nil
         }
-        return Int(freeSpace)
+        return ByteCount(freeSpace)
     }
 }
 
