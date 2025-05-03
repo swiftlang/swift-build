@@ -43,7 +43,7 @@ fileprivate struct DependencyVerificationBuildOperationTests: CoreBasedTests {
                                     "PRODUCT_NAME": "$(TARGET_NAME)",
                                     "CLANG_ENABLE_MODULES": "NO",
                                     "GENERATE_INFOPLIST_FILE": "YES",
-                                    "DEPENDENCIES": "Foundation UIKit",
+                                    "DEPENDENCIES": "Foundation",
                                     // Disable the SetOwnerAndGroup action by setting them to empty values.
                                     "INSTALL_GROUP": "",
                                     "INSTALL_OWNER": "",
@@ -54,7 +54,8 @@ fileprivate struct DependencyVerificationBuildOperationTests: CoreBasedTests {
                             TestStandardTarget(
                                 "CoreFoo", type: .framework,
                                 buildPhases: [
-                                    TestSourcesBuildPhase(["CoreFoo.m"])
+                                    TestSourcesBuildPhase(["CoreFoo.m"]),
+                                    TestFrameworksBuildPhase()
                                 ])
                         ])
                 ]
@@ -66,21 +67,35 @@ fileprivate struct DependencyVerificationBuildOperationTests: CoreBasedTests {
             // Write the source files.
             try await tester.fs.writeFileContents(SRCROOT.join("Sources/CoreFoo.m")) { contents in
                 contents <<< """
-                        #include <Foundation/Foundation.h>
-                        #include <Accelerate/Accelerate.h>
+                    #include <Foundation/Foundation.h>
+                    #include <Accelerate/Accelerate.h>
 
-                        void f0(void) { };
-                    """
+                    void f0(void) { };
+                """
             }
 
-            let parameters = BuildParameters(
-                action: .install, configuration: "Debug",
-                overrides: [
-                    "DSTROOT": tmpDirPath.join("dst").str
-                ])
+            func parameters(_ overrides: [String: String] = [:]) -> BuildParameters {
+                return BuildParameters(
+                    action: .install, configuration: "Debug",
+                    overrides: [
+                        "DSTROOT": tmpDirPath.join("dst").str
+                    ].merging(overrides, uniquingKeysWith: { _, new in new })
+                )
+            }
 
-            try await tester.checkBuild(parameters: parameters, runDestination: .macOS, persistent: true) { results in
+            // Non-modular clang complains about undeclared dependency
+            try await tester.checkBuild(parameters: parameters(), runDestination: .macOS, persistent: true) { results in
                 results.checkError(.contains("Undeclared dependencies: \n  Accelerate"))
+            }
+
+            // Declaring dependency resolves problem
+            try await tester.checkBuild(parameters: parameters(["DEPENDENCIES": "Foundation Accelerate"]), runDestination: .macOS, persistent: true) { results in
+                results.checkNoErrors()
+            }
+
+            // Linker complains about undeclared dependency
+            try await tester.checkBuild(parameters: parameters(["OTHER_LDFLAGS": "-framework CoreData", "DEPENDENCIES": "Foundation Accelerate"]), runDestination: .macOS, persistent: true) { results in
+                results.checkError(.contains("Undeclared dependencies: \n  CoreData"))
             }
         }
     }
