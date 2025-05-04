@@ -67,13 +67,13 @@ extension StringPattern {
 package final class StringPatternRegex: Sendable {
     fileprivate let regex: SWBMutex<Regex<Substring>>
 
-    fileprivate init(_ regex: consuming sending Regex<Substring>) {
+    fileprivate init(_ regex: consuming sendingRegex<Substring>) {
         self.regex = .init(regex)
     }
 }
 
 extension StringPattern {
-    package static func regex(_ regex: consuming sending Regex<Substring>) -> StringPattern {
+    package static func regex(_ regex: consuming sendingRegex<Substring>) -> StringPattern {
         .regex(.init(regex))
     }
 
@@ -119,9 +119,9 @@ extension StringPattern: ExpressibleByStringInterpolation {
     }
 }
 
-package func ~=(pattern: StringPattern, value: String) -> Bool {
+package func ~= (pattern: StringPattern, value: String) -> Bool {
     switch pattern {
-        // These cases never matches individual items, they are just used for matching string lists.
+    // These cases never matches individual items, they are just used for matching string lists.
     case .start, .end, .anySequence:
         return false
 
@@ -155,7 +155,7 @@ package func ~=(pattern: StringPattern, value: String) -> Bool {
     }
 }
 
-package func ~=(patterns: [StringPattern], input: [String]) -> Bool {
+package func ~= (patterns: [StringPattern], input: [String]) -> Bool {
     let startIndex = input.startIndex
     let endIndex = input.endIndex
 
@@ -224,11 +224,12 @@ package func XCTAssertMatch(_ value: @autoclosure @escaping () -> String?, _ pat
     XCTAssertMatchImpl(pattern ~= value, { value }, pattern, message, sourceLocation: sourceLocation)
 }
 package func XCTAssertNoMatch(_ value: @autoclosure @escaping () -> String?, _ pattern: StringPattern, _ message: String? = nil, sourceLocation: SourceLocation = #_sourceLocation) {
-    XCTAssertMatchImpl({
-        // `nil` always matches, so in this case we return true to ensure the underlying XCTAssert succeeds
-        guard let value = value() else { return true }
-        return !(pattern ~= value)
-    }(), value, pattern, message, sourceLocation: sourceLocation)
+    XCTAssertMatchImpl(
+        {
+            // `nil` always matches, so in this case we return true to ensure the underlying XCTAssert succeeds
+            guard let value = value() else { return true }
+            return !(pattern ~= value)
+        }(), value, pattern, message, sourceLocation: sourceLocation)
 }
 
 package func XCTAssertMatch(_ value: @autoclosure @escaping () -> [String], _ pattern: [StringPattern], _ message: String? = nil, sourceLocation: SourceLocation = #_sourceLocation) {

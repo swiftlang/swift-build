@@ -205,9 +205,7 @@ public final class Session {
         return startPIFTransfer(workspaceSignature: workspaceSignature)
     }
 
-
     // MARK: Support for saving macro evaluation scopes to look up by a handle (UUID).
-
 
     /// The active Settings objects being vended for use by the client.
     /// - remark: This is presently only used in `PlanningOperation` to be able to evaluate some settings after receiving provisioning inputs from the client, without having to reconstruct the `ConfiguredTarget` in that asyncronous operation.
@@ -235,9 +233,7 @@ public final class Session {
         return settings
     }
 
-
     // MARK: Planning operation support
-
 
     /// The active planning operations, if any.
     ///
@@ -267,7 +263,6 @@ public final class Session {
         planningOperation.request.send(PlanningOperationDidFinish(sessionHandle: UID, planningOperationHandle: planningOperation.uuid.description))
     }
 
-
     // MARK: Client exchange objects
 
     // FIXME: This should just map on the UUID type, not a string.
@@ -290,7 +285,6 @@ public final class Session {
     func discardClientExchange(_ exchange: any ClientExchange) -> (any ClientExchange)? {
         activeClientExchanges.removeValue(forKey: exchange.uuid.description)
     }
-
 
     // MARK: Information operation support
 
@@ -317,7 +311,7 @@ public final class Session {
     /// Cancel ongoing information operations
     func cancelInfoOperations() {
         activeInfoOperations.forEach {
-                $0.1.cancel()
+            $0.1.cancel()
         }
     }
 
@@ -329,7 +323,6 @@ public final class Session {
         }
     }
 
-
     // MARK: Build operation support
 
     /// The active build operations
@@ -337,12 +330,12 @@ public final class Session {
 
     /// Returns the normal build operations, excluding the ones that are for the index.
     private var activeNormalBuilds: [any ActiveBuildOperation] {
-        return activeBuilds.values.filter{ !$0.buildRequest.enableIndexBuildArena && !$0.onlyCreatesBuildDescription }
+        return activeBuilds.values.filter { !$0.buildRequest.enableIndexBuildArena && !$0.onlyCreatesBuildDescription }
     }
 
     /// Returns index build operations.
     private var activeIndexBuilds: [any ActiveBuildOperation] {
-        return activeBuilds.values.filter{ $0.buildRequest.enableIndexBuildArena && !$0.onlyCreatesBuildDescription }
+        return activeBuilds.values.filter { $0.buildRequest.enableIndexBuildArena && !$0.onlyCreatesBuildDescription }
     }
 
     /// Registers a build operation with the session
@@ -351,7 +344,8 @@ public final class Session {
         // But we do allow build description creation operations to run concurrently with normal builds. These are important for index queries to function properly even during a build.
         // We also allow 'prepare-for-index' build operations to run concurrently with a normal build but only one at a time. These are important for functionality in the Xcode editor to work properly, that the user directly interacts with.
         if !build.onlyCreatesBuildDescription {
-            let (buildType, existingBuilds) = build.buildRequest.enableIndexBuildArena
+            let (buildType, existingBuilds) =
+                build.buildRequest.enableIndexBuildArena
                 ? ("index", activeIndexBuilds)
                 : ("normal", activeNormalBuilds)
 
@@ -380,13 +374,11 @@ public final class Session {
     }
 }
 
-
 /// A client exchange is used to send a request to the client and handle its response.  The service creates and discards these, and is responsible for adding and removing them from the session.
 protocol ClientExchange {
     /// The stable UUID of the receiver.
     var uuid: UUID { get }
 }
-
 
 // Session Extensions
 
