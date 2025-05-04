@@ -93,14 +93,14 @@ public final class LockedValue<Value: ~Copyable> {
     @usableFromInline let lock = Lock()
     /// Don't use this from outside this class. Is internal to be inlinable.
     @usableFromInline var value: Value
-    public init(_ value: consuming sendingValue) {
+    public init(_ value: consuming sending Value) {
         self.value = value
     }
 }
 
 extension LockedValue where Value: ~Copyable {
     @discardableResult @inlinable
-    public borrowing func withLock<Result: ~Copyable, E: Error>(_ block: (inout sendingValue) throws(E) -> sending Result) throws(E) -> sending Result {
+    public borrowing func withLock<Result: ~Copyable, E: Error>(_ block: (inout sending Value) throws(E) -> sending Result) throws(E) -> sending Result {
         lock.lock()
         defer { lock.unlock() }
         return try block(&value)

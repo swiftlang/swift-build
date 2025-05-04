@@ -67,13 +67,13 @@ extension StringPattern {
 package final class StringPatternRegex: Sendable {
     fileprivate let regex: SWBMutex<Regex<Substring>>
 
-    fileprivate init(_ regex: consuming sendingRegex<Substring>) {
+    fileprivate init(_ regex: consuming sending Regex<Substring>) {
         self.regex = .init(regex)
     }
 }
 
 extension StringPattern {
-    package static func regex(_ regex: consuming sendingRegex<Substring>) -> StringPattern {
+    package static func regex(_ regex: consuming sending Regex<Substring>) -> StringPattern {
         .regex(.init(regex))
     }
 
