@@ -191,7 +191,7 @@ extension Process {
         Diagnostics.progress("Using process spawning workaround")
         // Linux workaround for https://github.com/swiftlang/swift-corelibs-foundation/issues/4772
         // Foundation.Process on Linux seems to inherit the Process.run()-calling thread's signal mask, creating processes that even have SIGTERM blocked
-        // This manifests as CMake hanging when invoking 'uname' with incorrectly configured signal handlers.
+        // This manifests as CMake getting stuck when invoking 'uname' with incorrectly configured signal handlers.
         var fileActions = posix_spawn_file_actions_t()
         defer { posix_spawn_file_actions_destroy(&fileActions) }
         var attrs: posix_spawnattr_t = posix_spawnattr_t()

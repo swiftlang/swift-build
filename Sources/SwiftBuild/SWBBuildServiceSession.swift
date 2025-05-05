@@ -630,7 +630,7 @@ extension SWBBuildServiceSession {
             throw StubError.error("Unexpected message: \(msgOpt.map(String.init(describing:)) ?? "<nil>")")
         }
 
-        // NOTE: If any GetProvisioningTaskInputsRequest/ExternalToolExecutionRequest messages are received, cancellation may result in them never receiving a reply, which could result in background operations hanging. We should find a way to handle that better.
+        // NOTE: If any GetProvisioningTaskInputsRequest/ExternalToolExecutionRequest messages are received, cancellation may result in them never receiving a reply, which could result in background operations getting stuck. We should find a way to handle that better.
 
         // nil indicates Task cancellation (we broke out of the loop)
         return nil

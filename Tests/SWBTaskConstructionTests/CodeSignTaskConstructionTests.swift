@@ -627,10 +627,10 @@ fileprivate struct CodeSignTaskConstructionTests: CoreBasedTests {
         }
 
         // Check that flags without a dedicated build setting are passed through as expected.
-        await tester.checkBuild(BuildParameters(action: .install, configuration: "Release", overrides: ["ENABLE_LIBRARY_VALIDATION": "YES", "ENABLE_HARDENED_RUNTIME": "YES", "CODE_SIGN_RESTRICT": "YES", "OTHER_CODE_SIGN_FLAGS": "--options kill,hard,host,expires,linker-signed"]), runDestination: .macOS) { results in
+        await tester.checkBuild(BuildParameters(action: .install, configuration: "Release", overrides: ["ENABLE_LIBRARY_VALIDATION": "YES", "ENABLE_HARDENED_RUNTIME": "YES", "CODE_SIGN_RESTRICT": "YES", "OTHER_CODE_SIGN_FLAGS": "--options kill,hard,host,expires,linker-signed"]), runDestination: .macOS) { results in // ignore-unacceptable-language; codesign tool option
             results.checkTarget("macOSFramework") { target in
                 results.checkTask(.matchTarget(target), .matchRuleType("CodeSign")) { task in
-                    task.checkCommandLineMatches(["/usr/bin/codesign", "--force", "--sign", "-", "--options", "expires,hard,host,kill,library,linker-signed,restrict,runtime", "--entitlements", .suffix("macOSFramework.framework.xcent"), "--generate-entitlement-der", "/tmp/aProject.dst/Library/Frameworks/macOSFramework.framework/Versions/A"])
+                    task.checkCommandLineMatches(["/usr/bin/codesign", "--force", "--sign", "-", "--options", "expires,hard,host,kill,library,linker-signed,restrict,runtime", "--entitlements", .suffix("macOSFramework.framework.xcent"), "--generate-entitlement-der", "/tmp/aProject.dst/Library/Frameworks/macOSFramework.framework/Versions/A"]) // ignore-unacceptable-language; codesign tool option
                 }
             }
 
@@ -638,10 +638,10 @@ fileprivate struct CodeSignTaskConstructionTests: CoreBasedTests {
         }
 
         // Check that flags without a dedicated build setting are passed through as expected, in conjunction with DISABLE_FREEFORM_CODE_SIGN_OPTION_FLAGS removing disabled, known ones.
-        await tester.checkBuild(BuildParameters(action: .install, configuration: "Release", overrides: ["ENABLE_LIBRARY_VALIDATION": "NO", "ENABLE_HARDENED_RUNTIME": "NO", "CODE_SIGN_RESTRICT": "YES", "OTHER_CODE_SIGN_FLAGS": "--options kill,hard,host,expires,linker-signed"]), runDestination: .macOS) { results in
+        await tester.checkBuild(BuildParameters(action: .install, configuration: "Release", overrides: ["ENABLE_LIBRARY_VALIDATION": "NO", "ENABLE_HARDENED_RUNTIME": "NO", "CODE_SIGN_RESTRICT": "YES", "OTHER_CODE_SIGN_FLAGS": "--options kill,hard,host,expires,linker-signed"]), runDestination: .macOS) { results in // ignore-unacceptable-language; codesign tool option
             results.checkTarget("macOSFramework") { target in
                 results.checkTask(.matchTarget(target), .matchRuleType("CodeSign")) { task in
-                    task.checkCommandLineMatches(["/usr/bin/codesign", "--force", "--sign", "-", "--options", "expires,hard,host,kill,linker-signed,restrict", "--entitlements", .suffix("macOSFramework.framework.xcent"), "--generate-entitlement-der", "/tmp/aProject.dst/Library/Frameworks/macOSFramework.framework/Versions/A"])
+                    task.checkCommandLineMatches(["/usr/bin/codesign", "--force", "--sign", "-", "--options", "expires,hard,host,kill,linker-signed,restrict", "--entitlements", .suffix("macOSFramework.framework.xcent"), "--generate-entitlement-der", "/tmp/aProject.dst/Library/Frameworks/macOSFramework.framework/Versions/A"]) // ignore-unacceptable-language; codesign tool option
                 }
             }
 
