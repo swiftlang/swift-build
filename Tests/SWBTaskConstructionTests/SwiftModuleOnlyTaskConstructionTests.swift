@@ -632,7 +632,7 @@ fileprivate struct SwiftModuleOnlyTaskConstructionTests: CoreBasedTests {
                                       }
 
                                       // Check the dependency data.
-                                      #expect(task.dependencyData == .makefileIgnoringSubsequentOutputs(archBuildDir.join("\(tpc.targetName)\(platformSuffix)-master-emit-module.d")))
+                                      #expect(task.dependencyData == .makefileIgnoringSubsequentOutputs(archBuildDir.join("\(tpc.targetName)\(platformSuffix)-primary-emit-module.d")))
                                   }
     }
 
@@ -683,11 +683,11 @@ fileprivate struct SwiftModuleOnlyTaskConstructionTests: CoreBasedTests {
             let globalDict = try #require(dict[""])
 
             XCTAssertEqualPropertyListItems(globalDict, .plDict([
-                "swift-dependencies": .plString(archBuildDir.join("\(tpc.targetName)\(platformSuffix)-master.swiftdeps").str),
-                "diagnostics": .plString(archBuildDir.join("\(tpc.targetName)\(platformSuffix)-master.dia").str),
-                "emit-module-diagnostics": .plString(archBuildDir.join("\(tpc.targetName)\(platformSuffix)-master-emit-module.dia").str),
-                "emit-module-dependencies": .plString(archBuildDir.join("\(tpc.targetName)\(platformSuffix)-master-emit-module.d").str),
-                "pch": .plString(archBuildDir.join("\(tpc.targetName)\(platformSuffix)-master-Bridging-header.pch").str),
+                "swift-dependencies": .plString(archBuildDir.join("\(tpc.targetName)\(platformSuffix)-primary.swiftdeps").str),
+                "diagnostics": .plString(archBuildDir.join("\(tpc.targetName)\(platformSuffix)-primary.dia").str),
+                "emit-module-diagnostics": .plString(archBuildDir.join("\(tpc.targetName)\(platformSuffix)-primary-emit-module.dia").str),
+                "emit-module-dependencies": .plString(archBuildDir.join("\(tpc.targetName)\(platformSuffix)-primary-emit-module.d").str),
+                "pch": .plString(archBuildDir.join("\(tpc.targetName)\(platformSuffix)-primary-Bridging-header.pch").str),
             ]))
         }
 

@@ -172,8 +172,8 @@ final class CLIConnection {
             throw Win32Error(GetLastError())
         }
         #else
-        if SWBLibc.kill(processIdentifier, SIGKILL) != 0 {
-            throw POSIXError(errno, context: "kill", String(processIdentifier), String(SIGKILL))
+        if SWBLibc.kill(processIdentifier, SIGKILL) != 0 { // ignore-unacceptable-language; POSIX API
+            throw POSIXError(errno, context: "kill", String(processIdentifier), String(SIGKILL)) // ignore-unacceptable-language; POSIX API
         }
         #endif
     }

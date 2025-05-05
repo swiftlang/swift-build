@@ -27,7 +27,7 @@ import Testing
         await condition.wait()
     }
 
-    /// Regression test for `wait()` hanging when called from multiple tasks.
+    /// Regression test for `wait()` getting stuck when called from multiple tasks.
     @Test
     func multipleWaiters() async {
         let condition = WaitCondition()

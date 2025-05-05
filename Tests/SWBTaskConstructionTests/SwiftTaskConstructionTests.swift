@@ -302,11 +302,11 @@ fileprivate struct SwiftTaskConstructionTests: CoreBasedTests {
                     // Check the global dictionary.
                     if let globalDict = dict[""] {
                         XCTAssertEqualPropertyListItems(globalDict, .plDict([
-                            "swift-dependencies": .plString("\(SRCROOT)/build/aProject.build/Debug/AppTarget.build/Objects-normal/x86_64/AppTarget-master.swiftdeps"),
-                            "diagnostics": .plString("\(SRCROOT)/build/aProject.build/Debug/AppTarget.build/Objects-normal/x86_64/AppTarget-master.dia"),
-                            "emit-module-diagnostics": .plString("\(SRCROOT)/build/aProject.build/Debug/AppTarget.build/Objects-normal/x86_64/AppTarget-master-emit-module.dia"),
-                            "emit-module-dependencies": .plString("\(SRCROOT)/build/aProject.build/Debug/AppTarget.build/Objects-normal/x86_64/AppTarget-master-emit-module.d"),
-                            "pch": .plString("\(SRCROOT)/build/aProject.build/Debug/AppTarget.build/Objects-normal/x86_64/AppTarget-master-Bridging-header.pch"),
+                            "swift-dependencies": .plString("\(SRCROOT)/build/aProject.build/Debug/AppTarget.build/Objects-normal/x86_64/AppTarget-primary.swiftdeps"),
+                            "diagnostics": .plString("\(SRCROOT)/build/aProject.build/Debug/AppTarget.build/Objects-normal/x86_64/AppTarget-primary.dia"),
+                            "emit-module-diagnostics": .plString("\(SRCROOT)/build/aProject.build/Debug/AppTarget.build/Objects-normal/x86_64/AppTarget-primary-emit-module.dia"),
+                            "emit-module-dependencies": .plString("\(SRCROOT)/build/aProject.build/Debug/AppTarget.build/Objects-normal/x86_64/AppTarget-primary-emit-module.d"),
+                            "pch": .plString("\(SRCROOT)/build/aProject.build/Debug/AppTarget.build/Objects-normal/x86_64/AppTarget-primary-Bridging-header.pch"),
                         ]))
                     }
                     else {

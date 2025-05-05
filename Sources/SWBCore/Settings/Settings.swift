@@ -5066,7 +5066,7 @@ private class SettingsBuilder {
             return []
         }
 
-        // For performance, we're only going to check the Resources build phase because that's where xcstrings are expected to hang out.
+        // For performance, we're only going to check the Resources build phase because that's where xcstrings are expected to be.
         let buildFiles = standardTarget.resourcesBuildPhase?.buildFiles ?? []
 
         let resolver = FilePathResolver(scope: scope)
