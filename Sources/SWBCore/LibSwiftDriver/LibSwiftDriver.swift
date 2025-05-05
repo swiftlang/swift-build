@@ -238,9 +238,9 @@ public final class SwiftModuleDependencyGraph: SwiftGlobalExplicitDependencyGrap
         return fileDependencies
     }
 
-    public func queryTransitiveDependencyModuleNames(for key: String) throws -> [String] {
-        let graph = try registryQueue.blocking_sync {
-            guard let driver = registry[key] else {
+    public func queryTransitiveDependencyModuleNames(for key: String) async throws -> [String] {
+        let graph = try await registryQueue.sync {
+            guard let driver = self.registry[key] else {
                 throw StubError.error("Unable to find jobs for key \(key). Be sure to plan the build ahead of fetching results.")
             }
             return driver.intermoduleDependencyGraph
