@@ -16,11 +16,38 @@ function(SwiftBuild_Bundle)
   cmake_parse_arguments(PARSE_ARGV 0 BundleXCSpecs
     "${Options}" "${OneValueArguments}" "${MultiValueArguments}")
 
+  list(TRANSFORM BundleXCSpecs_FILES PREPEND "${CMAKE_CURRENT_SOURCE_DIR}/")
   add_custom_command(TARGET ${BundleXCSpecs_MODULE} POST_BUILD
     COMMAND
-      ${CMAKE_COMMAND} -E make_directory "$<TARGET_PROPERTY:${BundleXCSpecs_MODULE},LOCATION>/SwiftBuild_${BundleXCSpecs_MODULE}.resources"
+      ${CMAKE_COMMAND} -E make_directory "${CMAKE_BINARY_DIR}/share/pm/SwiftBuild_${BundleXCSpecs_MODULE}.resources"
     COMMAND
-      ${CMAKE_COMMAND} -E copy_if_different ${BundleXCSpecs_FILES} "$<TARGET_PROPERTY:${BundleXCSpecs_MODULE},LOCATION>/SwiftBuild_${BundleXCSpecs_MODULE}.resources/")
+      ${CMAKE_COMMAND} -E copy_if_different ${BundleXCSpecs_FILES} "${CMAKE_BINARY_DIR}/share/pm/SwiftBuild_${BundleXCSpecs_MODULE}.resources/")
+
+  file(TO_NATIVE_PATH "${CMAKE_BINARY_DIR}/share/pm/SwiftBuild_${BundleXCSpecs_MODULE}.resources" _SWIFT_BUILD_RESOURCE_BUNDLE_BUILD_PATH)
+  file(CONFIGURE
+    OUTPUT "${CMAKE_BINARY_DIR}/resource_accessors/SwiftBuild_${BundleXCSpecs_MODULE}_resource_bundle_accessor.swift"
+    CONTENT [[
+    import Foundation
+    extension Foundation.Bundle {
+      static let module: Bundle = {
+        let mainPath = Bundle.main.bundleURL.appendingPathComponent("SwiftBuild_@BundleXCSpecs_MODULE@.resources").path
+        let buildPath = #"@_SWIFT_BUILD_RESOURCE_BUNDLE_BUILD_PATH@"#
+        let preferredBundle = Bundle(path: mainPath)
+        guard let bundle = preferredBundle ?? Bundle(path: buildPath) else {
+          Swift.fatalError("could not load resource bundle: from \(mainPath) or \(buildPath)")
+        }
+        return bundle
+      }()
+    }
+    ]]
+    ESCAPE_QUOTES @ONLY NEWLINE_STYLE LF)
+
+  target_sources("${BundleXCSpecs_MODULE}" PRIVATE
+    "${CMAKE_BINARY_DIR}/resource_accessors/SwiftBuild_${BundleXCSpecs_MODULE}_resource_bundle_accessor.swift")
+
+  install(DIRECTORY
+    "${CMAKE_BINARY_DIR}/share/pm/SwiftBuild_${BundleXCSpecs_MODULE}.resources/"
+    DESTINATION share/pm/SwiftBuild_${BundleXCSpecs_MODULE}.resources/)
 endfunction()
 
 add_subdirectory(SWBCSupport)
