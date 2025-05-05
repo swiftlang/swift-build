@@ -18,7 +18,7 @@ public import SWBMacro
 
 public typealias ODRTagSet = Set<String>
 
-public struct ODRAssetPackInfo {
+public struct ODRAssetPackInfo: Sendable {
     public var identifier: String
     public var tags: ODRTagSet
     public var path: Path
