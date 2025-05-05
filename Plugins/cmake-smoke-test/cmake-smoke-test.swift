@@ -24,21 +24,24 @@ struct CMakeSmokeTest: CommandPlugin {
         }
 
         guard let cmakePath = args.extractOption(named: "cmake-path").last else { throw Errors.missingRequiredOption("--cmake-path") }
-        print("using cmake at \(cmakePath)")
+        Diagnostics.progress("using cmake at \(cmakePath)")
         let cmakeURL = URL(filePath: cmakePath)
         guard let ninjaPath = args.extractOption(named: "ninja-path").last else { throw Errors.missingRequiredOption("--ninja-path") }
-        print("using ninja at \(ninjaPath)")
+        Diagnostics.progress("using ninja at \(ninjaPath)")
         let ninjaURL = URL(filePath: ninjaPath)
         let sysrootPath = args.extractOption(named: "sysroot-path").last
         if let sysrootPath {
-            print("using sysroot at \(sysrootPath)")
+            Diagnostics.progress("using sysroot at \(sysrootPath)")
         }
+
+        let extraCMakeArgs = args.extractOption(named: "extra-cmake-arg")
+        Diagnostics.progress("Extra cmake args: \(extraCMakeArgs.joined(separator: " "))")
 
         let moduleCachePath = context.pluginWorkDirectoryURL.appending(component: "module-cache").path()
 
         let swiftBuildURL = context.package.directoryURL
         let swiftBuildBuildURL = context.pluginWorkDirectoryURL.appending(component: "swift-build")
-        print("swift-build: \(swiftBuildURL.path())")
+        Diagnostics.progress("swift-build: \(swiftBuildURL.path())")
 
         let swiftToolsSupportCoreURL = try findDependency("swift-tools-support-core", pluginContext: context)
         let swiftToolsSupportCoreBuildURL = context.pluginWorkDirectoryURL.appending(component: "swift-tools-support-core")
@@ -80,39 +83,39 @@ struct CMakeSmokeTest: CommandPlugin {
             "-DCMAKE_MAKE_PROGRAM=\(ninjaPath)",
             "-DCMAKE_BUILD_TYPE:=Debug",
             "-DCMAKE_Swift_FLAGS='\(sharedSwiftFlags.joined(separator: " "))'"
-        ] + cMakeProjectArgs
+        ] + cMakeProjectArgs + extraCMakeArgs
 
-        print("Building swift-tools-support-core")
+        Diagnostics.progress("Building swift-tools-support-core")
         try await Process.checkNonZeroExit(url: cmakeURL, arguments: sharedCMakeArgs + [swiftToolsSupportCoreURL.path()], workingDirectory: swiftToolsSupportCoreBuildURL)
         try await Process.checkNonZeroExit(url: ninjaURL, arguments: [], workingDirectory: swiftToolsSupportCoreBuildURL)
-        print("Built swift-tools-support-core")
+        Diagnostics.progress("Built swift-tools-support-core")
 
         if hostOS != .macOS {
-            print("Building swift-system")
+            Diagnostics.progress("Building swift-system")
             try await Process.checkNonZeroExit(url: cmakeURL, arguments: sharedCMakeArgs + [swiftSystemURL.path()], workingDirectory: swiftSystemBuildURL)
             try await Process.checkNonZeroExit(url: ninjaURL, arguments: [], workingDirectory: swiftSystemBuildURL)
-            print("Built swift-system")
+            Diagnostics.progress("Built swift-system")
         }
 
-        print("Building llbuild")
+        Diagnostics.progress("Building llbuild")
         try await Process.checkNonZeroExit(url: cmakeURL, arguments: sharedCMakeArgs + ["-DLLBUILD_SUPPORT_BINDINGS:=Swift", llbuildURL.path()], workingDirectory: llbuildBuildURL)
         try await Process.checkNonZeroExit(url: ninjaURL, arguments: [], workingDirectory: llbuildBuildURL)
-        print("Built llbuild")
+        Diagnostics.progress("Built llbuild")
 
-        print("Building swift-argument-parser")
+        Diagnostics.progress("Building swift-argument-parser")
         try await Process.checkNonZeroExit(url: cmakeURL, arguments: sharedCMakeArgs + ["-DBUILD_TESTING=NO", "-DBUILD_EXAMPLES=NO", swiftArgumentParserURL.path()], workingDirectory: swiftArgumentParserBuildURL)
         try await Process.checkNonZeroExit(url: ninjaURL, arguments: [], workingDirectory: swiftArgumentParserBuildURL)
-        print("Built swift-argument-parser")
+        Diagnostics.progress("Built swift-argument-parser")
 
-        print("Building swift-driver")
+        Diagnostics.progress("Building swift-driver")
         try await Process.checkNonZeroExit(url: cmakeURL, arguments: sharedCMakeArgs + [swiftDriverURL.path()], workingDirectory: swiftDriverBuildURL)
         try await Process.checkNonZeroExit(url: ninjaURL, arguments: [], workingDirectory: swiftDriverBuildURL)
-        print("Built swift-driver")
+        Diagnostics.progress("Built swift-driver")
 
-        print("Building swift-build in \(swiftBuildBuildURL)")
+        Diagnostics.progress("Building swift-build in \(swiftBuildBuildURL)")
         try await Process.checkNonZeroExit(url: cmakeURL, arguments: sharedCMakeArgs + [swiftBuildURL.path()], workingDirectory: swiftBuildBuildURL)
         try await Process.checkNonZeroExit(url: ninjaURL, arguments: [], workingDirectory: swiftBuildBuildURL)
-        print("Built swift-build")
+        Diagnostics.progress("Built swift-build")
     }
 
     func findDependency(_ name: String, pluginContext: PluginContext) throws -> URL {
@@ -132,7 +135,7 @@ struct CMakeSmokeTest: CommandPlugin {
             throw Errors.missingRepository(name)
         }
         let dependencyURL = dependency.directoryURL
-        print("\(name): \(dependencyURL.path())")
+        Diagnostics.progress("\(name): \(dependencyURL.path())")
         guard FileManager.default.fileExists(atPath: dependencyURL.path()) else {
             throw Errors.missingRepository(dependencyURL.path())
         }
@@ -145,6 +148,7 @@ enum Errors: Error {
     case missingRequiredOption(String)
     case missingRepository(String)
     case unimplementedForHostOS
+    case miscError(String)
 }
 
 enum OS {
@@ -182,7 +186,53 @@ extension Process {
     }
 
     static func checkNonZeroExit(url: URL, arguments: [String], workingDirectory: URL, environment: [String: String]? = nil) async throws {
-        print("\(url.path()) \(arguments.joined(separator: " "))")
+        Diagnostics.progress("\(url.path()) \(arguments.joined(separator: " "))")
+        #if USE_PROCESS_SPAWNING_WORKAROUND
+        Diagnostics.progress("Using process spawning workaround")
+        // Linux workaround for https://github.com/swiftlang/swift-corelibs-foundation/issues/4772
+        // Foundation.Process on Linux seems to inherit the Process.run()-calling thread's signal mask, creating processes that even have SIGTERM blocked
+        // This manifests as CMake hanging when invoking 'uname' with incorrectly configured signal handlers.
+        var fileActions = posix_spawn_file_actions_t()
+        defer { posix_spawn_file_actions_destroy(&fileActions) }
+        var attrs: posix_spawnattr_t = posix_spawnattr_t()
+        defer { posix_spawnattr_destroy(&attrs) }
+        posix_spawn_file_actions_init(&fileActions)
+        posix_spawn_file_actions_addchdir_np(&fileActions, workingDirectory.path())
+
+        posix_spawnattr_init(&attrs)
+        posix_spawnattr_setpgroup(&attrs, 0)
+        var noSignals = sigset_t()
+        sigemptyset(&noSignals)
+        posix_spawnattr_setsigmask(&attrs, &noSignals)
+
+        var mostSignals = sigset_t()
+        sigemptyset(&mostSignals)
+        for i in 1 ..< SIGSYS {
+            if i == SIGKILL || i == SIGSTOP {
+                continue
+            }
+            sigaddset(&mostSignals, i)
+        }
+        posix_spawnattr_setsigdefault(&attrs, &mostSignals)
+        posix_spawnattr_setflags(&attrs, numericCast(POSIX_SPAWN_SETPGROUP | POSIX_SPAWN_SETSIGDEF | POSIX_SPAWN_SETSIGMASK))
+        var pid: pid_t = -1
+        try withArrayOfCStrings([url.path()] + arguments) { arguments in
+            try withArrayOfCStrings((environment ?? [:]).map { key, value in "\(key)=\(value)" }) { environment in
+                let spawnResult = posix_spawn(&pid, url.path(), /*file_actions=*/&fileActions, /*attrp=*/&attrs, arguments, nil);
+                var exitCode: Int32 = -1
+                var result = wait4(pid, &exitCode, 0, nil);
+                while (result == -1 && errno == EINTR) {
+                    result = wait4(pid, &exitCode, 0, nil)
+                }
+                guard result != -1 else {
+                    throw Errors.miscError("wait failed")
+                }
+                guard exitCode == 0 else {
+                    throw Errors.miscError("exit code nonzero")
+                }
+            }
+        }
+        #else
         let process = Process()
         process.executableURL = url
         process.arguments = arguments
@@ -192,5 +242,44 @@ extension Process {
         if process.terminationStatus != 0 {
             throw Errors.processError(terminationReason: process.terminationReason, terminationStatus: process.terminationStatus)
         }
+        #endif
     }
+}
+
+func scan<S: Sequence, U>(_ seq: S, _ initial: U, _ combine: (U, S.Element) -> U) -> [U] {
+  var result: [U] = []
+  result.reserveCapacity(seq.underestimatedCount)
+  var runningResult = initial
+  for element in seq {
+    runningResult = combine(runningResult, element)
+    result.append(runningResult)
+  }
+  return result
+}
+
+func withArrayOfCStrings<T>(
+  _ args: [String],
+  _ body: (UnsafePointer<UnsafeMutablePointer<Int8>?>) throws -> T
+) throws -> T {
+  let argsCounts = Array(args.map { $0.utf8.count + 1 })
+  let argsOffsets = [0] + scan(argsCounts, 0, +)
+  let argsBufferSize = argsOffsets.last!
+  var argsBuffer: [UInt8] = []
+  argsBuffer.reserveCapacity(argsBufferSize)
+  for arg in args {
+    argsBuffer.append(contentsOf: arg.utf8)
+    argsBuffer.append(0)
+  }
+  return try argsBuffer.withUnsafeMutableBufferPointer {
+    (argsBuffer) in
+    let ptr = UnsafeRawPointer(argsBuffer.baseAddress!).bindMemory(
+      to: Int8.self, capacity: argsBuffer.count)
+    var cStrings: [UnsafePointer<Int8>?] = argsOffsets.map { ptr + $0 }
+    cStrings[cStrings.count - 1] = nil
+    return try cStrings.withUnsafeMutableBufferPointer {
+      let unsafeString = UnsafeMutableRawPointer($0.baseAddress!).bindMemory(
+        to: UnsafeMutablePointer<Int8>?.self, capacity: $0.count)
+      return try body(unsafeString)
+    }
+  }
 }
