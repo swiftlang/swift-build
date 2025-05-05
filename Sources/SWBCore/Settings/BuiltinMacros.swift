@@ -1003,7 +1003,6 @@ public final class BuiltinMacros {
     public static let SWIFT_EMIT_MODULE_INTERFACE = BuiltinMacros.declareBooleanMacro("SWIFT_EMIT_MODULE_INTERFACE")
     public static let SWIFT_ENABLE_BATCH_MODE = BuiltinMacros.declareBooleanMacro("SWIFT_ENABLE_BATCH_MODE")
     public static let SWIFT_ENABLE_INCREMENTAL_COMPILATION = BuiltinMacros.declareBooleanMacro("SWIFT_ENABLE_INCREMENTAL_COMPILATION")
-    public static let SWIFT_DISABLE_INCREMENTAL_SCAN = BuiltinMacros.declareBooleanMacro("SWIFT_DISABLE_INCREMENTAL_SCAN")
     public static let SWIFT_ENABLE_LAYOUT_STRING_VALUE_WITNESSES = BuiltinMacros.declareBooleanMacro("SWIFT_ENABLE_LAYOUT_STRING_VALUE_WITNESSES")
     public static let SWIFT_ENABLE_LIBRARY_EVOLUTION = BuiltinMacros.declareBooleanMacro("SWIFT_ENABLE_LIBRARY_EVOLUTION")
     public static let SWIFT_ENABLE_BARE_SLASH_REGEX = BuiltinMacros.declareBooleanMacro("SWIFT_ENABLE_BARE_SLASH_REGEX")
@@ -1126,6 +1125,7 @@ public final class BuiltinMacros {
     public static let TAPI_HEADER_SEARCH_PATHS = BuiltinMacros.declarePathListMacro("TAPI_HEADER_SEARCH_PATHS")
     public static let USE_HEADER_SYMLINKS = BuiltinMacros.declareBooleanMacro("USE_HEADER_SYMLINKS")
     public static let USE_HIERARCHICAL_LAYOUT_FOR_COPIED_ASIDE_PRODUCTS = BuiltinMacros.declareBooleanMacro("USE_HIERARCHICAL_LAYOUT_FOR_COPIED_ASIDE_PRODUCTS")
+    public static let VALIDATE_CAS_EXEC = BuiltinMacros.declareStringMacro("VALIDATE_CAS_EXEC")
     public static let VALIDATE_PLIST_FILES_WHILE_COPYING = BuiltinMacros.declareBooleanMacro("VALIDATE_PLIST_FILES_WHILE_COPYING")
     public static let VALIDATE_PRODUCT = BuiltinMacros.declareBooleanMacro("VALIDATE_PRODUCT")
     public static let VALIDATE_DEPENDENCIES = BuiltinMacros.declareEnumMacro("VALIDATE_DEPENDENCIES") as EnumMacroDeclaration<BooleanWarningLevel>
@@ -2165,7 +2165,6 @@ public final class BuiltinMacros {
         SWIFT_EMIT_MODULE_INTERFACE,
         SWIFT_ENABLE_BATCH_MODE,
         SWIFT_ENABLE_INCREMENTAL_COMPILATION,
-        SWIFT_DISABLE_INCREMENTAL_SCAN,
         SWIFT_ENABLE_LAYOUT_STRING_VALUE_WITNESSES,
         SWIFT_ENABLE_LIBRARY_EVOLUTION,
         SWIFT_USE_INTEGRATED_DRIVER,
@@ -2327,6 +2326,7 @@ public final class BuiltinMacros {
         USE_HEADER_SYMLINKS,
         USE_HIERARCHICAL_LAYOUT_FOR_COPIED_ASIDE_PRODUCTS,
         VALIDATE_PLIST_FILES_WHILE_COPYING,
+        VALIDATE_CAS_EXEC,
         VALIDATE_PRODUCT,
         VALIDATE_DEPENDENCIES,
         VALIDATE_DEVELOPMENT_ASSET_PATHS,

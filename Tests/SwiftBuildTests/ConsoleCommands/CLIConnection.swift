@@ -328,20 +328,7 @@ fileprivate func swiftRuntimePath() throws -> Path? {
 
 fileprivate func systemRoot() throws -> Path? {
     #if os(Windows)
-    let dwLength: DWORD = GetWindowsDirectoryW(nil, 0)
-    if dwLength == 0 {
-        throw Win32Error(GetLastError())
-    }
-    return try withUnsafeTemporaryAllocation(of: WCHAR.self, capacity: Int(dwLength)) {
-        switch GetWindowsDirectoryW($0.baseAddress!, DWORD($0.count)) {
-        case 1..<dwLength:
-            return Path(String(decodingCString: $0.baseAddress!, as: CInterop.PlatformUnicodeEncoding.self))
-        case 0:
-            throw Win32Error(GetLastError())
-        default:
-            throw Win32Error(DWORD(ERROR_INSUFFICIENT_BUFFER))
-        }
-    }
+    return try Path(SWB_GetWindowsDirectoryW())
     #else
     return nil
     #endif

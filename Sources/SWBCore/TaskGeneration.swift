@@ -768,7 +768,7 @@ extension CoreClientTargetDiagnosticProducingDelegate {
 private let externalToolExecutionQueue = AsyncOperationQueue(concurrentTasks: ProcessInfo.processInfo.activeProcessorCount)
 
 extension CoreClientDelegate {
-    func executeExternalTool(commandLine: [String], workingDirectory: String? = nil, environment: [String: String] = [:]) async throws -> Processes.ExecutionResult {
+    package func executeExternalTool(commandLine: [String], workingDirectory: String? = nil, environment: [String: String] = [:]) async throws -> Processes.ExecutionResult {
         switch try await executeExternalTool(commandLine: commandLine, workingDirectory: workingDirectory, environment: environment) {
         case .deferred:
             guard let url = commandLine.first.map(URL.init(fileURLWithPath:)) else {

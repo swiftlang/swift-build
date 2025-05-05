@@ -18,7 +18,7 @@ extension Diagnostic {
     public static let libRemarksAvailable = isLibRemarksAvailable()
 }
 
-public struct DiagnosticProducingDelegateProtocolPrivate<T> {
+public struct DiagnosticProducingDelegateProtocolPrivate<T: Sendable>: Sendable {
     fileprivate let instance: T
 
     public init(_ instance: T) {

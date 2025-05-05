@@ -18,7 +18,7 @@ import SWBUtil
 @_spi(Testing) import SWBCore
 
 @Suite fileprivate struct SpecRegistryTests: CoreBasedTests {
-    final class TestDataDelegate: SpecRegistryDelegate {
+    final class TestDataDelegate: SpecRegistryDelegate, Sendable {
         private let _diagnosticsEngine = DiagnosticsEngine()
 
         var diagnosticsEngine: DiagnosticProducingDelegateProtocolPrivate<DiagnosticsEngine> {

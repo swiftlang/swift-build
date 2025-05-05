@@ -119,7 +119,6 @@ public struct SwiftSourceFileIndexingInfo: SourceFileIndexingInfo {
         "-emit-dependencies",
         "-serialize-diagnostics",
         "-incremental",
-        "-incremental-dependency-scan",
         "-parseable-output",
         "-use-frontend-parseable-output",
         "-whole-module-optimization",
@@ -154,7 +153,6 @@ public struct SwiftSourceFileIndexingInfo: SourceFileIndexingInfo {
     // can be removed after we use the new driver instead (rdar://75851402).
     private static let newDriverFlags: Set<ByteString> = [
         "-driver-print-graphviz",
-        "-incremental-dependency-scan",
         "-explicit-module-build",
         "-experimental-explicit-module-build",
         "-nonlib-dependency-scanner",
@@ -1745,10 +1743,6 @@ public final class SwiftCompilerSpec : CompilerSpec, SpecIdentifierType, SwiftDi
 
                 if cbc.scope.evaluate(BuiltinMacros.SWIFT_ENABLE_INCREMENTAL_COMPILATION) {
                     args.append("-incremental")
-                    if LibSwiftDriver.supportsDriverFlag(spelled: "-incremental-dependency-scan"),
-                       !cbc.scope.evaluate(BuiltinMacros.SWIFT_DISABLE_INCREMENTAL_SCAN) {
-                        args.append("-incremental-dependency-scan")
-                    }
                 }
             }
 
@@ -3291,8 +3285,6 @@ public final class SwiftCompilerSpec : CompilerSpec, SpecIdentifierType, SwiftDi
         for arg in [
             // Should strip this because it saves some work and avoids writing a useless incremental build record
             "-incremental",
-            // Same as above
-            "-incremental-dependency-scan",
 
             // Stripped because we want to end up in single file mode
             "-enable-batch-mode",

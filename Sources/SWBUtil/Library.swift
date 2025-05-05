@@ -117,32 +117,3 @@ public struct LibraryHandle: @unchecked Sendable {
         self.rawValue = rawValue
     }
 }
-
-#if os(Windows)
-@_spi(Testing) public func SWB_GetModuleFileNameW(_ hModule: HMODULE?) throws -> String {
-#if DEBUG
-    var bufferCount = Int(1) // force looping
-#else
-    var bufferCount = Int(MAX_PATH)
-#endif
-    while true {
-        if let result = try withUnsafeTemporaryAllocation(of: WCHAR.self, capacity: bufferCount, { buffer in
-            switch (GetModuleFileNameW(hModule, buffer.baseAddress!, DWORD(buffer.count)), GetLastError()) {
-            case (1..<DWORD(bufferCount), DWORD(ERROR_SUCCESS)):
-                guard let result = String.decodeCString(buffer.baseAddress!, as: UTF16.self)?.result else {
-                    throw Win32Error(DWORD(ERROR_ILLEGAL_CHARACTER))
-                }
-                return result
-            case (DWORD(bufferCount), DWORD(ERROR_INSUFFICIENT_BUFFER)):
-                bufferCount += Int(MAX_PATH)
-                return nil
-            case (_, let errorCode):
-                throw Win32Error(errorCode)
-            }
-        }) {
-            return result
-        }
-    }
-    preconditionFailure("unreachable")
-}
-#endif

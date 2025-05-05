@@ -17,7 +17,7 @@ import Foundation
 import Synchronization
 
 /// Delegate protocol used by the registry to report diagnostics.
-@_spi(Testing) public protocol SpecRegistryDelegate: DiagnosticProducingDelegate {}
+@_spi(Testing) public protocol SpecRegistryDelegate: DiagnosticProducingDelegate, Sendable {}
 
 /// Errors thrown when loading a spec of a specific type fails.
 public enum SpecLoadingError: Error {
@@ -329,7 +329,7 @@ private func <(lhs: SpecProxy, rhs: SpecProxy) -> Bool {
 }
 
 /// The SpecRegistry owns the set of registered specifications segregated by domain.
-public final class SpecRegistry {
+public final class SpecRegistry: Sendable {
     /// The static map of registered spec types.
     private let specTypes: [String: any SpecType.Type]
 
@@ -347,11 +347,7 @@ public final class SpecRegistry {
     /// The parser delegate.
     fileprivate let delegate: any SpecRegistryDelegate
 
-    /// A lock for access to the registry delegate.
-    private let delegateLock = SWBMutex(())
-
-    /// The map of domain-specific registries.
-    @_spi(Testing) public private(set) var proxiesByDomain: [String: SpecDomainRegistry] = [:]
+    private let _proxiesByDomain: SWBMutex<[String: SpecDomainRegistry]> = .init([:])
 
     /// The map of which domains include other ones, in the order they should be searched.
     let domainInclusions: [String: [String]]
@@ -366,7 +362,7 @@ public final class SpecRegistry {
     public let internalMacroNamespace = MacroNamespace(parent: BuiltinMacros.namespace, debugDescription: "internal")
 
     /// Whether the registry has been frozen (mutations are no longer possible). The process will crash if something attempts to mutate it after it has been frozen.
-    private var isFrozen = false
+    private let isFrozen = SWBMutex<Bool>(false)
 
     /// Create a SpecRegistry from all of the specs in the given search paths.
     ///
@@ -426,38 +422,29 @@ public final class SpecRegistry {
         }) })
 
         // Register all the specs concurrently.
-        //
-        // NOTE: This must be done with care, in order to easily allow the work to be concurrent we only use one top-level async queue and simply wait for it with a barrier. That only is safe as long as *all* of the work is enqueued up front.
-        //
-        // FIXME: We could use producer and consumer queues more efficiently/safely/cleanly here.
-        let registrationLock = SWBMutex(())
-        let queue = SWBQueue(label: #function + "-discovery", qos: UserDefaults.undeterminedQoS, attributes: .concurrent, autoreleaseFrequency: .workItem)
-        let group = SWBDispatchGroup()
-        for (path, defaultDomain) in searchPaths {
-            // We support direct listing of individual 'xcspec' files in the search list.
-            // Ignore dotfiles, as installing roots on filesystems which don't support extended attributes (such as NFS) may create AppleDouble files.
-            if !path.basename.hasPrefix(".") && path.fileSuffix == ".xcspec" {
-                registerSpec(path, on: queue, group: group, domain: defaultDomain) { proxy in
-                    registrationLock.withLock {
-                        self.registerProxy(proxy)
-                    }
+        await withTaskGroup(of: [SpecProxy].self, returning: Void.self) { group in
+            for (path, defaultDomain) in searchPaths {
+                // We support direct listing of individual 'xcspec' files in the search list.
+                // Ignore dotfiles, as installing roots on filesystems which don't support extended attributes (such as NFS) may create AppleDouble files.
+                if !path.basename.hasPrefix(".") && path.fileSuffix == ".xcspec" {
+                    registerSpec(path, group: &group, domain: defaultDomain)
+                } else {
+                    registerSpecsInDirectory(path, group: &group, domain: defaultDomain)
                 }
-            } else {
-                registerSpecsInDirectory(path, on: queue, group: group, domain: defaultDomain) { proxy in
-                    registrationLock.withLock {
-                        self.registerProxy(proxy)
-                    }
+            }
+
+            // Wait for all registration to complete.
+            while let proxies = await group.next() {
+                for proxy in proxies {
+                    registerProxy(proxy)
                 }
             }
         }
 
-        // Wait for all registration to complete.
-        await group.wait(queue: queue)
-
         // Resolve all of the based on references.
         //
         // FIXME: It is unfortunate we have to do a duplicate traversal for this, but it is much more annoying to need to resolve these lazily.
-        for domain in proxiesByDomain.values {
+        for domain in _proxiesByDomain.withLock({ $0 }).values {
             var proxyIdentsToRemove = Set<String>()
             for (identifier, proxy) in domain.proxiesByIdentifier {
                 if !proxy.resolveBasedOnReference(self) {
@@ -485,35 +472,31 @@ public final class SpecRegistry {
     }
 
     func warning(_ path: Path, _ message: String) {
-        delegateLock.withLock {
-            self.delegate.warning(path, message)
-        }
+        delegate.warning(path, message)
     }
 
     func error(_ path: Path, _ message: String) {
-        delegateLock.withLock {
-            self.delegate.error(path, message)
-        }
+        delegate.error(path, message)
     }
 
     func emit(_ diagnostic: Diagnostic) {
-        delegateLock.withLock {
-            self.delegate.emit(diagnostic)
-        }
+        delegate.emit(diagnostic)
     }
 
     /// Mark the registry as immutable.
     public func freeze() {
-        isFrozen = true
+        isFrozen.withLock { $0 = true }
     }
 
     /// Asynchronously register all specs in the given directory.
-    private func registerSpecsInDirectory(_ path: Path, on queue: SWBQueue, group: SWBDispatchGroup, domain: String = "", completion: @escaping (SpecProxy) -> Void) {
+    private func registerSpecsInDirectory(_ path: Path, group: inout TaskGroup<[SpecProxy]>, domain: String = "") {
         // NOTE: Xcode has logic to do a recursive visitation in some cases, but we don't ever actually use this to load real specifications so it is not implemented here.
-        precondition(!isFrozen, "tried to register specifications in directory '\(path.str)' after the registry was frozen")
+        isFrozen.withLock { isFrozen in
+            precondition(!isFrozen, "tried to register specifications in directory '\(path.str)' after the registry was frozen")
+        }
 
         for item in (try? localFS.listdir(path)) ?? [] {
-            queue.async(group: group) {
+            do {
                 let itemPath = path.join(item)
 
                 // Check if this is a specification we should load.
@@ -522,8 +505,8 @@ public final class SpecRegistry {
                 // Check if it is an .xcspec.
                 // Ignore dotfiles, as installing roots on filesystems which don't support extended attributes (such as NFS) may create AppleDouble files.
                 if !itemPath.basename.hasPrefix(".") && ext == ".xcspec" {
-                    self.registerSpec(itemPath, on: queue, group: group, domain: domain, completion: completion)
-                    return
+                    self.registerSpec(itemPath, group: &group, domain: domain)
+                    continue
                 }
 
                 // FIXME: We should potentially warn about anything else here.
@@ -532,8 +515,10 @@ public final class SpecRegistry {
     }
 
     /// Asynchronously register the specs at the given path.
-    private func registerSpec(_ path: Path, on queue: SWBQueue, group: SWBDispatchGroup, domain: String, completion: @escaping (SpecProxy) -> Void) {
-        precondition(!isFrozen, "tried to register specification at path '\(path.str)' after the registry was frozen")
+    private func registerSpec(_ path: Path, group: inout TaskGroup<[SpecProxy]>, domain: String) {
+        isFrozen.withLock { isFrozen in
+            precondition(!isFrozen, "tried to register specification at path '\(path.str)' after the registry was frozen")
+        }
 
         // Load the spec data.
         do {
@@ -543,13 +528,13 @@ public final class SpecRegistry {
             switch data {
             case .plArray(let items):
                 for item in items {
-                    queue.async(group: group) {
-                        self.registerSpec(path, data: item, domain: domain, completion: completion)
+                    group.addTask {
+                        self.registerSpec(path, data: item, domain: domain)
                     }
                 }
             default:
-                queue.async(group: group) {
-                    self.registerSpec(path, data: data, domain: domain, completion: completion)
+                group.addTask {
+                    self.registerSpec(path, data: data, domain: domain)
                 }
             }
         } catch _ {
@@ -607,24 +592,27 @@ public final class SpecRegistry {
     /// - parameter path: The path the spec data was loaded from.
     /// - parameter data: The spec data.
     /// - parameter domain: The domain the spec should be registered in.
-    private func registerSpec(_ path: Path, data: PropertyListItem, domain: String, completion: (SpecProxy) -> Void) {
-        precondition(!isFrozen, "tried to register specification from data at path '\(path.str)' after the registry was frozen")
+    private func registerSpec(_ path: Path, data: PropertyListItem, domain: String) -> [SpecProxy] {
+        isFrozen.withLock { isFrozen in
+            precondition(!isFrozen, "tried to register specification from data at path '\(path.str)' after the registry was frozen")
+        }
+
         var domain = domain
 
         // The spec data should always be a dictionary.
         guard case .plDict(var items) = data else {
             error(path, "unexpected specification data in \(path.str)")
-            return;
+            return []
         }
 
         // Get the identifier.
         guard let identifierItem = items["Identifier"] else {
             error(path, "missing 'Identifier' field")
-            return
+            return []
         }
         guard case .plString(let identifier) = identifierItem else {
             error(path, "invalid 'Identifier' field")
-            return
+            return []
         }
 
         // HACK: Force the class for the app extension product type. We do it in this way because we want to preserve the inheritance hierarchy (ApplicationExtensionProductType *is* a BundleProductType), so we can't use registerSpecOverrideClass. Going forward, we should set PBXApplicationExtensionProductType in the actual spec, but doing so would require changing the legacy build system, so this may be a light weight compromise for now. We also can't do a conformance check here, and wouldn't want to anyways, because we don't want to override a (potentially derived) class of PBXApplicationExtensionProductType.
@@ -633,26 +621,26 @@ public final class SpecRegistry {
         }
 
         // Validate the spec type information.
-        guard let type = resolveSpecType(path, items) else { return }
+        guard let type = resolveSpecType(path, items) else { return [] }
 
         // Get the spec domain, if specified.
         if let domainItem = items["Domain"] ?? items["_Domain"] {
             guard case .plString(let value) = domainItem else {
                 error(path, "invalid 'Domain' field")
-                return
+                return []
             }
             domain = value
         }
 
         // Get the spec class, if present.
-        guard case (let success, let classType) = resolveSpecClass(path, identifier, items), success == true else { return }
+        guard case (let success, let classType) = resolveSpecClass(path, identifier, items), success == true else { return [] }
 
         // Get the base spec name, if present.
         var basedOn: String?
         if let basedOnItem = items["BasedOn"] {
             guard case .plString(let value) = basedOnItem else {
                 error(path, "invalid 'BasedOn' field")
-                return
+                return []
             }
             basedOn = value
         }
@@ -738,18 +726,20 @@ public final class SpecRegistry {
 
         /// Check `domainRemaps` loaded via XCSpecDomainRemapExtension first, then `Static.domainRemapsTable` if not found
         if let domains = domainRemaps["\(domain):\(identifier)"] ?? Static.domainRemapsTable["\(domain):\(identifier)"] {
-            for domain in domains {
-                completion(SpecProxy(identifier: identifier, domain: domain, path: path, type: type, classType: classType, basedOn: basedOn, data: items, localizedStrings: localizedStrings))
+            return domains.map { domain in
+                SpecProxy(identifier: identifier, domain: domain, path: path, type: type, classType: classType, basedOn: basedOn, data: items, localizedStrings: localizedStrings)
             }
-            return
         }
 
         // Create the spec proxy.
-        completion(SpecProxy(identifier: identifier, domain: domain, path: path, type: type, classType: classType, basedOn: basedOn, data: items, localizedStrings: localizedStrings))
+        return [SpecProxy(identifier: identifier, domain: domain, path: path, type: type, classType: classType, basedOn: basedOn, data: items, localizedStrings: localizedStrings)]
     }
 
     private func registerProxy(_ proxy: SpecProxy) {
-        precondition(!isFrozen, "tried to register specification proxy '\(proxy.identifier)' after the registry was frozen")
+        isFrozen.withLock { isFrozen in
+            precondition(!isFrozen, "tried to register specification proxy '\(proxy.identifier)' after the registry was frozen")
+        }
+
         // Get the domain specific registry.
         let domainRegistry = getRegistryForDomain(proxy.domain)
 
@@ -765,17 +755,22 @@ public final class SpecRegistry {
 
     /// Get or create the registry for a particular domain.
     private func getRegistryForDomain(_ domain: String) -> SpecDomainRegistry {
-        // Return the registry if it already exists.
-        if let registry = proxiesByDomain[domain] {
+        return _proxiesByDomain.withLock { proxiesByDomain in
+            // Return the registry if it already exists.
+            if let registry = proxiesByDomain[domain] {
+                return registry
+            }
+
+            // Otherwise, create it and add it to the map.
+            // If the registry has already been frozen, then this will crash.  All domains need to be registered at core initialization time.
+            isFrozen.withLock { isFrozen in
+                precondition(!isFrozen, "tried to look up specification domain '\(domain)' which was not registered during Swift Build core initialization")
+            }
+
+            let registry = SpecDomainRegistry(domain)
+            proxiesByDomain[domain] = registry
             return registry
         }
-
-        // Otherwise, create it and add it to the map.
-        // If the registry has already been frozen, then this will crash.  All domains need to be registered at core initialization time.
-        precondition(!isFrozen, "tried to look up specification domain '\(domain)' which was not registered during Swift Build core initialization")
-        let registry = SpecDomainRegistry(domain)
-        proxiesByDomain[domain] = registry
-        return registry
     }
 
     /// Get the complete, ordered list of domains to search when performing lookups into a specific domain.
@@ -806,6 +801,11 @@ public final class SpecRegistry {
         return result
     }
 
+    /// The map of domain-specific registries.
+    @_spi(Testing) public var proxiesByDomain: [String: SpecDomainRegistry] {
+        _proxiesByDomain.withLock { $0 }
+    }
+
     /// The list of registered domains.
     @_spi(Testing) public var domains: [String] {
         return [String](proxiesByDomain.keys)
@@ -825,7 +825,7 @@ public final class SpecRegistry {
     //
     // FIXME: I think this can probably be eliminated in favor of just returning all specifications of the particular type. Xcode used a multi-level registry for (domain, registry) which avoids the need for this search, but in practice it is expensive regardless so any client that needs this information should be caching it anyway. Verify this isn't an issue for us once things have settled, and then eliminate the subregistry stuff if possible.
     @_spi(Testing) public func findProxiesInSubregistry(_ type: any SpecType.Type, domain: String = "", includeInherited: Bool = true) -> [SpecProxy] {
-        if isFrozen {
+        if isFrozen.withLock({ $0 }) {
             let key = ProxyCacheKey(type: Ref(type), domain: domain, includeInherited: includeInherited)
             return proxyCache.getOrInsert(key) {
                 return _findProxiesInSubregistry(type, domain: domain, includeInherited: includeInherited)
@@ -864,7 +864,7 @@ public final class SpecRegistry {
     }
 
     /// The cache used for proxy lookup.
-    private var proxyCache = Cache<ProxyCacheKey, [SpecProxy]>()
+    private let proxyCache = Cache<ProxyCacheKey, [SpecProxy]>()
 
     /// Get all specs in the registry of the given spec type `T` in the given `domain`.
     public func findSpecs<T: Spec>(_ type: T.Type, domain: String = "", includeInherited: Bool = true) -> [T] where T : SpecType {
