@@ -29,7 +29,7 @@ fileprivate struct DependencyVerificationTaskConstructionTests: CoreBasedTests {
         return "\(srcroot.str)/build/\(project).build/Debug/\(target).build/Objects-normal/x86_64/\(filename)"
     }
 
-    @Test
+    @Test(.requireSDKs(.macOS))
     func addsTraceArgsWhenDependenciesDeclared() async throws {
         try await testWith(["DEPENDENCIES": "Foo"]) { tester, srcroot in
             await tester.checkBuild(runDestination: .macOS) { results in
@@ -51,7 +51,7 @@ fileprivate struct DependencyVerificationTaskConstructionTests: CoreBasedTests {
         }
     }
 
-    @Test
+    @Test(.requireSDKs(.macOS))
     func noTraceArgsWhenDependenciesDeclared() async throws {
         try await testWith([:]) { tester, srcroot in
             await tester.checkBuild(runDestination: .macOS) { results in
@@ -65,7 +65,7 @@ fileprivate struct DependencyVerificationTaskConstructionTests: CoreBasedTests {
         }
     }
 
-    @Test
+    @Test(.requireSDKs(.macOS))
     func canEnableVerificationOfNoDependencies() async throws {
         try await testWith(["DEPENDENCIES_VERIFICATION": "YES"]) { tester, srcroot in
             await tester.checkBuild(runDestination: .macOS) { results in
