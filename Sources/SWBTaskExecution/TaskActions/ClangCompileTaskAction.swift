@@ -435,7 +435,7 @@ public final class ClangCompileTaskAction: TaskAction, BuildValueValidatingTaskA
 
 public final class ClangNonModularCompileTaskAction: TaskAction {
     public override class var toolIdentifier: String {
-        return "ccompile"
+        return "ccompile-nonmodular"
     }
 
     override public func performTaskAction(
