@@ -984,13 +984,17 @@ package final class BuildDescriptionBuilder {
         let inputs = amendedInputsForTask(task, inputs)
         let outputs = amendedOutputsForTask(task, outputs)
 
-        processTaskLock.withLock {
+        try processTaskLock.withLock {
             // Record the custom tool type.
             // FIXME: This cast is unfortunate.
             let execTask = task.execTask as! Task
-            assert(execTask.action != nil)
-            assert(taskActionMap[tool] == nil || taskActionMap[tool]! == type(of: execTask.action!))
-            taskActionMap[tool] = type(of: execTask.action!)
+            guard let execTaskAction = execTask.action else {
+                throw StubError.error("INTERNAL ERROR: custom command with tool identifier '\(tool)' is missing a task action implementation")
+            }
+            if let existingTaskAction = taskActionMap[tool], existingTaskAction != type(of: execTaskAction) {
+                throw StubError.error("INTERNAL ERROR: task action implementation types \(existingTaskAction) and \(type(of: execTaskAction)) have conflicting tool identifier '\(tool)'; tool identifiers must be globally unique across all task action implementation types")
+            }
+            taskActionMap[tool] = type(of: execTaskAction)
         }
 
         // Add the command definition.
