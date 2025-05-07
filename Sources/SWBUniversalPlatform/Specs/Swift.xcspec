@@ -839,7 +839,7 @@
                     Migrate = ( "-enable-upcoming-feature", "NonisolatedNonsendingByDefault:migrate" );
                     No  = ();
                 };
-                DisplayName = "Nonisolated Nonsending By Default";
+                DisplayName = "nonisolated(nonsending) By Default";
                 Category = "Upcoming Features";
                 Description = "Runs nonisolated async functions on the caller's actor by default unless the function is explicitly marked `@concurrent`.";
             },
