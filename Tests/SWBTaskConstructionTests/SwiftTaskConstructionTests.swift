@@ -3985,6 +3985,102 @@ fileprivate struct SwiftTaskConstructionTests: CoreBasedTests {
     }
 
     @Test(.requireSDKs(.macOS))
+    func enableHardeningInSwift() async throws {
+
+        func setupHardeningTest(_ tmpDir: Path,
+                              hardeningMode: String) async throws -> TaskConstructionTester {
+            let testProject = try await TestProject(
+                "TestProject",
+                sourceRoot: tmpDir,
+                groupTree: TestGroup(
+                    "SomeFiles",
+                    children: [
+                        TestFile("source.swift"),
+                        TestFile("source.cpp")
+                    ]),
+                targets: [
+                    TestStandardTarget(
+                        "testFramework", type: .framework,
+                        buildConfigurations: [
+                            TestBuildConfiguration("Debug", buildSettings: [
+                                "GENERATE_INFOPLIST_FILE": "YES",
+                                "PRODUCT_NAME": "$(TARGET_NAME)",
+                                "SWIFT_EXEC": swiftCompilerPath.str,
+                                "SWIFT_VERSION": swiftVersion,
+                                "CLANG_CXX_STANDARD_LIBRARY_HARDENING": hardeningMode
+                            ]),
+                        ],
+                        buildPhases: [
+                            TestSourcesBuildPhase(["source.swift", "source.cpp"])
+                        ]
+                    )
+                ])
+            let tester = try await TaskConstructionTester(getCore(), testProject)
+            return tester
+        }
+
+        // Verify that we don't enable hardening in Swift compilations when C++
+        // hardening is none.
+        try await withTemporaryDirectory { tmpDir in
+            let tester = try await setupHardeningTest(tmpDir, hardeningMode: "none")
+            await tester.checkBuild(runDestination: .macOS) { results in
+                results.checkTask(.matchRuleType("SwiftDriver Compilation")) { task in
+                    task.checkCommandLineContainsUninterrupted(["-Xcc", "-D_LIBCPP_HARDENING_MODE=_LIBCPP_HARDENING_MODE_NONE"])
+                }
+            }
+        }
+
+        try await withTemporaryDirectory { tmpDir in
+            let tester = try await setupHardeningTest(tmpDir, hardeningMode: "fast")
+            await tester.checkBuild(runDestination: .macOS) { results in
+                results.checkTask(.matchRuleType("SwiftDriver Compilation")) { task in
+                    task.checkCommandLineContainsUninterrupted(["-Xcc", "-D_LIBCPP_HARDENING_MODE=_LIBCPP_HARDENING_MODE_FAST"])
+                }
+            }
+        }
+
+        try await withTemporaryDirectory { tmpDir in
+            let tester = try await setupHardeningTest(tmpDir, hardeningMode: "extensive")
+            await tester.checkBuild(runDestination: .macOS) { results in
+                results.checkTask(.matchRuleType("SwiftDriver Compilation")) { task in
+                    task.checkCommandLineContainsUninterrupted(["-Xcc", "-D_LIBCPP_HARDENING_MODE=_LIBCPP_HARDENING_MODE_EXTENSIVE"])
+                }
+            }
+        }
+
+        try await withTemporaryDirectory { tmpDir in
+            let tester = try await setupHardeningTest(tmpDir, hardeningMode: "debug")
+            await tester.checkBuild(runDestination: .macOS) { results in
+                results.checkTask(.matchRuleType("SwiftDriver Compilation")) { task in
+                    task.checkCommandLineContainsUninterrupted(["-Xcc", "-D_LIBCPP_HARDENING_MODE=_LIBCPP_HARDENING_MODE_DEBUG"])
+                }
+            }
+        }
+
+        // Verify that we don't enable hardening in Swift compilations when C++
+        // hardening mode is garbage.
+        try await withTemporaryDirectory { tmpDir in
+            let tester = try await setupHardeningTest(tmpDir, hardeningMode: "unexpected")
+            await tester.checkBuild(runDestination: .macOS) { results in
+                results.checkTask(.matchRuleType("SwiftDriver Compilation")) { task in
+                    task.checkCommandLineNoMatch([.prefix("-D_LIBCPP_HARDENING_MODE=")])
+                }
+            }
+        }
+
+        // Verify that we don't enable hardening in Swift compilations when C++
+        // hardening mode is empty.
+        try await withTemporaryDirectory { tmpDir in
+            let tester = try await setupHardeningTest(tmpDir, hardeningMode: "")
+            await tester.checkBuild(runDestination: .macOS) { results in
+                results.checkTask(.matchRuleType("SwiftDriver Compilation")) { task in
+                    task.checkCommandLineNoMatch([.prefix("-D_LIBCPP_HARDENING_MODE=")])
+                }
+            }
+        }
+    }
+
+    @Test(.requireSDKs(.macOS))
     func cxxInteropLinkerArgGeneration() async throws {
         // When Swift is generating additional linker args, we should not try to inject the response file when a target is a dependent of a cxx-interop target but has no Swift source of its own.
         let testProject = try await TestProject(
