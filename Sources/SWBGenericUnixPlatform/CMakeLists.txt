@@ -8,33 +8,16 @@ See http://swift.org/LICENSE.txt for license information
 See http://swift.org/CONTRIBUTORS.txt for Swift project authors
 ]]
 
-file(TO_NATIVE_PATH "${CMAKE_CURRENT_BINARY_DIR}"
-  _SWBGenericUnixPlatform_NATIVE_CMAKE_CURRENT_BINARY_DIR)
-file(CONFIGURE
-  OUTPUT resource_bundle_accessor.swift
-  CONTENT [[
-  import Foundation
-  extension Foundation.Bundle {
-    static let module: Bundle = {
-      let mainPath = Bundle.main.bundleURL.appendingPathComponent("SwiftBuild_SWBGenericUnixPlatform.resources").path
-      let buildPath = #"@_SWBGenericUnixPlatform_NATIVE_CMAKE_CURRENT_BINARY_DIR@\SwiftBuild_SWBGenericUnixPlatform.resources"#
-      let preferredBundle = Bundle(path: mainPath)
-      guard let bundle = preferredBundle ?? Bundle(path: buildPath) else {
-        Swift.fatalError("could not load resource bundle: from \(mainPath) or \(buildPath)")
-      }
-      return bundle
-    }()
-  }
-  ]]
-  ESCAPE_QUOTES @ONLY NEWLINE_STYLE LF)
-
 add_library(SWBGenericUnixPlatform
   Plugin.swift)
+SwiftBuild_Bundle(MODULE SWBGenericUnixPlatform FILES
+  Specs/Unix.xcspec
+  Specs/UnixCompile.xcspec
+  Specs/UnixLd.xcspec
+  Specs/UnixLibtool.xcspec)
 target_link_libraries(SWBGenericUnixPlatform PUBLIC
   SWBCore
   SWBUtil)
-target_sources(SWBGenericUnixPlatform PRIVATE
-  "${CMAKE_CURRENT_BINARY_DIR}/resource_bundle_accessor.swift")
 
 set_target_properties(SWBGenericUnixPlatform PROPERTIES
   INTERFACE_INCLUDE_DIRECTORIES ${CMAKE_Swift_MODULE_DIRECTORY})

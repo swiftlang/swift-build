@@ -8,26 +8,6 @@ See http://swift.org/LICENSE.txt for license information
 See http://swift.org/CONTRIBUTORS.txt for Swift project authors
 ]]
 
-file(TO_NATIVE_PATH "${CMAKE_CURRENT_BINARY_DIR}"
-  _SWBApplePlatform_NATIVE_CMAKE_CURRENT_BINARY_DIR)
-file(CONFIGURE
-  OUTPUT resource_bundle_accessor.swift
-  CONTENT [[
-  import Foundation
-  extension Foundation.Bundle {
-    static let module: Bundle = {
-      let mainPath = Bundle.main.bundleURL.appendingPathComponent("SwiftBuild_SWBApplePlatform.resources").path
-      let buildPath = #"@_SWBApplePlatform_NATIVE_CMAKE_CURRENT_BINARY_DIR@\SwiftBuild_SWBApplePlatform.resources"#
-      let preferredBundle = Bundle(path: mainPath)
-      guard let bundle = preferredBundle ?? Bundle(path: buildPath) else {
-        Swift.fatalError("could not load resource bundle: from \(mainPath) or \(buildPath)")
-      }
-      return bundle
-    }()
-  }
-  ]]
-  ESCAPE_QUOTES @ONLY NEWLINE_STYLE LF)
-
 add_library(SWBApplePlatform
   AppIntentsMetadataCompiler.swift
   AppIntentsMetadataTaskProducer.swift
@@ -65,6 +45,77 @@ add_library(SWBApplePlatform
   StringCatalogCompilerOutputParser.swift
   StubBinaryTaskProducer.swift
   XCStringsInputFileGroupingStrategy.swift)
+SwiftBuild_Bundle(MODULE SWBApplePlatform FILES
+  Specs/AppIntentsMetadata.xcspec
+  Specs/AppIntentsNLTraining.xcspec
+  Specs/AppShortcutStringsMetadata.xcspec
+  Specs/AssetCatalogCompiler.xcspec
+  Specs/CompileSkybox.xcspec
+  Specs/CopyPNGFile.xcspec
+  Specs/CopyTiffFile.xcspec
+  "Specs/Core Data.xcspec"
+  Specs/CoreML.xcspec
+  "Specs/Darwin Package Types.xcspec"
+  "Specs/Darwin Product Types.xcspec"
+  Specs/DriverKit.xcspec
+  Specs/DTrace.xcspec
+  Specs/Embedded-Device.xcspec
+  Specs/Embedded-Shared.xcspec
+  Specs/Embedded-Simulator.xcspec
+  Specs/EmbeddedBinaryValidationUtility.xcspec
+  Specs/GenerateAppPlaygroundAssetCatalog.xcspec
+  Specs/GenerateTextureAtlas.xcspec
+  Specs/IBCompiler.xcspec
+  Specs/IBPostprocessor.xcspec
+  Specs/IBStoryboardCompiler.xcspec
+  Specs/IBStoryboardLinker.xcspec
+  Specs/IBStoryboardPostprocessor.xcspec
+  Specs/Iconutil.xcspec
+  Specs/Iig.xcspec
+  Specs/InfoPlistUtility.xcspec
+  Specs/InstrumentsPackage.xcspec
+  Specs/Intents.xcspec
+  "Specs/Interface Builder File Types.xcspec"
+  "Specs/iOS Device.xcspec"
+  "Specs/iOS Shared.xcspec"
+  "Specs/iOS Simulator.xcspec"
+  Specs/KernelExtension.xcspec
+  Specs/Lipo.xcspec
+  Specs/LSRegisterURL.xcspec
+  "Specs/MacOSX Architectures.xcspec"
+  "Specs/MacOSX Core Build System.xcspec"
+  "Specs/MacOSX Native Build System.xcspec"
+  "Specs/MacOSX Package Types.xcspec"
+  "Specs/MacOSX Product Types.xcspec"
+  Specs/MetalCompiler.xcspec
+  Specs/MetalFileTypes.xcspec
+  Specs/MetalLinker.xcspec
+  Specs/MetalPackageTypes.xcspec
+  Specs/MetalProductTypes.xcspec
+  Specs/MiG.xcspec
+  Specs/OpenCL.xcspec
+  Specs/OSACompile.xcspec
+  Specs/RCFileTypes.xcspec
+  Specs/RealityAssets.xcspec
+  Specs/ReferenceObject.xcspec
+  Specs/ResMerger.xcspec
+  Specs/Rez.xcspec
+  "Specs/SceneKit FileTypes.xcspec"
+  "Specs/SceneKit Tools.xcspec"
+  Specs/SpriteKitFileTypes.xcspec
+  Specs/TiffUtil.xcspec
+  "Specs/tvOS Device.xcspec"
+  "Specs/tvOS Shared.xcspec"
+  "Specs/tvOS Simulator.xcspec"
+  Specs/WatchKit1ProductTypes.xcspec
+  "Specs/watchOS Device.xcspec"
+  "Specs/watchOS Shared.xcspec"
+  "Specs/watchOS Simulator.xcspec"
+  Specs/XCAppExtensionPoints.xcspec
+  Specs/XCStrings.xcspec
+  "Specs/xrOS Device.xcspec"
+  "Specs/xrOS Shared.xcspec"
+  "Specs/xrOS Simulator.xcspec")
 set_target_properties(SWBApplePlatform PROPERTIES
   Swift_LANGUAGE_VERSION 6)
 target_link_libraries(SWBApplePlatform PUBLIC
@@ -73,8 +124,6 @@ target_link_libraries(SWBApplePlatform PUBLIC
   SWBUtil
   SWBProtocol
   SWBTaskConstruction)
-target_sources(SWBApplePlatform PRIVATE
-  "${CMAKE_CURRENT_BINARY_DIR}/resource_bundle_accessor.swift")
 
 set_target_properties(SWBApplePlatform PROPERTIES
   INTERFACE_INCLUDE_DIRECTORIES ${CMAKE_Swift_MODULE_DIRECTORY})

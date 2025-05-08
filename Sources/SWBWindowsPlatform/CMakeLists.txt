@@ -8,36 +8,19 @@ See http://swift.org/LICENSE.txt for license information
 See http://swift.org/CONTRIBUTORS.txt for Swift project authors
 ]]
 
-file(TO_NATIVE_PATH "${CMAKE_CURRENT_BINARY_DIR}"
-  _SWBWindowsPlatform_NATIVE_CMAKE_CURRENT_BINARY_DIR)
-file(CONFIGURE
-  OUTPUT resource_bundle_accessor.swift
-  CONTENT [[
-  import Foundation
-  extension Foundation.Bundle {
-    static let module: Bundle = {
-      let mainPath = Bundle.main.bundleURL.appendingPathComponent("SwiftBuild_SWBWindowsPlatform.resources").path
-      let buildPath = #"@_SWBWindowsPlatform_NATIVE_CMAKE_CURRENT_BINARY_DIR@\SwiftBuild_SWBWindowsPlatform.resources"#
-      let preferredBundle = Bundle(path: mainPath)
-      guard let bundle = preferredBundle ?? Bundle(path: buildPath) else {
-        Swift.fatalError("could not load resource bundle: from \(mainPath) or \(buildPath)")
-      }
-      return bundle
-    }()
-  }
-  ]]
-  ESCAPE_QUOTES @ONLY NEWLINE_STYLE LF)
-
 add_library(SWBWindowsPlatform
   KnownFolders.swift
   Plugin.swift
   VSInstallation.swift)
+SwiftBuild_Bundle(MODULE SWBWindowsPlatform FILES
+  Specs/Windows.xcspec
+  Specs/WindowsCompile.xcspec
+  Specs/WindowsLd.xcspec
+  Specs/WindowsLibtool.xcspec)
 target_link_libraries(SWBWindowsPlatform PUBLIC
   SWBCore
   SWBMacro
   SWBUtil)
-target_sources(SWBWindowsPlatform PRIVATE
-  "${CMAKE_CURRENT_BINARY_DIR}/resource_bundle_accessor.swift")
 
 set_target_properties(SWBWindowsPlatform PROPERTIES
   INTERFACE_INCLUDE_DIRECTORIES ${CMAKE_Swift_MODULE_DIRECTORY})
