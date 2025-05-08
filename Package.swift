@@ -413,6 +413,13 @@ let package = Package(
                 verb: "cmake-smoke-test",
                 description: "Build Swift Build using CMake for validation purposes"
             ))
+        ),
+        .plugin(
+            name: "generate-windows-installer-component-groups",
+            capability: .command(intent: .custom(
+                verb: "generate-windows-installer-component-groups",
+                description: "Generate XML fragments for cli.wxs in swift-installer-scripts"
+            ))
         )
     ],
     swiftLanguageModes: [.v5, .v6],
