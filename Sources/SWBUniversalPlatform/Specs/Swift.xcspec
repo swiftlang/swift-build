@@ -795,11 +795,17 @@
 
             {
                 Name = "SWIFT_UPCOMING_FEATURE_EXISTENTIAL_ANY";
-                Type = Boolean;
-                DefaultValue = NO;
+                Type = Enumeration;
+                Values = (
+                    Yes,
+                    Migrate,
+                    No,
+                );
+                DefaultValue = No;
                 CommandLineArgs = {
-                    YES = ( "-enable-upcoming-feature", "ExistentialAny" );
-                    NO  = ();
+                    Yes = ( "-enable-upcoming-feature", "ExistentialAny" );
+                    Migrate = ( "-enable-upcoming-feature", "ExistentialAny:migrate" );
+                    No  = ();
                 };
                 DisplayName = "Require Existential any";
                 Category = "Upcoming Features";
@@ -821,13 +827,19 @@
 
             {
                 Name = "SWIFT_UPCOMING_FEATURE_NONISOLATED_NONSENDING_BY_DEFAULT";
-                Type = Boolean;
-                DefaultValue = NO;
+                Type = Enumeration;
+                Values = (
+                    Yes,
+                    Migrate,
+                    No,
+                );
+                DefaultValue = No;
                 CommandLineArgs = {
-                    YES = ( "-enable-upcoming-feature", "NonisolatedNonsendingByDefault" );
-                    NO  = ();
+                    Yes = ( "-enable-upcoming-feature", "NonisolatedNonsendingByDefault" );
+                    Migrate = ( "-enable-upcoming-feature", "NonisolatedNonsendingByDefault:migrate" );
+                    No  = ();
                 };
-                DisplayName = "Nonisolated Nonsending By Default";
+                DisplayName = "nonisolated(nonsending) By Default";
                 Category = "Upcoming Features";
                 Description = "Runs nonisolated async functions on the caller's actor by default unless the function is explicitly marked `@concurrent`.";
             },
