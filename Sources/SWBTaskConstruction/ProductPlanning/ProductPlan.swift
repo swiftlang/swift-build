@@ -31,7 +31,7 @@ package protocol GlobalProductPlanDelegate: CoreClientTargetDiagnosticProducingD
 package final class GlobalProductPlan: GlobalTargetInfoProvider
 {
     /// The build plan request.
-    let planRequest: BuildPlanRequest
+    package let planRequest: BuildPlanRequest
 
     /// The target task info for each configured target.
     private(set) var targetTaskInfos: [ConfiguredTarget: TargetTaskInfo]
