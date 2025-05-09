@@ -57,114 +57,38 @@ extension DispatchFD {
             }
         }
     }
-}
 
-extension AsyncThrowingStream where Element == UInt8, Failure == any Error {
     /// Returns an async stream which reads bytes from the specified file descriptor. Unlike `FileHandle.bytes`, it does not block the caller.
     @available(macOS, deprecated: 15.0, message: "Use the AsyncSequence-returning overload.")
     @available(iOS, deprecated: 18.0, message: "Use the AsyncSequence-returning overload.")
     @available(tvOS, deprecated: 18.0, message: "Use the AsyncSequence-returning overload.")
     @available(watchOS, deprecated: 11.0, message: "Use the AsyncSequence-returning overload.")
     @available(visionOS, deprecated: 2.0, message: "Use the AsyncSequence-returning overload.")
-    public static func _dataStream(reading fileDescriptor: DispatchFD, on queue: SWBQueue) -> AsyncThrowingStream<Element, any Error> {
-        AsyncThrowingStream { continuation in
-            let newFD: DispatchFD
-            do {
-                newFD = try fileDescriptor._duplicate()
-            } catch {
-                continuation.finish(throwing: error)
-                return
+    public func _dataStream() -> AsyncThrowingStream<SWBDispatchData, any Error> {
+        AsyncThrowingStream<SWBDispatchData, any Error> {
+            while !Task.isCancelled {
+                let chunk = try await readChunk(upToLength: 4096)
+                if chunk.isEmpty {
+                    return nil
+                }
+                return chunk
             }
-
-            let io = SWBDispatchIO.stream(fileDescriptor: newFD, queue: queue) { error in
-                do {
-                    try newFD._close()
-                    if error != 0 {
-                        continuation.finish(throwing: POSIXError(error, context: "dataStream(reading: \(fileDescriptor))#1"))
-                    }
-                } catch {
-                    continuation.finish(throwing: error)
-                }
-            }
-            io.setLimit(lowWater: 0)
-            io.setLimit(highWater: 4096)
-
-            continuation.onTermination = { termination in
-                if case .cancelled = termination {
-                    io.close(flags: .stop)
-                } else {
-                    io.close()
-                }
-            }
-
-            io.read(offset: 0, length: .max, queue: queue) { done, data, error in
-                guard error == 0 else {
-                    continuation.finish(throwing: POSIXError(error, context: "dataStream(reading: \(fileDescriptor))#2"))
-                    return
-                }
-
-                let data = data ?? .empty
-                for element in data {
-                    continuation.yield(element)
-                }
-
-                if done {
-                    continuation.finish()
-                }
-            }
+            throw CancellationError()
         }
     }
-}
 
-@available(macOS 15.0, iOS 18.0, tvOS 18.0, watchOS 11.0, visionOS 2.0, *)
-extension AsyncSequence where Element == UInt8, Failure == any Error {
     /// Returns an async stream which reads bytes from the specified file descriptor. Unlike `FileHandle.bytes`, it does not block the caller.
-    public static func dataStream(reading fileDescriptor: DispatchFD, on queue: SWBQueue) -> any AsyncSequence<Element, any Error> {
-        AsyncThrowingStream<SWBDispatchData, any Error> { continuation in
-            let newFD: DispatchFD
-            do {
-                newFD = try fileDescriptor._duplicate()
-            } catch {
-                continuation.finish(throwing: error)
-                return
-            }
-
-            let io = SWBDispatchIO.stream(fileDescriptor: newFD, queue: queue) { error in
-                do {
-                    try newFD._close()
-                    if error != 0 {
-                        let context = "dataStream(reading: \(fileDescriptor) \"\(Result { try fileDescriptor._filePath() })\")#1"
-                        continuation.finish(throwing: POSIXError(error, context: context))
-                    }
-                } catch {
-                    continuation.finish(throwing: error)
+    @available(macOS 15.0, iOS 18.0, tvOS 18.0, watchOS 11.0, visionOS 2.0, *)
+    public func dataStream() -> some AsyncSequence<SWBDispatchData, any Error> {
+        AsyncThrowingStream<SWBDispatchData, any Error> {
+            while !Task.isCancelled {
+                let chunk = try await readChunk(upToLength: 4096)
+                if chunk.isEmpty {
+                    return nil
                 }
+                return chunk
             }
-            io.setLimit(lowWater: 0)
-            io.setLimit(highWater: 4096)
-
-            continuation.onTermination = { termination in
-                if case .cancelled = termination {
-                    io.close(flags: .stop)
-                } else {
-                    io.close()
-                }
-            }
-
-            io.read(offset: 0, length: .max, queue: queue) { done, data, error in
-                guard error == 0 else {
-                    let context = "dataStream(reading: \(fileDescriptor) \"\(Result { try fileDescriptor._filePath() })\")#2"
-                    continuation.finish(throwing: POSIXError(error, context: context))
-                    return
-                }
-
-                let data = data ?? .empty
-                continuation.yield(data)
-
-                if done {
-                    continuation.finish()
-                }
-            }
-        }.flattened
+            throw CancellationError()
+        }
     }
 }
