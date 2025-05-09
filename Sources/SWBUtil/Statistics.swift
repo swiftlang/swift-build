@@ -115,7 +115,7 @@ public final class Statistic: @unchecked Sendable, _StatisticBackend {
     }
 }
 
-public protocol _StatisticBackend {
+public protocol _StatisticBackend: Sendable {
     var name: String { get }
     var value: Int { get }
     func increment(_ n: Int)

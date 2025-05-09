@@ -14,6 +14,8 @@
 import os
 #endif
 
+import Synchronization
+
 /// Base protocol used for global operations over generic type.
 private protocol _HeavyCacheBase: AnyObject {
     /// Clear the cache.
@@ -60,7 +62,7 @@ public func withHeavyCacheGlobalState<T>(isolated: Bool = true, _ body: () throw
 /// A cache designed for holding few, relatively heavy-weight objects.
 ///
 /// This cache is specifically designed for holding a limited number of objects (usually less than 100) which are expensive enough to merit particular attention in terms of being purgeable under memory pressure, evictable in-mass, or cached with more complex parameters like time-to-live (TTL).
-public final class HeavyCache<Key: Hashable, Value>: _HeavyCacheBase, KeyValueStorage, @unchecked Sendable {
+public final class HeavyCache<Key: Hashable & Sendable, Value>: _HeavyCacheBase, KeyValueStorage, @unchecked Sendable {
     public typealias HeavyCacheClock = SuspendingClock
 
     /// Controls the non-deterministic eviction policy of the cache. Note that this is distinct from deterministic _pruning_ (due to TTL or size limits).
@@ -86,7 +88,7 @@ public final class HeavyCache<Key: Hashable, Value>: _HeavyCacheBase, KeyValueSt
     }
 
     /// The lock to protect shared instance state.
-    private let stateLock = Lock()
+    private let stateLock = SWBMutex(())
 
     /// The underlying cache.
     private let _cache: any HeavyCacheImpl<Key, Entry>
