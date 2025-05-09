@@ -31,7 +31,7 @@ struct GenerateWindowsInstallerComponentGroups: CommandPlugin {
             
             """#
 
-            let resources = sourceModule.sourceFiles.filter { resource in resource.type == .resource && ["xcspec", "xcbuildrule"].contains(resource.url.pathExtension) }
+            let resources = sourceModule.sourceFiles.filter { resource in resource.type == .resource && ["xcspec", "xcbuildrules"].contains(resource.url.pathExtension) }
             if !resources.isEmpty {
                 groupRefs += #"      <ComponentGroupRef Id="\#(sourceModule.name)Resources" />\#n"#
                 directories += #"                  <Directory Id="_usr_share_pm_\#(sourceModule.name)" Name="SwiftBuild_\#(sourceModule.name).resources" />\#n"#
