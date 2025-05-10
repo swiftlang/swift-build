@@ -4532,6 +4532,10 @@ When this setting is enabled:
                 Type = Boolean;
                 DefaultValue = "NO";
             },
+            {
+                Name = "DEPENDENCIES";
+                Type = StringList;
+            },
         );
     },
 )

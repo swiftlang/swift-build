@@ -106,6 +106,10 @@ private final class CapturingTaskGenerationDelegate: TaskGenerationDelegate {
 }
 
 extension CapturingTaskGenerationDelegate: TaskActionCreationDelegate {
+    func createLdTaskAction() -> any SWBCore.PlannedTaskAction {
+        return LdTaskAction()
+    }
+    
     public func createAuxiliaryFileTaskAction(_ context: AuxiliaryFileTaskActionContext) -> any PlannedTaskAction {
         return AuxiliaryFileTaskAction(context)
     }
@@ -196,6 +200,10 @@ extension CapturingTaskGenerationDelegate: TaskActionCreationDelegate {
 
     public func createClangCompileTaskAction() -> any PlannedTaskAction {
         return ClangCompileTaskAction()
+    }
+
+    public func createClangNonModularCompileTaskAction() -> any PlannedTaskAction {
+        return ClangNonModularCompileTaskAction()
     }
 
     public func createClangScanTaskAction() -> any PlannedTaskAction {
