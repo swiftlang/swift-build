@@ -18,7 +18,7 @@ public actor ActorLock {
     public init() {
     }
 
-    public func withLock<T: Sendable, E>(_ body: @Sendable () async throws(E) -> T) async throws(E) -> T {
+    public func withLock<T: Sendable, E>(_ body: sending () async throws(E) -> T) async throws(E) -> T {
         while busy {
             await withCheckedContinuation { cc in
                 queue.append(cc)
@@ -47,7 +47,7 @@ public final class AsyncLockedValue<Wrapped: Sendable> {
     }
 
     @discardableResult @inlinable
-    public func withLock<Result: Sendable, E>(_ block: @Sendable (inout Wrapped) async throws(E) -> Result) async throws(E) -> Result {
+    public func withLock<Result: Sendable, E>(_ block: sending (inout Wrapped) async throws(E) -> Result) async throws(E) -> Result {
         return try await lock.withLock { () throws(E) -> Result in try await block(&value) }
     }
 }

@@ -18,7 +18,7 @@ public typealias FrozenStringArena = FrozenInterningArena<String>
 private let numberOfInternCalls = Statistic("InterningArena.numberOfInternCalls", "Number of calls to 'InterningArena.intern'")
 private let numberOfItemsInterned = Statistic("InterningArena.numberOfItemsInterned", "Number of items interned in InterningArenas")
 
-public final class InterningArena<T: Hashable> {
+public final class InterningArena<T: Hashable & Sendable> {
     public struct Handle: Hashable, Sendable {
         fileprivate let value: UInt32
 
