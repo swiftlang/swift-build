@@ -32,8 +32,8 @@ final class CLIConnection {
     private let monitorHandle: FileHandle
     private let temporaryDirectory: NamedTemporaryDirectory
     private let exitPromise: Promise<Processes.ExitStatus, any Error>
-    private let outputStream: AsyncThrowingStream<UInt8, any Error>
-    private var outputStreamIterator: AsyncCLIConnectionResponseSequence<AsyncThrowingStream<UInt8, any Error>>.AsyncIterator
+    private let outputStream: AsyncThrowingStream<SWBDispatchData, any Error>
+    private var outputStreamIterator: AsyncCLIConnectionResponseSequence<AsyncFlatteningSequence<AsyncThrowingStream<SWBDispatchData, any Error>>>.AsyncIterator
 
     static var swiftbuildToolSearchPaths: [URL] {
         var searchPaths: [URL] = []
@@ -138,8 +138,8 @@ final class CLIConnection {
         // Close the session handle, so the FD will close once the service stops.
         try sessionHandle.close()
 
-        outputStream = monitorHandle._bytes(on: .global())
-        outputStreamIterator = outputStream.cliResponses.makeAsyncIterator()
+        outputStream = monitorHandle._bytes()
+        outputStreamIterator = outputStream.flattened.cliResponses.makeAsyncIterator()
         #endif
     }
 
