@@ -21,7 +21,8 @@ function(SwiftBuild_Bundle)
     COMMAND
       ${CMAKE_COMMAND} -E make_directory "${CMAKE_BINARY_DIR}/share/pm/SwiftBuild_${BundleXCSpecs_MODULE}.resources"
     COMMAND
-      ${CMAKE_COMMAND} -E copy_if_different ${BundleXCSpecs_FILES} "${CMAKE_BINARY_DIR}/share/pm/SwiftBuild_${BundleXCSpecs_MODULE}.resources/")
+      ${CMAKE_COMMAND} -E copy_if_different ${BundleXCSpecs_FILES} "${CMAKE_BINARY_DIR}/share/pm/SwiftBuild_${BundleXCSpecs_MODULE}.resources/"
+    VERBATIM)
 
   file(TO_NATIVE_PATH "${CMAKE_BINARY_DIR}/share/pm/SwiftBuild_${BundleXCSpecs_MODULE}.resources" _SWIFT_BUILD_RESOURCE_BUNDLE_BUILD_PATH)
   file(CONFIGURE
