@@ -175,7 +175,7 @@
             {
                 Name = "LD_OPTIMIZATION_LEVEL";
                 Type = String;
-                Condition = "$(LINKER_DRIVER) == clang";
+                Condition = "$(LINKER_DRIVER) == clang || $(LINKER_DRIVER) == qcc";
                 DefaultValue = "$(GCC_OPTIMIZATION_LEVEL)";
                 "CommandLinePrefixFlag" = "-O";
             },
