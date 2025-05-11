@@ -23,6 +23,7 @@ function(SwiftBuild_Bundle)
     COMMAND
       ${CMAKE_COMMAND} -E copy_if_different ${BundleXCSpecs_FILES} "${CMAKE_BINARY_DIR}/share/pm/SwiftBuild_${BundleXCSpecs_MODULE}.resources/")
 
+
   file(TO_NATIVE_PATH "${CMAKE_BINARY_DIR}/share/pm/SwiftBuild_${BundleXCSpecs_MODULE}.resources" _SWIFT_BUILD_RESOURCE_BUNDLE_BUILD_PATH)
   file(CONFIGURE
     OUTPUT "${CMAKE_BINARY_DIR}/resource_accessors/SwiftBuild_${BundleXCSpecs_MODULE}_resource_bundle_accessor.swift"
