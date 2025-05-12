@@ -110,7 +110,7 @@ extension LockedValue where Value: ~Copyable {
 extension LockedValue: @unchecked Sendable where Value: ~Copyable {
 }
 
-extension LockedValue {
+extension LockedValue where Value: Sendable {
     /// Sets the value of the wrapped value to `newValue` and returns the original value.
     public func exchange(_ newValue: Value) -> Value {
         withLock {
