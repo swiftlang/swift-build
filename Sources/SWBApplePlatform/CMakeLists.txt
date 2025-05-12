@@ -53,10 +53,10 @@ SwiftBuild_Bundle(MODULE SWBApplePlatform FILES
   Specs/CompileSkybox.xcspec
   Specs/CopyPNGFile.xcspec
   Specs/CopyTiffFile.xcspec
-  "Specs/Core Data.xcspec"
+  Specs/CoreData.xcspec
   Specs/CoreML.xcspec
-  "Specs/Darwin Package Types.xcspec"
-  "Specs/Darwin Product Types.xcspec"
+  Specs/DarwinPackageTypes.xcspec
+  Specs/DarwinProductTypes.xcspec
   Specs/DriverKit.xcspec
   Specs/DTrace.xcspec
   Specs/Embedded-Device.xcspec
@@ -75,18 +75,18 @@ SwiftBuild_Bundle(MODULE SWBApplePlatform FILES
   Specs/InfoPlistUtility.xcspec
   Specs/InstrumentsPackage.xcspec
   Specs/Intents.xcspec
-  "Specs/Interface Builder File Types.xcspec"
-  "Specs/iOS Device.xcspec"
-  "Specs/iOS Shared.xcspec"
-  "Specs/iOS Simulator.xcspec"
+  Specs/InterfaceBuilderFileTypes.xcspec
+  Specs/iOSDevice.xcspec
+  Specs/iOSShared.xcspec
+  Specs/iOSSimulator.xcspec
   Specs/KernelExtension.xcspec
   Specs/Lipo.xcspec
   Specs/LSRegisterURL.xcspec
-  "Specs/MacOSX Architectures.xcspec"
-  "Specs/MacOSX Core Build System.xcspec"
-  "Specs/MacOSX Native Build System.xcspec"
-  "Specs/MacOSX Package Types.xcspec"
-  "Specs/MacOSX Product Types.xcspec"
+  Specs/macOSArchitectures.xcspec
+  Specs/macOSCoreBuildSystem.xcspec
+  Specs/macOSNativeBuildSystem.xcspec
+  Specs/macOSPackageTypes.xcspec
+  Specs/macOSProductTypes.xcspec
   Specs/MetalCompiler.xcspec
   Specs/MetalFileTypes.xcspec
   Specs/MetalLinker.xcspec
@@ -100,22 +100,22 @@ SwiftBuild_Bundle(MODULE SWBApplePlatform FILES
   Specs/ReferenceObject.xcspec
   Specs/ResMerger.xcspec
   Specs/Rez.xcspec
-  "Specs/SceneKit FileTypes.xcspec"
-  "Specs/SceneKit Tools.xcspec"
+  Specs/SceneKitFileTypes.xcspec
+  Specs/SceneKitTools.xcspec
   Specs/SpriteKitFileTypes.xcspec
   Specs/TiffUtil.xcspec
-  "Specs/tvOS Device.xcspec"
-  "Specs/tvOS Shared.xcspec"
-  "Specs/tvOS Simulator.xcspec"
+  Specs/tvOSDevice.xcspec
+  Specs/tvOSShared.xcspec
+  Specs/tvOSSimulator.xcspec
   Specs/WatchKit1ProductTypes.xcspec
-  "Specs/watchOS Device.xcspec"
-  "Specs/watchOS Shared.xcspec"
-  "Specs/watchOS Simulator.xcspec"
+  Specs/watchOSDevice.xcspec
+  Specs/watchOSShared.xcspec
+  Specs/watchOSSimulator.xcspec
   Specs/XCAppExtensionPoints.xcspec
   Specs/XCStrings.xcspec
-  "Specs/xrOS Device.xcspec"
-  "Specs/xrOS Shared.xcspec"
-  "Specs/xrOS Simulator.xcspec")
+  Specs/xrOSDevice.xcspec
+  Specs/xrOSShared.xcspec
+  Specs/xrOSSimulator.xcspec)
 set_target_properties(SWBApplePlatform PROPERTIES
   Swift_LANGUAGE_VERSION 6)
 target_link_libraries(SWBApplePlatform PUBLIC

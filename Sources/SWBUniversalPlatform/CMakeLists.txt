@@ -23,7 +23,7 @@ SwiftBuild_Bundle(MODULE SWBUniversalPlatform FILES
   Specs/BuiltInBuildRules.xcbuildrules
   Specs/BuiltInCompilers.xcspec
   Specs/BuiltInFileTypes.xcspec
-  "Specs/Clang LLVM 1.0.xcspec"
+  Specs/Clang.xcspec
   Specs/ClangModuleVerifierInputGenerator.xcspec
   Specs/ClangStatCache.xcspec
   Specs/ClangSymbolExtractor.xcspec
@@ -32,7 +32,7 @@ SwiftBuild_Bundle(MODULE SWBUniversalPlatform FILES
   Specs/CopyPlistFile.xcspec
   Specs/CopyStringsFile.xcspec
   Specs/Cpp.xcspec
-  "Specs/Default Compiler.xcspec"
+  Specs/DefaultCompiler.xcspec
   Specs/Documentation.xcspec
   Specs/Ld.xcspec
   Specs/Lex.xcspec
