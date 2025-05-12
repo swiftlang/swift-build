@@ -64,7 +64,7 @@ public enum Debugger: Sendable {
         if isXcodeAutoAttachEnabled {
             try await waitForAttachment() {
                 // Exit if parent process died while waiting for debugger
-                if kill(getppid(), 0) != 0 {
+                if kill(getppid(), 0) != 0 { // ignore-unacceptable-language; POSIX API
                     throw StubError.error("Parent process exited while waiting for debugger")
                 }
                 return true

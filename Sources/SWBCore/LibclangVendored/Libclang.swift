@@ -470,7 +470,7 @@ public final class ClangCASDatabases {
         libclang_casdatabases_dispose(dbs)
     }
 
-    public func getOndiskSize() throws -> Int? {
+    public func getOndiskSize() throws -> Int64? {
         var error: ClangCASDatabases.Error? = nil
         let ret = libclang_casdatabases_get_ondisk_size(dbs, { c_error in
             error = .operationFailed(String(cString: c_error!))
@@ -481,12 +481,12 @@ public final class ClangCASDatabases {
         if ret < 0 {
             return nil
         }
-        return Int(ret)
+        return ret
     }
 
-    public func setOndiskSizeLimit(_ limit: Int?) throws {
+    public func setOndiskSizeLimit(_ limit: Int64?) throws {
         var error: ClangCASDatabases.Error? = nil
-        libclang_casdatabases_set_ondisk_size_limit(dbs, Int64(limit ?? 0), { c_error in
+        libclang_casdatabases_set_ondisk_size_limit(dbs, limit ?? 0, { c_error in
             error = .operationFailed(String(cString: c_error!))
         })
         if let error {

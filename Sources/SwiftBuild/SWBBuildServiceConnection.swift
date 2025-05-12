@@ -950,7 +950,7 @@ fileprivate final class OutOfProcessConnection: ConnectionTransport {
             // If IBAutoAttach is enabled, send the message so Xcode will attach to the inferior.
             try Debugger.requestXcodeAutoAttachIfEnabled(task.processIdentifier)
         } catch {
-            // Terminate the subprocess if start() is going to throw, so that close() will not hang
+            // Terminate the subprocess if start() is going to throw, so that close() will not get stuck.
             task.terminate()
         }
         #endif

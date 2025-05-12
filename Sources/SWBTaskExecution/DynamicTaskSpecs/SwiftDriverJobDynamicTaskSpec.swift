@@ -242,7 +242,7 @@ final class SwiftDriverJobDynamicTaskSpec: DynamicTaskSpec {
         // rdar://91295617 (Swift produces empty serialized diagnostics if there are none which is not parseable by clang_loadDiagnostics)
         return expectedDiagnostics.filter { filePath in
             do {
-                let shouldAdd = try fs.exists(filePath) && (try fs.getFileSize(filePath)) > 0
+                let shouldAdd = try fs.exists(filePath) && (try fs.getFileSize(filePath)) > .zero
                 return shouldAdd
             } catch {
                 return false

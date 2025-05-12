@@ -302,11 +302,11 @@ fileprivate struct SwiftTaskConstructionTests: CoreBasedTests {
                     // Check the global dictionary.
                     if let globalDict = dict[""] {
                         XCTAssertEqualPropertyListItems(globalDict, .plDict([
-                            "swift-dependencies": .plString("\(SRCROOT)/build/aProject.build/Debug/AppTarget.build/Objects-normal/x86_64/AppTarget-master.swiftdeps"),
-                            "diagnostics": .plString("\(SRCROOT)/build/aProject.build/Debug/AppTarget.build/Objects-normal/x86_64/AppTarget-master.dia"),
-                            "emit-module-diagnostics": .plString("\(SRCROOT)/build/aProject.build/Debug/AppTarget.build/Objects-normal/x86_64/AppTarget-master-emit-module.dia"),
-                            "emit-module-dependencies": .plString("\(SRCROOT)/build/aProject.build/Debug/AppTarget.build/Objects-normal/x86_64/AppTarget-master-emit-module.d"),
-                            "pch": .plString("\(SRCROOT)/build/aProject.build/Debug/AppTarget.build/Objects-normal/x86_64/AppTarget-master-Bridging-header.pch"),
+                            "swift-dependencies": .plString("\(SRCROOT)/build/aProject.build/Debug/AppTarget.build/Objects-normal/x86_64/AppTarget-primary.swiftdeps"),
+                            "diagnostics": .plString("\(SRCROOT)/build/aProject.build/Debug/AppTarget.build/Objects-normal/x86_64/AppTarget-primary.dia"),
+                            "emit-module-diagnostics": .plString("\(SRCROOT)/build/aProject.build/Debug/AppTarget.build/Objects-normal/x86_64/AppTarget-primary-emit-module.dia"),
+                            "emit-module-dependencies": .plString("\(SRCROOT)/build/aProject.build/Debug/AppTarget.build/Objects-normal/x86_64/AppTarget-primary-emit-module.d"),
+                            "pch": .plString("\(SRCROOT)/build/aProject.build/Debug/AppTarget.build/Objects-normal/x86_64/AppTarget-primary-Bridging-header.pch"),
                         ]))
                     }
                     else {
@@ -1529,6 +1529,64 @@ fileprivate struct SwiftTaskConstructionTests: CoreBasedTests {
             results.checkTarget("Exec") { target in
                 results.checkTask(.matchTarget(target), .matchRuleType("SwiftDriver Compilation Requirements")) { task in
                     task.checkCommandLineDoesNotContain("-explicit-module-build")
+                }
+            }
+            results.checkNoDiagnostics()
+        }
+    }
+
+    @Test(.requireSDKs(.macOS), .enabled(if: LibSwiftDriver.supportsDriverFlag(spelled: "-incremental-dependency-scan")))
+    func optOutIncrementalScanning() async throws {
+        let testProject = try await TestProject(
+            "aProject",
+            groupTree: TestGroup(
+                "SomeFiles", path: "Sources",
+                children: [
+                    TestFile("main.swift"),
+                ]),
+            buildConfigurations: [
+                TestBuildConfiguration(
+                    "Debug",
+                    buildSettings: [
+                        "PRODUCT_NAME": "$(TARGET_NAME)",
+                        "SWIFT_ENABLE_EXPLICIT_MODULES": "YES",
+                    ]),
+            ],
+            targets: [
+                TestStandardTarget(
+                    "Exec", type: .commandLineTool,
+                    buildConfigurations: [
+                        TestBuildConfiguration("Debug",
+                                               buildSettings: [
+                                                "SWIFT_EXEC": swiftCompilerPath.str,
+                                                "SWIFT_VERSION": swiftVersion,
+                                               ]),
+                    ],
+                    buildPhases: [
+                        TestSourcesBuildPhase([
+                            "main.swift",
+                        ]),
+                    ])
+            ])
+        let tester = try await TaskConstructionTester(getCore(), testProject)
+
+        await tester.checkBuild(BuildParameters(configuration: "Debug", overrides: ["SWIFT_ENABLE_INCREMENTAL_SCAN": "YES"]), runDestination: .macOS) { results in
+            results.checkTarget("Exec") { target in
+                results.checkTask(.matchTarget(target), .matchRuleType("SwiftDriver Compilation Requirements")) { task in
+                    task.checkCommandLineContains(["-explicit-module-build"])
+                    task.checkCommandLineContains(["-incremental"])
+                    task.checkCommandLineContains(["-incremental-dependency-scan"])
+                }
+            }
+            results.checkNoDiagnostics()
+        }
+
+        await tester.checkBuild(runDestination: .macOS) { results in
+            results.checkTarget("Exec") { target in
+                results.checkTask(.matchTarget(target), .matchRuleType("SwiftDriver Compilation Requirements")) { task in
+                    task.checkCommandLineContains(["-explicit-module-build"])
+                    task.checkCommandLineContains(["-incremental"])
+                    task.checkCommandLineDoesNotContain("-incremental-dependency-scan")
                 }
             }
             results.checkNoDiagnostics()

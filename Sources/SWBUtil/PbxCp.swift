@@ -612,7 +612,7 @@ public func pbxcp(_ argv: [String], cwd: Path) async -> (success: Bool, output: 
             }
         }
 
-        // Do some sanity-checking.
+        // Do some correctness-checking.
         if srcPath.isRoot {
             outStream <<< "error: Invalid source path: '\(srcPath.str)'\n"
             return (false, outStream.bytes.asString)

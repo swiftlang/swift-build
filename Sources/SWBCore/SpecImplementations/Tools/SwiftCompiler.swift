@@ -119,6 +119,7 @@ public struct SwiftSourceFileIndexingInfo: SourceFileIndexingInfo {
         "-emit-dependencies",
         "-serialize-diagnostics",
         "-incremental",
+        "-incremental-dependency-scan",
         "-parseable-output",
         "-use-frontend-parseable-output",
         "-whole-module-optimization",
@@ -153,6 +154,7 @@ public struct SwiftSourceFileIndexingInfo: SourceFileIndexingInfo {
     // can be removed after we use the new driver instead (rdar://75851402).
     private static let newDriverFlags: Set<ByteString> = [
         "-driver-print-graphviz",
+        "-incremental-dependency-scan",
         "-explicit-module-build",
         "-experimental-explicit-module-build",
         "-nonlib-dependency-scanner",
@@ -1743,6 +1745,10 @@ public final class SwiftCompilerSpec : CompilerSpec, SpecIdentifierType, SwiftDi
 
                 if cbc.scope.evaluate(BuiltinMacros.SWIFT_ENABLE_INCREMENTAL_COMPILATION) {
                     args.append("-incremental")
+                    if LibSwiftDriver.supportsDriverFlag(spelled: "-incremental-dependency-scan"),
+                       cbc.scope.evaluate(BuiltinMacros.SWIFT_ENABLE_INCREMENTAL_SCAN) {
+                        args.append("-incremental-dependency-scan")
+                    }
                 }
             }
 
@@ -2132,7 +2138,6 @@ public final class SwiftCompilerSpec : CompilerSpec, SpecIdentifierType, SwiftDi
 
             // Compute the inputs and object output dependency paths.
             // Note that we compute the object file output paths here even if the compilation mode won't produce any, because these paths are used to compute the paths to other generated files.
-            // FIXME: If we want to match what Xcode did, then when using non-parallel WMO, we should include $(TARGET_NAME)-master.o as an output file, but not include the per-input-file object files as output files.
             let outputObjectExtension: String
             switch cbc.scope.evaluate(BuiltinMacros.SWIFT_LTO) {
             case .yes, .yesThin:
@@ -2161,11 +2166,11 @@ public final class SwiftCompilerSpec : CompilerSpec, SpecIdentifierType, SwiftDi
 
             // Add const metadata outputs to extra compilation outputs
             if await supportConstSupplementaryMetadata(cbc, delegate, compilationMode: compilationMode) {
-                // If using whole module optimization then we use the -master.swiftconstvalues file from the sole compilation task.
+                // If using whole module optimization then we use the -primary.swiftconstvalues file from the sole compilation task.
                 if isUsingWholeModuleOptimization {
                     if let outputPath = objectOutputPaths.first {
-                        let masterSwiftBaseName = cbc.scope.evaluate(BuiltinMacros.TARGET_NAME) + compilationMode.moduleBaseNameSuffix + "-master"
-                        let supplementaryConstMetadataOutputPath = outputPath.dirname.join(masterSwiftBaseName + ".swiftconstvalues")
+                        let primarySwiftBaseName = cbc.scope.evaluate(BuiltinMacros.TARGET_NAME) + compilationMode.moduleBaseNameSuffix + "-primary"
+                        let supplementaryConstMetadataOutputPath = outputPath.dirname.join(primarySwiftBaseName + ".swiftconstvalues")
                         extraOutputPaths.append(supplementaryConstMetadataOutputPath)
                         delegate.declareGeneratedSwiftConstMetadataFile(supplementaryConstMetadataOutputPath, architecture: arch)
                     }
@@ -2232,11 +2237,11 @@ public final class SwiftCompilerSpec : CompilerSpec, SpecIdentifierType, SwiftDi
                 //
                 // FIXME: Can we simplify this to not require the full macro scope?
                 //
-                // If using whole module optimization then we use the -master.d file as the dependency file.
+                // If using whole module optimization then we use the -primary.d file as the dependency file.
                 if let outputPath = objectOutputPaths.first {
                     if Self.shouldUseWholeModuleOptimization(for: cbc.scope).result {
-                        let masterSwiftBaseName = cbc.scope.evaluate(BuiltinMacros.TARGET_NAME) + compilationMode.moduleBaseNameSuffix + "-master"
-                        let dependenciesFilePath = outputPath.dirname.join(masterSwiftBaseName + ".d")
+                        let primarySwiftBaseName = cbc.scope.evaluate(BuiltinMacros.TARGET_NAME) + compilationMode.moduleBaseNameSuffix + "-primary"
+                        let dependenciesFilePath = outputPath.dirname.join(primarySwiftBaseName + ".d")
                         return dependenciesFilePath
                     } else {
                         // if not using WMO, we use the first .d file as all are the same
@@ -2348,8 +2353,8 @@ public final class SwiftCompilerSpec : CompilerSpec, SpecIdentifierType, SwiftDi
                 let dependencyData: DependencyDataStyle?
                 if await shouldEmitMakeStyleDependencies(cbc.producer, cbc.scope, delegate: delegate) {
                     // FIXME: Duplication with `SwiftCompilerSpec.computeOutputFileMapContents`
-                    let masterSwiftBaseName = cbc.scope.evaluate(BuiltinMacros.TARGET_NAME) + compilationMode.moduleBaseNameSuffix + "-master"
-                    let emitModuleDependenciesFilePath = objectFileDir.join(masterSwiftBaseName + "-emit-module.d")
+                    let primarySwiftBaseName = cbc.scope.evaluate(BuiltinMacros.TARGET_NAME) + compilationMode.moduleBaseNameSuffix + "-primary"
+                    let emitModuleDependenciesFilePath = objectFileDir.join(primarySwiftBaseName + "-emit-module.d")
                     dependencyData = eagerCompilationEnabled ? .makefileIgnoringSubsequentOutputs(emitModuleDependenciesFilePath) : dependencyInfoPath.map(DependencyDataStyle.makefileIgnoringSubsequentOutputs)
                 } else {
                     dependencyData = nil
@@ -2755,7 +2760,7 @@ public final class SwiftCompilerSpec : CompilerSpec, SpecIdentifierType, SwiftDi
             moduleDirPath = scope.evaluate(BuiltinMacros.BUILT_PRODUCTS_DIR).join(moduleName + ".swiftmodule")
         }
         if isProject {
-            // Copy this content to the Project subdir so we could master them out when installing.
+            // Copy this content to the Project subdir so we can exclude them by filename pattern when installing.
             return moduleDirPath.join("Project")
         }
         return moduleDirPath
@@ -3047,7 +3052,7 @@ public final class SwiftCompilerSpec : CompilerSpec, SpecIdentifierType, SwiftDi
 
         // Compute strings that will be used at various points when building the map.
         let moduleBaseNameSuffix = compilationMode.moduleBaseNameSuffix
-        let masterSwiftBaseName = cbc.scope.evaluate(BuiltinMacros.TARGET_NAME) + moduleBaseNameSuffix + "-master"
+        let primarySwiftBaseName = cbc.scope.evaluate(BuiltinMacros.TARGET_NAME) + moduleBaseNameSuffix + "-primary"
         let emitConstSideCarValues = await supportConstSupplementaryMetadata(cbc, delegate, compilationMode: compilationMode)
 
         func createCommonFileEntry(input: FileToBuild) -> (objectFilePath: Path, fileMapEntry: SwiftOutputFileMap.Entry) {
@@ -3110,25 +3115,25 @@ public final class SwiftCompilerSpec : CompilerSpec, SpecIdentifierType, SwiftDi
                 var fileMapEntry = SwiftOutputFileMap.Entry()
 
                 // The file used by Swift to manage intermodule dependencies.
-                let globalSwiftDependenciesFilePath = objectFileDir.join(masterSwiftBaseName + ".swiftdeps")
+                let globalSwiftDependenciesFilePath = objectFileDir.join(primarySwiftBaseName + ".swiftdeps")
                 fileMapEntry.swiftDependencies = globalSwiftDependenciesFilePath.str
 
                 // The diagnostics file.
-                let diagnosticsFilePath = objectFileDir.join(masterSwiftBaseName + ".dia")
+                let diagnosticsFilePath = objectFileDir.join(primarySwiftBaseName + ".dia")
                 fileMapEntry.diagnostics = diagnosticsFilePath.str
 
                 // The diagnostics file for emit-module jobs.
-                let emitModuleDiagnosticsFilePath = objectFileDir.join(masterSwiftBaseName + "-emit-module.dia")
+                let emitModuleDiagnosticsFilePath = objectFileDir.join(primarySwiftBaseName + "-emit-module.dia")
                 fileMapEntry.emitModuleDiagnostics = emitModuleDiagnosticsFilePath.str
 
                 if await shouldEmitMakeStyleDependencies(cbc.producer, cbc.scope, delegate: delegate) {
                     // The dependency file for emit-module jobs.
-                    let emitModuleDependenciesFilePath = objectFileDir.join(masterSwiftBaseName + "-emit-module.d")
+                    let emitModuleDependenciesFilePath = objectFileDir.join(primarySwiftBaseName + "-emit-module.d")
                     fileMapEntry.emitModuleDependencies = emitModuleDependenciesFilePath.str
                 }
 
                 // The PCH file path for generatePCH job.
-                let bridgingHeaderPCHPath = objectFileDir.join(masterSwiftBaseName + "-Bridging-header.pch")
+                let bridgingHeaderPCHPath = objectFileDir.join(primarySwiftBaseName + "-Bridging-header.pch")
                 fileMapEntry.pch = bridgingHeaderPCHPath.str
 
                 // Add the global entry to the map.
@@ -3146,35 +3151,35 @@ public final class SwiftCompilerSpec : CompilerSpec, SpecIdentifierType, SwiftDi
                 var fileMapEntry = SwiftOutputFileMap.Entry()
 
                 // The diagnostics file.
-                let diagnosticsFilePath = objectFileDir.join(masterSwiftBaseName + ".dia")
+                let diagnosticsFilePath = objectFileDir.join(primarySwiftBaseName + ".dia")
                 fileMapEntry.diagnostics = diagnosticsFilePath.str
 
                 // The diagnostics file for emit-module jobs.
-                let emitModuleDiagnosticsFilePath = objectFileDir.join(masterSwiftBaseName + "-emit-module.dia")
+                let emitModuleDiagnosticsFilePath = objectFileDir.join(primarySwiftBaseName + "-emit-module.dia")
                 fileMapEntry.emitModuleDiagnostics = emitModuleDiagnosticsFilePath.str
 
                 if await shouldEmitMakeStyleDependencies(cbc.producer, cbc.scope, delegate: delegate) {
                     // The dependency file for emit-module jobs.
-                    let emitModuleDependenciesFilePath = objectFileDir.join(masterSwiftBaseName + "-emit-module.d")
+                    let emitModuleDependenciesFilePath = objectFileDir.join(primarySwiftBaseName + "-emit-module.d")
                     fileMapEntry.emitModuleDependencies = emitModuleDependenciesFilePath.str
 
 
                     // The dependencies file, used to discover implicit dependencies.  This file will be in Makefile format.
-                    let dependenciesFilePath = objectFileDir.join(masterSwiftBaseName + ".d")
+                    let dependenciesFilePath = objectFileDir.join(primarySwiftBaseName + ".d")
                     fileMapEntry.dependencies = dependenciesFilePath.str
                 }
 
                 // The file used by Swift to manage intermodule dependencies.
-                let swiftDependenciesFilePath = objectFileDir.join(masterSwiftBaseName + ".swiftdeps")
+                let swiftDependenciesFilePath = objectFileDir.join(primarySwiftBaseName + ".swiftdeps")
                 fileMapEntry.swiftDependencies = swiftDependenciesFilePath.str
 
                 // The requested compile-time values
                 if emitConstSideCarValues && compilationMode.compileSources {
-                    fileMapEntry.constValues = objectFileDir.join(masterSwiftBaseName + ".swiftconstvalues").str
+                    fileMapEntry.constValues = objectFileDir.join(primarySwiftBaseName + ".swiftconstvalues").str
                 }
 
                 // The PCH file path for generatePCH job.
-                let bridgingHeaderPCHPath = objectFileDir.join(masterSwiftBaseName + "-Bridging-header.pch")
+                let bridgingHeaderPCHPath = objectFileDir.join(primarySwiftBaseName + "-Bridging-header.pch")
                 fileMapEntry.pch = bridgingHeaderPCHPath.str
 
                 // Add the global entry to the map.
@@ -3285,6 +3290,8 @@ public final class SwiftCompilerSpec : CompilerSpec, SpecIdentifierType, SwiftDi
         for arg in [
             // Should strip this because it saves some work and avoids writing a useless incremental build record
             "-incremental",
+            // Same as above
+            "-incremental-dependency-scan",
 
             // Stripped because we want to end up in single file mode
             "-enable-batch-mode",

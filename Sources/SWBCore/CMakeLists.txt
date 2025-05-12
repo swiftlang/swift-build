@@ -8,26 +8,6 @@ See http://swift.org/LICENSE.txt for license information
 See http://swift.org/CONTRIBUTORS.txt for Swift project authors
 ]]
 
-file(TO_NATIVE_PATH "${CMAKE_CURRENT_BINARY_DIR}"
-  _SWBCore_NATIVE_CMAKE_CURRENT_BINARY_DIR)
-file(CONFIGURE
-  OUTPUT resource_bundle_accessor.swift
-  CONTENT [[
-  import Foundation
-  extension Foundation.Bundle {
-    static let module: Bundle = {
-      let mainPath = Bundle.main.bundleURL.appendingPathComponent("SwiftBuild_SWBCore.resources").path
-      let buildPath = #"@_SWBCore_NATIVE_CMAKE_CURRENT_BINARY_DIR@\SwiftBuild_SWBCore.resources"#
-      let preferredBundle = Bundle(path: mainPath)
-      guard let bundle = preferredBundle ?? Bundle(path: buildPath) else {
-        Swift.fatalError("could not load resource bundle: from \(mainPath) or \(buildPath)")
-      }
-      return bundle
-    }()
-  }
-  ]]
-  ESCAPE_QUOTES @ONLY NEWLINE_STYLE LF)
-
 add_library(SWBCore
   ActivityReporting.swift
   Apple/DeviceFamily.swift
@@ -195,6 +175,10 @@ add_library(SWBCore
   WorkspaceContext.swift
   WorkspaceSettingsCache.swift
   XCFramework.swift)
+SwiftBuild_Bundle(MODULE SWBCore FILES
+  Specs/CoreBuildSystem.xcspec
+  Specs/ExternalBuildSystem.xcspec
+  Specs/NativeBuildSystem.xcspec)
 set_target_properties(SWBCore PROPERTIES
   Swift_LANGUAGE_VERSION 5)
 target_link_libraries(SWBCore PUBLIC
@@ -205,8 +189,6 @@ target_link_libraries(SWBCore PUBLIC
   SWBCAS
   SWBLLBuild
   SwiftDriver)
-target_sources(SWBCore PRIVATE
-  "${CMAKE_CURRENT_BINARY_DIR}/resource_bundle_accessor.swift")
 
 set_target_properties(SWBCore PROPERTIES
   INTERFACE_INCLUDE_DIRECTORIES ${CMAKE_Swift_MODULE_DIRECTORY})

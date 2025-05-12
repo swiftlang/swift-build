@@ -8,26 +8,6 @@ See http://swift.org/LICENSE.txt for license information
 See http://swift.org/CONTRIBUTORS.txt for Swift project authors
 ]]
 
-file(TO_NATIVE_PATH "${CMAKE_CURRENT_BINARY_DIR}"
-  _SWBUniversalPlatform_NATIVE_CMAKE_CURRENT_BINARY_DIR)
-file(CONFIGURE
-  OUTPUT resource_bundle_accessor.swift
-  CONTENT [[
-  import Foundation
-  extension Foundation.Bundle {
-    static let module: Bundle = {
-      let mainPath = Bundle.main.bundleURL.appendingPathComponent("SwiftBuild_SWBUniversalPlatform.resources").path
-      let buildPath = #"@_SWBUniversalPlatform_NATIVE_CMAKE_CURRENT_BINARY_DIR@\SwiftBuild_SWBUniversalPlatform.resources"#
-      let preferredBundle = Bundle(path: mainPath)
-      guard let bundle = preferredBundle ?? Bundle(path: buildPath) else {
-        Swift.fatalError("could not load resource bundle: from \(mainPath) or \(buildPath)")
-      }
-      return bundle
-    }()
-  }
-  ]]
-  ESCAPE_QUOTES @ONLY NEWLINE_STYLE LF)
-
 add_library(SWBUniversalPlatform
   CopyPlistFile.swift
   CopyStringsFile.swift
@@ -39,6 +19,37 @@ add_library(SWBUniversalPlatform
   TestEntryPointTaskProducer.swift
   YaccCompiler.swift
   Plugin.swift)
+SwiftBuild_Bundle(MODULE SWBUniversalPlatform FILES
+  Specs/BuiltInBuildRules.xcbuildrules
+  Specs/BuiltInCompilers.xcspec
+  Specs/BuiltInFileTypes.xcspec
+  "Specs/Clang LLVM 1.0.xcspec"
+  Specs/ClangModuleVerifierInputGenerator.xcspec
+  Specs/ClangStatCache.xcspec
+  Specs/ClangSymbolExtractor.xcspec
+  Specs/ClangVerifier.xcspec
+  Specs/CodeSign.xcspec
+  Specs/CopyPlistFile.xcspec
+  Specs/CopyStringsFile.xcspec
+  Specs/Cpp.xcspec
+  "Specs/Default Compiler.xcspec"
+  Specs/Documentation.xcspec
+  Specs/Ld.xcspec
+  Specs/Lex.xcspec
+  Specs/Libtool.xcspec
+  Specs/PackageTypes.xcspec
+  Specs/PBXCp.xcspec
+  Specs/ProductTypes.xcspec
+  Specs/ProductTypeValidationTool.xcspec
+  Specs/StandardFileTypes.xcspec
+  Specs/StripSymbols.xcspec
+  Specs/swift-stdlib-tool.xcspec
+  Specs/Swift.xcspec
+  Specs/SwiftBuildSettings.xcspec
+  Specs/TAPI.xcspec
+  Specs/TestEntryPointGenerator.xcspec
+  Specs/Unifdef.xcspec
+  Specs/Yacc.xcspec)
 target_link_libraries(SWBUniversalPlatform PUBLIC
   SWBCore
   SWBMacro
@@ -46,8 +57,6 @@ target_link_libraries(SWBUniversalPlatform PUBLIC
   SWBTaskConstruction
   SWBTaskExecution
   ArgumentParser)
-target_sources(SWBUniversalPlatform PRIVATE
-  "${CMAKE_CURRENT_BINARY_DIR}/resource_bundle_accessor.swift")
 
 set_target_properties(SWBUniversalPlatform PROPERTIES
   INTERFACE_INCLUDE_DIRECTORIES ${CMAKE_Swift_MODULE_DIRECTORY})

@@ -144,7 +144,7 @@ extension Processes {
         #else
         Task<Void, Never>.detached {
             while true {
-                // We use getpgid() here to detect when the process has exited (it is not a child). Surprisingly, getpgid() is substantially faster than using kill(pid, 0) here because kill still returns success for zombies, and the service has been reparented to launchd.
+                // We use getpgid() here to detect when the process has exited (it is not a child). Surprisingly, getpgid() is substantially faster than using kill(pid, 0) here because kill still returns success for zombies, and the service has been reparented to launchd. // ignore-unacceptable-language; POSIX API
                 do {
                     if getpgid(pid) < 0 {
                         // We expect the signal to eventually fail with "No such process".

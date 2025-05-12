@@ -295,6 +295,20 @@ public final class SWBQueue: Sendable {
         }
     }
 
+    /// Submits a block object for execution and returns after that block finishes executing.
+    /// - note: This implementation won't block the calling thread, unlike the synchronous overload of ``sync()``.
+    public func sync<T>(qos: SWBQoS = .unspecified, flags: DispatchWorkItemFlags = [], execute block: @Sendable @escaping () throws -> T) async throws -> T {
+        try await withCheckedThrowingContinuation { continuation in
+            queue.async(qos: qos.dispatchQoS, flags: flags.dispatchFlags) {
+                do {
+                    continuation.resume(returning: try block())
+                } catch {
+                    continuation.resume(throwing: error)
+                }
+            }
+        }
+    }
+
     public func async(group: SWBDispatchGroup? = nil, qos: SWBQoS = .unspecified, execute body: @escaping @Sendable () -> Void) {
         return queue.async(group: group?.group, qos: qos.dispatchQoS, execute: body)
     }

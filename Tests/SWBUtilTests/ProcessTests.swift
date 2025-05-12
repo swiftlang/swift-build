@@ -124,7 +124,7 @@ fileprivate struct ProcessTests {
                 #ifdef _WIN32
                 TerminateProcess(GetCurrentProcess(), 0xC0000009); // STATUS_BAD_INITIAL_STACK
                 #else
-                kill(getpid(), SIGKILL);
+                kill(getpid(), SIGKILL); // ignore-unacceptable-language; POSIX API
                 #endif
                 return 0;
             }

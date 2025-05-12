@@ -368,7 +368,7 @@ fileprivate struct BuildTaskBehaviorTests: CoreBasedTests {
                 try await withTaskCancellationHandler {
                     switch await operation.build() {
                     case .cancelled, .failed:
-                        // If the build already failed, cancel the task that waits for the script so the test doesn't hang forever.
+                        // If the build already failed, cancel the task that waits for the script so the test doesn't get stuck forever.
                         task.cancel()
                     case .succeeded:
                         break
