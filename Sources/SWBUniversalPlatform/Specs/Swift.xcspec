@@ -500,6 +500,44 @@
                 DefaultValue = "_$(SWIFT_VERSION)";
             },
 
+            // Operator OR for a default value condition, simulates `$(X) || $(Y)` in `DefaultValue` field.
+            {
+                Name = "SETTING_DefaultValue_YES_YES";
+                Type = Boolean;
+                DefaultValue = YES;
+            },
+
+            {
+                Name = "SETTING_DefaultValue_YES_NO";
+                Type = Boolean;
+                DefaultValue = YES;
+            },
+            {
+                Name = "SETTING_DefaultValue_NO_YES";
+                Type = Boolean;
+                DefaultValue = YES;
+            },
+            {
+                Name = "SETTING_DefaultValue_NO_NO";
+                Type = Boolean;
+                DefaultValue = NO;
+            },
+            {
+                Name = "SETTING_DefaultValue__";
+                Type = Boolean;
+                DefaultValue = NO;
+            },
+
+            {
+                Name = "SWIFT_APPROACHABLE_CONCURRENCY";
+                Type = Boolean;
+                DefaultValue = NO;
+                Condition = "$(EFFECTIVE_SWIFT_VERSION) == '4' || $(EFFECTIVE_SWIFT_VERSION) == '4.2' || $(EFFECTIVE_SWIFT_VERSION) == '5'";
+                DisplayName = "Approachable Concurrency";
+                Category = "Concurrency";
+                Description = "Enables upcoming features that aim to provide a more approachable path to Swift Concurrency: DisableOutwardActorInference, GlobalActorIsolatedTypesUsability, InferIsolatedConformances, InferSendableFromCaptures, and NonisolatedNonsendingByDefault.";
+            },
+
             // Upcoming Swift 6.0 features
             {
                 Name = "ENABLE_SWIFT_6_UPCOMING_FEATURES_IN_SWIFT_VERSION_6_0";
@@ -566,7 +604,7 @@
                     "<<otherwise>>" = ( "-enable-upcoming-feature", "StrictConcurrency" );
                 };
                 DisplayName = "Strict Concurrency Checking";
-                Category = "Upcoming Features";
+                Category = "Concurrency";
                 Description = "Enables strict concurrency checking to produce warnings for possible data races. This is always 'complete' when in the Swift 6 language mode and produces errors instead of warnings.";
             },
             {
@@ -582,7 +620,7 @@
                     MainActor = ( "-default-isolation=MainActor" );
                 };
                 DisplayName = "Default Actor Isolation";
-                Category = "Language";
+                Category = "Concurrency";
                 Description = "Controls default actor isolation for unannotated code. When set to 'MainActor', `@MainActor` isolation will be inferred by default to mitigate false-positive data-race safety errors in sequential code.";
             },
             {
@@ -643,7 +681,7 @@
             {
                 Name = "SWIFT_UPCOMING_FEATURE_DISABLE_OUTWARD_ACTOR_ISOLATION";
                 Type = Boolean;
-                DefaultValue = "$(SWIFT_UPCOMING_FEATURE_6_0)";
+                DefaultValue = "$(SETTING_DefaultValue_$(SWIFT_UPCOMING_FEATURE_6_0)_$(SWIFT_APPROACHABLE_CONCURRENCY))";
                 Condition = "$(EFFECTIVE_SWIFT_VERSION) == '4' || $(EFFECTIVE_SWIFT_VERSION) == '4.2' || $(EFFECTIVE_SWIFT_VERSION) == '5'";
                 CommandLineArgs = {
                     YES = ( "-enable-upcoming-feature", "DisableOutwardActorInference" );
@@ -685,7 +723,7 @@
             {
                 Name = "SWIFT_UPCOMING_FEATURE_INFER_SENDABLE_FROM_CAPTURES";
                 Type = Boolean;
-                DefaultValue = "$(SWIFT_UPCOMING_FEATURE_6_0)";
+                DefaultValue = "$(SETTING_DefaultValue_$(SWIFT_UPCOMING_FEATURE_6_0)_$(SWIFT_APPROACHABLE_CONCURRENCY))";
                 Condition = "$(EFFECTIVE_SWIFT_VERSION) == '4' || $(EFFECTIVE_SWIFT_VERSION) == '4.2' || $(EFFECTIVE_SWIFT_VERSION) == '5'";
                 CommandLineArgs = {
                     YES = ( "-enable-upcoming-feature", "InferSendableFromCaptures" );
@@ -755,7 +793,7 @@
             {
                 Name = "SWIFT_UPCOMING_FEATURE_GLOBAL_ACTOR_ISOLATED_TYPES_USABILITY";
                 Type = Boolean;
-                DefaultValue = "$(SWIFT_UPCOMING_FEATURE_6_0)";
+                DefaultValue = "$(SETTING_DefaultValue_$(SWIFT_UPCOMING_FEATURE_6_0)_$(SWIFT_APPROACHABLE_CONCURRENCY))";
                 Condition = "$(EFFECTIVE_SWIFT_VERSION) == '4' || $(EFFECTIVE_SWIFT_VERSION) == '4.2' || $(EFFECTIVE_SWIFT_VERSION) == '5'";
                 CommandLineArgs = {
                     YES = ( "-enable-upcoming-feature", "GlobalActorIsolatedTypesUsability" );
@@ -797,15 +835,15 @@
                 Name = "SWIFT_UPCOMING_FEATURE_EXISTENTIAL_ANY";
                 Type = Enumeration;
                 Values = (
-                    Yes,
-                    Migrate,
-                    No,
+                    YES,
+                    MIGRATE,
+                    NO,
                 );
                 DefaultValue = No;
                 CommandLineArgs = {
-                    Yes = ( "-enable-upcoming-feature", "ExistentialAny" );
-                    Migrate = ( "-enable-upcoming-feature", "ExistentialAny:migrate" );
-                    No  = ();
+                    YES = ( "-enable-upcoming-feature", "ExistentialAny" );
+                    MIGRATE = ( "-enable-upcoming-feature", "ExistentialAny:migrate" );
+                    NO = ();
                 };
                 DisplayName = "Require Existential any";
                 Category = "Upcoming Features";
@@ -815,7 +853,7 @@
             {
                 Name = "SWIFT_UPCOMING_FEATURE_INFER_ISOLATED_CONFORMANCES";
                 Type = Boolean;
-                DefaultValue = NO;
+                DefaultValue = "$(SWIFT_APPROACHABLE_CONCURRENCY)";
                 CommandLineArgs = {
                     YES = ( "-enable-upcoming-feature", "InferIsolatedConformances" );
                     NO  = ();
@@ -829,15 +867,15 @@
                 Name = "SWIFT_UPCOMING_FEATURE_NONISOLATED_NONSENDING_BY_DEFAULT";
                 Type = Enumeration;
                 Values = (
-                    Yes,
-                    Migrate,
-                    No,
+                    YES,
+                    MIGRATE,
+                    NO,
                 );
-                DefaultValue = No;
+                DefaultValue = "$(SWIFT_APPROACHABLE_CONCURRENCY)";
                 CommandLineArgs = {
-                    Yes = ( "-enable-upcoming-feature", "NonisolatedNonsendingByDefault" );
-                    Migrate = ( "-enable-upcoming-feature", "NonisolatedNonsendingByDefault:migrate" );
-                    No  = ();
+                    YES = ( "-enable-upcoming-feature", "NonisolatedNonsendingByDefault" );
+                    MIGRATE = ( "-enable-upcoming-feature", "NonisolatedNonsendingByDefault:migrate" );
+                    NO = ();
                 };
                 DisplayName = "nonisolated(nonsending) By Default";
                 Category = "Upcoming Features";
