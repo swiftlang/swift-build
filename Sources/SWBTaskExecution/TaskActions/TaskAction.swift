@@ -69,8 +69,8 @@ open class TaskAction: PlannedTaskAction, PolymorphicSerializable
     {
         let md5 = InsecureHashContext()
         md5.add(bytes: serializedRepresentationSignature!)
-        for arg in task.commandLine {
-            md5.add(bytes: arg.asByteString)
+        for arg in task.type.commandLineForSignature(for: task) ?? [] {
+            md5.add(bytes: arg)
             md5.add(number: 0)
         }
         task.environment.computeSignature(into: md5)
