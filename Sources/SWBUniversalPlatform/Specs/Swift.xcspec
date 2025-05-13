@@ -604,7 +604,7 @@
                     "<<otherwise>>" = ( "-enable-upcoming-feature", "StrictConcurrency" );
                 };
                 DisplayName = "Strict Concurrency Checking";
-                Category = "Upcoming Features";
+                Category = "Concurrency";
                 Description = "Enables strict concurrency checking to produce warnings for possible data races. This is always 'complete' when in the Swift 6 language mode and produces errors instead of warnings.";
             },
             {
@@ -620,7 +620,7 @@
                     MainActor = ( "-default-isolation=MainActor" );
                 };
                 DisplayName = "Default Actor Isolation";
-                Category = "Language";
+                Category = "Concurrency";
                 Description = "Controls default actor isolation for unannotated code. When set to 'MainActor', `@MainActor` isolation will be inferred by default to mitigate false-positive data-race safety errors in sequential code.";
             },
             {
