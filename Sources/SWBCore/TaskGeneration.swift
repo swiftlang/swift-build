@@ -889,6 +889,7 @@ public protocol TaskTypeDescription: AnyObject, ConditionallyStartable, Sendable
 
     /// The command line that should be used for the change-tracking signature, i.e.
     /// the command line with the output-agnostic arguments removed.
+    /// A nil return indicates that the command line should be used as is.
     func commandLineForSignature(for task: any ExecutableTask) -> [ByteString]?
 
     /// Whether instances of this task are unsafe to interrupt.
