@@ -1428,10 +1428,6 @@ public final class SwiftCompilerSpec : CompilerSpec, SpecIdentifierType, SwiftDi
             delegate.warning("swift compiler caching requires explicit module build (SWIFT_ENABLE_EXPLICIT_MODULES=YES)")
             return false
         }
-        if disabledPCHCompile, !cbc.scope.evaluate(BuiltinMacros.SWIFT_OBJC_BRIDGING_HEADER).isEmpty {
-            delegate.warning("swift compiler caching requires precompile bridging header if caching is enabled (SWIFT_PRECOMPILE_BRIDGING_HEADER=YES)")
-            return false
-        }
         if let specInfo = await (discoveredCommandLineToolSpecInfo(cbc.producer, cbc.scope, delegate) as? DiscoveredSwiftCompilerToolSpecInfo) {
             if !specInfo.hasFeature(DiscoveredSwiftCompilerToolSpecInfo.FeatureFlag.compilationCaching.rawValue) {
                 delegate.warning("swift compiler caching is not supported by toolchain")
