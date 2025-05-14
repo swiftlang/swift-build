@@ -319,7 +319,7 @@ public final class ClangCompileTaskAction: TaskAction, BuildValueValidatingTaskA
                         outputDelegate.emitOutput(ByteString(encodingAsUTF8: commandString) + "\n")
                     }
 
-                    if case .some(.exit(.uncaughtSignal, _)) = outputDelegate.result {
+                    if case .some(.failed) = lastResult, case .some(.exit(.uncaughtSignal, _)) = outputDelegate.result {
                         do {
                             if let reproducerMessage = try clangModuleDependencyGraph.generateReproducer(
                                     forFailedDependency: dependencyInfo,
