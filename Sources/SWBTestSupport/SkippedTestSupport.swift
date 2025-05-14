@@ -197,6 +197,12 @@ extension Trait where Self == Testing.ConditionTrait {
         }
     }
 
+    package static func requireLinkerTrace() -> Self {
+        enabled("Linker does not support trace") {
+            return try await ConditionTraitContext.shared.supportsLinkerTrace
+        }
+    }
+
     package static func requireLocalFileSystem(_ sdks: RunDestinationInfo...) -> Self {
         disabled("macOS SDK is on a remote filesystem") {
             let core = try await ConditionTraitContext.shared.getCore()

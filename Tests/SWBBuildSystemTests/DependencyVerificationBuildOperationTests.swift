@@ -19,11 +19,11 @@ import SWBTestSupport
 import SWBTaskExecution
 import SWBProtocol
 
-@Suite
+@Suite(.requireSDKs(.macOS), .requireLinkerTrace())
 fileprivate struct DependencyVerificationBuildOperationTests: CoreBasedTests {
 
-    @Test(.requireSDKs(.macOS))
-    func actualMinimalFramework() async throws {
+    @Test
+    func canVerifyDeclaredDependencies() async throws {
         try await withTemporaryDirectory { tmpDirPath async throws -> Void in
             let testWorkspace = TestWorkspace(
                 "Test",
