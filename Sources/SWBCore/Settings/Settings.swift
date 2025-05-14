@@ -1592,7 +1592,7 @@ private class SettingsBuilder {
         if let sdk = boundProperties.sdk, settingsContext.purpose.bindToSDK {
             for property in impartedBuildProperties ?? [] {
                 // Imparted build properties are always from packages, so force allow platform filter conditionals.
-                bindConditionParameters(property.buildSettings, sdk, forceAllowPlatformFilterCondition: true)
+                bindConditionParameters(bindTargetCondition(property.buildSettings), sdk, forceAllowPlatformFilterCondition: true)
             }
         }
 
@@ -2751,6 +2751,14 @@ private class SettingsBuilder {
         }
     }
 
+    func bindTargetCondition(_ table: MacroValueAssignmentTable) -> MacroValueAssignmentTable {
+        if let target {
+            return table.bindConditionParameter(BuiltinMacros.targetNameCondition, [target.name])
+        } else {
+            return table
+        }
+    }
+
     /// Add the regular project settings.
     func addProjectSettings(_ config: BuildConfiguration, _ sdk: SDK? = nil) {
         guard let project else {
@@ -2781,11 +2789,11 @@ private class SettingsBuilder {
             // Load and push a settings table from the file.
             let info = buildRequestContext.getCachedMacroConfigFile(path, project: project, context: .baseConfiguration)
             if let sdk = sdk, settingsContext.purpose.bindToSDK {
-                bindConditionParameters(info.table, sdk)
+                bindConditionParameters(bindTargetCondition(info.table), sdk)
             }
             else {
                 // No bound SDK, so push the project's build settings unmodified.
-                push(info.table, .exported)
+                push(bindTargetCondition(info.table), .exported)
             }
             self.diagnostics.append(contentsOf: info.diagnostics)
             for path in info.dependencyPaths {
@@ -2810,11 +2818,11 @@ private class SettingsBuilder {
 
         // Add the project's config settings.
         if let sdk, settingsContext.purpose.bindToSDK {
-            bindConditionParameters(config.buildSettings, sdk)
+            bindConditionParameters(bindTargetCondition(config.buildSettings), sdk)
         }
         else {
             // No bound SDK, so push the project's build settings unmodified.
-            push(config.buildSettings, .exported)
+            push(bindTargetCondition(config.buildSettings), .exported)
         }
 
         // Save the settings table as part of the construction components.
@@ -2996,11 +3004,11 @@ private class SettingsBuilder {
             // Load and push a settings table from the file.
             let info = buildRequestContext.getCachedMacroConfigFile(path, project: project, context: .baseConfiguration)
             if let sdk = sdk, settingsContext.purpose.bindToSDK {
-                bindConditionParameters(info.table, sdk)
+                bindConditionParameters(bindTargetCondition(info.table), sdk)
             }
             else {
                 // No bound SDK, so push the target xcconfig's build settings unmodified.
-                push(info.table, .exported)
+                push(bindTargetCondition(info.table), .exported)
             }
             self.targetDiagnostics.append(contentsOf: info.diagnostics)
             for path in info.dependencyPaths {
@@ -3019,11 +3027,11 @@ private class SettingsBuilder {
         //
         // FIXME: Cache this table, but we can only do that once we share the namespace.
         if let sdk, settingsContext.purpose.bindToSDK {
-            bindConditionParameters(config.buildSettings, sdk)
+            bindConditionParameters(bindTargetCondition(config.buildSettings), sdk)
         }
         else {
             // No bound SDK, so push the target's build settings unmodified.
-            push(config.buildSettings, .exported)
+            push(bindTargetCondition(config.buildSettings), .exported)
         }
 
         addSpecializationOverrides(sdk: sdk, usesAutomaticSDK: usesAutomaticSDK)

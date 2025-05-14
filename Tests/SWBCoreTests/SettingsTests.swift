@@ -4837,6 +4837,49 @@ import SWBMacro
         #expect(settings.globalScope.evaluate(BuiltinMacros.SUPPORTED_PLATFORMS).contains("macosx"))
     }
 
+    @Test
+    func targetConditionals() async throws {
+        let testWorkspace = try await TestWorkspace(
+            "Workspace",
+            projects: [TestPackageProject(
+                "aProject",
+                groupTree: TestGroup("SomeFiles", children: []),
+                buildConfigurations: [
+                    TestBuildConfiguration(
+                        "Debug",
+                        buildSettings: [
+                            "SDKROOT": "macosx",
+                            // config=Debug is added here to ensure target conditionals still compose with existing conditionals.
+                            "OTHER_CFLAGS[target=Target][config=Debug]": "-best",
+                            "OTHER_LDFLAGS[target=Other]": "-other",
+                            "SUPPORTED_PLATFORMS": "$(AVAILABLE_PLATFORMS)",
+                            "SUPPORTS_MACCATALYST": "YES",
+                        ])
+                ],
+                targets: [
+                    TestStandardTarget("Target", type: .application),
+                    TestStandardTarget("Other", type: .application),
+                ])
+            ]).load(getCore())
+
+        let context = try await contextForTestData(testWorkspace)
+        let buildRequestContext = BuildRequestContext(workspaceContext: context)
+        let testProject = context.workspace.projects[0]
+        let parameters = BuildParameters(action: .build, configuration: "Debug", activeRunDestination: .macOS)
+
+        do {
+            let settings = Settings(workspaceContext: context, buildRequestContext: buildRequestContext, parameters: parameters, project: testProject, target: testProject.targets[0])
+            #expect(settings.globalScope.evaluate(BuiltinMacros.OTHER_CFLAGS) == ["-best"])
+            #expect(settings.globalScope.evaluate(BuiltinMacros.OTHER_LDFLAGS) == [])
+        }
+
+        do {
+            let settings = Settings(workspaceContext: context, buildRequestContext: buildRequestContext, parameters: parameters, project: testProject, target: testProject.targets[1])
+            #expect(settings.globalScope.evaluate(BuiltinMacros.OTHER_CFLAGS) == [])
+            #expect(settings.globalScope.evaluate(BuiltinMacros.OTHER_LDFLAGS) == ["-other"])
+        }
+    }
+
     @Test(.requireSDKs(.macOS, .iOS))
     func platformConditionals() async throws {
         let testWorkspace = try await TestWorkspace(
