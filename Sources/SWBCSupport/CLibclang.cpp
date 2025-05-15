@@ -2183,7 +2183,7 @@ extern "C" {
             argc, const_cast<const char**>(argv), workingDirectory,
             /*ReproducerLocation=*/NULL, /*UseUniqueReproducerName=*/true, &messageString);
         if (message) {
-            *message = strdup(lib->fns.clang_getCString(messageString));
+            *message = strdup_safe(lib->fns.clang_getCString(messageString));
         }
         lib->fns.clang_disposeString(messageString);
         return result == LibclangFunctions::CXError_Success;

@@ -285,7 +285,7 @@ public final class DependencyScanner {
         let success = libclang_scanner_generate_reproducer(scanner, CInt(args.cArray.count - 1), args.cArray, workingDirectory, &messageUnsafe);
         let message = String(cString: messageUnsafe)
         guard success else {
-            throw Error.dependencyScanErrorString(message)
+            throw message.isEmpty ? Error.dependencyScanUnknownError : Error.dependencyScanErrorString(message)
         }
         return message
     }
