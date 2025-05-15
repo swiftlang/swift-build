@@ -157,7 +157,7 @@ final class ShellScriptTaskProducer: PhasedTaskProducer, TaskProducer, ShellBase
         }
 
         // Compute the environment to use for the shell script.
-        var environment = computeScriptEnvironment(.shellScriptPhase, scope: scope, settings: context.settings, workspaceContext: context.workspaceContext)
+        var environment = await computeScriptEnvironment(.shellScriptPhase, scope: scope, settings: context.settings, workspaceContext: context.workspaceContext, allDeploymentTargetMacroNames: context.allDeploymentTargetMacroNames())
 
         // Create the set of resolved paths and export the proper variables to the script environment.
         var inputs = exportPaths(&environment, shellScriptBuildPhase.inputFilePaths, prefix: "SCRIPT_INPUT_FILE", considerAllPathsDirectories: true)
@@ -308,10 +308,10 @@ final class ShellScriptTaskProducer: PhasedTaskProducer, TaskProducer, ShellBase
     /// Construct the tasks for an individual shell-script build rule.
     ///
     /// NOTE: External targets are basically shell scripts. It lives here because the behavior shares some significant logical pieces with the behavior of shell script build phases.
-    static func constructTasksForExternalTarget(_ target: SWBCore.ExternalTarget, _ context: TaskProducerContext, cbc: CommandBuildContext, delegate: any TaskGenerationDelegate) {
+    static func constructTasksForExternalTarget(_ target: SWBCore.ExternalTarget, _ context: TaskProducerContext, cbc: CommandBuildContext, delegate: any TaskGenerationDelegate) async {
         let action = cbc.scope.evaluate(BuiltinMacros.ACTION)
 
-        let (executable, arguments, workingDirectory, environment) = constructCommandLine(for: target, action: action, settings: context.settings, workspaceContext: context.workspaceContext, scope: cbc.scope)
+        let (executable, arguments, workingDirectory, environment) = await constructCommandLine(for: target, action: action, settings: context.settings, workspaceContext: context.workspaceContext, scope: cbc.scope, allDeploymentTargetMacroNames: context.allDeploymentTargetMacroNames())
 
         // FIXME: Need the model name.
 

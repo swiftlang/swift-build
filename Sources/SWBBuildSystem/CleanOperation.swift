@@ -207,7 +207,7 @@ package final class CleanOperation: BuildSystemOperation, TargetDependencyResolv
         delegate.targetPreparationStarted(self, configuredTarget: configuredTarget)
         delegate.targetStarted(self, configuredTarget: configuredTarget)
 
-        let (executable, arguments, workingDirectory, environment) = constructCommandLine(for: configuredTarget.target as! SWBCore.ExternalTarget, action: "clean", settings: settings, workspaceContext: workspaceContext, scope: settings.globalScope)
+        let (executable, arguments, workingDirectory, environment) = constructCommandLine(for: configuredTarget.target as! SWBCore.ExternalTarget, action: "clean", settings: settings, workspaceContext: workspaceContext, scope: settings.globalScope, allDeploymentTargetMacroNames: [])
         let commandLine = [executable] + arguments
 
         let specLookupContext = SpecLookupCtxt(specRegistry: workspaceContext.core.specRegistry, platform: settings.platform)
