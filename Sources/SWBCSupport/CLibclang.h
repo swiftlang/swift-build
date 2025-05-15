@@ -128,6 +128,7 @@ CSUPPORT_EXPORT bool libclang_has_cas_up_to_date_checks_feature(libclang_t lib);
 /// Whether the libclang has current working directory optimization support.
 CSUPPORT_EXPORT bool libclang_has_current_working_directory_optimization(libclang_t lib);
 
+/// Whether the libclang has reproducer generation support.
 bool libclang_has_reproducer_feature(libclang_t lib);
 
 /// Create the CAS options object.
@@ -205,6 +206,14 @@ CSUPPORT_EXPORT bool libclang_scanner_scan_dependencies(
     void (^diagnostics_callback)(const libclang_diagnostic_set_t),
     void (^error_callback)(const char *));
 
+/// Generate a way to re-run the compilation without all the source files and the build system.
+///
+/// \param scanner - The scanner to use.
+/// \param argc - The number of arguments.
+/// \param argv - The Clang driver command line (including a program name in argv[0]).
+/// \param workingDirectory - The working directory to use for evaluation.
+/// \param message[out] - The human-readable message describing the result of the operation.
+/// \returns True on success, false if something failed (see \p message for more details).
 bool libclang_scanner_generate_reproducer(
     libclang_scanner_t scanner, int argc, char *const *argv, const char *workingDirectory,
     const char **message);

@@ -859,6 +859,9 @@ extern "C" {
         typedef struct CXOpaqueDependencyScannerServiceOptions
             *CXDependencyScannerServiceOptions;
 
+        /**
+         * Generate a self-contained reproducer in a specified location to re-run the compilation.
+         */
         enum CXErrorCode
         (*clang_experimental_DependencyScanner_generateReproducer)(
             int argc, const char *const *argv, const char *WorkingDirectory,
