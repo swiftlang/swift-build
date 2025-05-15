@@ -53,10 +53,6 @@ struct QNXEnvironmentExtension: EnvironmentExtension {
 }
 
 struct QNXPlatformExtension: PlatformInfoExtension {
-    func knownDeploymentTargetMacroNames() -> Set<String> {
-        ["QNX_DEPLOYMENT_TARGET"]
-    }
-
     func additionalPlatforms(context: any PlatformInfoExtensionAdditionalPlatformsContext) throws -> [(path: Path, data: [String: PropertyListItem])] {
         [
             (.root, [

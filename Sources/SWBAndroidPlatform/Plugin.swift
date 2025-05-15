@@ -65,10 +65,6 @@ struct AndroidEnvironmentExtension: EnvironmentExtension {
 }
 
 struct AndroidPlatformExtension: PlatformInfoExtension {
-    func knownDeploymentTargetMacroNames() -> Set<String> {
-        ["ANDROID_DEPLOYMENT_TARGET"]
-    }
-    
     func additionalPlatforms(context: any PlatformInfoExtensionAdditionalPlatformsContext) throws -> [(path: Path, data: [String: PropertyListItem])] {
         [
             (.root, [

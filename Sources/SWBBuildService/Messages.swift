@@ -1440,7 +1440,8 @@ private struct AllExportedMacrosAndValuesMsg: MessageHandler {
         let settings = try getSettings(for: session, workspaceContext: workspaceContext, requestContext: message.context, purpose: .build)
 
         // Get the list of setting names and evaluated values.  We use the same algorithm as is used to export settings to shell script build phases.
-        let exportedMacrosAndValues = computeScriptEnvironment(.shellScriptPhase, scope: settings.globalScope, settings: settings, workspaceContext: workspaceContext)
+        // We explicitly pass an empty set for `allDeploymentTargetMacroNames` because in this context we are exporting the list of known macros and not applying the special case to only exported a single deployment target like we do in shell scripts.
+        let exportedMacrosAndValues = computeScriptEnvironment(.shellScriptPhase, scope: settings.globalScope, settings: settings, workspaceContext: workspaceContext, allDeploymentTargetMacroNames: [])
 
         return AllExportedMacrosAndValuesResponse(result: exportedMacrosAndValues)
     }

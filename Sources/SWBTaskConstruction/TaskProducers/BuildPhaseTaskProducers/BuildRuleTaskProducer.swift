@@ -118,7 +118,7 @@ final class BuildRuleTaskProducer: StandardTaskProducer, TaskProducer, ShellBase
         let commandLine = [action.interpreterPath, "-c", action.scriptSource]
 
         // Compute the environment to use for the shell script.
-        var environment = computeScriptEnvironment(.shellScriptPhase, scope: cbc.scope, settings: context.settings, workspaceContext: context.workspaceContext)
+        var environment = await computeScriptEnvironment(.shellScriptPhase, scope: cbc.scope, settings: context.settings, workspaceContext: context.workspaceContext, allDeploymentTargetMacroNames: context.allDeploymentTargetMacroNames())
 
         // If we are in a headers build phase, expose visibility and output dir
         // information to the script and set the HEADER_OUTPUT_DIR macro value

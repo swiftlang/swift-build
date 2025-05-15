@@ -37,6 +37,7 @@ public struct DiscoveredClangToolSpecInfo: DiscoveredCommandLineToolSpecInfo {
         case resourceDirUsesMajorVersionOnly = "resource-dir-uses-major-version-only"
         case wSystemHeadersInModule = "Wsystem-headers-in-module"
         case extractAPISupportsCPlusPlus = "extract-api-supports-cpp"
+        case deploymentTargetEnvironmentVariables = "deployment-target-environment-variables"
     }
     public var toolFeatures: ToolFeatures<FeatureFlag>
     public func hasFeature(_ feature: String) -> Bool {
@@ -55,6 +56,10 @@ public struct DiscoveredClangToolSpecInfo: DiscoveredCommandLineToolSpecInfo {
     public func getResourceDirPath() -> Path? {
         let version = hasFeature(FeatureFlag.resourceDirUsesMajorVersionOnly.rawValue) ? llvmVersion?[0].description : llvmVersion?.description
         return version == nil ? nil : toolPath.dirname.dirname.join("lib").join("clang").join(version)
+    }
+
+    public func deploymentTargetEnvironmentVariableNames() -> Set<String> {
+        Set(toolFeatures.value(.deploymentTargetEnvironmentVariables)?.stringArrayValue ?? [])
     }
 }
 

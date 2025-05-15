@@ -49,7 +49,7 @@ import SWBProtocol
         let parameters = BuildParameters(action: .build, configuration: "Debug", overrides: [:])
         let settings = Settings(workspaceContext: context, buildRequestContext: buildRequestContext, parameters: parameters, project: testProject, target: testTarget)
 
-        let env = SWBCore.computeScriptEnvironment(.shellScriptPhase, scope: settings.globalScope, settings: settings, workspaceContext: context)
+        let env = SWBCore.computeScriptEnvironment(.shellScriptPhase, scope: settings.globalScope, settings: settings, workspaceContext: context, allDeploymentTargetMacroNames: [])
 
         let expected: [String: String] =         [
             "ACTION": "build",
@@ -209,7 +209,7 @@ import SWBProtocol
             let parameters = BuildParameters(action: .build, configuration: "Debug", overrides: [:], toolchainOverride: "com.apple.ExtraToolchain")
             let settings = Settings(workspaceContext: context, buildRequestContext: buildRequestContext, parameters: parameters, project: testProject, target: testTarget)
 
-            let env = SWBCore.computeScriptEnvironment(.shellScriptPhase, scope: settings.globalScope, settings: settings, workspaceContext: context)
+            let env = SWBCore.computeScriptEnvironment(.shellScriptPhase, scope: settings.globalScope, settings: settings, workspaceContext: context, allDeploymentTargetMacroNames: [])
 
             // Check that all of the settings defined as expected in the dictionary above appear as described.
             let expected: [String: String] = [
@@ -257,7 +257,7 @@ import SWBProtocol
         let parameters = BuildParameters(action: .build, configuration: "Debug", overrides: [:])
         let settings = Settings(workspaceContext: context, buildRequestContext: buildRequestContext, parameters: parameters, project: testProject, target: testTarget)
 
-        let env = SWBCore.computeScriptEnvironment(.shellScriptPhase, scope: settings.globalScope, settings: settings, workspaceContext: context)
+        let env = SWBCore.computeScriptEnvironment(.shellScriptPhase, scope: settings.globalScope, settings: settings, workspaceContext: context, allDeploymentTargetMacroNames: [])
 
         let shouldNotBeExported = [
             "BUILD_DESCRIPTION_CACHE_DIR",

@@ -22,8 +22,6 @@ public struct PlatformInfoExtensionPoint: ExtensionPoint, Sendable {
 }
 
 public protocol PlatformInfoExtension: Sendable {
-    func knownDeploymentTargetMacroNames() -> Set<String>
-
     func preferredArchValue(for: String) -> String?
 
     func additionalTestLibraryPaths(scope: MacroEvaluationScope, platform: Platform?, fs: any FSProxy) -> [Path]
@@ -40,10 +38,6 @@ public protocol PlatformInfoExtension: Sendable {
 }
 
 extension PlatformInfoExtension {
-    public func knownDeploymentTargetMacroNames() -> Set<String> {
-        []
-    }
-
     public func preferredArchValue(for: String) -> String? {
         nil
     }

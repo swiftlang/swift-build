@@ -435,6 +435,11 @@ public class TaskProducerContext: StaleFileRemovalContext, BuildFileResolution
         }
     }
 
+    /// The set of all known deployment target macro names, even if the platforms that use those settings are not installed.
+    func allDeploymentTargetMacroNames() async -> Set<String> {
+        await (clangSpec.discoveredCommandLineToolSpecInfo(self, settings.globalScope, delegate) as? DiscoveredClangToolSpecInfo)?.deploymentTargetEnvironmentVariableNames() ?? []
+    }
+
     /// Make an input path absolute, resolving relative to the current project.
     func makeAbsolute(_ path: Path) -> Path {
         return defaultWorkingDirectory.join(path)

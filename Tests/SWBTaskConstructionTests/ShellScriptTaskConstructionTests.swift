@@ -109,7 +109,7 @@ fileprivate struct ShellScriptTaskConstructionTests: CoreBasedTests {
 
 extension CoreBasedTests {
     func testShellScriptDeploymentTargetPruning(sdkroot: String, sdkVariant: String? = nil, expectedDeploymentTargetPrefix: String) async throws {
-        let testProject = TestProject(
+        let testProject = try await TestProject(
             "MyProject",
             sourceRoot: Path("/MyProject"),
             groupTree: TestGroup("Group"),
@@ -117,6 +117,7 @@ extension CoreBasedTests {
                 TestBuildConfiguration(
                     "Debug",
                     buildSettings: [
+                        "CC": clangCompilerPath.str,
                         "CODE_SIGNING_ALLOWED": "NO",
                         "PRODUCT_NAME": "$(TARGET_NAME)",
                         "SDKROOT": sdkroot,
@@ -147,7 +148,14 @@ extension CoreBasedTests {
 
             results.checkTask(.matchRuleType("PhaseScriptExecution")) { task in
                 let env = task.environment.bindingsDictionary
-                let otherNames = Set(["SWIFT_DEPLOYMENT_TARGET", "RESOURCES_MINIMUM_DEPLOYMENT_TARGET"])
+                let otherNames = Set([
+                    "SWIFT_DEPLOYMENT_TARGET",
+                    "RESOURCES_MINIMUM_DEPLOYMENT_TARGET",
+
+                    // Not actually recognized by clang
+                    "ANDROID_DEPLOYMENT_TARGET",
+                    "QNX_DEPLOYMENT_TARGET",
+                ])
                 let suffix = "_DEPLOYMENT_TARGET"
                 let deploymentTargetSettingNames = env.compactMap { key, _ in !otherNames.contains(key) && !key.hasPrefix("SWIFT_MODULE_ONLY_") && !key.hasPrefix("RECOMMENDED_") && key.hasSuffix(suffix) ? key : nil }
                 #expect(deploymentTargetSettingNames == [expectedDeploymentTargetPrefix + suffix])
