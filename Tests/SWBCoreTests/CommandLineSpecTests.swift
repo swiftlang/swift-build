@@ -1227,6 +1227,7 @@ import SWBMacro
         try table.push(core.specRegistry.internalMacroNamespace.declareStringMacro("DYNAMIC_LIBRARY_EXTENSION") as StringMacroDeclaration, literal: "dylib")
         try table.push(core.specRegistry.internalMacroNamespace.declareBooleanMacro("_DISCOVER_COMMAND_LINE_LINKER_INPUTS") as BooleanMacroDeclaration, literal: true)
         try table.push(core.specRegistry.internalMacroNamespace.declareBooleanMacro("_DISCOVER_COMMAND_LINE_LINKER_INPUTS_INCLUDE_WL") as BooleanMacroDeclaration, literal: true)
+        table.push(BuiltinMacros.LD_TRACE_FILE, literal: "tmp/obj/normal/x86_64/output.trace.json")
 
         let producer = try MockCommandProducer(core: core, productTypeIdentifier: "com.apple.product-type.framework", platform: "macosx")
         let delegate = try CapturingTaskGenerationDelegate(producer: producer, userPreferences: .defaultForTesting)
@@ -1350,6 +1351,7 @@ import SWBMacro
             let macro = table.namespace.lookupOrDeclareMacro(type.self, name)
             let expr = table.namespace.parseString(value)
             table.push(macro, expr)
+            try table.push(core.specRegistry.internalMacroNamespace.declarePathMacro("LD_TRACE_FILE") as PathMacroDeclaration, literal: "tmp/obj/normal/x86_64/output.trace.json")
 
             let delegate = try CapturingTaskGenerationDelegate(producer: producer, userPreferences: .defaultForTesting)
             let mockScope = MacroEvaluationScope(table: table)
@@ -1549,6 +1551,8 @@ import SWBMacro
             // We have to push this manually, since we do not have a real Setting's constructed scope.
             table.push(BuiltinMacros.PER_ARCH_LD, BuiltinMacros.namespace.parseString("$(LD_$(CURRENT_ARCH))"))
             table.push(BuiltinMacros.PER_ARCH_LDPLUSPLUS, BuiltinMacros.namespace.parseString("$(LDPLUSPLUS_$(CURRENT_ARCH))"))
+            table.push(BuiltinMacros.LD_TRACE_FILE, literal: "tmp/obj/normal/x86_64/output.trace.json")
+
             let mockScope = MacroEvaluationScope(table: table)
 
             let producer = try MockCommandProducer(core: core, productTypeIdentifier: "com.apple.product-type.framework", platform: "macosx")
@@ -1607,6 +1611,7 @@ import SWBMacro
             var table = MacroValueAssignmentTable(namespace: core.specRegistry.internalMacroNamespace)
             table.push(BuiltinMacros.arch, literal: "arm64e")
             table.push(BuiltinMacros.variant, literal: "normal")
+            table.push(BuiltinMacros.LD_TRACE_FILE, literal: "tmp/obj/normal/x86_64/output.trace.json")
             table.push(macroName, literal: value)
             let mockScope = MacroEvaluationScope(table: table)
             let producer = try MockCommandProducer(core: core, productTypeIdentifier: "com.apple.product-type.framework", platform: "macosx")

@@ -520,7 +520,7 @@ public final class SwiftDriverJobTaskAction: TaskAction, BuildValueValidatingTas
                     return .succeeded
             }
 
-            try await spawn(commandLine: options.commandLine, environment: environment, workingDirectory: task.workingDirectory.str, dynamicExecutionDelegate: dynamicExecutionDelegate, clientDelegate: clientDelegate, processDelegate: delegate)
+            try await TaskAction.spawn(commandLine: options.commandLine, environment: environment, workingDirectory: task.workingDirectory.str, dynamicExecutionDelegate: dynamicExecutionDelegate, clientDelegate: clientDelegate, processDelegate: delegate)
 
             if let error = delegate.executionError {
                 outputDelegate.error(error)
