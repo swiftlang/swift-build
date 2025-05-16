@@ -19,13 +19,13 @@ extension FileHandle {
     @available(tvOS, deprecated: 18.0, message: "Use the AsyncSequence-returning overload.")
     @available(watchOS, deprecated: 11.0, message: "Use the AsyncSequence-returning overload.")
     @available(visionOS, deprecated: 2.0, message: "Use the AsyncSequence-returning overload.")
-    public func _bytes(on queue: SWBQueue) -> AsyncThrowingStream<UInt8, any Error> {
-        ._dataStream(reading: DispatchFD(fileHandle: self), on: queue)
+    public func _bytes() -> AsyncThrowingStream<SWBDispatchData, any Error> {
+        DispatchFD(fileHandle: self)._dataStream()
     }
 
     /// Replacement for `bytes` which uses DispatchIO to avoid blocking the caller.
     @available(macOS 15.0, iOS 18.0, tvOS 18.0, watchOS 11.0, visionOS 2.0, *)
-    public func bytes(on queue: SWBQueue) -> any AsyncSequence<UInt8, any Error> {
-        AsyncThrowingStream.dataStream(reading: DispatchFD(fileHandle: self), on: queue)
+    public func bytes() -> some AsyncSequence<SWBDispatchData, any Error> {
+        DispatchFD(fileHandle: self).dataStream()
     }
 }
