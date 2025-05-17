@@ -1353,6 +1353,21 @@
                 };
             },
 
+            // Hidden clang importer options to control C++ behavior
+            // in the clang importer, not visible in build settings.
+            {
+                Name = "SWIFT_CLANG_CXX_STANDARD_LIBRARY_HARDENING";
+                Type = String;
+                DefaultValue = "$(CLANG_CXX_STANDARD_LIBRARY_HARDENING)";
+                CommandLineArgs = {
+                    "none" = ("-Xcc", "-D_LIBCPP_HARDENING_MODE=_LIBCPP_HARDENING_MODE_NONE");
+                    "fast" = ("-Xcc", "-D_LIBCPP_HARDENING_MODE=_LIBCPP_HARDENING_MODE_FAST");
+                    "extensive" = ("-Xcc", "-D_LIBCPP_HARDENING_MODE=_LIBCPP_HARDENING_MODE_EXTENSIVE");
+                    "debug" = ("-Xcc", "-D_LIBCPP_HARDENING_MODE=_LIBCPP_HARDENING_MODE_DEBUG");
+                    "<<otherwise>>" = ();
+                };
+            },
+
             {
                 Name = "SWIFT_OVERLOAD_PREBUILT_MODULE_CACHE_PATH";
                 Type = Path;
