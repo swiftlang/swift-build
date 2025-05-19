@@ -65,12 +65,6 @@ public struct XcodeVersionInfo: Sendable {
             throw StubError.error("Failed to decode version plist at '\(versionPath.str)': \(error.localizedDescription)")
         }
         let (shortVersion, productBuildVersion) = try (Version(versionStrings.shortVersionString), versionStrings.productBuildVersion.map(ProductBuildVersion.init))
-
-        // <rdar://41211049> Guard against corrupt version info making its way into DTXcodeBuild and DTPlatformBuild
-        if let productBuildVersion, productBuildVersion.major != shortVersion[0] {
-            throw StubError.error("invalid content in '\(versionPath.str)' - ProductBuildVersion '\(productBuildVersion)' does not match CFBundleShortVersionString '\(shortVersion)' because their major version numbers differ (\(productBuildVersion.major) vs \(shortVersion[0])).")
-        }
-
         return XcodeVersionInfo(shortVersion: shortVersion, productBuildVersion: productBuildVersion)
     }
 }
