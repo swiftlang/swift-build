@@ -49,6 +49,13 @@ public enum TaskResult: Hashable, Sendable {
         }
     }
 
+    public var isCrashed: Bool {
+        if !self.isCancelled, case .exit(exitStatus: .uncaughtSignal, metrics: _) = self {
+            return true
+        }
+        return false
+    }
+
     public var metrics: CommandMetrics? {
         guard case let .exit(_, metrics) = self else {
             return nil

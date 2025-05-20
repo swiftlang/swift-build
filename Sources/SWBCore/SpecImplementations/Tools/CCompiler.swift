@@ -361,8 +361,9 @@ public struct ClangExplicitModulesPayload: Serializable, Encodable, Sendable {
     public let dependencyFilteringRootPath: Path?
     public let reportRequiredTargetDependencies: BooleanWarningLevel
     public let verifyingModule: String?
+    public let shouldGenerateReproducerForErrors: Bool
 
-    fileprivate init(uniqueID: String, sourcePath: Path, libclangPath: Path, usesCompilerLauncher: Bool, outputPath: Path, scanningOutputPath: Path, casOptions: CASOptions?, cacheFallbackIfNotAvailable: Bool, dependencyFilteringRootPath: Path?, reportRequiredTargetDependencies: BooleanWarningLevel, verifyingModule: String?) {
+    fileprivate init(uniqueID: String, sourcePath: Path, libclangPath: Path, usesCompilerLauncher: Bool, outputPath: Path, scanningOutputPath: Path, casOptions: CASOptions?, cacheFallbackIfNotAvailable: Bool, dependencyFilteringRootPath: Path?, reportRequiredTargetDependencies: BooleanWarningLevel, verifyingModule: String?, shouldGenerateReproducerForErrors: Bool) {
         self.uniqueID = uniqueID
         self.sourcePath = sourcePath
         self.libclangPath = libclangPath
@@ -374,10 +375,11 @@ public struct ClangExplicitModulesPayload: Serializable, Encodable, Sendable {
         self.dependencyFilteringRootPath = dependencyFilteringRootPath
         self.reportRequiredTargetDependencies = reportRequiredTargetDependencies
         self.verifyingModule = verifyingModule
+        self.shouldGenerateReproducerForErrors = shouldGenerateReproducerForErrors
     }
 
     public func serialize<T: Serializer>(to serializer: T) {
-        serializer.serializeAggregate(11) {
+        serializer.serializeAggregate(12) {
             serializer.serialize(uniqueID)
             serializer.serialize(sourcePath)
             serializer.serialize(libclangPath)
@@ -389,11 +391,12 @@ public struct ClangExplicitModulesPayload: Serializable, Encodable, Sendable {
             serializer.serialize(dependencyFilteringRootPath)
             serializer.serialize(reportRequiredTargetDependencies)
             serializer.serialize(verifyingModule)
+            serializer.serialize(shouldGenerateReproducerForErrors)
         }
     }
 
     public init(from deserializer: any Deserializer) throws {
-        try deserializer.beginAggregate(11)
+        try deserializer.beginAggregate(12)
         self.uniqueID = try deserializer.deserialize()
         self.sourcePath = try deserializer.deserialize()
         self.libclangPath = try deserializer.deserialize()
@@ -405,6 +408,7 @@ public struct ClangExplicitModulesPayload: Serializable, Encodable, Sendable {
         self.dependencyFilteringRootPath = try deserializer.deserialize()
         self.reportRequiredTargetDependencies = try deserializer.deserialize()
         self.verifyingModule = try deserializer.deserialize()
+        self.shouldGenerateReproducerForErrors = try deserializer.deserialize()
     }
 
 }
@@ -997,7 +1001,8 @@ public class ClangCompilerSpec : CompilerSpec, SpecIdentifierType, GCCCompatible
                     // To match the behavior of -MMD, our scan task should filter out headers in the SDK when discovering dependencies. In the long run, libclang should do this for us.
                     dependencyFilteringRootPath: isForPCHTask ? nil : cbc.producer.sdk?.path,
                     reportRequiredTargetDependencies: cbc.scope.evaluate(BuiltinMacros.DIAGNOSE_MISSING_TARGET_DEPENDENCIES),
-                    verifyingModule: verifyingModule(cbc)
+                    verifyingModule: verifyingModule(cbc),
+                    shouldGenerateReproducerForErrors: cbc.scope.evaluate(BuiltinMacros.CLANG_EXPLICIT_MODULES_ENABLE_REPRODUCER_FOR_ERRORS)
                 )
                 let explicitModulesSignatureData = cachedBuild ? "cached" : nil
 
