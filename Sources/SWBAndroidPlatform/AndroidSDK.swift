@@ -57,10 +57,10 @@ struct AndroidSDK: Sendable {
         }
 
         struct LLVMTriple: Codable {
-            let arch: String
-            let vendor: String
-            let system: String
-            let environment: String
+            var arch: String
+            var vendor: String
+            var system: String
+            var environment: String
 
             var description: String {
                 "\(arch)-\(vendor)-\(system)-\(environment)"
