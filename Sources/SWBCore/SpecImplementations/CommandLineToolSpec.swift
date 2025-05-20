@@ -1441,7 +1441,7 @@ open class GenericOutputParser : TaskOutputParser {
     public let toolBasenames: Set<String>
 
     /// Buffered output that has not yet been parsed (parsing is line-by-line, so we buffer incomplete lines until we receive more output).
-    private var unparsedBytes: [UInt8] = []
+    private var unparsedBytes: ArraySlice<UInt8> = []
 
     /// The Diagnostic that is being constructed, possibly across multiple lines of input.
     private var inProgressDiagnostic: Diagnostic?
@@ -1488,19 +1488,18 @@ open class GenericOutputParser : TaskOutputParser {
         // Forward the unparsed bytes immediately (without line buffering).
         delegate.emitOutput(bytes)
 
-        // Append the new output to whatever partial line of output we might already have buffered.
-        unparsedBytes.append(contentsOf: bytes.bytes)
-
         // Split the buffer into slices separated by newlines.  The last slice represents the partial last line (there always is one, even if it's empty).
-        let lines = unparsedBytes.split(separator: UInt8(ascii: "\n"), maxSplits: .max, omittingEmptySubsequences: false)
+        var lines = bytes.split(separator: UInt8(ascii: "\n"), maxSplits: .max, omittingEmptySubsequences: false)
+        // Any unparsed bytes belong to the first line. We don't want to run `split` over these because it can lead to accidentally quadratic behavior if write is called many times per line.
+        lines[0] = unparsedBytes + lines[0]
 
         // Parse any complete lines of output.
         for line in lines.dropLast() {
             parseLine(line)
         }
 
-        // Remove any complete lines from the buffer, leaving only the last partial line (if any).
-        unparsedBytes.removeFirst(unparsedBytes.count - lines.last!.count)
+        // Track the last, incomplete line to as the unparsed bytes.
+        unparsedBytes = lines.last ?? []
     }
 
     /// Regex to extract location information from a diagnostic prefix (capture group 0 is the name, 1 is the line number, and 2 is the column).
