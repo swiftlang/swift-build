@@ -28,7 +28,9 @@ extension URL {
                     throw FileURLError.notRepresentable(self)
                 }
                 let fp = Path(String(cString: cString))
-                precondition(fp.isAbsolute, "path '\(fp.str)' is not absolute")
+                guard fp.isAbsolute else {
+                    throw FileURLError.pathNotAbsolute(fp)
+                }
                 return fp
             }
         }
@@ -37,4 +39,5 @@ extension URL {
 
 fileprivate enum FileURLError: Error {
     case notRepresentable(URL)
+    case pathNotAbsolute(Path)
 }

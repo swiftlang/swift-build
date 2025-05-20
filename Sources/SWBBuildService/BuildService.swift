@@ -90,20 +90,24 @@ open class BuildService: Service, @unchecked Sendable {
         let fs = SWBUtil.localFS
         var binariesToCheck = [Path]()
         // Check our own bundle's executable.
-        if let executablePath = try Bundle.main.executableURL?.filePath {
-            if fs.exists(executablePath) {
-                binariesToCheck.append(executablePath)
+        do {
+            if let executablePath = try Bundle.main.executableURL?.filePath {
+                if fs.exists(executablePath) {
+                    binariesToCheck.append(executablePath)
+                }
             }
+        } catch {
+            throw StubError.error("Couldn't get main bundle executable URL. Error: \(error), bundle: \(Bundle.main), url: \(String(describing: Bundle.main.executableURL)), path: \(String(describing: try? Bundle.main.executableURL?.filePath))")
         }
         // Check all the binaries of frameworks in the Frameworks folder.
         // Note that this does not recurse into the frameworks for other items nested inside them.  We also presently don't check the PlugIns folder.
-        if let frameworksPath = try Bundle.main.privateFrameworksURL?.filePath {
+        if let frameworksPath = try? Bundle.main.privateFrameworksURL?.filePath {
             do {
                 for subpath in try fs.listdir(frameworksPath) {
                     let frameworkPath = frameworksPath.join(subpath)
                     // Load a bundle at this path.  This means we'll skip things which aren't bundles, such as the Swift standard libraries.
                     if let bundle = Bundle(path: frameworkPath.str) {
-                        if let unresolvedExecutablePath = try bundle.executableURL?.filePath {
+                        if let unresolvedExecutablePath = try? bundle.executableURL?.filePath {
                             let executablePath = try fs.realpath(unresolvedExecutablePath)
                             if fs.exists(executablePath) {
                                 binariesToCheck.append(executablePath)
