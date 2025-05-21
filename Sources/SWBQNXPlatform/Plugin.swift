@@ -101,6 +101,8 @@ struct QNXSDKRegistryExtension: SDKRegistryExtension {
 
             "ARCH_NAME_x86_64": .plString("x86_64"),
             "ARCH_NAME_aarch64": .plString("aarch64le"),
+
+            "LINKER_DRIVER": "qcc",
         ]
 
         return [(qnxSdk.sysroot, qnxPlatform, [
