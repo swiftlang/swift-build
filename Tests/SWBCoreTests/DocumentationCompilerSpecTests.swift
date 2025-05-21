@@ -19,80 +19,47 @@ import SWBMacro
 
 @Suite fileprivate struct DocumentationCompilerSpecTests: CoreBasedTests {
     // Tests that `DocumentationCompilerSpec.additionalSymbolGraphGenerationArgs` only returns
-    // flags that are compatible with the given Swift compiler version.
+    // flags that are compatible with the given context.
     @Test(.requireSDKs(.macOS))
     func additionalSymbolGraphGenerationArgs() async throws {
-        // Support for the `-symbol-graph-minimum-access-level` flag was first introduced in
-        // swiftlang-5.6.0.316.14 (rdar://79099869).
-        let swiftVersionsThatSupportMinimumAccessLevel = [
-            "5.6.0.316.14",
-            "5.6.0.318.15",
-            "6.0.0.123.10",
-        ]
+        let applicationArgs = await DocumentationCompilerSpec.additionalSymbolGraphGenerationArgs(
+            try mockApplicationBuildContext(application: true),
+            swiftCompilerInfo: try mockSwiftCompilerSpec(swiftVersion: "5.6", swiftTag: "swiftlang-5.6.0.0")
+        )
+        #expect(applicationArgs == ["-symbol-graph-minimum-access-level", "internal"])
 
-        // Any version prior to swiftlang-5.6.0.316.14 does not have support for
-        // the `-symbol-graph-minimum-access-level` flag.
-        let swiftVersionsThatDoNotSupportMinimumAccessLevel = [
-            "5.5.0.123.10",
-            "5.6.0.0.0",
-            "5.6.0.113.6",
-            "5.6.0.315.13",
-            "5.6.0.316.13",
-        ]
-
-        // Confirm that when requesting additional symbol graph generation args for
-        // swift versions that _do_ support minimum access level, we
-        // get that flag.
-        for version in swiftVersionsThatSupportMinimumAccessLevel {
-            let symbolGraphGenerationArgs = await DocumentationCompilerSpec.additionalSymbolGraphGenerationArgs(
-                try mockApplicationBuildContext(),
-                swiftCompilerInfo: try mockSwiftCompilerSpec(swiftVersion: "5.6", swiftLangVersion: version)
-            )
-
-            #expect(symbolGraphGenerationArgs == ["-symbol-graph-minimum-access-level", "internal"])
-        }
-
-        // Confirm that when requesting additional symbol graph generation args for
-        // swift versions that do _not_ support minimum access level, we
-        // do not get that flag.
-        for version in swiftVersionsThatDoNotSupportMinimumAccessLevel {
-            let symbolGraphGenerationArgs = await DocumentationCompilerSpec.additionalSymbolGraphGenerationArgs(
-                try mockApplicationBuildContext(),
-                swiftCompilerInfo: try mockSwiftCompilerSpec(swiftVersion: "5.6", swiftLangVersion: version)
-            )
-
-            #expect(symbolGraphGenerationArgs.isEmpty,
-                """
-                'swiftlang-\(version)' does not support the minimum-access-level flag that \
-                was introduced in 'swiftlang-5.6.0.316.14'.
-                """)
-        }
+        let frameworkArgs = await DocumentationCompilerSpec.additionalSymbolGraphGenerationArgs(
+            try mockApplicationBuildContext(application: false),
+            swiftCompilerInfo: try mockSwiftCompilerSpec(swiftVersion: "5.6", swiftTag: "swiftlang-5.6.0.0")
+        )
+        #expect(frameworkArgs == [])
     }
 
-    private func mockApplicationBuildContext() async throws -> CommandBuildContext {
+    private func mockApplicationBuildContext(application: Bool) async throws -> CommandBuildContext {
         let core = try await getCore()
 
         let producer = try MockCommandProducer(
             core: core,
-            productTypeIdentifier: "com.apple.product-type.application",
+            productTypeIdentifier: application ? "com.apple.product-type.application" : "com.apple.product-type.framework",
             platform: "macosx"
         )
 
         var mockTable = MacroValueAssignmentTable(namespace: core.specRegistry.internalMacroNamespace)
-        mockTable.push(BuiltinMacros.MACH_O_TYPE, literal: "mh_execute")
+        if application {
+            mockTable.push(BuiltinMacros.MACH_O_TYPE, literal: "mh_execute")
+        }
 
         let mockScope = MacroEvaluationScope(table: mockTable)
 
         return CommandBuildContext(producer: producer, scope: mockScope, inputs: [])
     }
 
-    private func mockSwiftCompilerSpec(swiftVersion: String, swiftLangVersion: String) throws -> DiscoveredSwiftCompilerToolSpecInfo {
+    private func mockSwiftCompilerSpec(swiftVersion: String, swiftTag: String) throws -> DiscoveredSwiftCompilerToolSpecInfo {
         return DiscoveredSwiftCompilerToolSpecInfo(
             toolPath: .root,
             swiftVersion: try Version(swiftVersion),
-            swiftlangVersion: try Version(swiftLangVersion),
+            swiftTag: swiftTag,
             swiftABIVersion: nil,
-            clangVersion: nil,
             blocklists: SwiftBlocklists(),
             toolFeatures: ToolFeatures([])
         )

@@ -84,12 +84,6 @@ final public class DocumentationCompilerSpec: GenericCompilerSpec, SpecIdentifie
 
         switch DocumentationType(from: cbc) {
         case .executable:
-            guard swiftCompilerInfo.supportsSymbolGraphMinimumAccessLevelFlag else {
-                // The swift compiler doesn't support specifying a minimum access level,
-                // so just return an empty array.
-                return additionalFlags
-            }
-
             // When building executable types (like applications and command-line tools), include
             // internal symbols in the generated symbol graph.
             return additionalFlags.appending(contentsOf: ["-symbol-graph-minimum-access-level", "internal"])
@@ -473,26 +467,6 @@ extension DocumentationCompilerSpec {
         self.outputPath = try deserializer.deserialize()
         self.targetIdentifier = try deserializer.deserialize()
         self.documentationDiagnosticsPath = try deserializer.deserialize()
-    }
-}
-
-private extension DiscoveredSwiftCompilerToolSpecInfo {
-    /// A Boolean value that is true if the Swift compiler supports specifying a minimum
-    /// access level for symbol graph generation.
-    ///
-    /// The `-symbol-graph-minimum-access-level` flag was added in `swiftlang-5.6.0.316.14`.
-    var supportsSymbolGraphMinimumAccessLevelFlag: Bool {
-        // We're explicitly checking the swiftlangVersion here instead of a value in the
-        // the toolchain's `features.json` because a `features.json` flag wasn't originally
-        // added when support for `-symbol-graph-minimum-access-level` was added.
-        //
-        // Instead of regressing the current documentation build experience while waiting for a
-        // submission that includes the `features.json` flag, we're checking the raw version here.
-        //
-        // For future coordinated changes like this between the Swift-DocC infrastructure
-        // in Swift Build and the Swift compiler, we'll rely on the `features.json` instead of
-        // raw version numbers.
-        return swiftlangVersion >= Version(5, 6, 0, 316, 14)
     }
 }
 
