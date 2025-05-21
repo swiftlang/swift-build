@@ -132,6 +132,15 @@ extension CoreBasedTests {
         }
     }
 
+    private var ldInfo: DiscoveredLdLinkerToolSpecInfo? {
+        get async throws {
+            let (core, defaultToolchain) = try await coreAndToolchain()
+            let mockProducer = try MockCommandProducer(core: core, productTypeIdentifier: "com.apple.product-type.framework", platform: nil, useStandardExecutableSearchPaths: true, toolchain: defaultToolchain, fs: PseudoFS())
+            let toolPath = try #require(await ldPath, "couldn't find ld in default toolchain")
+            return await discoveredLinkerToolsInfo(mockProducer, AlwaysDeferredCoreClientDelegate(), at: toolPath)
+        }
+    }
+
     /// The path to the Clang compiler in the default toolchain.
     package var clangCompilerPath: Path {
         get async throws {
@@ -254,14 +263,16 @@ extension CoreBasedTests {
     package var supportsSDKImports: Bool {
         get async throws {
             #if os(macOS)
-            let (core, defaultToolchain) = try await coreAndToolchain()
-            let toolPath = try #require(defaultToolchain.executableSearchPaths.findExecutable(operatingSystem: core.hostOperatingSystem, basename: "ld"), "couldn't find ld in default toolchain")
-            let mockProducer = try await MockCommandProducer(core: getCore(), productTypeIdentifier: "com.apple.product-type.framework", platform: nil, useStandardExecutableSearchPaths: true, toolchain: nil, fs: PseudoFS())
-            let toolsInfo = await SWBCore.discoveredLinkerToolsInfo(mockProducer, AlwaysDeferredCoreClientDelegate(), at: toolPath)
-            return (try? toolsInfo?.toolVersion >= .init("1164")) == true
+            return await (try? ldInfo?.toolVersion >= .init("1164")) == true
             #else
             return false
             #endif
+        }
+    }
+
+    package var supportsLinkerTrace: Bool {
+        get async throws {
+            return try await ldInfo?.supportsTraceFile() ?? false
         }
     }
 

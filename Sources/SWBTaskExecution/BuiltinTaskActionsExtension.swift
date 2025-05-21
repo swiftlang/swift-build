@@ -51,7 +51,9 @@ public struct BuiltinTaskActionsExtension: TaskActionExtension {
             36: ConstructStubExecutorInputFileListTaskAction.self,
             37: ConcatenateTaskAction.self,
             38: GenericCachingTaskAction.self,
-            39: ProcessSDKImportsTaskAction.self
+            39: ProcessSDKImportsTaskAction.self,
+            40: LdTaskAction.self,
+            41: ClangNonModularCompileTaskAction.self,
         ]
     }
 }

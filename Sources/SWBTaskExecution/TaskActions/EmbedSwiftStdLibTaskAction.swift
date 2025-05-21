@@ -515,7 +515,7 @@ public final class EmbedSwiftStdLibTaskAction: TaskAction {
 
             let capturingDelegate = CapturingOutputDelegate(outputDelegate: outputDelegate)
             let processDelegate = TaskProcessDelegate(outputDelegate: capturingDelegate)
-            try await taskAction.spawn(commandLine: args, environment: effectiveEnvironment, workingDirectory: task.workingDirectory.str, dynamicExecutionDelegate: dynamicExecutionDelegate, clientDelegate: clientDelegate, processDelegate: processDelegate)
+            try await TaskAction.spawn(commandLine: args, environment: effectiveEnvironment, workingDirectory: task.workingDirectory.str, dynamicExecutionDelegate: dynamicExecutionDelegate, clientDelegate: clientDelegate, processDelegate: processDelegate)
             if let error = processDelegate.executionError {
                 throw StubError.error(error)
             }

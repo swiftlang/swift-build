@@ -585,6 +585,8 @@ public final class BuiltinMacros {
     public static let DEFAULT_COMPILER = BuiltinMacros.declareStringMacro("DEFAULT_COMPILER")
     public static let DEFAULT_KEXT_INSTALL_PATH = BuiltinMacros.declareStringMacro("DEFAULT_KEXT_INSTALL_PATH")
     public static let DEFINES_MODULE = BuiltinMacros.declareBooleanMacro("DEFINES_MODULE")
+    public static let DEPENDENCIES = BuiltinMacros.declareStringListMacro("DEPENDENCIES")
+    public static let DEPENDENCIES_VERIFICATION = BuiltinMacros.declareEnumMacro("DEPENDENCIES_VERIFICATION") as EnumMacroDeclaration<DependenciesVerificationSetting>
     public static let DEPENDENCY_SCOPE_INCLUDES_DIRECT_DEPENDENCIES = BuiltinMacros.declareBooleanMacro("DEPENDENCY_SCOPE_INCLUDES_DIRECT_DEPENDENCIES")
     public static let DERIVE_MACCATALYST_PRODUCT_BUNDLE_IDENTIFIER = BuiltinMacros.declareBooleanMacro("DERIVE_MACCATALYST_PRODUCT_BUNDLE_IDENTIFIER")
     public static let __DIAGNOSE_DERIVE_MACCATALYST_PRODUCT_BUNDLE_IDENTIFIER_ERROR = BuiltinMacros.declareBooleanMacro("__DIAGNOSE_DERIVE_MACCATALYST_PRODUCT_BUNDLE_IDENTIFIER_ERROR")
@@ -811,6 +813,7 @@ public final class BuiltinMacros {
     public static let LD_RUNPATH_SEARCH_PATHS = BuiltinMacros.declareStringListMacro("LD_RUNPATH_SEARCH_PATHS")
     public static let LD_SDK_IMPORTS_FILE = BuiltinMacros.declarePathMacro("LD_SDK_IMPORTS_FILE")
     public static let LD_WARN_UNUSED_DYLIBS = BuiltinMacros.declareBooleanMacro("LD_WARN_UNUSED_DYLIBS")
+    public static let LD_TRACE_FILE = BuiltinMacros.declarePathMacro("LD_TRACE_FILE")
     public static let _LD_MULTIARCH = BuiltinMacros.declareBooleanMacro("_LD_MULTIARCH")
     public static let _LD_MULTIARCH_PREFIX_MAP = BuiltinMacros.declareStringListMacro("_LD_MULTIARCH_PREFIX_MAP")
     public static let LEX = BuiltinMacros.declarePathMacro("LEX")
@@ -1569,6 +1572,8 @@ public final class BuiltinMacros {
         DEFAULT_COMPILER,
         DEFAULT_KEXT_INSTALL_PATH,
         DEFINES_MODULE,
+        DEPENDENCIES,
+        DEPENDENCIES_VERIFICATION,
         DEPENDENCY_SCOPE_INCLUDES_DIRECT_DEPENDENCIES,
         DERIVE_MACCATALYST_PRODUCT_BUNDLE_IDENTIFIER,
         __DIAGNOSE_DERIVE_MACCATALYST_PRODUCT_BUNDLE_IDENTIFIER_ERROR,
@@ -1873,6 +1878,7 @@ public final class BuiltinMacros {
         LD_RUNPATH_SEARCH_PATHS,
         LD_SDK_IMPORTS_FILE,
         LD_WARN_UNUSED_DYLIBS,
+        LD_TRACE_FILE,
         _LD_MULTIARCH,
         _LD_MULTIARCH_PREFIX_MAP,
         LEGACY_DEVELOPER_DIR,
@@ -2825,5 +2831,24 @@ extension BuildVersion.Platform {
             fatalError("Mach-O based platforms must provide a deployment target setting name")
         }
         return dtsn
+    }
+}
+
+public enum DependenciesVerificationSetting: String, Equatable, Hashable, EnumerationMacroType {
+    public static let defaultValue = DependenciesVerificationSetting.notset
+
+    case notset = "NOT_SET"
+    case enabled = "YES"
+    case disabled = "NO"
+
+    func isEnabled(onNotSet: Bool) -> Bool {
+        return switch self {
+        case .notset:
+            onNotSet
+        case .enabled:
+            true
+        case .disabled:
+            false
+        }
     }
 }
