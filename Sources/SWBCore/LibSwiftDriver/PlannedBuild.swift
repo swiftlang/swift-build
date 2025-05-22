@@ -192,7 +192,7 @@ extension LibSwiftDriver {
             }
 
             public init(from deserializer: any Deserializer) throws {
-                try deserializer.beginAggregate(4)
+                try deserializer.beginAggregate(5)
                 try key = deserializer.deserialize()
                 try driverJob = deserializer.deserialize()
                 try dependencies = deserializer.deserialize()
