@@ -23,6 +23,18 @@ extension AsyncSequence {
     }
 }
 
+extension AsyncSequence where Element: RandomAccessCollection {
+    @inlinable
+    public func collect() async rethrows -> [Element.Element] {
+        var items = [Element.Element]()
+        var it = makeAsyncIterator()
+        while let e = try await it.next() {
+            items.append(contentsOf: e)
+        }
+        return items
+    }
+}
+
 extension TaskGroup where Element == Void {
     /// Concurrency-friendly replacement for `DispatchQueue.concurrentPerform(iterations:execute:)`.
     public static func concurrentPerform(iterations: Int, maximumParallelism: Int, execute work: @Sendable @escaping (Int) async -> Element) async {
