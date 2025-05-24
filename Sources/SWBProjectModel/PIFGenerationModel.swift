@@ -1023,6 +1023,7 @@ public enum PIF {
         public var SWIFT_ADD_TOOLCHAIN_SWIFTSYNTAX_SEARCH_PATHS: String?
         public var SWIFT_FORCE_STATIC_LINK_STDLIB: String?
         public var SWIFT_FORCE_DYNAMIC_LINK_STDLIB: String?
+        public var SWIFT_INDEX_STORE_ENABLE: String?
         public var SWIFT_INSTALL_OBJC_HEADER: String?
         public var SWIFT_LOAD_BINARY_MACROS: [String]?
         public var SWIFT_MODULE_ALIASES: [String]?
