@@ -156,12 +156,12 @@ class TestEntryPointGenerationTaskAction: TaskAction {
 
         """
         for testClass in tests {
-            fragment += "        testCase(["
-            for method in testClass.testMethods {
+
+            let testTuples = testClass.testMethods.map { method in
                 let basename = method.name.hasSuffix("()") ? String(method.name.dropLast(2)) : method.name
-                fragment += "            (\"\(basename)\", \(testClass.name).\(basename))"
+                return "            (\"\(basename)\", \(testClass.name).\(basename))"
             }
-            fragment += "        ]),\n"
+            fragment += "        testCase([\(testTuples.joined(separator: ",\n"))]),\n"
         }
         fragment += """
             ]
