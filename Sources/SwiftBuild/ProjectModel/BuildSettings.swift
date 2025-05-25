@@ -147,6 +147,7 @@ extension ProjectModel {
             case SPECIALIZATION_SDK_OPTIONS
             case SWIFT_VERSION
             case SWIFT_ACTIVE_COMPILATION_CONDITIONS
+            case DYLIB_INSTALL_NAME_BASE
         }
 
         public enum Platform: Hashable, CaseIterable, Sendable {
