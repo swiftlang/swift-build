@@ -1300,6 +1300,8 @@ public final class BuiltinMacros {
     // Info.plist Keys - Sticker Packs
     public static let INFOPLIST_KEY_NSStickerSharingLevel = BuiltinMacros.declareEnumMacro("INFOPLIST_KEY_NSStickerSharingLevel") as EnumMacroDeclaration<StickerSharingLevel>
 
+    public static let __SKIP_BUILD = BuiltinMacros.declareBooleanMacro("__SKIP_BUILD")
+
     // MARK: Built-in Macro Initialization
 
     private static var initialized = false
@@ -2391,7 +2393,8 @@ public final class BuiltinMacros {
         ENABLE_XOJIT_PREVIEWS,
         BUILD_ACTIVE_RESOURCES_ONLY,
         ENABLE_ONLY_ACTIVE_RESOURCES,
-        ENABLE_PLAYGROUND_RESULTS
+        ENABLE_PLAYGROUND_RESULTS,
+        __SKIP_BUILD
     ]
 
     /// Force initialization of entitlements macros.
