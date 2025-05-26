@@ -553,18 +553,24 @@ fileprivate extension TargetDependencyResolver {
             delegate.emit(.init(behavior: .error, location: .unknown, data: .init("The 'Skip Dependencies' option is deprecated and can no longer be used.")))
         }
 
-        // Apply the requested dependency scope to the graph.
+        // Prune targets from the graph as needed.
+        var keptTargets: OrderedSet<ConfiguredTarget>
+        var removedTargets: OrderedSet<ConfiguredTarget>
+
+        // First, determine targets to be removed based on the dependency scope.
         switch buildRequest.dependencyScope {
         case .workspace:
             // If dependencies are scoped to the workspace, no pruning is required.
+            keptTargets = allTargets
+            removedTargets = []
             break
         case .buildRequest:
             if buildRequest.skipDependencies {
                 delegate.emit(.init(behavior: .error, location: .unknown, data: .init("The 'Skip Dependencies' option is deprecated and cannot be combined with dependency scopes.")))
             }
             // First, partition the targets into those we're keeping, and those we're removing.
-            var keptTargets: OrderedSet<ConfiguredTarget> = []
-            var removedTargets: OrderedSet<ConfiguredTarget> = []
+            keptTargets = []
+            removedTargets = []
             let requestedTargetGUIDs = Set(buildRequest.buildTargets.map(\.target.guid))
             var extraRequestedTargetGUIDs: Set<String> = []
             var potentialExtraRequestedPackageTargetGUIDs: Set<String> = []
@@ -594,8 +600,18 @@ fileprivate extension TargetDependencyResolver {
                     removedTargets.append(configuredTarget)
                 }
             }
+        }
 
-            // For each removed target, identify all kept targets reachable by traversing only edges which originate at a removed target.
+        // Then, remove targets based on the value of the __SKIP_BUILD setting.
+        let targetsToRemoveBasedOnSettings = keptTargets.filter { configuredTarget in
+            let settings = buildRequestContext.getCachedSettings(configuredTarget.parameters, target: configuredTarget.target)
+            return settings.globalScope.evaluate(BuiltinMacros.__SKIP_BUILD)
+        }
+        keptTargets.subtract(targetsToRemoveBasedOnSettings)
+        removedTargets.append(contentsOf: targetsToRemoveBasedOnSettings)
+
+        // For each removed target, identify all kept targets reachable by traversing only edges which originate at a removed target.
+        if !removedTargets.isEmpty {
             var reachableKeptTargetsByRemovedTarget: [ConfiguredTarget: OrderedSet<ConfiguredTarget>] = [:]
             do {
                 func visit(_ configuredTarget: ConfiguredTarget) {

@@ -101,6 +101,77 @@ import Foundation
     }
 
     @Test(.requireSDKs(.macOS))
+    func skipBuildSetting() async throws {
+        let core = try await getCore()
+
+        let workspace = try TestWorkspace(
+            "Workspace",
+            projects: [
+                TestProject(
+                    "P1",
+                    groupTree: TestGroup(
+                        "G1",
+                        children: [
+                            TestFile("S1.c"),
+                        ]
+                    ),
+                    buildConfigurations: [
+                        TestBuildConfiguration("Debug", buildSettings: [:]),
+                    ],
+                    targets: [
+                        TestStandardTarget(
+                            "T1",
+                            type: .framework,
+                            buildConfigurations: [
+                                TestBuildConfiguration("Debug", buildSettings: ["PRODUCT_NAME": "$(TARGET_NAME)", "__SKIP_BUILD": "YES"]),
+                            ],
+                            buildPhases: [
+                                TestSourcesBuildPhase(["S1.c"])
+                            ],
+                            dependencies: ["T2"]
+                        ),
+                        TestStandardTarget(
+                            "T2",
+                            type: .framework,
+                            buildConfigurations: [
+                                TestBuildConfiguration("Debug", buildSettings: ["PRODUCT_NAME": "$(TARGET_NAME)"]),
+                            ],
+                            buildPhases: [
+                                TestSourcesBuildPhase(["S1.c"])
+                            ],
+                            dependencies: ["T3"]
+                        ),
+                        TestStandardTarget(
+                            "T3",
+                            type: .framework,
+                            buildConfigurations: [
+                                TestBuildConfiguration("Debug", buildSettings: ["PRODUCT_NAME": "$(TARGET_NAME)"]),
+                            ],
+                            buildPhases: [
+                                TestSourcesBuildPhase(["S1.c"])
+                            ]
+                        )
+                    ]
+                ),
+            ]
+        ).load(core)
+        let workspaceContext = WorkspaceContext(core: core, workspace: workspace, processExecutionCache: .sharedForTesting)
+
+        // Configure the targets and create a BuildRequest.
+        let buildParameters = BuildParameters(configuration: "Debug")
+        let t1 = BuildRequest.BuildTargetInfo(parameters: buildParameters, target: workspace.target(named: "T1")!)
+        let t2 = BuildRequest.BuildTargetInfo(parameters: buildParameters, target: workspace.target(named: "T2")!)
+        do {
+            let buildRequest = BuildRequest(parameters: buildParameters, buildTargets: [t1], dependencyScope: .workspace, continueBuildingAfterErrors: true, useParallelTargets: false, useImplicitDependencies: true, useDryRun: false)
+            let buildRequestContext = BuildRequestContext(workspaceContext: workspaceContext)
+            let delegate = EmptyTargetDependencyResolverDelegate(workspace: workspaceContext.workspace)
+            let buildGraph = await TargetGraphFactory(workspaceContext: workspaceContext, buildRequest: buildRequest, buildRequestContext: buildRequestContext, delegate: delegate).graph(type: .dependency)
+            #expect(buildGraph.allTargets.map({ $0.target.name }) == ["T3", "T2"])
+            delegate.checkNoDiagnostics()
+        }
+    }
+
+    @Test(.requireSDKs(.macOS))
     func buildRequestScopeRemovingInteriorTarget() async throws {
         let core = try await getCore()
 
