@@ -45,6 +45,31 @@
     {
         Domain = windows;
         Type = ProductType;
+        Identifier = com.apple.product-type.bundle.unit-test;
+        BasedOn = com.apple.product-type.library.dynamic;
+        DefaultBuildProperties = {
+            // Index store data is required to discover XCTest tests
+            COMPILER_INDEX_STORE_ENABLE = YES;
+            SWIFT_INDEX_STORE_ENABLE = YES;
+            // Testability is needed to generate code to invoke discovered XCTest tests
+            SWIFT_ENABLE_TESTABILITY = YES;
+        };
+    },
+
+    {
+        Domain = windows;
+        Type = ProductType;
+        Identifier = com.apple.product-type.tool.swiftpm-test-runner;
+        BasedOn = default:com.apple.product-type.tool.swiftpm-test-runner;
+        DefaultBuildProperties = {
+            EXECUTABLE_SUFFIX = ".$(EXECUTABLE_EXTENSION)";
+            EXECUTABLE_EXTENSION = "exe";
+        };
+    },
+
+    {
+        Domain = windows;
+        Type = ProductType;
         Identifier = com.apple.product-type.library.static;
         BasedOn = default:com.apple.product-type.library.static;
         DefaultBuildProperties = {
