@@ -750,6 +750,7 @@ public final class BuiltinMacros {
     public static let INDEX_PREPARED_TARGET_MARKER_PATH = BuiltinMacros.declareStringMacro("INDEX_PREPARED_TARGET_MARKER_PATH")
     public static let INDEX_REGULAR_BUILD_PRODUCTS_DIR = BuiltinMacros.declareStringMacro("INDEX_REGULAR_BUILD_PRODUCTS_DIR")
     public static let INDEX_REGULAR_BUILD_INTERMEDIATES_DIR = BuiltinMacros.declareStringMacro("INDEX_REGULAR_BUILD_INTERMEDIATES_DIR")
+    public static let INDEX_STORE_LIBRARY_PATH = BuiltinMacros.declarePathMacro("INDEX_STORE_LIBRARY_PATH")
     public static let INFOPLIST_ENFORCE_MINIMUM_OS = BuiltinMacros.declareBooleanMacro("INFOPLIST_ENFORCE_MINIMUM_OS")
     public static let INFOPLIST_EXPAND_BUILD_SETTINGS = BuiltinMacros.declareBooleanMacro("INFOPLIST_EXPAND_BUILD_SETTINGS")
     public static let INFOPLIST_FILE = BuiltinMacros.declarePathMacro("INFOPLIST_FILE")
@@ -1300,6 +1301,8 @@ public final class BuiltinMacros {
     // Info.plist Keys - Sticker Packs
     public static let INFOPLIST_KEY_NSStickerSharingLevel = BuiltinMacros.declareEnumMacro("INFOPLIST_KEY_NSStickerSharingLevel") as EnumMacroDeclaration<StickerSharingLevel>
 
+    public static let __SKIP_BUILD = BuiltinMacros.declareBooleanMacro("__SKIP_BUILD")
+
     // MARK: Built-in Macro Initialization
 
     private static var initialized = false
@@ -1792,6 +1795,7 @@ public final class BuiltinMacros {
         INDEX_PREPARED_TARGET_MARKER_PATH,
         INDEX_REGULAR_BUILD_PRODUCTS_DIR,
         INDEX_REGULAR_BUILD_INTERMEDIATES_DIR,
+        INDEX_STORE_LIBRARY_PATH,
         INDEX_ENABLE_DATA_STORE,
         INDEX_PRECOMPS_DIR,
         INFOPLIST_ENFORCE_MINIMUM_OS,
@@ -2391,7 +2395,8 @@ public final class BuiltinMacros {
         ENABLE_XOJIT_PREVIEWS,
         BUILD_ACTIVE_RESOURCES_ONLY,
         ENABLE_ONLY_ACTIVE_RESOURCES,
-        ENABLE_PLAYGROUND_RESULTS
+        ENABLE_PLAYGROUND_RESULTS,
+        __SKIP_BUILD
     ]
 
     /// Force initialization of entitlements macros.
