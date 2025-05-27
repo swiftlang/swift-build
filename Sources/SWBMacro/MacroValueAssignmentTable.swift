@@ -20,18 +20,21 @@ public struct MacroValueAssignmentTable: Serializable, Sendable {
     /// Maps macro declarations to corresponding linked lists of assignments.
     public var valueAssignments: [MacroDeclaration: MacroValueAssignment]
 
-    private init(namespace: MacroNamespace, valueAssignments: [MacroDeclaration: MacroValueAssignment]) {
+    public var valueLocations: [String: MacroValueAssignmentLocation]
+
+    private init(namespace: MacroNamespace, valueAssignments: [MacroDeclaration: MacroValueAssignment], valueLocations: [String: MacroValueAssignmentLocation]) {
         self.namespace = namespace
         self.valueAssignments = valueAssignments
+        self.valueLocations = valueLocations
     }
 
     public init(namespace: MacroNamespace) {
-        self.init(namespace: namespace, valueAssignments: [:])
+        self.init(namespace: namespace, valueAssignments: [:], valueLocations: [:])
     }
 
     /// Convenience initializer to create a `MacroValueAssignmentTable` from another instance (i.e., to create a copy).
     public init(copying table: MacroValueAssignmentTable) {
-        self.init(namespace: table.namespace, valueAssignments: table.valueAssignments)
+        self.init(namespace: table.namespace, valueAssignments: table.valueAssignments, valueLocations: table.valueLocations)
     }
 
     /// Remove all assignments for the given macro.
@@ -77,11 +80,15 @@ public struct MacroValueAssignmentTable: Serializable, Sendable {
 
 
     /// Adds a mapping from `macro` to `value`, inserting it ahead of any already existing assignment for the same macro.  Unless the value refers to the lower-precedence expression (using `$(inherited)` notation), any existing assignments are shadowed but not removed.
-    public mutating func push(_ macro: MacroDeclaration, _ value: MacroExpression, conditions: MacroConditionSet? = nil) {
+    public mutating func push(_ macro: MacroDeclaration, _ value: MacroExpression, conditions: MacroConditionSet? = nil, location: MacroValueAssignmentLocation? = nil) {
         assert(namespace.lookupMacroDeclaration(macro.name) === macro)
         // Validate the type.
         assert(macro.type.matchesExpressionType(value))
         valueAssignments[macro] = MacroValueAssignment(expression: value, conditions: conditions, next: valueAssignments[macro])
+
+        if let location {
+            valueLocations[macro.name] = location
+        }
     }
 
     /// Adds a mapping from each of the macro-to-value mappings in `otherTable`, inserting them ahead of any already existing assignments in the receiving table.  The other table isn’t affected in any way (in particular, no reference is kept from the receiver to the other table).
@@ -89,6 +96,7 @@ public struct MacroValueAssignmentTable: Serializable, Sendable {
         for (macro, firstAssignment) in otherTable.valueAssignments {
             valueAssignments[macro] = insertCopiesOfMacroValueAssignmentNodes(firstAssignment, inFrontOf: valueAssignments[macro])
         }
+        valueLocations.merge(otherTable.valueLocations, uniquingKeysWith: { a, b in a })
     }
 
     /// Looks up and returns the first (highest-precedence) macro value assignment for `macro`, if there is one.
@@ -192,6 +200,7 @@ public struct MacroValueAssignmentTable: Serializable, Sendable {
             bindAndPushAssignment(firstAssignment)
 
         }
+        table.valueLocations.merge(self.valueLocations) { a, b in a }
         return table
     }
 
@@ -219,7 +228,7 @@ public struct MacroValueAssignmentTable: Serializable, Sendable {
     // MARK: Serialization
 
     public func serialize<T: Serializer>(to serializer: T) {
-        serializer.beginAggregate(1)
+        serializer.beginAggregate(2)
 
         // We don't directly serialize MacroDeclarations, but rather serialize their contents "by hand" so when we deserialize we can re-use existing declarations in our namespace.
         serializer.beginAggregate(valueAssignments.count)
@@ -247,6 +256,15 @@ public struct MacroValueAssignmentTable: Serializable, Sendable {
         }
         serializer.endAggregate()       // valueAssignments
 
+        serializer.beginAggregate(valueLocations.count)
+        for (decl, loc) in valueLocations.sorted(by: { $0.0 < $1.0 }) {
+            serializer.beginAggregate(2)
+            serializer.serialize(decl)
+            serializer.serialize(loc)
+            serializer.endAggregate()
+        }
+        serializer.endAggregate()
+
         serializer.endAggregate()       // the whole table
     }
 
@@ -255,9 +273,10 @@ public struct MacroValueAssignmentTable: Serializable, Sendable {
         guard let delegate = deserializer.delegate as? (any MacroValueAssignmentTableDeserializerDelegate) else { throw DeserializerError.invalidDelegate("delegate must be a MacroValueAssignmentTableDeserializerDelegate") }
         self.namespace = delegate.namespace
         self.valueAssignments = [:]
+        self.valueLocations = [:]
 
         // Deserialize the table.
-        try deserializer.beginAggregate(1)
+        try deserializer.beginAggregate(2)
 
         // Iterate over all the key-value pairs.
         let count: Int = try deserializer.beginAggregate()
@@ -303,6 +322,14 @@ public struct MacroValueAssignmentTable: Serializable, Sendable {
 
             // Add it to the dictionary.
             self.valueAssignments[decl] = asgn
+        }
+
+        let count2 = try deserializer.beginAggregate()
+        for _ in 0..<count2 {
+            try deserializer.beginAggregate(2)
+            let name: String = try deserializer.deserialize()
+            let location: MacroValueAssignmentLocation = try deserializer.deserialize()
+            self.valueLocations[name] = location
         }
     }
 }
@@ -393,6 +420,37 @@ public final class MacroValueAssignment: Serializable, CustomStringConvertible, 
         self.expression = try deserializer.deserialize()
         self.conditions = try deserializer.deserialize()
         self.next = try deserializer.deserialize()
+    }
+}
+
+public struct MacroValueAssignmentLocation: Serializable, Sendable {
+    public let path: Path
+    public let line: Int
+    public let startColumn: Int
+    public let endColumn: Int
+
+    public init(path: Path, line: Int, startColumn: Int, endColumn: Int) {
+        self.path = path
+        self.line = line
+        self.startColumn = startColumn
+        self.endColumn = endColumn
+    }
+
+    public func serialize<T>(to serializer: T) where T : SWBUtil.Serializer {
+        serializer.beginAggregate(4)
+        serializer.serialize(path)
+        serializer.serialize(line)
+        serializer.serialize(startColumn)
+        serializer.serialize(endColumn)
+        serializer.endAggregate()
+    }
+
+    public init(from deserializer: any SWBUtil.Deserializer) throws {
+        try deserializer.beginAggregate(4)
+        self.path = try deserializer.deserialize()
+        self.line = try deserializer.deserialize()
+        self.startColumn = try deserializer.deserialize()
+        self.endColumn = try deserializer.deserialize()
     }
 }
 
