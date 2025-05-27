@@ -443,7 +443,13 @@ fileprivate struct BuildOperationTests: CoreBasedTests {
         }
     }
 
-    @Test(.requireSDKs(.host), .skipHostOS(.windows), .requireThreadSafeWorkingDirectory) // version info discovery isn't working on Windows
+    @Test(
+        .requireSDKs(.host),
+        .skipHostOS(.windows),
+        .requireThreadSafeWorkingDirectory /* version info discovery isn't working on Windows */,
+        .flaky("Test occasionally crashes in linux CI"),
+        .bug("https://github.com/swiftlang/swift-build/issues/528")
+    )
     func explicitBuildDescriptionID() async throws {
         try await withTemporaryDirectory { temporaryDirectory in
             try await withAsyncDeferrable { deferrable in
