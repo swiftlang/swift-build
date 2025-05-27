@@ -4821,6 +4821,7 @@ fileprivate struct SwiftDriverTests: CoreBasedTests {
                             TestBuildConfiguration(
                                 "Debug",
                                 buildSettings: [
+                                    "SWIFT_ENABLE_LANGUAGE_FEATURE_ENABLEMENT_DIAGNOSTICS": "YES",
                                     "PRODUCT_NAME": "$(TARGET_NAME)",
                                     "SWIFT_VERSION": "5",
                                     "BUILD_VARIANTS": "normal",
