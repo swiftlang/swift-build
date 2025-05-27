@@ -18,7 +18,7 @@ import SWBTestSupport
 import Foundation
 
 @Suite fileprivate struct DependencyScopingTests: CoreBasedTests {
-    @Test(.requireSDKs(.macOS))
+    @Test(.requireSDKs(.host))
     func buildRequestScopeBasics() async throws {
         let core = try await getCore()
 
@@ -77,8 +77,8 @@ import Foundation
 
         // Configure the targets and create a BuildRequest.
         let buildParameters = BuildParameters(configuration: "Debug")
-        let t1 = BuildRequest.BuildTargetInfo(parameters: buildParameters, target: workspace.target(named: "T1")!)
-        let t2 = BuildRequest.BuildTargetInfo(parameters: buildParameters, target: workspace.target(named: "T2")!)
+        let t1 = BuildRequest.BuildTargetInfo(parameters: buildParameters, target: try #require(workspace.target(named: "T1")))
+        let t2 = BuildRequest.BuildTargetInfo(parameters: buildParameters, target: try #require(workspace.target(named: "T2")))
         do {
             let buildRequest = BuildRequest(parameters: buildParameters, buildTargets: [t1], dependencyScope: .buildRequest, continueBuildingAfterErrors: true, useParallelTargets: false, useImplicitDependencies: true, useDryRun: false)
             let buildRequestContext = BuildRequestContext(workspaceContext: workspaceContext)
@@ -100,7 +100,78 @@ import Foundation
         }
     }
 
-    @Test(.requireSDKs(.macOS))
+    @Test(.requireSDKs(.host))
+    func skipBuildSetting() async throws {
+        let core = try await getCore()
+
+        let workspace = try TestWorkspace(
+            "Workspace",
+            projects: [
+                TestProject(
+                    "P1",
+                    groupTree: TestGroup(
+                        "G1",
+                        children: [
+                            TestFile("S1.c"),
+                        ]
+                    ),
+                    buildConfigurations: [
+                        TestBuildConfiguration("Debug", buildSettings: [:]),
+                    ],
+                    targets: [
+                        TestStandardTarget(
+                            "T1",
+                            type: .framework,
+                            buildConfigurations: [
+                                TestBuildConfiguration("Debug", buildSettings: ["PRODUCT_NAME": "$(TARGET_NAME)", "__SKIP_BUILD": "YES"]),
+                            ],
+                            buildPhases: [
+                                TestSourcesBuildPhase(["S1.c"])
+                            ],
+                            dependencies: ["T2"]
+                        ),
+                        TestStandardTarget(
+                            "T2",
+                            type: .framework,
+                            buildConfigurations: [
+                                TestBuildConfiguration("Debug", buildSettings: ["PRODUCT_NAME": "$(TARGET_NAME)"]),
+                            ],
+                            buildPhases: [
+                                TestSourcesBuildPhase(["S1.c"])
+                            ],
+                            dependencies: ["T3"]
+                        ),
+                        TestStandardTarget(
+                            "T3",
+                            type: .framework,
+                            buildConfigurations: [
+                                TestBuildConfiguration("Debug", buildSettings: ["PRODUCT_NAME": "$(TARGET_NAME)"]),
+                            ],
+                            buildPhases: [
+                                TestSourcesBuildPhase(["S1.c"])
+                            ]
+                        )
+                    ]
+                ),
+            ]
+        ).load(core)
+        let workspaceContext = WorkspaceContext(core: core, workspace: workspace, processExecutionCache: .sharedForTesting)
+
+        // Configure the targets and create a BuildRequest.
+        let buildParameters = BuildParameters(configuration: "Debug")
+        let t1 = BuildRequest.BuildTargetInfo(parameters: buildParameters, target: try #require(workspace.target(named: "T1")))
+        let t2 = BuildRequest.BuildTargetInfo(parameters: buildParameters, target: try #require(workspace.target(named: "T2")))
+        do {
+            let buildRequest = BuildRequest(parameters: buildParameters, buildTargets: [t1], dependencyScope: .workspace, continueBuildingAfterErrors: true, useParallelTargets: false, useImplicitDependencies: true, useDryRun: false)
+            let buildRequestContext = BuildRequestContext(workspaceContext: workspaceContext)
+            let delegate = EmptyTargetDependencyResolverDelegate(workspace: workspaceContext.workspace)
+            let buildGraph = await TargetGraphFactory(workspaceContext: workspaceContext, buildRequest: buildRequest, buildRequestContext: buildRequestContext, delegate: delegate).graph(type: .dependency)
+            #expect(buildGraph.allTargets.map({ $0.target.name }) == ["T3", "T2"])
+            delegate.checkNoDiagnostics()
+        }
+    }
+
+    @Test(.requireSDKs(.host))
     func buildRequestScopeRemovingInteriorTarget() async throws {
         let core = try await getCore()
 
@@ -159,8 +230,8 @@ import Foundation
 
         // Configure the targets and create a BuildRequest.
         let buildParameters = BuildParameters(configuration: "Debug")
-        let t1 = BuildRequest.BuildTargetInfo(parameters: buildParameters, target: workspace.target(named: "T1")!)
-        let t3 = BuildRequest.BuildTargetInfo(parameters: buildParameters, target: workspace.target(named: "T3")!)
+        let t1 = BuildRequest.BuildTargetInfo(parameters: buildParameters, target: try #require(workspace.target(named: "T1")))
+        let t3 = BuildRequest.BuildTargetInfo(parameters: buildParameters, target: try #require(workspace.target(named: "T3")))
 
         let buildRequest = BuildRequest(parameters: buildParameters, buildTargets: [t1, t3], dependencyScope: .buildRequest, continueBuildingAfterErrors: true, useParallelTargets: false, useImplicitDependencies: true, useDryRun: false)
         let buildRequestContext = BuildRequestContext(workspaceContext: workspaceContext)
@@ -172,7 +243,7 @@ import Foundation
         delegate.checkNoDiagnostics()
     }
 
-    @Test(.requireSDKs(.macOS))
+    @Test(.requireSDKs(.host))
     func buildRequestScopeRemovingGroupOfInteriorTargets() async throws {
         let core = try await getCore()
 
@@ -287,12 +358,12 @@ import Foundation
 
         // Configure the targets and create a BuildRequest.
         let buildParameters = BuildParameters(configuration: "Debug")
-        let t1 = BuildRequest.BuildTargetInfo(parameters: buildParameters, target: workspace.target(named: "T1")!)
-        let t2 = BuildRequest.BuildTargetInfo(parameters: buildParameters, target: workspace.target(named: "T2")!)
-        let t3 = BuildRequest.BuildTargetInfo(parameters: buildParameters, target: workspace.target(named: "T3")!)
-        let t6 = BuildRequest.BuildTargetInfo(parameters: buildParameters, target: workspace.target(named: "T6")!)
-        let t7 = BuildRequest.BuildTargetInfo(parameters: buildParameters, target: workspace.target(named: "T7")!)
-        let t8 = BuildRequest.BuildTargetInfo(parameters: buildParameters, target: workspace.target(named: "T8")!)
+        let t1 = BuildRequest.BuildTargetInfo(parameters: buildParameters, target: try #require(workspace.target(named: "T1")))
+        let t2 = BuildRequest.BuildTargetInfo(parameters: buildParameters, target: try #require(workspace.target(named: "T2")))
+        let t3 = BuildRequest.BuildTargetInfo(parameters: buildParameters, target: try #require(workspace.target(named: "T3")))
+        let t6 = BuildRequest.BuildTargetInfo(parameters: buildParameters, target: try #require(workspace.target(named: "T6")))
+        let t7 = BuildRequest.BuildTargetInfo(parameters: buildParameters, target: try #require(workspace.target(named: "T7")))
+        let t8 = BuildRequest.BuildTargetInfo(parameters: buildParameters, target: try #require(workspace.target(named: "T8")))
 
         let buildRequest = BuildRequest(parameters: buildParameters, buildTargets: [t1, t2, t3, t6, t7, t8], dependencyScope: .buildRequest, continueBuildingAfterErrors: true, useParallelTargets: false, useImplicitDependencies: true, useDryRun: false)
         let buildRequestContext = BuildRequestContext(workspaceContext: workspaceContext)
@@ -308,7 +379,7 @@ import Foundation
         delegate.checkNoDiagnostics()
     }
 
-    @Test(.requireSDKs(.macOS))
+    @Test(.requireSDKs(.host))
     func buildRequestScopeRemovingImplicitAndExplicitDependencies() async throws {
         let core = try await getCore()
 
@@ -390,11 +461,11 @@ import Foundation
 
         // Configure the targets and create a BuildRequest.
         let buildParameters = BuildParameters(configuration: "Debug")
-        let t1 = BuildRequest.BuildTargetInfo(parameters: buildParameters, target: workspace.target(named: "T1")!)
-        let t2 = BuildRequest.BuildTargetInfo(parameters: buildParameters, target: workspace.target(named: "T2")!)
-        let t3 = BuildRequest.BuildTargetInfo(parameters: buildParameters, target: workspace.target(named: "T3")!)
-        let t4 = BuildRequest.BuildTargetInfo(parameters: buildParameters, target: workspace.target(named: "T4")!)
-        let t5 = BuildRequest.BuildTargetInfo(parameters: buildParameters, target: workspace.target(named: "T5")!)
+        let t1 = BuildRequest.BuildTargetInfo(parameters: buildParameters, target: try #require(workspace.target(named: "T1")))
+        let t2 = BuildRequest.BuildTargetInfo(parameters: buildParameters, target: try #require(workspace.target(named: "T2")))
+        let t3 = BuildRequest.BuildTargetInfo(parameters: buildParameters, target: try #require(workspace.target(named: "T3")))
+        let t4 = BuildRequest.BuildTargetInfo(parameters: buildParameters, target: try #require(workspace.target(named: "T4")))
+        let t5 = BuildRequest.BuildTargetInfo(parameters: buildParameters, target: try #require(workspace.target(named: "T5")))
 
         do {
             let buildRequest = BuildRequest(parameters: buildParameters, buildTargets: [t1, t2, t3], dependencyScope: .buildRequest, continueBuildingAfterErrors: true, useParallelTargets: false, useImplicitDependencies: true, useDryRun: false)
@@ -500,8 +571,8 @@ import Foundation
 
         // Configure the targets and create a BuildRequest.
         let buildParameters = BuildParameters(configuration: "Debug", activeRunDestination: .anyiOSDevice)
-        let t1 = BuildRequest.BuildTargetInfo(parameters: buildParameters, target: workspace.target(named: "T1")!)
-        let t3 = BuildRequest.BuildTargetInfo(parameters: buildParameters, target: workspace.target(named: "T3")!)
+        let t1 = BuildRequest.BuildTargetInfo(parameters: buildParameters, target: try #require(workspace.target(named: "T1")))
+        let t3 = BuildRequest.BuildTargetInfo(parameters: buildParameters, target: try #require(workspace.target(named: "T3")))
 
         let buildRequest = BuildRequest(parameters: buildParameters, buildTargets: [t1, t3], dependencyScope: .buildRequest, continueBuildingAfterErrors: true, useParallelTargets: false, useImplicitDependencies: true, useDryRun: false)
         let buildRequestContext = BuildRequestContext(workspaceContext: workspaceContext)
@@ -518,7 +589,7 @@ import Foundation
         delegate.checkNoDiagnostics()
     }
 
-    @Test(.requireSDKs(.macOS))
+    @Test(.requireSDKs(.host))
     func buildRequestScopeWithPackages() async throws {
         let core = try await getCore()
 
@@ -620,10 +691,10 @@ import Foundation
 
         // Configure the targets and create a BuildRequest.
         let buildParameters = BuildParameters(configuration: "Debug")
-        let t1 = BuildRequest.BuildTargetInfo(parameters: buildParameters, target: workspace.target(named: "T1")!)
+        let t1 = BuildRequest.BuildTargetInfo(parameters: buildParameters, target: try #require(workspace.target(named: "T1")))
 
-        let somePackageProduct = BuildRequest.BuildTargetInfo(parameters: buildParameters, target: workspace.target(named: "SomePackageProduct")!)
-        let packageProductWithTransitiveRefs = BuildRequest.BuildTargetInfo(parameters: buildParameters, target: workspace.target(named: "PackageProductWithTransitiveRefs")!)
+        let somePackageProduct = BuildRequest.BuildTargetInfo(parameters: buildParameters, target: try #require(workspace.target(named: "SomePackageProduct")))
+        let packageProductWithTransitiveRefs = BuildRequest.BuildTargetInfo(parameters: buildParameters, target: try #require(workspace.target(named: "PackageProductWithTransitiveRefs")))
 
         do {
             let buildRequest = BuildRequest(parameters: buildParameters, buildTargets: [t1], dependencyScope: .buildRequest, continueBuildingAfterErrors: true, useParallelTargets: false, useImplicitDependencies: true, useDryRun: false)
