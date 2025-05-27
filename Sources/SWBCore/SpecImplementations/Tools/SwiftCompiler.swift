@@ -1374,7 +1374,7 @@ public final class SwiftCompilerSpec : CompilerSpec, SpecIdentifierType, SwiftDi
 
         // rdar://122829880 (Turn off Swift explicit modules when c++ interop is enabled)
         guard scope.evaluate(BuiltinMacros.SWIFT_OBJC_INTEROP_MODE) != "objcxx" && !scope.evaluate(BuiltinMacros.OTHER_SWIFT_FLAGS).contains("-cxx-interoperability-mode=default") else {
-            return scope.evaluate(BuiltinMacros.SWIFT_EXPLICIT_MODULES_ALLOW_CXX_INTEROP)
+            return scope.evaluate(BuiltinMacros._SWIFT_EXPLICIT_MODULES_ALLOW_CXX_INTEROP)
         }
 
         // Disable explicit modules in the pre-Swift-5 language modes to avoid versioned API notes confusion.
