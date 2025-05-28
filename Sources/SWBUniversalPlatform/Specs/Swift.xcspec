@@ -1022,13 +1022,6 @@
                 Description = "Coordinates the build of the main module's modular dependencies via explicit tasks scheduled by the build system.";
             },
             {
-                Name = "SWIFT_EXPLICIT_MODULES_ALLOW_CXX_INTEROP";
-                Type = Boolean;
-                DisplayName = "Use Explicitly Built Modules with C++ Interoperability";
-                Category = "General";
-                Description = "Enable use of explicitly built modules in Swift code which has adopted C++ interoperability.";
-            },
-            {
                 Name = "SWIFT_ENABLE_COMPILE_CACHE";
                 Type = Boolean;
                 DefaultValue = "$(COMPILATION_CACHE_ENABLE_CACHING)";
