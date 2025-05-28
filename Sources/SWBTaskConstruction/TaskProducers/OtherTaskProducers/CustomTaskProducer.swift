@@ -23,7 +23,7 @@ final class CustomTaskProducer: PhasedTaskProducer, TaskProducer {
             for customTask in context.configuredTarget?.target.customTasks ?? [] {
                 
                 let commandLine = customTask.commandLine.map { context.settings.globalScope.evaluate($0) }
-                var environmentAssignments = computeScriptEnvironment(.shellScriptPhase, scope: context.settings.globalScope, settings: context.settings, workspaceContext: context.workspaceContext)
+                var environmentAssignments = await computeScriptEnvironment(.shellScriptPhase, scope: context.settings.globalScope, settings: context.settings, workspaceContext: context.workspaceContext, allDeploymentTargetMacroNames: context.allDeploymentTargetMacroNames())
                 if context.workspaceContext.core.hostOperatingSystem != .macOS {
                     environmentAssignments = environmentAssignments.filter { $0.key.lowercased() != "path" }
                 }

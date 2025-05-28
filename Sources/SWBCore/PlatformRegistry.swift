@@ -309,9 +309,6 @@ public final class PlatformRegistry {
     /// The map of platforms by name.
     var platformsByName = Dictionary<String, Platform>()
 
-    /// The set of all known deployment target macro names, even if the platforms that use those settings are not installed.
-    private(set) var allDeploymentTargetMacroNames = Set<String>()
-
     /// The default deployment targets for all installed platforms.
     var defaultDeploymentTargets: [String: Version] {
         Dictionary(uniqueKeysWithValues: Dictionary(grouping: platforms, by: { $0.defaultSDKVariant?.deploymentTargetSettingName })
@@ -350,46 +347,6 @@ public final class PlatformRegistry {
                 delegate.error(error)
 
             }
-        }
-    }
-
-    private func loadDeploymentTargetMacroNames() {
-        // We must have loaded the extended platform info before doing this,
-        // since deploymentTargetMacro is set on the Platform objects through there.
-        precondition(hasLoadedExtendedInfo)
-
-        // Set up allDeploymentTargetMacroNames in stages to detect issues.
-        // First we add all deployment targets from installed platforms, and emit a warning if multiple platforms declare that they use the same deployment target.
-        var platformsByDeploymentTarget = [String: Set<String>]()
-        for platform in platforms {
-            if let macroName = platform.deploymentTargetMacro?.name, !macroName.isEmpty {
-                allDeploymentTargetMacroNames.insert(macroName)
-
-                // Don't count simulator platforms separately, as a simulator platform always shares a deployment target with its corresponding device platform.
-                platformsByDeploymentTarget[macroName, default: Set<String>()].insert(platform.correspondingDevicePlatform?.name ?? platform.name)
-            }
-        }
-
-        // Now add in all deployment targets we know about.  This is because clang also knows about these deployment targets intrinsically when they are passed as environment variables, so we sometimes need to work with them even if the platform which defines them is not installed.
-        @preconcurrency @PluginExtensionSystemActor func platformInfoExtensions() -> [any PlatformInfoExtensionPoint.ExtensionProtocol] {
-            delegate.pluginManager.extensions(of: PlatformInfoExtensionPoint.self)
-        }
-
-        for platformExtension in platformInfoExtensions() {
-            for knownDeploymentTargetMacroName in platformExtension.knownDeploymentTargetMacroNames() {
-                allDeploymentTargetMacroNames.insert(knownDeploymentTargetMacroName)
-                platformsByDeploymentTarget[knownDeploymentTargetMacroName] = nil
-            }
-        }
-
-        // For any macros left in the dictionary, emit a warning that it's a deployment target macro we didn't know about so we can add them to the list above in the future.
-        for macroName in platformsByDeploymentTarget.keys.sorted() {
-            guard let platformNames = platformsByDeploymentTarget[macroName], !platformNames.isEmpty else {
-                // This is a weird scenario - should we emit a warning here?
-                continue
-            }
-            let platformList: String = (platformNames.count > 1 ? "s: " : ": ") + platformNames.sorted().joined(separator: ", ")
-            delegate.warning("found previously-unknown deployment target macro '\(macroName)' declared by platform\(platformList)")
         }
     }
 
@@ -690,8 +647,6 @@ public final class PlatformRegistry {
                 unregisterPlatform(platform)
             }
         }
-
-        loadDeploymentTargetMacroNames()
     }
     var hasLoadedExtendedInfo = false
 

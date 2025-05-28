@@ -142,6 +142,114 @@ struct BuildLogTests {
         }
     }
 
+    @Test(.requireSDKs(.macOS))
+    func testTargetStartedEventsForMultipleTargets() async throws {
+        try await withTemporaryDirectory { (temporaryDirectory: NamedTemporaryDirectory) in
+            try await withAsyncDeferrable { deferrable in
+                let tmpDirPath = temporaryDirectory.path
+                let testSession = try await TestSWBSession(temporaryDirectory: temporaryDirectory)
+                await deferrable.addBlock {
+                    await #expect(throws: Never.self) {
+                            try await testSession.close()
+                        }
+                }
+
+                let srcroot = tmpDirPath.join("Test")
+
+                let dependencyTarget = TestStandardTarget(
+                    "Dependency", type: .objectFile,
+                    buildConfigurations: [
+                        TestBuildConfiguration(
+                            "Debug",
+                            buildSettings: [
+                                "PRODUCT_NAME": "$(TARGET_NAME)",
+                                "USE_HEADERMAP": "NO",
+                                "ALWAYS_SEARCH_USER_PATHS": "NO",
+                                // FIXME: There should be a way to automatically populate the version here, but since these tests are not CoreBasedTests, there isn't a good way to do so right now.
+                                "SWIFT_VERSION": "5.0",
+                            ]),
+                    ],
+                    buildPhases: [
+                        TestSourcesBuildPhase([
+                            TestBuildFile("Dependency.swift"),
+                        ]),
+                    ]
+                )
+                let dylibTarget = TestStandardTarget(
+                    "Dylib", type: .dynamicLibrary,
+                    buildConfigurations: [
+                        TestBuildConfiguration(
+                            "Debug",
+                            buildSettings: [
+                                "PRODUCT_NAME": "$(TARGET_NAME)",
+                                "USE_HEADERMAP": "NO",
+                                "ALWAYS_SEARCH_USER_PATHS": "NO",
+                                // FIXME: There should be a way to automatically populate the version here, but since these tests are not CoreBasedTests, there isn't a good way to do so right now.
+                                "SWIFT_VERSION": "5.0",
+                            ]),
+                    ],
+                    buildPhases: [
+                        TestSourcesBuildPhase([
+                            TestBuildFile("Dylib.swift"),
+                        ]),
+                        TestFrameworksBuildPhase([
+                            TestBuildFile(.target("Dependency")),
+                        ]),
+                    ],
+                    dependencies: [
+                        "Dependency",
+                    ]
+                )
+
+                let testProject = TestProject(
+                    "aProject",
+                    defaultConfigurationName: "Release",
+                    groupTree: TestGroup("Foo", children: [
+                        TestFile("Dependency.swift"),
+                        TestFile("Dylib.swift"),
+                    ]),
+                    targets: [dependencyTarget, dylibTarget])
+
+                let testWorkspace = TestWorkspace(
+                    "aWorkspace",
+                    sourceRoot: srcroot,
+                    projects: [testProject]
+                )
+                let SRCROOT = testWorkspace.sourceRoot.join("aProject")
+
+                let fs = localFS
+                _ = try await CoreQualificationTester(testWorkspace, testSession, fs: fs)
+
+                // Write the test sources.
+                try await fs.writeFileContents(SRCROOT.join("Dependency.swift")) { contents in
+                    contents <<< "open class MyClass {}\n"
+                }
+                try await fs.writeFileContents(SRCROOT.join("Dylib.swift")) { contents in
+                    contents <<< "internal import Dependency; final class DylibClass: DependencyClass {}\n"
+                }
+
+                // Run a test build.
+                var request = SWBBuildRequest()
+                request.parameters = SWBBuildParameters()
+                request.parameters.action = "build"
+                request.parameters.configurationName = "Debug"
+                request.add(target: SWBConfiguredTarget(guid: dylibTarget.guid, parameters: nil))
+
+                let events = try await testSession.runBuildOperation(request: request, delegate: TestBuildOperationDelegate())
+
+                let targetStartedInfos = events.compactMap {
+                    if case let .targetStarted(info) = $0 {
+                        return info
+                    } else {
+                        return nil
+                    }
+                }
+
+                #expect(targetStartedInfos.count == 2)
+            }
+        }
+    }
+
     // Regression test for rdar://95168084 (invocation spits out json as part of log output)
     @Test(.requireSDKs(.macOS))
     func swiftParseableOutputDoesNotAppearInBuildLogWithWMO() async throws {

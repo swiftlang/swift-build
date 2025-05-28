@@ -23,7 +23,7 @@ final class ExternalTargetTaskProducer: StandardTaskProducer, TaskProducer {
         let target = context.configuredTarget!.target as! ExternalTarget
         var tasks = [any PlannedTask]()
         await appendGeneratedTasks(&tasks) { delegate in
-            ShellScriptTaskProducer.constructTasksForExternalTarget(target, context, cbc: CommandBuildContext(producer: context, scope: context.settings.globalScope, inputs: []), delegate: delegate)
+            await ShellScriptTaskProducer.constructTasksForExternalTarget(target, context, cbc: CommandBuildContext(producer: context, scope: context.settings.globalScope, inputs: []), delegate: delegate)
         }
         return tasks
     }

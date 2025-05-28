@@ -26,7 +26,7 @@ public enum ScriptType: Sendable {
 ///   - settings: The settings to use for computing the script's environment and search paths.
 ///   - workspaceContext: The workspace context to use for computing the script's environment.
 ///   - scope: The scope in which to expand build settings.
-public func constructCommandLine(for target: ExternalTarget, action: String, settings: Settings, workspaceContext: WorkspaceContext, scope: MacroEvaluationScope) -> (executable: String, arguments: [String], workingDirectory: Path, environment: [String: String]) {
+public func constructCommandLine(for target: ExternalTarget, action: String, settings: Settings, workspaceContext: WorkspaceContext, scope: MacroEvaluationScope, allDeploymentTargetMacroNames: Set<String>) -> (executable: String, arguments: [String], workingDirectory: Path, environment: [String: String]) {
     let scope = settings.globalScope
     func lookup(_ macro: MacroDeclaration) -> MacroExpression? {
         switch macro {
@@ -44,7 +44,7 @@ public func constructCommandLine(for target: ExternalTarget, action: String, set
     let workingDirectory = (settings.project?.sourceRoot ?? workspaceContext.workspace.path.dirname).join(Path(scope.evaluate(target.workingDirectory, lookup: lookup)))
     var environment: [String: String] = [:]
     if target.passBuildSettingsInEnvironment {
-        environment = computeScriptEnvironment(.externalTarget, scope: scope, settings: settings, workspaceContext: workspaceContext)
+        environment = computeScriptEnvironment(.externalTarget, scope: scope, settings: settings, workspaceContext: workspaceContext, allDeploymentTargetMacroNames: allDeploymentTargetMacroNames)
     }
 
     // Always set ACTION in the environment.
@@ -77,7 +77,7 @@ public func constructCommandLine(for target: ExternalTarget, action: String, set
 /// - scope: The scope in which to expand build settings.
 /// - settings: The settings to use for computing the environment.
 /// - workspaceContext: The workspace context to use for computing the environment
-public func computeScriptEnvironment(_ type: ScriptType, scope: MacroEvaluationScope, settings: Settings, workspaceContext: WorkspaceContext) -> [String: String] {
+public func computeScriptEnvironment(_ type: ScriptType, scope: MacroEvaluationScope, settings: Settings, workspaceContext: WorkspaceContext, allDeploymentTargetMacroNames: Set<String>) -> [String: String] {
     var result = [String: String]()
 
     // FIXME: Note that we merged this function for shell scripts with the very similar code that was used to build the environment for external build commands. Currently in order to retain perfect compatibility we do various things conditionally based on the mode, but really this code should just be a single function that is used for both contexts at some point.
@@ -202,7 +202,7 @@ public func computeScriptEnvironment(_ type: ScriptType, scope: MacroEvaluationS
 
     // Remove deployment targets for platforms other than the one we're building for.  <rdar://problem/20008508>
     let ourDeploymentTargetName = scope.evaluate(BuiltinMacros.DEPLOYMENT_TARGET_SETTING_NAME)
-    for deploymentTargetNameToRemove in workspaceContext.core.platformRegistry.allDeploymentTargetMacroNames {
+    for deploymentTargetNameToRemove in allDeploymentTargetMacroNames {
         if ourDeploymentTargetName.isEmpty || ourDeploymentTargetName != deploymentTargetNameToRemove {
             result.removeValue(forKey: deploymentTargetNameToRemove)
         }

@@ -80,8 +80,6 @@ public struct SwiftDriverJob: Serializable, CustomDebugStringConvertible {
     public let outputs: [Path]
     /// The command line to execute for this job
     public let commandLine: [SWBUtil.ByteString]
-    /// A signature which uniquely identifies the job.
-    public let signature: SWBUtil.ByteString
     /// Cache keys for the swift-frontend invocation (one key per output producing input)
     public let cacheKeys: [String]
 
@@ -103,15 +101,10 @@ public struct SwiftDriverJob: Serializable, CustomDebugStringConvertible {
         self.cacheKeys = job.outputCacheKeys.reduce(into: [String]()) { result, key in
             result.append(key.value)
         }.sorted()
-        let md5 = InsecureHashContext()
-        for arg in commandLine {
-            md5.add(bytes: arg)
-        }
-        self.signature = md5.signature
     }
 
     public func serialize<T>(to serializer: T) where T : Serializer {
-        serializer.serializeAggregate(10) {
+        serializer.serializeAggregate(9) {
             serializer.serialize(kind)
             serializer.serialize(ruleInfoType)
             serializer.serialize(moduleName)
@@ -120,13 +113,12 @@ public struct SwiftDriverJob: Serializable, CustomDebugStringConvertible {
             serializer.serialize(outputs)
             serializer.serialize(commandLine)
             serializer.serialize(descriptionForLifecycle)
-            serializer.serialize(signature)
             serializer.serialize(cacheKeys)
         }
     }
 
     public init(from deserializer: any Deserializer) throws {
-        try deserializer.beginAggregate(10)
+        try deserializer.beginAggregate(9)
         try self.kind = deserializer.deserialize()
         try self.ruleInfoType = deserializer.deserialize()
         try self.moduleName = deserializer.deserialize()
@@ -135,7 +127,6 @@ public struct SwiftDriverJob: Serializable, CustomDebugStringConvertible {
         try self.outputs = deserializer.deserialize()
         try self.commandLine = deserializer.deserialize()
         try self.descriptionForLifecycle = deserializer.deserialize()
-        try self.signature = deserializer.deserialize()
         try self.cacheKeys = deserializer.deserialize()
     }
 
@@ -173,29 +164,40 @@ extension LibSwiftDriver {
             public let dependencies: [JobKey]
             /// Working directory for running this job
             public let workingDirectory: Path
+            /// A signature which uniquely identifies this planned job.
+            public let signature: SWBUtil.ByteString
 
             internal init(key: JobKey, driverJob: SwiftDriverJob, dependencies: [JobKey], workingDirectory: Path) {
                 self.key = key
                 self.driverJob = driverJob
                 self.dependencies = dependencies
                 self.workingDirectory = workingDirectory
+                let md5 = InsecureHashContext()
+                for arg in driverJob.commandLine {
+                    md5.add(bytes: arg)
+                }
+                md5.add(string: workingDirectory.str)
+                md5.add(number: dependencies.hashValue)
+                self.signature = md5.signature
             }
 
             public func serialize<T>(to serializer: T) where T : Serializer {
-                serializer.serializeAggregate(4) {
+                serializer.serializeAggregate(5) {
                     serializer.serialize(key)
                     serializer.serialize(driverJob)
                     serializer.serialize(dependencies)
                     serializer.serialize(workingDirectory)
+                    serializer.serialize(signature)
                 }
             }
 
             public init(from deserializer: any Deserializer) throws {
-                try deserializer.beginAggregate(4)
+                try deserializer.beginAggregate(5)
                 try key = deserializer.deserialize()
                 try driverJob = deserializer.deserialize()
                 try dependencies = deserializer.deserialize()
                 try workingDirectory = deserializer.deserialize()
+                try signature = deserializer.deserialize()
             }
 
             public func addingDependencies(_ newDependencies: [JobKey]) -> PlannedSwiftDriverJob {

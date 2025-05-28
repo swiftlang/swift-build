@@ -5144,4 +5144,147 @@ fileprivate struct SwiftDriverTests: CoreBasedTests {
             #expect(cleanContents == incrementalContents)
         }
     }
+
+    @Test(.requireSDKs(.macOS))
+    func ensureIdenticalCommandLinesWithDifferentDependenciesAreNotDeduplicated() async throws {
+        try await withTemporaryDirectory { tmpDir in
+            let testWorkspace = try await TestWorkspace(
+                "Test",
+                sourceRoot: tmpDir.join("Test"),
+                projects: [
+                    TestProject(
+                        "aProject",
+                        groupTree: TestGroup(
+                            "Sources",
+                            children: [
+                                TestFile("Framework1.h"),
+                                TestFile("file_1.c"),
+                                TestFile("Framework2.h"),
+                                TestFile("file_2.c"),
+                                TestFile("file_3.swift"),
+                            ]),
+                        buildConfigurations: [TestBuildConfiguration(
+                            "Debug",
+                            buildSettings: [
+                                "PRODUCT_NAME": "$(TARGET_NAME)",
+                                "CLANG_ENABLE_MODULES": "YES",
+                                "SWIFT_ENABLE_EXPLICIT_MODULES": "YES",
+                                "SWIFT_VERSION": swiftVersion,
+                                "DEFINES_MODULE": "YES",
+                                "VALID_ARCHS": "arm64",
+                                "DSTROOT": tmpDir.join("dstroot").str,
+                                "SWIFT_ENABLE_COMPILE_CACHE": "YES",
+                            ])],
+                        targets: [
+                            TestStandardTarget(
+                                "Framework1",
+                                type: .framework,
+                                buildPhases: [
+                                    TestHeadersBuildPhase([TestBuildFile("Framework1.h", headerVisibility: .public)]),
+                                    TestSourcesBuildPhase(["file_1.c"]),
+                                ]),
+                            TestStandardTarget(
+                                "Framework2",
+                                type: .framework,
+                                buildPhases: [
+                                    TestHeadersBuildPhase([TestBuildFile("Framework2.h", headerVisibility: .public)]),
+                                    TestSourcesBuildPhase(["file_2.c"]),
+                                ]),
+                            TestStandardTarget(
+                                "Framework3",
+                                type: .framework,
+                                buildPhases: [
+                                    TestSourcesBuildPhase(["file_3.swift"]),
+                                ],
+                                dependencies: [
+                                    "Framework1",
+                                    "Framework2"
+                                ]),
+                        ])])
+
+            let tester = try await BuildOperationTester(getCore(), testWorkspace, simulated: false)
+
+            try await tester.fs.writeFileContents(testWorkspace.sourceRoot.join("aProject/Framework1.h")) { stream in
+                stream <<<
+            """
+            void foo(void);
+            """
+            }
+
+            try await tester.fs.writeFileContents(testWorkspace.sourceRoot.join("aProject/file_1.c")) { stream in
+                stream <<<
+            """
+            void foo(void) {}
+            """
+            }
+
+            try await tester.fs.writeFileContents(testWorkspace.sourceRoot.join("aProject/Framework2.h")) { stream in
+                stream <<<
+            """
+            void qux(void);
+            """
+            }
+
+            try await tester.fs.writeFileContents(testWorkspace.sourceRoot.join("aProject/file_2.c")) { stream in
+                stream <<<
+            """
+            void qux(void) {}
+            """
+            }
+
+            try await tester.fs.writeFileContents(testWorkspace.sourceRoot.join("aProject/file_3.swift")) { stream in
+                stream <<<
+            """
+            import Framework1
+            import Framework2
+            public func bar() {
+                foo()
+                qux()
+            }
+            """
+            }
+
+            let parameters = BuildParameters(configuration: "Debug", overrides: [:])
+            let buildRequest = BuildRequest(parameters: parameters, buildTargets: tester.workspace.projects[0].targets.map({ BuildRequest.BuildTargetInfo(parameters: parameters, target: $0) }), continueBuildingAfterErrors: false, useParallelTargets: true, useImplicitDependencies: false, useDryRun: false)
+
+            try await tester.checkBuild(runDestination: .macOS, buildRequest: buildRequest, persistent: true) { results in
+                results.checkTasks(.matchRuleType("SwiftExplicitDependencyGeneratePcm")) { tasks in
+                    #expect(tasks.count == 4)
+                }
+                results.checkNoDiagnostics()
+            }
+
+            try await tester.checkNullBuild(runDestination: .macOS, buildRequest: buildRequest, persistent: true)
+
+            try await tester.fs.writeFileContents(testWorkspace.sourceRoot.join("aProject/Framework1.h")) { stream in
+                stream <<<
+            """
+            void foo(void); introduce an error
+            """
+            }
+
+            try await tester.checkBuild(runDestination: .macOS, buildRequest: buildRequest, persistent: true) { results in
+                results.checkTaskExists(.matchRuleType("SwiftDriver"))
+                results.checkTasks(.matchRuleType("SwiftExplicitDependencyGeneratePcm")) { tasks in
+                    #expect(tasks.count == 1)
+                }
+                results.checkedErrors = true
+            }
+
+            try await tester.fs.writeFileContents(testWorkspace.sourceRoot.join("aProject/Framework1.h")) { stream in
+                stream <<<
+            """
+            void foo(void);
+            """
+            }
+
+            try await tester.checkBuild(runDestination: .macOS, buildRequest: buildRequest, persistent: true) { results in
+                results.checkTaskExists(.matchRuleType("SwiftDriver"))
+                results.checkTasks(.matchRuleType("SwiftExplicitDependencyGeneratePcm")) { tasks in
+                    #expect(tasks.count == 1)
+                }
+                results.checkNoDiagnostics()
+            }
+        }
+    }
 }

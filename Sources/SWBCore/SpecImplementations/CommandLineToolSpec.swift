@@ -142,7 +142,7 @@ public final class DiscoveredCommandLineToolSpecInfoCache: Sendable {
     }
 }
 
-/// Returns the set of 'feature' names detailed in a 'features.json' file that a tool may install alongside its executable.
+/// Represents the set of 'feature' names detailed in a 'features.json' file that a tool may install alongside its executable.
 /// The format is like this:
 ///
 ///   {
@@ -154,18 +154,17 @@ public final class DiscoveredCommandLineToolSpecInfoCache: Sendable {
 ///     ]
 ///   }
 ///
-func rawFeaturesFromToolFeaturesJSON(path: Path, fs: any FSProxy) throws -> Set<String> {
-    struct FeatureSet: Codable {
-        struct Feature: Codable {
-            let name: String
-        }
-        let features: [Feature]
+private struct FeatureSet: Codable {
+    struct Feature: Codable {
+        let name: String
+        let value: PropertyListItem?
     }
-    return try Set(JSONDecoder().decode(FeatureSet.self, from: path, fs: fs).features.map(\.name))
+    let features: [Feature]
 }
 
 /// Set of features from a 'features.json' file that may be installed alongside its executable, see `rawFeaturesFromToolFeaturesJSON`.
 public struct ToolFeatures<T>: Sendable where T: Sendable, T: Hashable, T: CaseIterable, T: RawRepresentable, T.RawValue == String {
+    private let featureSet: FeatureSet
     public let flags: Set<T>
 
     public static var none: ToolFeatures {
@@ -174,11 +173,13 @@ public struct ToolFeatures<T>: Sendable where T: Sendable, T: Hashable, T: CaseI
 
     public init(_ flags: Set<T>) {
         self.flags = flags
+        self.featureSet = .init(features: flags.map { .init(name: $0.rawValue, value: nil) })
     }
 
     public init(path: Path, fs: any FSProxy) throws {
         var flags: Set<T> = []
-        let raw = try rawFeaturesFromToolFeaturesJSON(path: path, fs: fs)
+        featureSet = try JSONDecoder().decode(FeatureSet.self, from: path, fs: fs)
+        let raw = Set(featureSet.features.map(\.name))
         for flag in T.allCases {
             if raw.contains(flag.rawValue) {
                 flags.insert(flag)
@@ -196,6 +197,10 @@ public struct ToolFeatures<T>: Sendable where T: Sendable, T: Hashable, T: CaseI
             return false
         }
         return has(flag)
+    }
+
+    public func value(_ flag: T) -> PropertyListItem? {
+        featureSet.features.first(where: { $0.name == flag.rawValue })?.value
     }
 }
 
@@ -1436,7 +1441,7 @@ open class GenericOutputParser : TaskOutputParser {
     public let toolBasenames: Set<String>
 
     /// Buffered output that has not yet been parsed (parsing is line-by-line, so we buffer incomplete lines until we receive more output).
-    private var unparsedBytes: [UInt8] = []
+    private var unparsedBytes: ArraySlice<UInt8> = []
 
     /// The Diagnostic that is being constructed, possibly across multiple lines of input.
     private var inProgressDiagnostic: Diagnostic?
@@ -1483,19 +1488,18 @@ open class GenericOutputParser : TaskOutputParser {
         // Forward the unparsed bytes immediately (without line buffering).
         delegate.emitOutput(bytes)
 
-        // Append the new output to whatever partial line of output we might already have buffered.
-        unparsedBytes.append(contentsOf: bytes.bytes)
-
         // Split the buffer into slices separated by newlines.  The last slice represents the partial last line (there always is one, even if it's empty).
-        let lines = unparsedBytes.split(separator: UInt8(ascii: "\n"), maxSplits: .max, omittingEmptySubsequences: false)
+        var lines = bytes.split(separator: UInt8(ascii: "\n"), maxSplits: .max, omittingEmptySubsequences: false)
+        // Any unparsed bytes belong to the first line. We don't want to run `split` over these because it can lead to accidentally quadratic behavior if write is called many times per line.
+        lines[0] = unparsedBytes + lines[0]
 
         // Parse any complete lines of output.
         for line in lines.dropLast() {
             parseLine(line)
         }
 
-        // Remove any complete lines from the buffer, leaving only the last partial line (if any).
-        unparsedBytes.removeFirst(unparsedBytes.count - lines.last!.count)
+        // Track the last, incomplete line to as the unparsed bytes.
+        unparsedBytes = lines.last ?? []
     }
 
     /// Regex to extract location information from a diagnostic prefix (capture group 0 is the name, 1 is the line number, and 2 is the column).

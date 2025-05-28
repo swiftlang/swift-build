@@ -291,7 +291,7 @@ open class SwiftDriverJobSchedulingTaskAction: TaskAction {
                 outputDelegate.previouslyBatchedSubtaskUpToDate(signature: SwiftCompilerSpec.computeRuleInfoAndSignatureForPerFileVirtualBatchSubtask(variant: driverPayload.variant, arch: driverPayload.architecture, path: singleInput).1, target: target)
             } else {
                 // Other jobs are reported as skipped/up-to-date in the usual way.
-                let taskKey = SwiftDriverJobTaskKey(identifier: driverPayload.uniqueID, variant: driverPayload.variant, arch: driverPayload.architecture, driverJobKey: job.key, driverJobSignature: job.driverJob.signature, isUsingWholeModuleOptimization: driverPayload.isUsingWholeModuleOptimization, compilerLocation: driverPayload.compilerLocation, casOptions: driverPayload.casOptions)
+                let taskKey = SwiftDriverJobTaskKey(identifier: driverPayload.uniqueID, variant: driverPayload.variant, arch: driverPayload.architecture, driverJobKey: job.key, driverJobSignature: job.signature, isUsingWholeModuleOptimization: driverPayload.isUsingWholeModuleOptimization, compilerLocation: driverPayload.compilerLocation, casOptions: driverPayload.casOptions)
                 let dynamicTask = DynamicTask(toolIdentifier: SwiftDriverJobTaskAction.toolIdentifier, taskKey: .swiftDriverJob(taskKey), workingDirectory: task.workingDirectory, environment: task.environment, target: task.forTarget, showEnvironment: task.showEnvironment)
                 let subtask = try spec.buildExecutableTask(dynamicTask: dynamicTask, context: dynamicExecutionDelegate.operationContext)
                 outputDelegate.subtaskUpToDate(subtask)
@@ -306,7 +306,7 @@ open class SwiftDriverJobSchedulingTaskAction: TaskAction {
             key = .swiftDriverExplicitDependencyJob(SwiftDriverExplicitDependencyJobTaskKey(
                 arch: driverPayload.architecture,
                 driverJobKey: plannedJob.key,
-                driverJobSignature: plannedJob.driverJob.signature,
+                driverJobSignature: plannedJob.signature,
                 compilerLocation: driverPayload.compilerLocation,
                 casOptions: driverPayload.casOptions))
         } else {
@@ -315,7 +315,7 @@ open class SwiftDriverJobSchedulingTaskAction: TaskAction {
                 variant: driverPayload.variant,
                 arch: driverPayload.architecture,
                 driverJobKey: plannedJob.key,
-                driverJobSignature: plannedJob.driverJob.signature,
+                driverJobSignature: plannedJob.signature,
                 isUsingWholeModuleOptimization: driverPayload.isUsingWholeModuleOptimization,
                 compilerLocation: driverPayload.compilerLocation,
                 casOptions: driverPayload.casOptions))

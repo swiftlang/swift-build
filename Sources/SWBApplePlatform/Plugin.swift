@@ -207,17 +207,6 @@ struct XCStringsInputFileGroupingStrategyExtension: InputFileGroupingStrategyExt
 }
 
 struct ApplePlatformInfoExtension: PlatformInfoExtension {
-    func knownDeploymentTargetMacroNames() -> Set<String> {
-        [
-            "MACOSX_DEPLOYMENT_TARGET",
-            "IPHONEOS_DEPLOYMENT_TARGET",
-            "TVOS_DEPLOYMENT_TARGET",
-            "WATCHOS_DEPLOYMENT_TARGET",
-            "DRIVERKIT_DEPLOYMENT_TARGET",
-            "XROS_DEPLOYMENT_TARGET",
-        ]
-    }
-
     func preferredArchValue(for platformName: String) -> String? {
         // FIXME: rdar://65011964 (Remove PLATFORM_PREFERRED_ARCH)
         // Don't add values for any new platforms

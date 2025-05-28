@@ -65,10 +65,6 @@ struct AndroidEnvironmentExtension: EnvironmentExtension {
 }
 
 struct AndroidPlatformExtension: PlatformInfoExtension {
-    func knownDeploymentTargetMacroNames() -> Set<String> {
-        ["ANDROID_DEPLOYMENT_TARGET"]
-    }
-    
     func additionalPlatforms(context: any PlatformInfoExtensionAdditionalPlatformsContext) throws -> [(path: Path, data: [String: PropertyListItem])] {
         [
             (.root, [
@@ -120,6 +116,37 @@ struct AndroidSDKRegistryExtension: SDKRegistryExtension {
             return []
         }
 
+        let allPossibleTriples = abis.values.flatMap { abi in
+            (max(deploymentTargetRange.min, abi.min_os_version)...deploymentTargetRange.max).map { deploymentTarget in
+                var triple = abi.llvm_triple
+                triple.vendor = "unknown" // Android NDK uses "none", Swift SDKs use "unknown"
+                triple.environment += "\(deploymentTarget)"
+                return triple
+            }
+        }.map(\.description)
+
+        let androidSwiftSDKs = (try? SwiftSDK.findSDKs(
+            targetTriples: allPossibleTriples,
+            fs: context.fs,
+            hostOperatingSystem: context.hostOperatingSystem
+        )) ?? []
+
+        let swiftSettings: [String: PropertyListItem]
+        // FIXME: We need a way to narrow down the list, possibly by passing down a Swift SDK identifier from SwiftPM
+        // The resource path should be the same for all triples in an Android Swift SDK
+        if let androidSwiftSDK = androidSwiftSDKs.only, let swiftResourceDir = Set(androidSwiftSDK.targetTriples.values.map { tripleProperties in androidSwiftSDK.path.join(tripleProperties.swiftResourcesPath) }).only {
+            swiftSettings = [
+                "SWIFT_LIBRARY_PATH": .plString(swiftResourceDir.join("android").str),
+                "SWIFT_RESOURCE_DIR": .plString(swiftResourceDir.str),
+                "SWIFT_TARGET_TRIPLE": .plString("$(CURRENT_ARCH)-unknown-$(SWIFT_PLATFORM_TARGET_PREFIX)$(LLVM_TARGET_TRIPLE_SUFFIX)"),
+                "LIBRARY_SEARCH_PATHS": "$(inherited) $(SWIFT_RESOURCE_DIR)/../$(__ANDROID_TRIPLE_$(CURRENT_ARCH))",
+            ].merging(abis.map {
+                ("__ANDROID_TRIPLE_\($0.value.llvm_triple.arch)", .plString($0.value.triple))
+            }, uniquingKeysWith: { _, new in new })
+        } else {
+            swiftSettings = [:]
+        }
+
         return [(androidSdk.sysroot ?? .root, androidPlatform, [
             "Type": .plString("SDK"),
             "Version": .plString("0.0.0"),
@@ -133,7 +160,7 @@ struct AndroidSDKRegistryExtension: SDKRegistryExtension {
                 // FIXME: Make this configurable in a better way so we don't need to push build settings at the SDK definition level
                 "LLVM_TARGET_TRIPLE_OS_VERSION": .plString("linux"),
                 "LLVM_TARGET_TRIPLE_SUFFIX": .plString("-android$(ANDROID_DEPLOYMENT_TARGET)"),
-            ]),
+            ].merging(swiftSettings, uniquingKeysWith: { _, new in new })),
             "SupportedTargets": .plDict([
                 "android": .plDict([
                     "Archs": .plArray(abis.map { .plString($0.value.llvm_triple.arch) }),

@@ -1027,16 +1027,14 @@ public struct DiscoveredSwiftCompilerToolSpecInfo: DiscoveredCommandLineToolSpec
     public let toolPath: Path
     /// The version of the Swift language in the tool.
     public let swiftVersion: Version
-    /// The version of swiftlang in the tool.
-    public let swiftlangVersion: Version
+    /// The name that this Swift was tagged with.
+    public let swiftTag: String
     /// The version of the stable ABI for the Swift language in the tool.
     public let swiftABIVersion: String?
-    /// The version of clang in the tool.
-    public let clangVersion: Version?
     /// `compilerClientsConfig` blocklists for Swift
     public let blocklists: SwiftBlocklists
 
-    public var toolVersion: Version? { return self.swiftlangVersion }
+    public var toolVersion: Version? { return self.swiftVersion }
 
     public var hostLibraryDirectory: Path {
         toolPath.dirname.dirname.join("lib/swift/host")
@@ -1066,12 +1064,11 @@ public struct DiscoveredSwiftCompilerToolSpecInfo: DiscoveredCommandLineToolSpec
         return toolFeatures.has(flag)
     }
 
-    public init(toolPath: Path, swiftVersion: Version, swiftlangVersion: Version, swiftABIVersion: String?, clangVersion: Version?, blocklists: SwiftBlocklists, toolFeatures: ToolFeatures<DiscoveredSwiftCompilerToolSpecInfo.FeatureFlag>) {
+    public init(toolPath: Path, swiftVersion: Version, swiftTag: String, swiftABIVersion: String?, blocklists: SwiftBlocklists, toolFeatures: ToolFeatures<DiscoveredSwiftCompilerToolSpecInfo.FeatureFlag>) {
         self.toolPath = toolPath
         self.swiftVersion = swiftVersion
-        self.swiftlangVersion = swiftlangVersion
+        self.swiftTag = swiftTag
         self.swiftABIVersion = swiftABIVersion
-        self.clangVersion = clangVersion
         self.blocklists = blocklists
         self.toolFeatures = toolFeatures
     }
@@ -2216,7 +2213,7 @@ public final class SwiftCompilerSpec : CompilerSpec, SpecIdentifierType, SwiftDi
             if !toolchains.isEmpty {
                 environment.append(("TOOLCHAINS", toolchains))
             }
-            let additionalSignatureData = "SWIFTC: \(toolSpecInfo.swiftlangVersion.description)"
+            let additionalSignatureData = "SWIFTC: \(toolSpecInfo.swiftTag)"
             let environmentBindings = EnvironmentBindings(environment)
 
             let indexingInputReplacements = Dictionary(uniqueKeysWithValues: cbc.inputs.compactMap { ftb -> (Path, Path)? in
@@ -3603,35 +3600,18 @@ public func discoveredSwiftCompilerInfo(_ producer: any CommandProducer, _ deleg
 
         // Values we will parse.  If we end up not parsing any values, then we return an empty info struct.
         var swiftVersion: Version? = nil
-        var swiftlangVersion: Version? = nil
-        var clangVersion: Version? = nil
+        var swiftTag: String? = nil
         var swiftABIVersion: String? = nil
 
-        // Note that Swift toolchains downloaded from swift.org have a swiftc with a different version format than those built by Apple; the 'releaseVersionRegex' reflects that format.  c.f. <rdar://problem/34956869>
-        let versionRegex = #/Apple Swift version (?<swiftVersion>[\d.]+) \(swiftlang-(?<swiftlangVersion>[\d.]+) clang-(?<clangVersion>[\d.]+)\)/#
-        let releaseVersionRegex = #/(?:Apple )?Swift version (?<swiftVersion>[\d.]+) \(swift-(?<swiftlangVersion>[\d.]+)-RELEASE\)/#
-        let developmentVersionRegex = #/Swift version (?<swiftVersion>[\d.]+)-dev \(LLVM (?:\b[0-9a-f]+), Swift (?:\b[0-9a-f]+)\)/#
+        let versionRegex = #/Swift version (?<swiftVersion>[\d.]+).*\((?<swiftTag>.*)\)/#
         let abiVersionRegex = #/ABI version: (?<abiVersion>[\d.]+)/#
 
         // Iterate over each line and add any discovered info to the info object.
         for line in outputString.components(separatedBy: "\n") {
-            if swiftlangVersion == nil {
+            if swiftVersion == nil {
                 if let groups = try versionRegex.firstMatch(in: line) {
                     swiftVersion = try? Version(String(groups.output.swiftVersion))
-                    swiftlangVersion = try? Version(String(groups.output.swiftlangVersion))
-                    clangVersion = try? Version(String(groups.output.clangVersion))
-                }
-                else if let groups = try releaseVersionRegex.firstMatch(in: line) {
-                    swiftVersion = try? Version(String(groups.output.swiftVersion))
-                    swiftlangVersion = try? Version(String(groups.output.swiftlangVersion))
-                    // This form has no clang version.
-                } else if let groups = try developmentVersionRegex.firstMatch(in: line) {
-                    swiftVersion = try? Version(String(groups.output.swiftVersion))
-                    guard let swiftVersion else {
-                        throw StubError.error("Could not parse Swift version from: \(outputString)")
-                    }
-                    clangVersion = try? Version(swiftVersion.description + ".999.999")
-                    swiftlangVersion = try? Version(swiftVersion.description + ".999.999")
+                    swiftTag = String(groups.output.swiftTag)
                 }
             }
             if swiftABIVersion == nil {
@@ -3641,7 +3621,7 @@ public func discoveredSwiftCompilerInfo(_ producer: any CommandProducer, _ deleg
             }
         }
 
-        guard let swiftVersion, let swiftlangVersion else {
+        guard let swiftVersion, let swiftTag else {
             throw StubError.error("Could not parse Swift versions from: \(outputString)")
         }
 
@@ -3677,7 +3657,7 @@ public func discoveredSwiftCompilerInfo(_ producer: any CommandProducer, _ deleg
         blocklists.installAPILazyTypecheck = getBlocklist(type: SwiftBlocklists.InstallAPILazyTypecheckInfo.self, toolchainFilename: "swift-lazy-installapi.json", delegate: delegate)
         blocklists.caching = getBlocklist(type: SwiftBlocklists.CachingBlockList.self, toolchainFilename: "swift-caching.json", delegate: delegate)
         blocklists.languageFeatureEnablement = getBlocklist(type: SwiftBlocklists.LanguageFeatureEnablementInfo.self, toolchainFilename: "swift-language-feature-enablement.json", delegate: delegate)
-        return DiscoveredSwiftCompilerToolSpecInfo(toolPath: toolPath, swiftVersion: swiftVersion, swiftlangVersion: swiftlangVersion, swiftABIVersion: swiftABIVersion, clangVersion: clangVersion, blocklists: blocklists, toolFeatures: getFeatures(at: toolPath))
+        return DiscoveredSwiftCompilerToolSpecInfo(toolPath: toolPath, swiftVersion: swiftVersion, swiftTag: swiftTag, swiftABIVersion: swiftABIVersion, blocklists: blocklists, toolFeatures: getFeatures(at: toolPath))
     })
 }
 

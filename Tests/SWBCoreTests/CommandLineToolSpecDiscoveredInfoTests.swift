@@ -112,35 +112,38 @@ import SWBMacro
         try await withSpec(SwiftCompilerSpec.self, .deferred) { (info: DiscoveredSwiftCompilerToolSpecInfo) in
             #expect(info.toolPath.basename == core.hostOperatingSystem.imageFormat.executableName(basename: "swiftc"))
             #expect(info.swiftVersion > Version(0, 0, 0))
-            #expect(info.swiftlangVersion > Version(0, 0, 0))
+            #expect(!info.swiftTag.isEmpty)
             #expect(info.swiftABIVersion == nil)
-#if canImport(Darwin)
-            #expect(info.clangVersion != nil)
-#endif
-            if let clangVersion = info.clangVersion {
-                #expect(clangVersion > Version(0, 0, 0))
-            }
         }
 
         try await withSpec(SwiftCompilerSpec.self, .result(status: .exit(0), stdout: Data("Swift version 5.9-dev (LLVM fd31e7eab45779f, Swift 86e6bda88e47178)\n".utf8), stderr: Data())) { (info: DiscoveredSwiftCompilerToolSpecInfo) in
             #expect(info.toolPath.basename == core.hostOperatingSystem.imageFormat.executableName(basename: "swiftc"))
             #expect(info.swiftVersion == Version(5, 9))
-            #expect(info.swiftlangVersion == Version(5, 9, 999, 999))
-            #expect(info.clangVersion == Version(5, 9, 999, 999))
+            #expect(info.swiftTag == "LLVM fd31e7eab45779f, Swift 86e6bda88e47178")
+        }
+
+        try await withSpec(SwiftCompilerSpec.self, .result(status: .exit(0), stdout: Data("Swift version 5.9 (Swift 86e6bda88e47178 LLVM fd31e7eab45779f)\n".utf8), stderr: Data())) { (info: DiscoveredSwiftCompilerToolSpecInfo) in
+            #expect(info.toolPath.basename == core.hostOperatingSystem.imageFormat.executableName(basename: "swiftc"))
+            #expect(info.swiftVersion == Version(5, 9))
+            #expect(info.swiftTag == "Swift 86e6bda88e47178 LLVM fd31e7eab45779f")
+        }
+
+        try await withSpec(SwiftCompilerSpec.self, .result(status: .exit(0), stdout: Data("Swift version 6.2 (swift-6.2-DEVELOPMENT-SNAPSHOT-2025-05-15-a)\n".utf8), stderr: Data())) { (info: DiscoveredSwiftCompilerToolSpecInfo) in
+            #expect(info.toolPath.basename == core.hostOperatingSystem.imageFormat.executableName(basename: "swiftc"))
+            #expect(info.swiftVersion == Version(6, 2))
+            #expect(info.swiftTag == "swift-6.2-DEVELOPMENT-SNAPSHOT-2025-05-15-a")
         }
 
         try await withSpec(SwiftCompilerSpec.self, .result(status: .exit(0), stdout: Data("Apple Swift version 5.9 (swiftlang-5.9.0.106.53 clang-1500.0.13.6)\n".utf8), stderr: Data("swift-driver version: 1.80 ".utf8))) { (info: DiscoveredSwiftCompilerToolSpecInfo) in
             #expect(info.toolPath.basename == core.hostOperatingSystem.imageFormat.executableName(basename: "swiftc"))
             #expect(info.swiftVersion == Version(5, 9))
-            #expect(info.swiftlangVersion == Version(5, 9, 0, 106, 53))
-            #expect(info.clangVersion == Version(1500, 0, 13, 6))
+            #expect(info.swiftTag == "swiftlang-5.9.0.106.53 clang-1500.0.13.6")
         }
 
         try await withSpec(SwiftCompilerSpec.self, .result(status: .exit(0), stdout: Data("Swift version 5.10.1 (swift-5.10.1-RELEASE)\nTarget: aarch64-unknown-linux-gnu\n".utf8), stderr: Data())) {  (info: DiscoveredSwiftCompilerToolSpecInfo) in
             #expect(info.toolPath.basename == core.hostOperatingSystem.imageFormat.executableName(basename: "swiftc"))
             #expect(info.swiftVersion == Version(5, 10, 1))
-            #expect(info.swiftlangVersion == Version(5, 10, 1))
-            #expect(info.clangVersion == nil)
+            #expect(info.swiftTag == "swift-5.10.1-RELEASE")
         }
     }
 
