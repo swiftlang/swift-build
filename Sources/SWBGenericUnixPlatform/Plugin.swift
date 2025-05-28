@@ -23,13 +23,13 @@ import Foundation
 }
 
 struct GenericUnixDeveloperDirectoryExtension: DeveloperDirectoryExtension {
-    func fallbackDeveloperDirectory(hostOperatingSystem: OperatingSystem) async throws -> Path? {
+    func fallbackDeveloperDirectory(hostOperatingSystem: OperatingSystem) async throws -> Core.DeveloperPath? {
         if hostOperatingSystem == .windows || hostOperatingSystem == .macOS {
             // Handled by the Windows and Apple plugins
             return nil
         }
 
-        return .root
+        return .swiftToolchain(.root, xcodeDeveloperPath: nil)
     }
 }
 

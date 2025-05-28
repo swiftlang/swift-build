@@ -53,14 +53,14 @@ public final class WindowsPlugin: Sendable {
 }
 
 struct WindowsDeveloperDirectoryExtension: DeveloperDirectoryExtension {
-    func fallbackDeveloperDirectory(hostOperatingSystem: OperatingSystem) async throws -> Path? {
+    func fallbackDeveloperDirectory(hostOperatingSystem: OperatingSystem) async throws -> Core.DeveloperPath? {
         guard hostOperatingSystem == .windows else {
             return nil
         }
         guard let userProgramFiles = URL.userProgramFiles, let swiftPath = try? userProgramFiles.appending(component: "Swift").filePath else {
             throw StubError.error("Could not determine path to user program files")
         }
-        return swiftPath
+        return .swiftToolchain(swiftPath, xcodeDeveloperPath: nil)
     }
 }
 
@@ -94,15 +94,7 @@ struct WindowsPlatformExtension: PlatformInfoExtension {
             return []
         }
 
-        let platformsPath: Path
-        switch context.developerPath {
-        case .xcode(let path):
-            platformsPath = path.join("Platforms")
-        case .swiftToolchain(let path, _):
-            platformsPath = path.join("Platforms")
-        case .fallback(let path):
-            platformsPath = path.join("Platforms")
-        }
+        let platformsPath = context.developerPath.path.join("Platforms")
         return try context.fs.listdir(platformsPath).compactMap { version in
             let versionedPlatformsPath = platformsPath.join(version)
             guard context.fs.isDirectory(versionedPlatformsPath) else {

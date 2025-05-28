@@ -38,7 +38,7 @@ extension Core {
         if hostOperatingSystem == .macOS {
             developerPath = .xcode(try await Xcode.getActiveDeveloperDirectoryPath())
         } else {
-            developerPath = .fallback(Path.root)
+            developerPath = .swiftToolchain(.root, xcodeDeveloperPath: nil)
         }
         let delegate = TestingCoreDelegate()
         return await (try Core(delegate: delegate, hostOperatingSystem: hostOperatingSystem, pluginManager: PluginManager(skipLoadingPluginIdentifiers: []), developerPath: developerPath, resourceSearchPaths: [], inferiorProductsPath: nil, additionalContentPaths: [], environment: [:], buildServiceModTime: Date(), connectionMode: .inProcess), delegate.diagnostics)
