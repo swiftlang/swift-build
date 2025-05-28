@@ -70,14 +70,9 @@ public final class Core: Sendable {
                         delegate.error("Could not determine path to developer directory because no extensions provided a fallback value")
                         return nil
                     case 1:
-                        let path = values[0]
-                        if path.str.hasSuffix(".app/Contents/Developer") {
-                            resolvedDeveloperPath = .xcode(path)
-                        } else {
-                            resolvedDeveloperPath = .fallback(values[0])
-                        }
+                        resolvedDeveloperPath = values[0]
                     default:
-                        delegate.error("Could not determine path to developer directory because multiple extensions provided conflicting fallback values: \(values.sorted().map { $0.str }.joined(separator: ", "))")
+                        delegate.error("Could not determine path to developer directory because multiple extensions provided conflicting fallback values: \(values.map { $0.path.str }.sorted().joined(separator: ", "))")
                         return nil
                     }
                 }
@@ -181,12 +176,9 @@ public final class Core: Sendable {
         // A path to the root of a Swift toolchain, optionally paired with the developer path of an installed Xcode
         case swiftToolchain(Path, xcodeDeveloperPath: Path?)
 
-        // A fallback resolved path.
-        case fallback(Path)
-
         public var path: Path {
             switch self {
-            case .xcode(let path), .swiftToolchain(let path, xcodeDeveloperPath: _), .fallback(let path):
+            case .xcode(let path), .swiftToolchain(let path, xcodeDeveloperPath: _):
                 return path
             }
         }
@@ -259,7 +251,7 @@ public final class Core: Sendable {
                 self.xcodeProductBuildVersion = ProductBuildVersion(major: 99, train: "T", build: 999)
                 self.xcodeProductBuildVersionString = xcodeProductBuildVersion.description
             }
-        case .swiftToolchain, .fallback:
+        case .swiftToolchain:
             // FIXME: Eliminate this requirment for Swift toolchains
             self.xcodeVersion = Version(99, 99, 99)
             self.xcodeProductBuildVersion = ProductBuildVersion(major: 99, train: "T", build: 999)
@@ -277,12 +269,14 @@ public final class Core: Sendable {
             case .xcode(let path):
                 toolchainPaths.append((path.join("Toolchains"), strict: path.str.hasSuffix(".app/Contents/Developer")))
             case .swiftToolchain(let path, xcodeDeveloperPath: let xcodeDeveloperPath):
-                toolchainPaths.append((path, strict: true))
+                if hostOperatingSystem == .windows {
+                    toolchainPaths.append((path.join("Toolchains"), strict: true))
+                } else {
+                    toolchainPaths.append((path, strict: true))
+                }
                 if let xcodeDeveloperPath {
                     toolchainPaths.append((xcodeDeveloperPath.join("Toolchains"), strict: xcodeDeveloperPath.str.hasSuffix(".app/Contents/Developer")))
                 }
-            case .fallback(let path):
-                toolchainPaths.append((path.join("Toolchains"), strict: false))
             }
 
             // FIXME: We should support building the toolchain locally (for `inferiorProductsPath`).
@@ -418,7 +412,7 @@ public final class Core: Sendable {
                     let pluginPath = path.join("usr/lib/libToolchainCASPlugin.dylib")
                     let plugin = try? ToolchainCASPlugin(dylib: pluginPath)
                     casPlugin = plugin
-                case .swiftToolchain, .fallback:
+                case .swiftToolchain:
                     // Unimplemented
                     break
                 }
@@ -454,8 +448,6 @@ public final class Core: Sendable {
                 } else {
                     searchPaths = []
                 }
-            case .fallback:
-                searchPaths = []
             }
         }
         if let additionalPlatformSearchPaths = getEnvironmentVariable("XCODE_EXTRA_PLATFORM_FOLDERS") {

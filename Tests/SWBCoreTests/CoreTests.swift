@@ -320,6 +320,7 @@ import SWBServiceCore
         // Validate that the core fails if there are loading errors.
         try await withTemporaryDirectory { tmpDirPath in
             let fakePlatformPath = tmpDirPath.join("Platforms/Fake.platform")
+            try localFS.createDirectory(tmpDirPath.join("Toolchains"), recursive: true)
             try localFS.createDirectory(fakePlatformPath, recursive: true)
             try await localFS.writePlist(fakePlatformPath.join("Info.plist"), .plDict([
                 "Description": .plString("Fake"),
@@ -334,7 +335,7 @@ import SWBServiceCore
             let pluginManager = await PluginManager(skipLoadingPluginIdentifiers: [])
             await pluginManager.registerExtensionPoint(SpecificationsExtensionPoint())
             await pluginManager.register(BuiltinSpecsExtension(), type: SpecificationsExtensionPoint.self)
-            let core = await Core.getInitializedCore(delegate, pluginManager: pluginManager, developerPath: .fallback(tmpDirPath), buildServiceModTime: Date(), connectionMode: .inProcess)
+            let core = await Core.getInitializedCore(delegate, pluginManager: pluginManager, developerPath: .swiftToolchain(tmpDirPath, xcodeDeveloperPath: nil), buildServiceModTime: Date(), connectionMode: .inProcess)
             #expect(core == nil)
 
             let results = CoreDelegateResults(delegate.diagnostics)
@@ -346,69 +347,75 @@ import SWBServiceCore
     @Test(.skipIfEnvironmentVariableSet(key: .externalToolchainsDir))
     func externalToolchainsDir() async throws {
         try await withTemporaryDirectory { tmpDir in
+            try localFS.createDirectory(tmpDir.join("Toolchains"))
+
             let originalToolchain = try await toolchainPathsCount()
 
-            try await testExternalToolchainPath(withSetEnv: nil, expecting: [], originalToolchain)
-            try await testExternalToolchainPath(withSetEnv: tmpDir.join("tmp/Foobar/MyDir").str, expecting: [tmpDir.join("tmp/Foobar/MyDir").str], originalToolchain)
-            try await testExternalToolchainPath(withSetEnv: nil, expecting: [], originalToolchain)
-            try await testExternalToolchainPath(withSetEnv: [tmpDir.join("tmp/MetalToolchain1.0").str, tmpDir.join("tmp/MetalToolchain2.0").str, tmpDir.join("tmp/MetalToolchain3.0").str].joined(separator: String(Path.pathEnvironmentSeparator)), expecting: [
+            try await testExternalToolchainPath(toolchainPath: tmpDir, withSetEnv: nil, expecting: [], originalToolchain)
+            try await testExternalToolchainPath(toolchainPath: tmpDir, withSetEnv: tmpDir.join("tmp/Foobar/MyDir").str, expecting: [tmpDir.join("tmp/Foobar/MyDir").str], originalToolchain)
+            try await testExternalToolchainPath(toolchainPath: tmpDir, withSetEnv: nil, expecting: [], originalToolchain)
+            try await testExternalToolchainPath(toolchainPath: tmpDir, withSetEnv: [tmpDir.join("tmp/MetalToolchain1.0").str, tmpDir.join("tmp/MetalToolchain2.0").str, tmpDir.join("tmp/MetalToolchain3.0").str].joined(separator: String(Path.pathEnvironmentSeparator)), expecting: [
                 tmpDir.join("tmp/MetalToolchain1.0").str,
                 tmpDir.join("tmp/MetalToolchain2.0").str,
                 tmpDir.join("tmp/MetalToolchain3.0").str,
             ], originalToolchain)
-            try await testExternalToolchainPath(withSetEnv: nil, expecting: [], originalToolchain)
-            try await testExternalToolchainPath(withSetEnv: "", expecting: [], originalToolchain)
+            try await testExternalToolchainPath(toolchainPath: tmpDir, withSetEnv: nil, expecting: [], originalToolchain)
+            try await testExternalToolchainPath(toolchainPath: tmpDir, withSetEnv: "", expecting: [], originalToolchain)
 
             // Environment overrides
-            try await testExternalToolchainPath(withSetEnv: nil, expecting: [], originalToolchain) // Clear
+            try await testExternalToolchainPath(toolchainPath: tmpDir, withSetEnv: nil, expecting: [], originalToolchain) // Clear
 
-            try await testExternalToolchainPath(environmentOverrides: ["Hello":"world"], expecting: [], originalToolchain)
-            try await testExternalToolchainPath(environmentOverrides: ["EXTERNAL_TOOLCHAINS_DIR": tmpDir.join("tmp/Foobar/MyDir").str], expecting: [tmpDir.join("tmp/Foobar/MyDir").str], originalToolchain)
-            try await testExternalToolchainPath(environmentOverrides: [:], expecting: [], originalToolchain)
-            try await testExternalToolchainPath(environmentOverrides: [
+            try await testExternalToolchainPath(toolchainPath: tmpDir, environmentOverrides: ["Hello":"world"], expecting: [], originalToolchain)
+            try await testExternalToolchainPath(toolchainPath: tmpDir, environmentOverrides: ["EXTERNAL_TOOLCHAINS_DIR": tmpDir.join("tmp/Foobar/MyDir").str], expecting: [tmpDir.join("tmp/Foobar/MyDir").str], originalToolchain)
+            try await testExternalToolchainPath(toolchainPath: tmpDir, environmentOverrides: [:], expecting: [], originalToolchain)
+            try await testExternalToolchainPath(toolchainPath: tmpDir, environmentOverrides: [
                 "EXTERNAL_TOOLCHAINS_DIR" : [tmpDir.join("tmp/MetalToolchain1.0").str, tmpDir.join("tmp/MetalToolchain2.0").str, tmpDir.join("tmp/MetalToolchain3.0").str].joined(separator: String(Path.pathEnvironmentSeparator)),
             ], expecting: [
                 tmpDir.join("tmp/MetalToolchain1.0").str,
                 tmpDir.join("tmp/MetalToolchain2.0").str,
                 tmpDir.join("tmp/MetalToolchain3.0").str,
             ], originalToolchain)
-            try await testExternalToolchainPath(environmentOverrides: [:], expecting: [], originalToolchain)
+            try await testExternalToolchainPath(toolchainPath: tmpDir, environmentOverrides: [:], expecting: [], originalToolchain)
         }
     }
 
     func toolchainPathsCount() async throws -> Int {
-        let delegate = Delegate()
-        let pluginManager = await PluginManager(skipLoadingPluginIdentifiers: [])
-        await pluginManager.registerExtensionPoint(DeveloperDirectoryExtensionPoint())
-        await pluginManager.registerExtensionPoint(SpecificationsExtensionPoint())
-        await pluginManager.registerExtensionPoint(ToolchainRegistryExtensionPoint())
-        await pluginManager.register(BuiltinSpecsExtension(), type: SpecificationsExtensionPoint.self)
-        struct MockDeveloperDirectoryExtensionPoint: DeveloperDirectoryExtension {
-            func fallbackDeveloperDirectory(hostOperatingSystem: OperatingSystem) async throws -> Path? {
-                .root
-            }
-        }
-        struct MockToolchainExtension: ToolchainRegistryExtension {
-            func additionalToolchains(context: any ToolchainRegistryExtensionAdditionalToolchainsContext) async throws -> [Toolchain] {
-                guard context.toolchainRegistry.lookup(ToolchainRegistry.defaultToolchainIdentifier) == nil else {
-                    return []
+        try await withTemporaryDirectory { tmpDir in
+            try localFS.createDirectory(tmpDir.join("Toolchains"))
+            let delegate = Delegate()
+            let pluginManager = await PluginManager(skipLoadingPluginIdentifiers: [])
+            await pluginManager.registerExtensionPoint(DeveloperDirectoryExtensionPoint())
+            await pluginManager.registerExtensionPoint(SpecificationsExtensionPoint())
+            await pluginManager.registerExtensionPoint(ToolchainRegistryExtensionPoint())
+            await pluginManager.register(BuiltinSpecsExtension(), type: SpecificationsExtensionPoint.self)
+            struct MockDeveloperDirectoryExtensionPoint: DeveloperDirectoryExtension {
+                let toolchainPath: Path
+                func fallbackDeveloperDirectory(hostOperatingSystem: OperatingSystem) async throws -> Core.DeveloperPath? {
+                    .swiftToolchain(toolchainPath, xcodeDeveloperPath: nil)
                 }
-                return [Toolchain(identifier: ToolchainRegistry.defaultToolchainIdentifier, displayName: "Mock", version: Version(), aliases: ["default"], path: .root, frameworkPaths: [], libraryPaths: [], defaultSettings: [:], overrideSettings: [:], defaultSettingsWhenPrimary: [:], executableSearchPaths: [], testingLibraryPlatformNames: [], fs: context.fs)]
             }
-        }
-        await pluginManager.register(MockDeveloperDirectoryExtensionPoint(), type: DeveloperDirectoryExtensionPoint.self)
-        await pluginManager.register(MockToolchainExtension(), type: ToolchainRegistryExtensionPoint.self)
-        let core = await Core.getInitializedCore(delegate, pluginManager: pluginManager, inferiorProductsPath: Path.root.join("invalid"), environment: [:], buildServiceModTime: Date(), connectionMode: .inProcess)
-        for diagnostic in delegate.diagnostics {
-            if diagnostic.formatLocalizedDescription(.debug).hasPrefix("warning: found previously-unknown deployment target macro ") {
-                continue
+            struct MockToolchainExtension: ToolchainRegistryExtension {
+                func additionalToolchains(context: any ToolchainRegistryExtensionAdditionalToolchainsContext) async throws -> [Toolchain] {
+                    guard context.toolchainRegistry.lookup(ToolchainRegistry.defaultToolchainIdentifier) == nil else {
+                        return []
+                    }
+                    return [Toolchain(identifier: ToolchainRegistry.defaultToolchainIdentifier, displayName: "Mock", version: Version(), aliases: ["default"], path: .root, frameworkPaths: [], libraryPaths: [], defaultSettings: [:], overrideSettings: [:], defaultSettingsWhenPrimary: [:], executableSearchPaths: [], testingLibraryPlatformNames: [], fs: context.fs)]
+                }
             }
-            Issue.record("\(diagnostic.formatLocalizedDescription(.debug))")
+            await pluginManager.register(MockDeveloperDirectoryExtensionPoint(toolchainPath: tmpDir), type: DeveloperDirectoryExtensionPoint.self)
+            await pluginManager.register(MockToolchainExtension(), type: ToolchainRegistryExtensionPoint.self)
+            let core = await Core.getInitializedCore(delegate, pluginManager: pluginManager, inferiorProductsPath: Path.root.join("invalid"), environment: [:], buildServiceModTime: Date(), connectionMode: .inProcess)
+            for diagnostic in delegate.diagnostics {
+                if diagnostic.formatLocalizedDescription(.debug).hasPrefix("warning: found previously-unknown deployment target macro ") {
+                    continue
+                }
+                Issue.record("\(diagnostic.formatLocalizedDescription(.debug))")
+            }
+            return try #require(core?.toolchainPaths).count
         }
-        return try #require(core?.toolchainPaths).count
     }
 
-    func testExternalToolchainPath(withSetEnv externalToolchainPathsString: String?, expecting expectedPathStrings: [String], _ originalToolchainCount: Int) async throws {
+    func testExternalToolchainPath(toolchainPath: Path, withSetEnv externalToolchainPathsString: String?, expecting expectedPathStrings: [String], _ originalToolchainCount: Int) async throws {
         var env = Environment.current.filter { $0.key != .externalToolchainsDir }
         if let externalToolchainPathsString {
             env[.externalToolchainsDir] = externalToolchainPathsString
@@ -417,11 +424,11 @@ import SWBServiceCore
         try await withEnvironment(env, clean: true) {
             #expect(getEnvironmentVariable(.externalToolchainsDir) == externalToolchainPathsString)
 
-            try await testExternalToolchainPath(environmentOverrides: [:], expecting: expectedPathStrings, originalToolchainCount)
+            try await testExternalToolchainPath(toolchainPath: toolchainPath, environmentOverrides: [:], expecting: expectedPathStrings, originalToolchainCount)
         }
     }
 
-    func testExternalToolchainPath(environmentOverrides: [String:String], expecting expectedPathStrings: [String], _ originalToolchainCount: Int) async throws {
+    func testExternalToolchainPath(toolchainPath: Path, environmentOverrides: [String:String], expecting expectedPathStrings: [String], _ originalToolchainCount: Int) async throws {
         let delegate = Delegate()
         let pluginManager = await PluginManager(skipLoadingPluginIdentifiers: [])
         await pluginManager.registerExtensionPoint(DeveloperDirectoryExtensionPoint())
@@ -429,8 +436,9 @@ import SWBServiceCore
         await pluginManager.registerExtensionPoint(ToolchainRegistryExtensionPoint())
         await pluginManager.register(BuiltinSpecsExtension(), type: SpecificationsExtensionPoint.self)
         struct MockDeveloperDirectoryExtensionPoint: DeveloperDirectoryExtension {
-            func fallbackDeveloperDirectory(hostOperatingSystem: OperatingSystem) async throws -> Path? {
-                .root
+            let toolchainPath: Path
+            func fallbackDeveloperDirectory(hostOperatingSystem: OperatingSystem) async throws -> Core.DeveloperPath? {
+                .swiftToolchain(toolchainPath, xcodeDeveloperPath: nil)
             }
         }
         struct MockToolchainExtension: ToolchainRegistryExtension {
@@ -441,7 +449,7 @@ import SWBServiceCore
                 return [Toolchain(identifier: ToolchainRegistry.defaultToolchainIdentifier, displayName: "Mock", version: Version(), aliases: ["default"], path: .root, frameworkPaths: [], libraryPaths: [], defaultSettings: [:], overrideSettings: [:], defaultSettingsWhenPrimary: [:], executableSearchPaths: [], testingLibraryPlatformNames: [], fs: context.fs)]
             }
         }
-        await pluginManager.register(MockDeveloperDirectoryExtensionPoint(), type: DeveloperDirectoryExtensionPoint.self)
+        await pluginManager.register(MockDeveloperDirectoryExtensionPoint(toolchainPath: toolchainPath), type: DeveloperDirectoryExtensionPoint.self)
         await pluginManager.register(MockToolchainExtension(), type: ToolchainRegistryExtensionPoint.self)
         let core = await Core.getInitializedCore(delegate, pluginManager: pluginManager, inferiorProductsPath: Path.root.join("invalid"), environment: environmentOverrides, buildServiceModTime: Date(), connectionMode: .inProcess)
         for diagnostic in delegate.diagnostics {

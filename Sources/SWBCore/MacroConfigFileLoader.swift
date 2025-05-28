@@ -133,7 +133,7 @@ final class MacroConfigFileLoader: Sendable {
                 // FIXME: Move this to its proper home, and support the other special cases Xcode has (PLATFORM_DIR and SDK_DIR). This should move to using a generic facility, e.g., source trees: <rdar://problem/23576831> Add search paths for .xcconfig macros to match what Xcode has
                 if path.str.hasPrefix("<DEVELOPER_DIR>") {
                     switch developerPath {
-                    case .xcode(let developerPath), .swiftToolchain(let developerPath, _), .fallback(let developerPath):
+                    case .xcode(let developerPath), .swiftToolchain(let developerPath, _):
                         path = Path(path.str.replacingOccurrences(of: "<DEVELOPER_DIR>", with: developerPath.str))
                     }
                 }
