@@ -5331,3 +5331,23 @@ extension MacroEvaluationScope {
         }
     }
 }
+
+extension Settings {
+    public struct ModuleDependencyInfo {
+        let name: String
+        let isPublic: Bool
+    }
+
+    public var moduleDependencies: [ModuleDependencyInfo] {
+        self.globalScope.evaluate(BuiltinMacros.MODULE_DEPENDENCIES).compactMap {
+            let components = $0.components(separatedBy: " ")
+            guard let name = components.last else {
+                return nil
+            }
+            return ModuleDependencyInfo(
+                name: name,
+                isPublic: components.count > 1 && components.first == "public"
+            )
+        }
+    }
+}
