@@ -30,7 +30,10 @@ import SWBServiceCore
                                            infoPlistName: String = "ToolchainInfo.plist",
                                            postProcess: (Path) throws -> Void = { _ in },
                                            perform: (ToolchainRegistry, [(String, String)], [(String, String)]) throws -> Void) async throws {
-        try await withTemporaryDirectory { tmpDirPath in
+        try await withTemporaryDirectory { baseTmpDirPath in
+            let tmpDirPath = baseTmpDirPath.join("tmp")
+            try fs.createDirectory(tmpDirPath)
+            try fs.createDirectory(baseTmpDirPath.join("Swift").join("Toolchains"), recursive: true)
 
             for (name, dataOpt) in inputs {
                 let itemPath = tmpDirPath.join(name).join(infoPlistName)
@@ -76,8 +79,9 @@ import SWBServiceCore
             await pluginManager.registerExtensionPoint(ToolchainRegistryExtensionPoint())
             await pluginManager.register(BuiltinSpecsExtension(), type: SpecificationsExtensionPoint.self)
             struct MockDeveloperDirectoryExtensionPoint: DeveloperDirectoryExtension {
-                func fallbackDeveloperDirectory(hostOperatingSystem: OperatingSystem) async throws -> Path? {
-                    .root
+                let toolchainPath: Path
+                func fallbackDeveloperDirectory(hostOperatingSystem: OperatingSystem) async throws -> Core.DeveloperPath? {
+                    .swiftToolchain(toolchainPath, xcodeDeveloperPath: nil)
                 }
             }
             struct MockToolchainExtension: ToolchainRegistryExtension {
@@ -88,7 +92,7 @@ import SWBServiceCore
                     return [Toolchain(identifier: ToolchainRegistry.defaultToolchainIdentifier, displayName: "Mock", version: Version(), aliases: ["default"], path: .root, frameworkPaths: [], libraryPaths: [], defaultSettings: [:], overrideSettings: [:], defaultSettingsWhenPrimary: [:], executableSearchPaths: [], testingLibraryPlatformNames: [], fs: context.fs)]
                 }
             }
-            await pluginManager.register(MockDeveloperDirectoryExtensionPoint(), type: DeveloperDirectoryExtensionPoint.self)
+            await pluginManager.register(MockDeveloperDirectoryExtensionPoint(toolchainPath: baseTmpDirPath.join("Swift")), type: DeveloperDirectoryExtensionPoint.self)
             await pluginManager.register(MockToolchainExtension(), type: ToolchainRegistryExtensionPoint.self)
             let coreDelegate = TestingCoreDelegate()
             let core = await Core.getInitializedCore(coreDelegate, pluginManager: pluginManager, inferiorProductsPath: Path.root.join("invalid"), environment: [:], buildServiceModTime: Date(), connectionMode: .inProcess)
@@ -172,7 +176,7 @@ import SWBServiceCore
         ], infoPlistName: "Info.plist") { registry, _, errors in
 
             #expect(Set(registry.toolchainsByIdentifier.keys) == Set(["org.swift.3020161114a", "org.swift.3020161115a"] + additionalToolchains))
-            #expect(errors.count == 0)
+            #expect(errors.count == 0, "\(errors)")
             #expect(registry.lookup("org.swift.3020161115a")?.identifier == "org.swift.3020161115a")
             #expect(registry.lookup("org.swift.3020161114a")?.identifier == "org.swift.3020161114a")
 
