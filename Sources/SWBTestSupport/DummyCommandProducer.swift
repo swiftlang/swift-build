@@ -60,7 +60,7 @@ package struct MockCommandProducer: CommandProducer, Sendable {
                 paths.append(path)
             }
             switch core.developerPath {
-            case .xcode(let path), .fallback(let path):
+            case .xcode(let path):
                 paths.append(path.join("usr").join("bin"))
                 paths.append(path.join("usr").join("local").join("bin"))
             case .swiftToolchain(let path, xcodeDeveloperPath: let xcodeDeveloperPath):

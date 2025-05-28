@@ -49,7 +49,7 @@ import SWBMacro
         }
 
         var developerPath: Core.DeveloperPath {
-            .fallback(Path.temporaryDirectory)
+            .swiftToolchain(.temporaryDirectory, xcodeDeveloperPath: nil)
         }
     }
 

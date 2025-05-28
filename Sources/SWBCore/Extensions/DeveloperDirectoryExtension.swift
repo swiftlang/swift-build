@@ -21,5 +21,5 @@ public struct DeveloperDirectoryExtensionPoint: ExtensionPoint {
 }
 
 public protocol DeveloperDirectoryExtension: Sendable {
-    func fallbackDeveloperDirectory(hostOperatingSystem: OperatingSystem) async throws -> Path?
+    func fallbackDeveloperDirectory(hostOperatingSystem: OperatingSystem) async throws -> Core.DeveloperPath?
 }

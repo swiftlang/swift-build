@@ -31,8 +31,8 @@ import SWBTaskConstruction
 }
 
 struct AppleDeveloperDirectoryExtension: DeveloperDirectoryExtension {
-    func fallbackDeveloperDirectory(hostOperatingSystem: OperatingSystem) async throws -> Path? {
-        try await hostOperatingSystem == .macOS ? Xcode.getActiveDeveloperDirectoryPath() : nil
+    func fallbackDeveloperDirectory(hostOperatingSystem: OperatingSystem) async throws -> Core.DeveloperPath? {
+        try await hostOperatingSystem == .macOS ? .xcode(Xcode.getActiveDeveloperDirectoryPath()) : nil
     }
 }
 
