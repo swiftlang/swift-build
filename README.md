@@ -12,11 +12,11 @@ When building SwiftPM from sources which include Swift Build integration, passin
 
 ### With Xcode
 
-Changes to swift-build can also be tested in Xcode using the `launch-xcode` command plugin provided by the package. Run `swift package --disable-sandbox launch-xcode` from your checkout of swift-build to launch a copy of the currently `xcode-select`ed Xcode.app configured to use your modified copy of the build system service. This workflow is currently supported when using Xcode 16.2.
+Changes to swift-build can also be tested in Xcode using the `launch-xcode` command plugin provided by the package. Run `swift package --disable-sandbox launch-xcode` from your checkout of swift-build to launch a copy of the currently `xcode-select`ed Xcode.app configured to use your modified copy of the build system service. This workflow is generally only supported when using the latest available Xcode version.
 
 ### With xcodebuild
 
-Changes to swift-build can also be tested in xcodebuild using the `run-xcodebuild` command plugin provided by the package. Run `swift package --disable-sandbox run-xcodebuild` from your checkout of swift-build to run xcodebuild from the currently `xcode-select`ed Xcode.app configured to use your modified copy of the build system service. Arguments followed by `--` will be forwarded to xcodebuild unmodified. This workflow is currently supported when using Xcode 16.2.
+Changes to swift-build can also be tested in xcodebuild using the `run-xcodebuild` command plugin provided by the package. Run `swift package --disable-sandbox run-xcodebuild` from your checkout of swift-build to run xcodebuild from the currently `xcode-select`ed Xcode.app configured to use your modified copy of the build system service. Arguments followed by `--` will be forwarded to xcodebuild unmodified. This workflow is generally only supported when using the latest available Xcode version.
 
 ### Debugging
 
