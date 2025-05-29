@@ -865,6 +865,7 @@ public final class BuiltinMacros {
     public static let MODULEMAP_PATH = BuiltinMacros.declareStringMacro("MODULEMAP_PATH")
     public static let MODULEMAP_PRIVATE_FILE = BuiltinMacros.declareStringMacro("MODULEMAP_PRIVATE_FILE")
     public static let MODULES_FOLDER_PATH = BuiltinMacros.declarePathMacro("MODULES_FOLDER_PATH")
+    public static let MODULE_DEPENDENCIES = BuiltinMacros.declareStringListMacro("MODULE_DEPENDENCIES")
     public static let MODULE_VERIFIER_KIND = BuiltinMacros.declareEnumMacro("MODULE_VERIFIER_KIND") as EnumMacroDeclaration<ModuleVerifierKind>
     public static let MODULE_VERIFIER_LSV = BuiltinMacros.declareBooleanMacro("MODULE_VERIFIER_LSV")
     public static let MODULE_VERIFIER_SUPPORTED_LANGUAGES = BuiltinMacros.declareStringListMacro("MODULE_VERIFIER_SUPPORTED_LANGUAGES")
@@ -1944,6 +1945,7 @@ public final class BuiltinMacros {
         MODULEMAP_PRIVATE_FILE,
         MODULES_FOLDER_PATH,
         MODULE_CACHE_DIR,
+        MODULE_DEPENDENCIES,
         MODULE_NAME,
         MODULE_START,
         MODULE_STOP,

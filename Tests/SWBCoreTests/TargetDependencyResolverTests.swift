@@ -4591,6 +4591,84 @@ fileprivate enum TargetPlatformSpecializationMode {
             XCTAssertEqualSequences(buildGraph.allTargets.map({ $0.target.name }).sorted(), ["AppTarget", "AlwaysUsedDependency"].sorted())
         }
     }
+
+    @Test
+    func appAndFrameworkModuleDependencies() async throws {
+        let core = try await getCore()
+
+        let workspace = try TestWorkspace(
+            "Workspace",
+            projects: [
+                TestProject(
+                    "P1",
+                    groupTree: TestGroup(
+                        "G1",
+                        children: [
+                            TestFile("aFramework.framework"),
+                        ]
+                    ),
+                    buildConfigurations: [
+                        TestBuildConfiguration("Debug", buildSettings: [:]),
+                    ],
+                    targets: [
+                        TestStandardTarget(
+                            "anApp",
+                            type: .application,
+                            buildConfigurations: [
+                                TestBuildConfiguration("Debug", buildSettings: [
+                                    "PRODUCT_NAME": "anApp",
+                                    "MODULE_DEPENDENCIES": "'public aFramework' nonExisting",
+                                ]),
+                            ]
+                        )
+                    ]
+                ),
+                TestProject(
+                    "P2",
+                    groupTree: TestGroup(
+                        "G2",
+                        children:[
+                        ]
+                    ),
+                    buildConfigurations: [
+                        TestBuildConfiguration("Debug", buildSettings: [:]),
+                    ],
+                    targets: [
+                        TestStandardTarget(
+                            "aFramework",
+                            type: .framework,
+                            buildConfigurations: [
+                                TestBuildConfiguration("Debug", buildSettings: ["PRODUCT_NAME": "aFramework"]),
+                            ]
+                        ),
+                    ]
+                ),
+            ]
+        ).load(core)
+        let workspaceContext = WorkspaceContext(core: core, workspace: workspace, processExecutionCache: .sharedForTesting)
+
+        // Perform some simple correctness tests.
+        #expect(workspace.projects.count == 2)
+        let appProject = workspace.projects[0]
+        let fwkProject = workspace.projects[1]
+
+        // Configure the targets and create a BuildRequest.
+        let buildParameters = BuildParameters(configuration: "Debug")
+        let appTarget = BuildRequest.BuildTargetInfo(parameters: buildParameters, target: appProject.targets[0])
+        let fwkTarget = BuildRequest.BuildTargetInfo(parameters: buildParameters, target: fwkProject.targets[0])
+        let buildRequest = BuildRequest(parameters: buildParameters, buildTargets: [appTarget], continueBuildingAfterErrors: true, useParallelTargets: false, useImplicitDependencies: true, useDryRun: false)
+        let buildRequestContext = BuildRequestContext(workspaceContext: workspaceContext)
+
+        let delegate = EmptyTargetDependencyResolverDelegate(workspace: workspaceContext.workspace)
+
+        // Get the dependency closure for the build request and examine it.
+        let buildGraph = await TargetGraphFactory(workspaceContext: workspaceContext, buildRequest: buildRequest, buildRequestContext: buildRequestContext, delegate: delegate).graph(type: .dependency)
+        let dependencyClosure = buildGraph.allTargets
+        #expect(dependencyClosure.map({ $0.target.name }) == ["aFramework", "anApp"])
+        #expect(try buildGraph.dependencies(appTarget) == [try buildGraph.target(for: fwkTarget)])
+        #expect(try buildGraph.dependencies(fwkTarget) == [])
+        delegate.checkNoDiagnostics()
+    }
 }
 
 @Suite fileprivate struct SuperimposedPropertiesTests: CoreBasedTests {
