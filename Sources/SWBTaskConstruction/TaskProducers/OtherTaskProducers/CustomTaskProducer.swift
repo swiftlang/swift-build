@@ -34,28 +34,43 @@ final class CustomTaskProducer: PhasedTaskProducer, TaskProducer {
                 let workingDirectory = customTask.workingDirectory.map { Path(context.settings.globalScope.evaluate($0)).normalize() } ?? context.defaultWorkingDirectory
                 let inputPaths = customTask.inputFilePaths.map { Path(context.settings.globalScope.evaluate($0)).normalize() }
                 let inputs = inputPaths.map { delegate.createNode($0) }
-                var outputs: [any PlannedNode] = customTask.outputFilePaths.map { Path(context.settings.globalScope.evaluate($0)).normalize() }.map { delegate.createNode($0) }
-                
+                let outputPaths = customTask.outputFilePaths.map { Path(context.settings.globalScope.evaluate($0)).normalize() }
+                var outputs: [any PlannedNode] = outputPaths.map { delegate.createNode($0) }
+
+                let md5Context = InsecureHashContext()
+                for arg in commandLine {
+                    md5Context.add(string: arg)
+                    md5Context.add(number: 0)
+                }
+                md5Context.add(number: 1)
+                for (key, value) in environment.bindingsDictionary {
+                    md5Context.add(string: key)
+                    md5Context.add(number: 0)
+                    md5Context.add(string: value)
+                    md5Context.add(number: 0)
+                }
+                md5Context.add(number: 1)
+                md5Context.add(string: workingDirectory.str)
+                md5Context.add(number: 1)
+                for input in inputPaths {
+                    md5Context.add(string: input.str)
+                    md5Context.add(number: 0)
+                }
+                md5Context.add(number: 1)
+                for output in outputPaths {
+                    md5Context.add(string: output.str)
+                    md5Context.add(number: 0)
+                }
+                let taskSignature = md5Context.signature.asString
+
                 if outputs.isEmpty {
                     // If there are no outputs, create a virtual output that can be wired up to gates
-                    let md5Context = InsecureHashContext()
-                    for arg in commandLine {
-                        md5Context.add(string: arg)
-                    }
-                    for (key, value) in environment.bindingsDictionary {
-                        md5Context.add(string: key)
-                        md5Context.add(string: value)
-                    }
-                    md5Context.add(string: workingDirectory.str)
-                    for input in inputPaths {
-                        md5Context.add(string: input.str)
-                    }
-                    outputs.append(delegate.createVirtualNode("CustomTask-\(md5Context.signature.asString)"))
+                    outputs.append(delegate.createVirtualNode("CustomTask-\(taskSignature)"))
                 }
                 
                 delegate.createTask(
                     type: CustomTaskTypeDescription.only,
-                    ruleInfo: ["CustomTask", context.settings.globalScope.evaluate(customTask.executionDescription)],
+                    ruleInfo: ["CustomTask", context.settings.globalScope.evaluate(customTask.executionDescription), taskSignature],
                     commandLine: commandLine,
                     environment: environment,
                     workingDirectory: workingDirectory,

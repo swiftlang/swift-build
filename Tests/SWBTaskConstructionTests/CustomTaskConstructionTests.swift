@@ -59,7 +59,7 @@ fileprivate struct CustomTaskConstructionTests: CoreBasedTests {
         await tester.checkBuild(runDestination: .host) { results in
             results.checkNoDiagnostics()
 
-            results.checkTask(.matchRule(["CustomTask", "My Custom Task"])) { task in
+            results.checkTask(.matchRulePattern(["CustomTask", "My Custom Task", .any])) { task in
                 task.checkCommandLine(["tool", "-foo", "-bar"])
                 task.checkEnvironment(["ENVVAR": "VALUE"])
                 #expect(task.workingDirectory == Path.root.join("working/directory"))
@@ -119,14 +119,14 @@ fileprivate struct CustomTaskConstructionTests: CoreBasedTests {
         await tester.checkBuild(runDestination: .host) { results in
             results.checkNoDiagnostics()
 
-            results.checkTask(.matchRule(["CustomTask", "My Custom Task"])) { task in
+            results.checkTask(.matchRulePattern(["CustomTask", "My Custom Task", .any])) { task in
                 task.checkCommandLine(["tool", "-foo", "-bar"])
-                results.checkTaskDoesNotFollow(task, .matchRule(["CustomTask", "My Custom Task 2"]))
+                results.checkTaskDoesNotFollow(task, .matchRulePattern(["CustomTask", "My Custom Task 2", .any]))
             }
 
-            results.checkTask(.matchRule(["CustomTask", "My Custom Task 2"])) { task in
+            results.checkTask(.matchRulePattern(["CustomTask", "My Custom Task 2", .any])) { task in
                 task.checkCommandLine(["tool2", "-bar", "-foo"])
-                results.checkTaskDoesNotFollow(task, .matchRule(["CustomTask", "My Custom Task"]))
+                results.checkTaskDoesNotFollow(task, .matchRulePattern(["CustomTask", "My Custom Task", .any]))
             }
         }
     }
@@ -170,7 +170,7 @@ fileprivate struct CustomTaskConstructionTests: CoreBasedTests {
         await tester.checkBuild(runDestination: .host) { results in
             results.checkNoDiagnostics()
 
-            results.checkTask(.matchRule(["CustomTask", "My Custom Task"])) { task in
+            results.checkTask(.matchRulePattern(["CustomTask", "My Custom Task", .any])) { task in
                 task.checkCommandLine(["tool", "-foo", "-bar"])
                 task.checkOutputs([
                     // Virtual output
@@ -223,9 +223,64 @@ fileprivate struct CustomTaskConstructionTests: CoreBasedTests {
         await tester.checkBuild(runDestination: .host) { results in
             results.checkNoDiagnostics()
 
-            results.checkTask(.matchRule(["CustomTask", "My Custom Task"])) { task in
+            results.checkTask(.matchRulePattern(["CustomTask", "My Custom Task", .any])) { task in
                 task.checkEnvironment(["ENVVAR": "VALUE", "MY_SETTING": "FOO"])
             }
+        }
+    }
+
+    @Test(.requireSDKs(.host))
+    func customTasksWithDuplicateDescriptions() async throws {
+        let testProject = TestProject(
+            "aProject",
+            groupTree: TestGroup(
+                "SomeFiles", path: "Sources",
+                children: [
+                    TestFile("input.txt"),
+                    TestFile("input2.txt"),
+                    TestFile("main.c"),
+                ]),
+            buildConfigurations: [
+                TestBuildConfiguration(
+                    "Debug",
+                    buildSettings: [
+                        "GENERATE_INFOPLIST_FILE": "YES",
+                        "PRODUCT_NAME": "$(TARGET_NAME)",
+                        "SDKROOT": "auto",
+                    ]),
+            ],
+            targets: [
+                TestStandardTarget(
+                    "CoreFoo", type: .framework,
+                    buildPhases: [
+                        TestSourcesBuildPhase(["main.c"])
+                    ],
+                    customTasks: [
+                        TestCustomTask(
+                            commandLine: ["tool", "-foo", "-bar"],
+                            environment: ["ENVVAR": "VALUE"],
+                            workingDirectory: Path.root.join("working/directory").str,
+                            executionDescription: "My Custom Task",
+                            inputs: ["$(SRCROOT)/Sources/input.txt"],
+                            outputs: [Path.root.join("output").str],
+                            enableSandboxing: false,
+                            preparesForIndexing: false),
+                        TestCustomTask(
+                            commandLine: ["tool", "-foo", "-bar"],
+                            environment: ["ENVVAR": "VALUE"],
+                            workingDirectory: Path.root.join("working/directory").str,
+                            executionDescription: "My Custom Task",
+                            inputs: ["$(SRCROOT)/Sources/input2.txt"],
+                            outputs: [Path.root.join("output2").str],
+                            enableSandboxing: false,
+                            preparesForIndexing: false)
+                    ]
+                ),
+            ])
+        let tester = try await TaskConstructionTester(getCore(), testProject)
+        await tester.checkBuild(runDestination: .host) { results in
+            // Ensure we don't incorrectly diagnose duplicate custom tasks
+            results.checkNoDiagnostics()
         }
     }
 }
