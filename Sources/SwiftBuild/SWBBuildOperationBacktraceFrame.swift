@@ -15,9 +15,9 @@ import SWBUtil
 
 public import Foundation
 
-public struct SWBBuildOperationBacktraceFrame: Hashable, Sendable, Codable, Identifiable {
-    public struct Identifier: Equatable, Hashable, Sendable, Codable, CustomDebugStringConvertible {
-        private enum Storage: Equatable, Hashable, Sendable, Codable {
+public struct SWBBuildOperationBacktraceFrame: Hashable, Sendable, Codable, Identifiable, Comparable {
+    public struct Identifier: Equatable, Comparable, Hashable, Sendable, Codable, CustomDebugStringConvertible {
+        private enum Storage: Equatable, Comparable, Hashable, Sendable, Codable {
             case task(BuildOperationTaskSignature)
             case key(String)
         }
@@ -39,6 +39,10 @@ public struct SWBBuildOperationBacktraceFrame: Hashable, Sendable, Codable, Iden
             self.storage = .task(taskSignature)
         }
 
+        package init(genericBuildKey: String) {
+            self.storage = .key(genericBuildKey)
+        }
+
         public var debugDescription: String {
             switch storage {
             case .task(let taskSignature):
@@ -47,9 +51,13 @@ public struct SWBBuildOperationBacktraceFrame: Hashable, Sendable, Codable, Iden
                 return key
             }
         }
+
+        public static func < (lhs: SWBBuildOperationBacktraceFrame.Identifier, rhs: SWBBuildOperationBacktraceFrame.Identifier) -> Bool {
+            lhs.storage < rhs.storage
+        }
     }
 
-    public enum Category: Equatable, Hashable, Sendable, Codable {
+    public enum Category: Equatable, Comparable, Hashable, Sendable, Codable {
         case ruleNeverBuilt
         case ruleSignatureChanged
         case ruleHadInvalidValue
@@ -68,7 +76,7 @@ public struct SWBBuildOperationBacktraceFrame: Hashable, Sendable, Codable, Iden
             }
         }
     }
-    public enum Kind: Equatable, Hashable, Sendable, Codable {
+    public enum Kind: Equatable, Comparable, Hashable, Sendable, Codable {
         case genericTask
         case swiftDriverJob
         case file
@@ -82,6 +90,14 @@ public struct SWBBuildOperationBacktraceFrame: Hashable, Sendable, Codable, Iden
     public let description: String
     public let frameKind: Kind
 
+    package init(identifier: Identifier, previousFrameIdentifier: Identifier?, category: Category, description: String, frameKind: Kind) {
+        self.identifier = identifier
+        self.previousFrameIdentifier = previousFrameIdentifier
+        self.category = category
+        self.description = description
+        self.frameKind = frameKind
+    }
+
     // The old name collides with the `kind` key used in the SwiftBuildMessage JSON encoding
     @available(*, deprecated, renamed: "frameKind")
     public var kind: Kind {
@@ -90,6 +106,10 @@ public struct SWBBuildOperationBacktraceFrame: Hashable, Sendable, Codable, Iden
 
     public var id: Identifier {
         identifier
+    }
+
+    public static func < (lhs: SWBBuildOperationBacktraceFrame, rhs: SWBBuildOperationBacktraceFrame) -> Bool {
+        (lhs.identifier, lhs.previousFrameIdentifier, lhs.category, lhs.description, lhs.frameKind) < (rhs.identifier, rhs.previousFrameIdentifier, rhs.category, rhs.description, rhs.frameKind)
     }
 }
 
@@ -132,5 +152,45 @@ extension SWBBuildOperationBacktraceFrame {
             kind = .unknown
         }
         self.init(identifier: id, previousFrameIdentifier: previousID, category: category, description: message.description, frameKind: kind)
+    }
+}
+
+public struct SWBBuildOperationCollectedBacktraceFrames {
+    fileprivate var frames: [SWBBuildOperationBacktraceFrame.Identifier: Set<SWBBuildOperationBacktraceFrame>]
+
+    public init() {
+        self.frames = [:]
+    }
+
+    public mutating func add(frame: SWBBuildOperationBacktraceFrame) {
+        frames[frame.identifier, default: []].insert(frame)
+    }
+}
+
+public struct SWBTaskBacktrace {
+    public let frames: [SWBBuildOperationBacktraceFrame]
+
+    public init?(from baseFrameID: SWBBuildOperationBacktraceFrame.Identifier, collectedFrames: SWBBuildOperationCollectedBacktraceFrames) {
+        var frames: [SWBBuildOperationBacktraceFrame] = []
+        var currentFrame = collectedFrames.frames[baseFrameID]?.only
+        while let frame = currentFrame {
+            frames.append(frame)
+            if let previousFrameID = frame.previousFrameIdentifier, let candidatesForNextFrame = collectedFrames.frames[previousFrameID] {
+                switch frame.category {
+                case .dynamicTaskRegistration:
+                    currentFrame = candidatesForNextFrame.sorted().first {
+                        $0.category == .dynamicTaskRequest
+                    }
+                default:
+                    currentFrame = candidatesForNextFrame.sorted().first
+                }
+            } else {
+                currentFrame = nil
+            }
+        }
+        guard !frames.isEmpty else {
+            return nil
+        }
+        self.frames = frames
     }
 }

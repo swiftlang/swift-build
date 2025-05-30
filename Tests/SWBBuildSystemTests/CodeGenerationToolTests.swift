@@ -15,6 +15,7 @@ import class Foundation.Bundle
 import SWBCore
 import SWBTaskExecution
 import SWBTestSupport
+import SwiftBuildTestSupport
 import SWBUtil
 import Testing
 import SWBProtocol

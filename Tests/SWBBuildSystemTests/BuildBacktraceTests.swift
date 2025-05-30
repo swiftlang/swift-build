@@ -16,6 +16,7 @@ import SWBCore
 import SWBProtocol
 @_spi(Testing) import SWBUtil
 import SWBTestSupport
+import SwiftBuildTestSupport
 
 @Suite(.userDefaults(["EnableBuildBacktraceRecording": "true"]))
 fileprivate struct BuildBacktraceTests: CoreBasedTests {
@@ -165,7 +166,7 @@ fileprivate struct BuildBacktraceTests: CoreBasedTests {
         }
     }
 
-    @Test(.requireSDKs(.macOS), .flaky("Single-use task backtraces need rework"))
+    @Test(.requireSDKs(.macOS))
     func singleUseTaskBacktraceRecording() async throws {
         try await withTemporaryDirectory { tmpDirPath async throws -> Void in
             let testWorkspace = try await TestWorkspace(
