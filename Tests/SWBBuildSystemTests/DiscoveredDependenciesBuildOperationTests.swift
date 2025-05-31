@@ -12,6 +12,7 @@
 
 import SWBCore
 import SWBTestSupport
+import SwiftBuildTestSupport
 import SWBUtil
 import Testing
 

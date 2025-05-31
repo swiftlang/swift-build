@@ -369,7 +369,7 @@ let package = Package(
         // Perf tests
         .testTarget(
             name: "SWBBuildSystemPerfTests",
-            dependencies: ["SWBBuildSystem", "SWBTestSupport"],
+            dependencies: ["SWBBuildSystem", "SWBTestSupport", "SwiftBuildTestSupport"],
             swiftSettings: swiftSettings(languageMode: .v6)),
         .testTarget(
             name: "SWBCASPerfTests",
