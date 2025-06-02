@@ -24,7 +24,7 @@ import class Foundation.ProcessInfo
 
 @Suite
 fileprivate struct CustomTaskBuildOperationTests: CoreBasedTests {
-    @Test(.requireSDKs(.host), .requireThreadSafeWorkingDirectory)
+    @Test(.requireSDKs(.host))
     func outputParsing() async throws {
         try await withTemporaryDirectory { tmpDir in
             let destination: RunDestinationInfo = .host

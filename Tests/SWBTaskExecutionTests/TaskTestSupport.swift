@@ -56,14 +56,14 @@ class MockDynamicTaskExecutionDelegate: DynamicTaskExecutionDelegate {
     func spawn(
         commandLine: [String],
         environment: [String: String],
-        workingDirectory: String,
+        workingDirectory: Path,
         processDelegate: any ProcessDelegate
     ) async throws -> Bool {
         if commandLine.isEmpty {
             throw StubError.error("Invalid number of arguments")
         }
 
-        let executionResult = try await Process.getOutput(url: URL(fileURLWithPath: commandLine[0]), arguments: Array(commandLine.dropFirst()), currentDirectoryURL: URL(fileURLWithPath: workingDirectory), environment: .init(environment))
+        let executionResult = try await Process.getOutput(url: URL(fileURLWithPath: commandLine[0]), arguments: Array(commandLine.dropFirst()), currentDirectoryURL: URL(fileURLWithPath: workingDirectory.str), environment: .init(environment))
 
         // FIXME: Pass the real PID
         let pid = llbuild_pid_t.invalid

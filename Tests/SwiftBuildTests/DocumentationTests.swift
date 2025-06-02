@@ -20,7 +20,7 @@ import Testing
 @Suite
 fileprivate struct DocumentationBuildTests: CoreBasedTests {
     // docc fails on Windows for some reason
-    @Test(.requireSDKs(.host), .requireThreadSafeWorkingDirectory, .skipHostOS(.windows))
+    @Test(.requireSDKs(.host), .skipHostOS(.windows))
     func documentationBuild() async throws {
         try await withTemporaryDirectory { tmpDir in
             let fs: any FSProxy = localFS

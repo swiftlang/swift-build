@@ -288,7 +288,7 @@ fileprivate struct BuildOperationTests: CoreBasedTests {
         }
     }
 
-    @Test(.requireSDKs(.macOS), .skipHostOS(.windows), .requireThreadSafeWorkingDirectory) // version info discovery isn't working on Windows
+    @Test(.requireSDKs(.macOS), .skipHostOS(.windows)) // version info discovery isn't working on Windows
     func onlyCreateBuildDescription() async throws {
         try await withTemporaryDirectory { temporaryDirectory in
             try await withAsyncDeferrable { deferrable in
@@ -445,8 +445,7 @@ fileprivate struct BuildOperationTests: CoreBasedTests {
 
     @Test(
         .requireSDKs(.host),
-        .skipHostOS(.windows),
-        .requireThreadSafeWorkingDirectory /* version info discovery isn't working on Windows */,
+        .skipHostOS(.windows), /* version info discovery isn't working on Windows */
         .flaky("Test occasionally crashes in linux CI"),
         .bug("https://github.com/swiftlang/swift-build/issues/528")
     )
@@ -1777,7 +1776,7 @@ fileprivate struct BuildOperationTests: CoreBasedTests {
     }
 
     /// Check scraped build issues.
-    @Test(.requireSDKs(.macOS), .skipHostOS(.windows), .requireThreadSafeWorkingDirectory) // relies on UNIX shell, consider adding Windows command shell support for script phases?
+    @Test(.requireSDKs(.macOS), .skipHostOS(.windows)) // relies on UNIX shell, consider adding Windows command shell support for script phases?
     func buildScriptIssues() async throws {
         try await withTemporaryDirectory { temporaryDirectory in
             try await withAsyncDeferrable { deferrable in

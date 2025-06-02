@@ -61,7 +61,7 @@ private class ToolSpecCapturingTaskGenerationDelegate: CapturingTaskGenerationDe
         try super.init(producer: producer, userPreferences: userPreferences)
     }
 
-    override func executeExternalTool(commandLine: [String], workingDirectory: String?, environment: [String: String]) async throws -> ExternalToolResult {
+    override func executeExternalTool(commandLine: [String], workingDirectory: Path?, environment: [String: String]) async throws -> ExternalToolResult {
         result
     }
 }

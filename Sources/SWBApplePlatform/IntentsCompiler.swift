@@ -194,7 +194,7 @@ public final class IntentsCompilerSpec : GenericCompilerSpec, SpecIdentifierType
             // Mark the file as being watched by the build system to invalidate the build description.
             delegate.access(path: input.absolutePath)
 
-            generatedFiles = try await generatedFilePaths(cbc, delegate, commandLine: commandLine[0...1] + ["-dryRun"] + commandLine[2...], workingDirectory: cbc.producer.defaultWorkingDirectory.str, environment: self.environmentFromSpec(cbc, delegate).bindingsDictionary, executionDescription: "Compute Intent Definition \(input.absolutePath.basename) code generation output paths") { output in
+            generatedFiles = try await generatedFilePaths(cbc, delegate, commandLine: commandLine[0...1] + ["-dryRun"] + commandLine[2...], workingDirectory: cbc.producer.defaultWorkingDirectory, environment: self.environmentFromSpec(cbc, delegate).bindingsDictionary, executionDescription: "Compute Intent Definition \(input.absolutePath.basename) code generation output paths") { output in
                 return output.unsafeStringValue.split(separator: "\n").map(Path.init).map { $0.prependingPrivatePrefixIfNeeded(otherPath: outputDir) }
             }
             guard !generatedFiles.isEmpty else {

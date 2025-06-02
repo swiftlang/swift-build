@@ -145,7 +145,7 @@ public final class CopyTiffTaskAction: TaskAction {
 
                 let processDelegate = TaskProcessDelegate(outputDelegate: outputDelegate)
                 do {
-                    try await spawn(commandLine: tiffutilCommand, environment: task.environment.bindingsDictionary, workingDirectory: task.workingDirectory.str, dynamicExecutionDelegate: dynamicExecutionDelegate, clientDelegate: clientDelegate, processDelegate: processDelegate)
+                    try await spawn(commandLine: tiffutilCommand, environment: task.environment.bindingsDictionary, workingDirectory: task.workingDirectory, dynamicExecutionDelegate: dynamicExecutionDelegate, clientDelegate: clientDelegate, processDelegate: processDelegate)
                 } catch {
                     outputDelegate.error(error.localizedDescription)
                     return .failed

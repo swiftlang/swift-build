@@ -1797,7 +1797,7 @@ fileprivate struct InstallAPITaskConstructionTests: CoreBasedTests {
         let tester = try await TaskConstructionTester(getCore(), testProject)
 
         final class Delegate: MockTestTaskPlanningClientDelegate, @unchecked Sendable {
-            override func executeExternalTool(commandLine: [String], workingDirectory: String?, environment: [String : String]) async throws -> ExternalToolResult {
+            override func executeExternalTool(commandLine: [String], workingDirectory: Path?, environment: [String : String]) async throws -> ExternalToolResult {
                 if commandLine.first.map(Path.init)?.basename == "intentbuilderc",
                    let outputDir = commandLine.elementAfterElements(["-output"]).map(Path.init),
                    let classPrefix = commandLine.elementAfterElements(["-classPrefix"]),

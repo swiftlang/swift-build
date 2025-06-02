@@ -39,11 +39,11 @@ extension PerfTests {
 
 extension Trait where Self == Testing.ConditionTrait {
     package static var performance: Self {
-        disabled("Skipping performance test") {
+        enabled("Skipping performance test") {
             #if DEBUG
-            return true
+            return getEnvironmentVariable("SWB_PERF_TESTS_ENABLE")?.boolValue ?? false
             #else
-            return false
+            return true
             #endif
         }
     }

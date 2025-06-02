@@ -37,7 +37,7 @@ public final class CodeSignTaskAction: TaskAction {
                 commandLine.insert(preEncryptHashesFlag, at: 1)
             }
 
-            try await spawn(commandLine: commandLine, environment: task.environment.bindingsDictionary, workingDirectory: task.workingDirectory.str, dynamicExecutionDelegate: dynamicExecutionDelegate, clientDelegate: clientDelegate, processDelegate: processDelegate)
+            try await spawn(commandLine: commandLine, environment: task.environment.bindingsDictionary, workingDirectory: task.workingDirectory, dynamicExecutionDelegate: dynamicExecutionDelegate, clientDelegate: clientDelegate, processDelegate: processDelegate)
         } catch {
             outputDelegate.error(error.localizedDescription)
             return .failed

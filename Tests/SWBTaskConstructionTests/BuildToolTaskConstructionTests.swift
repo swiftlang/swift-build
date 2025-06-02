@@ -245,7 +245,7 @@ fileprivate struct BuildToolTaskConstructionTests: CoreBasedTests {
 
         /// Client to generate files from the core data model.
         final class TestCoreDataCompilerTaskPlanningClientDelegate: MockTestTaskPlanningClientDelegate, @unchecked Sendable {
-            override func executeExternalTool(commandLine: [String], workingDirectory: String?, environment: [String : String]) async throws -> ExternalToolResult {
+            override func executeExternalTool(commandLine: [String], workingDirectory: Path?, environment: [String : String]) async throws -> ExternalToolResult {
                 if commandLine.first.map(Path.init)?.basename != "momc" {
                     return try await super.executeExternalTool(commandLine: commandLine, workingDirectory: workingDirectory, environment: environment)
                 }
@@ -469,7 +469,7 @@ fileprivate struct BuildToolTaskConstructionTests: CoreBasedTests {
 
         /// Client to generate files from the CoreML model.
         final class TestCoreMLCompilerTaskPlanningClientDelegate: MockTestTaskPlanningClientDelegate, @unchecked Sendable {
-            override func executeExternalTool(commandLine: [String], workingDirectory: String?, environment: [String : String]) async throws -> ExternalToolResult {
+            override func executeExternalTool(commandLine: [String], workingDirectory: Path?, environment: [String : String]) async throws -> ExternalToolResult {
                 if commandLine.first.map(Path.init)?.basename == "coremlc",
                    let outputDir = commandLine[safe: 3].map(Path.init),
                    let input = commandLine.firstIndex(where: { $0.hasSuffix(".mlmodel") || $0.hasSuffix(".mlpackage") }).map({ Path(commandLine[$0]) }),
@@ -1172,7 +1172,7 @@ fileprivate struct BuildToolTaskConstructionTests: CoreBasedTests {
                 self.moduleName = moduleName
             }
 
-            override func executeExternalTool(commandLine: [String], workingDirectory: String?, environment: [String : String]) async throws -> ExternalToolResult {
+            override func executeExternalTool(commandLine: [String], workingDirectory: Path?, environment: [String : String]) async throws -> ExternalToolResult {
                 if commandLine.first.map(Path.init)?.basename == "intentbuilderc",
                    let outputDir = commandLine.elementAfterElements(["-output"]).map(Path.init),
                    let classPrefix = commandLine.elementAfterElements(["-classPrefix"]),

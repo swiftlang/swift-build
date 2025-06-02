@@ -106,7 +106,7 @@ package class CapturingTaskGenerationDelegate: TaskGenerationDelegate, CoreClien
     package func fileExists(at path: Path) -> Bool { return true }
     package var taskActionCreationDelegate: any TaskActionCreationDelegate { return self }
     package var clientDelegate: any CoreClientDelegate { return self }
-    package func executeExternalTool(commandLine: [String], workingDirectory: String?, environment: [String: String]) async throws -> ExternalToolResult {
+    package func executeExternalTool(commandLine: [String], workingDirectory: Path?, environment: [String: String]) async throws -> ExternalToolResult {
         return .deferred
     }
 }

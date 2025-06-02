@@ -42,7 +42,7 @@ fileprivate extension Processes.ExitStatus {
         return await session.service.send(ErrorResponse("No delegate for response."))
     }
 
-    let result = await Result.catching { try await delegate.executeExternalTool(commandLine: message.commandLine, workingDirectory: message.workingDirectory, environment: message.environment) }
+    let result = await Result.catching { try await delegate.executeExternalTool(commandLine: message.commandLine, workingDirectory: message.workingDirectory?.str, environment: message.environment) }
     let reply = ExternalToolExecutionResponse(sessionHandle: message.sessionHandle, exchangeHandle: message.exchangeHandle, value: result.map(ExternalToolResult.init).mapError { .error("\($0)") })
     return await session.service.send(reply)
 }

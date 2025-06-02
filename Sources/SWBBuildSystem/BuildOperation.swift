@@ -1122,14 +1122,14 @@ private struct OperatorSystemAdaptorDynamicContext: DynamicTaskExecutionDelegate
     }
 
     @discardableResult
-    func spawn(commandLine: [String], environment: [String: String], workingDirectory: String, processDelegate: any ProcessDelegate) async throws -> Bool {
+    func spawn(commandLine: [String], environment: [String: String], workingDirectory: Path, processDelegate: any ProcessDelegate) async throws -> Bool {
         guard let jobContext else {
             throw StubError.error("API misuse. Spawning processes is only allowed from `performTaskAction`.")
         }
 
         // This calls into llb_buildsystem_command_interface_spawn, which can block, so ensure it's shunted to a new thread so as not to block the Swift Concurrency thread pool. This shouldn't risk thread explosion because this function is only allowed to be called from performTaskAction, which in turn should be bounded to ncores based on the number of active llbuild lane threads.
         return await _Concurrency.Task.detachNewThread(name: "llb_buildsystem_command_interface_spawn") { [commandInterface, jobContext, processDelegate] in
-            commandInterface.spawn(jobContext, commandLine: commandLine, environment: environment, workingDirectory: workingDirectory, processDelegate: processDelegate)
+            commandInterface.spawn(jobContext, commandLine: commandLine, environment: environment, workingDirectory: workingDirectory.str, processDelegate: processDelegate)
         }
     }
 

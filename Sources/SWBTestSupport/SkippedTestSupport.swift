@@ -146,17 +146,9 @@ extension Trait where Self == Testing.ConditionTrait {
         })
     }
 
-    /// Constructs a condition trait that causes a test to be disabled if the Foundation process spawning implementation is not using `posix_spawn_file_actions_addchdir`.
+    /// Constructs a condition trait that causes a test to be disabled if the Foundation process spawning implementation is not thread-safe.
     package static var requireThreadSafeWorkingDirectory: Self {
-        disabled("Thread-safe process working directory support is unavailable.", {
-            switch try ProcessInfo.processInfo.hostOperatingSystem() {
-            case .linux:
-                // Amazon Linux 2 has glibc 2.26, and glibc 2.29 is needed for posix_spawn_file_actions_addchdir_np support
-                FileManager.default.contents(atPath: "/etc/system-release").map { String(decoding: $0, as: UTF8.self) == "Amazon Linux release 2 (Karoo)\n" } ?? false
-            default:
-                false
-            }
-        })
+        disabled(if: try Process.hasUnsafeWorkingDirectorySupport, "Foundation.Process working directory support is not thread-safe.")
     }
 
     /// Constructs a condition trait that causes a test to be disabled if the specified llbuild API version requirement is not met.

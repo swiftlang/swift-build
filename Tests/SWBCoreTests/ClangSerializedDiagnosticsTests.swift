@@ -28,11 +28,11 @@ fileprivate struct ClangSerializedDiagnosticsTests: CoreBasedTests {
     }
 
     /// Test that Clang serialized diagnostics are supported.
-    @Test
+    @Test(.requireThreadSafeWorkingDirectory)
     func clangSerializedDiagnosticSupported() async throws {
         try await withTemporaryDirectory { tmpDir in
             let diagnosticsPath = tmpDir.join("foo.diag")
-            _ = try? await runHostProcess(["clang", "-serialize-diagnostics", diagnosticsPath.str, "foo.c"], workingDirectory: tmpDir.str)
+            _ = try? await runHostProcess(["clang", "-serialize-diagnostics", diagnosticsPath.str, "foo.c"], workingDirectory: tmpDir)
 
             let libclang = try #require(await Libclang(path: libclangPath))
             libclang.leak()
@@ -53,7 +53,7 @@ fileprivate struct ClangSerializedDiagnosticsTests: CoreBasedTests {
             let cFilePath = tmpDir.join("dir/foo.c")
             try localFS.write(cFilePath, contents: "#include \"other/foo.h\"\nint main() { return 0; }")
             let taskWorkingDirectory = cFilePath.dirname
-            _ = try? await runHostProcess(["clang", "-I../", "-Wall", "-serialize-diagnostics", diagnosticsPath.str, "foo.c"], workingDirectory: taskWorkingDirectory.str)
+            _ = try? await runHostProcess(["clang", "-I../", "-Wall", "-serialize-diagnostics", diagnosticsPath.str, "foo.c"], workingDirectory: taskWorkingDirectory)
             
             let libclang = try #require(await Libclang(path: libclangPath))
             libclang.leak()
@@ -82,7 +82,7 @@ fileprivate struct ClangSerializedDiagnosticsTests: CoreBasedTests {
             let cFilePath = tmpDir.join("dir/foo.c")
             try localFS.write(cFilePath, contents: "#include \"other/foo.h\"\nint main() { return 0; }")
             let taskWorkingDirectory = cFilePath.dirname
-            _ = try? await runHostProcess(["clang", "-I../", "-Wall", "-serialize-diagnostics", diagnosticsPath.str, "foo.c"], workingDirectory: taskWorkingDirectory.str)
+            _ = try? await runHostProcess(["clang", "-I../", "-Wall", "-serialize-diagnostics", diagnosticsPath.str, "foo.c"], workingDirectory: taskWorkingDirectory)
 
             let libclang = try #require(await Libclang(path: libclangPath))
             libclang.leak()
@@ -106,7 +106,7 @@ fileprivate struct ClangSerializedDiagnosticsTests: CoreBasedTests {
             try localFS.write(swiftFilePath, contents: "#warning(\"custom warning\")")
             let taskWorkingDirectory = swiftFilePath.dirname
             let diagnosticsPath = taskWorkingDirectory.join("foo.dia")
-            _ = try? await runHostProcess(["swiftc", "-c", "-serialize-diagnostics", "foo.swift"], workingDirectory: taskWorkingDirectory.str)
+            _ = try? await runHostProcess(["swiftc", "-c", "-serialize-diagnostics", "foo.swift"], workingDirectory: taskWorkingDirectory)
 
             let libclang = try #require(await Libclang(path: libclangPath))
             libclang.leak()
