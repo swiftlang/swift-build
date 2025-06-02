@@ -1256,7 +1256,7 @@ fileprivate struct EagerCompilationTests: CoreBasedTests {
             let buildRequest = BuildRequest(parameters: parameters, buildTargets: tester.workspace.projects[0].targets.map({ BuildRequest.BuildTargetInfo(parameters: parameters, target: $0) }), continueBuildingAfterErrors: true, useParallelTargets: true, useImplicitDependencies: false, useDryRun: false)
 
             final class Delegate: MockTestTaskPlanningClientDelegate, @unchecked Sendable {
-                override func executeExternalTool(commandLine: [String], workingDirectory: String?, environment: [String : String]) async throws -> ExternalToolResult {
+                override func executeExternalTool(commandLine: [String], workingDirectory: Path?, environment: [String : String]) async throws -> ExternalToolResult {
                     switch commandLine.first.map(Path.init)?.basename {
                     case "intentbuilderc"?:
                         do {

@@ -365,7 +365,7 @@ private final class AlwaysDeferredCoreClientDelegate: CoreClientDelegate, CoreCl
         _diagnosticsEngine.hasErrors
     }
 
-    func executeExternalTool(commandLine: [String], workingDirectory: String?, environment: [String : String]) async throws -> ExternalToolResult {
+    func executeExternalTool(commandLine: [String], workingDirectory: Path?, environment: [String : String]) async throws -> ExternalToolResult {
         .deferred
     }
 }

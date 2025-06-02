@@ -229,7 +229,7 @@ public protocol DynamicTaskExecutionDelegate: ActivityReporter {
     func spawn(
         commandLine: [String],
         environment: [String: String],
-        workingDirectory: String,
+        workingDirectory: Path,
         processDelegate: any ProcessDelegate
     ) async throws -> Bool
 

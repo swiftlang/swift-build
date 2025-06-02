@@ -7287,7 +7287,7 @@ fileprivate struct TaskConstructionTests: CoreBasedTests {
 
         /// Client to generate files from the core data model.
         class TestCoreDataCompilerTaskPlanningClientDelegate: TaskPlanningClientDelegate {
-            func executeExternalTool(commandLine: [String], workingDirectory: String?, environment: [String : String]) async throws -> ExternalToolResult {
+            func executeExternalTool(commandLine: [String], workingDirectory: Path?, environment: [String : String]) async throws -> ExternalToolResult {
                 return .emptyResult
             }
         }
@@ -7393,7 +7393,7 @@ fileprivate struct TaskConstructionTests: CoreBasedTests {
         let tester = try await TaskConstructionTester(getCore(), testWorkspace)
 
         final class Delegate: MockTestTaskPlanningClientDelegate, @unchecked Sendable {
-            override func executeExternalTool(commandLine: [String], workingDirectory: String?, environment: [String : String]) async throws -> ExternalToolResult {
+            override func executeExternalTool(commandLine: [String], workingDirectory: Path?, environment: [String : String]) async throws -> ExternalToolResult {
                 if commandLine.first.map(Path.init)?.basename == "intentbuilderc",
                    let outputDir = commandLine.elementAfterElements(["-output"]).map(Path.init),
                    let classPrefix = commandLine.elementAfterElements(["-classPrefix"]),

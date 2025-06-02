@@ -21,10 +21,10 @@ public struct ExternalToolExecutionRequest: ClientExchangeMessage, Equatable {
     public let exchangeHandle: String
 
     public let commandLine: [String]
-    public let workingDirectory: String?
+    public let workingDirectory: Path?
     public let environment: [String: String]
 
-    public init(sessionHandle: String, exchangeHandle: String, commandLine: [String], workingDirectory: String?, environment: [String: String]) {
+    public init(sessionHandle: String, exchangeHandle: String, commandLine: [String], workingDirectory: Path?, environment: [String: String]) {
         self.sessionHandle = sessionHandle
         self.exchangeHandle = exchangeHandle
         self.commandLine = commandLine

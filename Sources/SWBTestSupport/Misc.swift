@@ -39,7 +39,7 @@ package extension Sequence where Element: Equatable {
 /// - throws: ``StubError`` if the arguments list is an empty array.
 /// - throws: ``RunProcessNonZeroExitError`` if the process exited with a nonzero status code or uncaught signal.
 @discardableResult
-package func runProcess(_ args: [String], workingDirectory: String? = nil, environment: Environment = .init(), interruptible: Bool = true, redirectStderr: Bool = false) async throws -> String {
+package func runProcess(_ args: [String], workingDirectory: Path? = nil, environment: Environment = .init(), interruptible: Bool = true, redirectStderr: Bool = false) async throws -> String {
     guard let first = args.first else {
         throw StubError.error("Invalid number of arguments")
     }
@@ -48,13 +48,13 @@ package func runProcess(_ args: [String], workingDirectory: String? = nil, envir
     }
     let arguments = Array(args.dropFirst())
     if redirectStderr {
-        let (exitStatus, output) = try await Process.getMergedOutput(url: url, arguments: arguments, currentDirectoryURL: workingDirectory.map(URL.init(fileURLWithPath:)), environment: environment, interruptible: interruptible)
+        let (exitStatus, output) = try await Process.getMergedOutput(url: url, arguments: arguments, currentDirectoryURL: workingDirectory.map { URL(fileURLWithPath: $0.str) }, environment: environment, interruptible: interruptible)
         guard exitStatus.isSuccess else {
             throw RunProcessNonZeroExitError(args: args, workingDirectory: workingDirectory, environment: environment, status: exitStatus, mergedOutput: ByteString(output))
         }
         return String(decoding: output, as: UTF8.self)
     } else {
-        let executionResult = try await Process.getOutput(url: url, arguments: arguments, currentDirectoryURL: workingDirectory.map(URL.init(fileURLWithPath:)), environment: environment, interruptible: interruptible)
+        let executionResult = try await Process.getOutput(url: url, arguments: arguments, currentDirectoryURL: workingDirectory.map { URL(fileURLWithPath: $0.str) }, environment: environment, interruptible: interruptible)
         guard executionResult.exitStatus.isSuccess else {
             throw RunProcessNonZeroExitError(args: args, workingDirectory: workingDirectory, environment: environment, status: executionResult.exitStatus, stdout: ByteString(executionResult.stdout), stderr: ByteString(executionResult.stderr))
         }
@@ -65,14 +65,14 @@ package func runProcess(_ args: [String], workingDirectory: String? = nil, envir
 /// Runs the command specified by `args` with the `DEVELOPER_DIR` environment variable set.
 ///
 /// This method will use the current value of `DEVELOPER_DIR` in the environment by default, or the value of `overrideDeveloperDirectory` if specified.
-package func runProcessWithDeveloperDirectory(_ args: [String], workingDirectory: String? = nil, overrideDeveloperDirectory: String? = nil, interruptible: Bool = true, redirectStderr: Bool = true) async throws -> String {
+package func runProcessWithDeveloperDirectory(_ args: [String], workingDirectory: Path? = nil, overrideDeveloperDirectory: String? = nil, interruptible: Bool = true, redirectStderr: Bool = true) async throws -> String {
     let environment = Environment.current
         .filter(keys: ["DEVELOPER_DIR", "LLVM_PROFILE_FILE"])
         .addingContents(of: overrideDeveloperDirectory.map { Environment(["DEVELOPER_DIR": $0]) } ?? .init())
     return try await runProcess(args, workingDirectory: workingDirectory, environment: environment, interruptible: interruptible, redirectStderr: redirectStderr)
 }
 
-package func runHostProcess(_ args: [String], workingDirectory: String? = nil, interruptible: Bool = true, redirectStderr: Bool = true) async throws -> String {
+package func runHostProcess(_ args: [String], workingDirectory: Path? = nil, interruptible: Bool = true, redirectStderr: Bool = true) async throws -> String {
     switch try ProcessInfo.processInfo.hostOperatingSystem() {
     case .macOS:
         return try await InstalledXcode.currentlySelected().xcrun(args, workingDirectory: workingDirectory, redirectStderr: redirectStderr)
