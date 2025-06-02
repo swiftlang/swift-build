@@ -32,7 +32,7 @@ private final class MockXCStringsTool: MockTestTaskPlanningClientDelegate, @unch
         self.requiredCommandLine = requiredCommandLine
     }
 
-    override func executeExternalTool(commandLine: [String], workingDirectory: String?, environment: [String : String]) async throws -> ExternalToolResult {
+    override func executeExternalTool(commandLine: [String], workingDirectory: Path?, environment: [String : String]) async throws -> ExternalToolResult {
         switch commandLine.first.map(Path.init)?.basename {
         case "xcstringstool":
             break

@@ -19,7 +19,7 @@ import SWBCore
 
 @Suite
 fileprivate struct AndroidBuildOperationTests: CoreBasedTests {
-    @Test(.requireSDKs(.android), .requireThreadSafeWorkingDirectory, arguments: ["armv7", "aarch64", "riscv64", "i686", "x86_64"])
+    @Test(.requireSDKs(.android), arguments: ["armv7", "aarch64", "riscv64", "i686", "x86_64"])
     func androidCommandLineTool(arch: String) async throws {
         try await withTemporaryDirectory { (tmpDir: Path) in
             let testProject = TestProject(

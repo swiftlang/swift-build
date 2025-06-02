@@ -448,7 +448,7 @@ fileprivate struct MachOTests {
         try await withTemporaryDirectory { path in
             let expectedVersion = Version(11, 2, 3)
             try localFS.write(path.join("main.c"), contents: "int main() { return 0; }")
-            _ = try await InstalledXcode.currentlySelected().xcrun(["-sdk", "macosx", "clang", "-target", "\(#require(Architecture.host.stringValue))-apple-macos\(expectedVersion)", "main.c"], workingDirectory: path.str)
+            _ = try await InstalledXcode.currentlySelected().xcrun(["-sdk", "macosx", "clang", "-target", "\(#require(Architecture.host.stringValue))-apple-macos\(expectedVersion)", "main.c"], workingDirectory: path)
             let machOPath = path.join("a.out")
 
             let files: [BinaryReader] = try allReaders(machOPath)
@@ -475,7 +475,7 @@ fileprivate struct MachOTests {
     func rPaths() async throws {
         try await withTemporaryDirectory { path in
             try localFS.write(path.join("main.c"), contents: "int main() { return 0; }")
-            _ = try await InstalledXcode.currentlySelected().xcrun(["-sdk", "macosx", "clang", "-target", "\(#require(Architecture.host.stringValue))-apple-macos11.0", "-rpath", "@loader_path/Frameworks", "-rpath", "@loader_path/../Frameworks", "main.c"], workingDirectory: path.str)
+            _ = try await InstalledXcode.currentlySelected().xcrun(["-sdk", "macosx", "clang", "-target", "\(#require(Architecture.host.stringValue))-apple-macos11.0", "-rpath", "@loader_path/Frameworks", "-rpath", "@loader_path/../Frameworks", "main.c"], workingDirectory: path)
             let machOPath = path.join("a.out")
 
             let files: [BinaryReader] = try allReaders(machOPath)
@@ -501,7 +501,7 @@ fileprivate struct MachOTests {
     func atomInfo() async throws {
         try await withTemporaryDirectory { path in
             try localFS.write(path.join("file.c"), contents: "const int foo = 0;")
-            _ = try await InstalledXcode.currentlySelected().xcrun(["-sdk", "macosx", "clang", "-target", "\(#require(Architecture.host.stringValue))-apple-macos11.0", "-dynamiclib", "-Xlinker", "-make_mergeable", "file.c"], workingDirectory: path.str)
+            _ = try await InstalledXcode.currentlySelected().xcrun(["-sdk", "macosx", "clang", "-target", "\(#require(Architecture.host.stringValue))-apple-macos11.0", "-dynamiclib", "-Xlinker", "-make_mergeable", "file.c"], workingDirectory: path)
             let machOPath = path.join("a.out")
 
             let files: [BinaryReader] = try allReaders(machOPath)

@@ -67,7 +67,7 @@ public final class CoreDataModelCompilerSpec : GenericCompilerSpec, SpecIdentifi
             // Mark the entire directory structure as being watched by the build system.
             delegate.access(path: input.absolutePath)
 
-            generatedFiles = try await generatedFilePaths(cbc, delegate, commandLine: [commandLine[0]] + ["--dry-run"] + commandLine[1...], workingDirectory: cbc.producer.defaultWorkingDirectory.str, environment: self.environmentFromSpec(cbc, delegate).bindingsDictionary, executionDescription: "Compute data model \(input.absolutePath.basename) code generation output paths") { output in
+            generatedFiles = try await generatedFilePaths(cbc, delegate, commandLine: [commandLine[0]] + ["--dry-run"] + commandLine[1...], workingDirectory: cbc.producer.defaultWorkingDirectory, environment: self.environmentFromSpec(cbc, delegate).bindingsDictionary, executionDescription: "Compute data model \(input.absolutePath.basename) code generation output paths") { output in
                 return output.unsafeStringValue.split(separator: "\n").map(Path.init).map { $0.prependingPrivatePrefixIfNeeded(otherPath: outputDir) }
             }
             guard !generatedFiles.isEmpty else {

@@ -901,7 +901,7 @@ fileprivate struct ModuleVerifierTaskConstructionTests: CoreBasedTests {
 }
 
 fileprivate final class TestIntentsCompilerTaskPlanningClientDelegate: MockTestTaskPlanningClientDelegate, @unchecked Sendable {
-    override func executeExternalTool(commandLine: [String], workingDirectory: String?, environment: [String : String]) async throws -> ExternalToolResult {
+    override func executeExternalTool(commandLine: [String], workingDirectory: Path?, environment: [String : String]) async throws -> ExternalToolResult {
         let commandName = commandLine.first.map(Path.init)?.basename
         switch commandName {
         case "intentbuilderc":

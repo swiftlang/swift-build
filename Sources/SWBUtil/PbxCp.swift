@@ -80,7 +80,7 @@ fileprivate func xSecCodePathIsSigned(_ path: Path) throws -> Bool {
 
 // FIXME: Move this fully to Swift Concurrency and execute the process via llbuild after PbxCp is fully converted to Swift
 /// Spawns a process and waits for it to finish, closing stdin and redirecting stdout and stderr to fdout. Failure to launch, non-zero exit code, or exit with a signal will throw an error.
-fileprivate func spawnTaskAndWait(_ launchPath: Path, _ arguments: [String]?, _ environment: Environment?, _ workingDirPath: String?, _ dryRun: Bool, _ stream: OutputByteStream) async throws {
+fileprivate func spawnTaskAndWait(_ launchPath: Path, _ arguments: [String]?, _ environment: Environment?, _ workingDirPath: Path?, _ dryRun: Bool, _ stream: OutputByteStream) async throws {
     stream <<< launchPath.str
     for arg in arguments ?? [] {
         stream <<< " \(arg)"
@@ -91,7 +91,7 @@ fileprivate func spawnTaskAndWait(_ launchPath: Path, _ arguments: [String]?, _ 
         return
     }
 
-    let (exitStatus, output) = try await Process.getMergedOutput(url: URL(fileURLWithPath: launchPath.str), arguments: arguments ?? [], currentDirectoryURL: workingDirPath.map { URL(fileURLWithPath: $0, isDirectory: true) }, environment: environment)
+    let (exitStatus, output) = try await Process.getMergedOutput(url: URL(fileURLWithPath: launchPath.str), arguments: arguments ?? [], currentDirectoryURL: workingDirPath.map { URL(fileURLWithPath: $0.str, isDirectory: true) }, environment: environment)
 
     // Copy the process output to the output stream.
     stream <<< "\(String(decoding: output, as: UTF8.self))"

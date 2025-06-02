@@ -105,7 +105,7 @@ import Testing
     }
 
     @Test func clientExchangeMessagesRoundTrip() {
-        assertMsgPackMessageRoundTrip(ExternalToolExecutionRequest(sessionHandle: "theSession", exchangeHandle: "handle", commandLine: ["echo", "foo"], workingDirectory: "/foo", environment: ["FOO": "BAR"]))
+        assertMsgPackMessageRoundTrip(ExternalToolExecutionRequest(sessionHandle: "theSession", exchangeHandle: "handle", commandLine: ["echo", "foo"], workingDirectory: .root.join("foo"), environment: ["FOO": "BAR"]))
 
         assertMsgPackMessageRoundTrip(ExternalToolExecutionResponse(sessionHandle: "theSession", exchangeHandle: "handle", value: .success(.result(status: .exit(1), stdout: Data("foo".utf8), stderr: Data("bar".utf8)))))
         assertMsgPackMessageRoundTrip(ExternalToolExecutionResponse(sessionHandle: "theSession", exchangeHandle: "handle", value: .failure(StubError.error("broken!"))))

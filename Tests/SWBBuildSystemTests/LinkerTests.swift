@@ -181,7 +181,7 @@ fileprivate struct LinkerTests: CoreBasedTests {
     /// * The clang output on Windows has paths that have double slashes, not
     ///   quite valid command quoted. i.e. "C:\\Program Files\\Microsoft Visual Studio\\2022\\Community\\VC"
     ///   This needs to be taken into account.
-    @Test(.requireSDKs(.host), .requireThreadSafeWorkingDirectory)
+    @Test(.requireSDKs(.host))
     func alternateLinkerSelection() async throws {
         let runDestination: RunDestinationInfo = .host
         let swiftVersion = try await self.swiftVersion

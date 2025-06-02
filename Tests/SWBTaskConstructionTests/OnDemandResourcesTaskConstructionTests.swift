@@ -67,7 +67,7 @@ fileprivate struct OnDemandResourcesTaskConstructionTests: CoreBasedTests {
         let SRCROOT = tester.workspace.projects[0].sourceRoot.str
 
         final class ClientDelegate: MockTestTaskPlanningClientDelegate, @unchecked Sendable {
-            override func executeExternalTool(commandLine: [String], workingDirectory: String?, environment: [String : String]) async throws -> ExternalToolResult {
+            override func executeExternalTool(commandLine: [String], workingDirectory: Path?, environment: [String : String]) async throws -> ExternalToolResult {
                 if commandLine.first.map(Path.init)?.basename == "actool", commandLine.dropFirst().first != "--version" {
                     return .result(status: .exit(0), stdout: Data("{}".utf8), stderr: Data())
                 }

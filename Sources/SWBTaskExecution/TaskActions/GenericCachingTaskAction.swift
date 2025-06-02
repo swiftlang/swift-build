@@ -197,7 +197,7 @@ public final class GenericCachingTaskAction: TaskAction {
                 }
 
                 emitCacheDebuggingRemark("running sandboxed command")
-                try await spawn(commandLine: sandboxArgs + remappedCommandLine, environment: remappedEnvironment.bindingsDictionary, workingDirectory: cacheKey.workingDirectory.str, dynamicExecutionDelegate: dynamicExecutionDelegate, clientDelegate: clientDelegate, processDelegate: processDelegate)
+                try await spawn(commandLine: sandboxArgs + remappedCommandLine, environment: remappedEnvironment.bindingsDictionary, workingDirectory: cacheKey.workingDirectory, dynamicExecutionDelegate: dynamicExecutionDelegate, clientDelegate: clientDelegate, processDelegate: processDelegate)
 
                 if processDelegate.commandResult == .succeeded {
                     try await withThrowingTaskGroup(of: Void.self) { group in

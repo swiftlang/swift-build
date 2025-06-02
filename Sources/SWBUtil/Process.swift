@@ -64,6 +64,20 @@ public typealias Process = Foundation.Process
 #endif
 
 extension Process {
+    public static var hasUnsafeWorkingDirectorySupport: Bool {
+        get throws {
+            switch try ProcessInfo.processInfo.hostOperatingSystem() {
+            case .linux:
+                // Amazon Linux 2 has glibc 2.26, and glibc 2.29 is needed for posix_spawn_file_actions_addchdir_np support
+                FileManager.default.contents(atPath: "/etc/system-release").map { String(decoding: $0, as: UTF8.self) == "Amazon Linux release 2 (Karoo)\n" } ?? false
+            default:
+                false
+            }
+        }
+    }
+}
+
+extension Process {
     public static func getOutput(url: URL, arguments: [String], currentDirectoryURL: URL? = nil, environment: Environment? = nil, interruptible: Bool = true) async throws -> Processes.ExecutionResult {
         if #available(macOS 15, iOS 18, tvOS 18, watchOS 11, visionOS 2, *) {
             // Extend the lifetime of the pipes to avoid file descriptors being closed until the AsyncStream is finished being consumed.
@@ -125,13 +139,8 @@ extension Process {
     }
 
     private static func _getOutput<T, U>(url: URL, arguments: [String], currentDirectoryURL: URL?, environment: Environment?, interruptible: Bool, setup: (Process) -> T, collect: (T) async throws -> U) async throws -> (exitStatus: Processes.ExitStatus, output: U) {
-        if !url.isFileURL {
-            throw StubError.error("\(url) is not an absolute file URL")
-        }
         let executableFilePath = try url.standardizedFileURL.filePath
-        if try !localFS.isExecutable(executableFilePath) {
-            throw StubError.error("\(executableFilePath.str) is not an executable file")
-        }
+
         let process = Process()
         process.executableURL = url
         process.arguments = arguments
@@ -139,6 +148,14 @@ extension Process {
             process.currentDirectoryURL = currentDirectoryURL
         }
         process.environment = environment.map { .init($0) } ?? nil
+
+        if try currentDirectoryURL != nil && hasUnsafeWorkingDirectorySupport {
+            throw try RunProcessLaunchError(process, context: "Foundation.Process working directory support is not thread-safe")
+        }
+
+        if try !localFS.isExecutable(executableFilePath) {
+            throw try RunProcessLaunchError(process, context: "\(executableFilePath.str) is not an executable file")
+        }
 
         let streams = setup(process)
 
@@ -300,9 +317,68 @@ extension Processes.ExitStatus: CustomStringConvertible {
     }
 }
 
-public struct RunProcessNonZeroExitError: Error {
+public protocol RunProcessError: Sendable {
+    var args: [String] { get }
+    var workingDirectory: Path? { get }
+    var environment: Environment { get }
+}
+
+extension RunProcessError {
+    fileprivate var commandIdentityPrefixString: String {
+        let fullArgs: [String]
+        if !environment.isEmpty {
+            fullArgs = ["env"] + [String: String](environment).sorted(byKey: <).map { key, value in "\(key)=\(value)" } + args
+        } else {
+            fullArgs = args
+        }
+
+        let commandString = UNIXShellCommandCodec(encodingStrategy: .singleQuotes, encodingBehavior: .fullCommandLine).encode(fullArgs)
+        let fullCommandString: String
+        if let workingDirectory {
+            let directoryCommandString = UNIXShellCommandCodec(encodingStrategy: .singleQuotes, encodingBehavior: .fullCommandLine).encode(["cd", workingDirectory.str])
+            fullCommandString = "(\([directoryCommandString, commandString].joined(separator: " && ")))"
+        } else {
+            fullCommandString = commandString
+        }
+
+        return "The command `\(fullCommandString)`"
+    }
+}
+
+public struct RunProcessLaunchError: Error, RunProcessError {
     public let args: [String]
-    public let workingDirectory: String?
+    public let workingDirectory: Path?
+    public let environment: Environment
+    public let context: String
+
+    public init(args: [String], workingDirectory: Path?, environment: Environment, context: String) {
+        self.args = args
+        self.workingDirectory = workingDirectory
+        self.environment = environment
+        self.context = context
+    }
+
+    public init(_ process: Process, context: String) throws {
+        self.args = ((process.executableURL?.path).map { [$0] } ?? []) + (process.arguments ?? [])
+        self.workingDirectory = try process.currentDirectoryURL?.filePath
+        self.environment = process.environment.map { .init($0) } ?? .init()
+        self.context = context
+    }
+}
+
+extension RunProcessLaunchError: CustomStringConvertible, LocalizedError {
+    public var description: String {
+        return "\(commandIdentityPrefixString) failed to launch. \(context)."
+    }
+
+    public var errorDescription: String? {
+        return description
+    }
+}
+
+public struct RunProcessNonZeroExitError: Error, RunProcessError {
+    public let args: [String]
+    public let workingDirectory: Path?
     public let environment: Environment
     public let status: Processes.ExitStatus
 
@@ -313,15 +389,15 @@ public struct RunProcessNonZeroExitError: Error {
 
     public let output: Output?
 
-    public init(args: [String], workingDirectory: String?, environment: Environment, status: Processes.ExitStatus, mergedOutput: ByteString) {
+    public init(args: [String], workingDirectory: Path?, environment: Environment, status: Processes.ExitStatus, mergedOutput: ByteString) {
         self.init(args: args, workingDirectory: workingDirectory, environment: environment, status: status, output: .merged(mergedOutput))
     }
 
-    public init(args: [String], workingDirectory: String?, environment: Environment, status: Processes.ExitStatus, stdout: ByteString, stderr: ByteString) {
+    public init(args: [String], workingDirectory: Path?, environment: Environment, status: Processes.ExitStatus, stdout: ByteString, stderr: ByteString) {
         self.init(args: args, workingDirectory: workingDirectory, environment: environment, status: status, output: .separate(stdout: stdout, stderr: stderr))
     }
 
-    public init(args: [String], workingDirectory: String?, environment: Environment, status: Processes.ExitStatus, output: Output) {
+    public init(args: [String], workingDirectory: Path?, environment: Environment, status: Processes.ExitStatus, output: Output) {
         self.args = args
         self.workingDirectory = workingDirectory
         self.environment = environment
@@ -331,7 +407,7 @@ public struct RunProcessNonZeroExitError: Error {
 
     public init?(_ process: Process) throws {
         self.args = ((process.executableURL?.path).map { [$0] } ?? []) + (process.arguments ?? [])
-        self.workingDirectory = process.currentDirectoryURL?.path
+        self.workingDirectory = try process.currentDirectoryURL?.filePath
         self.environment = process.environment.map { .init($0) } ?? .init()
         self.status = try .init(process)
         self.output = nil
@@ -343,23 +419,7 @@ public struct RunProcessNonZeroExitError: Error {
 
 extension RunProcessNonZeroExitError: CustomStringConvertible, LocalizedError {
     public var description: String {
-        let fullArgs: [String]
-        if !environment.isEmpty {
-            fullArgs = ["env"] + [String: String](environment).sorted(byKey: <).map { key, value in "\(key)=\(value)" } + args
-        } else {
-            fullArgs = args
-        }
-
-        let commandString = UNIXShellCommandCodec(encodingStrategy: .singleQuotes, encodingBehavior: .fullCommandLine).encode(fullArgs)
-        let fullCommandString: String
-        if let workingDirectory {
-            let directoryCommandString = UNIXShellCommandCodec(encodingStrategy: .singleQuotes, encodingBehavior: .fullCommandLine).encode(["cd", workingDirectory])
-            fullCommandString = "(\([directoryCommandString, commandString].joined(separator: " && ")))"
-        } else {
-            fullCommandString = commandString
-        }
-
-        let message = "The command `\(fullCommandString)` \(status)."
+        let message = "\(commandIdentityPrefixString) \(status)."
         switch output {
         case let .separate(stdout, stderr) where !stdout.isEmpty || !stderr.isEmpty:
             return message + [

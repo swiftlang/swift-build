@@ -1245,7 +1245,7 @@ fileprivate struct PackageProductConstructionTests: CoreBasedTests {
 
         /// Client to generate files from the core data model.
         final class TestCoreDataCompilerTaskPlanningClientDelegate: MockTestTaskPlanningClientDelegate, @unchecked Sendable {
-            override func executeExternalTool(commandLine: [String], workingDirectory: String?, environment: [String : String]) async throws -> ExternalToolResult {
+            override func executeExternalTool(commandLine: [String], workingDirectory: Path?, environment: [String : String]) async throws -> ExternalToolResult {
                 if commandLine.first.map(Path.init)?.basename == "momc", let outputDir = commandLine.last.map(Path.init) {
                     return .result(status: .exit(0), stdout: Data([
                         outputDir.join("EntityOne+CoreDataClass.swift"),

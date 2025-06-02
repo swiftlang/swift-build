@@ -241,7 +241,7 @@ public final class CoreMLCompilerSpec : GenericCompilerSpec, SpecIdentifierType,
             // Mark the file as being watched by the build system to invalidate the build description.
             delegate.access(path: input.absolutePath)
 
-            generatedFiles = try await generatedFilePaths(cbc, delegate, commandLine: commandLine[0...3] + ["--dry-run", "yes"] + commandLine[4...], workingDirectory: cbc.producer.defaultWorkingDirectory.str, environment: self.environmentFromSpec(cbc, delegate).bindingsDictionary, executionDescription: "Compute CoreML model \(input.absolutePath.basename) code generation output paths") { output in
+            generatedFiles = try await generatedFilePaths(cbc, delegate, commandLine: commandLine[0...3] + ["--dry-run", "yes"] + commandLine[4...], workingDirectory: cbc.producer.defaultWorkingDirectory, environment: self.environmentFromSpec(cbc, delegate).bindingsDictionary, executionDescription: "Compute CoreML model \(input.absolutePath.basename) code generation output paths") { output in
                 return output.unsafeStringValue.split(separator: "\n").map(Path.init)
             }
             guard !generatedFiles.isEmpty else {

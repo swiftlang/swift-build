@@ -406,7 +406,7 @@ fileprivate struct ServiceTests {
             let osv = ProcessInfo.processInfo.operatingSystemVersion
             let osVersion = try Version(osv)
             let deploymentTarget = Version(Version.Component(osv.majorVersion), Version.Component(osv.minorVersion), UInt(osv.patchVersion) + 1)
-            _ = try await InstalledXcode.currentlySelected().xcrun(["-sdk", "macosx", "clang", "-target", "\(#require(Architecture.host.stringValue))-apple-macos\(deploymentTarget.canonicalDeploymentTargetForm)", "main.c"], workingDirectory: path.str)
+            _ = try await InstalledXcode.currentlySelected().xcrun(["-sdk", "macosx", "clang", "-target", "\(#require(Architecture.host.stringValue))-apple-macos\(deploymentTarget.canonicalDeploymentTargetForm)", "main.c"], workingDirectory: path)
 
             _ = await withEnvironment(["SWBBUILDSERVICE_PATH": path.join("a.out").str]) {
                 await #expect(performing: {

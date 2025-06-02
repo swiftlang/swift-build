@@ -30,7 +30,7 @@ import SWBTestSupport
 
 @Suite(.requireXcode16())
 fileprivate struct BuildOperationTests: CoreBasedTests {
-    @Test(.requireSDKs(.host), .requireThreadSafeWorkingDirectory, arguments: ["clang", "swiftc"])
+    @Test(.requireSDKs(.host), arguments: ["clang", "swiftc"])
     func commandLineTool(linkerDriver: String) async throws {
         try await withTemporaryDirectory { (tmpDir: Path) in
             let testProject = try await TestProject(
@@ -164,7 +164,7 @@ fileprivate struct BuildOperationTests: CoreBasedTests {
         }
     }
 
-    @Test(.requireSDKs(.host), .requireThreadSafeWorkingDirectory)
+    @Test(.requireSDKs(.host))
     func commandLineToolAutolinkingFoundation() async throws {
         try await withTemporaryDirectory { (tmpDir: Path) in
             let testProject = try await TestProject(
@@ -223,7 +223,7 @@ fileprivate struct BuildOperationTests: CoreBasedTests {
         }
     }
 
-    @Test(.requireSDKs(.host), .requireThreadSafeWorkingDirectory)
+    @Test(.requireSDKs(.host))
     func debuggableCommandLineTool() async throws {
         try await withTemporaryDirectory { (tmpDir: Path) in
             let testProject = try await TestProject(
@@ -397,7 +397,7 @@ fileprivate struct BuildOperationTests: CoreBasedTests {
         }
     }
 
-    @Test(.requireSDKs(.host), .skipHostOS(.macOS), .skipHostOS(.windows, "cannot find testing library"), .requireThreadSafeWorkingDirectory)
+    @Test(.requireSDKs(.host), .skipHostOS(.macOS), .skipHostOS(.windows, "cannot find testing library"))
     func unitTestWithGeneratedEntryPoint() async throws {
         try await withTemporaryDirectory { (tmpDir: Path) in
             let testProject = try await TestProject(
@@ -842,7 +842,7 @@ That command depends on command in Target 'agg2' (project \'aProject\'): script 
         }
     }
 
-    @Test(.requireSDKs(.host), .skipHostOS(.windows), .requireThreadSafeWorkingDirectory)
+    @Test(.requireSDKs(.host), .skipHostOS(.windows))
     func missingShellScriptInputs() async throws {
         // Test that shell scripts run, even if their inputs are missing.
         try await withTemporaryDirectory { tmpDirPath async throws -> Void in
@@ -884,7 +884,7 @@ That command depends on command in Target 'agg2' (project \'aProject\'): script 
     }
 
     /// Check that target dependencies are honored.
-    @Test(.requireSDKs(.host), .skipHostOS(.windows), .requireThreadSafeWorkingDirectory)
+    @Test(.requireSDKs(.host), .skipHostOS(.windows))
     func simulatedTargetDependencies() async throws {
         try await withTemporaryDirectory { tmpDirPath async throws -> Void in
             let testWorkspace = TestWorkspace(
@@ -948,7 +948,7 @@ That command depends on command in Target 'agg2' (project \'aProject\'): script 
     }
 
     /// Check that "build targets not in parallel" is honored.
-    @Test(.requireSDKs(.host), .skipHostOS(.windows), .requireThreadSafeWorkingDirectory)
+    @Test(.requireSDKs(.host), .skipHostOS(.windows))
     func simulatedNonParallelTargetBuild() async throws {
         try await withTemporaryDirectory { tmpDirPath async throws -> Void in
             let testWorkspace = TestWorkspace(
@@ -990,7 +990,7 @@ That command depends on command in Target 'agg2' (project \'aProject\'): script 
     }
 
     /// Check that build phase order is honored.
-    @Test(.requireSDKs(.host), .skipHostOS(.windows), .requireThreadSafeWorkingDirectory)
+    @Test(.requireSDKs(.host), .skipHostOS(.windows))
     func simulatedBuildPhaseOrder() async throws {
         try await withTemporaryDirectory { tmpDirPath async throws -> Void in
             let testWorkspace = TestWorkspace(
@@ -2392,7 +2392,7 @@ That command depends on command in Target 'agg2' (project \'aProject\'): script 
     }
 
     /// Check non-UTF8 encoded shell scripts don't cause any unexpected issues.
-    @Test(.requireSDKs(.host), .skipHostOS(.windows), .requireSystemPackages(apt: "xxd", yum: "vim-common"), .requireThreadSafeWorkingDirectory)
+    @Test(.requireSDKs(.host), .skipHostOS(.windows), .requireSystemPackages(apt: "xxd", yum: "vim-common"))
     func nonUTF8ShellScript() async throws {
         try await withTemporaryDirectory { tmpDir in
             let testWorkspace = TestWorkspace(
@@ -2461,7 +2461,7 @@ That command depends on command in Target 'agg2' (project \'aProject\'): script 
     }
 
     /// Check special shell script dependency handling
-    @Test(.requireSDKs(.host), .skipHostOS(.windows), .requireThreadSafeWorkingDirectory)
+    @Test(.requireSDKs(.host), .skipHostOS(.windows))
     func shellScriptIncrementalBehaviors() async throws {
         try await withTemporaryDirectory { tmpDirPath async throws -> Void in
             // Test that an incremental rebuild of an empty project does nothing.
@@ -2532,7 +2532,7 @@ That command depends on command in Target 'agg2' (project \'aProject\'): script 
     }
 
     /// Check chown/chmod dependency handling.
-    @Test(.requireSDKs(.host), .skipHostOS(.windows), .requireThreadSafeWorkingDirectory)
+    @Test(.requireSDKs(.host), .skipHostOS(.windows))
     func setFileAttributesIncrementalBehaviors() async throws {
         try await withTemporaryDirectory { tmpDirPath async throws -> Void in
             // Test that an incremental rebuild of an empty project does nothing.
@@ -2736,7 +2736,7 @@ That command depends on command in Target 'agg2' (project \'aProject\'): script 
     }
 
     /// Check the handling of a minimal copied bundle.
-    @Test(.requireSDKs(.host), .skipHostOS(.windows), .requireThreadSafeWorkingDirectory)
+    @Test(.requireSDKs(.host), .skipHostOS(.windows))
     func minimalCopiedBundle() async throws {
         try await withTemporaryDirectory { tmpDirPath async throws -> Void in
             let testWorkspace = TestWorkspace(
@@ -4201,7 +4201,7 @@ That command depends on command in Target 'agg2' (project \'aProject\'): script 
     }
 
     /// Check that PCH file dependencies are respected.
-    @Test(.requireSDKs(.host), .requireThreadSafeWorkingDirectory)
+    @Test(.requireSDKs(.host))
     func prefixHeaderDependencies() async throws {
         try await withTemporaryDirectory { tmpDirPath async throws -> Void in
             let testWorkspace = TestWorkspace(

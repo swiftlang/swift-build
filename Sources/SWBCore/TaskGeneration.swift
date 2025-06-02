@@ -647,7 +647,7 @@ public struct PlannedTaskBuilder {
 
 /// Interface by which core classes can request information from the client.
 public protocol CoreClientDelegate {
-    func executeExternalTool(commandLine: [String], workingDirectory: String?, environment: [String: String]) async throws -> ExternalToolResult
+    func executeExternalTool(commandLine: [String], workingDirectory: Path?, environment: [String: String]) async throws -> ExternalToolResult
 }
 
 public protocol CoreClientTargetDiagnosticProducingDelegate: AnyObject, TargetDiagnosticProducingDelegate, ActivityReporter {
@@ -757,7 +757,7 @@ extension TaskGenerationDelegate {
 }
 
 extension CoreClientTargetDiagnosticProducingDelegate {
-    public func executeExternalTool(commandLine: [String], workingDirectory: String? = nil, environment: [String: String] = [:], executionDescription: String?) async throws -> Processes.ExecutionResult {
+    public func executeExternalTool(commandLine: [String], workingDirectory: Path? = nil, environment: [String: String] = [:], executionDescription: String?) async throws -> Processes.ExecutionResult {
         try await withActivity(ruleInfo: "ExecuteExternalTool " + commandLine.joined(separator: " "), executionDescription: executionDescription ?? CommandLineToolSpec.fallbackExecutionDescription, signature: ByteString(encodingAsUTF8: "\(commandLine) \(String(describing: workingDirectory)) \(environment)"), target: nil, parentActivity: ActivityID.buildDescriptionActivity) { activity in
             try await coreClientDelegate.executeExternalTool(commandLine: commandLine, workingDirectory: workingDirectory, environment: environment)
         }
@@ -768,7 +768,7 @@ extension CoreClientTargetDiagnosticProducingDelegate {
 private let externalToolExecutionQueue = AsyncOperationQueue(concurrentTasks: ProcessInfo.processInfo.activeProcessorCount)
 
 extension CoreClientDelegate {
-    package func executeExternalTool(commandLine: [String], workingDirectory: String? = nil, environment: [String: String] = [:]) async throws -> Processes.ExecutionResult {
+    package func executeExternalTool(commandLine: [String], workingDirectory: Path? = nil, environment: [String: String] = [:]) async throws -> Processes.ExecutionResult {
         switch try await executeExternalTool(commandLine: commandLine, workingDirectory: workingDirectory, environment: environment) {
         case .deferred:
             guard let url = commandLine.first.map(URL.init(fileURLWithPath:)) else {
@@ -776,7 +776,7 @@ extension CoreClientDelegate {
             }
 
             return try await externalToolExecutionQueue.withOperation {
-                try await Process.getOutput(url: url, arguments: Array(commandLine.dropFirst()), currentDirectoryURL: workingDirectory.map(URL.init(fileURLWithPath:)), environment: Environment.current.addingContents(of: .init(environment)))
+                try await Process.getOutput(url: url, arguments: Array(commandLine.dropFirst()), currentDirectoryURL: workingDirectory.map { URL(fileURLWithPath: $0.str) }, environment: Environment.current.addingContents(of: .init(environment)))
             }
         case let .result(status, stdout, stderr):
             return Processes.ExecutionResult(exitStatus: status, stdout: stdout, stderr: stderr)

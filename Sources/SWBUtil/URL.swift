@@ -35,6 +35,13 @@ extension URL {
     }
 }
 
-fileprivate enum FileURLError: Error {
+fileprivate enum FileURLError: Error, CustomStringConvertible {
     case notRepresentable(URL)
+
+    var description: String {
+        switch self {
+        case .notRepresentable(let url):
+            return "URL \(url) cannot be represented as an absolute file path"
+        }
+    }
 }
