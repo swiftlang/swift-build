@@ -62,7 +62,7 @@ public final class XCStringsCompilerSpec: GenericCompilerSpec, SpecIdentifierTyp
             // xcstringstool compile --dry-run
             dryRunCommandLine.insert("--dry-run", at: 2)
 
-            outputs = try await generatedFilePaths(cbc, delegate, commandLine: dryRunCommandLine, workingDirectory: cbc.producer.defaultWorkingDirectory.str, environment: environmentFromSpec(cbc, delegate).bindingsDictionary, executionDescription: "Compute XCStrings \(cbc.input.absolutePath.basename) output paths") { output in
+            outputs = try await generatedFilePaths(cbc, delegate, commandLine: dryRunCommandLine, workingDirectory: cbc.producer.defaultWorkingDirectory, environment: environmentFromSpec(cbc, delegate).bindingsDictionary, executionDescription: "Compute XCStrings \(cbc.input.absolutePath.basename) output paths") { output in
                 return output.unsafeStringValue.split(separator: "\n").map(Path.init)
             }
         } catch {

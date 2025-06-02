@@ -40,7 +40,7 @@ fileprivate struct ValidationTests: CoreBasedTests {
         // Run the subprocess, check the result, and return the output if we succeeded.
         let executionResult = try await Process.getOutput(url: url, arguments: args, currentDirectoryURL: URL(fileURLWithPath: workingDirectory.str), environment: environment)
         if !executionResult.exitStatus.isSuccess {
-            throw RunProcessNonZeroExitError(args: [url.path] + args, workingDirectory: workingDirectory.str, environment: environment, status: executionResult.exitStatus, stdout: ByteString(executionResult.stdout), stderr: ByteString(executionResult.stderr))
+            throw RunProcessNonZeroExitError(args: [url.path] + args, workingDirectory: workingDirectory, environment: environment, status: executionResult.exitStatus, stdout: ByteString(executionResult.stdout), stderr: ByteString(executionResult.stderr))
         }
     }
 

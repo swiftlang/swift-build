@@ -81,7 +81,7 @@ fileprivate struct BuildTaskBehaviorTests: CoreBasedTests {
 
     // FIXME: We should migrate these tests to primarily only use internal execution nodes, and not end up running tools (except for tests which are explicitly trying to test that behavior).
 
-    @Test(.requireSDKs(.host), .requireThreadSafeWorkingDirectory, .skipHostOS(.windows, "no /bin/echo"))
+    @Test(.requireSDKs(.host), .skipHostOS(.windows, "no /bin/echo"))
     func simulatedSingleInputlessOutputlessCommand() async throws {
         let echoTask = createTask(ruleInfo: ["echo", "hi"], commandLine: ["/bin/echo", "hi"], inputs: [], outputs: [MakePlannedVirtualNode("<ECHO>")], action: nil)
 
@@ -207,7 +207,7 @@ fileprivate struct BuildTaskBehaviorTests: CoreBasedTests {
 
     /// Stress concurrent access to the build system cache during rapid cancel
     /// then build scenarios.
-    @Test(.requireSDKs(.host), .skipHostOS(.windows, "no /usr/bin/true"), .requireThreadSafeWorkingDirectory,
+    @Test(.requireSDKs(.host), .skipHostOS(.windows, "no /usr/bin/true"),
           // To aid in establishing the subtle concurrent
           // timing required to trigger chaos, we disable early build operation
           // cancellation.
@@ -307,7 +307,7 @@ fileprivate struct BuildTaskBehaviorTests: CoreBasedTests {
     }
 
     /// Check that we honor specs which are unsafe to interrupt.
-    @Test(.requireSDKs(.host), .skipHostOS(.windows, "no bash shell"), .requireThreadSafeWorkingDirectory)
+    @Test(.requireSDKs(.host), .skipHostOS(.windows, "no bash shell"))
     func unsafeToInterrupt() async throws {
         let fs = localFS
         let output = MakePlannedVirtualNode("<WAIT>")
@@ -382,7 +382,7 @@ fileprivate struct BuildTaskBehaviorTests: CoreBasedTests {
     }
 
     /// Check the behavior of gate tasks.
-    @Test(.requireSDKs(.host), .skipHostOS(.windows, "no /usr/bin/true"), .requireThreadSafeWorkingDirectory)
+    @Test(.requireSDKs(.host), .skipHostOS(.windows, "no /usr/bin/true"))
     func simulatedTasksWithGate() async throws {
         let aNode = MakePlannedVirtualNode("A")
         let bNode = MakePlannedVirtualNode("B")
@@ -406,7 +406,7 @@ fileprivate struct BuildTaskBehaviorTests: CoreBasedTests {
         }
     }
 
-    @Test(.requireSDKs(.host), .skipHostOS(.windows, "no /bin/echo"), .requireThreadSafeWorkingDirectory)
+    @Test(.requireSDKs(.host), .skipHostOS(.windows, "no /bin/echo"))
     func simulatedDiamondGraph() async throws {
         let tasksToMake = [
             ("START", inputs: ["/INPUT"]),
@@ -442,7 +442,7 @@ fileprivate struct BuildTaskBehaviorTests: CoreBasedTests {
         }
     }
 
-    @Test(.requireSDKs(.host), .skipHostOS(.windows, "no /usr/bin/true"), .requireThreadSafeWorkingDirectory)
+    @Test(.requireSDKs(.host), .skipHostOS(.windows, "no /usr/bin/true"))
     func simulatedMustPrecede() async throws {
         let tasksToMake = ["A", "B", "C", "D"]
         var tasks: [any PlannedTask] = []
@@ -902,7 +902,7 @@ fileprivate struct BuildTaskBehaviorTests: CoreBasedTests {
     }
 
     /// Check the handling of directory tree nodes.
-    @Test(.skipHostOS(.windows, "no /usr/bin/find"), .requireSDKs(.host), .requireThreadSafeWorkingDirectory)
+    @Test(.skipHostOS(.windows, "no /usr/bin/find"), .requireSDKs(.host))
     func directoryTreeInputs() async throws {
         try await withTemporaryDirectory { tmpDir in
             let fs = localFS
@@ -953,7 +953,7 @@ fileprivate struct BuildTaskBehaviorTests: CoreBasedTests {
         }
     }
 
-    @Test(.requireSDKs(.host), .skipHostOS(.windows, "no /bin/echo"), .requireThreadSafeWorkingDirectory)
+    @Test(.requireSDKs(.host), .skipHostOS(.windows, "no /bin/echo"))
     func additionalInfoOutput() async throws {
         let echoTask = createTask(ruleInfo: ["echo", "additional-output"], commandLine: ["/bin/echo", "additional-output"], additionalOutput: ["just some extra output"], inputs: [], outputs: [MakePlannedVirtualNode("<ECHO>")], action: nil)
 

@@ -198,7 +198,7 @@ final public class PrecompileClangModuleTaskAction: TaskAction, BuildValueValida
 
             let delegate = TaskProcessDelegate(outputDelegate: outputDelegate)
             // The frontend invocations should be unaffected by the environment, pass an empty one.
-            try await spawn(commandLine: commandLine, environment: [:], workingDirectory: dependencyInfo.workingDirectory.str, dynamicExecutionDelegate: dynamicExecutionDelegate, clientDelegate: clientDelegate, processDelegate: delegate)
+            try await spawn(commandLine: commandLine, environment: [:], workingDirectory: dependencyInfo.workingDirectory, dynamicExecutionDelegate: dynamicExecutionDelegate, clientDelegate: clientDelegate, processDelegate: delegate)
 
             let result = delegate.commandResult ?? .failed
             if result == .succeeded {

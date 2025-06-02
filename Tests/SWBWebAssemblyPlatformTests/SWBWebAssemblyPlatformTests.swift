@@ -21,7 +21,6 @@ import SWBUtil
 fileprivate struct SWBWebAssemblyPlatformTests: CoreBasedTests {
     @Test(
         .requireSDKs(.wasi),
-        .requireThreadSafeWorkingDirectory,
         .skipXcodeToolchain,
         arguments: ["wasm32"], [true, false]
     )
@@ -132,7 +131,7 @@ fileprivate struct SWBWebAssemblyPlatformTests: CoreBasedTests {
         }
     }
 
-    @Test(.requireSDKs(.wasi), .requireThreadSafeWorkingDirectory, .skipXcodeToolchain, arguments: ["wasm32"])
+    @Test(.requireSDKs(.wasi), .skipXcodeToolchain, arguments: ["wasm32"])
     func wasiCommandWithCAndCxx(arch: String) async throws {
         let sdkroot = try await #require(getCore().loadSDK(llvmTargetTripleSys: "wasi")).path.str
 

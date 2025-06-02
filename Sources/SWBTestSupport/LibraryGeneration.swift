@@ -64,28 +64,28 @@ extension InstalledXcode {
         let linkerArgs = linkerOptions.map({ $0.args }).reduce([], +)
         if buildLibraryForDistribution {
             distributionArgs = ["-enable-library-evolution"]
-            _ = try await xcrun(["-sdk", platform.sdkName, "swiftc", "-target", target] + targetVariantArgs + distributionArgs as [String] + ["-emit-module-interface", "-emit-module-interface-path", swiftModuleDir.join("\(name).swiftinterface").str, "-c",  sourcePath.str], workingDirectory: workingDirectory.str)
+            _ = try await xcrun(["-sdk", platform.sdkName, "swiftc", "-target", target] + targetVariantArgs + distributionArgs as [String] + ["-emit-module-interface", "-emit-module-interface-path", swiftModuleDir.join("\(name).swiftinterface").str, "-c",  sourcePath.str], workingDirectory: workingDirectory)
         } else {
             distributionArgs = []
         }
 
         // Generate the macho file.
         let machoArgs = [["-sdk", platform.sdkName, "swiftc", "-target", target], targetVariantArgs, distributionArgs, ["-emit-module", "-emit-module-path", swiftModuleDir.join("\(arch).swiftmodule").str, "-module-name", name, "-c", sourcePath.str]].reduce([], +)
-        _ = try await xcrun(machoArgs, workingDirectory: workingDirectory.str)
+        _ = try await xcrun(machoArgs, workingDirectory: workingDirectory)
 
         // Generate the swiftmodule file.
         let swiftmoduleArgs = [["-sdk", platform.sdkName, "swiftc", "-target", target], targetVariantArgs, distributionArgs, ["-module-name", name, "-o", objectPath.str, "-c", sourcePath.str]].reduce([], +)
-        _ = try await xcrun(swiftmoduleArgs, workingDirectory: workingDirectory.str)
+        _ = try await xcrun(swiftmoduleArgs, workingDirectory: workingDirectory)
 
         if `static` {
             return objectPath
         } else if object {
             let linkArgs = [["-sdk", platform.sdkName, "clang", "-r", "-target", target], targetVariantArgs, linkerArgs, ["-L" + swiftRuntimeLibraryDirectoryPath(name: platform.sdkName), "-L/usr/lib/swift", "-o", machoPath.str, objectPath.str]].reduce([], +)
-            _ = try await xcrun(linkArgs, workingDirectory: workingDirectory.str)
+            _ = try await xcrun(linkArgs, workingDirectory: workingDirectory)
             return machoPath
         } else {
             let linkArgs = [["-sdk", platform.sdkName, "clang", "-dynamiclib", "-target", target], targetVariantArgs, linkerArgs, ["-L" + swiftRuntimeLibraryDirectoryPath(name: platform.sdkName), "-L/usr/lib/swift", "-o", machoPath.str, objectPath.str]].reduce([], +)
-            _ = try await xcrun(linkArgs, workingDirectory: workingDirectory.str)
+            _ = try await xcrun(linkArgs, workingDirectory: workingDirectory)
             if needSigned {
                 _ = try await runProcessWithDeveloperDirectory(["/usr/bin/codesign", "-s", "-", machoPath.str])
             }

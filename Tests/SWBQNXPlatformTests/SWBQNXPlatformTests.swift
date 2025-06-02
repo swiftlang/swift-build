@@ -19,7 +19,7 @@ import SWBCore
 
 @Suite
 fileprivate struct QNXBuildOperationTests: CoreBasedTests {
-    @Test(.requireSDKs(.qnx), .skipHostOS(.macOS), .requireThreadSafeWorkingDirectory, arguments: ["aarch64", "x86_64"])
+    @Test(.requireSDKs(.qnx), .skipHostOS(.macOS), arguments: ["aarch64", "x86_64"])
     func qnxCommandLineTool(arch: String) async throws {
         try await withTemporaryDirectory { (tmpDir: Path) in
             let testProject = TestProject(

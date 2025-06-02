@@ -196,7 +196,7 @@ fileprivate struct ClangTests: CoreBasedTests {
                 super.init()
             }
 
-            override func executeExternalTool(commandLine: [String], workingDirectory: String?, environment: [String : String]) async throws -> ExternalToolResult {
+            override func executeExternalTool(commandLine: [String], workingDirectory: Path?, environment: [String : String]) async throws -> ExternalToolResult {
                 if commandLine.first == mockClangPath {
                     return .result(status: .exit(0), stdout: Data(), stderr: Data())
                 }

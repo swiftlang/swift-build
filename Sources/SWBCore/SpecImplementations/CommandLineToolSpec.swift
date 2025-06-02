@@ -1393,7 +1393,7 @@ open class CommandLineToolSpec : PropertyDomainSpec, SpecType, TaskTypeDescripti
         return Base.instance.shouldStart(task, buildCommand: buildCommand)
     }
 
-    public func executeExternalTool<T>(_ cbc: CommandBuildContext, _ delegate: any TaskGenerationDelegate, commandLine: [String], workingDirectory: String?, environment: [String: String], executionDescription: String?, _ parse: @escaping (ByteString) throws -> T) async throws -> T {
+    public func executeExternalTool<T>(_ cbc: CommandBuildContext, _ delegate: any TaskGenerationDelegate, commandLine: [String], workingDirectory: Path?, environment: [String: String], executionDescription: String?, _ parse: @escaping (ByteString) throws -> T) async throws -> T {
         let executionResult = try await delegate.executeExternalTool(commandLine: commandLine, workingDirectory: workingDirectory, environment: environment, executionDescription: executionDescription)
         guard executionResult.exitStatus.isSuccess else {
             throw RunProcessNonZeroExitError(args: commandLine, workingDirectory: workingDirectory, environment: .init(environment), status: executionResult.exitStatus, stdout: ByteString(executionResult.stdout), stderr: ByteString(executionResult.stderr))
@@ -1401,7 +1401,7 @@ open class CommandLineToolSpec : PropertyDomainSpec, SpecType, TaskTypeDescripti
         return try parse(ByteString(executionResult.stdout))
     }
 
-    public func generatedFilePaths(_ cbc: CommandBuildContext, _ delegate: any TaskGenerationDelegate, commandLine: [String], workingDirectory: String?, environment: [String: String], executionDescription: String?, _ parse: @escaping (ByteString) throws -> [Path]) async throws -> [Path] {
+    public func generatedFilePaths(_ cbc: CommandBuildContext, _ delegate: any TaskGenerationDelegate, commandLine: [String], workingDirectory: Path?, environment: [String: String], executionDescription: String?, _ parse: @escaping (ByteString) throws -> [Path]) async throws -> [Path] {
         return try await executeExternalTool(cbc, delegate, commandLine: commandLine, workingDirectory: workingDirectory, environment: environment, executionDescription: executionDescription, parse)
     }
 }

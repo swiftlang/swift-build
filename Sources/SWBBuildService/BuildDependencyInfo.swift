@@ -469,7 +469,7 @@ extension BuildDependencyInfo {
 
 /// Special `CoreClientDelegate`-conforming struct because our use of `GlobalProductPlan` here should never be running external tools.
 fileprivate struct UnsupportedCoreClientDelegate: CoreClientDelegate {
-    func executeExternalTool(commandLine: [String], workingDirectory: String?, environment: [String : String]) async throws -> ExternalToolResult {
+    func executeExternalTool(commandLine: [String], workingDirectory: Path?, environment: [String : String]) async throws -> ExternalToolResult {
         throw StubError.error("Running external tools is not supported when computing build dependency target info.")
     }
 }

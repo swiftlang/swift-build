@@ -21,7 +21,7 @@ import SWBTestSupport
 
 import Testing
 
-@Suite(.performance, .requireThreadSafeWorkingDirectory)
+@Suite(.performance)
 fileprivate struct BuildOperationPerfTests: PerfTests {
     /// Run a test of a synthetic project with a given number of targets and files.
     ///

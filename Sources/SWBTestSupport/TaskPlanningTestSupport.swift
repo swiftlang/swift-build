@@ -15,7 +15,7 @@ public import enum SWBProtocol.ExternalToolResult
 public import struct SWBProtocol.BuildOperationTaskEnded
 public import SWBTaskConstruction
 import SWBTaskExecution
-package import SWBUtil
+public import SWBUtil
 import Testing
 package import SWBMacro
 import Foundation
@@ -192,7 +192,7 @@ package extension Array where Element == TaskCondition {
 open class MockTestTaskPlanningClientDelegate: TaskPlanningClientDelegate, @unchecked Sendable {
     package init() {}
 
-    open func executeExternalTool(commandLine: [String], workingDirectory: String?, environment: [String: String]) async throws -> ExternalToolResult {
+    open func executeExternalTool(commandLine: [String], workingDirectory: Path?, environment: [String: String]) async throws -> ExternalToolResult {
         let args = commandLine.dropFirst()
         switch commandLine.first.map(Path.init)?.basenameWithoutSuffix {
         case "actool" where args == ["--version", "--output-format", "xml1"]:
