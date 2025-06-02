@@ -1443,6 +1443,9 @@ public final class SwiftCompilerSpec : CompilerSpec, SpecIdentifierType, SwiftDi
     }
 
     private func diagnoseFeatureEnablement(_ cbc: CommandBuildContext, _ languageFeatureEnablementInfo: SwiftBlocklists.LanguageFeatureEnablementInfo, _ delegate: any TaskGenerationDelegate) {
+        guard cbc.scope.evaluate(BuiltinMacros.SWIFT_ENABLE_LANGUAGE_FEATURE_ENABLEMENT_DIAGNOSTICS) else {
+            return
+        }
         let moduleName = cbc.scope.evaluate(BuiltinMacros.SWIFT_MODULE_NAME)
         let otherFlags = cbc.scope.evaluate(BuiltinMacros.OTHER_SWIFT_FLAGS)
         var otherFlagsFeatures: [String] = []
