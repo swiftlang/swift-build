@@ -121,7 +121,7 @@ actor LinkageDependencyResolver {
             await resolver.concurrentPerform(iterations: topLevelTargetsToDiscover.count, maximumParallelism: 100) { [self] i in
                 if Task.isCancelled { return }
                 let configuredTarget = topLevelTargetsToDiscover[i]
-                let imposedParameters = resolver.specializationParameters(configuredTarget, workspaceContext: workspaceContext, buildRequest: buildRequest, buildRequestContext: buildRequestContext)
+                let imposedParameters = resolver.specializationParameters(configuredTarget, workspaceContext: workspaceContext, buildRequest: buildRequest, buildRequestContext: buildRequestContext, superimposedProperties: nil)
                 let dependenciesOnPath = LinkageDependencies()
                 await linkageDependencies(for: configuredTarget, imposedParameters: imposedParameters, dependenciesOnPath: dependenciesOnPath)
             }
@@ -190,10 +190,10 @@ actor LinkageDependencyResolver {
                 if let imposedParameters = imposedParameters, dependency.target.target.type == .aggregate {
                     imposedParametersForDependency = imposedParameters
                 } else {
-                    imposedParametersForDependency = resolver.specializationParameters(dependency.target, workspaceContext: workspaceContext, buildRequest: buildRequest, buildRequestContext: buildRequestContext)
+                    imposedParametersForDependency = resolver.specializationParameters(dependency.target, workspaceContext: workspaceContext, buildRequest: buildRequest, buildRequestContext: buildRequestContext, superimposedProperties: imposedParameters?.superimposedProperties?.forPropagation)
                 }
             } else {
-                imposedParametersForDependency = resolver.specializationParameters(dependency.target, workspaceContext: workspaceContext, buildRequest: buildRequest, buildRequestContext: buildRequestContext)
+                imposedParametersForDependency = resolver.specializationParameters(dependency.target, workspaceContext: workspaceContext, buildRequest: buildRequest, buildRequestContext: buildRequestContext, superimposedProperties: imposedParameters?.superimposedProperties?.forPropagation)
             }
             await self.linkageDependencies(for: dependency.target, imposedParameters: imposedParametersForDependency, dependenciesOnPath: dependenciesOnPath)
         }
