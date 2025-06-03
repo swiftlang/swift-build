@@ -15,6 +15,7 @@ import Testing
 import SWBBuildSystem
 import SWBCore
 import SWBTestSupport
+import SwiftBuildTestSupport
 import SWBTaskExecution
 @_spi(Testing) import SWBUtil
 import SWBLibc
