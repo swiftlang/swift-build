@@ -1476,7 +1476,7 @@ package final class BuildOperationTester {
 
     /// Construct the tasks for the given build parameters, and test the result.
     @discardableResult package func checkBuild<T>(_ name: String? = nil, parameters: BuildParameters? = nil, runDestination: SWBProtocol.RunDestinationInfo?, buildRequest inputBuildRequest: BuildRequest? = nil, buildCommand: BuildCommand? = nil, schemeCommand: SchemeCommand? = .launch, persistent: Bool = false, serial: Bool = false, buildOutputMap: [String:String]? = nil, signableTargets: Set<String> = [], signableTargetInputs: [String: ProvisioningTaskInputs] = [:], clientDelegate: (any ClientDelegate)? = nil, sourceLocation: SourceLocation = #_sourceLocation, body: (BuildResults) async throws -> T) async throws -> T {
-        try await checkBuild(name, parameters: parameters, runDestination: runDestination, buildRequest: inputBuildRequest, buildCommand: buildCommand, schemeCommand: schemeCommand, persistent: persistent, serial: serial, buildOutputMap: buildOutputMap, signableTargets: signableTargets, signableTargetInputs: signableTargetInputs, clientDelegate: clientDelegate, sourceLocation: sourceLocation, body: body, performBuild: { await $0.buildWithTimeout() })
+        try await checkBuild(name, parameters: parameters, runDestination: runDestination, buildRequest: inputBuildRequest, buildCommand: buildCommand, schemeCommand: schemeCommand, persistent: persistent, serial: serial, buildOutputMap: buildOutputMap, signableTargets: signableTargets, signableTargetInputs: signableTargetInputs, clientDelegate: clientDelegate, sourceLocation: sourceLocation, body: body, performBuild: { try await $0.buildWithTimeout() })
     }
 
     /// Construct the tasks for the given build parameters, and test the result.
@@ -1670,7 +1670,7 @@ package final class BuildOperationTester {
         let operationParameters = buildRequest.parameters.replacing(activeRunDestination: runDestination, activeArchitecture: nil)
         let operationBuildRequest = buildRequest.with(parameters: operationParameters, buildTargets: [])
 
-        return try await checkBuild(runDestination: nil, buildRequest: buildRequest, operationBuildRequest: operationBuildRequest, persistent: persistent, sourceLocation: sourceLocation, body: body, performBuild: { await $0.buildWithTimeout() })
+        return try await checkBuild(runDestination: nil, buildRequest: buildRequest, operationBuildRequest: operationBuildRequest, persistent: persistent, sourceLocation: sourceLocation, body: body, performBuild: { try await $0.buildWithTimeout() })
     }
 
     package struct BuildGraphResult: Sendable {
@@ -2306,8 +2306,8 @@ private let buildSystemOperationQueue = AsyncOperationQueue(concurrentTasks: 6)
 
 extension BuildSystemOperation {
     /// Runs the build system operation -- responds to cooperative cancellation and limited to 6 concurrent operations per process.
-    func buildWithTimeout() async {
-        await buildSystemOperationQueue.withOperation {
+    func buildWithTimeout() async throws {
+        try await buildSystemOperationQueue.withOperation {
             do {
                 try await withTimeout(timeout: .seconds(1200), description: "Build system operation 20-minute limit") {
                     await withTaskCancellationHandler {
