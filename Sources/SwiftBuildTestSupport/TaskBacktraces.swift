@@ -80,6 +80,14 @@ extension BuildOperationTester.BuildResults {
             }
         }
     }
+
+    package func checkTextualBacktrace(_ task: Task, _ expected: String, sourceLocation: SourceLocation = #_sourceLocation) {
+        if let frameID = getBacktraceID(task, sourceLocation: sourceLocation), let backtrace = reconstructBacktrace(for: frameID) {
+            #expect(backtrace.renderTextualRepresentation() == expected, sourceLocation: sourceLocation)
+        } else {
+            // already recorded an issue
+        }
+    }
 }
 
 extension BuildOperationTester {

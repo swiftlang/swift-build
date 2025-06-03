@@ -193,4 +193,15 @@ public struct SWBTaskBacktrace {
         }
         self.frames = frames
     }
+
+    public func renderTextualRepresentation() -> String {
+        var textualBacktrace: String = ""
+        for (frameNumber, frame) in frames.enumerated() {
+            guard frame.category.isUserFacing else {
+                continue
+            }
+            textualBacktrace += "#\(frameNumber): \(frame.description)\n"
+        }
+        return textualBacktrace
+    }
 }
