@@ -40,6 +40,8 @@ fileprivate struct SwiftABICheckerTaskConstructionTests: CoreBasedTests {
                     "SWIFT_VERSION": swiftVersion,
                     "FRAMEWORK_SEARCH_PATHS": "/Target/Framework/Search/Path/A",
                     "SYSTEM_FRAMEWORK_SEARCH_PATHS": "/Target/System/Framework/Search/Path/A",
+                    "SWIFT_INCLUDE_PATHS": "/Target/Import/Search/Path/A",
+                    "SWIFT_SYSTEM_INCLUDE_PATHS": "/Target/System/Import/Search/Path/A",
                     "CODE_SIGNING_ALLOWED": "NO",
                     "BUILD_LIBRARY_FOR_DISTRIBUTION": "YES",
                     "TAPI_EXEC": tapiToolPath.str,
@@ -68,6 +70,8 @@ fileprivate struct SwiftABICheckerTaskConstructionTests: CoreBasedTests {
                         "-target", "\(arch)-apple-ios\(core.loadSDK(.iOS).defaultDeploymentTarget)",
                         "-F", "/TEST/build/Debug-iphoneos",
                         "-module", "Fwk",
+                        "-I", "/Target/Import/Search/Path/A",
+                        "-I", "/Target/System/Import/Search/Path/A",
                         "-F", "/Target/System/Framework/Search/Path/A"
                     ])
                 }
