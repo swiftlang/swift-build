@@ -3763,6 +3763,9 @@ public extension BuildPhaseWithBuildFiles {
     /// - Returns: If the build phase contains any Swift source files that are not filtered out via the platform filter or excluded source file name patterns.
     func containsSwiftSources(_ referenceLookupContext: any ReferenceLookupContext, _ specLookupContext: any SpecLookupContext, _ scope: MacroEvaluationScope, _ filePathResolver: FilePathResolver) -> Bool {
         guard let swiftFileType = specLookupContext.lookupFileType(identifier: "sourcecode.swift") else { return false }
+        if scope.evaluate(BuiltinMacros.GENERATE_TEST_ENTRY_POINT) {
+            return true
+        }
         return containsFiles(ofType: swiftFileType, referenceLookupContext, specLookupContext, scope, filePathResolver)
     }
 }

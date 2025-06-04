@@ -46,6 +46,7 @@ add_library(SWBUtil
   HashContext.swift
   Headermap.swift
   HeavyCache.swift
+  IndexStore.swift
   Int.swift
   InterningArena.swift
   IO.swift
