@@ -312,19 +312,4 @@
         IsUnitTest = YES;
         WantsBundleIdentifierEditing = NO;
     },
-    // SwiftPM test runner
-    {   Type = ProductType;
-        Identifier = com.apple.product-type.tool.swiftpm-test-runner;
-        BasedOn = com.apple.product-type.tool;
-        Name = "SwiftPM Unit Test Runner";
-        Description = "SwiftPM Unit Test Runner";
-        DefaultBuildProperties = {
-            ENABLE_TESTING_SEARCH_PATHS = YES;
-            GENERATE_TEST_ENTRY_POINT = YES;
-            GENERATED_TEST_ENTRY_POINT_PATH = "$(DERIVED_SOURCES_DIR)/test_entry_point.swift";
-        };
-        PackageTypes = (
-            com.apple.package-type.mach-o-executable
-        );
-    },
 )

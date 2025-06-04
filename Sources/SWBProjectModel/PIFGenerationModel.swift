@@ -295,7 +295,6 @@ public enum PIF {
             case executable = "com.apple.product-type.tool"
             case hostBuildTool = "com.apple.product-type.tool.host-build"
             case unitTest = "com.apple.product-type.bundle.unit-test"
-            case swiftpmTestRunner = "com.apple.product-type.tool.swiftpm-test-runner"
             case bundle = "com.apple.product-type.bundle"
             case packageProduct = "packageProduct"
             public var asString: String { return rawValue }
@@ -1023,7 +1022,6 @@ public enum PIF {
         public var SWIFT_ADD_TOOLCHAIN_SWIFTSYNTAX_SEARCH_PATHS: String?
         public var SWIFT_FORCE_STATIC_LINK_STDLIB: String?
         public var SWIFT_FORCE_DYNAMIC_LINK_STDLIB: String?
-        public var SWIFT_INDEX_STORE_ENABLE: String?
         public var SWIFT_INSTALL_OBJC_HEADER: String?
         public var SWIFT_LOAD_BINARY_MACROS: [String]?
         public var SWIFT_MODULE_ALIASES: [String]?

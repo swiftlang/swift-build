@@ -24,18 +24,41 @@
         SortNumber = 0;
     },
 
+    // Test type bundle (bodged to be a tool)
     {
         Domain = generic-unix;
         Type = ProductType;
         Identifier = com.apple.product-type.bundle.unit-test;
-        BasedOn = com.apple.product-type.library.dynamic;
+        Class = PBXToolProductType;
+        Name = "Command-line Tool";
+        Description = "Standalone command-line tool";
+        DefaultTargetName = "Command-line Tool";
         DefaultBuildProperties = {
-            // Index store data is required to discover XCTest tests
-            COMPILER_INDEX_STORE_ENABLE = YES;
-            SWIFT_INDEX_STORE_ENABLE = YES;
-            // Testability is needed to generate code to invoke discovered XCTest tests
-            SWIFT_ENABLE_TESTABILITY = YES;
+            FULL_PRODUCT_NAME = "$(EXECUTABLE_NAME)";
+            EXECUTABLE_PREFIX = "";
+            EXECUTABLE_SUFFIX = ".xctest";
+            REZ_EXECUTABLE = YES;
+            INSTALL_PATH = "/usr/local/bin";
+            FRAMEWORK_FLAG_PREFIX = "-framework";
+            LIBRARY_FLAG_PREFIX = "-l";
+            LIBRARY_FLAG_NOSPACE = YES;
+            GCC_DYNAMIC_NO_PIC = NO;
+            LD_NO_PIE = NO;
+            GCC_SYMBOLS_PRIVATE_EXTERN = YES;
+            GCC_INLINES_ARE_PRIVATE_EXTERN = YES;
+            STRIP_STYLE = "all";
+            CODE_SIGNING_ALLOWED = NO;
+            IsUnitTest = YES;
+            SWIFT_FORCE_DYNAMIC_LINK_STDLIB = YES;
+            SWIFT_FORCE_STATIC_LINK_STDLIB = NO;
+            // Avoid warning for executable types
+            ALWAYS_EMBED_SWIFT_STANDARD_LIBRARIES = NO;
+            GENERATE_TEST_ENTRY_POINT = YES;
+            GENERATED_TEST_ENTRY_POINT_PATH = "$(DERIVED_SOURCES_DIR)/test_entry_point.swift";
         };
+        PackageTypes = (
+            com.apple.package-type.mach-o-executable   // default
+        );
     },
 
     // Dynamic library (masquerading as a framework to placate Swift's project structure)

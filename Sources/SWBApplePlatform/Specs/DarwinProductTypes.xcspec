@@ -461,17 +461,4 @@
         );
         Platforms = (driverkit);
     },
-    {
-        _Domain = darwin;
-        Type = ProductType;
-        Identifier = com.apple.product-type.tool.swiftpm-test-runner;
-        Name = "SwiftPM Unit Test Runner";
-        Description = "SwiftPM Unit Test Runner";
-        DefaultBuildProperties = {
-            __SKIP_BUILD = YES;
-        };
-        PackageTypes = (
-            com.apple.package-type.mach-o-executable
-        );
-    },
 )

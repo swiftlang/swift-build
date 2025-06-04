@@ -41,7 +41,7 @@ final class SwiftStandardLibrariesTaskProducer: PhasedTaskProducer, TaskProducer
         let buildingAnySwiftSourceFiles = (context.configuredTarget?.target as? BuildPhaseTarget)?.sourcesBuildPhase?.containsSwiftSources(context.workspaceContext.workspace, context, scope, context.filePathResolver) ?? false
 
         // Determine whether we want to embed swift libraries.
-        var shouldEmbedSwiftLibraries = (buildingAnySwiftSourceFiles  &&  productType.supportsEmbeddingSwiftStandardLibraries(producer: context))
+        var shouldEmbedSwiftLibraries = (buildingAnySwiftSourceFiles  &&  productType.supportsEmbeddingSwiftStandardLibraries)
         // If ALWAYS_EMBED_SWIFT_STANDARD_LIBRARIES then we will override our earlier reasoning if the product is a wrapper.
         if !shouldEmbedSwiftLibraries  &&  scope.evaluate(BuiltinMacros.ALWAYS_EMBED_SWIFT_STANDARD_LIBRARIES)
         {

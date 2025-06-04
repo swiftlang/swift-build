@@ -316,7 +316,6 @@ extension ProjectModel {
             case executable = "com.apple.product-type.tool"
             case hostBuildTool = "com.apple.product-type.tool.host-build"
             case unitTest = "com.apple.product-type.bundle.unit-test"
-            case swiftpmTestRunner = "com.apple.product-type.tool.swiftpm-test-runner"
             case bundle = "com.apple.product-type.bundle"
             case packageProduct = "packageProduct"
         }
