@@ -932,7 +932,7 @@ fileprivate struct PreviewsTaskConstructionTests: CoreBasedTests {
 
     /// Test that the `__info_plist` section ends up in the stub executor instead of the preview dylib when `CREATE_INFOPLIST_SECTION_IN_BINARY` is enabled.
     @Test(.requireSDKs(.iOS))
-    func xOJITEmbeddedInfoPlist() async throws {
+    func XOJITEmbeddedInfoPlist() async throws {
         try await withTemporaryDirectory { tmpDirPath in
             let srcRoot = tmpDirPath.join("srcroot")
 
@@ -1021,7 +1021,7 @@ fileprivate struct PreviewsTaskConstructionTests: CoreBasedTests {
 
     /// Test that any `OTHER_LDFLAGS` arguments end up in the stub executor instead of the debug dylib when is enabled.
     @Test(.requireSDKs(.iOS))
-    func xOJITOtherLDFlags() async throws {
+    func XOJITOtherLDFlags() async throws {
         try await withTemporaryDirectory { tmpDirPath in
             let srcRoot = tmpDirPath.join("srcroot")
 
@@ -1133,7 +1133,7 @@ fileprivate struct PreviewsTaskConstructionTests: CoreBasedTests {
     }
 
     @Test(.requireSDKs(.iOS))
-    func xOJITPropagatingRpaths() async throws {
+    func XOJITPropagatingRpaths() async throws {
         try await withTemporaryDirectory { tmpDirPath in
             let srcRoot = tmpDirPath.join("srcroot")
 
