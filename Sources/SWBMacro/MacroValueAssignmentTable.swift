@@ -11,6 +11,7 @@
 //===----------------------------------------------------------------------===//
 
 public import SWBUtil
+import Synchronization
 
 /// A mapping from macro declarations to corresponding macro value assignments, each of which is a linked list of macro expressions in precedence order.  At the moment it doesn’t support conditional assignments, but that functionality will be implemented soon.
 public struct MacroValueAssignmentTable: Serializable, Sendable {
@@ -20,23 +21,18 @@ public struct MacroValueAssignmentTable: Serializable, Sendable {
     /// Maps macro declarations to corresponding linked lists of assignments.
     public var valueAssignments: [MacroDeclaration: MacroValueAssignment]
 
-    private var valueLocations: [String: InternedMacroValueAssignmentLocation]
-    private var macroConfigPaths: OrderedSet<Path>
-
-    private init(namespace: MacroNamespace, valueAssignments: [MacroDeclaration: MacroValueAssignment], valueLocations: [String: InternedMacroValueAssignmentLocation], macroConfigPaths: OrderedSet<Path>) {
+    private init(namespace: MacroNamespace, valueAssignments: [MacroDeclaration: MacroValueAssignment]) {
         self.namespace = namespace
         self.valueAssignments = valueAssignments
-        self.valueLocations = valueLocations
-        self.macroConfigPaths = macroConfigPaths
     }
 
     public init(namespace: MacroNamespace) {
-        self.init(namespace: namespace, valueAssignments: [:], valueLocations: [:], macroConfigPaths: OrderedSet())
+        self.init(namespace: namespace, valueAssignments: [:])
     }
 
     /// Convenience initializer to create a `MacroValueAssignmentTable` from another instance (i.e., to create a copy).
     public init(copying table: MacroValueAssignmentTable) {
-        self.init(namespace: table.namespace, valueAssignments: table.valueAssignments, valueLocations: table.valueLocations, macroConfigPaths: table.macroConfigPaths)
+        self.init(namespace: table.namespace, valueAssignments: table.valueAssignments)
     }
 
     /// Remove all assignments for the given macro.
@@ -86,20 +82,7 @@ public struct MacroValueAssignmentTable: Serializable, Sendable {
         assert(namespace.lookupMacroDeclaration(macro.name) === macro)
         // Validate the type.
         assert(macro.type.matchesExpressionType(value))
-        valueAssignments[macro] = MacroValueAssignment(expression: value, conditions: conditions, next: valueAssignments[macro])
-
-        if let location {
-            let index = macroConfigPaths.append(location.path).index
-            valueLocations[macro.name] = InternedMacroValueAssignmentLocation(pathRef: index, line: location.line, startColumn: location.startColumn, endColumn: location.endColumn)
-        }
-    }
-
-    private mutating func mergeLocations(from otherTable: MacroValueAssignmentTable) {
-        otherTable.valueLocations.forEach {
-            let path = otherTable.macroConfigPaths[$0.value.pathRef]
-            let index = macroConfigPaths.append(path).index
-            valueLocations[$0.key] = .init(pathRef: index, line: $0.value.line, startColumn: $0.value.startColumn, endColumn: $0.value.endColumn)
-        }
+        valueAssignments[macro] = MacroValueAssignment(expression: value, conditions: conditions, next: valueAssignments[macro], location: location)
     }
 
     /// Adds a mapping from each of the macro-to-value mappings in `otherTable`, inserting them ahead of any already existing assignments in the receiving table.  The other table isn’t affected in any way (in particular, no reference is kept from the receiver to the other table).
@@ -107,7 +90,6 @@ public struct MacroValueAssignmentTable: Serializable, Sendable {
         for (macro, firstAssignment) in otherTable.valueAssignments {
             valueAssignments[macro] = insertCopiesOfMacroValueAssignmentNodes(firstAssignment, inFrontOf: valueAssignments[macro])
         }
-        mergeLocations(from: otherTable)
     }
 
     /// Looks up and returns the first (highest-precedence) macro value assignment for `macro`, if there is one.
@@ -126,15 +108,7 @@ public struct MacroValueAssignmentTable: Serializable, Sendable {
     }
 
     public func location(of macro: MacroDeclaration) -> MacroValueAssignmentLocation? {
-        guard let location = valueLocations[macro.name] else {
-            return nil
-        }
-        return MacroValueAssignmentLocation(
-            path: macroConfigPaths[location.pathRef],
-            line: location.line,
-            startColumn: location.startColumn,
-            endColumn: location.endColumn
-        )
+        return lookupMacro(macro)?.location
     }
 
     public func bindConditionParameter(_ parameter: MacroConditionParameter, _ conditionValues: [String]) -> MacroValueAssignmentTable {
@@ -223,7 +197,6 @@ public struct MacroValueAssignmentTable: Serializable, Sendable {
             bindAndPushAssignment(firstAssignment)
 
         }
-        table.mergeLocations(from: self)
         return table
     }
 
@@ -251,7 +224,7 @@ public struct MacroValueAssignmentTable: Serializable, Sendable {
     // MARK: Serialization
 
     public func serialize<T: Serializer>(to serializer: T) {
-        serializer.beginAggregate(3)
+        serializer.beginAggregate(1)
 
         // We don't directly serialize MacroDeclarations, but rather serialize their contents "by hand" so when we deserialize we can re-use existing declarations in our namespace.
         serializer.beginAggregate(valueAssignments.count)
@@ -279,17 +252,6 @@ public struct MacroValueAssignmentTable: Serializable, Sendable {
         }
         serializer.endAggregate()       // valueAssignments
 
-        serializer.beginAggregate(valueLocations.count)
-        for (decl, loc) in valueLocations.sorted(by: { $0.0 < $1.0 }) {
-            serializer.beginAggregate(2)
-            serializer.serialize(decl)
-            serializer.serialize(loc)
-            serializer.endAggregate()
-        }
-        serializer.endAggregate()
-
-        serializer.serialize(macroConfigPaths)
-
         serializer.endAggregate()       // the whole table
     }
 
@@ -298,10 +260,9 @@ public struct MacroValueAssignmentTable: Serializable, Sendable {
         guard let delegate = deserializer.delegate as? (any MacroValueAssignmentTableDeserializerDelegate) else { throw DeserializerError.invalidDelegate("delegate must be a MacroValueAssignmentTableDeserializerDelegate") }
         self.namespace = delegate.namespace
         self.valueAssignments = [:]
-        self.valueLocations = [:]
 
         // Deserialize the table.
-        try deserializer.beginAggregate(3)
+        try deserializer.beginAggregate(1)
 
         // Iterate over all the key-value pairs.
         let count: Int = try deserializer.beginAggregate()
@@ -348,16 +309,6 @@ public struct MacroValueAssignmentTable: Serializable, Sendable {
             // Add it to the dictionary.
             self.valueAssignments[decl] = asgn
         }
-
-        let count2 = try deserializer.beginAggregate()
-        for _ in 0..<count2 {
-            try deserializer.beginAggregate(2)
-            let name: String = try deserializer.deserialize()
-            let location: InternedMacroValueAssignmentLocation = try deserializer.deserialize()
-            self.valueLocations[name] = location
-        }
-
-        self.macroConfigPaths = try deserializer.deserialize()
     }
 }
 
@@ -379,11 +330,38 @@ public final class MacroValueAssignment: Serializable, CustomStringConvertible, 
     /// Reference to the next (lower precedence) assignment in the linked list, or nil if this is the last one.
     public let next: MacroValueAssignment?
 
+    private let _location: InternedMacroValueAssignmentLocation?
+    private static let macroConfigPaths = SWBMutex<OrderedSet<Path>>(OrderedSet())
+
+    var location: MacroValueAssignmentLocation? {
+        if let _location {
+            return .init(
+                path: Self.macroConfigPaths.withLock { $0[_location.pathRef] },
+                line: _location.line,
+                startColumn: _location.startColumn,
+                endColumn: _location.endColumn
+            )
+        } else {
+            return nil
+        }
+    }
+
     /// Initializes the macro value assignment to represent `expression`, with the next existing macro value assignment (if any).
-    init(expression: MacroExpression, conditions: MacroConditionSet? = nil, next: MacroValueAssignment?) {
+    init(expression: MacroExpression, conditions: MacroConditionSet? = nil, next: MacroValueAssignment?, location: MacroValueAssignmentLocation?) {
         self.expression = expression
         self.conditions = conditions
         self.next = next
+
+        if let location {
+            self._location = InternedMacroValueAssignmentLocation(
+                pathRef: Self.macroConfigPaths.withLock({ $0.append(location.path).index }),
+                line: location.line,
+                startColumn: location.startColumn,
+                endColumn: location.endColumn
+            )
+        } else {
+            self._location = nil
+        }
     }
 
     /// Returns the first macro value assignment that is reachable from the receiver and whose conditions match the given set of parameter values, or nil if there is no such assignment value.  The returned assignment may be the receiver itself, or it may be any assignment that’s downstream in the linked list of macro value assignments, or it may be nil if there is none.  Unconditional macro value assignments are considered to match any conditions.  Conditions that reference parameters that don’t have a value in `paramValues` are only considered to match if the match pattern is `*`, i.e. the “match-anything” pattern (which is effectively a no-op).
@@ -435,18 +413,20 @@ public final class MacroValueAssignment: Serializable, CustomStringConvertible, 
     // MARK: Serialization
 
     public func serialize<T: Serializer>(to serializer: T) {
-        serializer.beginAggregate(3)
+        serializer.beginAggregate(4)
         serializer.serialize(expression)
         serializer.serialize(conditions)
         serializer.serialize(next)
+        serializer.serialize(_location)
         serializer.endAggregate()
     }
 
     public init(from deserializer: any Deserializer) throws {
-        try deserializer.beginAggregate(3)
+        try deserializer.beginAggregate(4)
         self.expression = try deserializer.deserialize()
         self.conditions = try deserializer.deserialize()
         self.next = try deserializer.deserialize()
+        self._location = try deserializer.deserialize()
     }
 }
 
@@ -510,10 +490,10 @@ private func insertCopiesOfMacroValueAssignmentNodes(_ srcAsgn: MacroValueAssign
     }
 
     if let srcNext = srcAsgn.next {
-        return MacroValueAssignment(expression: srcAsgn.expression, conditions:srcAsgn.conditions, next: insertCopiesOfMacroValueAssignmentNodes(srcNext, inFrontOf: dstAsgn))
+        return MacroValueAssignment(expression: srcAsgn.expression, conditions:srcAsgn.conditions, next: insertCopiesOfMacroValueAssignmentNodes(srcNext, inFrontOf: dstAsgn), location: srcAsgn.location)
     }
     else {
-        return MacroValueAssignment(expression: srcAsgn.expression, conditions:srcAsgn.conditions, next: dstAsgn)
+        return MacroValueAssignment(expression: srcAsgn.expression, conditions:srcAsgn.conditions, next: dstAsgn, location: srcAsgn.location)
     }
 }
 
