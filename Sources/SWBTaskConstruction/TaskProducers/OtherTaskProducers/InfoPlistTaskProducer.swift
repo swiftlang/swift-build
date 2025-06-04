@@ -57,7 +57,7 @@ private extension ProductTypeSpec
                 break
             }
 
-            fatalError("unknown product type \(type(of: self))")
+            fatalError("unknown product type")
         }
     }
 

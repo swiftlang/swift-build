@@ -321,7 +321,7 @@ public class ProductTypeSpec : Spec, SpecType, @unchecked Sendable {
     }
 
     /// Returns whether the product type supports embedding Swift standard libraries inside it.
-    public func supportsEmbeddingSwiftStandardLibraries(producer: CommandProducer) -> Bool {
+    public var supportsEmbeddingSwiftStandardLibraries: Bool {
         // Most product types don't support having the Swift libraries embedded in them.
         return false
     }
@@ -381,7 +381,7 @@ public final class ApplicationProductTypeSpec : BundleProductTypeSpec, @unchecke
         return "PBXApplicationProductType"
     }
 
-    public override func supportsEmbeddingSwiftStandardLibraries(producer: CommandProducer) -> Bool {
+    public override var supportsEmbeddingSwiftStandardLibraries: Bool {
         return true
     }
 
@@ -602,8 +602,8 @@ public final class XCTestBundleProductTypeSpec : BundleProductTypeSpec, @uncheck
         super.init(parser, basedOnSpec)
     }
 
-    public override func supportsEmbeddingSwiftStandardLibraries(producer: CommandProducer) -> Bool {
-        return producer.isApplePlatform
+    public override var supportsEmbeddingSwiftStandardLibraries: Bool {
+        return true
     }
 
     public class func usesXCTRunner(_ scope: MacroEvaluationScope) -> Bool {
@@ -649,7 +649,7 @@ public final class XCTestBundleProductTypeSpec : BundleProductTypeSpec, @uncheck
         var (tableOpt, warnings, errors) = super.overridingBuildSettings(scope, platform: platform)
         var table = tableOpt ?? MacroValueAssignmentTable(namespace: scope.namespace)
 
-        let isDeviceBuild = platform?.isDeploymentPlatform == true && platform?.name != scope.evaluate(BuiltinMacros.HOST_PLATFORM)
+        let isDeviceBuild = platform?.isDeploymentPlatform == true && platform?.identifier != "com.apple.platform.macosx"
         if isDeviceBuild {
             // For tests running on devices (not simulators) we always want to generate dSYMs so that symbolication can give file and line information about test failures.
             table.push(BuiltinMacros.DEBUG_INFORMATION_FORMAT, literal: "dwarf-with-dsym")

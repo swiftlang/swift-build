@@ -99,7 +99,6 @@ extension ProjectModel {
             case SUPPORTS_TEXT_BASED_API
             case SUPPRESS_WARNINGS
             case SWIFT_ENABLE_BARE_SLASH_REGEX
-            case SWIFT_INDEX_STORE_ENABLE
             case SWIFT_INSTALL_MODULE
             case SWIFT_PACKAGE_NAME
             case SWIFT_USER_MODULE_VERSION
@@ -147,7 +146,6 @@ extension ProjectModel {
             case SPECIALIZATION_SDK_OPTIONS
             case SWIFT_VERSION
             case SWIFT_ACTIVE_COMPILATION_CONDITIONS
-            case DYLIB_INSTALL_NAME_BASE
         }
 
         public enum Platform: Hashable, CaseIterable, Sendable {
