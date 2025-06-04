@@ -790,7 +790,7 @@ fileprivate let testFileData = [
         }
         func endPreprocessorInclusion() {
         }
-        func foundMacroValueAssignment(_ macroName: String, conditions: [(param: String, pattern: String)], value: String, path: Path, line: Int, startColumn: Int, endColumn: Int, parser: MacroConfigFileParser) {
+        func foundMacroValueAssignment(_ macroName: String, conditions: [(param: String, pattern: String)], value: String, path: Path, startLine: Int, endLine: Int, startColumn: Int, endColumn: Int, parser: MacroConfigFileParser) {
         }
 
         func handleDiagnostic(_ diagnostic: MacroConfigFileDiagnostic, parser: MacroConfigFileParser) {
@@ -816,10 +816,10 @@ fileprivate let testFileData = [
                                   ],
                                   expectedDiagnostics: [],
                                   expectedLocations: [
-                                    (macro: "FEATURE_DEFINES_A", path: .init("Multiline.xcconfig"), line: 2, startColumn: 20, endColumn: 37),
-                                    (macro: "FEATURE_DEFINES_B", path: .init("Multiline.xcconfig"), line: 5, startColumn: 20, endColumn: 87),
-                                    (macro: "FEATURE_DEFINES_C", path: .init("Multiline.xcconfig"), line: 9, startColumn: 20, endColumn: 61),
-                                    (macro: "FEATURE_DEFINES_D", path: .init("Multiline.xcconfig"), line: 11, startColumn: 20, endColumn: 45),
+                                    (macro: "FEATURE_DEFINES_A", path: .init("Multiline.xcconfig"), startLine: 1, endLine: 2, startColumn: 20, endColumn: 37),
+                                    (macro: "FEATURE_DEFINES_B", path: .init("Multiline.xcconfig"), startLine: 3, endLine: 5, startColumn: 20, endColumn: 87),
+                                    (macro: "FEATURE_DEFINES_C", path: .init("Multiline.xcconfig"), startLine: 6, endLine: 9, startColumn: 20, endColumn: 61),
+                                    (macro: "FEATURE_DEFINES_D", path: .init("Multiline.xcconfig"), startLine: 10, endLine: 11, startColumn: 20, endColumn: 45),
                                   ],
                                   expectedIncludeDirectivesCount: 1
         )
@@ -830,7 +830,7 @@ fileprivate let testFileData = [
 typealias ConditionInfo = (param: String, pattern: String)
 typealias AssignmentInfo = (macro: String, conditions: [ConditionInfo], value: String)
 typealias DiagnosticInfo = (level: MacroConfigFileDiagnostic.Level, kind: MacroConfigFileDiagnostic.Kind, line: Int)
-typealias LocationInfo = (macro: String, path: Path, line: Int, startColumn: Int, endColumn: Int)
+typealias LocationInfo = (macro: String, path: Path, startLine: Int, endLine: Int, startColumn: Int, endColumn: Int)
 
 private func TestMacroConfigFileParser(_ string: String, expectedAssignments: [AssignmentInfo], expectedDiagnostics: [DiagnosticInfo], expectedLocations: [LocationInfo]? = nil, expectedIncludeDirectivesCount: Int, sourceLocation: SourceLocation = #_sourceLocation) {
 
@@ -856,10 +856,10 @@ private func TestMacroConfigFileParser(_ string: String, expectedAssignments: [A
         func endPreprocessorInclusion() {
             self.includeDirectivesCount += 1
         }
-        func foundMacroValueAssignment(_ macroName: String, conditions: [(param: String, pattern: String)], value: String, path: Path, line: Int, startColumn: Int, endColumn: Int, parser: MacroConfigFileParser) {
+        func foundMacroValueAssignment(_ macroName: String, conditions: [(param: String, pattern: String)], value: String, path: Path, startLine: Int, endLine: Int, startColumn: Int, endColumn: Int, parser: MacroConfigFileParser) {
             // print("\(parser.lineNumber): \(macroName)\(conditions.map({ "[\($0.param)=\($0.pattern)]" }).joinWithSeparator(""))=\(value)")
             assignments.append((macro: macroName, conditions: conditions, value: value))
-            locations.append((macro: macroName, path: path, line: line, startColumn: startColumn, endColumn: endColumn))
+            locations.append((macro: macroName, path: path, startLine: startLine, endLine: endLine, startColumn: startColumn, endColumn: endColumn))
         }
         func handleDiagnostic(_ diagnostic: MacroConfigFileDiagnostic, parser: MacroConfigFileParser) {
             // print("\(parser.lineNumber): \(diagnostic)")
@@ -913,7 +913,7 @@ func ==(lhs: [DiagnosticInfo], rhs: [DiagnosticInfo]) -> Bool {
 }
 
 func ==(lhs: LocationInfo, rhs: LocationInfo) -> Bool {
-    return (lhs.macro == rhs.macro) && (lhs.path == rhs.path) && (lhs.line == rhs.line) && (lhs.startColumn == rhs.startColumn) && (lhs.endColumn == rhs.endColumn)
+    return (lhs.macro == rhs.macro) && (lhs.path == rhs.path) && (lhs.startLine == rhs.startLine) && (lhs.endLine == rhs.endLine) && (lhs.startColumn == rhs.startColumn) && (lhs.endColumn == rhs.endColumn)
 }
 
 func ==(lhs: [LocationInfo], rhs: [LocationInfo]) -> Bool {
