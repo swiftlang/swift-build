@@ -1058,6 +1058,7 @@ public struct DiscoveredSwiftCompilerToolSpecInfo: DiscoveredCommandLineToolSpec
         case constExtractCompleteMetadata = "const-extract-complete-metadata"
         case emitPackageModuleInterfacePath = "emit-package-module-interface-path"
         case compilationCaching = "compilation-caching"
+        case Isystem = "Isystem"
     }
     public var toolFeatures: ToolFeatures<FeatureFlag>
     public func hasFeature(_ flag: String) -> Bool {
@@ -1573,7 +1574,11 @@ public final class SwiftCompilerSpec : CompilerSpec, SpecIdentifierType, SwiftDi
             }
 
             for searchPath in cbc.producer.expandedSearchPaths(for: BuiltinMacros.SWIFT_SYSTEM_INCLUDE_PATHS, scope: cbc.scope) {
-                args.append(contentsOf: ["-Isystem", searchPath])
+                if LibSwiftDriver.supportsDriverFlag(spelled: "-Isystem") && toolSpecInfo.hasFeature(DiscoveredSwiftCompilerToolSpecInfo.FeatureFlag.Isystem.rawValue) {
+                    args.append(contentsOf: ["-Isystem", searchPath])
+                } else {
+                    args.append(contentsOf: ["-I", searchPath])
+                }
             }
 
             // Add -F for the effective framework search paths.
