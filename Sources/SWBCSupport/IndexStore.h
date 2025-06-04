@@ -182,13 +182,9 @@ typedef struct {
   (*unit_dependency_get_name)(indexstore_unit_dependency_t);
 
   bool
-  (*unit_reader_dependencies_apply)(indexstore_unit_reader_t,
-                                  bool(^applier)(indexstore_unit_dependency_t));
-
-  bool
   (*unit_reader_dependencies_apply_f)(indexstore_unit_reader_t,
                                               void *context,
                       bool(*applier)(void *context, indexstore_unit_dependency_t));
-} indexstore_functions_t;
+} swiftbuild_indexstore_functions_t;
 
 #endif
