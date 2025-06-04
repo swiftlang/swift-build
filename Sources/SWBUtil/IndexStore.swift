@@ -334,7 +334,7 @@ private final class IndexStoreAPIImpl {
     private let dylib: LibraryHandle
 
     /// The index store API functions.
-    fileprivate let fn: indexstore_functions_t
+    fileprivate let fn: swiftbuild_indexstore_functions_t
 
     fileprivate func call<T>(_ fn: (inout indexstore_error_t?) -> T) throws -> T {
         var error: indexstore_error_t? = nil
@@ -354,7 +354,7 @@ private final class IndexStoreAPIImpl {
         self.path = path
         self.dylib = try Library.open(path)
 
-        var api = indexstore_functions_t()
+        var api = swiftbuild_indexstore_functions_t()
         api.store_create = Library.lookup(dylib, "indexstore_store_create")
         api.store_get_unit_name_from_output_path = Library.lookup(dylib,  "indexstore_store_get_unit_name_from_output_path")
         api.unit_reader_create = Library.lookup(dylib,  "indexstore_unit_reader_create")
