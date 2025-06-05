@@ -11,18 +11,21 @@
 //===----------------------------------------------------------------------===//
 
 public import Foundation
-import SWBLibc
+public import SWBLibc
+import Synchronization
+
+#if canImport(Subprocess) && (!canImport(Darwin) || os(macOS))
+import Subprocess
+#endif
+
+#if canImport(System)
+public import System
+#else
+public import SystemPackage
+#endif
 
 #if os(Windows)
 public typealias pid_t = Int32
-#endif
-
-#if !canImport(Darwin)
-extension ProcessInfo {
-    public var isMacCatalystApp: Bool {
-        false
-    }
-}
 #endif
 
 #if (!canImport(Foundation.NSTask) || targetEnvironment(macCatalyst)) && canImport(Darwin)
@@ -64,7 +67,7 @@ public typealias Process = Foundation.Process
 #endif
 
 extension Process {
-    public static var hasUnsafeWorkingDirectorySupport: Bool {
+    fileprivate static var hasUnsafeWorkingDirectorySupport: Bool {
         get throws {
             switch try ProcessInfo.processInfo.hostOperatingSystem() {
             case .linux:
@@ -81,6 +84,26 @@ extension Process {
 
 extension Process {
     public static func getOutput(url: URL, arguments: [String], currentDirectoryURL: URL? = nil, environment: Environment? = nil, interruptible: Bool = true) async throws -> Processes.ExecutionResult {
+        #if canImport(Subprocess) && (!canImport(Darwin) || os(macOS))
+        var platformOptions = PlatformOptions()
+        if interruptible {
+            platformOptions.teardownSequence = [.gracefulShutDown(allowedDurationToNextStep: .seconds(5))]
+        }
+        let configuration = try Subprocess.Configuration(
+            .path(FilePath(url.filePath.str)),
+            arguments: .init(arguments),
+            environment: environment.map { .custom(.init($0)) } ?? .inherit,
+            workingDirectory: (currentDirectoryURL?.filePath.str).map { FilePath($0) } ?? nil,
+            platformOptions: platformOptions
+        )
+        let result = try await Subprocess.run(configuration, body: { execution, inputWriter, outputReader, errorReader in
+            async let stdoutBytes = outputReader.reduce(into: Data()) { $0.append(Data(buffer: $1)) }
+            async let stderrBytes = errorReader.reduce(into: Data()) { $0.append(Data(buffer: $1)) }
+            try await inputWriter.finish()
+            return try await (stdoutBytes, stderrBytes)
+        })
+        return Processes.ExecutionResult(exitStatus: .init(result.terminationStatus), stdout: result.value.0, stderr: result.value.1)
+        #else
         let stdoutPipe = Pipe()
         let stderrPipe = Pipe()
 
@@ -98,9 +121,32 @@ extension Process {
             return try await (stdoutData: stdoutData, stderrData: stderrData)
         }
         return Processes.ExecutionResult(exitStatus: exitStatus, stdout: Data(output.stdoutData), stderr: Data(output.stderrData))
+        #endif
     }
 
     public static func getMergedOutput(url: URL, arguments: [String], currentDirectoryURL: URL? = nil, environment: Environment? = nil, interruptible: Bool = true) async throws -> (exitStatus: Processes.ExitStatus, output: Data) {
+        #if canImport(Subprocess) && (!canImport(Darwin) || os(macOS))
+        let (readEnd, writeEnd) = try FileDescriptor.pipe()
+        return try await readEnd.closeAfter {
+            // Direct both stdout and stderr to the same fd. Only set `closeAfterSpawningProcess` on one of the outputs so it isn't double-closed (similarly avoid using closeAfter for the same reason).
+            var platformOptions = PlatformOptions()
+            if interruptible {
+                platformOptions.teardownSequence = [.gracefulShutDown(allowedDurationToNextStep: .seconds(5))]
+            }
+            let configuration = try Subprocess.Configuration(
+                .path(FilePath(url.filePath.str)),
+                arguments: .init(arguments),
+                environment: environment.map { .custom(.init($0)) } ?? .inherit,
+                workingDirectory: (currentDirectoryURL?.filePath.str).map { FilePath($0) } ?? nil,
+                platformOptions: platformOptions
+            )
+            // FIXME: Use new API from https://github.com/swiftlang/swift-subprocess/pull/180
+            let result = try await Subprocess.run(configuration, output: .fileDescriptor(writeEnd, closeAfterSpawningProcess: true), error: .fileDescriptor(writeEnd, closeAfterSpawningProcess: false), body: { execution in
+                try await Array(Data(DispatchFD(fileDescriptor: readEnd).dataStream().collect()))
+            })
+            return (.init(result.terminationStatus), Data(result.value))
+        }
+        #else
         let pipe = Pipe()
 
         // Extend the lifetime of the pipes to avoid file descriptors being closed until the AsyncStream is finished being consumed.
@@ -114,6 +160,7 @@ extension Process {
             try await stream.collect()
         }
         return (exitStatus: exitStatus, output: Data(output))
+        #endif
     }
 
     private static func _getOutput<T, U>(url: URL, arguments: [String], currentDirectoryURL: URL?, environment: Environment?, interruptible: Bool, setup: (Process) -> T, collect: @Sendable (T) async throws -> U) async throws -> (exitStatus: Processes.ExitStatus, output: U) {
@@ -204,11 +251,8 @@ public enum Processes: Sendable {
         private static let ntStatusSignalMask: DWORD = 0x3FFFFFFF
         /// NTSTATUS code used by llbuild when cancelling a process via TerminateProcess. Equivalent to Ctrl+C termination.
         static let statusControlCExit: Int32 = Int32(bitPattern: 0xC000013A & ntStatusSignalMask)
-        #endif
 
-        public init?(rawValue: Int32) {
-            #if os(Windows)
-            let dwExitCode = DWORD(bitPattern: rawValue)
+        public init(dwExitCode: DWORD) {
             // Do the same thing as swift-corelibs-foundation (the input value is the GetExitCodeProcess return value)
             if (dwExitCode & 0xF0000000) == 0x80000000     // HRESULT
                 || (dwExitCode & 0xF0000000) == 0xC0000000 // NTSTATUS
@@ -218,6 +262,12 @@ public enum Processes: Sendable {
             } else {
                 self = .exit(Int32(bitPattern: UInt32(dwExitCode)))
             }
+        }
+        #endif
+
+        public init?(rawValue: Int32) {
+            #if os(Windows)
+            self = .init(dwExitCode: DWORD(bitPattern: rawValue))
             #else
             func WSTOPSIG(_ status: Int32) -> Int32 {
                 return status >> 8
@@ -298,6 +348,33 @@ public enum Processes: Sendable {
         }
     }
 }
+
+#if canImport(Subprocess) && (!canImport(Darwin) || os(macOS))
+extension Processes.ExitStatus {
+    init(_ terminationStatus: TerminationStatus) {
+        switch terminationStatus {
+        case let .exited(code):
+            self = .exit(numericCast(code))
+        #if !os(Windows)
+        case let .signaled(code):
+            self = .uncaughtSignal(code)
+        #endif
+        }
+    }
+}
+
+extension [Subprocess.Environment.Key: String] {
+    internal init(_ environment: Environment) {
+        self.init()
+        let sorted = environment.sorted { $0.key < $1.key }
+        for (key, value) in sorted {
+            if let typedKey = Subprocess.Environment.Key(rawValue: key.rawValue) {
+                self[typedKey] = value
+            }
+        }
+    }
+}
+#endif
 
 extension Processes.ExitStatus {
     public init(_ process: Process) throws {
