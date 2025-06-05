@@ -134,7 +134,7 @@ import SWBMacro
         // Verify that the settings from the xcconfig were added.
         let XCCONFIG_USER_SETTING = try #require(settings.userNamespace.lookupMacroDeclaration("XCCONFIG_USER_SETTING"))
         #expect(settings.tableForTesting.lookupMacro(XCCONFIG_USER_SETTING)?.expression.stringRep == "from-xcconfig")
-        #expect(settings.tableForTesting.location(of: XCCONFIG_USER_SETTING) == MacroValueAssignmentLocation(path: .init("/tmp/xcconfigs/Base0.xcconfig"), line: 1, startColumn: 24, endColumn: 38))
+        #expect(settings.tableForTesting.location(of: XCCONFIG_USER_SETTING) == MacroValueAssignmentLocation(path: .init("/tmp/xcconfigs/Base0.xcconfig"), startLine: 1, endLine: 1, startColumn: 24, endColumn: 38))
 
         // Verify the user project settings.
         let USER_PROJECT_SETTING = try #require(settings.userNamespace.lookupMacroDeclaration("USER_PROJECT_SETTING"))
