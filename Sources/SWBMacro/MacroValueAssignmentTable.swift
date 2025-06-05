@@ -337,7 +337,8 @@ public final class MacroValueAssignment: Serializable, CustomStringConvertible, 
         if let _location {
             return .init(
                 path: Self.macroConfigPaths.withLock { $0[_location.pathRef] },
-                line: _location.line,
+                startLine: _location.startLine,
+                endLine: _location.endLine,
                 startColumn: _location.startColumn,
                 endColumn: _location.endColumn
             )
@@ -355,7 +356,8 @@ public final class MacroValueAssignment: Serializable, CustomStringConvertible, 
         if let location {
             self._location = InternedMacroValueAssignmentLocation(
                 pathRef: Self.macroConfigPaths.withLock({ $0.append(location.path).index }),
-                line: location.line,
+                startLine: location.startLine,
+                endLine: location.endLine,
                 startColumn: location.startColumn,
                 endColumn: location.endColumn
             )
@@ -432,13 +434,15 @@ public final class MacroValueAssignment: Serializable, CustomStringConvertible, 
 
 public struct MacroValueAssignmentLocation: Sendable, Equatable {
     public let path: Path
-    public let line: Int
+    public let startLine: Int
+    public let endLine: Int
     public let startColumn: Int
     public let endColumn: Int
 
-    public init(path: Path, line: Int, startColumn: Int, endColumn: Int) {
+    public init(path: Path, startLine: Int, endLine: Int, startColumn: Int, endColumn: Int) {
         self.path = path
-        self.line = line
+        self.startLine = startLine
+        self.endLine = endLine
         self.startColumn = startColumn
         self.endColumn = endColumn
     }
@@ -446,30 +450,34 @@ public struct MacroValueAssignmentLocation: Sendable, Equatable {
 
 private struct InternedMacroValueAssignmentLocation: Serializable, Sendable {
     let pathRef: OrderedSet<Path>.Index
-    let line: Int
+    public let startLine: Int
+    public let endLine: Int
     let startColumn: Int
     let endColumn: Int
 
-    init(pathRef: OrderedSet<Path>.Index, line: Int, startColumn: Int, endColumn: Int) {
+    init(pathRef: OrderedSet<Path>.Index, startLine: Int, endLine: Int, startColumn: Int, endColumn: Int) {
         self.pathRef = pathRef
-        self.line = line
+        self.startLine = startLine
+        self.endLine = endLine
         self.startColumn = startColumn
         self.endColumn = endColumn
     }
 
     public func serialize<T>(to serializer: T) where T : SWBUtil.Serializer {
-        serializer.beginAggregate(4)
+        serializer.beginAggregate(5)
         serializer.serialize(pathRef)
-        serializer.serialize(line)
+        serializer.serialize(startLine)
+        serializer.serialize(endLine)
         serializer.serialize(startColumn)
         serializer.serialize(endColumn)
         serializer.endAggregate()
     }
 
     public init(from deserializer: any SWBUtil.Deserializer) throws {
-        try deserializer.beginAggregate(4)
+        try deserializer.beginAggregate(5)
         self.pathRef = try deserializer.deserialize()
-        self.line = try deserializer.deserialize()
+        self.startLine = try deserializer.deserialize()
+        self.endLine = try deserializer.deserialize()
         self.startColumn = try deserializer.deserialize()
         self.endColumn = try deserializer.deserialize()
     }
