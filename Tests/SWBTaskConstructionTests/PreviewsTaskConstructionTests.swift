@@ -932,7 +932,7 @@ fileprivate struct PreviewsTaskConstructionTests: CoreBasedTests {
 
     /// Test that the `__info_plist` section ends up in the stub executor instead of the preview dylib when `CREATE_INFOPLIST_SECTION_IN_BINARY` is enabled.
     @Test(.requireSDKs(.iOS))
-    func xOJITEmbeddedInfoPlist() async throws {
+    func XOJITEmbeddedInfoPlist() async throws {
         try await withTemporaryDirectory { tmpDirPath in
             let srcRoot = tmpDirPath.join("srcroot")
 
@@ -1019,9 +1019,9 @@ fileprivate struct PreviewsTaskConstructionTests: CoreBasedTests {
         }
     }
 
-    /// Test that any `-dyld_env` arguments end up in the stub executor instead of the preview dylib when is enabled.
+    /// Test that any `OTHER_LDFLAGS` arguments end up in the stub executor instead of the debug dylib when is enabled.
     @Test(.requireSDKs(.iOS))
-    func xOJITDyldEnv() async throws {
+    func XOJITOtherLDFlags() async throws {
         try await withTemporaryDirectory { tmpDirPath in
             let srcRoot = tmpDirPath.join("srcroot")
 
@@ -1037,7 +1037,11 @@ fileprivate struct PreviewsTaskConstructionTests: CoreBasedTests {
                 buildConfigurations: [
                     TestBuildConfiguration("Debug", buildSettings: [
                         "LD_ENVIRONMENT": "DYLD_X_PATH=/foo",
-                        "OTHER_LDFLAGS": "-Wl,-dyld_env,NOT=allowed_here -Xlinker -dyld_env -Xlinker NOR=this",
+                        "OTHER_LDFLAGS": """
+                            -Wl,-dyld_env,NOT=allowed_here -Xlinker -dyld_env -Xlinker NOR=this \
+                            -Wl,-no_exported_symbols -Xlinker -no_exported_symbols
+                            """,
+                        "LD_EXPORT_SYMBOLS": "NO",
                         "GENERATE_INFOPLIST_FILE": "YES",
                         "PRODUCT_NAME": "$(TARGET_NAME)",
                         "PRODUCT_BUNDLE_IDENTIFIER": "com.test.ProjectName",
@@ -1100,20 +1104,26 @@ fileprivate struct PreviewsTaskConstructionTests: CoreBasedTests {
                     // from OTHER_LDFLAGS, which is overridden to a custom set of flags _without_ $(inherited), so the stub executor doesn't get them
                     task.checkCommandLineDoesNotContain("-Wl,-dyld_env,NOT=allowed_here")
                     task.checkCommandLineDoesNotContain("NOR=this")
+                    task.checkCommandLineDoesNotContain("-Wl,-no_exported_symbols")
+                    task.checkCommandLineDoesNotContain("-no_exported_symbols")
                 }
 
                 results.checkTask(.matchRule(["Ld", "\(srcRoot.str)/build/Debug-iphonesimulator/Tool.debug.dylib", "normal"])) { task in
-                    // from LD_ENVIRONMENT, which is conditional on MACH_O_TYPE=mh_execute, so the previews dylib (which overrides MACH_O_TYPE=mh_dylib) doesn't get it
+                    // from LD_ENVIRONMENT, which is conditional on MACH_O_TYPE=mh_execute, so the debug dylib (which overrides MACH_O_TYPE=mh_dylib) doesn't get it
                     task.checkCommandLineDoesNotContain("-dyld_env")
                     task.checkCommandLineDoesNotContain("DYLD_X_PATH=/foo")
 
-                    // from OTHER_LDFLAGS, which is passed through unchanged to the previews dylib
+                    // from OTHER_LDFLAGS, which is passed through unchanged to the debug dylib
                     task.checkCommandLineDoesNotContain("-Wl,-dyld_env,NOT=allowed_here")
                     task.checkCommandLineDoesNotContain("NOR=this")
+                    task.checkCommandLineDoesNotContain("-Wl,-no_exported_symbols")
+                    task.checkCommandLineDoesNotContain("-no_exported_symbols")
                 }
 
                 results.checkWarning(.equal("The OTHER_LDFLAGS build setting is not allowed to contain -dyld_env, use the dedicated LD_ENVIRONMENT build setting instead. (in target 'Tool' from project 'ProjectName')"))
                 results.checkWarning(.equal("The OTHER_LDFLAGS build setting is not allowed to contain -dyld_env, use the dedicated LD_ENVIRONMENT build setting instead. (in target 'Tool' from project 'ProjectName')"))
+                results.checkWarning(.equal("The OTHER_LDFLAGS build setting is not allowed to contain -no_exported_symbols, use the dedicated LD_EXPORT_SYMBOLS build setting instead. (in target 'Tool' from project 'ProjectName')"))
+                results.checkWarning(.equal("The OTHER_LDFLAGS build setting is not allowed to contain -no_exported_symbols, use the dedicated LD_EXPORT_SYMBOLS build setting instead. (in target 'Tool' from project 'ProjectName')"))
 
                 results.checkNoTask()
                 results.checkNoDiagnostics()
@@ -1123,7 +1133,7 @@ fileprivate struct PreviewsTaskConstructionTests: CoreBasedTests {
     }
 
     @Test(.requireSDKs(.iOS))
-    func xOJITPropagatingRpaths() async throws {
+    func XOJITPropagatingRpaths() async throws {
         try await withTemporaryDirectory { tmpDirPath in
             let srcRoot = tmpDirPath.join("srcroot")
 
