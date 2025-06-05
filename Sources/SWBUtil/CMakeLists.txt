@@ -82,6 +82,7 @@ add_library(SWBUtil
   PrefixMapper.swift
   Process+Async.swift
   Process.swift
+  ProcessController.swift
   ProcessInfo.swift
   Promise.swift
   PropertyList.swift
