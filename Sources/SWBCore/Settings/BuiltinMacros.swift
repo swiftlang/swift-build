@@ -805,6 +805,7 @@ public final class BuiltinMacros {
     public static let LD_DEPENDENCY_INFO_FILE = BuiltinMacros.declarePathMacro("LD_DEPENDENCY_INFO_FILE")
     public static let LD_DYLIB_INSTALL_NAME = BuiltinMacros.declareStringMacro("LD_DYLIB_INSTALL_NAME")
     public static let LD_ENTRY_POINT = BuiltinMacros.declareStringMacro("LD_ENTRY_POINT")
+    public static let LD_EXPORT_SYMBOLS = BuiltinMacros.declareBooleanMacro("LD_EXPORT_SYMBOLS")
     public static let LD_EXPORT_GLOBAL_SYMBOLS = BuiltinMacros.declareBooleanMacro("LD_EXPORT_GLOBAL_SYMBOLS")
     public static let LD_LTO_OBJECT_FILE = BuiltinMacros.declarePathMacro("LD_LTO_OBJECT_FILE")
     public static let LD_NO_PIE = BuiltinMacros.declareBooleanMacro("LD_NO_PIE")
@@ -1871,6 +1872,7 @@ public final class BuiltinMacros {
         LD_ENTRY_POINT,
         LD_ENTITLEMENTS_SECTION,
         LD_ENTITLEMENTS_SECTION_DER,
+        LD_EXPORT_SYMBOLS,
         LD_EXPORT_GLOBAL_SYMBOLS,
         LD_LTO_OBJECT_FILE,
         LD_NO_PIE,
