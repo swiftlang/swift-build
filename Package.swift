@@ -206,6 +206,7 @@ let package = Package(
                 "SWBCSupport",
                 "SWBLibc",
                 .product(name: "ArgumentParser", package: "swift-argument-parser"),
+                .product(name: "Subprocess", package: "swift-subprocess", condition: .when(platforms: [.android, .custom("freebsd"), .linux, .macOS, .openbsd, .windows])),
                 .product(name: "SystemPackage", package: "swift-system", condition: .when(platforms: [.linux, .openbsd, .android, .windows, .custom("freebsd")])),
             ],
             exclude: ["CMakeLists.txt"],
@@ -458,6 +459,7 @@ if isStaticBuild {
 if useLocalDependencies {
     package.dependencies += [
         .package(path: "../swift-driver"),
+        .package(path: "../swift-subprocess"),
         .package(path: "../swift-system"),
         .package(path: "../swift-argument-parser"),
     ]
@@ -467,6 +469,7 @@ if useLocalDependencies {
 } else {
     package.dependencies += [
         .package(url: "https://github.com/swiftlang/swift-driver.git", branch: "main"),
+        .package(url: "https://github.com/swiftlang/swift-subprocess.git", from: "0.2.0"),
         .package(url: "https://github.com/apple/swift-system.git", .upToNextMajor(from: "1.5.0")),
         .package(url: "https://github.com/apple/swift-argument-parser.git", from: "1.0.3"),
     ]

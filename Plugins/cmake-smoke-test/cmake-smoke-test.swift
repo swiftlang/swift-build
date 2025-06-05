@@ -46,6 +46,9 @@ struct CMakeSmokeTest: CommandPlugin {
         let swiftToolsSupportCoreURL = try findDependency("swift-tools-support-core", pluginContext: context)
         let swiftToolsSupportCoreBuildURL = context.pluginWorkDirectoryURL.appending(component: "swift-tools-support-core")
 
+        let swiftSubprocessURL = try findDependency("swift-subprocess", pluginContext: context)
+        let swiftSubprocessBuildURL = context.pluginWorkDirectoryURL.appending(component: "swift-subprocess")
+
         let swiftSystemURL = try findDependency("swift-system", pluginContext: context)
         let swiftSystemBuildURL = context.pluginWorkDirectoryURL.appending(component: "swift-system")
 
@@ -58,7 +61,7 @@ struct CMakeSmokeTest: CommandPlugin {
         let swiftDriverURL = try findDependency("swift-driver", pluginContext: context)
         let swiftDriverBuildURL = context.pluginWorkDirectoryURL.appending(component: "swift-driver")
 
-        for url in [swiftToolsSupportCoreBuildURL, swiftSystemBuildURL, llbuildBuildURL, swiftArgumentParserBuildURL, swiftDriverBuildURL, swiftBuildBuildURL] {
+        for url in [swiftToolsSupportCoreBuildURL, swiftSubprocessBuildURL, swiftSystemBuildURL, llbuildBuildURL, swiftArgumentParserBuildURL, swiftDriverBuildURL, swiftBuildBuildURL] {
             try FileManager.default.createDirectory(at: url, withIntermediateDirectories: true)
         }
 
@@ -75,6 +78,7 @@ struct CMakeSmokeTest: CommandPlugin {
             "-DLLBuild_DIR=\(llbuildBuildURL.appending(components: "cmake", "modules").filePath)",
             "-DTSC_DIR=\(swiftToolsSupportCoreBuildURL.appending(components: "cmake", "modules").filePath)",
             "-DSwiftDriver_DIR=\(swiftDriverBuildURL.appending(components: "cmake", "modules").filePath)",
+            "-DSwiftSubprocess_DIR=\(swiftSubprocessBuildURL.appending(components: "cmake", "modules").filePath)",
             "-DSwiftSystem_DIR=\(swiftSystemBuildURL.appending(components: "cmake", "modules").filePath)"
         ]
 
@@ -89,6 +93,11 @@ struct CMakeSmokeTest: CommandPlugin {
         try await Process.checkNonZeroExit(url: cmakeURL, arguments: sharedCMakeArgs + [swiftToolsSupportCoreURL.filePath], workingDirectory: swiftToolsSupportCoreBuildURL)
         try await Process.checkNonZeroExit(url: ninjaURL, arguments: [], workingDirectory: swiftToolsSupportCoreBuildURL)
         Diagnostics.progress("Built swift-tools-support-core")
+
+        Diagnostics.progress("Building swift-subprocess")
+        try await Process.checkNonZeroExit(url: cmakeURL, arguments: sharedCMakeArgs + [swiftSubprocessURL.filePath], workingDirectory: swiftSubprocessBuildURL)
+        try await Process.checkNonZeroExit(url: ninjaURL, arguments: [], workingDirectory: swiftSubprocessBuildURL)
+        Diagnostics.progress("Built swift-subprocess")
 
         if hostOS != .macOS {
             Diagnostics.progress("Building swift-system")
