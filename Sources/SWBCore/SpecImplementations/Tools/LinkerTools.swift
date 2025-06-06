@@ -240,6 +240,8 @@ public final class LdLinkerSpec : GenericLinkerSpec, SpecIdentifierType, @unchec
             return cbc.producer.hostOperatingSystem.imageFormat.executableName(basename: "clang")
         case .swiftc:
             return cbc.producer.hostOperatingSystem.imageFormat.executableName(basename: "swiftc")
+        case .qcc:
+            return cbc.producer.hostOperatingSystem.imageFormat.executableName(basename: "qcc")
         }
     }
 
