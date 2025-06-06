@@ -227,8 +227,6 @@ fileprivate struct PreviewsBuildOperationTests: CoreBasedTests {
                                 "\(srcRoot.str)/build/Debug-iphonesimulator",
                                 "-F",
                                 "\(srcRoot.str)/build/Debug-iphonesimulator",
-                                "-vfsoverlay",
-                                "\(srcRoot.str)/build/ProjectName.build/Debug-iphonesimulator/AppTarget.build/Objects-normal/\(results.runDestinationTargetArchitecture)/vfsoverlay-main.selection.preview-thunk.swift.json",
                                 "-no-color-diagnostics",
                                 "-g",
                                 "-debug-info-format=dwarf",
@@ -278,7 +276,9 @@ fileprivate struct PreviewsBuildOperationTests: CoreBasedTests {
                                 "-target-sdk-name",
                                 "iphonesimulator\(core.loadSDK(.iOSSimulator).defaultDeploymentTarget)",
                                 "-o",
-                                "\(srcRoot.str)/build/ProjectName.build/Debug-iphonesimulator/AppTarget.build/Objects-normal/\(results.runDestinationTargetArchitecture)/main.selection.preview-thunk.o"
+                                "\(srcRoot.str)/build/ProjectName.build/Debug-iphonesimulator/AppTarget.build/Objects-normal/\(results.runDestinationTargetArchitecture)/main.selection.preview-thunk.o",
+                                "-vfsoverlay",
+                                "\(srcRoot.str)/build/ProjectName.build/Debug-iphonesimulator/AppTarget.build/Objects-normal/\(results.runDestinationTargetArchitecture)/vfsoverlay-main.selection.preview-thunk.swift.json",
                             ]
                         )
                         #expect(previewInfo.thunkInfo?.thunkSourceFile == Path("\(srcRoot.str)/build/ProjectName.build/Debug-iphonesimulator/AppTarget.build/Objects-normal/\(results.runDestinationTargetArchitecture)/main.selection.preview-thunk.swift"))
@@ -531,8 +531,6 @@ fileprivate struct PreviewsBuildOperationTests: CoreBasedTests {
                                 "\(srcRoot.str)/build/Debug-iphonesimulator",
                                 "-F",
                                 "\(srcRoot.str)/build/Debug-iphonesimulator",
-                                "-vfsoverlay",
-                                "\(srcRoot.str)/build/ProjectName.build/Debug-iphonesimulator/AppTarget.build/Objects-normal/\(results.runDestinationTargetArchitecture)/vfsoverlay-File1.selection.preview-thunk.swift.json",
                                 "-no-color-diagnostics",
                                 "-g",
                                 "-debug-info-format=dwarf",
@@ -582,7 +580,9 @@ fileprivate struct PreviewsBuildOperationTests: CoreBasedTests {
                                 "-target-sdk-name",
                                 "iphonesimulator\(core.loadSDK(.iOSSimulator).defaultDeploymentTarget)",
                                 "-o",
-                                "\(srcRoot.str)/build/ProjectName.build/Debug-iphonesimulator/AppTarget.build/Objects-normal/\(results.runDestinationTargetArchitecture)/File1.selection.preview-thunk.o"
+                                "\(srcRoot.str)/build/ProjectName.build/Debug-iphonesimulator/AppTarget.build/Objects-normal/\(results.runDestinationTargetArchitecture)/File1.selection.preview-thunk.o",
+                                "-vfsoverlay",
+                                "\(srcRoot.str)/build/ProjectName.build/Debug-iphonesimulator/AppTarget.build/Objects-normal/\(results.runDestinationTargetArchitecture)/vfsoverlay-File1.selection.preview-thunk.swift.json",
                             ]
                         )
                         #expect(previewInfo.thunkInfo?.thunkSourceFile == Path("\(srcRoot.str)/build/ProjectName.build/Debug-iphonesimulator/AppTarget.build/Objects-normal/\(results.runDestinationTargetArchitecture)/File1.selection.preview-thunk.swift"))

@@ -337,6 +337,7 @@ public struct SwiftDriverPayload: Serializable, TaskPayload, Encodable {
     public let uniqueID: String
     public let compilerLocation: LibSwiftDriver.CompilerLocation
     public let moduleName: String
+    public let outputPrefix: String
     public let tempDirPath: Path
     public let explicitModulesTempDirPath: Path
     public let variant: String
@@ -352,10 +353,11 @@ public struct SwiftDriverPayload: Serializable, TaskPayload, Encodable {
     public let dependencyFilteringRootPath: Path?
     public let verifyScannerDependencies: Bool
 
-    internal init(uniqueID: String, compilerLocation: LibSwiftDriver.CompilerLocation, moduleName: String, tempDirPath: Path, explicitModulesTempDirPath: Path, variant: String, architecture: String, eagerCompilationEnabled: Bool, explicitModulesEnabled: Bool, commandLine: [String], ruleInfo: [String], isUsingWholeModuleOptimization: Bool, casOptions: CASOptions?, reportRequiredTargetDependencies: BooleanWarningLevel, linkerResponseFilePath: Path?, dependencyFilteringRootPath: Path?, verifyScannerDependencies: Bool) {
+    internal init(uniqueID: String, compilerLocation: LibSwiftDriver.CompilerLocation, moduleName: String, outputPrefix: String, tempDirPath: Path, explicitModulesTempDirPath: Path, variant: String, architecture: String, eagerCompilationEnabled: Bool, explicitModulesEnabled: Bool, commandLine: [String], ruleInfo: [String], isUsingWholeModuleOptimization: Bool, casOptions: CASOptions?, reportRequiredTargetDependencies: BooleanWarningLevel, linkerResponseFilePath: Path?, dependencyFilteringRootPath: Path?, verifyScannerDependencies: Bool) {
         self.uniqueID = uniqueID
         self.compilerLocation = compilerLocation
         self.moduleName = moduleName
+        self.outputPrefix = outputPrefix
         self.tempDirPath = tempDirPath
         self.explicitModulesTempDirPath = explicitModulesTempDirPath
         self.variant = variant
@@ -373,10 +375,11 @@ public struct SwiftDriverPayload: Serializable, TaskPayload, Encodable {
     }
 
     public init(from deserializer: any Deserializer) throws {
-        try deserializer.beginAggregate(17)
+        try deserializer.beginAggregate(18)
         self.uniqueID = try deserializer.deserialize()
         self.compilerLocation = try deserializer.deserialize()
         self.moduleName = try deserializer.deserialize()
+        self.outputPrefix = try deserializer.deserialize()
         self.tempDirPath = try deserializer.deserialize()
         self.explicitModulesTempDirPath = try deserializer.deserialize()
         self.variant = try deserializer.deserialize()
@@ -394,10 +397,11 @@ public struct SwiftDriverPayload: Serializable, TaskPayload, Encodable {
     }
 
     public func serialize<T>(to serializer: T) where T : Serializer {
-        serializer.serializeAggregate(17) {
+        serializer.serializeAggregate(18) {
             serializer.serialize(self.uniqueID)
             serializer.serialize(self.compilerLocation)
             serializer.serialize(self.moduleName)
+            serializer.serialize(self.outputPrefix)
             serializer.serialize(self.tempDirPath)
             serializer.serialize(self.explicitModulesTempDirPath)
             serializer.serialize(self.variant)
@@ -2502,7 +2506,7 @@ public final class SwiftCompilerSpec : CompilerSpec, SpecIdentifierType, SwiftDi
             let explicitModuleBuildEnabled = await swiftExplicitModuleBuildEnabled(cbc.producer, cbc.scope, delegate)
             let verifyScannerDependencies = explicitModuleBuildEnabled && cbc.scope.evaluate(BuiltinMacros.SWIFT_DEPENDENCY_REGISTRATION_MODE) == .verifySwiftDependencyScanner
 
-            return SwiftDriverPayload(uniqueID: uniqueID, compilerLocation: compilerLocation, moduleName: scope.evaluate(BuiltinMacros.SWIFT_MODULE_NAME), tempDirPath: tempDirPath, explicitModulesTempDirPath: explicitModulesTempDirPath, variant: variant, architecture: arch, eagerCompilationEnabled: eagerCompilationEnabled(args: args, scope: scope, compilationMode: compilationMode, isUsingWholeModuleOptimization: isUsingWholeModuleOptimization), explicitModulesEnabled: explicitModuleBuildEnabled, commandLine: commandLine, ruleInfo: ruleInfo, isUsingWholeModuleOptimization: isUsingWholeModuleOptimization, casOptions: casOptions, reportRequiredTargetDependencies: scope.evaluate(BuiltinMacros.DIAGNOSE_MISSING_TARGET_DEPENDENCIES), linkerResponseFilePath: linkerResponseFilePath, dependencyFilteringRootPath: cbc.producer.sdk?.path, verifyScannerDependencies: verifyScannerDependencies)
+            return SwiftDriverPayload(uniqueID: uniqueID, compilerLocation: compilerLocation, moduleName: scope.evaluate(BuiltinMacros.SWIFT_MODULE_NAME), outputPrefix: scope.evaluate(BuiltinMacros.TARGET_NAME) + compilationMode.moduleBaseNameSuffix, tempDirPath: tempDirPath, explicitModulesTempDirPath: explicitModulesTempDirPath, variant: variant, architecture: arch, eagerCompilationEnabled: eagerCompilationEnabled(args: args, scope: scope, compilationMode: compilationMode, isUsingWholeModuleOptimization: isUsingWholeModuleOptimization), explicitModulesEnabled: explicitModuleBuildEnabled, commandLine: commandLine, ruleInfo: ruleInfo, isUsingWholeModuleOptimization: isUsingWholeModuleOptimization, casOptions: casOptions, reportRequiredTargetDependencies: scope.evaluate(BuiltinMacros.DIAGNOSE_MISSING_TARGET_DEPENDENCIES), linkerResponseFilePath: linkerResponseFilePath, dependencyFilteringRootPath: cbc.producer.sdk?.path, verifyScannerDependencies: verifyScannerDependencies)
         }
 
         func constructSwiftResponseFileTask(path: Path) {
@@ -3397,10 +3401,12 @@ public final class SwiftCompilerSpec : CompilerSpec, SpecIdentifierType, SwiftDi
             removeWithParameter(arg)
         }
 
-        // We need to ignore precompiled headers due to:
+        // For some old version of swift driver, the output path for bridging header pch is not stable,
+        // we need to disable bridging header pch when caching or bridging header chaining is not enabled as a workaround:
         // rdar://126212044 ([JIT] iOS test Failures: Thunk build failure, unable to read PCH file)
-        removeWithPrefix("-cache-compile-job")
-        commandLine.append("-disable-bridging-pch")
+        if !commandLine.contains("-cache-compile-job") || !commandLine.contains("-auto-bridging-header-chaining") {
+            commandLine.append("-disable-bridging-pch")
+        }
 
         if payload.previewStyle == .dynamicReplacement {
             for (arg, newValue) in [
@@ -3440,6 +3446,7 @@ public final class SwiftCompilerSpec : CompilerSpec, SpecIdentifierType, SwiftDi
         }
 
         let selectedInputPath: Path
+        let newVFSOverlayPath: Path?
         if payload.previewStyle == .xojit {
             // Also pass the auxiliary Swift files.
             commandLine.append(contentsOf: originalInputs.map(\.str))
@@ -3448,7 +3455,8 @@ public final class SwiftCompilerSpec : CompilerSpec, SpecIdentifierType, SwiftDi
             if let driverPayload = payload.driverPayload {
                 do {
                     // Inject the thunk source into the output file map
-                    let map = SwiftOutputFileMap(files: [sourceFile.str: .init(object: outputPath.str)])
+                    let pchPath = driverPayload.tempDirPath.join(driverPayload.outputPrefix + "-primary-Bridging-header.pch")
+                    let map = SwiftOutputFileMap(files: [sourceFile.str: .init(object: outputPath.str), "": .init(pch: pchPath.str)])
                     let newOutputFileMap = driverPayload.tempDirPath.join(UUID().uuidString)
                     try fs.createDirectory(newOutputFileMap.dirname, recursive: true)
                     try fs.write(newOutputFileMap, contents: ByteString(JSONEncoder(outputFormatting: [.prettyPrinted, .sortedKeys, .withoutEscapingSlashes]).encode(map)))
@@ -3457,19 +3465,20 @@ public final class SwiftCompilerSpec : CompilerSpec, SpecIdentifierType, SwiftDi
                     // rdar://127735418 ([JIT] Emit a vfsoverlay for JIT preview thunk compiler arguments so clients can specify the original file path when substituting contents)
                     let vfs = VFS()
                     vfs.addMapping(sourceFile, externalContents: inputPath)
-                    let newVFSOverlayPath = driverPayload.tempDirPath.join("vfsoverlay-\(inputPath.basename).json")
+                    newVFSOverlayPath = driverPayload.tempDirPath.join("vfsoverlay-\(inputPath.basename).json")
                     try fs.createDirectory(newOutputFileMap.dirname, recursive: true)
                     let overlay = try vfs.toVFSOverlay().propertyListItem.asJSONFragment().asString
-                    try fs.write(newVFSOverlayPath, contents: ByteString(encodingAsUTF8: overlay))
-
-                    commandLine.append(contentsOf: ["-vfsoverlay", newVFSOverlayPath.str])
+                    try fs.write(newVFSOverlayPath!, contents: ByteString(encodingAsUTF8: overlay))
                 } catch {
                     return []
                 }
+            } else {
+                newVFSOverlayPath = nil
             }
         }
         else {
             selectedInputPath = inputPath
+            newVFSOverlayPath = nil
             commandLine.append(contentsOf: [inputPath.str])
         }
 
@@ -3516,6 +3525,21 @@ public final class SwiftCompilerSpec : CompilerSpec, SpecIdentifierType, SwiftDi
                 casOptions: driverPayload.casOptions
             ) {
                 commandLine = newCommandLine
+                // For swift caching jobs, add extra flags.
+                if commandLine.contains("-cache-compile-job") {
+                    // Ideally, we should ask if swift-frontend supports the flag but we can only ask driver for an approximation.
+                    if LibSwiftDriver.supportsDriverFlag(spelled: "-module-import-from-cas") {
+                        commandLine.append("-module-import-from-cas")
+                    }
+                    // Then drop the cache build flag to do uncached preview compilation.
+                    commandLine.removeAll {
+                        $0 == "-cache-compile-job"
+                    }
+                }
+                // Add vfsoverlay after the driver invocation as it can affect the module dependencies, causing modules from regular builds not being reused here.
+                if let vfsOverlay = newVFSOverlayPath {
+                    commandLine.append(contentsOf: ["-vfsoverlay", vfsOverlay.str])
+                }
             } else {
                 commandLine = []
             }
