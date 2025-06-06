@@ -200,7 +200,9 @@ public final class SwiftModuleDependencyGraph: SwiftGlobalExplicitDependencyGrap
                 if let modulePath = VirtualPath.lookup(details.compiledModulePath.path).absolutePath {
                     swiftmodulePaths.append(modulePath.pathString)
                 }
-            case .clang, .swiftPlaceholder:
+            case .clang:
+                fallthrough
+            default:
                 break
             }
         }
@@ -223,15 +225,13 @@ public final class SwiftModuleDependencyGraph: SwiftGlobalExplicitDependencyGrap
             }
             fileDependencies.append(contentsOf: moduleInfo.sourceFiles ?? [])
             switch moduleInfo.details {
-            case .swift:
-                break
-            case .swiftPlaceholder:
-                break
             case .swiftPrebuiltExternal(let details):
                 if let modulePath = VirtualPath.lookup(details.compiledModulePath.path).absolutePath {
                     fileDependencies.append(modulePath.pathString)
                 }
-            case .clang:
+            case .swift, .clang:
+                fallthrough
+            default:
                 break
             }
         }
