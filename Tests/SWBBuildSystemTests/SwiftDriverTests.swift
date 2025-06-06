@@ -2489,10 +2489,10 @@ fileprivate struct SwiftDriverTests: CoreBasedTests {
 
                 if !SWBFeatureFlag.performOwnershipAnalysis.value {
                     results.checkErrors([
-                        .contains("No such file or directory"),
-                        .contains("No such file or directory"),
-                        .contains("No such file or directory"),
-                        .contains("No such file or directory"),
+                        .contains("couldn’t be opened because there is no such file."),
+                        .contains("couldn’t be opened because there is no such file."),
+                        .contains("couldn’t be opened because there is no such file."),
+                        .contains("couldn’t be opened because there is no such file."),
                     ])
                 }
 
@@ -2585,10 +2585,10 @@ fileprivate struct SwiftDriverTests: CoreBasedTests {
 
                 if !SWBFeatureFlag.performOwnershipAnalysis.value {
                     results.checkErrors([
-                        .contains("No such file or directory"),
-                        .contains("No such file or directory"),
-                        .contains("No such file or directory"),
-                        .contains("No such file or directory"),
+                        .contains("couldn’t be opened because there is no such file."),
+                        .contains("couldn’t be opened because there is no such file."),
+                        .contains("couldn’t be opened because there is no such file."),
+                        .contains("couldn’t be opened because there is no such file."),
                     ])
                 }
 
