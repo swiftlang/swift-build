@@ -753,7 +753,7 @@ private final class BuildSystemTaskPlanningDelegate: TaskPlanningDelegate {
             try fileSystem.createDirectory(path.dirname, recursive: true)
             try fileSystem.write(path, contents: contents)
         } catch {
-            constructionDelegate.emit(Diagnostic(behavior: .error, location: .unknown, data: DiagnosticData("failed to save attachment: \(path.str)")))
+            constructionDelegate.emit(Diagnostic(behavior: .error, location: .unknown, data: DiagnosticData("failed to save attachment: \(path.str). Error: \(error)")))
         }
         return path
     }
