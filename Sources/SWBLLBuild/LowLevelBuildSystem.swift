@@ -11,11 +11,7 @@
 //===----------------------------------------------------------------------===//
 
 public import SWBUtil
-#if os(Windows)
-private import SWBLibc
-#else
 public import SWBLibc
-#endif
 
 // Re-export all APIs from llbuild bindings.
 @_exported public import llbuild
@@ -25,7 +21,39 @@ public import SWBLibc
 #endif
 
 // Filesystem adaptors for SWBLLBuild.FileSystem.
-extension SWBUtil.FileInfo: SWBLLBuild.FileInfo {}
+extension SWBUtil.FileInfo: SWBLLBuild.FileInfo {
+
+    public init(_ statBuf: stat) {
+        // This should be remove from llbuild FileInfo protocol as it just not needed, would also be nice to remove the stat requirement too.
+        preconditionFailure()
+    }
+    
+    public var statBuf: stat {
+        var statBuf: stat = stat()
+        #if canImport(Darwin)
+        statBuf.st_dev = self.deviceID
+        statBuf.st_ino = self.iNode
+        statBuf.st_mode = self.permissions
+        statBuf.st_size = self.size
+        statBuf.st_mtimespec.tv_sec = Int(self.modificationTimestamp)
+        statBuf.st_mtimespec.tv_nsec = self.modificationNanoseconds
+        #elseif os(Windows)
+        statBuf.st_dev = UInt32(self.deviceID)
+        statBuf.st_ino = UInt16(self.iNode)
+        statBuf.st_mode = self.permissions
+        statBuf.st_size = Int32(self.size)
+        statBuf.st_mtime = self.modificationTimestamp
+        #elseif canImport(Glibc) || canImport(Musl) || canImport(Android)
+        statBuf.st_dev = UInt(self.deviceID)
+        statBuf.st_ino = UInt(self.iNode)
+        statBuf.st_mode = UInt32(self.permissions)
+        statBuf.st_size = Int(self.size)
+        statBuf.st_mtim.tv_sec = Int(self.modificationTimestamp)
+        statBuf.st_mtim.tv_nsec = self.modificationNanoseconds
+        #endif
+        return statBuf
+    }
+}
 
 public final class FileSystemImpl: FileSystem {
 

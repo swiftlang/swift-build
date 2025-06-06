@@ -526,7 +526,7 @@ public final class SwiftCommandOutputParser: TaskOutputParser {
             serializedDiagnosticsPaths.filter { path in
                 // rdar://91295617 (Swift produces empty serialized diagnostics if there are none which is not parseable by clang_loadDiagnostics)
                 do {
-                    return try fs.exists(path) && fs.getFileInfo(path).statBuf.st_size > 0
+                    return try fs.exists(path) && fs.getFileInfo(path).size > 0
                 } catch {
                     return false
                 }

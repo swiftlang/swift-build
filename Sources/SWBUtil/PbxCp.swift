@@ -404,14 +404,14 @@ fileprivate func copyEntry(_ srcPath: Path, _ srcTopLevelPath: Path, _ srcParent
     } else if fileInfo.isFile {
         try await copyRegular(srcPath, srcParentPath, dstPath, options: options, verbose: verbose, indentationLevel: indentationLevel, outStream: outStream)
         if verbose {
-            let size = fileInfo.statBuf.st_size
+            let size = fileInfo.size
             textOutput(" \(size) bytes", indentTo: indentationLevel, outStream: outStream)
         }
         return 1
     } else if fileInfo.isDirectory {
         return try await copyDirectory(srcPath, srcTopLevelPath, srcParentPath, dstPath, options: options, verbose: verbose, indentationLevel: indentationLevel, outStream: outStream)
     } else {
-        throw StubError.error("\(srcPath): unsupported or unknown stat mode (0x\(String(format: "%02x", fileInfo.statBuf.st_mode))")
+        throw StubError.error("\(srcPath): unsupported or unknown file type: \(fileInfo.fileAttrs[.type] as! String)")
     }
 }
 

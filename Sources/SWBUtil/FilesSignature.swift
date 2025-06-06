@@ -11,6 +11,7 @@
 //===----------------------------------------------------------------------===//
 
 import SWBLibc
+internal import Foundation
 
 /// Represents an opaque signature of a list of files.
 ///
@@ -51,18 +52,18 @@ fileprivate extension FSProxy {
     ///
     /// The signature returned is a byte string constructed from an MD5 of properties of all of the files, so the order of `paths` is significant, and a different signature may be returned for different orderings.
     func filesSignature(_ paths: [Path]) -> ByteString {
-        var stats: [(Path, stat?)] = []
+        var stats: [(Path, FileInfo?)] = []
         for path in paths {
             if isDirectory(path) {
                 do {
                     try traverse(path) { subPath in
-                        stats.append((subPath, try? getFileInfo(subPath).statBuf))
+                        stats.append((subPath, try? getFileInfo(subPath)))
                     }
                 } catch {
                     stats.append((path, nil))
                 }
             } else {
-                stats.append((path, try? getFileInfo(path).statBuf))
+                stats.append((path, try? getFileInfo(path)))
             }
         }
 
@@ -70,17 +71,17 @@ fileprivate extension FSProxy {
     }
 
     /// Returns the signature of a list of files.
-    func filesSignature(_ statInfos: [(Path, stat?)]) -> ByteString {
+    func filesSignature(_ statInfos: [(Path, FileInfo?)]) -> ByteString {
         let md5Context = InsecureHashContext()
         for (path, statInfo) in statInfos {
             md5Context.add(string: path.str)
             if let statInfo {
                 md5Context.add(string: "stat")
-                md5Context.add(number: statInfo.st_ino)
-                md5Context.add(number: statInfo.st_dev)
-                md5Context.add(number: statInfo.st_size)
-                md5Context.add(number: statInfo.st_mtimespec.tv_sec)
-                md5Context.add(number: statInfo.st_mtimespec.tv_nsec)
+                md5Context.add(number: statInfo.iNode)
+                md5Context.add(number: statInfo.deviceID)
+                md5Context.add(number: statInfo.size)
+                md5Context.add(number: statInfo.modificationTimestamp)
+                md5Context.add(number: statInfo.modificationNanoseconds)
             } else {
                 md5Context.add(string: "<missing>")
             }
