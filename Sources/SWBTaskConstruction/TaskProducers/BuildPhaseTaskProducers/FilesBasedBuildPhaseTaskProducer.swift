@@ -650,15 +650,10 @@ class FilesBasedBuildPhaseTaskProducerBase: PhasedTaskProducer {
 
                 // If this target itself hasn't adopted Install API, then it is an error (since presumably it is required).
                 if !scope.evaluate(BuiltinMacros.SUPPORTS_TEXT_BASED_API) {
-                    // If TAPI support errors are disabled, ignore the error.
-                    if !scope.evaluate(BuiltinMacros.ALLOW_UNSUPPORTED_TEXT_BASED_API) {
-                        // Don't enforce `SUPPORTS_TEXT_BASED_API` setting if the group only contains
-                        // asset catalogs since generated symbols code doesn't export API. Related: rdar://108210630, rdar://108379090.
-
-                        // xcassets get grouped together.
-                        let isAllCatalogs = group.files.allSatisfy({ $0.fileType.conformsTo(identifier: "folder.abstractassetcatalog") })
+                    // If TAPI support errors are disabled or this task type doesn't actually require it, ignore the error.
+                    if !scope.evaluate(BuiltinMacros.ALLOW_UNSUPPORTED_TEXT_BASED_API) && group.assignedBuildRuleAction?.requiresTextBasedAPI ?? false {
                         let productType: ProductTypeSpec? = try? context.getSpec(scope.evaluate(BuiltinMacros.PRODUCT_TYPE))
-                        if let productType = productType, productType.supportsInstallAPI && !generatedRequiresAPIError && !isAllCatalogs {
+                        if let productType = productType, productType.supportsInstallAPI && !generatedRequiresAPIError {
                             producer.context.error("\(productType.name) requested to generate API, but has not adopted SUPPORTS_TEXT_BASED_API", location: .buildSetting(BuiltinMacros.SUPPORTS_TEXT_BASED_API))
                             generatedRequiresAPIError = true
                         }

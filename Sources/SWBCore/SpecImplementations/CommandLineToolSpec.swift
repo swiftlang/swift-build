@@ -389,6 +389,12 @@ open class CommandLineToolSpec : PropertyDomainSpec, SpecType, TaskTypeDescripti
         return false
     }
 
+    /// True if the presence of tasks of this type requires the target to use TAPI.
+    open var requiresTextBasedAPI: Bool {
+        // In general anything that might install symbols for other projects should use TAPI.
+        return supportsInstallAPI || supportsInstallHeaders
+    }
+
     open var enableSandboxing: Bool {
         return false
     }
