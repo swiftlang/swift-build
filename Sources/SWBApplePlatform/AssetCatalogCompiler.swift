@@ -119,6 +119,12 @@ public final class ActoolCompilerSpec : GenericCompilerSpec, SpecIdentifierType,
         return true
     }
 
+    public override var requiresTextBasedAPI: Bool {
+        // Don't enforce `SUPPORTS_TEXT_BASED_API` setting if the group only contains
+        // asset catalogs since generated symbols code doesn't export API. Related: rdar://108210630, rdar://108379090.
+        return false
+    }
+
     /// Override to compute the special arguments.
     public override func constructTasks(_ cbc: CommandBuildContext, _ delegate: any TaskGenerationDelegate) async {
         let buildComponents = cbc.scope.evaluate(BuiltinMacros.BUILD_COMPONENTS)

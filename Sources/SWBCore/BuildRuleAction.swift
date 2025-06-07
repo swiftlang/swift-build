@@ -30,6 +30,9 @@ public protocol BuildRuleAction: AnyObject, CustomStringConvertible, Sendable {
     /// Whether actions of this type should run during `InstallHeaders`.
     var supportsInstallHeaders: Bool { get }
 
+    /// True if the presence of actions of this type requires the target to use TAPI.
+    var requiresTextBasedAPI: Bool { get }
+
     /// Identifier of the rule.
     var identifier: String { get }
 
@@ -71,6 +74,10 @@ public final class BuildRuleTaskAction: BuildRuleAction {
 
     public var supportsInstallHeaders: Bool {
         return toolSpec.supportsInstallHeaders
+    }
+
+    public var requiresTextBasedAPI: Bool {
+        return toolSpec.requiresTextBasedAPI
     }
 
     public var identifier: String {
@@ -135,6 +142,11 @@ public final class BuildRuleScriptAction: BuildRuleAction {
 
     public var supportsInstallHeaders: Bool {
         return runDuringInstallHeaders
+    }
+
+    public var requiresTextBasedAPI: Bool {
+        // In general anything that might install symbols for other projects should use TAPI.
+        return supportsInstallAPI || supportsInstallHeaders
     }
 
     public var identifier: String {
