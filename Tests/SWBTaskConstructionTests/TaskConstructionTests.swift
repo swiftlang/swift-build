@@ -8583,6 +8583,80 @@ fileprivate struct TaskConstructionTests: CoreBasedTests {
         }
     }
 
+    @Test(.requireSDKs(.host))
+    func framePointerControl() async throws {
+        try await withTemporaryDirectory { tmpDir in
+            let testProject = try await TestProject(
+                "aProject",
+                sourceRoot: tmpDir,
+                groupTree: TestGroup(
+                    "SomeFiles", path: "Sources",
+                    children: [
+                        TestFile("SourceFile.c"),
+                        TestFile("Source.swift"),
+                    ]),
+                buildConfigurations: [
+                    TestBuildConfiguration("Debug", buildSettings: [
+                        "SWIFT_EXEC": swiftCompilerPath.str,
+                        "SWIFT_VERSION": swiftVersion,
+                    ])
+                ],
+                targets: [
+                    TestStandardTarget(
+                        "Library",
+                        type: .dynamicLibrary,
+                        buildConfigurations: [
+                            TestBuildConfiguration("Debug")
+                        ],
+                        buildPhases: [
+                            TestSourcesBuildPhase([
+                                "SourceFile.c",
+                                "Source.swift"
+                            ])
+                        ]
+                    )]
+            )
+
+            let fs = PseudoFS()
+
+            let core = try await getCore()
+            let tester = try TaskConstructionTester(core, testProject)
+
+            await tester.checkBuild(BuildParameters(configuration: "Debug", overrides: [:]), runDestination: .host, fs: fs) { results in
+                results.checkTask(.matchRuleType("CompileC")) { task in
+                    task.checkCommandLineDoesNotContain("-fomit-frame-pointer")
+                    task.checkCommandLineDoesNotContain("-fno-omit-frame-pointer")
+                }
+                results.checkTask(.matchRuleType("SwiftDriver Compilation")) { task in
+                    task.checkCommandLineDoesNotContain("-fomit-frame-pointer")
+                    task.checkCommandLineDoesNotContain("-fno-omit-frame-pointer")
+                }
+            }
+
+            await tester.checkBuild(BuildParameters(configuration: "Debug", overrides: ["CLANG_OMIT_FRAME_POINTERS": "YES", "SWIFT_OMIT_FRAME_POINTERS": "YES"]), runDestination: .host, fs: fs) { results in
+                results.checkTask(.matchRuleType("CompileC")) { task in
+                    task.checkCommandLineContains(["-fomit-frame-pointer"])
+                    task.checkCommandLineDoesNotContain("-fno-omit-frame-pointer")
+                }
+                results.checkTask(.matchRuleType("SwiftDriver Compilation")) { task in
+                    task.checkCommandLineContains(["-Xcc", "-fomit-frame-pointer"])
+                    task.checkCommandLineDoesNotContain("-fno-omit-frame-pointer")
+                }
+            }
+
+            await tester.checkBuild(BuildParameters(configuration: "Debug", overrides: ["CLANG_OMIT_FRAME_POINTERS": "NO", "SWIFT_OMIT_FRAME_POINTERS": "NO"]), runDestination: .host, fs: fs) { results in
+                results.checkTask(.matchRuleType("CompileC")) { task in
+                    task.checkCommandLineDoesNotContain("-fomit-frame-pointer")
+                    task.checkCommandLineContains(["-fno-omit-frame-pointer"])
+                }
+                results.checkTask(.matchRuleType("SwiftDriver Compilation")) { task in
+                    task.checkCommandLineDoesNotContain("-fomit-frame-pointer")
+                    task.checkCommandLineContains(["-Xcc", "-fno-omit-frame-pointer"])
+                }
+            }
+        }
+    }
+
     @Test(.requireSDKs(.macOS))
     func warningSuppression() async throws {
         try await withTemporaryDirectory { tmpDir in
