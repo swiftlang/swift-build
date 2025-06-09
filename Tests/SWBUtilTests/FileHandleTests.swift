@@ -38,21 +38,21 @@ import SystemPackage
                 let fh = FileHandle(fileDescriptor: fd.rawValue, closeOnDealloc: false)
                 try await fd.closeAfter {
                     if #available(macOS 15, iOS 18, tvOS 18, watchOS 11, visionOS 2, *) {
-                        var it = fh.bytes(on: .global()).makeAsyncIterator()
+                        var it = fh.bytes().makeAsyncIterator()
                         var bytesOfFile: [UInt8] = []
                         await #expect(throws: Never.self) {
-                            while let byte = try await it.next() {
-                                bytesOfFile.append(byte)
+                            while let chunk = try await it.next() {
+                                bytesOfFile.append(contentsOf: chunk)
                             }
                         }
                         #expect(bytesOfFile.count == 1448)
                         #expect(plist.bytes == bytesOfFile)
                     } else {
-                        var it = fh._bytes(on: .global()).makeAsyncIterator()
+                        var it = fh._bytes().makeAsyncIterator()
                         var bytesOfFile: [UInt8] = []
                         await #expect(throws: Never.self) {
-                            while let byte = try await it.next() {
-                                bytesOfFile.append(byte)
+                            while let chunk = try await it.next() {
+                                bytesOfFile.append(contentsOf: chunk)
                             }
                         }
                         #expect(bytesOfFile.count == 1448)
@@ -72,7 +72,7 @@ import SystemPackage
                 let fh = FileHandle(fileDescriptor: fd.rawValue, closeOnDealloc: false)
 
                 if #available(macOS 15, iOS 18, tvOS 18, watchOS 11, visionOS 2, *) {
-                    var it = fh.bytes(on: .global()).makeAsyncIterator()
+                    var it = fh.bytes().makeAsyncIterator()
                     try fd.close()
 
                     await #expect(throws: (any Error).self) {
@@ -80,7 +80,7 @@ import SystemPackage
                         }
                     }
                 } else {
-                    var it = fh._bytes(on: .global()).makeAsyncIterator()
+                    var it = fh._bytes().makeAsyncIterator()
                     try fd.close()
 
                     await #expect(throws: (any Error).self) {
@@ -99,21 +99,21 @@ import SystemPackage
                     try await fd.closeAfter {
                         let fh = FileHandle(fileDescriptor: fd.rawValue, closeOnDealloc: false)
                         if #available(macOS 15, iOS 18, tvOS 18, watchOS 11, visionOS 2, *) {
-                            var it = fh.bytes(on: .global()).makeAsyncIterator()
+                            var it = fh.bytes().makeAsyncIterator()
                             var bytes: [UInt8] = []
-                            while let byte = try await it.next() {
-                                bytes.append(byte)
-                                if bytes.count == 100 {
+                            while let chunk = try await it.next() {
+                                bytes.append(contentsOf: chunk)
+                                if bytes.count >= 100 {
                                     condition.signal()
                                     throw CancellationError()
                                 }
                             }
                         } else {
-                            var it = fh._bytes(on: .global()).makeAsyncIterator()
+                            var it = fh._bytes().makeAsyncIterator()
                             var bytes: [UInt8] = []
-                            while let byte = try await it.next() {
-                                bytes.append(byte)
-                                if bytes.count == 100 {
+                            while let chunk = try await it.next() {
+                                bytes.append(contentsOf: chunk)
+                                if bytes.count >= 100 {
                                     condition.signal()
                                     throw CancellationError()
                                 }
