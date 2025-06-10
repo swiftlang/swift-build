@@ -1701,7 +1701,6 @@ fileprivate struct BuildOperationTests: CoreBasedTests {
                 let service: SWBBuildService? = try await SWBBuildService()
                 await deferrable.addBlock { [weak service] in
                     await service?.close()
-                    service = nil
                 }
 
                 func start() async throws -> (SWBBuildOperation, AsyncStream<SwiftBuildMessage>) {
@@ -1711,7 +1710,6 @@ fileprivate struct BuildOperationTests: CoreBasedTests {
                         await #expect(throws: Never.self) {
                             try await session?.close()
                         }
-                        session = nil
                     }
 
                     let testTarget: TestStandardTarget
