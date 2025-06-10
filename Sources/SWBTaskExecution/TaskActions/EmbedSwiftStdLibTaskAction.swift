@@ -161,11 +161,17 @@ public final class EmbedSwiftStdLibTaskAction: TaskAction {
         // If true, then the Swift concurrency dylibs should be copied into the app/framework's bundles.
         var backDeploySwiftConcurrency = false
 
+        // If true, then the Swift Span dylibs should be copied into the app/framework's bundles.
+        var backDeploySwiftSpan = false
+
         // The allowed list of libraries that should *not* be filtered when `filterForSwiftOS=true`.
         let allowedLibsForSwiftOS = ["libswiftXCTest" ]
 
         // The allowed list of libraries that should *not* be filtered when `backDeploySwiftConcurrency=true`.
         let allowedLibsForSwiftConcurrency = ["libswift_Concurrency"]
+
+        // The allowed list of libraries that should *not* be filtered when `backDeploySwiftSpan=true`.
+        let allowedLibsForSwiftSpan = ["libswiftCompatibilitySpan"]
 
         func absolutePath(_ path: Path) -> Path {
             return path.isAbsolute ? path : task.workingDirectory.join(path)
@@ -368,6 +374,9 @@ public final class EmbedSwiftStdLibTaskAction: TaskAction {
 
                 case "--back-deploy-swift-concurrency":
                     self.backDeploySwiftConcurrency = true
+
+                case "--back-deploy-swift-span":
+                    self.backDeploySwiftSpan = true
 
                 default:
                     throw StubError.error("unrecognized argument: \(arg)")
@@ -786,6 +795,9 @@ public final class EmbedSwiftStdLibTaskAction: TaskAction {
                         shouldInclude = false
                     }
                     if backDeploySwiftConcurrency && allowedLibsForSwiftConcurrency.contains(item) {
+                        shouldInclude = true
+                    }
+                    if backDeploySwiftSpan && allowedLibsForSwiftSpan.contains(item) {
                         shouldInclude = true
                     }
 
