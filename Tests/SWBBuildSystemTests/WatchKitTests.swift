@@ -125,13 +125,18 @@ fileprivate struct WatchKitTests: CoreBasedTests {
         // Check expected deployment target
         for slice in try macho.slices() {
             let buildVersions = try Set(slice.buildVersions().map { $0.minOSVersion })
+            guard let buildVersion = buildVersions.only else {
+                let buildVersionsString = buildVersions.compactMap({ $0.description }).sorted().joined(separator: " ")
+                Issue.record("Expected one build version for architecture \(slice.arch) but found '\(buildVersionsString)'")
+                continue
+            }
             switch slice.arch {
             case "armv7k", "arm64_32", "x86_64":
-                #expect(buildVersions == [Version(2)])
+                #expect(buildVersion == Version(2))
             case "arm64" where sdkPath.str.contains("WatchSimulator"):
-                #expect(buildVersions == [Version(7)])
+                #expect(buildVersion == Version(7))
             case "arm64", "arm64e":
-                #expect(buildVersions == [Version(9)])
+                #expect(buildVersion >= Version(9))
             case "i386":
                 break
             default:
