@@ -103,6 +103,16 @@
                 Condition = "$(ALTERNATE_LINKER) == gold";
             },
             {
+                Name = "DEAD_CODE_STRIPPING";
+                Type = Boolean;
+                DefaultValue = NO;
+                Condition = "$(MACH_O_TYPE) != mh_object";
+                CommandLineArgs = {
+                    YES = ("-Xlinker", "--gc-sections");
+                    NO = ();
+                };
+            },
+            {
                 // Frameworks are Mac specific
                 Name = "SYSTEM_FRAMEWORK_SEARCH_PATHS";
                 Type = PathList;
