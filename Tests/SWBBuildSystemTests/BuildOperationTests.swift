@@ -4782,7 +4782,7 @@ That command depends on command in Target 'agg2' (project \'aProject\'): script 
             try await tester.checkBuild(runDestination: .macOS, persistent: true) { results in
                 if !SWBFeatureFlag.performOwnershipAnalysis.value {
                     for _ in 0..<4 {
-                        results.checkError(.contains("No such file or directory (2) (for task: [\"Copy\""))
+                        results.checkError(.contains("couldn’t be opened because there is no such file. (for task: [\"Copy\""))
                     }
                 }
                 results.checkError(.contains("unterminated string literal"))
@@ -5076,7 +5076,7 @@ That command depends on command in Target 'agg2' (project \'aProject\'): script 
                 }
                 if !SWBFeatureFlag.performOwnershipAnalysis.value {
                     for fname in ["aFramework.swiftmodule", "aFramework.swiftdoc", "aFramework.swiftsourceinfo", "aFramework.abi.json"] {
-                        results.checkError(.contains("\(tmpDirPath.str)/Test/aProject/build/aProject.build/Debug/aFramework.build/Objects-normal/x86_64/\(fname)): No such file or directory (2)"))
+                        results.checkError(.contains("The file “\(fname)” couldn’t be opened because there is no such file."))
                     }
                 }
                 results.checkError("Build input file cannot be found: \'\(tmpDirPath.str)/Test/aProject/File.swift\'. Did you forget to declare this file as an output of a script phase or custom build rule which produces it? (for task: [\"ExtractAppIntentsMetadata\"])")
