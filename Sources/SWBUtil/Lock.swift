@@ -28,7 +28,7 @@ public final class Lock: @unchecked Sendable {
     #if os(Windows)
     @usableFromInline
     let mutex: UnsafeMutablePointer<SRWLOCK> = UnsafeMutablePointer.allocate(capacity: 1)
-    #elseif os(OpenBSD)
+    #elseif os(FreeBSD) || os(OpenBSD)
     @usableFromInline
     let mutex: UnsafeMutablePointer<pthread_mutex_t?> = UnsafeMutablePointer.allocate(capacity: 1)
     #else

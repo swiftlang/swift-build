@@ -379,7 +379,7 @@ struct DependencyCycleFormatter {
                                     message = "Target '\(previousTargetName)' has an explicit dependency on Target '\(targetName)'"
                                 case let .implicitBuildPhaseLinkage(filename, _, buildPhase)?:
                                     message = "Target '\(previousTargetName)' has an implicit dependency on Target '\(targetName)' because '\(previousTargetName)' references the file '\(filename)' in the build phase '\(buildPhase)'"
-                                case let .implicitBuildSettingLinkage(settingName, options)?:
+                                case let .implicitBuildSetting(settingName, options)?:
                                     message = "Target '\(previousTargetName)' has an implicit dependency on Target '\(targetName)' because '\(previousTargetName)' defines the option '\(options.joined(separator: " "))' in the build setting '\(settingName)'"
                                 case let .impliedByTransitiveDependencyViaRemovedTargets(intermediateTargetName: intermediateTargetName):
                                     message = "Target '\(previousTargetName)' has a dependency on Target '\(targetName)' via its transitive dependency through '\(intermediateTargetName)'"
@@ -501,7 +501,7 @@ struct DependencyCycleFormatter {
                             suffix = " via the “Target Dependencies“ build phase"
                         case let .implicitBuildPhaseLinkage(filename, _, buildPhase)?:
                             suffix = " because the scheme has implicit dependencies enabled and the Target '\(lastTargetsName)' references the file '\(filename)' in the build phase '\(buildPhase)'"
-                        case let .implicitBuildSettingLinkage(settingName, options)?:
+                        case let .implicitBuildSetting(settingName, options)?:
                             suffix = " because the scheme has implicit dependencies enabled and the Target '\(lastTargetsName)' defines the options '\(options.joined(separator: " "))' in the build setting '\(settingName)'"
                         case let .impliedByTransitiveDependencyViaRemovedTargets(intermediateTargetName: intermediateTargetName):
                             suffix = " via its transitive dependency through '\(intermediateTargetName)'"

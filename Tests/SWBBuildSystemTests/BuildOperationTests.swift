@@ -399,7 +399,7 @@ fileprivate struct BuildOperationTests: CoreBasedTests {
 
     @Test(.requireSDKs(.host), .skipHostOS(.macOS), .skipHostOS(.windows, "cannot find testing library"))
     func unitTestWithGeneratedEntryPoint() async throws {
-        try await withTemporaryDirectory { (tmpDir: Path) in
+        try await withTemporaryDirectory(removeTreeOnDeinit: false) { (tmpDir: Path) in
             let testProject = try await TestProject(
                 "TestProject",
                 sourceRoot: tmpDir,
@@ -417,14 +417,32 @@ fileprivate struct BuildOperationTests: CoreBasedTests {
                         "SDKROOT": "$(HOST_PLATFORM)",
                         "SUPPORTED_PLATFORMS": "$(HOST_PLATFORM)",
                         "SWIFT_VERSION": swiftVersion,
+                        "INDEX_DATA_STORE_DIR": "\(tmpDir.join("index").str)",
+                        "LINKER_DRIVER": "swiftc"
                     ])
                 ],
                 targets: [
                     TestStandardTarget(
-                        "test",
+                        "UnitTestRunner",
+                        type: .swiftpmTestRunner,
+                        buildConfigurations: [
+                            TestBuildConfiguration("Debug",
+                                                   buildSettings: [:]),
+                        ],
+                        buildPhases: [
+                            TestSourcesBuildPhase(),
+                            TestFrameworksBuildPhase([
+                                "MyTests.so"
+                            ])
+                        ],
+                        dependencies: ["MyTests"]
+                    ),
+                    TestStandardTarget(
+                        "MyTests",
                         type: .unitTest,
                         buildConfigurations: [
                             TestBuildConfiguration("Debug", buildSettings: [
+                                "DYLIB_INSTALL_NAME_BASE": "$ORIGIN",
                                 "LD_RUNPATH_SEARCH_PATHS": "@loader_path/",
                             ])
                         ],
@@ -433,10 +451,10 @@ fileprivate struct BuildOperationTests: CoreBasedTests {
                             TestFrameworksBuildPhase([
                                 TestBuildFile(.target("library")),
                             ])
-                        ],
-                        dependencies: [
+                        ], dependencies: [
                             "library"
-                        ]
+                        ],
+                        productReferenceName: "MyTests.so"
                     ),
                     TestStandardTarget(
                         "library",
@@ -444,6 +462,7 @@ fileprivate struct BuildOperationTests: CoreBasedTests {
                         buildConfigurations: [
                             TestBuildConfiguration("Debug", buildSettings: [
                                 "DYLIB_INSTALL_NAME_BASE": "$ORIGIN",
+                                "LD_RUNPATH_SEARCH_PATHS": "@loader_path/",
 
                                 // FIXME: Find a way to make these default
                                 "EXECUTABLE_PREFIX": "lib",
@@ -457,7 +476,7 @@ fileprivate struct BuildOperationTests: CoreBasedTests {
                 ])
             let core = try await getCore()
             let tester = try await BuildOperationTester(core, testProject, simulated: false)
-
+            try localFS.createDirectory(tmpDir.join("index"))
             let projectDir = tester.workspace.projects[0].sourceRoot
 
             try await tester.fs.writeFileContents(projectDir.join("library.swift")) { stream in
@@ -467,10 +486,17 @@ fileprivate struct BuildOperationTests: CoreBasedTests {
             try await tester.fs.writeFileContents(projectDir.join("test.swift")) { stream in
                 stream <<< """
                     import Testing
+                    import XCTest
                     import library
                     @Suite struct MySuite {
-                        @Test func myTest() async throws {
+                        @Test func myTest() {
                             #expect(foo() == 42)
+                        }
+                    }
+
+                    final class MYXCTests: XCTestCase {
+                        func testFoo() {
+                            XCTAssertTrue(true)
                         }
                     }
                 """
@@ -483,13 +509,19 @@ fileprivate struct BuildOperationTests: CoreBasedTests {
                 let toolchain = try #require(try await getCore().toolchainRegistry.defaultToolchain)
                 let environment: Environment
                 if destination.platform == "linux" {
-                    environment = ["LD_LIBRARY_PATH": toolchain.path.join("usr/lib/swift/linux").str]
+                    environment = ["LD_LIBRARY_PATH": "\(toolchain.path.join("usr/lib/swift/linux").str):\(projectDir.join("build").join("Debug\(destination.builtProductsDirSuffix)"))"]
                 } else {
                     environment = .init()
                 }
 
-                let executionResult = try await Process.getOutput(url: URL(fileURLWithPath: projectDir.join("build").join("Debug\(destination.builtProductsDirSuffix)").join(core.hostOperatingSystem.imageFormat.executableName(basename: "test.xctest")).str), arguments: ["--testing-library", "swift-testing"], environment: environment)
-                #expect(String(decoding: executionResult.stderr, as: UTF8.self).contains("Test run started"))
+                do {
+                    let executionResult = try await Process.getOutput(url: URL(fileURLWithPath: projectDir.join("build").join("Debug\(destination.builtProductsDirSuffix)").join(core.hostOperatingSystem.imageFormat.executableName(basename: "UnitTestRunner")).str), arguments: [], environment: environment)
+                    #expect(String(decoding: executionResult.stdout, as: UTF8.self).contains("Executed 1 test, with 0 failures"))
+                }
+                do {
+                    let executionResult = try await Process.getOutput(url: URL(fileURLWithPath: projectDir.join("build").join("Debug\(destination.builtProductsDirSuffix)").join(core.hostOperatingSystem.imageFormat.executableName(basename: "UnitTestRunner")).str), arguments: ["--testing-library", "swift-testing"], environment: environment)
+                    #expect(String(decoding: executionResult.stderr, as: UTF8.self).contains("Test run with 1 test in 1 suite passed"))
+                }
             }
         }
     }
@@ -4750,7 +4782,7 @@ That command depends on command in Target 'agg2' (project \'aProject\'): script 
             try await tester.checkBuild(runDestination: .macOS, persistent: true) { results in
                 if !SWBFeatureFlag.performOwnershipAnalysis.value {
                     for _ in 0..<4 {
-                        results.checkError(.contains("No such file or directory (2) (for task: [\"Copy\""))
+                        results.checkError(.contains("couldn’t be opened because there is no such file. (for task: [\"Copy\""))
                     }
                 }
                 results.checkError(.contains("unterminated string literal"))
@@ -5044,7 +5076,7 @@ That command depends on command in Target 'agg2' (project \'aProject\'): script 
                 }
                 if !SWBFeatureFlag.performOwnershipAnalysis.value {
                     for fname in ["aFramework.swiftmodule", "aFramework.swiftdoc", "aFramework.swiftsourceinfo", "aFramework.abi.json"] {
-                        results.checkError(.contains("\(tmpDirPath.str)/Test/aProject/build/aProject.build/Debug/aFramework.build/Objects-normal/x86_64/\(fname)): No such file or directory (2)"))
+                        results.checkError(.contains("The file “\(fname)” couldn’t be opened because there is no such file."))
                     }
                 }
                 results.checkError("Build input file cannot be found: \'\(tmpDirPath.str)/Test/aProject/File.swift\'. Did you forget to declare this file as an output of a script phase or custom build rule which produces it? (for task: [\"ExtractAppIntentsMetadata\"])")

@@ -70,6 +70,8 @@ extension Process {
             case .linux:
                 // Amazon Linux 2 has glibc 2.26, and glibc 2.29 is needed for posix_spawn_file_actions_addchdir_np support
                 FileManager.default.contents(atPath: "/etc/system-release").map { String(decoding: $0, as: UTF8.self) == "Amazon Linux release 2 (Karoo)\n" } ?? false
+            case .openbsd:
+                true
             default:
                 false
             }
@@ -117,7 +119,7 @@ extension Process {
                 let (exitStatus, output) = try await _getOutput(url: url, arguments: arguments, currentDirectoryURL: currentDirectoryURL, environment: environment, interruptible: interruptible) { process in
                     process.standardOutputPipe = pipe
                     process.standardErrorPipe = pipe
-                    return pipe.fileHandleForReading.bytes(on: .global())
+                    return pipe.fileHandleForReading.bytes()
                 } collect: { stream in
                     try await stream.collect()
                 }
@@ -129,7 +131,7 @@ extension Process {
                 let (exitStatus, output) = try await _getOutput(url: url, arguments: arguments, currentDirectoryURL: currentDirectoryURL, environment: environment, interruptible: interruptible) { process in
                     process.standardOutputPipe = pipe
                     process.standardErrorPipe = pipe
-                    return pipe.fileHandleForReading._bytes(on: .global())
+                    return pipe.fileHandleForReading._bytes()
                 } collect: { stream in
                     try await stream.collect()
                 }
@@ -159,9 +161,11 @@ extension Process {
 
         let streams = setup(process)
 
+        async let outputTask = await collect(streams)
+
         try await process.run(interruptible: interruptible)
 
-        let output = try await collect(streams)
+        let output = try await outputTask
 
         #if !canImport(Darwin)
         // Clear the pipes to prevent file descriptor leaks on platforms using swift-corelibs-foundation
