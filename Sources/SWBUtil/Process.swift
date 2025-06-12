@@ -11,18 +11,21 @@
 //===----------------------------------------------------------------------===//
 
 public import Foundation
-import SWBLibc
+public import SWBLibc
+import Synchronization
+
+#if canImport(Subprocess)
+import Subprocess
+#endif
+
+#if canImport(System)
+public import System
+#else
+public import SystemPackage
+#endif
 
 #if os(Windows)
 public typealias pid_t = Int32
-#endif
-
-#if !canImport(Darwin)
-extension ProcessInfo {
-    public var isMacCatalystApp: Bool {
-        false
-    }
-}
 #endif
 
 #if (!canImport(Foundation.NSTask) || targetEnvironment(macCatalyst)) && canImport(Darwin)
@@ -64,7 +67,7 @@ public typealias Process = Foundation.Process
 #endif
 
 extension Process {
-    public static var hasUnsafeWorkingDirectorySupport: Bool {
+    fileprivate static var hasUnsafeWorkingDirectorySupport: Bool {
         get throws {
             switch try ProcessInfo.processInfo.hostOperatingSystem() {
             case .linux:
@@ -81,6 +84,36 @@ extension Process {
 
 extension Process {
     public static func getOutput(url: URL, arguments: [String], currentDirectoryURL: URL? = nil, environment: Environment? = nil, interruptible: Bool = true) async throws -> Processes.ExecutionResult {
+        #if canImport(Subprocess)
+        #if !canImport(Darwin) || os(macOS)
+        let result = try await Subprocess.run(.path(FilePath(url.filePath.str)), arguments: .init(arguments), environment: environment.map { .custom(.init($0)) } ?? .inherit, workingDirectory: (currentDirectoryURL?.filePath.str).map { FilePath($0) } ?? nil, body: { execution, inputWriter, outputReader, errorReader in
+            try await inputWriter.finish()
+            let cancellationPromise = Promise<Bool, Never>()
+            return try await withTaskCancellationHandler {
+                async let cancellationListener: () = {
+                    if await cancellationPromise.value, interruptible {
+                        await execution.teardown(using: [.gracefulShutDown(allowedDurationToNextStep: .seconds(5))])
+                    }
+                }()
+                async let stdoutBytesAsync = outputReader.collect().flatMap { $0.withUnsafeBytes(Array.init) }
+                async let stderrBytesAsync = errorReader.collect().flatMap { $0.withUnsafeBytes(Array.init) }
+                let stdoutBytes = try await stdoutBytesAsync
+                let stderrBytes = try await stderrBytesAsync
+                cancellationPromise.fulfill(with: false)
+                await cancellationListener
+                if interruptible {
+                    try Task.checkCancellation()
+                }
+                return (stdoutBytes, stderrBytes)
+            } onCancel: {
+                cancellationPromise.fulfill(with: true)
+            }
+        })
+        return Processes.ExecutionResult(exitStatus: .init(result.terminationStatus), stdout: Data(result.value.0), stderr: Data(result.value.1))
+        #else
+        throw StubError.error("Process spawning is unavailable")
+        #endif
+        #else
         if #available(macOS 15, iOS 18, tvOS 18, watchOS 11, visionOS 2, *) {
             // Extend the lifetime of the pipes to avoid file descriptors being closed until the AsyncStream is finished being consumed.
             return try await withExtendedLifetime((Pipe(), Pipe())) { (stdoutPipe, stderrPipe) in
@@ -110,9 +143,45 @@ extension Process {
                 return Processes.ExecutionResult(exitStatus: exitStatus, stdout: Data(output.stdoutData), stderr: Data(output.stderrData))
             }
         }
+        #endif
     }
 
     public static func getMergedOutput(url: URL, arguments: [String], currentDirectoryURL: URL? = nil, environment: Environment? = nil, interruptible: Bool = true) async throws -> (exitStatus: Processes.ExitStatus, output: Data) {
+        #if canImport(Subprocess)
+        #if !canImport(Darwin) || os(macOS)
+        let (readEnd, writeEnd) = try FileDescriptor.pipe()
+        return try await readEnd.closeAfter {
+            // Direct both stdout and stderr to the same fd. Only set `closeAfterSpawningProcess` on one of the outputs so it isn't double-closed (similarly avoid using closeAfter for the same reason).
+            let result = try await Subprocess.run(.path(FilePath(url.filePath.str)), arguments: .init(arguments), environment: environment.map { .custom(.init($0)) } ?? .inherit, workingDirectory: (currentDirectoryURL?.filePath.str).map { FilePath($0) } ?? nil, output: .fileDescriptor(writeEnd, closeAfterSpawningProcess: true), error: .fileDescriptor(writeEnd, closeAfterSpawningProcess: false), body: { execution in
+                let cancellationPromise = Promise<Bool, Never>()
+                return try await withTaskCancellationHandler {
+                    async let cancellationListener: () = {
+                        if await cancellationPromise.value, interruptible {
+                            await execution.teardown(using: [.gracefulShutDown(allowedDurationToNextStep: .seconds(5))])
+                        }
+                    }()
+                    let bytes: [UInt8]
+                    if #available(macOS 15, iOS 18, tvOS 18, watchOS 11, visionOS 2, *) {
+                        bytes = try await Array(Data(DispatchFD(fileDescriptor: readEnd).dataStream().collect()))
+                    } else {
+                        bytes = try await Array(Data(DispatchFD(fileDescriptor: readEnd)._dataStream().collect()))
+                    }
+                    cancellationPromise.fulfill(with: false)
+                    await cancellationListener
+                    if interruptible {
+                        try Task.checkCancellation()
+                    }
+                    return bytes
+                } onCancel: {
+                    cancellationPromise.fulfill(with: true)
+                }
+            })
+            return (.init(result.terminationStatus), Data(result.value))
+        }
+        #else
+        throw StubError.error("Process spawning is unavailable")
+        #endif
+        #else
         if #available(macOS 15, iOS 18, tvOS 18, watchOS 11, visionOS 2, *) {
             // Extend the lifetime of the pipe to avoid file descriptors being closed until the AsyncStream is finished being consumed.
             return try await withExtendedLifetime(Pipe()) { pipe in
@@ -138,6 +207,7 @@ extension Process {
                 return (exitStatus: exitStatus, output: Data(output))
             }
         }
+        #endif
     }
 
     private static func _getOutput<T, U>(url: URL, arguments: [String], currentDirectoryURL: URL?, environment: Environment?, interruptible: Bool, setup: (Process) -> T, collect: (T) async throws -> U) async throws -> (exitStatus: Processes.ExitStatus, output: U) {
@@ -293,6 +363,19 @@ public enum Processes: Sendable {
         }
     }
 }
+
+#if canImport(Subprocess)
+extension Processes.ExitStatus {
+    init(_ terminationStatus: TerminationStatus) {
+        switch terminationStatus {
+        case let .exited(code):
+            self = .exit(code)
+        case let .unhandledException(code):
+            self = .uncaughtSignal(code)
+        }
+    }
+}
+#endif
 
 extension Processes.ExitStatus {
     public init(_ process: Process) throws {

@@ -152,11 +152,6 @@ extension Trait where Self == Testing.ConditionTrait {
         })
     }
 
-    /// Constructs a condition trait that causes a test to be disabled if the Foundation process spawning implementation is not thread-safe.
-    package static var requireThreadSafeWorkingDirectory: Self {
-        disabled(if: try Process.hasUnsafeWorkingDirectorySupport, "Foundation.Process working directory support is not thread-safe.")
-    }
-
     /// Constructs a condition trait that causes a test to be disabled if the specified llbuild API version requirement is not met.
     package static func requireLLBuild(apiVersion version: Int32) -> Self {
         let llbuildVersion = llb_get_api_version()
