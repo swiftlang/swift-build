@@ -87,6 +87,13 @@ public final class Cache<Key: Hashable, Value>: NSObject, KeyValueStorage, NSCac
             return nil
         }
         set {
+            #if os(Linux)
+            if let newValue = newValue {
+                cache.value.setObject(ValueWrapper(newValue), forKey: KeyWrapper(key))
+            } else {
+                cache.value.removeObject(forKey: KeyWrapper(key))
+            }
+            #else
             if let newValue, let cacheableValue = newValue as? (any CacheableValue) {
                 cache.value.setObject(ValueWrapper(newValue), forKey: KeyWrapper(key), cost: cacheableValue.cost)
             } else if let newValue = newValue {
@@ -94,6 +101,7 @@ public final class Cache<Key: Hashable, Value>: NSObject, KeyValueStorage, NSCac
             } else {
                 cache.value.removeObject(forKey: KeyWrapper(key))
             }
+            #endif
         }
     }
 
@@ -112,12 +120,16 @@ public final class Cache<Key: Hashable, Value>: NSObject, KeyValueStorage, NSCac
         }
 
         let value = try body()
+        #if os(Linux)
+        cache.value.setObject(ValueWrapper(value), forKey: wrappedKey)
+        #else
         if let cacheableValue = value as? (any CacheableValue) {
             cache.value.setObject(ValueWrapper(value), forKey: wrappedKey, cost: cacheableValue.cost)
 
         } else {
             cache.value.setObject(ValueWrapper(value), forKey: wrappedKey)
         }
+        #endif
         return value
     }
 

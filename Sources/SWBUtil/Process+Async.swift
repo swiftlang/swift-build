@@ -35,20 +35,20 @@ extension Process {
     @available(tvOS, deprecated: 18.0, message: "Use the AsyncSequence-returning overload.")
     @available(watchOS, deprecated: 11.0, message: "Use the AsyncSequence-returning overload.")
     @available(visionOS, deprecated: 2.0, message: "Use the AsyncSequence-returning overload.")
-    public func _makeStream(for keyPath: ReferenceWritableKeyPath<Process, Pipe?>, using pipe: Pipe) -> AsyncThrowingStream<UInt8, any Error> {
+    public func _makeStream(for keyPath: ReferenceWritableKeyPath<Process, Pipe?>, using pipe: Pipe) -> AsyncThrowingStream<SWBDispatchData, any Error> {
         precondition(!isRunning) // the pipe setters will raise `NSInvalidArgumentException` anyways
         self[keyPath: keyPath] = pipe
-        return pipe.fileHandleForReading._bytes(on: .global())
+        return pipe.fileHandleForReading._bytes()
     }
 
     /// Returns an ``AsyncStream`` configured to read the standard output or error stream of the process.
     ///
     /// - note: This method will mutate the `standardOutput` or `standardError` property of the Process object, replacing any existing `Pipe` or `FileHandle` which may be set. It must be called before the process is started.
     @available(macOS 15.0, iOS 18.0, tvOS 18.0, watchOS 11.0, visionOS 2.0, *)
-    public func makeStream(for keyPath: ReferenceWritableKeyPath<Process, Pipe?>, using pipe: Pipe) -> any AsyncSequence<UInt8, any Error> {
+    public func makeStream(for keyPath: ReferenceWritableKeyPath<Process, Pipe?>, using pipe: Pipe) -> some AsyncSequence<SWBDispatchData, any Error> {
         precondition(!isRunning) // the pipe setters will raise `NSInvalidArgumentException` anyways
         self[keyPath: keyPath] = pipe
-        return pipe.fileHandleForReading.bytes(on: .global())
+        return pipe.fileHandleForReading.bytes()
     }
 }
 

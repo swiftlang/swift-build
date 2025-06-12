@@ -996,6 +996,25 @@
                 Condition = "$(GCC_GENERATE_DEBUGGING_SYMBOLS) && $(DEBUG_INFORMATION_FORMAT) != \"\"";
             },
             {
+                Name = "SWIFT_OMIT_FRAME_POINTERS";
+                Type = Enumeration;
+                Values = (
+                    "compiler-default",
+                    YES,
+                    NO,
+                );
+                CommandLineArgs = {
+                    YES = (
+                        "-Xcc", "-fomit-frame-pointer",
+                    );
+                    NO = (
+                        "-Xcc", "-fno-omit-frame-pointer",
+                    );
+                    "<<otherwise>>" = ();
+                };
+                DefaultValue = "compiler-default";
+            },
+            {
                 Name = "CLANG_MODULE_CACHE_PATH";
                 Type = Path;
                 CommandLineFlag = "-module-cache-path";

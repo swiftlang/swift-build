@@ -239,7 +239,7 @@ struct AppleSettingsBuilderExtension: SettingsBuilderExtension {
     func addPlatformSDKSettings(_ platform: SWBCore.Platform?, _ sdk: SDK, _ sdkVariant: SDKVariant?) -> [String : String] { [:] }
     func xcconfigOverrideData(fromParameters: BuildParameters) -> ByteString { ByteString() }
     func getTargetTestingSwiftPluginFlags(_ scope: MacroEvaluationScope, toolchainRegistry: ToolchainRegistry, sdkRegistry: SDKRegistry, activeRunDestination: RunDestinationInfo?, project: SWBCore.Project?) -> [String] { [] }
-    func shouldSkipPopulatingValidArchs(platform: SWBCore.Platform) -> Bool { false }
+    func shouldSkipPopulatingValidArchs(platform: SWBCore.Platform, sdk: SDK?) -> Bool { false }
     func shouldDisableXOJITPreviews(platformName: String, sdk: SDK?) -> Bool { false }
     func overridingBuildSettings(_: MacroEvaluationScope, platform: SWBCore.Platform?, productType: ProductTypeSpec) -> [String : String] { [:] }
 }

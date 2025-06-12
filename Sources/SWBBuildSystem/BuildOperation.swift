@@ -2304,9 +2304,9 @@ internal final class OperationSystemAdaptor: SWBLLBuild.BuildSystemDelegate, Act
     private func inputNounPhraseForBuildKey(_ inputKey: BuildKey) -> String {
         switch inputKey {
         case is BuildKey.Command, is BuildKey.CustomTask:
-            return "the producer"
+            return "the task producing"
         case is BuildKey.DirectoryContents, is BuildKey.FilteredDirectoryContents, is BuildKey.DirectoryTreeSignature, is BuildKey.Node:
-            return "an input"
+            return "an input of"
         case is BuildKey.Target, is BuildKey.Stat:
             return "<unexpected build key>"
         default:
@@ -2343,15 +2343,15 @@ internal final class OperationSystemAdaptor: SWBLLBuild.BuildSystemDelegate, Act
                 previousFrameID = nil
             case .signatureChanged:
                 category = .ruleSignatureChanged
-                description = "signature of \(descriptionForBuildKey(rule)) changed"
+                description = "arguments, environment, or working directory of \(descriptionForBuildKey(rule)) changed"
                 previousFrameID = nil
             case .invalidValue:
                 category = .ruleHadInvalidValue
                 previousFrameID = nil
                 if let command = rule as? BuildKey.Command, let task = lookupTask(TaskIdentifier(rawValue: command.name)), task.alwaysExecuteTask {
-                    description = "\(descriptionForBuildKey(rule)) is configured to run in every incremental build"
+                    description = "\(descriptionForBuildKey(rule)) was configured to run in every incremental build"
                 } else if rule is BuildKey.Command || rule is BuildKey.CustomTask {
-                    description = "\(descriptionForBuildKey(rule)) did not have up-to-date outputs"
+                    description = "outputs of \(descriptionForBuildKey(rule)) were missing or modified"
                 } else {
                     description = "\(descriptionForBuildKey(rule)) changed"
                 }
@@ -2361,7 +2361,7 @@ internal final class OperationSystemAdaptor: SWBLLBuild.BuildSystemDelegate, Act
                     if isTriggerNode(rule), let mutatedNodeDescription = descriptionOfInputMutatedByBuildKey(inputRule) {
                         description = "\(descriptionForBuildKey(inputRule)) mutated \(mutatedNodeDescription)"
                     } else {
-                        description = "\(inputNounPhraseForBuildKey(inputRule)) of \(descriptionForBuildKey(rule)) \(rebuiltVerbPhraseForBuildKey(inputRule))"
+                        description = "\(inputNounPhraseForBuildKey(inputRule)) \(descriptionForBuildKey(rule)) \(rebuiltVerbPhraseForBuildKey(inputRule))"
                     }
                     previousFrameID = previousFrameIdentifier
                 } else {
@@ -2370,7 +2370,7 @@ internal final class OperationSystemAdaptor: SWBLLBuild.BuildSystemDelegate, Act
                 }
             case .forced:
                 category = .ruleForced
-                description = "\(descriptionForBuildKey(rule)) was forced to run"
+                description = "\(descriptionForBuildKey(rule)) was forced to run to break a cycle in the build graph"
                 previousFrameID = nil
             @unknown default:
                 category = .none

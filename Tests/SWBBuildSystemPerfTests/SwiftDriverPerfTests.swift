@@ -17,6 +17,7 @@ import SWBCore
 import SWBProtocol
 import SWBUtil
 import SWBTestSupport
+import SwiftBuildTestSupport
 
 @Suite(.performance)
 fileprivate struct SwiftDriverPerfTests: CoreBasedTests, PerfTests {
