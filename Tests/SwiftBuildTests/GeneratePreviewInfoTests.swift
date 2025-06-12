@@ -160,14 +160,13 @@ fileprivate struct GeneratePreviewInfoTests: CoreBasedTests {
                         .anySequence,
                         "-sdk", "\(sdkroot)",
                         .anySequence,
-                        "-vfsoverlay", "\(tmpDir.str)/Test/build/Test.build/Debug-iphoneos/App.build/Objects-normal/\(activeRunDestination.targetArchitecture)/vfsoverlay-TestFile4.canary.preview-thunk.swift.json",
-                        .anySequence,
                         "-Onone",
                         .anySequence,
                         "-module-name", "App",
                         "-target-sdk-version", "\(deploymentTarget)",
                         "-target-sdk-name", "iphoneos\(deploymentTarget)",
                         "-o", "\(tmpDir.str)/Test/build/Test.build/Debug-iphoneos/App.build/Objects-normal/\(activeRunDestination.targetArchitecture)/TestFile4.canary.preview-thunk.o",
+                        "-vfsoverlay", "\(tmpDir.str)/Test/build/Test.build/Debug-iphoneos/App.build/Objects-normal/\(activeRunDestination.targetArchitecture)/vfsoverlay-TestFile4.canary.preview-thunk.swift.json",
                         .end
                     ])
                     // Also spot-check that some options which were removed in SwiftCompilerSpec.generatePreviewInfo() for XOJIT are not present.
