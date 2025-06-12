@@ -11,6 +11,7 @@
 //===----------------------------------------------------------------------===//
 
 import SWBUtil
+import SWBMacro
 public import SWBCore
 import Foundation
 
@@ -47,6 +48,147 @@ public final class XCStringsCompilerSpec: GenericCompilerSpec, SpecIdentifierTyp
             return
         }
 
+        if shouldGenerateSymbols(cbc) {
+            constructSymbolGenerationTask(cbc, delegate)
+        }
+
+        if shouldCompileCatalog(cbc) {
+            await constructCatalogCompilationTask(cbc, delegate)
+        }
+    }
+
+    public override var supportsInstallHeaders: Bool {
+        // Yes but we will only perform symbol generation in that case.
+        return true
+    }
+
+    public override var supportsInstallAPI: Bool {
+        // Yes but we will only perform symbol generation in that case.
+        // This matches Asset Catalog symbol generation in order to workaround an issue with header whitespace.
+        // rdar://106447203 (Symbols: Enabling symbols for IB causes installapi failure)
+        return true
+    }
+
+    /// Whether we should generate tasks to generate code symbols for strings.
+    private func shouldGenerateSymbols(_ cbc: CommandBuildContext) -> Bool {
+        guard cbc.scope.evaluate(BuiltinMacros.STRING_CATALOG_GENERATE_SYMBOLS) else {
+            return false
+        }
+
+        // Yes for standard builds/installs as well as headers/api and exportloc (which includes headers).
+        // No for installloc.
+        let buildComponents = cbc.scope.evaluate(BuiltinMacros.BUILD_COMPONENTS)
+        guard buildComponents.contains("build") || buildComponents.contains("headers") || buildComponents.contains("api") else {
+            return false
+        }
+
+        // Avoid symbol generation for xcstrings inside variant groups because that implies association with a resource such as a xib.
+        guard cbc.input.regionVariantName == nil else {
+            return false
+        }
+
+        // We are only supporting Swift symbols at the moment so don't even generate the task if there are not Swift sources.
+        // If this is a synthesized Package resource target, we won't have Swift sources either.
+        // That's good since the symbol gen will happen for the code target instead.
+        let targetContainsSwiftSources = (cbc.producer.configuredTarget?.target as? StandardTarget)?.sourcesBuildPhase?.containsSwiftSources(cbc.producer, cbc.producer, cbc.scope, cbc.producer.filePathResolver) ?? false
+        guard targetContainsSwiftSources else {
+            return false
+        }
+
+        return true
+    }
+
+    /// Whether we should generate tasks to compile the .xcstrings file to .strings/dict files.
+    private func shouldCompileCatalog(_ cbc: CommandBuildContext) -> Bool {
+        // Yes for standard builds/installs and installloc.
+        // No for exportloc and headers/api.
+        let buildComponents = cbc.scope.evaluate(BuiltinMacros.BUILD_COMPONENTS)
+        guard buildComponents.contains("build") || buildComponents.contains("installLoc") else {
+            return false
+        }
+
+        // If this is a Package target with a synthesized resource target, compile the catalog with the resources instead of here.
+        let isMainPackageWithResourceBundle = !cbc.scope.evaluate(BuiltinMacros.PACKAGE_RESOURCE_BUNDLE_NAME).isEmpty
+        return !isMainPackageWithResourceBundle
+    }
+
+    private struct SymbolGenPayload: TaskPayload {
+
+        let effectivePlatformName: String
+
+        init(effectivePlatformName: String) {
+            self.effectivePlatformName = effectivePlatformName
+        }
+
+        func serialize<T>(to serializer: T) where T : SWBUtil.Serializer {
+            serializer.serializeAggregate(1) {
+                serializer.serialize(effectivePlatformName)
+            }
+        }
+
+        init(from deserializer: any SWBUtil.Deserializer) throws {
+            try deserializer.beginAggregate(1)
+            self.effectivePlatformName = try deserializer.deserialize()
+        }
+
+    }
+
+    public override var payloadType: (any TaskPayload.Type)? {
+        return SymbolGenPayload.self
+    }
+
+    /// Generates a task for generating code symbols for strings.
+    private func constructSymbolGenerationTask(_ cbc: CommandBuildContext, _ delegate: any TaskGenerationDelegate) {
+        // The template spec file contains fields suitable for the compilation step.
+        // But here we construct a custom command line for symbol generation.
+        let execPath = resolveExecutablePath(cbc, Path("xcstringstool"))
+        var commandLine = [execPath.str, "generate-symbols"]
+
+        // For now shouldGenerateSymbols only returns true if there are Swift sources.
+        // So we only generate Swift symbols for now.
+        commandLine.append(contentsOf: ["--language", "swift"])
+
+        let outputDir = cbc.scope.evaluate(BuiltinMacros.DERIVED_SOURCES_DIR)
+        commandLine.append(contentsOf: ["--output-directory", outputDir.str])
+
+        // Input file
+        let inputPath = cbc.input.absolutePath
+        commandLine.append(inputPath.str)
+
+        let outputPaths = [
+            "GeneratedStringSymbols_\(inputPath.basenameWithoutSuffix).swift"
+        ]
+        .map { fileName in
+            return outputDir.join(fileName)
+        }
+
+        for output in outputPaths {
+            delegate.declareOutput(FileToBuild(absolutePath: output, inferringTypeUsing: cbc.producer))
+        }
+
+        // Use just first path for now since we're not even sure if we'll support languages beyond Swift.
+        let ruleInfo = ["GenerateStringSymbols", outputPaths.first!.str, inputPath.str]
+        let execDescription = "Generate symbols for \(inputPath.basename)"
+
+        let payload = SymbolGenPayload(effectivePlatformName: LocalizationBuildPortion.effectivePlatformName(scope: cbc.scope, sdkVariant: cbc.producer.sdkVariant))
+
+        delegate.createTask(
+            type: self,
+            payload: payload,
+            ruleInfo: ruleInfo,
+            commandLine: commandLine,
+            environment: environmentFromSpec(cbc, delegate),
+            workingDirectory: cbc.producer.defaultWorkingDirectory,
+            inputs: [inputPath],
+            outputs: outputPaths,
+            execDescription: execDescription,
+            preparesForIndexing: true,
+            enableSandboxing: enableSandboxing
+        )
+    }
+
+    /// Generates a task for compiling the .xcstrings to .strings/dict files.
+    private func constructCatalogCompilationTask(_ cbc: CommandBuildContext, _ delegate: any TaskGenerationDelegate) async {
         let commandLine = await commandLineFromTemplate(cbc, delegate, optionContext: discoveredCommandLineToolSpecInfo(cbc.producer, cbc.scope, delegate)).map(\.asString)
 
         // We can't know our precise outputs statically because we don't know what languages are in the xcstrings file,
@@ -75,7 +217,17 @@ public final class XCStringsCompilerSpec: GenericCompilerSpec, SpecIdentifierTyp
         }
 
         if !outputs.isEmpty {
-            delegate.createTask(type: self, ruleInfo: defaultRuleInfo(cbc, delegate), commandLine: commandLine, environment: environmentFromSpec(cbc, delegate), workingDirectory: cbc.producer.defaultWorkingDirectory, inputs: [cbc.input.absolutePath], outputs: outputs, execDescription: resolveExecutionDescription(cbc, delegate), enableSandboxing: enableSandboxing)
+            delegate.createTask(
+                type: self,
+                ruleInfo: defaultRuleInfo(cbc, delegate),
+                commandLine: commandLine,
+                environment: environmentFromSpec(cbc, delegate),
+                workingDirectory: cbc.producer.defaultWorkingDirectory,
+                inputs: [cbc.input.absolutePath],
+                outputs: outputs,
+                execDescription: resolveExecutionDescription(cbc, delegate),
+                enableSandboxing: enableSandboxing
+            )
         } else {
             // If there won't be any outputs, there's no reason to run the compiler.
             // However, we still need to leave some indication in the build graph that there was a compilable xcstrings file here so that generateLocalizationInfo can discover it.
@@ -131,8 +283,7 @@ public final class XCStringsCompilerSpec: GenericCompilerSpec, SpecIdentifierTyp
     }
 
     public override func generateLocalizationInfo(for task: any ExecutableTask, input: TaskGenerateLocalizationInfoInput) -> [TaskGenerateLocalizationInfoOutput] {
-        // Tell the build system about the xcstrings file we took as input.
-        // No need to use a TaskPayload for this because the only data we need is input path, which is already stored on the Task.
+        // Tell the build system about the xcstrings file we took as input, as well as any generated symbol files.
 
         // These asserts just check to make sure the broader implementation hasn't changed since we wrote this method,
         // in case something here would need to change.
@@ -142,7 +293,18 @@ public final class XCStringsCompilerSpec: GenericCompilerSpec, SpecIdentifierTyp
 
         // Our input paths are .xcstrings (only expecting 1).
         // NOTE: We also take same-named .strings/dict files as input, but those are only used to diagnose errors and when they exist we fail before we ever generate the task.
-        return [TaskGenerateLocalizationInfoOutput(compilableXCStringsPaths: task.inputPaths)]
+        var infos = [TaskGenerateLocalizationInfoOutput(compilableXCStringsPaths: task.inputPaths)]
+
+        if let payload = task.payload as? SymbolGenPayload,
+           let xcstringsPath = task.inputPaths.only {
+            let generatedSourceFiles = task.outputPaths.filter { $0.fileExtension == "swift" }
+            var info = TaskGenerateLocalizationInfoOutput()
+            info.effectivePlatformName = payload.effectivePlatformName
+            info.generatedSymbolFilesByXCStringsPath = [xcstringsPath: generatedSourceFiles]
+            infos.append(info)
+        }
+
+        return infos
     }
 
 }
