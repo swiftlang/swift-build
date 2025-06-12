@@ -459,7 +459,10 @@
                 Type = Boolean;
                 DefaultValue = NO;
                 Condition = "$(MACH_O_TYPE) != mh_object";
-                CommandLineFlag = "-dead_strip";
+                CommandLineArgs = {
+                    YES = ("-dead_strip");
+                    NO = ();
+                };
             },
             {
                 Name = "BUNDLE_LOADER";

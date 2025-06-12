@@ -10,7 +10,7 @@
 //
 //===----------------------------------------------------------------------===//
 
-import struct Foundation.Data
+import Foundation
 
 import Testing
 
@@ -8652,6 +8652,64 @@ fileprivate struct TaskConstructionTests: CoreBasedTests {
                 results.checkTask(.matchRuleType("SwiftDriver Compilation")) { task in
                     task.checkCommandLineDoesNotContain("-fomit-frame-pointer")
                     task.checkCommandLineContains(["-Xcc", "-fno-omit-frame-pointer"])
+                }
+            }
+        }
+    }
+
+    @Test(.requireSDKs(.host))
+    func crossPlatformDeadCodeStripping() async throws {
+        try await withTemporaryDirectory { tmpDir in
+            let testProject = TestProject(
+                "aProject",
+                sourceRoot: tmpDir,
+                groupTree: TestGroup(
+                    "SomeFiles", path: "Sources",
+                    children: [
+                        TestFile("SourceFile.c"),
+                    ]),
+                buildConfigurations: [
+                    TestBuildConfiguration("Debug", buildSettings: [
+                        "DEAD_CODE_STRIPPING": "YES",
+                        "ONLY_ACTIVE_ARCH": "YES"
+                    ])
+                ],
+                targets: [
+                    TestStandardTarget(
+                        "Library",
+                        type: .dynamicLibrary,
+                        buildConfigurations: [
+                            TestBuildConfiguration("Debug")
+                        ],
+                        buildPhases: [
+                            TestSourcesBuildPhase([
+                                "SourceFile.c",
+                            ])
+                        ]
+                    )]
+            )
+
+            let fs = PseudoFS()
+
+            let core = try await getCore()
+            let tester = try TaskConstructionTester(core, testProject)
+
+            try await tester.checkBuild(BuildParameters(configuration: "Debug", overrides: [:]), runDestination: .host, fs: fs) { results in
+                try results.checkTask(.matchRuleType("Ld")) { task in
+                    switch try ProcessInfo.processInfo.hostOperatingSystem() {
+                    case .macOS:
+                        task.checkCommandLineContains(["-dead_strip"])
+                        task.checkCommandLineDoesNotContain("--gc-sections")
+                        task.checkCommandLineDoesNotContain("/OPT:REF")
+                    case .windows:
+                        task.checkCommandLineDoesNotContain("-dead_strip")
+                        task.checkCommandLineDoesNotContain("--gc-sections")
+                        task.checkCommandLineContains(["/OPT:REF"])
+                    default:
+                        task.checkCommandLineDoesNotContain("-dead_strip")
+                        task.checkCommandLineContains(["--gc-sections"])
+                        task.checkCommandLineDoesNotContain("/OPT:REF")
+                    }
                 }
             }
         }
