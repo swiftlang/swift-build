@@ -15,6 +15,24 @@ import Foundation
 import SWBProtocol
 import SWBUtil
 
+typealias ExecuteOperation = (_ startInfo: SwiftBuildMessage.BuildStartedInfo, _ session: SWBBuildServiceSession, _ sessionCreationDiagnostics: [SwiftBuildMessage.DiagnosticInfo], _ request: SWBBuildRequest) async -> SWBCommandResult
+
+class SWBServiceConsoleCreateBuildDescriptionCommand: SWBServiceConsoleCommand {
+    static let name = "createBuildDescription"
+
+    static func usage() -> String {
+        return name + " [options] <container-path>"
+    }
+
+    static func validate(invocation: SWBServiceConsoleCommandInvocation) -> SWBServiceConsoleError? {
+        return nil
+    }
+
+    static func perform(invocation: SWBServiceConsoleCommandInvocation) async -> SWBCommandResult {
+        return await SWBServiceConsoleBuildCommand.perform(invocation: invocation, operationFunc: generateBuildDescription)
+    }
+}
+
 class SWBServiceConsoleBuildCommand: SWBServiceConsoleCommand {
     static let name = "build"
 
@@ -27,6 +45,10 @@ class SWBServiceConsoleBuildCommand: SWBServiceConsoleCommand {
     }
 
     static func perform(invocation: SWBServiceConsoleCommandInvocation) async -> SWBCommandResult {
+        return await Self.perform(invocation: invocation, operationFunc: doBuildOperation)
+    }
+
+    static func perform(invocation: SWBServiceConsoleCommandInvocation, operationFunc: ExecuteOperation) async -> SWBCommandResult {
         // Parse the arguments.
         var positionalArgs = [String]()
         var configuredTargetNames = [String]()
@@ -187,7 +209,7 @@ class SWBServiceConsoleBuildCommand: SWBServiceConsoleCommand {
                 return .failure(.failedCommandError(description: error.localizedDescription))
             }
 
-            return await doBuildOperation(startInfo: .init(baseDirectory: baseDirectory, derivedDataPath: absoluteDerivedDataPath), session: session, sessionCreationDiagnostics: diagnostics, request: request)
+            return await operationFunc(.init(baseDirectory: baseDirectory, derivedDataPath: absoluteDerivedDataPath), session, diagnostics, request)
         }
     }
 }
@@ -370,7 +392,19 @@ extension SWBBuildService {
     }
 }
 
+fileprivate func generateBuildDescription(startInfo: SwiftBuildMessage.BuildStartedInfo, session: SWBBuildServiceSession, sessionCreationDiagnostics: [SwiftBuildMessage.DiagnosticInfo], request: SWBBuildRequest) async -> SWBCommandResult {
+    await runBuildOperation(startInfo: startInfo, session: session, sessionCreationDiagnostics: sessionCreationDiagnostics, request: request) {
+        return try await session.createBuildOperationForBuildDescriptionOnly(request: request, delegate: PlanningOperationDelegate())
+    }
+}
+
 fileprivate func doBuildOperation(startInfo: SwiftBuildMessage.BuildStartedInfo, session: SWBBuildServiceSession, sessionCreationDiagnostics: [SwiftBuildMessage.DiagnosticInfo], request: SWBBuildRequest) async -> SWBCommandResult {
+    await runBuildOperation(startInfo: startInfo, session: session, sessionCreationDiagnostics: sessionCreationDiagnostics, request: request) {
+        return try await session.createBuildOperation(request: request, delegate: PlanningOperationDelegate())
+    }
+}
+
+fileprivate func runBuildOperation(startInfo: SwiftBuildMessage.BuildStartedInfo, session: SWBBuildServiceSession, sessionCreationDiagnostics: [SwiftBuildMessage.DiagnosticInfo], request: SWBBuildRequest, createOperation: () async throws -> SWBBuildOperation) async -> SWBCommandResult {
     let systemInfo: SWBSystemInfo
     do {
         systemInfo = try .default()
@@ -409,7 +443,7 @@ fileprivate func doBuildOperation(startInfo: SwiftBuildMessage.BuildStartedInfo,
 
     // Start a build operation.  We set ourself as the delegate, so we will hear about output and completion.
     do {
-        let operation = try await session.createBuildOperation(request: request, delegate: PlanningOperationDelegate())
+        let operation = try await createOperation()
         for try await event in try await operation.start() {
             switch event {
             case .buildStarted:
@@ -463,7 +497,8 @@ private final class PlanningOperationDelegate: SWBPlanningOperationDelegate, Sen
 func registerBuildCommands() {
     for commandClass in ([
         SWBServiceConsoleBuildCommand.self,
-        SWBServiceConsolePrepareForIndexCommand.self
+        SWBServiceConsolePrepareForIndexCommand.self,
+        SWBServiceConsoleCreateBuildDescriptionCommand.self,
     ] as [any SWBServiceConsoleCommand.Type]) { SWBServiceConsoleCommandRegistry.registerCommandClass(commandClass) }
 }
 
