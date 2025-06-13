@@ -33,16 +33,25 @@ public protocol TargetDependencyResolverDelegate: AnyObject, TargetDiagnosticPro
 
 /// A structure of properties which should be superimposed, that is, imposed on all compatible versions of a target in the build graph.  Applying them will coalesce targets in the dependency graph which are otherwise identical except for the presence of these properties.
 struct SuperimposedProperties: Hashable, CustomStringConvertible {
+    let architectures: [String]
     let mergeableLibrary: Bool
 
+    var forPropagation: Self {
+        // Do not propagate `mergeableLibrary` to clients.
+        return .init(architectures: self.architectures, mergeableLibrary: false)
+    }
+
     var description: String {
-        return "mergeableLibrary: \(mergeableLibrary)"
+        return "mergeableLibrary: \(mergeableLibrary), architectures: \(architectures)"
     }
 
     /// Returns the overriding build settings dictionary for these properties as appropriate for the given `ConfiguredTarget`.
     func overrides(_ configuredTarget: ConfiguredTarget, _ settings: Settings) -> [String: String] {
         var overrides = [String: String]()
 
+        if !architectures.isEmpty {
+            overrides[BuiltinMacros.ARCHS.name] = Set(settings.globalScope.evaluate(BuiltinMacros.ARCHS) + architectures).joined(separator: " ")
+        }
         if mergeableLibrary, settings.productType?.autoConfigureAsMergeableLibrary(settings.globalScope) ?? false {
             overrides[BuiltinMacros.MERGEABLE_LIBRARY.name] = "YES"
         }
@@ -52,6 +61,8 @@ struct SuperimposedProperties: Hashable, CustomStringConvertible {
 
     /// Return an effective set of superimposed properties based on a specific target-dependency pair.
     func effectiveProperties(target configuredTarget: ConfiguredTarget, dependency: ConfiguredTarget, dependencyResolver: DependencyResolver) -> SuperimposedProperties {
+        let targetSettings = dependencyResolver.buildRequestContext.getCachedSettings(configuredTarget.parameters, target: configuredTarget.target)
+        let architectures = Set(self.architectures + targetSettings.globalScope.evaluate(BuiltinMacros.ARCHS))
         let mergeableLibrary = {
             // If mergeableLibrary is enabled, we only apply it if the dependency is in the target's Link Binary build phase.
             // Note that this doesn't check (for example) linkages defined in OTHER_LDFLAGS, because those are already specifying concrete linkages, and this is used by the automatic merged binary workflow which isn't going to edit those linkages.  Projects which want to specify linkages via OTHER_LDFLAGS for merged binaries will need to use manual configuration.
@@ -76,7 +87,7 @@ struct SuperimposedProperties: Hashable, CustomStringConvertible {
             }
             return false
         }()
-        return type(of: self).init(mergeableLibrary: mergeableLibrary)
+        return type(of: self).init(architectures: Array(architectures), mergeableLibrary: mergeableLibrary)
     }
 }
 
@@ -383,13 +394,13 @@ extension BuildRequestContext {
 }
 
 extension DependencyResolver {
-    nonisolated func specializationParameters(_ configuredTarget: ConfiguredTarget, workspaceContext: WorkspaceContext, buildRequest: BuildRequest, buildRequestContext: BuildRequestContext) -> SpecializationParameters {
-        SpecializationParameters(configuredTarget, workspaceContext: workspaceContext, buildRequest: buildRequest, buildRequestContext: buildRequestContext, makeAggregateTargetsTransparentForSpecialization: makeAggregateTargetsTransparentForSpecialization)
+    nonisolated func specializationParameters(_ configuredTarget: ConfiguredTarget, workspaceContext: WorkspaceContext, buildRequest: BuildRequest, buildRequestContext: BuildRequestContext, superimposedProperties: SuperimposedProperties?) -> SpecializationParameters {
+        SpecializationParameters(configuredTarget, workspaceContext: workspaceContext, buildRequest: buildRequest, buildRequestContext: buildRequestContext, makeAggregateTargetsTransparentForSpecialization: makeAggregateTargetsTransparentForSpecialization, superimposedProperties: superimposedProperties)
     }
 }
 
 extension SpecializationParameters {
-    init(_ configuredTarget: ConfiguredTarget, workspaceContext: WorkspaceContext, buildRequest: BuildRequest, buildRequestContext: BuildRequestContext, makeAggregateTargetsTransparentForSpecialization: Bool) {
+    init(_ configuredTarget: ConfiguredTarget, workspaceContext: WorkspaceContext, buildRequest: BuildRequest, buildRequestContext: BuildRequestContext, makeAggregateTargetsTransparentForSpecialization: Bool, superimposedProperties: SuperimposedProperties?) {
         if configuredTarget.target.type == .aggregate && makeAggregateTargetsTransparentForSpecialization {
             self.init(workspaceContext: workspaceContext, buildRequestContext: buildRequestContext, parameters: buildRequest.parameters)
         } else {
@@ -422,7 +433,9 @@ extension SpecializationParameters {
             let scope = configuredTargetSettings.globalScope
             // If this target has AUTOMATICALLY_MERGE_DEPENDENCIES set, then its direct dependencies are configured as mergeable libraries.
             let mergeableLibrary = scope.evaluate(BuiltinMacros.AUTOMATICALLY_MERGE_DEPENDENCIES)
-            let superimposedProperties = SuperimposedProperties(mergeableLibrary: mergeableLibrary)
+            // We will propagate any architectures from superimposed properties here since we want to compute the union of all required arches in the graph.
+            let architectures = Set(scope.evaluate(BuiltinMacros.ARCHS) + (superimposedProperties?.architectures ?? []))
+            let superimposedProperties = SuperimposedProperties(architectures: Array(architectures), mergeableLibrary: mergeableLibrary)
 
             let canonicalNameSuffix: String?
             if let sdk = configuredTargetSettings.sdk {
@@ -951,8 +964,20 @@ extension SpecializationParameters {
             imposedToolchain = nil
         }
 
+        // If we did not specialize based on platform, we should not super impose any arches.
+        let filteredSuperimposedProperties: SuperimposedProperties?
+        if let superimposedProperties = specialization.superimposedProperties {
+            if shouldImposePlatform && specializationIsSupported {
+                filteredSuperimposedProperties = superimposedProperties
+            } else {
+                filteredSuperimposedProperties = .init(architectures: [], mergeableLibrary: superimposedProperties.mergeableLibrary)
+            }
+        } else {
+            filteredSuperimposedProperties = nil
+        }
+
         let fromPackage =  workspaceContext.workspace.project(for: forTarget).isPackage
-        let filteredSpecialization = SpecializationParameters(source: .synthesized, platform: imposedPlatform, sdkVariant: imposedSdkVariant, supportedPlatforms: imposedSupportedPlatforms, toolchain: imposedToolchain, canonicalNameSuffix: imposedCanonicalNameSuffix, superimposedProperties: specialization.superimposedProperties)
+        let filteredSpecialization = SpecializationParameters(source: .synthesized, platform: imposedPlatform, sdkVariant: imposedSdkVariant, supportedPlatforms: imposedSupportedPlatforms, toolchain: imposedToolchain, canonicalNameSuffix: imposedCanonicalNameSuffix, superimposedProperties: filteredSuperimposedProperties)
 
         // Otherwise, we need to create a new specialization; do so by imposing the specialization on the build parameters.
         // NOTE: If the target doesn't support specialization, then unless the target comes from a package, then it's important to **not** impart those settings unless they are coming from overrides. Doing so has the side-effect of causing dependencies of downstream targets to be specialized incorrectly (e.g. a specialized target shouldn't cause its own dependencies to be specialized).

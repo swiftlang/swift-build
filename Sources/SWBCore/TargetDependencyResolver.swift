@@ -334,7 +334,7 @@ fileprivate extension TargetDependencyResolver {
             await resolver.concurrentPerform(iterations: topLevelTargetsToDiscover.count, maximumParallelism: 100) { [self] i in
                 if Task.isCancelled { return }
                 let configuredTarget = topLevelTargetsToDiscover[i]
-                let imposedParameters = resolver.specializationParameters(configuredTarget, workspaceContext: workspaceContext, buildRequest: buildRequest, buildRequestContext: buildRequestContext)
+                let imposedParameters = resolver.specializationParameters(configuredTarget, workspaceContext: workspaceContext, buildRequest: buildRequest, buildRequestContext: buildRequestContext, superimposedProperties: nil)
                 await discoverInfo(for: configuredTarget, imposedParameters: imposedParameters)
             }
         }
@@ -451,7 +451,7 @@ fileprivate extension TargetDependencyResolver {
                 let targetsUsingSuffixedSDK = configuredTargets.filter { settingsForConfiguredTarget[$0]?.sdk?.canonicalNameSuffix?.nilIfEmpty != nil }
                 if let suffixedTarget = targetsUsingSuffixedSDK.first, targetsUsingSuffixedSDK.count == 1 {
                     // Compute specialization parameters without opinion about the suffixed SDK.
-                    let fullParameters = resolver.specializationParameters(suffixedTarget, workspaceContext: workspaceContext, buildRequest: buildRequest, buildRequestContext: buildRequestContext)
+                    let fullParameters = resolver.specializationParameters(suffixedTarget, workspaceContext: workspaceContext, buildRequest: buildRequest, buildRequestContext: buildRequestContext, superimposedProperties: nil)
                     let parameters = SpecializationParameters(source: .target(name: suffixedTarget.target.name), platform: fullParameters.platform, sdkVariant: fullParameters.sdkVariant, supportedPlatforms: fullParameters.supportedPlatforms, toolchain: nil, canonicalNameSuffix: nil)
 
                     // Check if any of the unsuffixed targets are incompatible with parameters other than whether the suffixed SDK is being used.
@@ -697,10 +697,10 @@ fileprivate extension TargetDependencyResolver {
                 if let imposedParameters = imposedParameters, dependency.target.target.type == .aggregate {
                     imposedParametersForDependency = imposedParameters
                 } else {
-                    imposedParametersForDependency = resolver.specializationParameters(dependency.target, workspaceContext: workspaceContext, buildRequest: buildRequest, buildRequestContext: buildRequestContext)
+                    imposedParametersForDependency = resolver.specializationParameters(dependency.target, workspaceContext: workspaceContext, buildRequest: buildRequest, buildRequestContext: buildRequestContext, superimposedProperties: imposedParameters?.superimposedProperties?.forPropagation)
                 }
             } else {
-                imposedParametersForDependency = resolver.specializationParameters(dependency.target, workspaceContext: workspaceContext, buildRequest: buildRequest, buildRequestContext: buildRequestContext)
+                imposedParametersForDependency = resolver.specializationParameters(dependency.target, workspaceContext: workspaceContext, buildRequest: buildRequest, buildRequestContext: buildRequestContext, superimposedProperties: imposedParameters?.superimposedProperties?.forPropagation)
             }
             await self.discoverInfo(for: dependency.target, imposedParameters: imposedParametersForDependency)
         }
@@ -770,7 +770,7 @@ fileprivate extension TargetDependencyResolver {
             if resolver.makeAggregateTargetsTransparentForSpecialization && dependency.target.target.type == .aggregate {
                 dependencyImposedParameters = imposedParameters
             } else {
-                dependencyImposedParameters = resolver.specializationParameters(dependency.target, workspaceContext: workspaceContext, buildRequest: buildRequest, buildRequestContext: buildRequestContext)
+                dependencyImposedParameters = resolver.specializationParameters(dependency.target, workspaceContext: workspaceContext, buildRequest: buildRequest, buildRequestContext: buildRequestContext, superimposedProperties: imposedParameters?.superimposedProperties?.forPropagation)
             }
             await addDependencies(forConfiguredTarget: dependency.target, toDependencyClosure: &dependencyClosure, dependencyPath: &dependencyPath, imposedParameters: dependencyImposedParameters)
         }
@@ -783,7 +783,7 @@ fileprivate extension TargetDependencyResolver {
             if resolver.makeAggregateTargetsTransparentForSpecialization {
                 // Aggregate targets should be transparent for specialization, so unless we already have imposed parameters, we will compute them based on the parent of the aggregate unless that is an aggregate itself.
                 if imposedParameters == nil && configuredDependency.target.target.type == .aggregate && configuredTarget.target.type != .aggregate {
-                    imposedParametersForDependency = resolver.specializationParameters(configuredTarget, workspaceContext: workspaceContext, buildRequest: buildRequest, buildRequestContext: buildRequestContext)
+                    imposedParametersForDependency = resolver.specializationParameters(configuredTarget, workspaceContext: workspaceContext, buildRequest: buildRequest, buildRequestContext: buildRequestContext, superimposedProperties: imposedParameters?.superimposedProperties?.forPropagation)
                 } else {
                     imposedParametersForDependency = imposedParameters
                 }
@@ -804,7 +804,7 @@ fileprivate extension TargetDependencyResolver {
             // FIXME: We eventually will also need to reconcile conflicting requirements, one example: <rdar://problem/31587072> In Swift Build, creating ConfiguredTargets from Targets should take into account minimum deployment target
             var specializedParameters = imposedParameters?.effectiveParameters(target: configuredTarget, dependency: ConfiguredTarget(parameters: buildParameters, target: dependency), dependencyResolver: resolver)
             if specializedParameters == nil {
-                specializedParameters = resolver.specializationParameters(configuredTarget, workspaceContext: workspaceContext, buildRequest: buildRequest, buildRequestContext: buildRequestContext)
+                specializedParameters = resolver.specializationParameters(configuredTarget, workspaceContext: workspaceContext, buildRequest: buildRequest, buildRequestContext: buildRequestContext, superimposedProperties: nil)
             }
 
             // Get the configured dependency.  Package product dependencies are always 'explicit'.
