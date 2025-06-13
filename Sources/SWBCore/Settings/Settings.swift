@@ -2626,23 +2626,19 @@ private class SettingsBuilder {
                 core.pluginManager.extensions(of: SettingsBuilderExtensionPoint.self)
             }
 
-            func shouldPopulateValidArchs(platform: Platform) -> Bool {
+            func shouldPopulateValidArchs(platform: Platform, sdk: SDK?) -> Bool {
                 // For now, we only do this for some platforms to avoid behavior changes.
                 // Later, we should extend this to more SDKs via <rdar://66001997>
                 switch platform.name {
                 case "macosx",
                     "iphoneos",
-                    "iphonesimulator",
                     "appletvos",
-                    "appletvsimulator",
                     "watchos",
-                    "watchsimulator",
-                    "xros",
-                    "xrsimulator":
+                    "xros":
                     return false
                 default:
                     for settingsExtension in settingsExtensions() {
-                        if settingsExtension.shouldSkipPopulatingValidArchs(platform: platform) {
+                        if settingsExtension.shouldSkipPopulatingValidArchs(platform: platform, sdk: sdk) {
                             return false
                         }
                     }
@@ -2651,7 +2647,7 @@ private class SettingsBuilder {
             }
 
             // VALID_ARCHS should be based on the SDK's SupportedTargets dictionary.
-            if let archs = sdkVariant?.archs, !archs.isEmpty, let platform, shouldPopulateValidArchs(platform: platform) {
+            if let archs = sdkVariant?.archs, !archs.isEmpty, let platform, shouldPopulateValidArchs(platform: platform, sdk: sdk) {
                 table.push(BuiltinMacros.VALID_ARCHS, literal: archs)
             }
 
