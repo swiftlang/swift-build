@@ -176,7 +176,7 @@ fileprivate struct CodeGenerationToolTests: CoreBasedTests {
                         break
                     }
 
-                    let compileTask = compileTasks[0]
+                    let compileTask = try #require(compileTasks.first, "No compile task found for target '\(targetName)'.")
 
                     if targetName == "CoreFoo" {
                         #expect(results.getTasks(.matchRuleType("CompileC"), .matchRuleItemBasename("CoreFoo.m"), .matchTargetName(targetName)).count == 1)
@@ -432,7 +432,7 @@ fileprivate struct CodeGenerationToolTests: CoreBasedTests {
                         break
                     }
 
-                    let compileTask = compileTasks[0]
+                    let compileTask = try #require(compileTasks.first, "No compile task found for target '\(targetName)'.")
 
                     if targetName == "CoreFoo" {
                         #expect(results.getTasks(.matchRuleType("CompileC"), .matchRuleItemBasename("CoreFoo.m"), .matchTargetName(targetName)).count == 1)
@@ -642,7 +642,7 @@ fileprivate struct CodeGenerationToolTests: CoreBasedTests {
                         break
                     }
 
-                    let compileTask = compileTasks[0]
+                    let compileTask = try #require(compileTasks.first, "No compile task found for target '\(targetName)'.")
 
                     if targetName == "CoreFoo" {
                         #expect(results.getTasks(.matchRuleType("CompileC"), .matchRuleItemBasename("CoreFoo.m"), .matchTargetName(targetName)).count == 1)
