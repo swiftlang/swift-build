@@ -542,9 +542,21 @@ public struct LocalizationInfoMessagePayload: SerializableCodable, Equatable, Se
     /// Paths to .stringsdata files produced by this target, grouped by build attributes such as platform and architecture.
     public let producedStringsdataPaths: [LocalizationInfoBuildPortion: Set<Path>]
 
-    public init(targetIdentifier: String, compilableXCStringsPaths: Set<Path>, producedStringsdataPaths: [LocalizationInfoBuildPortion: Set<Path>]) {
+    /// The name of the primary platform we were building for.
+    ///
+    /// Mac Catalyst is treated as its own platform.
+    public let effectivePlatformName: String?
+
+    /// Paths to generated source code files holding string symbols, keyed by xcstrings file path.
+    public var generatedSymbolFilesByXCStringsPath = [Path: Set<Path>]()
+
+    public init(targetIdentifier: String,
+                compilableXCStringsPaths: Set<Path>,
+                producedStringsdataPaths: [LocalizationInfoBuildPortion: Set<Path>],
+                effectivePlatformName: String?) {
         self.targetIdentifier = targetIdentifier
         self.compilableXCStringsPaths = compilableXCStringsPaths
         self.producedStringsdataPaths = producedStringsdataPaths
+        self.effectivePlatformName = effectivePlatformName
     }
 }

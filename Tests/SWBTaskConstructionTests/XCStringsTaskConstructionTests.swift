@@ -22,7 +22,7 @@ import SWBTaskConstruction
 import SWBTestSupport
 
 // A mock xcstringstool to respond to the compile --dry-run request.
-private final class MockXCStringsTool: MockTestTaskPlanningClientDelegate, @unchecked Sendable {
+final class MockXCStringsTool: MockTestTaskPlanningClientDelegate, @unchecked Sendable {
     /// Maps input files to output files.
     let relativeOutputFilePaths: [String: [String]]
     let requiredCommandLine: [String]?
@@ -1193,6 +1193,72 @@ fileprivate struct XCStringsTaskConstructionTests: CoreBasedTests {
         }
     }
 
+    // No xcstrings compilation during exportloc
+    @Test(.requireSDKs(.macOS))
+    func exportLoc() async throws {
+        let testProject = try await TestProject(
+            "Project",
+            groupTree: TestGroup(
+                "ProjectSources",
+                path: "Sources",
+                children: [
+                    TestFile("MyFramework.swift"),
+                    TestFile("Localizable.xcstrings"),
+                ]
+            ),
+            buildConfigurations: [
+                TestBuildConfiguration("Debug", buildSettings: [
+                        "PRODUCT_NAME": "$(TARGET_NAME)",
+                ])
+            ],
+            targets: [
+                TestStandardTarget(
+                    "MyFramework",
+                    type: .framework,
+                    buildConfigurations: [
+                        TestBuildConfiguration("Debug", buildSettings: [
+                            "SKIP_INSTALL": "YES",
+                            "SWIFT_EXEC": swiftCompilerPath.str,
+                            "SWIFT_VERSION": "5.5",
+                            "GENERATE_INFOPLIST_FILE": "YES",
+                        ]),
+                    ],
+                    buildPhases: [
+                        TestSourcesBuildPhase([
+                            "MyFramework.swift"
+                        ]),
+                        TestResourcesBuildPhase([
+                            "Localizable.xcstrings"
+                        ])
+                    ]
+                )
+            ],
+            developmentRegion: "en"
+        )
+
+        // xcstringstool should not be called during planning since exportloc should not compile xcstrings.
+        let xcstringsTool = MockXCStringsTool(relativeOutputFilePaths: [ "/tmp/Test/Project/Sources/Localizable.xcstrings" : [ // input
+            "en.lproj/Localizable.strings",
+            "en.lproj/Localizable.stringsdict",
+            "de.lproj/Localizable.strings",
+            "de.lproj/Localizable.stringsdict",
+        ]], requiredCommandLine: [
+            "don't call me"
+        ])
+
+        let tester = try await TaskConstructionTester(getCore(), testProject)
+
+        await tester.checkBuild(BuildParameters(action: .exportLoc, configuration: "Debug"), runDestination: .macOS, clientDelegate: xcstringsTool) { results in
+            results.checkNoDiagnostics()
+
+            results.checkTarget("MyFramework") { target in
+                // Nothing xcstrings please
+                results.checkNoTask(.matchTarget(target), .matchRuleType("CompileXCStrings"))
+                results.checkNoTask(.matchTarget(target), .matchRuleType("CopyStringsFile"))
+            }
+        }
+    }
+
     @Test(.requireSDKs(.macOS))
     func forceBuildAllStrings() async throws {
         let testProject = try await TestProject(
@@ -1295,7 +1361,7 @@ fileprivate struct XCStringsTaskConstructionTests: CoreBasedTests {
     }
 
     @Test(.requireSDKs(.macOS))
-    func xCStringsInVariantGroup() async throws {
+    func xcstringsInVariantGroup() async throws {
         let testProject = try await TestProject(
             "Project",
             groupTree: TestGroup(
@@ -1411,7 +1477,7 @@ fileprivate struct XCStringsTaskConstructionTests: CoreBasedTests {
     }
 
     @Test(.requireSDKs(.macOS))
-    func xCStringsInVariantGroupDuringInstallloc() async throws {
+    func xcstringsInVariantGroupDuringInstallloc() async throws {
         let testProject = try await TestProject(
             "Project",
             groupTree: TestGroup(
@@ -1556,7 +1622,7 @@ fileprivate struct XCStringsTaskConstructionTests: CoreBasedTests {
 
     // mul.lproj/View.xcstrings cannot co-exist with <lang>.lproj/View.strings
     @Test(.requireSDKs(.macOS))
-    func xCStringsInVariantGroupWithTableOverlap() async throws {
+    func xcstringsInVariantGroupWithTableOverlap() async throws {
         let testProject = try await TestProject(
             "Project",
             groupTree: TestGroup(
@@ -1619,7 +1685,7 @@ fileprivate struct XCStringsTaskConstructionTests: CoreBasedTests {
 
     // mul.lproj/View.xcstrings cannot co-exist with <lang>.lproj/View.xib override nib
     @Test(.requireSDKs(.macOS))
-    func xCStringsInVariantGroupWithOverrideNib() async throws {
+    func xcstringsInVariantGroupWithOverrideNib() async throws {
         let testProject = try await TestProject(
             "Project",
             groupTree: TestGroup(

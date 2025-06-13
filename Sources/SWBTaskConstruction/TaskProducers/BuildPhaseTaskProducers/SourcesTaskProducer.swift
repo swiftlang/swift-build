@@ -250,16 +250,50 @@ final class SourcesTaskProducer: FilesBasedBuildPhaseTaskProducerBase, FilesBase
     }
 
     override func additionalBuildFiles(_ scope: MacroEvaluationScope) -> [BuildFile] {
+        var additionalBuildFiles = [BuildFile]()
+
+        // Both Asset Catalogs and String Catalogs need moved to the Sources phase to enable codegen.
+        // This isn't great but can be removed once we eliminate build phases.
+
         let standardTarget = targetContext.configuredTarget?.target as? StandardTarget
         let sourceFiles = standardTarget?.sourcesBuildPhase?.buildFiles.count ?? 0
+
         if scope.evaluate(BuiltinMacros.ASSETCATALOG_COMPILER_GENERATE_ASSET_SYMBOLS) && (sourceFiles > 0) {
             // Add xcassets to Compile Sources phase to enable codegen.
-            return standardTarget?.resourcesBuildPhase?.buildFiles.filter { buildFile in
+            let catalogs = standardTarget?.resourcesBuildPhase?.buildFiles.filter { buildFile in
                 isAssetCatalog(scope: scope, buildFile: buildFile, context: targetContext, includeGenerated: true)
             } ?? []
-        } else {
-            return []
+            additionalBuildFiles.append(contentsOf: catalogs)
         }
+
+        if scope.evaluate(BuiltinMacros.STRING_CATALOG_GENERATE_SYMBOLS) && (sourceFiles > 0) {
+            let allResources = standardTarget?.resourcesBuildPhase?.buildFiles ?? []
+            var stringCatalogs = [BuildFile]()
+            var stringTableNames = Set<String>()
+            var extraFiles = [BuildFile]()
+
+            // Add xcstrings to Compile Sources phase to enable codegen.
+            for buildFile in allResources {
+                if let fileRef = try? targetContext.resolveBuildFileReference(buildFile), fileRef.fileType.conformsTo(identifier: "text.json.xcstrings") {
+                    stringTableNames.insert(fileRef.absolutePath.basenameWithoutSuffix)
+                    stringCatalogs.append(buildFile)
+                }
+            }
+
+            // The xcstrings file grouping strategy also subsumes same-named .strings and .stringsdict files.
+            let stringsFileTypes = ["text.plist.strings", "text.plist.stringsdict"].map { context.lookupFileType(identifier: $0)! }
+            for buildFile in allResources {
+                if let fileRef = try? targetContext.resolveBuildFileReference(buildFile),
+                   fileRef.fileType.conformsToAny(stringsFileTypes),
+                   stringTableNames.contains(fileRef.absolutePath.basenameWithoutSuffix) {
+                    extraFiles.append(buildFile)
+                }
+            }
+
+            additionalBuildFiles.append(contentsOf: stringCatalogs + extraFiles)
+        }
+
+        return additionalBuildFiles
     }
 
     override func additionalFilesToBuild(_ scope: MacroEvaluationScope) -> [FileToBuild] {
@@ -1541,7 +1575,7 @@ final class SourcesTaskProducer: FilesBasedBuildPhaseTaskProducerBase, FilesBase
 
         if isForInstallLoc {
             // For installLoc, we really only care about valid localized content from the sources task producer
-            tasks = tasks.filter { $0.inputs.contains(where: { $0.path.isValidLocalizedContent(scope) }) }
+            tasks = tasks.filter { $0.inputs.contains(where: { $0.path.isValidLocalizedContent(scope) || $0.path.fileExtension == "xcstrings" }) }
         }
 
         return tasks
@@ -1593,11 +1627,11 @@ final class SourcesTaskProducer: FilesBasedBuildPhaseTaskProducerBase, FilesBase
 
     /// Custom override to support supplying the resources directory when constructing tasks.
     override func constructTasksForRule(_ rule: any BuildRuleAction, _ group: FileToBuildGroup, _ buildFilesContext: BuildFilesProcessingContext, _ scope: MacroEvaluationScope, _ delegate: any TaskGenerationDelegate) async {
-        // Ignore asset catalog tasks during installLoc.
-        // Asset catalogs are moved to the sources phase for generated asset symbols.
+        // For installloc, let's ignore anything not in an .lproj.
+        // An exception is xcstrings files, which can be in the Sources phase for symbol generation.
         if scope.evaluate(BuiltinMacros.BUILD_COMPONENTS).contains("installLoc") {
-            let isAssetCatalog = group.files.contains(where: { $0.fileType.conformsTo(identifier: "folder.abstractassetcatalog") })
-            guard !isAssetCatalog else { return }
+            let isXCStrings = group.files.contains(where: { $0.fileType.conformsTo(identifier: "text.json.xcstrings") })
+            guard isXCStrings || group.isValidLocalizedContent(scope) else { return }
         }
 
         // Compute the resources directory.

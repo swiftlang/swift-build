@@ -33,6 +33,15 @@ public struct SWBLocalizationTargetInfo: Sendable {
     public var producedStringsdataPaths: Set<String> {
         return stringsdataPathsByBuildPortion.values.reduce([]) { $0.union($1) }
     }
+
+    /// The name of the primary platform we were building for.
+    ///
+    /// Mac Catalyst is treated as its own platform.
+    public let effectivePlatformName: String?
+
+    /// Paths to generated source code files holding string symbols, keyed by xcstrings file path.
+    public internal(set) var generatedSymbolFilesByXCStringsPath = [String: Set<String>]()
+
 }
 
 /// Describes attributes of a portion of a build, for example platform and architecture, that are relevant to distinguishing localized strings extracted during a build.

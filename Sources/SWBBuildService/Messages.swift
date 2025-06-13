@@ -901,7 +901,9 @@ private struct GetLocalizationInfoMsg: MessageHandler {
                     for (buildPortion, paths) in infoOutput.producedStringsdataPaths {
                         stringsdataPaths[LocalizationInfoBuildPortion(effectivePlatformName: buildPortion.effectivePlatformName, variant: buildPortion.variant, architecture: buildPortion.architecture)] = paths
                     }
-                    return LocalizationInfoMessagePayload(targetIdentifier: infoOutput.targetIdentifier, compilableXCStringsPaths: infoOutput.compilableXCStringsPaths, producedStringsdataPaths: stringsdataPaths)
+                    var payload = LocalizationInfoMessagePayload(targetIdentifier: infoOutput.targetIdentifier, compilableXCStringsPaths: infoOutput.compilableXCStringsPaths, producedStringsdataPaths: stringsdataPaths, effectivePlatformName: infoOutput.effectivePlatformName)
+                    payload.generatedSymbolFilesByXCStringsPath = infoOutput.generatedSymbolFilesByXCStringsPath
+                    return payload
                 }))
                 return response
             } catch {

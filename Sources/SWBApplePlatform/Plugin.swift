@@ -202,7 +202,7 @@ struct XCStringsInputFileGroupingStrategyExtension: InputFileGroupingStrategyExt
     }
 
     func fileTypesCompilingToSwiftSources() -> [String] {
-        return []
+        return ["text.json.xcstrings"]
     }
 }
 

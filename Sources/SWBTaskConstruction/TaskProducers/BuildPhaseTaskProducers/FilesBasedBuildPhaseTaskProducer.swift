@@ -376,6 +376,14 @@ class FilesBasedBuildPhaseTaskProducerBase: PhasedTaskProducer {
 
         let buildPhaseFileWarningContext = BuildPhaseFileWarningContext(context, scope)
 
+        // Sadly we need to make various decisions based on codegen of Asset and String Catalogs.
+        // We can remove this when we get rid of build phases.
+        let sourceFileCount = (self.targetContext.configuredTarget?.target as? SWBCore.StandardTarget)?.sourcesBuildPhase?.buildFiles.count ?? 0
+        let stringsFileTypes = ["text.plist.strings", "text.plist.stringsdict"].map { context.lookupFileType(identifier: $0)! }
+        var xcstringsBases = Set<String>()
+        let shouldCodeGenAssets = scope.evaluate(BuiltinMacros.ASSETCATALOG_COMPILER_GENERATE_ASSET_SYMBOLS) && sourceFileCount > 0
+        let shouldCodeGenStrings = scope.evaluate(BuiltinMacros.STRING_CATALOG_GENERATE_SYMBOLS) && sourceFileCount > 0
+
         // Helper function for adding a resolved item.  The build file can be nil here if the client wants to add a file divorced from any build file (e.g., because the build file contains context which shouldn't be applied to this file).
         func addResolvedItem(buildFile: SWBCore.BuildFile?, path: Path, reference: SWBCore.Reference?, fileType: FileTypeSpec, shouldUsePrefixHeader: Bool = true) {
             let base = path.basenameWithoutSuffix.lowercased()
@@ -405,10 +413,17 @@ class FilesBasedBuildPhaseTaskProducerBase: PhasedTaskProducer {
             do {
                 let (reference, path, fileType) = try context.resolveBuildFileReference(buildFile)
 
-                let sourceFiles = (self.targetContext.configuredTarget?.target as? SWBCore.StandardTarget)?.sourcesBuildPhase?.buildFiles.count ?? 0
-                if scope.evaluate(BuiltinMacros.ASSETCATALOG_COMPILER_GENERATE_ASSET_SYMBOLS) && (sourceFiles > 0) {
+                if shouldCodeGenAssets {
                     // Ignore xcassets in Resource Copy Phase since they're now added to the Compile Sources phase for codegen.
                     if producer.buildPhase is SWBCore.ResourcesBuildPhase && fileType.conformsTo(identifier: "folder.abstractassetcatalog") {
+                        continue
+                    }
+                }
+                if shouldCodeGenStrings {
+                    // Ignore xcstrings in Resource Copy Phase since they're now added to the Compile Sources phase for codegen.
+                    if producer.buildPhase is SWBCore.ResourcesBuildPhase && fileType.conformsTo(identifier: "text.json.xcstrings") {
+                        // Keep the basename because later we need to ignore same-named .strings/dict files as well.
+                        xcstringsBases.insert(path.basenameWithoutSuffix)
                         continue
                     }
                 }
@@ -627,6 +642,14 @@ class FilesBasedBuildPhaseTaskProducerBase: PhasedTaskProducer {
                     location = nil
                 }
                 context.emitFileExclusionDiagnostic(exclusionReason, buildFilesContext, fileToBuild.absolutePath, buildFile?.platformFilters ?? [], location)
+                continue
+            }
+
+            // Ignore certain .strings/dict files in Resources phase when codegen for xcstrings is enabled.
+            if shouldCodeGenStrings &&
+                producer.buildPhase is SWBCore.ResourcesBuildPhase &&
+                fileType.conformsToAny(stringsFileTypes) &&
+                xcstringsBases.contains(path.basenameWithoutSuffix) {
                 continue
             }
 
