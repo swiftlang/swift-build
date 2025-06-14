@@ -48,7 +48,7 @@ public protocol SettingsBuilderExtension {
     // Provides a list of flags to configure testing plugins
     func getTargetTestingSwiftPluginFlags(_ scope: MacroEvaluationScope, toolchainRegistry: ToolchainRegistry, sdkRegistry: SDKRegistry, activeRunDestination: RunDestinationInfo?, project: Project?) -> [String]
     // Override valid architectures enforcement for a platform
-    func shouldSkipPopulatingValidArchs(platform: Platform) -> Bool
+    func shouldSkipPopulatingValidArchs(platform: Platform, sdk: SDK?) -> Bool
 
     func shouldDisableXOJITPreviews(platformName: String, sdk: SDK?) -> Bool
 

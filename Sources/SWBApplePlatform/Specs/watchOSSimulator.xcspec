@@ -48,14 +48,6 @@
         SortNumber = 107;
     },
 
-    {
-        _Domain = watchsimulator;
-        Type = Architecture;
-        Identifier = arm64e;
-        PerArchBuildSettingName = "arm64e";
-        SortNumber = 108;
-    },
-
     // DEPRECATED
 
     {
