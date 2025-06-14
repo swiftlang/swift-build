@@ -1489,11 +1489,11 @@ public final class InfoPlistProcessorTaskAction: TaskAction
                 .watchOS: Version(8)
             ]),
             "UIRequiresFullScreen": .init(moreInfo: .ignored("See the UIRequiresFullScreen documentation for more details."), deprecationVersions: [
-                .macOS: Version(16),
-                .iOS: Version(19),
-                .tvOS: Version(19),
-                .watchOS: Version(12),
-                .visionOS: Version(3),
+                .macOS: Version(26),
+                .iOS: Version(26),
+                .tvOS: Version(26),
+                .watchOS: Version(26),
+                .visionOS: Version(26),
             ])
         ]
 
