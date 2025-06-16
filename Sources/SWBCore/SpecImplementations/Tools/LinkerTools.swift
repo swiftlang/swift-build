@@ -590,6 +590,10 @@ public final class LdLinkerSpec : GenericLinkerSpec, SpecIdentifierType, @unchec
         // Select the driver to use based on the input file types, replacing the value computed by commandLineFromTemplate().
         let usedCXX = usedTools.values.contains(where: { $0.contains(where: { $0.languageDialect?.isPlusPlus ?? false }) })
         commandLine[0] = resolveExecutablePath(cbc, computeLinkerPath(cbc, usedCXX: usedCXX)).str
+        delegate.note("resolved linker as \(commandLine[0])")
+        for toolchain in cbc.producer.toolchains {
+            delegate.note("search paths for toolchain \(toolchain.identifier) were: \(toolchain.executableSearchPaths.paths)")
+        }
 
         let entitlementsSection = cbc.scope.evaluate(BuiltinMacros.LD_ENTITLEMENTS_SECTION)
         if !entitlementsSection.isEmpty {
