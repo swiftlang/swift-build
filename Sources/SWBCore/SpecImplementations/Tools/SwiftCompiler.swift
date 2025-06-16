@@ -1414,8 +1414,6 @@ public final class SwiftCompilerSpec : CompilerSpec, SpecIdentifierType, SwiftDi
     }
 
     private func swiftCachingEnabled(_ cbc: CommandBuildContext, _ delegate: any TaskGenerationDelegate, _ moduleName: String, _ useIntegratedDriver: Bool, _ explicitModuleBuildEnabled: Bool, _ disabledPCHCompile: Bool) async -> Bool {
-        guard cbc.producer.supportsCompilationCaching else { return false }
-
         guard cbc.scope.evaluate(BuiltinMacros.SWIFT_ENABLE_COMPILE_CACHE) else {
             return false
         }

@@ -824,8 +824,6 @@ public class ClangCompilerSpec : CompilerSpec, SpecIdentifierType, GCCCompatible
         language: GCCCompatibleLanguageDialect,
         clangInfo: DiscoveredClangToolSpecInfo?
     ) -> Bool {
-        guard cbc.producer.supportsCompilationCaching else { return false }
-
         // Disabling compilation caching for index build, for now.
         guard !cbc.scope.evaluate(BuiltinMacros.INDEX_ENABLE_BUILD_ARENA) else {
             return false

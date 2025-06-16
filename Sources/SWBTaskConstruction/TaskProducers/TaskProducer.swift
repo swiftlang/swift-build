@@ -1390,10 +1390,6 @@ extension TaskProducerContext: CommandProducer {
         return globalProductPlan.targetsWhichShouldBuildModulesDuringInstallAPI?.contains(configuredTarget) ?? false
     }
 
-    public var supportsCompilationCaching: Bool {
-        return Settings.supportsCompilationCaching(workspaceContext.core)
-    }
-
     public var systemInfo: SystemInfo? {
         return workspaceContext.systemInfo
     }
