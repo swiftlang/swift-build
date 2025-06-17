@@ -12,7 +12,7 @@
 
 import Foundation
 
-import SwiftDriver
+public import SwiftDriver
 import SwiftOptions
 import TSCBasic
 
@@ -236,6 +236,21 @@ public final class SwiftModuleDependencyGraph: SwiftGlobalExplicitDependencyGrap
             }
         }
         return fileDependencies
+    }
+
+    public func queryDirectModuleDependencies(for key: String) async throws -> [SwiftDriver.ModuleDependencyId: SwiftDriver.ModuleInfo] {
+        let graph = try await registryQueue.sync {
+            guard let driver = self.registry[key] else {
+                throw StubError.error("Unable to find jobs for key \(key). Be sure to plan the build ahead of fetching results.")
+            }
+            return driver.intermoduleDependencyGraph
+        }
+        guard let graph else { return [:] }
+        let directDependencies = graph.mainModule.directDependencies ?? []
+        return Dictionary(uniqueKeysWithValues: directDependencies.compactMap { id in
+            guard let m = graph.modules[id] else { return nil }
+            return (id, m)
+        })
     }
 
     public func queryTransitiveDependencyModuleNames(for key: String) async throws -> [String] {

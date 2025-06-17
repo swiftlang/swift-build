@@ -788,17 +788,17 @@ public final class Settings: PlatformBuildContext, Sendable {
         // These properties are the individual tables (and info about them) of specific levels which contributed to the Settings.
 
         /// The path to the project-level xcconfig file.
-        let projectXcconfigPath: Path?
+        public let projectXcconfigPath: Path?
         /// The project-level xcconfig settings table.
-        let projectXcconfigSettings: MacroValueAssignmentTable?
+        public let projectXcconfigSettings: MacroValueAssignmentTable?
         /// The project-level settings table.
-        let projectSettings: MacroValueAssignmentTable?
+        public let projectSettings: MacroValueAssignmentTable?
         /// The path to the target-level xcconfig file.
-        let targetXcconfigPath: Path?
+        public let targetXcconfigPath: Path?
         /// The target-level xcconfig settings table.
-        let targetXcconfigSettings: MacroValueAssignmentTable?
+        public let targetXcconfigSettings: MacroValueAssignmentTable?
         /// The target-level settings table.
-        let targetSettings: MacroValueAssignmentTable?
+        public let targetSettings: MacroValueAssignmentTable?
 
         // These properties are the actual tables of settings up to a certain point, which are used to compute the resolved values of settings at that level in the build settings editor (e.g., in the Levels view).
 
@@ -5332,21 +5332,98 @@ extension MacroEvaluationScope {
 }
 
 extension Settings {
-    public struct ModuleDependencyInfo {
-        let name: String
-        let isPublic: Bool
+    public struct ModuleDependencyInfo: Sendable, SerializableCodable {
+        public let name: String
+        public let isPublic: Bool
+
+        public init(name: String, isPublic: Bool) {
+            self.name = name
+            self.isPublic = isPublic
+        }
+
+        public init(entry: String) throws {
+            let components = entry.components(separatedBy: " ")
+            guard (1...2).contains(components.count) else {
+                throw StubError.error("expected 1...2 space-separated components in: \(entry)")
+            }
+
+            if components.count > 1 && components[0] != "public" {
+                throw StubError.error("expected \"public\" as first component in: \(entry)")
+            }
+
+            self.name = components.last!
+            self.isPublic = components.count > 1
+        }
+
+        public var asBuildSettingEntry: String {
+            "\(isPublic ? "public " : "")\(name)"
+        }
     }
 
     public var moduleDependencies: [ModuleDependencyInfo] {
-        self.globalScope.evaluate(BuiltinMacros.MODULE_DEPENDENCIES).compactMap {
-            let components = $0.components(separatedBy: " ")
-            guard let name = components.last else {
-                return nil
+        // TODO error handling up front in Settings construction
+        try! self.globalScope.evaluate(BuiltinMacros.MODULE_DEPENDENCIES).map {
+            try ModuleDependencyInfo(entry: $0)
+        }
+    }
+}
+
+public struct ModuleDependenciesContext: Sendable, SerializableCodable {
+    public var settingsModuleDependencyInfos: [Settings.ModuleDependencyInfo]
+    public var fixItContext: FixItContext?
+
+    public init(settingsModuleDependencyInfos: [Settings.ModuleDependencyInfo], fixItContext: FixItContext? = nil) {
+        self.settingsModuleDependencyInfos = settingsModuleDependencyInfos
+        self.fixItContext = fixItContext
+    }
+
+    public struct FixItContext: Sendable, SerializableCodable {
+        public var insertionPoint: InsertionPoint
+        public var modificationStyle: ModificationStyle
+
+        public init(insertionPoint: InsertionPoint, modificationStyle: ModificationStyle) {
+            self.insertionPoint = insertionPoint
+            self.modificationStyle = modificationStyle
+        }
+
+        public struct InsertionPoint: Sendable, SerializableCodable {
+            public var path: Path
+            public var line: Int
+            public var column: Int
+
+            public init(path: Path, line: Int, column: Int) {
+                self.path = path
+                self.line = line
+                self.column = column
             }
-            return ModuleDependencyInfo(
-                name: name,
-                isPublic: components.count > 1 && components.first == "public"
-            )
+
+            public static func eof(fs: any FSProxy, path: Path) throws -> ModuleDependenciesContext.FixItContext.InsertionPoint {
+                guard let s = try fs.read(path).stringValue else { throw StubError.error("could not decode utf8 from \(path.str)") }
+                let lines = s.components(separatedBy: CharacterSet.newlines)
+                // We always get at least one line
+                let endLine = lines.count - 1
+                let endColumn = lines.last!.count
+                return .init(path: path, line: endLine, column: endColumn)
+            }
+        }
+
+        public enum ModificationStyle: Sendable, SerializableCodable {
+            case appendToExistingAssignment
+            case insertNewAssignment(targetNameCondition: String?)
+        }
+
+        public func makeFixIt(newModules: [Settings.ModuleDependencyInfo]) -> Diagnostic.FixIt {
+            let stringValue = newModules.map { $0.asBuildSettingEntry }.map { $0.contains(" ") ? "\"\($0)\"" : $0 }.sorted().joined(separator: " ")
+            let newText: String
+            switch modificationStyle {
+            case .appendToExistingAssignment:
+                newText = " \(stringValue)"
+            case .insertNewAssignment(let targetNameCondition):
+                let targetCondition = targetNameCondition.map { "[target=\($0)]" } ?? ""
+                newText = "\n\(BuiltinMacros.MODULE_DEPENDENCIES.name)\(targetCondition) = $(inherited) \(stringValue)\n"
+            }
+
+            return Diagnostic.FixIt(sourceRange: Diagnostic.SourceRange(path: insertionPoint.path, startLine: insertionPoint.line, startColumn: insertionPoint.column, endLine: insertionPoint.line, endColumn: insertionPoint.column), newText: newText)
         }
     }
 }

@@ -41,7 +41,7 @@ struct LaunchXcode: CommandPlugin {
         print("Launching Xcode...")
         let process = Process()
         process.executableURL = URL(fileURLWithPath: "/usr/bin/open")
-        process.arguments = ["-n", "-F", "-W", "--env", "XCBBUILDSERVICE_PATH=\(buildServiceURL.path())", "-b", "com.apple.dt.Xcode"]
+        process.arguments = ["-n", "-F", "-W", "--env", "XCBBUILDSERVICE_PATH=\(buildServiceURL.path(percentEncoded: false))", "-b", "com.apple.dt.Xcode"]
         process.standardOutput = nil
         process.standardError = nil
         try await process.run()

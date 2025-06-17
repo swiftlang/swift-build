@@ -14,6 +14,7 @@ public import SWBCore
 import SWBLibc
 import SWBUtil
 import Foundation
+internal import SwiftDriver
 
 final public class SwiftDriverTaskAction: TaskAction, BuildValueValidatingTaskAction {
     public override class var toolIdentifier: String {
@@ -91,6 +92,34 @@ final public class SwiftDriverTaskAction: TaskAction, BuildValueValidatingTaskAc
                 message += "\n\tVerification:\n" + jobsDebugDescription(plannedBuild.verificationPlannedDriverJobs())
 
                 outputDelegate.emitNote(message)
+            }
+
+            if driverPayload.explicitModulesEnabled, let moduleDependenciesContext = payload.moduleDependenciesContext, let target = task.forTarget {
+                // TODO check public vs implementationOnly once we have data
+                let declaredDeps = moduleDependenciesContext.settingsModuleDependencyInfos
+                let declaredDepsNames = Set(declaredDeps.map { $0.name })
+
+                let scannedDeps = try await dependencyGraph.queryDirectModuleDependencies(for: driverPayload.uniqueID)
+                let scannedDepsNames = Set(scannedDeps.keys.map { $0.moduleName })
+
+                // TODO: validate ImportAccessLevel (need https://github.com/swiftlang/swift-driver/pull/1928)
+
+                // TODO: figure out how to distinguish and track implied vs user-specified modules
+                let ignoredDepNames = Set(["_SwiftConcurrencyShims", "_StringProcessing", "Swift", "_Concurrency"])
+
+                let missingDepsNames = scannedDepsNames.subtracting(ignoredDepNames).subtracting(declaredDepsNames)
+                let missingDeps = missingDepsNames.map { name in
+                    // TODO: need swift-driver support support for isPublic: https://github.com/swiftlang/swift-driver/pull/1928
+                    Settings.ModuleDependencyInfo(name: name, isPublic: false)
+                }
+
+                if !missingDeps.isEmpty {
+                    let message = "\(target.target.name) is missing module dependencies for: \(missingDepsNames.joined(separator: ", "))"
+                    let fixIt = moduleDependenciesContext.fixItContext?.makeFixIt(newModules: missingDeps)
+                    let fixIts = fixIt.map { [$0] } ?? []
+                    outputDelegate.emit(.init(behavior: .error, location: .unknown, data: DiagnosticData(message), fixIts: fixIts))
+                    return .failed
+                }
             }
 
             if driverPayload.reportRequiredTargetDependencies != .no && driverPayload.explicitModulesEnabled, let target = task.forTarget {

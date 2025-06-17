@@ -325,4 +325,165 @@ fileprivate struct DependencyValidationTests: CoreBasedTests {
             }
         }
     }
+
+    @Test(.requireSDKs(.macOS))
+    func diagnosingModuleDependencies() async throws {
+        try await withTemporaryDirectory { tmpDir in
+            let testWorkspace = try await TestWorkspace(
+                "Test",
+                sourceRoot: tmpDir.join("Test"),
+                projects: [
+                    // no xcconfigs -> no fixit
+                    TestProject(
+                        "ProjectNoXCConfigs",
+                        groupTree: TestGroup(
+                            "Sources",
+                            children: [
+                                TestFile("SwiftNoXCConfigs.swift"),
+                            ]),
+                        buildConfigurations: [TestBuildConfiguration(
+                            "Debug",
+                            buildSettings: [
+                                "PRODUCT_NAME": "$(TARGET_NAME)",
+                                "CLANG_ENABLE_MODULES": "YES",
+                                "_EXPERIMENTAL_CLANG_EXPLICIT_MODULES": "YES",
+                                "SWIFT_ENABLE_EXPLICIT_MODULES": "YES",
+                                "SWIFT_VERSION": swiftVersion,
+                                "DEFINES_MODULE": "YES",
+                                "VALID_ARCHS": "arm64",
+                                "DSTROOT": tmpDir.join("dstroot").str,
+                            ])],
+                        targets: [
+                            TestStandardTarget(
+                                "TargetNoXCConfigs",
+                                type: .framework,
+                                buildPhases: [
+                                    TestSourcesBuildPhase(["SwiftNoXCConfigs.swift"]),
+                                ]),
+                        ]),
+
+                    // project and target xcconfigs
+                    TestProject(
+                        "Project",
+                        groupTree: TestGroup(
+                            "Sources",
+                            children: [
+                                TestFile("Swift.swift"),
+                                TestFile("Project.xcconfig"),
+                                TestFile("TargetWithXCConfig.xcconfig"),
+                            ]),
+                        buildConfigurations: [TestBuildConfiguration(
+                            "Debug",
+                            baseConfig: "Project.xcconfig",
+                            buildSettings: [
+                                "PRODUCT_NAME": "$(TARGET_NAME)",
+                                "CLANG_ENABLE_MODULES": "YES",
+                                "_EXPERIMENTAL_CLANG_EXPLICIT_MODULES": "YES",
+                                "SWIFT_ENABLE_EXPLICIT_MODULES": "YES",
+                                "SWIFT_VERSION": swiftVersion,
+                                "DEFINES_MODULE": "YES",
+                                "VALID_ARCHS": "arm64",
+                                "DSTROOT": tmpDir.join("dstroot").str,
+                            ])],
+                        targets: [
+                            TestStandardTarget(
+                                "TargetWithXCConfig",
+                                type: .framework,
+                                buildConfigurations: [TestBuildConfiguration(
+                                    "Debug",
+                                    baseConfig: "TargetWithXCConfig.xcconfig"
+                                )],
+                                buildPhases: [
+                                    TestSourcesBuildPhase(["Swift.swift"]),
+                                ]),
+                            TestStandardTarget(
+                                "TargetWithoutExistingSetting",
+                                type: .framework,
+                                buildPhases: [
+                                    TestSourcesBuildPhase(["Swift.swift"]),
+                                ]),
+                            TestStandardTarget(
+                                "TargetWithExistingSetting",
+                                type: .framework,
+                                buildPhases: [
+                                    TestSourcesBuildPhase(["Swift.swift"]),
+                                ]),
+                        ]),
+                ])
+
+            let tester = try await BuildOperationTester(getCore(), testWorkspace, simulated: false)
+
+            try await tester.fs.writeFileContents(testWorkspace.sourceRoot.join("ProjectNoXCConfigs/SwiftNoXCConfigs.swift")) { stream in
+                stream <<<
+            """
+            import Foundation
+            """
+            }
+
+            try await tester.fs.writeFileContents(testWorkspace.sourceRoot.join("Project/Swift.swift")) { stream in
+                stream <<<
+            """
+            import Foundation
+            """
+            }
+
+            try await tester.fs.writeFileContents(testWorkspace.sourceRoot.join("Project/Project.xcconfig")) { stream in
+                stream <<<
+            """
+            // comment 1
+            MODULE_DEPENDENCIES[target=TargetWithExistingSetting] = Dispatch
+            // comment 2
+            """
+            }
+
+            try await tester.fs.writeFileContents(testWorkspace.sourceRoot.join("Project/TargetWithXCConfig.xcconfig")) { stream in
+                stream <<<
+            """
+            """
+            }
+
+            let parameters = BuildParameters(configuration: "Debug", overrides: ["VALIDATE_MODULE_DEPENDENCIES": "YES_ERROR"])
+            let buildTargets = tester.workspace.projects.flatMap { $0.targets }.map { BuildRequest.BuildTargetInfo(parameters: parameters, target: $0) }
+            let buildRequest = BuildRequest(parameters: parameters, buildTargets: buildTargets, continueBuildingAfterErrors: true, useParallelTargets: true, useImplicitDependencies: true, useDryRun: false)
+
+            try await tester.checkBuild(runDestination: .macOS, buildRequest: buildRequest, persistent: true) { results in
+                results.checkError(.prefix("TargetNoXCConfigs is missing module dependencies for: Foundation"))
+
+                results.checkError(.prefix("TargetWithXCConfig is missing module dependencies for: Foundation")) { diag in
+                    let expected = Diagnostic.FixIt(
+                        sourceRange: .init(
+                            path: testWorkspace.sourceRoot.join("Project/TargetWithXCConfig.xcconfig"),
+                            startLine: 0, startColumn: 0, endLine: 0, endColumn: 0),
+                        newText: "\nMODULE_DEPENDENCIES = $(inherited) Foundation\n")
+                    #expect(diag.fixIts == [expected])
+                    return true
+                }
+
+                results.checkError(.prefix("TargetWithoutExistingSetting is missing module dependencies for: Foundation")) { diag in
+                    // insertion should be at eof
+                    let expected = Diagnostic.FixIt(
+                        sourceRange: .init(
+                            path: testWorkspace.sourceRoot.join("Project/Project.xcconfig"),
+                            // this is eof
+                            startLine: 2, startColumn: 12, endLine: 2, endColumn: 12),
+                        newText: "\nMODULE_DEPENDENCIES[target=TargetWithoutExistingSetting] = $(inherited) Foundation\n")
+                    #expect(diag.fixIts == [expected])
+                    return true
+                }
+
+                results.checkError(.prefix("TargetWithExistingSetting is missing module dependencies for: Foundation")) { diag in
+                    let expected = Diagnostic.FixIt(
+                        sourceRange: .init(
+                            path: testWorkspace.sourceRoot.join("Project/Project.xcconfig"),
+                            // this is the end of the existing assignment
+                            startLine: 1, startColumn: 59, endLine: 1, endColumn: 59),
+                        newText: " Foundation")
+                    #expect(diag.fixIts == [expected])
+                    return true
+                }
+
+                results.checkNoDiagnostics()
+            }
+        }
+    }
 }
