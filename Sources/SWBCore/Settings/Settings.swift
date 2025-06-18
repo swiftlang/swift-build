@@ -764,15 +764,6 @@ public final class Settings: PlatformBuildContext, Sendable {
             (scope.evaluate(BuiltinMacros.IS_ZIPPERED) && scope.evaluate(BuiltinMacros.INDEX_ENABLE_BUILD_ARENA))
     }
 
-    public static func supportsCompilationCaching(_ core: Core) -> Bool {
-        @preconcurrency @PluginExtensionSystemActor func featureAvailabilityExtensions() -> [any FeatureAvailabilityExtensionPoint.ExtensionProtocol] {
-            core.pluginManager.extensions(of: FeatureAvailabilityExtensionPoint.self)
-        }
-        return featureAvailabilityExtensions().contains {
-            $0.supportsCompilationCaching
-        }
-    }
-
     public var enableTargetPlatformSpecialization: Bool {
         return Settings.targetPlatformSpecializationEnabled(scope: globalScope)
     }

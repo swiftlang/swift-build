@@ -183,7 +183,7 @@ package final class BuildDescriptionManager: Sendable {
 
         var casValidationInfos: OrderedSet<BuildDescription.CASValidationInfo> = []
         let buildGraph = planRequest.buildGraph
-        let shouldValidateCAS = Settings.supportsCompilationCaching(plan.workspaceContext.core) && UserDefaults.enableCASValidation
+        let shouldValidateCAS = UserDefaults.enableCASValidation
 
         // Add the SFR identifier for target-independent tasks.
         staleFileRemovalIdentifierPerTarget[nil] = plan.staleFileRemovalTaskIdentifier(for: nil)

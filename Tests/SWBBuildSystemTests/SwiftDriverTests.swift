@@ -5146,7 +5146,7 @@ fileprivate struct SwiftDriverTests: CoreBasedTests {
         }
     }
 
-    @Test(.requireSDKs(.macOS))
+    @Test(.requireSDKs(.macOS), .requireSwiftFeatures(.compilationCaching), .skipSwiftPackage)
     func ensureIdenticalCommandLinesWithDifferentDependenciesAreNotDeduplicated() async throws {
         try await withTemporaryDirectory { tmpDir in
             let testWorkspace = try await TestWorkspace(
