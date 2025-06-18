@@ -18,7 +18,7 @@ import SWBTestSupport
 @_spi(Testing) import SWBUtil
 
 /// Test evaluating both using a scope, and directly against the model objects.
-@Suite
+@Suite(.skipHostOS(.windows))
 fileprivate struct MacroEvaluationTests {
     @Test
     func macroEvaluationBasics() async throws {
@@ -83,7 +83,7 @@ fileprivate struct MacroEvaluationTests {
         }
     }
 
-    @Test(.requireSDKs(.host), .userDefaults(["EnablePluginManagerLogging": "0"]))
+    @Test(.requireSDKs(.host), .skipHostOS(.windows), .userDefaults(["EnablePluginManagerLogging": "0"]))
     func macroEvaluationAdvanced() async throws {
         try await withTemporaryDirectory { tmpDir in
             try await withAsyncDeferrable { deferrable in

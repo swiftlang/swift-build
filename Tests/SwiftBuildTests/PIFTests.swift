@@ -226,7 +226,7 @@ fileprivate struct PIFTests {
     typealias LookupObject = (@Sendable (SwiftBuildServicePIFObjectType, String) async throws -> SWBPropertyListItem)
 
     /// Check incremental PIF transfer.
-    @Test(.userDefaults(["EnablePluginManagerLogging": "0"]))
+    @Test(.skipHostOS(.windows), .userDefaults(["EnablePluginManagerLogging": "0"]))
     func sessionPIFLoading() async throws {
         let service = try await SWBBuildService()
 
@@ -327,7 +327,7 @@ fileprivate struct PIFTests {
     }
 
     /// Check PIF incremental cache.
-    @Test(.userDefaults(["EnablePluginManagerLogging": "0"]))
+    @Test(.skipHostOS(.windows), .userDefaults(["EnablePluginManagerLogging": "0"]))
     func sessionPIFCache() async throws {
         try await withTemporaryDirectory { tmpDir in
             try await withAsyncDeferrable { deferrable in
