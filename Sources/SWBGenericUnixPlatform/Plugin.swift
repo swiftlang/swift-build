@@ -129,39 +129,44 @@ struct GenericUnixToolchainRegistryExtension: ToolchainRegistryExtension {
 
         let fs = context.fs
 
-        if let swift = StackedSearchPath(environment: .current, fs: fs).lookup(Path("swift")), fs.exists(swift) {
-            let realSwiftPath = try fs.realpath(swift).dirname.normalize()
-            let hasUsrBin = realSwiftPath.str.hasSuffix("/usr/bin")
-            let hasUsrLocalBin = realSwiftPath.str.hasSuffix("/usr/local/bin")
-            let path: Path
-            switch (hasUsrBin, hasUsrLocalBin) {
-            case (true, false):
-                path = realSwiftPath.dirname.dirname
-            case (false, true):
-                path = realSwiftPath.dirname.dirname.dirname
-            case (false, false):
-                throw StubError.error("Unexpected toolchain layout for Swift installation path: \(realSwiftPath)")
-            case (true, true):
-                preconditionFailure()
+        for swift in [
+            Environment.current["SWIFT_EXEC"].map(Path.init),
+            StackedSearchPath(environment: .current, fs: fs).lookup(Path("swift"))
+        ].compactMap(\.self) {
+            if fs.exists(swift) {
+                let realSwiftPath = try fs.realpath(swift).dirname.normalize()
+                let hasUsrBin = realSwiftPath.str.hasSuffix("/usr/bin")
+                let hasUsrLocalBin = realSwiftPath.str.hasSuffix("/usr/local/bin")
+                let path: Path
+                switch (hasUsrBin, hasUsrLocalBin) {
+                case (true, false):
+                    path = realSwiftPath.dirname.dirname
+                case (false, true):
+                    path = realSwiftPath.dirname.dirname.dirname
+                case (false, false):
+                    throw StubError.error("Unexpected toolchain layout for Swift installation path: \(realSwiftPath)")
+                case (true, true):
+                    preconditionFailure()
+                }
+                let llvmDirectories = try Array(fs.listdir(Path("/usr/lib")).filter { $0.hasPrefix("llvm-") }.sorted().reversed())
+                let llvmDirectoriesLocal = try Array(fs.listdir(Path("/usr/local")).filter { $0.hasPrefix("llvm") }.sorted().reversed())
+                return [
+                    Toolchain(
+                        identifier: ToolchainRegistry.defaultToolchainIdentifier,
+                        displayName: "Default",
+                        version: Version(),
+                        aliases: ["default"],
+                        path: path,
+                        frameworkPaths: [],
+                        libraryPaths: llvmDirectories.map { "/usr/lib/\($0)/lib" } + llvmDirectoriesLocal.map { "/usr/local/\($0)/lib" } + ["/usr/lib64"],
+                        defaultSettings: [:],
+                        overrideSettings: [:],
+                        defaultSettingsWhenPrimary: [:],
+                        executableSearchPaths: realSwiftPath.dirname.relativeSubpath(from: path).map { [path.join($0).join("bin")] } ?? [],
+                        testingLibraryPlatformNames: [],
+                        fs: fs)
+                ]
             }
-            let llvmDirectories = try Array(fs.listdir(Path("/usr/lib")).filter { $0.hasPrefix("llvm-") }.sorted().reversed())
-            let llvmDirectoriesLocal = try Array(fs.listdir(Path("/usr/local")).filter { $0.hasPrefix("llvm") }.sorted().reversed())
-            return [
-                Toolchain(
-                    identifier: ToolchainRegistry.defaultToolchainIdentifier,
-                    displayName: "Default",
-                    version: Version(),
-                    aliases: ["default"],
-                    path: path,
-                    frameworkPaths: [],
-                    libraryPaths: llvmDirectories.map { "/usr/lib/\($0)/lib" } + llvmDirectoriesLocal.map { "/usr/local/\($0)/lib" } + ["/usr/lib64"],
-                    defaultSettings: [:],
-                    overrideSettings: [:],
-                    defaultSettingsWhenPrimary: [:],
-                    executableSearchPaths: realSwiftPath.dirname.relativeSubpath(from: path).map { [path.join($0).join("bin")] } ?? [],
-                    testingLibraryPlatformNames: [],
-                    fs: fs)
-            ]
         }
 
         return []
