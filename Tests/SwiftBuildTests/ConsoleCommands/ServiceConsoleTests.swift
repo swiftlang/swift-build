@@ -19,7 +19,7 @@ import SWBUtil
 import WinSDK
 #endif
 
-@Suite(.skipInGitHubActions("failing in the GitHub actions runner environment"))
+@Suite(.skipInGitHubActions("failing in the GitHub actions runner environment"), .skipHostOS(.windows))
 fileprivate struct ServiceConsoleTests {
     @Test
     func emptyInput() async throws {
