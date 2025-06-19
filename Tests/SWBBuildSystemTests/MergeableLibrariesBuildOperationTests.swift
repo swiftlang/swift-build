@@ -226,6 +226,7 @@ fileprivate struct MergeableLibrariesBuildOperationTests: CoreBasedTests {
 
                     // Check mergeable framework targets.
                     for targetName in ["FwkTarget1", "FwkTarget2"] {
+                        results.checkTask(.matchTargetName(targetName), .matchRuleType("SwiftCompile"), .matchRuleItem("Compiling bundle_lookup_helper.swift")) { _ in }
                         results.checkTask(.matchTargetName(targetName), .matchRuleType("SwiftCompile")) { _ in }
                         results.checkTask(.matchTargetName(targetName), .matchRuleType("Ld")) { task in
                             task.checkCommandLineDoesNotContain("-make_mergeable")
@@ -410,6 +411,7 @@ fileprivate struct MergeableLibrariesBuildOperationTests: CoreBasedTests {
 
                     // Check mergeable framework targets
                     for targetName in ["FwkTarget1", "FwkTarget2"] {
+                        results.checkTask(.matchTargetName(targetName), .matchRuleType("SwiftCompile"), .matchRuleItem("Compiling bundle_lookup_helper.swift")) { _ in }
                         results.checkTask(.matchTargetName(targetName), .matchRuleType("SwiftCompile")) { _ in }
                         results.checkTask(.matchTargetName(targetName), .matchRuleType("Ld")) { task in
                             task.checkCommandLineContains("-make_mergeable")
@@ -715,6 +717,7 @@ fileprivate struct MergeableLibrariesBuildOperationTests: CoreBasedTests {
                     // Check FwkTarget
                     do {
                         let targetName = "FwkTarget"
+                        results.checkTask(.matchTargetName(targetName), .matchRuleType("SwiftCompile"), .matchRuleItem("Compiling bundle_lookup_helper.swift")) { _ in }
                         results.checkTask(.matchTargetName(targetName), .matchRuleType("SwiftCompile")) { _ in }
                         results.checkTask(.matchTargetName(targetName), .matchRuleType("Ld")) { task in
                             task.checkCommandLineDoesNotContain("-make_mergeable")
@@ -875,6 +878,7 @@ fileprivate struct MergeableLibrariesBuildOperationTests: CoreBasedTests {
                     // Check FwkTarget
                     do {
                         let targetName = "FwkTarget"
+                        results.checkTask(.matchTargetName(targetName), .matchRuleType("SwiftCompile"), .matchRuleItem("Compiling bundle_lookup_helper.swift")) { _ in }
                         results.checkTask(.matchTargetName(targetName), .matchRuleType("SwiftCompile")) { _ in }
                         results.checkTask(.matchTargetName(targetName), .matchRuleType("Ld")) { task in
                             task.checkCommandLineContains("-make_mergeable")

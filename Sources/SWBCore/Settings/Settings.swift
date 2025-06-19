@@ -1554,7 +1554,7 @@ private class SettingsBuilder {
         }
 
         // Push the target derived overriding settings.
-        addTargetDerivedSettings(self.target, boundProperties.platform, boundProperties.sdk, boundProperties.sdkVariant)
+        addTargetDerivedSettings(self.target, boundProperties.platform, boundProperties.sdk, boundProperties.sdkVariant, specLookupContext)
 
         if boundDeploymentTarget.platformDeploymentTargetMacro == BuiltinMacros.DRIVERKIT_DEPLOYMENT_TARGET, let deploymentTarget = boundDeploymentTarget.platformDeploymentTarget, deploymentTarget < Version(20) {
             var table = MacroValueAssignmentTable(namespace: userNamespace)
@@ -2039,13 +2039,13 @@ private class SettingsBuilder {
     /// Add the derived overriding settings for the target. These are settings whose values depend on the whole stack of build settings, and include settings which are forced to a value under certain conditions, and settings whose value is wholly derived from other settings.  They override settings from all lower levels, and thus cannot be overridden by (for example) xcodebuild or run destination overrides, so settings should only be assigned here when they represent true boundary conditions which users should never want to or be able to override.
     ///
     /// These are only added if we're constructing settings for a target.
-    func addTargetDerivedSettings(_ target: Target?, _ platform: Platform?, _ sdk: SDK?, _ sdkVariant: SDKVariant?) {
+    func addTargetDerivedSettings(_ target: Target?, _ platform: Platform?, _ sdk: SDK?, _ sdkVariant: SDKVariant?, _ specLookupContext: any SpecLookupContext) {
         guard target != nil else {
             return
         }
 
         push(getTargetDerivedSettings(platform, sdk, sdkVariant), .exportedForNative)
-        addSecondaryTargetDerivedSettings(sdk)
+        addSecondaryTargetDerivedSettings(sdk, specLookupContext)
     }
 
     /// Add the core derived overriding settings for the target.
@@ -2138,7 +2138,7 @@ private class SettingsBuilder {
     /// Add derived settings for the target which are themselves derived from the core target derived settings computed above. (Whee!)
     ///
     /// This is called from `addTargetDerivedSettings().
-    func addSecondaryTargetDerivedSettings(_ sdk: SDK?) {
+    func addSecondaryTargetDerivedSettings(_ sdk: SDK?, _ specLookupContext: any SpecLookupContext) {
         // Mergeable library/merged binary support.
         do {
             let scope = createScope(sdkToUse: sdk)
@@ -2178,13 +2178,22 @@ private class SettingsBuilder {
         }
         do {
             let scope = createScope(sdkToUse: sdk)
+            var table = MacroValueAssignmentTable(namespace: core.specRegistry.internalMacroNamespace)
 
             // If the product is being built as mergeable, then that overrides certain other settings.
             if scope.evaluate(BuiltinMacros.MAKE_MERGEABLE) {
-                var table = MacroValueAssignmentTable(namespace: core.specRegistry.internalMacroNamespace)
                 table.push(BuiltinMacros.STRIP_INSTALLED_PRODUCT, literal: false)
-                push(table, .exportedForNative)
             }
+
+            // Even if not being merged in this build, a mergeable library still uses a generated bundle lookup helper to power #bundle support.
+            if scope.evaluate(BuiltinMacros.MERGEABLE_LIBRARY) {
+                let pathResolver = FilePathResolver(scope: scope)
+                if (target as? StandardTarget)?.sourcesBuildPhase?.containsSwiftSources(workspaceContext.workspace, specLookupContext, scope, pathResolver) ?? false {
+                    table.push(BuiltinMacros.SWIFT_ACTIVE_COMPILATION_CONDITIONS, BuiltinMacros.namespace.parseStringList(["$(inherited)", "SWIFT_BUNDLE_LOOKUP_HELPER_AVAILABLE"]))
+                }
+            }
+
+            push(table, .exportedForNative)
         }
     }
 
