@@ -16,7 +16,8 @@ import SwiftBuild
 import SWBBuildService
 import SWBTestSupport
 
-@Suite fileprivate struct BuildServiceTests: CoreBasedTests {
+@Suite(.skipHostOS(.windows))
+fileprivate struct BuildServiceTests: CoreBasedTests {
     @Test func createXCFramework() async throws {
         do {
             let (result, message) = try await withBuildService { await $0.createXCFramework([], currentWorkingDirectory: Path.root.str, developerPath: nil) }

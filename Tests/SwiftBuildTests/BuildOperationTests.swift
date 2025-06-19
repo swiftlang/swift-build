@@ -22,7 +22,7 @@ import SWBUtil
 import SWBTestSupport
 import SWBProtocol
 
-@Suite
+@Suite(.skipHostOS(.windows))
 fileprivate struct BuildOperationTests: CoreBasedTests {
     /// Check the basic behavior of an empty build.
     @Test
