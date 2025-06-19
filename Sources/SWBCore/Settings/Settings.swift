@@ -2164,9 +2164,14 @@ private class SettingsBuilder {
                 table.push(BuiltinMacros.MERGE_LINKED_LIBRARIES, literal: true)
             }
 
-            // If this is a mergeable library, then build it as mergeable if this is a release build.
-            if scope.evaluate(BuiltinMacros.MERGEABLE_LIBRARY), !scope.evaluate(BuiltinMacros.IS_UNOPTIMIZED_BUILD) {
-                table.push(BuiltinMacros.MAKE_MERGEABLE, literal: true)
+            // If this is a mergeable library, for a release build we want to build it as mergeable, whereas for a debug build we want to add the mergeable debug hook.
+            if scope.evaluate(BuiltinMacros.MERGEABLE_LIBRARY) {
+                if scope.evaluate(BuiltinMacros.IS_UNOPTIMIZED_BUILD) {
+                    table.push(BuiltinMacros.ADD_MERGEABLE_DEBUG_HOOK, literal: true)
+                }
+                else {
+                    table.push(BuiltinMacros.MAKE_MERGEABLE, literal: true)
+                }
             }
 
             push(table, .exportedForNative)
