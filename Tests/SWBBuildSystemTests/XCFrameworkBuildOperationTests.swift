@@ -1003,7 +1003,7 @@ fileprivate struct XCFrameworkBuildOperationTests: CoreBasedTests {
                 version: Version(1, 0),
                 libraries: [
                     XCFramework.Library(libraryIdentifier: "arm64-apple-iphoneos\(infoLookup.loadSDK(.iOS).defaultDeploymentTarget)", supportedPlatform: "ios", supportedArchitectures: ["arm64", "arm64e"], platformVariant: nil, libraryPath: Path("Support.framework"), binaryPath: Path("Support.framework/Support"), headersPath: nil),
-                    XCFramework.Library(libraryIdentifier: "arm64-apple-iphoneos\(infoLookup.loadSDK(.watchOS).defaultDeploymentTarget)", supportedPlatform: "watchos", supportedArchitectures: ["arm64", "arm64_32"], platformVariant: nil, libraryPath: Path("Support.framework"), binaryPath: Path("Support.framework/Support"), headersPath: nil),
+                    XCFramework.Library(libraryIdentifier: "arm64-apple-watchos\(infoLookup.loadSDK(.watchOS).defaultDeploymentTarget)", supportedPlatform: "watchos", supportedArchitectures: ["arm64", "arm64_32"], platformVariant: nil, libraryPath: Path("Support.framework"), binaryPath: Path("Support.framework/Support"), headersPath: nil),
                 ])
 
             try fs.createDirectory(supportXCFrameworkPath, recursive: true)
