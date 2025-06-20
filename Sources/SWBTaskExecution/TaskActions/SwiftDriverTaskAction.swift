@@ -94,7 +94,7 @@ final public class SwiftDriverTaskAction: TaskAction, BuildValueValidatingTaskAc
                 outputDelegate.emitNote(message)
             }
 
-            if driverPayload.explicitModulesEnabled, let moduleDependenciesContext = payload.moduleDependenciesContext, let target = task.forTarget {
+            if driverPayload.explicitModulesEnabled, let moduleDependenciesContext = payload.moduleDependenciesContext, moduleDependenciesContext.validate != .no, let target = task.forTarget {
                 // TODO check public vs implementationOnly once we have data
                 let declaredDeps = moduleDependenciesContext.settingsModuleDependencyInfos
                 let declaredDepsNames = Set(declaredDeps.map { $0.name })
@@ -117,7 +117,7 @@ final public class SwiftDriverTaskAction: TaskAction, BuildValueValidatingTaskAc
                     let message = "\(target.target.name) is missing module dependencies for: \(missingDepsNames.joined(separator: ", "))"
                     let fixIt = moduleDependenciesContext.fixItContext?.makeFixIt(newModules: missingDeps)
                     let fixIts = fixIt.map { [$0] } ?? []
-                    outputDelegate.emit(.init(behavior: .error, location: .unknown, data: DiagnosticData(message), fixIts: fixIts))
+                    outputDelegate.emit(.init(behavior: moduleDependenciesContext.validate == .yesError ? .error : .warning, location: .unknown, data: DiagnosticData(message), fixIts: fixIts))
                     return .failed
                 }
             }

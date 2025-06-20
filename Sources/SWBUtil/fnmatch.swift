@@ -59,7 +59,11 @@ public func fnmatch(pattern: some StringProtocol, input: some StringProtocol, op
 {
     // Use Substrings to avoid String allocations
     var pattern = Substring(pattern)
+    assert(pattern.isContiguousUTF8)
+    
     var input = Substring(input)
+    assert(input.isContiguousUTF8)
+
     var bt_pattern: Substring? = nil
     var bt_input: Substring = input
 

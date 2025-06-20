@@ -5369,10 +5369,12 @@ extension Settings {
 }
 
 public struct ModuleDependenciesContext: Sendable, SerializableCodable {
+    public var validate: BooleanWarningLevel
     public var settingsModuleDependencyInfos: [Settings.ModuleDependencyInfo]
     public var fixItContext: FixItContext?
 
-    public init(settingsModuleDependencyInfos: [Settings.ModuleDependencyInfo], fixItContext: FixItContext? = nil) {
+    public init(validate: BooleanWarningLevel, settingsModuleDependencyInfos: [Settings.ModuleDependencyInfo], fixItContext: FixItContext? = nil) {
+        self.validate = validate
         self.settingsModuleDependencyInfos = settingsModuleDependencyInfos
         self.fixItContext = fixItContext
     }

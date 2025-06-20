@@ -436,7 +436,8 @@ public class TaskProducerContext: StaleFileRemovalContext, BuildFileResolution
             delegate.note(context, note)
         }
 
-        if let configuredTarget {
+        let validateModuleDependencies = settings.globalScope.evaluate(BuiltinMacros.VALIDATE_MODULE_DEPENDENCIES)
+        if let configuredTarget, validateModuleDependencies != .no {
             do {
                 let targetXcconfigPath = settings.constructionComponents.targetXcconfigPath
                 let projectXcconfigPath = settings.constructionComponents.projectXcconfigPath
@@ -461,7 +462,7 @@ public class TaskProducerContext: StaleFileRemovalContext, BuildFileResolution
                     fixItContext = nil
                 }
 
-                self.moduleDependenciesContext = .init(settingsModuleDependencyInfos: settings.moduleDependencies, fixItContext: fixItContext)
+                self.moduleDependenciesContext = .init(validate: validateModuleDependencies, settingsModuleDependencyInfos: settings.moduleDependencies, fixItContext: fixItContext)
             }
             catch {
                 delegate.error(context, "ModuleDependenciesContext: \(error)")
