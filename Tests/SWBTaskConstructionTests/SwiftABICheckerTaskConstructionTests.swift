@@ -69,10 +69,10 @@ fileprivate struct SwiftABICheckerTaskConstructionTests: CoreBasedTests {
                         "-diagnose-sdk",
                         "-target", "\(arch)-apple-ios\(core.loadSDK(.iOS).defaultDeploymentTarget)",
                         "-F", "/TEST/build/Debug-iphoneos",
+                        "-Fsystem", "/Target/System/Framework/Search/Path/A",
+                        "-Isystem", "/Target/System/Import/Search/Path/A",
                         "-module", "Fwk",
                         "-I", "/Target/Import/Search/Path/A",
-                        "-I", "/Target/System/Import/Search/Path/A",
-                        "-F", "/Target/System/Framework/Search/Path/A"
                     ])
                 }
             }
@@ -125,8 +125,8 @@ fileprivate struct SwiftABICheckerTaskConstructionTests: CoreBasedTests {
                         "swift-api-digester",
                         "-dump-sdk", "-target", "\(arch)-apple-ios\(core.loadSDK(.iOS).defaultDeploymentTarget)",
                         "-F", "/TEST/build/Debug-iphoneos",
+                        "-Fsystem", "/Target/System/Framework/Search/Path/A",
                         "-module", "Fwk", "-o",
-                        "/Target/System/Framework/Search/Path/A",
                     ])
                     // Ensure SWIFT_ABI_GENERATION_TOOL_OUTPUT_DIR is used.
                     task.checkOutputs([

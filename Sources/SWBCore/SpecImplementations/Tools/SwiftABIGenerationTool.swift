@@ -40,13 +40,10 @@ public final class SwiftABIGenerationToolSpec : GenericCommandLineToolSpec, Spec
 
         var commandLine = await commandLineFromTemplate(cbc, delegate, optionContext: discoveredCommandLineToolSpecInfo(cbc.producer, cbc.scope, delegate)).map(\.asString)
         commandLine += ["-o", baselineFile.normalize().str]
-        // swift-api-digester doesn't support -Fsystem or -Isystem.
-        commandLine += cbc.scope.evaluate(BuiltinMacros.SYSTEM_FRAMEWORK_SEARCH_PATHS).flatMap { ["-F", $0] }
         // Add import search paths
         for searchPath in SwiftCompilerSpec.collectInputSearchPaths(cbc, toolInfo: toolSpecInfo) {
             commandLine += ["-I", searchPath]
         }
-        commandLine += cbc.scope.evaluate(BuiltinMacros.SWIFT_SYSTEM_INCLUDE_PATHS).flatMap { ["-I", $0] }
         delegate.createTask(type: self,
                             ruleInfo: defaultRuleInfo(cbc, delegate),
                             commandLine: commandLine,

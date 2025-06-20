@@ -1428,6 +1428,20 @@
               CommandLineFlag = "-F";
           },
           {
+              Name = SYSTEM_FRAMEWORK_SEARCH_PATHS;
+              Type = PathList;
+              DefaultValue = "$(SYSTEM_FRAMEWORK_SEARCH_PATHS)";
+              FlattenRecursiveSearchPathsInValue = YES;
+              CommandLineFlag = "-Fsystem";
+          },
+          {
+              Name = SWIFT_SYSTEM_INCLUDE_PATHS;
+              Type = PathList;
+              DefaultValue = "$(SWIFT_SYSTEM_INCLUDE_PATHS)";
+              FlattenRecursiveSearchPathsInValue = YES;
+              CommandLineFlag = "-Isystem";
+          },
+          {
               Name = SDKROOT;
               Type = Path;
               CommandLineFlag = "-sdk";
@@ -1476,6 +1490,20 @@
               DefaultValue = "$(FRAMEWORK_SEARCH_PATHS)";
               FlattenRecursiveSearchPathsInValue = YES;
               CommandLineFlag = "-F";
+          },
+          {
+              Name = SYSTEM_FRAMEWORK_SEARCH_PATHS;
+              Type = PathList;
+              DefaultValue = "$(SYSTEM_FRAMEWORK_SEARCH_PATHS)";
+              FlattenRecursiveSearchPathsInValue = YES;
+              CommandLineFlag = "-Fsystem";
+          },
+          {
+              Name = SWIFT_SYSTEM_INCLUDE_PATHS;
+              Type = PathList;
+              DefaultValue = "$(SWIFT_SYSTEM_INCLUDE_PATHS)";
+              FlattenRecursiveSearchPathsInValue = YES;
+              CommandLineFlag = "-Isystem";
           },
           {
               Name = SDKROOT;
