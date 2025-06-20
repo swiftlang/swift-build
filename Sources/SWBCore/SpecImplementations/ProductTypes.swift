@@ -772,6 +772,10 @@ public class StandaloneExecutableProductTypeSpec : ProductTypeSpec, SpecClassTyp
     public class var className: String {
         return "XCStandaloneExecutableProductType"
     }
+
+    public override var supportsSwiftABIChecker: Bool {
+        true
+    }
 }
 
 public class LibraryProductTypeSpec: StandaloneExecutableProductTypeSpec, @unchecked Sendable {
