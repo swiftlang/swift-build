@@ -974,6 +974,7 @@ public final class BuiltinMacros {
     public static let REZ_PREFIX_FILE = BuiltinMacros.declarePathMacro("REZ_PREFIX_FILE")
     public static let REZ_SEARCH_PATHS = BuiltinMacros.declarePathListMacro("REZ_SEARCH_PATHS")
     public static let RUN_CLANG_STATIC_ANALYZER = BuiltinMacros.declareBooleanMacro("RUN_CLANG_STATIC_ANALYZER")
+    public static let SWIFT_API_DIGESTER_MODE = BuiltinMacros.declareEnumMacro("SWIFT_API_DIGESTER_MODE") as EnumMacroDeclaration<SwiftAPIDigesterMode>
     public static let RUN_SWIFT_ABI_CHECKER_TOOL = BuiltinMacros.declareBooleanMacro("RUN_SWIFT_ABI_CHECKER_TOOL")
     public static let RUN_SWIFT_ABI_CHECKER_TOOL_DRIVER = BuiltinMacros.declareBooleanMacro("RUN_SWIFT_ABI_CHECKER_TOOL_DRIVER")
     public static let RUN_SWIFT_ABI_GENERATION_TOOL = BuiltinMacros.declareBooleanMacro("RUN_SWIFT_ABI_GENERATION_TOOL")
@@ -2107,6 +2108,7 @@ public final class BuiltinMacros {
         SKIP_BUILDING_DOCUMENTATION,
         RUN_SYMBOL_GRAPH_EXTRACT,
         SYSTEM_EXTENSIONS_FOLDER_PATH,
+        SWIFT_API_DIGESTER_MODE,
         RUN_SWIFT_ABI_CHECKER_TOOL,
         RUN_SWIFT_ABI_CHECKER_TOOL_DRIVER,
         RUN_SWIFT_ABI_GENERATION_TOOL,
@@ -2638,6 +2640,13 @@ public enum SwiftEnableExplicitModulesSetting: String, Equatable, Hashable, Enum
     case notset = "NOT_SET"
     case enabled = "YES"
     case disabled = "NO"
+}
+
+public enum SwiftAPIDigesterMode: String, Equatable, Hashable, EnumerationMacroType {
+    public static let defaultValue: SwiftAPIDigesterMode = .abi
+
+    case abi = "abi"
+    case api = "api"
 }
 
 public enum SwiftDependencyRegistrationMode: String, Equatable, Hashable, EnumerationMacroType {

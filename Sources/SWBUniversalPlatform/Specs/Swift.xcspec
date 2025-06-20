@@ -1411,7 +1411,7 @@
     RuleName = "CheckSwiftABI $(CURRENT_VARIANT) $(CURRENT_ARCH)";
     ExecDescription = "Check ABI stability for $(PRODUCT_MODULE_NAME).swiftinterface";
     ProgressDescription = "Checking ABI stability for $(PRODUCT_MODULE_NAME).swiftinterface";
-    CommandLine = "swift-api-digester -diagnose-sdk -abort-on-module-fail -abi -compiler-style-diags [options]";
+    CommandLine = "swift-api-digester -diagnose-sdk -abort-on-module-fail -compiler-style-diags [options]";
     CommandOutputParser = "XCGccCommandOutputParser";
     Options = (
           {
@@ -1440,9 +1440,25 @@
               CommandLineArgs = (
                 "-module",
                 "$(value)",
-                "-use-interface-for-module",
-                "$(value)",
               );
+          },
+          {
+              Name = "SWIFT_API_DIGESTER_MODE";
+              Type = Enumeration;
+              Values = (
+                  abi,
+                  api,
+              );
+              DefaultValue = abi;
+              CommandLineArgs = {
+                  abi = (
+                      "-abi",
+                      "-use-interface-for-module",
+                      "$(PRODUCT_MODULE_NAME)",
+                  );
+                  api = (
+                  );
+              };
           },
           {
               Name = "OTHER_SWIFT_ABI_CHECKER_FLAGS";

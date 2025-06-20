@@ -20,8 +20,8 @@ fileprivate func supportSwiftABIChecking(_ context: TaskProducerContext) -> Bool
     // swift-api-digester is run only when the "build" component is present.
     guard scope.evaluate(BuiltinMacros.BUILD_COMPONENTS).contains("build") else { return false }
 
-    guard scope.evaluate(BuiltinMacros.SWIFT_EMIT_MODULE_INTERFACE) &&
-          scope.evaluate(BuiltinMacros.SWIFT_ENABLE_LIBRARY_EVOLUTION) else {
+    guard scope.evaluate(BuiltinMacros.SWIFT_API_DIGESTER_MODE) == .api ||
+          (scope.evaluate(BuiltinMacros.SWIFT_EMIT_MODULE_INTERFACE) && scope.evaluate(BuiltinMacros.SWIFT_ENABLE_LIBRARY_EVOLUTION)) else {
         // BUILD_LIBRARY_FOR_DISTRIBUTION is the option clients should use (it's also what is exposed in the
         // Build Settings editor) and is what SWIFT_EMIT_MODULE_INTERFACE uses by default, but they are
         // configurable independently.
@@ -69,6 +69,7 @@ final class SwiftFrameworkABICheckerTaskProducer: PhasedTaskProducer, TaskProduc
         guard supportSwiftABIChecking(context) else { return [] }
         // All archs
         let archs: [String] = scope.evaluate(BuiltinMacros.ARCHS)
+        let mode = scope.evaluate(BuiltinMacros.SWIFT_API_DIGESTER_MODE)
 
         // All variants
         let buildVariants = scope.evaluate(BuiltinMacros.BUILD_VARIANTS)
@@ -83,7 +84,13 @@ final class SwiftFrameworkABICheckerTaskProducer: PhasedTaskProducer, TaskProduc
                 let moduleInput = FileToBuild(absolutePath: moduleDirPath, inferringTypeUsing: context)
                 let interfaceInput = FileToBuild(absolutePath: Path(moduleDirPath.withoutSuffix + ".swiftinterface"), inferringTypeUsing: context)
                 let serializedDiagPath = scope.evaluate(BuiltinMacros.TARGET_TEMP_DIR).join(scope.evaluate(BuiltinMacros.PRODUCT_NAME)).join("SwiftABIChecker").join(variant).join(getBaselineFileName(scope, arch).withoutSuffix + ".dia")
-                var allInputs = [moduleInput, interfaceInput]
+                var allInputs: [FileToBuild]
+                switch mode {
+                case .abi:
+                    allInputs = [moduleInput, interfaceInput]
+                case .api:
+                    allInputs = [moduleInput]
+                }
                 if scope.evaluate(BuiltinMacros.RUN_SWIFT_ABI_GENERATION_TOOL) {
                     // If users also want to generate ABI baseline, we should generate the baseline first. This allows users to update
                     // baseline without re-running the build.
@@ -125,6 +132,7 @@ class SwiftABIBaselineGenerationTaskProducer: PhasedTaskProducer, TaskProducer {
         guard supportSwiftABIChecking(context) else { return [] }
         // All archs
         let archs: [String] = scope.evaluate(BuiltinMacros.ARCHS)
+        let mode = scope.evaluate(BuiltinMacros.SWIFT_API_DIGESTER_MODE)
 
         // All variants
         let buildVariants = scope.evaluate(BuiltinMacros.BUILD_VARIANTS)
@@ -140,9 +148,17 @@ class SwiftABIBaselineGenerationTaskProducer: PhasedTaskProducer, TaskProducer {
                 let moduleInput = FileToBuild(absolutePath: moduleDirPath, inferringTypeUsing: context)
                 let interfaceInput = FileToBuild(absolutePath: Path(moduleDirPath.withoutSuffix + ".swiftinterface"), inferringTypeUsing: context)
 
+                let allInputs: [FileToBuild]
+                switch mode {
+                case .abi:
+                    allInputs = [moduleInput, interfaceInput]
+                case .api:
+                    allInputs = [moduleInput]
+                }
+
                 let baselinePath = getGeneratedBaselineFilePath(context, arch)
 
-                let cbc = CommandBuildContext(producer: context, scope: scope, inputs: [moduleInput, interfaceInput], output: baselinePath)
+                let cbc = CommandBuildContext(producer: context, scope: scope, inputs: allInputs, output: baselinePath)
                 await appendGeneratedTasks(&tasks) { delegate in
                     // Generate baseline into the baseline directory
                     await context.swiftABIGenerationToolSpec?.constructABIGenerationTask(cbc, delegate, baselinePath)
