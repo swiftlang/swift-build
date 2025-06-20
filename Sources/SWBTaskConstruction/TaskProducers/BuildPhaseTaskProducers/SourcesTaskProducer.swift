@@ -1707,7 +1707,7 @@ final class SourcesTaskProducer: FilesBasedBuildPhaseTaskProducerBase, FilesBase
     /// Generates a task for creating the `__BundleLookupHelper` class to enable `#bundle` support in mergeable libraries.
     private func generateBundleLookupHelper(_ scope: MacroEvaluationScope) async -> GeneratedResourceAccessorResult? {
         // We generate a __BundleLookupHelper class that Foundation's #bundle macro can use to lookup the resource bundle.
-        // dyld knows how to map the class addresses to the correct bundle even though the code may be merged or re-exported.
+        // ld will inject a mapping of class pointers to the correct resource bundle so that BundleForClass works at runtime.
 
         // We only need this treatment for mergeable libraries at this time.
         // Package targets do something similar but they generate the Bundle.module extensions and #bundle calls that.
@@ -1727,7 +1727,7 @@ final class SourcesTaskProducer: FilesBasedBuildPhaseTaskProducerBase, FilesBase
         let filePath = scope.evaluate(BuiltinMacros.DERIVED_SOURCES_DIR).join("bundle_lookup_helper.swift")
 
         // We need one class with a relatively unique name that #bundle can use for bundle lookup.
-        // It cannot be less visible than internal since the #bundle expansion needs to be able to resolve it AND so dyld can record the class->bundle mapping.
+        // It cannot be less visible than internal since the #bundle expansion needs to be able to resolve it AND so ld will record the class->bundle mapping.
         // We intentionally do not want a Foundation dependency in this generated code, so don't import Foundation.
         let content = "internal class __BundleLookupHelper {}"
 
