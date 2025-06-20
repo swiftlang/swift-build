@@ -860,6 +860,15 @@ extern "C" {
             *CXDependencyScannerServiceOptions;
 
         /**
+         * Generate a self-contained reproducer in a specified location to re-run the compilation.
+         */
+        enum CXErrorCode
+        (*clang_experimental_DependencyScanner_generateReproducer)(
+            int argc, const char *const *argv, const char *WorkingDirectory,
+            const char *ReproducerLocation, bool UseUniqueReproducerName,
+            CXString *messageOut);
+
+        /**
          * Creates a default set of service options.
          * Must be disposed with \c
          * clang_experimental_DependencyScannerServiceOptions_dispose.
@@ -1423,6 +1432,7 @@ struct LibclangWrapper {
         LOOKUP_OPTIONAL(clang_experimental_cas_replayCompilation);
         LOOKUP_OPTIONAL(clang_experimental_cas_ReplayResult_dispose);
         LOOKUP_OPTIONAL(clang_experimental_cas_ReplayResult_getStderr);
+        LOOKUP_OPTIONAL(clang_experimental_DependencyScanner_generateReproducer);
         LOOKUP_OPTIONAL(clang_experimental_DependencyScannerServiceOptions_create);
         LOOKUP_OPTIONAL(clang_experimental_DependencyScannerServiceOptions_dispose);
         LOOKUP_OPTIONAL(clang_experimental_DependencyScannerServiceOptions_setDependencyMode);
@@ -1773,6 +1783,10 @@ extern "C" {
     bool libclang_has_current_working_directory_optimization(libclang_t lib) {
         return lib->wrapper->fns.clang_experimental_DepGraphModule_isCWDIgnored &&
                lib->wrapper->fns.clang_experimental_DependencyScannerServiceOptions_setCWDOptimization;
+    }
+
+    bool libclang_has_reproducer_feature(libclang_t lib) {
+        return lib->wrapper->fns.clang_experimental_DependencyScanner_generateReproducer;
     }
 
     libclang_casoptions_t libclang_casoptions_create(libclang_t lib) {
@@ -2157,6 +2171,22 @@ extern "C" {
         scanner->scanner->releaseWorker(std::move(worker));
 
         return depGraph != nullptr;
+    }
+
+    bool libclang_scanner_generate_reproducer(libclang_scanner_t scanner,
+                                              int argc, char *const *argv,
+                                              const char *workingDirectory,
+                                              const char **message) {
+        auto lib = scanner->scanner->lib;
+        LibclangFunctions::CXString messageString;
+        auto result = lib->fns.clang_experimental_DependencyScanner_generateReproducer(
+            argc, const_cast<const char**>(argv), workingDirectory,
+            /*ReproducerLocation=*/NULL, /*UseUniqueReproducerName=*/true, &messageString);
+        if (message) {
+            *message = strdup_safe(lib->fns.clang_getCString(messageString));
+        }
+        lib->fns.clang_disposeString(messageString);
+        return result == LibclangFunctions::CXError_Success;
     }
 
     bool libclang_driver_get_actions(libclang_t wrapped_lib,
