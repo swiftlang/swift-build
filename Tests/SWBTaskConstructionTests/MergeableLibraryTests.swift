@@ -159,6 +159,15 @@ fileprivate struct MergeableLibraryTests: CoreBasedTests {
         let APP_CONTENTS_DIR_SUBPATH = runDestination == .macOS ? "Contents/" : ""
         let APP_EXEC_DIR_SUBPATH = runDestination == .macOS ? "\(APP_CONTENTS_DIR_SUBPATH)MacOS/" : ""
 
+        // This is the default set minus WriteAuxiliaryFile, since we want to check for the generated bundle lookup helper class.
+        let tasksToIgnore: Set<String> = [
+            "Gate",
+            "MkDir",
+            "CreateBuildDirectory",
+            "ClangStatCache",
+            "LinkAssetCatalogSignature"
+        ]
+
         // Test a debug build.  This will just build the merged framework to reexport the frameworks it links against.
         do {
             let buildType = "Debug"
@@ -176,7 +185,7 @@ fileprivate struct MergeableLibraryTests: CoreBasedTests {
             let targets = tester.workspace.projects[0].targets.map({ BuildRequest.BuildTargetInfo(parameters: parameters, target: $0) })
             let request = BuildRequest(parameters: parameters, buildTargets: targets, continueBuildingAfterErrors: false, useParallelTargets: true, useImplicitDependencies: true, useDryRun: false)
             await tester.checkBuild(parameters, runDestination: runDestination, buildRequest: request) { results in
-                results.consumeTasksMatchingRuleTypes()
+                results.consumeTasksMatchingRuleTypes(tasksToIgnore)
 
                 // Check that the mergeable targets were *not* build to be mergeable.
                 for targetName in ["FwkTarget1", "FwkTarget2"] {
@@ -191,6 +200,14 @@ fileprivate struct MergeableLibraryTests: CoreBasedTests {
                         }
                         results.checkTask(.matchTarget(target), .matchRuleType("GenerateTAPI")) { _ in }
 
+                        // Even though we aren't building to be mergeable, the re-exporting dance still means we need our custom bundle lookup class.
+                        results.checkWriteAuxiliaryFileTask(.matchTarget(target), .matchRuleType("WriteAuxiliaryFile"), .matchRuleItemBasename("bundle_lookup_helper.swift")) { task, contents in
+                            XCTAssertMatch(contents.unsafeStringValue, .contains("internal class __BundleLookupHelper {}"))
+                        }
+                        results.checkTask(.matchTarget(target), .matchRuleType("SwiftDriver Compilation")) { task in
+                            task.checkCommandLineContains(["-DSWIFT_BUNDLE_LOOKUP_HELPER_AVAILABLE"])
+                        }
+
                         results.checkTasks(.matchTarget(target), body: { (tasks) -> Void in #expect(tasks.count > 0) })
                     }
                 }
@@ -203,6 +220,14 @@ fileprivate struct MergeableLibraryTests: CoreBasedTests {
                             ["-o", "\(BUILT_PRODUCTS_DIR)/\(FULL_PRODUCT_NAME)"],
                         ].reduce([], +))
                         task.checkCommandLineDoesNotContain("-make_mergeable")      // Not passed in debug builds
+                    }
+
+                    // Even though we aren't building to be mergeable, the re-exporting dance still means we need our custom bundle lookup class.
+                    results.checkWriteAuxiliaryFileTask(.matchTarget(target), .matchRuleType("WriteAuxiliaryFile"), .matchRuleItemBasename("bundle_lookup_helper.swift")) { task, contents in
+                        XCTAssertMatch(contents.unsafeStringValue, .contains("internal class __BundleLookupHelper {}"))
+                    }
+                    results.checkTask(.matchTarget(target), .matchRuleType("SwiftDriver Compilation")) { task in
+                        task.checkCommandLineContains(["-DSWIFT_BUNDLE_LOOKUP_HELPER_AVAILABLE"])
                     }
 
                     results.checkTasks(.matchTarget(target), body: { (tasks) -> Void in #expect(tasks.count > 0) })
@@ -268,6 +293,9 @@ fileprivate struct MergeableLibraryTests: CoreBasedTests {
                         }
                     }
 
+                    // This umbrella framework is not itself being built as mergeable, so it doesn't need a bundle helper class.
+                    results.checkNoTask(.matchTarget(target), .matchRuleType("WriteAuxiliaryFile"), .matchRuleItemBasename("bundle_lookup_helper.swift"))
+
                     results.checkTasks(.matchTarget(target), body: { (tasks) -> Void in #expect(tasks.count > 0) })
                 }
 
@@ -315,6 +343,10 @@ fileprivate struct MergeableLibraryTests: CoreBasedTests {
                         }
                     }
 
+                    // The app target should not get a generated bundle helper class.
+                    // #bundle should just use its default approach of lookup up the #dsohandle.
+                    results.checkNoTask(.matchTarget(target), .matchRuleType("WriteAuxiliaryFile"), .matchRuleItemBasename("bundle_lookup_helper.swift"))
+
                     results.checkTasks(.matchTarget(target), body: { (tasks) -> Void in #expect(tasks.count > 0) })
                 }
 
@@ -344,7 +376,7 @@ fileprivate struct MergeableLibraryTests: CoreBasedTests {
             let targets = tester.workspace.projects[0].targets.map({ BuildRequest.BuildTargetInfo(parameters: parameters, target: $0) })
             let request = BuildRequest(parameters: parameters, buildTargets: targets, continueBuildingAfterErrors: false, useParallelTargets: true, useImplicitDependencies: true, useDryRun: false)
             await tester.checkBuild(parameters, runDestination: runDestination, buildRequest: request) { results in
-                results.consumeTasksMatchingRuleTypes()
+                results.consumeTasksMatchingRuleTypes(tasksToIgnore)
 
                 // Check that the mergeable targets were built to be mergeable.
                 for targetName in ["FwkTarget1", "FwkTarget2"] {
@@ -363,6 +395,14 @@ fileprivate struct MergeableLibraryTests: CoreBasedTests {
                         // Mergeable products should not be stripped.
                         results.checkNoTask(.matchTarget(target), .matchRuleType("Strip"))
 
+                        // We need a custom bundle lookup class to support #bundle.
+                        results.checkWriteAuxiliaryFileTask(.matchTarget(target), .matchRuleType("WriteAuxiliaryFile"), .matchRuleItemBasename("bundle_lookup_helper.swift")) { task, contents in
+                            XCTAssertMatch(contents.unsafeStringValue, .contains("internal class __BundleLookupHelper {}"))
+                        }
+                        results.checkTask(.matchTarget(target), .matchRuleType("SwiftDriver Compilation")) { task in
+                            task.checkCommandLineContains(["-DSWIFT_BUNDLE_LOOKUP_HELPER_AVAILABLE"])
+                        }
+
                         results.checkTasks(.matchTarget(target), body: { (tasks) -> Void in #expect(tasks.count > 0) })
                     }
                 }
@@ -380,6 +420,14 @@ fileprivate struct MergeableLibraryTests: CoreBasedTests {
                     }
                     // Mergeable products should not be stripped.
                     results.checkNoTask(.matchTarget(target), .matchRuleType("Strip"))
+
+                    // We need a custom bundle lookup class to support #bundle.
+                    results.checkWriteAuxiliaryFileTask(.matchTarget(target), .matchRuleType("WriteAuxiliaryFile"), .matchRuleItemBasename("bundle_lookup_helper.swift")) { task, contents in
+                        XCTAssertMatch(contents.unsafeStringValue, .contains("internal class __BundleLookupHelper {}"))
+                    }
+                    results.checkTask(.matchTarget(target), .matchRuleType("SwiftDriver Compilation")) { task in
+                        task.checkCommandLineContains(["-DSWIFT_BUNDLE_LOOKUP_HELPER_AVAILABLE"])
+                    }
 
                     results.checkTasks(.matchTarget(target), body: { (tasks) -> Void in #expect(tasks.count > 0) })
                 }
@@ -411,6 +459,9 @@ fileprivate struct MergeableLibraryTests: CoreBasedTests {
                     for mergeableTargetProductName in ["FwkTarget1.framework", "FwkTarget2.framework", "libDylibTarget1.dylib"] {
                         results.checkNoTask(.matchTargetName(targetName), .matchRuleType("Copy"), .matchRuleItemBasename(mergeableTargetProductName))
                     }
+
+                    // This umbrella framework is not itself being built as mergeable, so it doesn't need a bundle helper class.
+                    results.checkNoTask(.matchTarget(target), .matchRuleType("WriteAuxiliaryFile"), .matchRuleItemBasename("bundle_lookup_helper.swift"))
 
                     results.checkTasks(.matchTarget(target), body: { (tasks) -> Void in #expect(tasks.count > 0) })
                 }
@@ -465,6 +516,10 @@ fileprivate struct MergeableLibraryTests: CoreBasedTests {
                         }
                     }
                     results.checkTask(.matchTarget(target), .matchRuleType("Strip")) { _ in }
+
+                    // The app target should not get a generated bundle helper class.
+                    // #bundle should just use its default approach of lookup up the #dsohandle.
+                    results.checkNoTask(.matchTarget(target), .matchRuleType("WriteAuxiliaryFile"), .matchRuleItemBasename("bundle_lookup_helper.swift"))
 
                     results.checkTasks(.matchTarget(target), body: { (tasks) -> Void in #expect(tasks.count > 0) })
                 }
@@ -1279,6 +1334,14 @@ fileprivate struct MergeableLibraryTests: CoreBasedTests {
         try fs.createDirectory(libXCFrameworkPath, recursive: true)
         try await XCFrameworkTestSupport.writeXCFramework(libXCFramework, fs: fs, path: libXCFrameworkPath, infoLookup: infoLookup)
 
+        let tasksToIgnore: Set<String> = [
+            "Gate",
+            "MkDir",
+            "CreateBuildDirectory",
+            "ClangStatCache",
+            "LinkAssetCatalogSignature"
+        ]
+
         // Check a debug build for iOS device, where we reexport the XCFrameworks.
         do {
             let runDestination = RunDestinationInfo.iOS
@@ -1300,7 +1363,7 @@ fileprivate struct MergeableLibraryTests: CoreBasedTests {
             let buildTargets = [BuildRequest.BuildTargetInfo(parameters: parameters, target: tester.workspace.projects[0].targets[0])]
             let request = BuildRequest(parameters: parameters, buildTargets: buildTargets, continueBuildingAfterErrors: false, useParallelTargets: true, useImplicitDependencies: true, useDryRun: false)
             await tester.checkBuild(parameters, runDestination: runDestination, buildRequest: request, fs: fs) { results in
-                results.consumeTasksMatchingRuleTypes()
+                results.consumeTasksMatchingRuleTypes(tasksToIgnore)
 
                 results.checkTask(.matchRuleType("ProcessXCFramework"), .matchRuleItemBasename("\(fwkBaseName).xcframework")) { task in
                     task.checkCommandLine(["builtin-process-xcframework", "--xcframework", "\(SRCROOT)/\(fwkBaseName).xcframework", "--platform", "ios", "--target-path", "\(BUILT_PRODUCTS_DIR)"])
@@ -1371,6 +1434,9 @@ fileprivate struct MergeableLibraryTests: CoreBasedTests {
 
                     results.checkNoDiagnostics()
                 }
+
+                // We shouldn't be generating a bundle lookup class for #bundle since the framework/dylib itself is not actually being built here.
+                results.checkNoTask(.matchRuleType("WriteAuxiliaryFile"), .matchRuleItemBasename("bundle_lookup_helper.swift"))
             }
         }
 
@@ -1395,7 +1461,7 @@ fileprivate struct MergeableLibraryTests: CoreBasedTests {
             let buildTargets = [BuildRequest.BuildTargetInfo(parameters: parameters, target: tester.workspace.projects[0].targets[0])]
             let request = BuildRequest(parameters: parameters, buildTargets: buildTargets, continueBuildingAfterErrors: false, useParallelTargets: true, useImplicitDependencies: true, useDryRun: false)
             await tester.checkBuild(parameters, runDestination: runDestination, buildRequest: request, fs: fs) { results in
-                results.consumeTasksMatchingRuleTypes()
+                results.consumeTasksMatchingRuleTypes(tasksToIgnore)
 
                 results.checkTask(.matchRuleType("ProcessXCFramework"), .matchRuleItemBasename("\(fwkBaseName).xcframework")) { task in
                     task.checkCommandLine(["builtin-process-xcframework", "--xcframework", "\(SRCROOT)/\(fwkBaseName).xcframework", "--platform", "ios", "--environment", "simulator", "--target-path", "\(BUILT_PRODUCTS_DIR)"])
@@ -1449,6 +1515,8 @@ fileprivate struct MergeableLibraryTests: CoreBasedTests {
 
                     results.checkNoDiagnostics()
                 }
+
+                results.checkNoTask(.matchRuleType("WriteAuxiliaryFile"), .matchRuleItemBasename("bundle_lookup_helper.swift"))
             }
         }
 
@@ -1474,7 +1542,7 @@ fileprivate struct MergeableLibraryTests: CoreBasedTests {
             let buildTargets = [BuildRequest.BuildTargetInfo(parameters: parameters, target: tester.workspace.projects[0].targets[0])]
             let request = BuildRequest(parameters: parameters, buildTargets: buildTargets, continueBuildingAfterErrors: false, useParallelTargets: true, useImplicitDependencies: true, useDryRun: false)
             await tester.checkBuild(parameters, runDestination: runDestination, buildRequest: request, fs: fs) { results in
-                results.consumeTasksMatchingRuleTypes()
+                results.consumeTasksMatchingRuleTypes(tasksToIgnore)
 
                 results.checkTask(.matchRuleType("ProcessXCFramework"), .matchRuleItemBasename("\(fwkBaseName).xcframework")) { task in
                     task.checkCommandLine(["builtin-process-xcframework", "--xcframework", "\(SRCROOT)/\(fwkBaseName).xcframework", "--platform", "ios", "--target-path", "\(BUILT_PRODUCTS_DIR)"])
@@ -1519,6 +1587,8 @@ fileprivate struct MergeableLibraryTests: CoreBasedTests {
 
                     results.checkNoDiagnostics()
                 }
+
+                results.checkNoTask(.matchRuleType("WriteAuxiliaryFile"), .matchRuleItemBasename("bundle_lookup_helper.swift"))
             }
         }
 
@@ -1545,7 +1615,7 @@ fileprivate struct MergeableLibraryTests: CoreBasedTests {
             let buildTargets = [BuildRequest.BuildTargetInfo(parameters: parameters, target: tester.workspace.projects[0].targets[0])]
             let request = BuildRequest(parameters: parameters, buildTargets: buildTargets, continueBuildingAfterErrors: false, useParallelTargets: true, useImplicitDependencies: true, useDryRun: false)
             await tester.checkBuild(parameters, runDestination: runDestination, buildRequest: request, fs: fs) { results in
-                results.consumeTasksMatchingRuleTypes()
+                results.consumeTasksMatchingRuleTypes(tasksToIgnore)
 
                 results.checkTask(.matchRuleType("ProcessXCFramework"), .matchRuleItemBasename("\(fwkBaseName).xcframework")) { task in
                     task.checkCommandLine(["builtin-process-xcframework", "--xcframework", "\(SRCROOT)/\(fwkBaseName).xcframework", "--platform", "ios", "--target-path", "\(BUILT_PRODUCTS_DIR)"])
@@ -1598,6 +1668,8 @@ fileprivate struct MergeableLibraryTests: CoreBasedTests {
 
                     results.checkNoDiagnostics()
                 }
+
+                results.checkNoTask(.matchRuleType("WriteAuxiliaryFile"), .matchRuleItemBasename("bundle_lookup_helper.swift"))
             }
         }
 
@@ -1675,6 +1747,8 @@ fileprivate struct MergeableLibraryTests: CoreBasedTests {
 
                     results.checkNoDiagnostics()
                 }
+
+                results.checkNoTask(.matchRuleType("WriteAuxiliaryFile"), .matchRuleItemBasename("bundle_lookup_helper.swift"))
             }
         }
     }
@@ -2018,6 +2092,14 @@ fileprivate struct MergeableLibraryTests: CoreBasedTests {
         let core = try await getCore()
         let tester = try TaskConstructionTester(core, testProject)
 
+        let tasksToIgnore: Set<String> = [
+            "Gate",
+            "MkDir",
+            "CreateBuildDirectory",
+            "ClangStatCache",
+            "LinkAssetCatalogSignature"
+        ]
+
         // Test a debug build.  This will reexport the mergeable framework and not the normal framework.
         do {
             let buildType = "Debug"
@@ -2034,10 +2116,11 @@ fileprivate struct MergeableLibraryTests: CoreBasedTests {
             let targets = tester.workspace.projects[0].targets.map({ BuildRequest.BuildTargetInfo(parameters: parameters, target: $0) })
             let request = BuildRequest(parameters: parameters, buildTargets: targets, continueBuildingAfterErrors: false, useParallelTargets: true, useImplicitDependencies: true, useDryRun: false)
             await tester.checkBuild(parameters, runDestination: .iOS, buildRequest: request) { results in
-                results.consumeTasksMatchingRuleTypes()
+                results.consumeTasksMatchingRuleTypes(tasksToIgnore)
 
                 // Check that the framework targets were *not* build to be mergeable.
                 for targetName in ["MergeableFwkTarget", "NormalFwkTarget"] {
+                    let isMergeableFramework = targetName == "MergeableFwkTarget"
                     results.checkTarget(targetName) { target in
                         results.checkTask(.matchTarget(target), .matchRuleType("Ld")) { task in
                             task.checkRuleInfo(["Ld", "\(SYMROOT)/Config-iphoneos/\(targetName).framework/\(targetName)", "normal"])
@@ -2048,6 +2131,18 @@ fileprivate struct MergeableLibraryTests: CoreBasedTests {
                             task.checkCommandLineDoesNotContain("-make_mergeable")      // Not passed in debug builds
                         }
                         results.checkTask(.matchTarget(target), .matchRuleType("GenerateTAPI")) { _ in }
+
+                        // Even though we aren't building to be mergeable, the re-exporting dance still means we need our custom bundle lookup class.
+                        if isMergeableFramework {
+                            results.checkWriteAuxiliaryFileTask(.matchTarget(target), .matchRuleType("WriteAuxiliaryFile"), .matchRuleItemBasename("bundle_lookup_helper.swift")) { task, contents in
+                                XCTAssertMatch(contents.unsafeStringValue, .contains("internal class __BundleLookupHelper {}"))
+                            }
+                            results.checkTask(.matchTarget(target), .matchRuleType("SwiftDriver Compilation")) { task in
+                                task.checkCommandLineContains(["-DSWIFT_BUNDLE_LOOKUP_HELPER_AVAILABLE"])
+                            }
+                        } else {
+                            results.checkNoTask(.matchTarget(target), .matchRuleType("WriteAuxiliaryFile"), .matchRuleItemBasename("bundle_lookup_helper.swift"))
+                        }
 
                         results.checkTasks(.matchTarget(target), body: { (tasks) -> Void in #expect(tasks.count > 0) })
                     }
@@ -2119,6 +2214,8 @@ fileprivate struct MergeableLibraryTests: CoreBasedTests {
                         }
                     }
 
+                    results.checkNoTask(.matchTarget(target), .matchRuleType("WriteAuxiliaryFile"), .matchRuleItemBasename("bundle_lookup_helper.swift"))
+
                     results.checkTasks(.matchTarget(target), body: { (tasks) -> Void in #expect(tasks.count > 0) })
                 }
 
@@ -2147,9 +2244,9 @@ fileprivate struct MergeableLibraryTests: CoreBasedTests {
             let targets = tester.workspace.projects[0].targets.map({ BuildRequest.BuildTargetInfo(parameters: parameters, target: $0) })
             let request = BuildRequest(parameters: parameters, buildTargets: targets, continueBuildingAfterErrors: false, useParallelTargets: true, useImplicitDependencies: true, useDryRun: false)
             await tester.checkBuild(parameters, runDestination: .iOS, buildRequest: request) { results in
-                results.consumeTasksMatchingRuleTypes()
+                results.consumeTasksMatchingRuleTypes(tasksToIgnore)
 
-                // Check that the mergeable targets were *not* built to be mergeable.
+                // Check that the mergeable target were built to be mergeable, and the normal one was not.
                 results.checkTarget("MergeableFwkTarget") { target in
                     let targetName = target.target.name
                     results.checkTask(.matchTarget(target), .matchRuleType("Ld")) { task in
@@ -2164,6 +2261,13 @@ fileprivate struct MergeableLibraryTests: CoreBasedTests {
                     results.checkNoTask(.matchTarget(target), .matchRuleType("GenerateTAPI"))
                     // Mergeable products should not be stripped.
                     results.checkNoTask(.matchTarget(target), .matchRuleType("Strip"))
+
+                    results.checkWriteAuxiliaryFileTask(.matchTarget(target), .matchRuleType("WriteAuxiliaryFile"), .matchRuleItemBasename("bundle_lookup_helper.swift")) { task, contents in
+                        XCTAssertMatch(contents.unsafeStringValue, .contains("internal class __BundleLookupHelper {}"))
+                    }
+                    results.checkTask(.matchTarget(target), .matchRuleType("SwiftDriver Compilation")) { task in
+                        task.checkCommandLineContains(["-DSWIFT_BUNDLE_LOOKUP_HELPER_AVAILABLE"])
+                    }
 
                     results.checkTasks(.matchTarget(target), body: { (tasks) -> Void in #expect(tasks.count > 0) })
                 }
@@ -2180,6 +2284,8 @@ fileprivate struct MergeableLibraryTests: CoreBasedTests {
                     // Check tasks are being run for this normal framework target.
                     results.checkTask(.matchTarget(target), .matchRuleType("GenerateTAPI")) { _ in }
                     results.checkTask(.matchTarget(target), .matchRuleType("Strip")) { _ in }
+
+                    results.checkNoTask(.matchTarget(target), .matchRuleType("WriteAuxiliaryFile"), .matchRuleItemBasename("bundle_lookup_helper.swift"))
 
                     results.checkTasks(.matchTarget(target), body: { (tasks) -> Void in #expect(tasks.count > 0) })
                 }
@@ -2233,6 +2339,8 @@ fileprivate struct MergeableLibraryTests: CoreBasedTests {
                     }
 
                     results.checkTask(.matchTarget(target), .matchRuleType("Strip")) { _ in }
+
+                    results.checkNoTask(.matchTarget(target), .matchRuleType("WriteAuxiliaryFile"), .matchRuleItemBasename("bundle_lookup_helper.swift"))
 
                     results.checkTasks(.matchTarget(target), body: { (tasks) -> Void in #expect(tasks.count > 0) })
                 }
@@ -2445,7 +2553,7 @@ fileprivate struct MergeableLibraryTests: CoreBasedTests {
                     ]),
             ],
             targets: [
-                // App target, which automatically builds its dependencies and mergeable and then merges them.
+                // App target, which automatically builds its dependencies as mergeable and then merges them.
                 TestStandardTarget(
                     "AppTarget",
                     type: .application,
@@ -2504,6 +2612,14 @@ fileprivate struct MergeableLibraryTests: CoreBasedTests {
         let core = try await getCore()
         let tester = try TaskConstructionTester(core, testProject)
 
+        let tasksToIgnore: Set<String> = [
+            "Gate",
+            "MkDir",
+            "CreateBuildDirectory",
+            "ClangStatCache",
+            "LinkAssetCatalogSignature"
+        ]
+
         // Test a release build.
         do {
             let buildType = "Release"
@@ -2523,7 +2639,7 @@ fileprivate struct MergeableLibraryTests: CoreBasedTests {
             let targets = [BuildRequest.BuildTargetInfo(parameters: parameters, target: tester.workspace.projects[0].targets[0])]
             let request = BuildRequest(parameters: parameters, buildTargets: targets, continueBuildingAfterErrors: false, useParallelTargets: true, useImplicitDependencies: true, useDryRun: false)
             await tester.checkBuild(parameters, runDestination: .iOS, buildRequest: request) { results in
-                results.consumeTasksMatchingRuleTypes()
+                results.consumeTasksMatchingRuleTypes(tasksToIgnore)
 
                 // Check the normal framework target.
                 results.checkTarget("NormalFwkTarget") { target in
@@ -2537,6 +2653,8 @@ fileprivate struct MergeableLibraryTests: CoreBasedTests {
                         ].reduce([], +))
                         task.checkCommandLineDoesNotContain("-make_mergeable")
                     }
+
+                    results.checkNoTask(.matchTarget(target), .matchRuleType("WriteAuxiliaryFile"), .matchRuleItemBasename("bundle_lookup_helper.swift"))
 
                     results.checkTasks(.matchTarget(target), body: { (tasks) -> Void in #expect(tasks.count > 0) })
                 }
@@ -2553,6 +2671,13 @@ fileprivate struct MergeableLibraryTests: CoreBasedTests {
                             ["-framework", "NormalFwkTarget"],
                             ["-o", "\(DSTROOT)\(INSTALL_PATH)/\(FULL_PRODUCT_NAME)/\(targetName)"],
                         ].reduce([], +))
+                    }
+
+                    results.checkWriteAuxiliaryFileTask(.matchTarget(target), .matchRuleType("WriteAuxiliaryFile"), .matchRuleItemBasename("bundle_lookup_helper.swift")) { task, contents in
+                        XCTAssertMatch(contents.unsafeStringValue, .contains("internal class __BundleLookupHelper {}"))
+                    }
+                    results.checkTask(.matchTarget(target), .matchRuleType("SwiftDriver Compilation")) { task in
+                        task.checkCommandLineContains(["-DSWIFT_BUNDLE_LOOKUP_HELPER_AVAILABLE"])
                     }
 
                     results.checkTasks(.matchTarget(target), body: { (tasks) -> Void in #expect(tasks.count > 0) })
