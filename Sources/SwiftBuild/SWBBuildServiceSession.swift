@@ -279,11 +279,21 @@ public final class SWBBuildServiceSession: Sendable {
         var targetInfos = [String: SWBLocalizationTargetInfo]()
         for payload in msg.targetInfos {
             let xcstrings = payload.compilableXCStringsPaths.map { $0.normalize().str }
+
             var stringsdata = [SWBLocalizationBuildPortion: Set<String>]()
             for (buildPortion, paths) in payload.producedStringsdataPaths {
                 stringsdata[SWBLocalizationBuildPortion(effectivePlatformName: buildPortion.effectivePlatformName, variant: buildPortion.variant, architecture: buildPortion.architecture)] = Set(paths.map({ $0.normalize().str }))
             }
-            targetInfos[payload.targetIdentifier] = SWBLocalizationTargetInfo(compilableXCStringsPaths: Set(xcstrings), stringsdataPathsByBuildPortion: stringsdata)
+
+            var swbTargetInfo = SWBLocalizationTargetInfo(compilableXCStringsPaths: Set(xcstrings), stringsdataPathsByBuildPortion: stringsdata, effectivePlatformName: payload.effectivePlatformName)
+
+            var generatedFiles = [String: Set<String>]()
+            for (xcstringsPath, generatedPaths) in payload.generatedSymbolFilesByXCStringsPath {
+                generatedFiles[xcstringsPath.normalize().str] = Set(generatedPaths.map({ $0.normalize().str }))
+            }
+            swbTargetInfo.generatedSymbolFilesByXCStringsPath = generatedFiles
+
+            targetInfos[payload.targetIdentifier] = swbTargetInfo
         }
 
         return SWBLocalizationInfo(infoByTarget: targetInfos)

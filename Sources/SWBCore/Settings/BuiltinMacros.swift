@@ -979,6 +979,7 @@ public final class BuiltinMacros {
     public static let SHALLOW_BUNDLE = BuiltinMacros.declareBooleanMacro("SHALLOW_BUNDLE")
     public static let SHARED_FRAMEWORKS_FOLDER_PATH = BuiltinMacros.declarePathMacro("SHARED_FRAMEWORKS_FOLDER_PATH")
     public static let SHARED_SUPPORT_FOLDER_PATH = BuiltinMacros.declarePathMacro("SHARED_SUPPORT_FOLDER_PATH")
+    public static let STRING_CATALOG_GENERATE_SYMBOLS = BuiltinMacros.declareBooleanMacro("STRING_CATALOG_GENERATE_SYMBOLS")
     public static let STRINGS_FILE_INPUT_ENCODING = BuiltinMacros.declareStringMacro("STRINGS_FILE_INPUT_ENCODING")
     public static let STRINGS_FILE_OUTPUT_ENCODING = BuiltinMacros.declareStringMacro("STRINGS_FILE_OUTPUT_ENCODING")
     public static let STRINGS_FILE_OUTPUT_FILENAME = BuiltinMacros.declareStringMacro("STRINGS_FILE_OUTPUT_FILENAME")
@@ -2133,6 +2134,7 @@ public final class BuiltinMacros {
         SOURCE_ROOT,
         SPECIALIZATION_SDK_OPTIONS,
         SRCROOT,
+        STRING_CATALOG_GENERATE_SYMBOLS,
         STRINGSDATA_DIR,
         STRINGS_FILE_INPUT_ENCODING,
         STRINGS_FILE_OUTPUT_ENCODING,

@@ -4153,6 +4153,7 @@ private class SettingsBuilder {
         if let project, project.isPackage, project.developmentRegion != nil {
             table.push(BuiltinMacros.LOCALIZATION_EXPORT_SUPPORTED, literal: true)
             table.push(BuiltinMacros.SWIFT_EMIT_LOC_STRINGS, literal: true)
+            table.push(BuiltinMacros.STRING_CATALOG_GENERATE_SYMBOLS, literal: true)
         }
 
         return table

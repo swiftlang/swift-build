@@ -1163,12 +1163,21 @@ public struct TaskGenerateLocalizationInfoOutput {
     /// Paths to .stringsdata files produced by this task, grouped by build attributes such as platform and architecture.
     public let producedStringsdataPaths: [LocalizationBuildPortion: [Path]]
 
+    /// The name of the primary platform we were building for.
+    ///
+    /// Mac Catalyst is treated as its own platform.
+    public var effectivePlatformName: String?
+
+    /// Paths to generated source code files holding string symbols, keyed by xcstrings file path.
+    public var generatedSymbolFilesByXCStringsPath = [Path: [Path]]()
+
     /// Create output to describe some portion of localization info for a Task.
     ///
     /// - Parameters:
     ///   - compilableXCStringsPaths: Paths to input source .xcstrings files.
     ///   - producedStringsdataPaths: Paths to output .stringsdata files.
-    public init(compilableXCStringsPaths: [Path] = [], producedStringsdataPaths: [LocalizationBuildPortion: [Path]] = [:]) {
+    public init(compilableXCStringsPaths: [Path] = [],
+                producedStringsdataPaths: [LocalizationBuildPortion: [Path]] = [:]) {
         self.compilableXCStringsPaths = compilableXCStringsPaths
         self.producedStringsdataPaths = producedStringsdataPaths
     }
