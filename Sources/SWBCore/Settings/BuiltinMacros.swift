@@ -420,6 +420,7 @@ public final class BuiltinMacros {
 
     // MARK: Mergeable libraries macros
 
+    public static let ADD_MERGEABLE_DEBUG_HOOK = BuiltinMacros.declareBooleanMacro("ADD_MERGEABLE_DEBUG_HOOK")
     public static let AUTOMATICALLY_MERGE_DEPENDENCIES = BuiltinMacros.declareBooleanMacro("AUTOMATICALLY_MERGE_DEPENDENCIES")
     public static let MERGEABLE_LIBRARY = BuiltinMacros.declareBooleanMacro("MERGEABLE_LIBRARY")
     public static let DONT_EMBED_REEXPORTED_MERGEABLE_LIBRARIES = BuiltinMacros.declareBooleanMacro("DONT_EMBED_REEXPORTED_MERGEABLE_LIBRARIES")
@@ -1371,6 +1372,7 @@ public final class BuiltinMacros {
         ADDITIONAL_SDK_DIRS,
         AD_HOC_CODE_SIGNING_ALLOWED,
         __AD_HOC_CODE_SIGNING_NOT_ALLOWED_SUPPLEMENTAL_MESSAGE,
+        ADD_MERGEABLE_DEBUG_HOOK,
         AGGREGATE_TRACKED_DOMAINS,
         ALLOW_BUILD_REQUEST_OVERRIDES,
         ALLOW_DISJOINTED_DIRECTORIES_AS_DEPENDENCIES,
