@@ -2162,11 +2162,6 @@ public final class SwiftCompilerSpec : CompilerSpec, SpecIdentifierType, SwiftDi
                 return (inputs, outputs)
             }()
 
-            if cbc.scope.evaluate(BuiltinMacros.PLATFORM_REQUIRES_SWIFT_MODULEWRAP) && cbc.scope.evaluate(BuiltinMacros.GCC_GENERATE_DEBUGGING_SYMBOLS) {
-                let moduleWrapOutput = Path(moduleFilePath.withoutSuffix + ".o")
-                moduleOutputPaths.append(moduleWrapOutput)
-            }
-
             // Add const metadata outputs to extra compilation outputs
             if await supportConstSupplementaryMetadata(cbc, delegate, compilationMode: compilationMode) {
                 // If using whole module optimization then we use the -primary.swiftconstvalues file from the sole compilation task.
@@ -2254,6 +2249,7 @@ public final class SwiftCompilerSpec : CompilerSpec, SpecIdentifierType, SwiftDi
                 return nil
             }()
 
+            let emittingModuleSeparately: Bool
             if eagerCompilationEnabled(args: args, scope: cbc.scope, compilationMode: compilationMode, isUsingWholeModuleOptimization: isUsingWholeModuleOptimization) {
                 if isUsingWholeModuleOptimization {
                     args += ["-emit-module-separately-wmo"]
@@ -2262,8 +2258,24 @@ public final class SwiftCompilerSpec : CompilerSpec, SpecIdentifierType, SwiftDi
                 }
                 // Cross-module optimization is not supported when emitting the swiftmodule separately.
                 args += ["-disable-cmo"]
+                emittingModuleSeparately = true
             } else if isUsingWholeModuleOptimization && !usingLegacyDriver {
                 args += ["-no-emit-module-separately-wmo"]
+                emittingModuleSeparately = false
+            } else {
+                // Conservatively assume we're not emitting a module separately in the fallback case.
+                emittingModuleSeparately = false
+            }
+
+            // Conditions which all must be met to enable module wrapping:
+            // 1. The platform must require it
+            // 2. We must be compiling with debug info
+            // 3. We must be emitting a module separately
+            if cbc.scope.evaluate(BuiltinMacros.PLATFORM_REQUIRES_SWIFT_MODULEWRAP) &&
+                cbc.scope.evaluate(BuiltinMacros.GCC_GENERATE_DEBUGGING_SYMBOLS) &&
+                emittingModuleSeparately {
+                let moduleWrapOutput = Path(moduleFilePath.withoutSuffix + ".o")
+                moduleOutputPaths.append(moduleWrapOutput)
             }
 
             // The rule info.
