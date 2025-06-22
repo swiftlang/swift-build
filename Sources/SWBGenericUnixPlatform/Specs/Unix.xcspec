@@ -35,6 +35,9 @@
             SWIFT_INDEX_STORE_ENABLE = YES;
             // Testability is needed to generate code to invoke discovered XCTest tests
             SWIFT_ENABLE_TESTABILITY = YES;
+            EXECUTABLE_SUFFIX = ".$(EXECUTABLE_EXTENSION)";
+            EXECUTABLE_EXTENSION = "so";
+            LD_DYLIB_INSTALL_NAME = "$(EXECUTABLE_PATH)";
         };
     },
 
