@@ -764,15 +764,6 @@ public final class Settings: PlatformBuildContext, Sendable {
             (scope.evaluate(BuiltinMacros.IS_ZIPPERED) && scope.evaluate(BuiltinMacros.INDEX_ENABLE_BUILD_ARENA))
     }
 
-    public static func supportsCompilationCaching(_ core: Core) -> Bool {
-        @preconcurrency @PluginExtensionSystemActor func featureAvailabilityExtensions() -> [any FeatureAvailabilityExtensionPoint.ExtensionProtocol] {
-            core.pluginManager.extensions(of: FeatureAvailabilityExtensionPoint.self)
-        }
-        return featureAvailabilityExtensions().contains {
-            $0.supportsCompilationCaching
-        }
-    }
-
     public var enableTargetPlatformSpecialization: Bool {
         return Settings.targetPlatformSpecializationEnabled(scope: globalScope)
     }
@@ -4274,17 +4265,20 @@ private class SettingsBuilder {
         }
 
         let toolchainPath = Path(scope.evaluateAsString(BuiltinMacros.TOOLCHAIN_DIR))
-        guard let toolchain = core.toolchainRegistry.toolchains.first(where: { $0.path == toolchainPath }) else {
+        guard let toolchain = core.toolchainRegistry.toolchains.first(where: { $0.path == toolchainPath }),
+              let defaultToolchain = core.toolchainRegistry.defaultToolchain
+        else {
             return []
         }
 
         enum ToolchainStyle {
-            case xcodeDefault
+            case xcode(isDefault: Bool)
             case other
 
             init(_ toolchain: Toolchain) {
-                if toolchain.identifier == ToolchainRegistry.defaultToolchainIdentifier {
-                    self = .xcodeDefault
+                if toolchain.identifier.hasPrefix(ToolchainRegistry.appleToolchainIdentifierPrefix) {
+                    let isDefault = toolchain.identifier == ToolchainRegistry.defaultToolchainIdentifier
+                    self = .xcode(isDefault: isDefault)
                 } else {
                     self = .other
                 }
@@ -4293,11 +4287,12 @@ private class SettingsBuilder {
 
         let testingPluginsPath = "/usr/lib/swift/host/plugins/testing"
         switch (ToolchainStyle(toolchain)) {
-        case .xcodeDefault:
-            // This target is building using the same toolchain as the one used
-            // to build the testing libraries which it is using, so it can use
-            // non-external plugin flags.
-            return ["-plugin-path", "$(TOOLCHAIN_DIR)\(testingPluginsPath)"]
+        case let .xcode(isDefault):
+            // This target is using a built-in Xcode toolchain, and that should
+            // match the toolchain which was used to build the testing libraries
+            // this target is using, so it can use non-external plugin flags.
+            let toolchainPathPrefix = isDefault ? "$(TOOLCHAIN_DIR)" : defaultToolchain.path.str
+            return ["-plugin-path", "\(toolchainPathPrefix)\(testingPluginsPath)"]
         case .other:
             // This target is using the testing libraries from Xcode,
             // which were built using the XcodeDefault toolchain, but it's using
@@ -5308,6 +5303,10 @@ extension OperatingSystem {
                 return "windows"
             case .linux:
                 return "linux"
+            case .freebsd:
+                return "freebsd"
+            case .openbsd:
+                return "openbsd"
             case .android:
                 return "android"
             case .unknown:
@@ -5329,6 +5328,26 @@ extension MacroEvaluationScope {
             return nil
         case (false, false):
             return nil
+        }
+    }
+}
+
+extension Settings {
+    public struct ModuleDependencyInfo {
+        let name: String
+        let isPublic: Bool
+    }
+
+    public var moduleDependencies: [ModuleDependencyInfo] {
+        self.globalScope.evaluate(BuiltinMacros.MODULE_DEPENDENCIES).compactMap {
+            let components = $0.components(separatedBy: " ")
+            guard let name = components.last else {
+                return nil
+            }
+            return ModuleDependencyInfo(
+                name: name,
+                isPublic: components.count > 1 && components.first == "public"
+            )
         }
     }
 }

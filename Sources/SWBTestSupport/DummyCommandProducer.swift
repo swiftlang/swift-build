@@ -229,10 +229,6 @@ package struct MockCommandProducer: CommandProducer, Sendable {
         false
     }
 
-    package var supportsCompilationCaching: Bool {
-        false
-    }
-
     package var systemInfo: SystemInfo? {
         return nil
     }

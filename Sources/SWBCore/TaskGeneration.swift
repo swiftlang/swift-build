@@ -264,8 +264,6 @@ public protocol CommandProducer: PlatformBuildContext, SpecLookupContext, Refere
 
     var targetShouldBuildModuleForInstallAPI: Bool { get }
 
-    var supportsCompilationCaching: Bool { get }
-
     func lookupLibclang(path: Path) -> (libclang: Libclang?, version: Version?)
 
     var userPreferences: UserPreferences { get }

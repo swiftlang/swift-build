@@ -243,14 +243,6 @@ extension CoreBasedTests {
         }
     }
 
-    /// If compilation caching is supported.
-    package var supportsCompilationCaching: Bool {
-        get async throws {
-            let core = try await getCore()
-            return Settings.supportsCompilationCaching(core)
-        }
-    }
-
     package var supportsSDKImports: Bool {
         get async throws {
             #if os(macOS)

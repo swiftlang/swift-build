@@ -14,6 +14,7 @@ import Foundation
 import Testing
 @_spi(Testing) import SWBUtil
 import Synchronization
+import SWBTestSupport
 
 @Suite
 fileprivate struct HeavyCacheTests {
@@ -105,7 +106,7 @@ fileprivate struct HeavyCacheTests {
     }
 
     /// Check initial TTL.
-    @Test
+    @Test(.skipHostOS(.freebsd, "Currently hangs on FreeBSD"))
     func TTL_initial() async throws {
         let fudgeFactor = 10.0
         let ttl = Duration.seconds(0.01)
@@ -124,7 +125,7 @@ fileprivate struct HeavyCacheTests {
     }
 
     /// Check TTL set after the fact.
-    @Test
+    @Test(.skipHostOS(.freebsd, "Currently hangs on FreeBSD"))
     func TTL_after() async throws {
         let fudgeFactor = 10.0
         let ttl = Duration.seconds(0.01)

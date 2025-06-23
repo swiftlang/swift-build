@@ -21,5 +21,4 @@ public struct FeatureAvailabilityExtensionPoint: ExtensionPoint {
 }
 
 public protocol FeatureAvailabilityExtension: Sendable {
-    var supportsCompilationCaching: Bool { get }
 }

@@ -750,6 +750,7 @@ public final class BuiltinMacros {
     public static let INDEX_PREPARED_TARGET_MARKER_PATH = BuiltinMacros.declareStringMacro("INDEX_PREPARED_TARGET_MARKER_PATH")
     public static let INDEX_REGULAR_BUILD_PRODUCTS_DIR = BuiltinMacros.declareStringMacro("INDEX_REGULAR_BUILD_PRODUCTS_DIR")
     public static let INDEX_REGULAR_BUILD_INTERMEDIATES_DIR = BuiltinMacros.declareStringMacro("INDEX_REGULAR_BUILD_INTERMEDIATES_DIR")
+    public static let INDEX_STORE_LIBRARY_PATH = BuiltinMacros.declarePathMacro("INDEX_STORE_LIBRARY_PATH")
     public static let INFOPLIST_ENFORCE_MINIMUM_OS = BuiltinMacros.declareBooleanMacro("INFOPLIST_ENFORCE_MINIMUM_OS")
     public static let INFOPLIST_EXPAND_BUILD_SETTINGS = BuiltinMacros.declareBooleanMacro("INFOPLIST_EXPAND_BUILD_SETTINGS")
     public static let INFOPLIST_FILE = BuiltinMacros.declarePathMacro("INFOPLIST_FILE")
@@ -805,6 +806,7 @@ public final class BuiltinMacros {
     public static let LD_DEPENDENCY_INFO_FILE = BuiltinMacros.declarePathMacro("LD_DEPENDENCY_INFO_FILE")
     public static let LD_DYLIB_INSTALL_NAME = BuiltinMacros.declareStringMacro("LD_DYLIB_INSTALL_NAME")
     public static let LD_ENTRY_POINT = BuiltinMacros.declareStringMacro("LD_ENTRY_POINT")
+    public static let LD_EXPORT_SYMBOLS = BuiltinMacros.declareBooleanMacro("LD_EXPORT_SYMBOLS")
     public static let LD_EXPORT_GLOBAL_SYMBOLS = BuiltinMacros.declareBooleanMacro("LD_EXPORT_GLOBAL_SYMBOLS")
     public static let LD_LTO_OBJECT_FILE = BuiltinMacros.declarePathMacro("LD_LTO_OBJECT_FILE")
     public static let LD_NO_PIE = BuiltinMacros.declareBooleanMacro("LD_NO_PIE")
@@ -865,6 +867,7 @@ public final class BuiltinMacros {
     public static let MODULEMAP_PATH = BuiltinMacros.declareStringMacro("MODULEMAP_PATH")
     public static let MODULEMAP_PRIVATE_FILE = BuiltinMacros.declareStringMacro("MODULEMAP_PRIVATE_FILE")
     public static let MODULES_FOLDER_PATH = BuiltinMacros.declarePathMacro("MODULES_FOLDER_PATH")
+    public static let MODULE_DEPENDENCIES = BuiltinMacros.declareStringListMacro("MODULE_DEPENDENCIES")
     public static let MODULE_VERIFIER_KIND = BuiltinMacros.declareEnumMacro("MODULE_VERIFIER_KIND") as EnumMacroDeclaration<ModuleVerifierKind>
     public static let MODULE_VERIFIER_LSV = BuiltinMacros.declareBooleanMacro("MODULE_VERIFIER_LSV")
     public static let MODULE_VERIFIER_SUPPORTED_LANGUAGES = BuiltinMacros.declareStringListMacro("MODULE_VERIFIER_SUPPORTED_LANGUAGES")
@@ -1797,6 +1800,7 @@ public final class BuiltinMacros {
         INDEX_PREPARED_TARGET_MARKER_PATH,
         INDEX_REGULAR_BUILD_PRODUCTS_DIR,
         INDEX_REGULAR_BUILD_INTERMEDIATES_DIR,
+        INDEX_STORE_LIBRARY_PATH,
         INDEX_ENABLE_DATA_STORE,
         INDEX_PRECOMPS_DIR,
         INFOPLIST_ENFORCE_MINIMUM_OS,
@@ -1872,6 +1876,7 @@ public final class BuiltinMacros {
         LD_ENTRY_POINT,
         LD_ENTITLEMENTS_SECTION,
         LD_ENTITLEMENTS_SECTION_DER,
+        LD_EXPORT_SYMBOLS,
         LD_EXPORT_GLOBAL_SYMBOLS,
         LD_LTO_OBJECT_FILE,
         LD_NO_PIE,
@@ -1947,6 +1952,7 @@ public final class BuiltinMacros {
         MODULEMAP_PRIVATE_FILE,
         MODULES_FOLDER_PATH,
         MODULE_CACHE_DIR,
+        MODULE_DEPENDENCIES,
         MODULE_NAME,
         MODULE_START,
         MODULE_STOP,

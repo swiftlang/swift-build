@@ -12,6 +12,7 @@
 
 public import SWBUtil
 import SWBMacro
+internal import Foundation
 
 /// A completely resolved graph of configured targets for use in a build.
 public struct TargetLinkageGraph: TargetGraph {
@@ -79,11 +80,15 @@ actor LinkageDependencyResolver {
     /// Sets of targets mapped by product name stem.
     private let targetsByProductNameStem: [String: Set<StandardTarget>]
 
+    /// Sets of targets mapped by module name (computed using parameters from the build request).
+    private let targetsByUnconfiguredModuleName: [String: Set<StandardTarget>]
+
     internal let resolver: DependencyResolver
 
     init(workspaceContext: WorkspaceContext, buildRequest: BuildRequest, buildRequestContext: BuildRequestContext, delegate: any TargetDependencyResolverDelegate) {
         var targetsByProductName = [String: Set<StandardTarget>]()
         var targetsByProductNameStem = [String: Set<StandardTarget>]()
+        var targetsByUnconfiguredModuleName = [String: Set<StandardTarget>]()
         for case let target as StandardTarget in workspaceContext.workspace.allTargets {
             // FIXME: We are relying on the product reference name being constant here. This is currently true, given how our path resolver works, but it is possible to construct an Xcode project for which this doesn't work (Xcode doesn't, however, handle that situation very well). We should resolve this: <rdar://problem/29410050> Swift Build doesn't support product references with non-constant basenames
 
@@ -95,11 +100,17 @@ actor LinkageDependencyResolver {
             if let stem = Path(productName).stem, stem != productName {
                 targetsByProductNameStem[stem, default: []].insert(target)
             }
+
+            let moduleName = buildRequestContext.getCachedSettings(buildRequest.parameters, target: target).globalScope.evaluate(BuiltinMacros.PRODUCT_MODULE_NAME)
+            if !moduleName.isEmpty {
+                targetsByUnconfiguredModuleName[moduleName, default: []].insert(target)
+            }
         }
 
         // Remember the mappings we created.
         self.targetsByProductName = targetsByProductName
         self.targetsByProductNameStem = targetsByProductNameStem
+        self.targetsByUnconfiguredModuleName = targetsByUnconfiguredModuleName
 
         resolver = DependencyResolver(workspaceContext: workspaceContext, buildRequest: buildRequest, buildRequestContext: buildRequestContext, delegate: delegate)
     }
@@ -333,7 +344,7 @@ actor LinkageDependencyResolver {
 
                 // Skip this flag if its corresponding product name is the same as the product of one of our explicit dependencies.  This effectively matches the flag to an explicit dependency.
                 if !productNamesOfExplicitDependencies.contains(productName), let implicitDependency = await implicitDependency(forProductName: productName, from: configuredTarget, imposedParameters: imposedParameters, source: .frameworkLinkerFlag(flag: flag, frameworkName: stem, buildSetting: macro)) {
-                    await result.append(ResolvedTargetDependency(target: implicitDependency, reason: .implicitBuildSettingLinkage(settingName: macro.name, options: [flag, stem])))
+                    await result.append(ResolvedTargetDependency(target: implicitDependency, reason: .implicitBuildSetting(settingName: macro.name, options: [flag, stem])))
                     return
                 }
             } addLibrary: { macro, prefix, stem in
@@ -349,7 +360,7 @@ actor LinkageDependencyResolver {
                 if productNamesOfExplicitDependencies.intersection(productNames).isEmpty {
                     for productName in productNames {
                         if let implicitDependency = await implicitDependency(forProductName: productName, from: configuredTarget, imposedParameters: imposedParameters, source: .libraryLinkerFlag(flag: prefix, libraryName: stem, buildSetting: macro)) {
-                            await result.append(ResolvedTargetDependency(target: implicitDependency, reason: .implicitBuildSettingLinkage(settingName: macro.name, options: ["\(prefix)\(stem)"])))
+                            await result.append(ResolvedTargetDependency(target: implicitDependency, reason: .implicitBuildSetting(settingName: macro.name, options: ["\(prefix)\(stem)"])))
                             // We only match one.
                             return
                         }
@@ -357,6 +368,16 @@ actor LinkageDependencyResolver {
                 }
             } addError: { error in
                 // We presently don't report errors here.  It's unclear whether target dependency resolution is the right place to report issues with these settings or if they should be correctness-checked elsewhere.
+            }
+        }
+
+        let moduleNamesOfExplicitDependencies = Set<String>(immediateDependencies.compactMap{
+            buildRequestContext.getCachedSettings($0.parameters, target: $0.target).globalScope.evaluate(BuiltinMacros.PRODUCT_MODULE_NAME)
+        })
+
+        for moduleDependencyName in configuredTargetSettings.moduleDependencies.map { $0.name } {
+            if !moduleNamesOfExplicitDependencies.contains(moduleDependencyName), let implicitDependency = await implicitDependency(forModuleName: moduleDependencyName, from: configuredTarget, imposedParameters: imposedParameters, source: .moduleDependency(name: moduleDependencyName, buildSetting: BuiltinMacros.MODULE_DEPENDENCIES)) {
+                await result.append(ResolvedTargetDependency(target: implicitDependency, reason: .implicitBuildSetting(settingName: BuiltinMacros.MODULE_DEPENDENCIES.name, options: [moduleDependencyName])))
             }
         }
 
@@ -444,6 +465,30 @@ actor LinkageDependencyResolver {
         return resolver.lookupConfiguredTarget(candidateDependencyTarget, parameters: candidateParameters, imposedParameters: effectiveImposedParameters)
     }
 
+    private func implicitDependency(forModuleName moduleName: String, from configuredTarget: ConfiguredTarget, imposedParameters: SpecializationParameters?, source: ImplicitDependencySource) async -> ConfiguredTarget? {
+        let candidateConfiguredTargets = await (targetsByUnconfiguredModuleName[moduleName] ?? []).asyncMap { [self] candidateTarget -> ConfiguredTarget? in
+            // Prefer overriding build parameters from the build request, if present.
+            let buildParameters = resolver.buildParametersByTarget[candidateTarget] ?? configuredTarget.parameters
+
+            // Validate the module name using concrete parameters.
+            let configuredModuleName = buildRequestContext.getCachedSettings(buildParameters, target: candidateTarget).globalScope.evaluate(BuiltinMacros.PRODUCT_MODULE_NAME)
+            if configuredModuleName != moduleName {
+                return nil
+            }
+
+            // Get a configured target for this target, and use it as the implicit dependency.
+            if let candidateConfiguredTarget = await implicitDependency(candidate: candidateTarget, parameters: buildParameters, isValidFor: configuredTarget, imposedParameters: imposedParameters, resolver: resolver) {
+                return candidateConfiguredTarget
+            }
+
+            return nil
+        }.compactMap { $0 }.sorted()
+
+        emitAmbiguousImplicitDependencyWarningIfNeeded(for: configuredTarget, dependencies: candidateConfiguredTargets, from: source)
+
+        return candidateConfiguredTargets.first
+    }
+
     /// Search for an implicit dependency by full product name.
     nonisolated private func implicitDependency(forProductName productName: String, from configuredTarget: ConfiguredTarget, imposedParameters: SpecializationParameters?, source: ImplicitDependencySource) async -> ConfiguredTarget? {
         let candidateConfiguredTargets = await (targetsByProductName[productName] ?? []).asyncMap { [self] candidateTarget -> ConfiguredTarget? in
@@ -506,6 +551,9 @@ actor LinkageDependencyResolver {
         /// The dependency's product name matched the basename of a build file in the target's build phases.
         case productNameStem(_ stem: String, buildFile: BuildFile, buildPhase: BuildPhase)
 
+        /// The dependency's module name matched a declared module dependency of the client target.
+        case moduleDependency(name: String, buildSetting: MacroDeclaration)
+
         var valueForDisplay: String {
             switch self {
             case let .frameworkLinkerFlag(flag, frameworkName, _):
@@ -516,6 +564,8 @@ actor LinkageDependencyResolver {
                 return "product reference '\(productName)'"
             case let .productNameStem(stem, _, _):
                 return "product bundle executable reference '\(stem)'"
+            case let .moduleDependency(name, _):
+                return "module dependency \(name)"
             }
         }
     }
@@ -530,6 +580,8 @@ actor LinkageDependencyResolver {
             case let .productReference(_, buildFile, buildPhase),
                  let .productNameStem(_, buildFile, buildPhase):
                 location = .buildFile(buildFileGUID: buildFile.guid, buildPhaseGUID: buildPhase.guid, targetGUID: configuredTarget.target.guid)
+            case let .moduleDependency(_, buildSetting):
+                location = .buildSettings([buildSetting])
             }
 
             delegate.emit(.overrideTarget(configuredTarget), SWBUtil.Diagnostic(behavior: .warning, location: location, data: DiagnosticData("Multiple targets match implicit dependency for \(source.valueForDisplay). Consider adding an explicit dependency on the intended target to resolve this ambiguity.", component: .targetIntegrity), childDiagnostics: candidateConfiguredTargets.map({ dependency -> Diagnostic in

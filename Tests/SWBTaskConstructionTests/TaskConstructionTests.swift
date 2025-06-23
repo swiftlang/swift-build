@@ -10,7 +10,7 @@
 //
 //===----------------------------------------------------------------------===//
 
-import struct Foundation.Data
+import Foundation
 
 import Testing
 
@@ -8577,6 +8577,138 @@ fileprivate struct TaskConstructionTests: CoreBasedTests {
                 await tester.checkBuild(BuildParameters(configuration: "Debug", overrides: override), runDestination: .macOS, fs: fs) { results -> Void in
                     results.checkTarget("AppTarget") { target -> Void in
                         results.checkTask(.matchTarget(target), .matchRuleType("CompileC"), body: {task in test(task: task, overrides: override)})
+                    }
+                }
+            }
+        }
+    }
+
+    @Test(.requireSDKs(.host))
+    func framePointerControl() async throws {
+        try await withTemporaryDirectory { tmpDir in
+            let testProject = try await TestProject(
+                "aProject",
+                sourceRoot: tmpDir,
+                groupTree: TestGroup(
+                    "SomeFiles", path: "Sources",
+                    children: [
+                        TestFile("SourceFile.c"),
+                        TestFile("Source.swift"),
+                    ]),
+                buildConfigurations: [
+                    TestBuildConfiguration("Debug", buildSettings: [
+                        "SWIFT_EXEC": swiftCompilerPath.str,
+                        "SWIFT_VERSION": swiftVersion,
+                    ])
+                ],
+                targets: [
+                    TestStandardTarget(
+                        "Library",
+                        type: .dynamicLibrary,
+                        buildConfigurations: [
+                            TestBuildConfiguration("Debug")
+                        ],
+                        buildPhases: [
+                            TestSourcesBuildPhase([
+                                "SourceFile.c",
+                                "Source.swift"
+                            ])
+                        ]
+                    )]
+            )
+
+            let fs = PseudoFS()
+
+            let core = try await getCore()
+            let tester = try TaskConstructionTester(core, testProject)
+
+            await tester.checkBuild(BuildParameters(configuration: "Debug", overrides: [:]), runDestination: .host, fs: fs) { results in
+                results.checkTask(.matchRuleType("CompileC")) { task in
+                    task.checkCommandLineDoesNotContain("-fomit-frame-pointer")
+                    task.checkCommandLineDoesNotContain("-fno-omit-frame-pointer")
+                }
+                results.checkTask(.matchRuleType("SwiftDriver Compilation")) { task in
+                    task.checkCommandLineDoesNotContain("-fomit-frame-pointer")
+                    task.checkCommandLineDoesNotContain("-fno-omit-frame-pointer")
+                }
+            }
+
+            await tester.checkBuild(BuildParameters(configuration: "Debug", overrides: ["CLANG_OMIT_FRAME_POINTERS": "YES", "SWIFT_OMIT_FRAME_POINTERS": "YES"]), runDestination: .host, fs: fs) { results in
+                results.checkTask(.matchRuleType("CompileC")) { task in
+                    task.checkCommandLineContains(["-fomit-frame-pointer"])
+                    task.checkCommandLineDoesNotContain("-fno-omit-frame-pointer")
+                }
+                results.checkTask(.matchRuleType("SwiftDriver Compilation")) { task in
+                    task.checkCommandLineContains(["-Xcc", "-fomit-frame-pointer"])
+                    task.checkCommandLineDoesNotContain("-fno-omit-frame-pointer")
+                }
+            }
+
+            await tester.checkBuild(BuildParameters(configuration: "Debug", overrides: ["CLANG_OMIT_FRAME_POINTERS": "NO", "SWIFT_OMIT_FRAME_POINTERS": "NO"]), runDestination: .host, fs: fs) { results in
+                results.checkTask(.matchRuleType("CompileC")) { task in
+                    task.checkCommandLineDoesNotContain("-fomit-frame-pointer")
+                    task.checkCommandLineContains(["-fno-omit-frame-pointer"])
+                }
+                results.checkTask(.matchRuleType("SwiftDriver Compilation")) { task in
+                    task.checkCommandLineDoesNotContain("-fomit-frame-pointer")
+                    task.checkCommandLineContains(["-Xcc", "-fno-omit-frame-pointer"])
+                }
+            }
+        }
+    }
+
+    @Test(.requireSDKs(.host))
+    func crossPlatformDeadCodeStripping() async throws {
+        try await withTemporaryDirectory { tmpDir in
+            let testProject = TestProject(
+                "aProject",
+                sourceRoot: tmpDir,
+                groupTree: TestGroup(
+                    "SomeFiles", path: "Sources",
+                    children: [
+                        TestFile("SourceFile.c"),
+                    ]),
+                buildConfigurations: [
+                    TestBuildConfiguration("Debug", buildSettings: [
+                        "DEAD_CODE_STRIPPING": "YES",
+                        "ONLY_ACTIVE_ARCH": "YES"
+                    ])
+                ],
+                targets: [
+                    TestStandardTarget(
+                        "Library",
+                        type: .dynamicLibrary,
+                        buildConfigurations: [
+                            TestBuildConfiguration("Debug")
+                        ],
+                        buildPhases: [
+                            TestSourcesBuildPhase([
+                                "SourceFile.c",
+                            ])
+                        ]
+                    )]
+            )
+
+            let fs = PseudoFS()
+
+            let core = try await getCore()
+            let tester = try TaskConstructionTester(core, testProject)
+
+            try await tester.checkBuild(BuildParameters(configuration: "Debug", overrides: [:]), runDestination: .host, fs: fs) { results in
+                try results.checkTask(.matchRuleType("Ld")) { task in
+                    switch try ProcessInfo.processInfo.hostOperatingSystem() {
+                    case .macOS:
+                        task.checkCommandLineContains(["-dead_strip"])
+                        task.checkCommandLineDoesNotContain("--gc-sections")
+                        task.checkCommandLineDoesNotContain("/OPT:REF")
+                    case .windows:
+                        task.checkCommandLineDoesNotContain("-dead_strip")
+                        task.checkCommandLineDoesNotContain("--gc-sections")
+                        task.checkCommandLineContains(["/OPT:REF"])
+                    default:
+                        task.checkCommandLineDoesNotContain("-dead_strip")
+                        task.checkCommandLineContains(["--gc-sections"])
+                        task.checkCommandLineDoesNotContain("/OPT:REF")
                     }
                 }
             }
