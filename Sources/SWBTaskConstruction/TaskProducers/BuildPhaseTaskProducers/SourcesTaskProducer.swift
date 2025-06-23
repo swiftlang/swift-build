@@ -349,6 +349,9 @@ final class SourcesTaskProducer: FilesBasedBuildPhaseTaskProducerBase, FilesBase
     /// Returns `true` if the target which defines the settings in the given `scope` should generate a dSYM file.
     /// - remark: This method allows this task producer to ask this question about other targets by passing a `scope` for the target in question.
     private func shouldGenerateDSYM(_ scope: MacroEvaluationScope) -> Bool {
+        guard scope.evaluate(BuiltinMacros.PLATFORM_USES_DSYMS) else {
+            return false
+        }
         let dSYMForDebugInfo = scope.evaluate(BuiltinMacros.GCC_GENERATE_DEBUGGING_SYMBOLS) && scope.evaluate(BuiltinMacros.DEBUG_INFORMATION_FORMAT) == "dwarf-with-dsym"
         // When emitting remarks, for now, a dSYM is required (<rdar://problem/45458590>)
         let dSYMForRemarks = scope.evaluate(BuiltinMacros.CLANG_GENERATE_OPTIMIZATION_REMARKS)

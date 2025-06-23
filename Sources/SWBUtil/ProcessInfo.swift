@@ -231,12 +231,21 @@ extension ImageFormat {
 
     public var rpathOrigin: String? {
         switch self {
-            case .macho:
-                return "@loader_path"
-            case .elf:
-                return "$ORIGIN"
-            default:
-                return nil
+        case .macho:
+            return "@loader_path"
+        case .elf:
+            return "$ORIGIN"
+        default:
+            return nil
+        }
+    }
+
+    public var usesDsyms: Bool {
+        switch self {
+        case .macho:
+            return true
+        default:
+            return false
         }
     }
 }
