@@ -139,6 +139,59 @@ fileprivate struct SwiftABICheckerTaskConstructionTests: CoreBasedTests {
     }
 
     @Test(.requireSDKs(.iOS))
+    func swiftABIBaselineGenerationModes() async throws {
+        let testProject = try await TestProject(
+            "aProject",
+            sourceRoot: Path("/TEST"),
+            groupTree: TestGroup(
+                "SomeFiles", path: "Sources",
+                children: [
+                    TestFile("Fwk.swift"),
+                ]),
+            buildConfigurations: [
+                TestBuildConfiguration("Debug", buildSettings: [
+                    "ARCHS": "arm64",
+                    "SDKROOT": "iphoneos",
+                    "PRODUCT_NAME": "$(TARGET_NAME)",
+                    "RUN_SWIFT_ABI_GENERATION_TOOL": "YES",
+                    "SWIFT_ABI_GENERATION_TOOL_OUTPUT_DIR": "/tmp/user_given_generated_baseline",
+                    "SWIFT_EXEC": swiftCompilerPath.str,
+                    "SWIFT_VERSION": swiftVersion,
+                    "CODE_SIGNING_ALLOWED": "NO",
+                    "TAPI_EXEC": tapiToolPath.str,
+                ])],
+            targets: [
+                TestStandardTarget(
+                    "Fwk",
+                    type: .framework,
+                    buildPhases: [
+                        TestSourcesBuildPhase(["Fwk.swift"])
+                    ]),
+            ])
+        let core = try await getCore()
+        let tester = try TaskConstructionTester(core, testProject)
+        await tester.checkBuild(BuildParameters(action: .build, configuration: "Debug", overrides: ["SWIFT_API_DIGESTER_MODE": "abi"]), runDestination: .anyiOSDevice) { results in
+            results.checkError(.contains("Swift ABI checker is only functional when BUILD_LIBRARY_FOR_DISTRIBUTION = YES"))
+        }
+
+        await tester.checkBuild(BuildParameters(action: .build, configuration: "Debug", overrides: ["SWIFT_API_DIGESTER_MODE": "abi", "BUILD_LIBRARY_FOR_DISTRIBUTION": "YES"]), runDestination: .anyiOSDevice) { results in
+            results.checkNoDiagnostics()
+            results.checkTask(.matchRuleType("GenerateSwiftABIBaseline")) { task in
+                task.checkCommandLineContains(["-abi"])
+                task.checkCommandLineContains(["-use-interface-for-module"])
+            }
+        }
+
+        await tester.checkBuild(BuildParameters(action: .build, configuration: "Debug", overrides: ["SWIFT_API_DIGESTER_MODE": "api"]), runDestination: .anyiOSDevice) { results in
+            results.checkNoDiagnostics()
+            results.checkTask(.matchRuleType("GenerateSwiftABIBaseline")) { task in
+                task.checkCommandLineDoesNotContain("-abi")
+                task.checkCommandLineDoesNotContain("-use-interface-for-module")
+            }
+        }
+    }
+
+    @Test(.requireSDKs(.iOS))
     func swiftABICheckerUsingSpecifiedBaseline() async throws {
         let testProject = try await TestProject(
             "aProject",
@@ -189,7 +242,6 @@ fileprivate struct SwiftABICheckerTaskConstructionTests: CoreBasedTests {
                     "swift-api-digester",
                     "-diagnose-sdk",
                     "-abort-on-module-fail",
-                    "-abi",
                     "-compiler-style-diags",
                     "-target",
                     "arm64e-apple-ios\(core.loadSDK(.iOS).version)",
@@ -201,6 +253,7 @@ fileprivate struct SwiftABICheckerTaskConstructionTests: CoreBasedTests {
                     "\(core.loadSDK(.iOS).path.str)",
                     "-module",
                     "Fwk",
+                    "-abi",
                     "-use-interface-for-module",
                     "-serialize-diagnostics-path",
                     "/TEST/build/aProject.build/Debug-iphoneos/Fwk.build/Fwk/SwiftABIChecker/normal/arm64e-ios.dia",
@@ -213,6 +266,64 @@ fileprivate struct SwiftABICheckerTaskConstructionTests: CoreBasedTests {
                 ])
             }
             results.checkNoTask(.matchRuleType("SwiftDriver"))
+        }
+    }
+
+    @Test(.requireSDKs(.iOS))
+    func swiftABICheckerModes() async throws {
+        let testProject = try await TestProject(
+            "aProject",
+            sourceRoot: Path("/TEST"),
+            groupTree: TestGroup(
+                "SomeFiles", path: "Sources",
+                children: [
+                    TestFile("Fwk.swift"),
+                ]),
+            buildConfigurations: [
+                TestBuildConfiguration("Debug", buildSettings: [
+                    "ARCHS": "arm64e",
+                    "SDKROOT": "iphoneos",
+                    "PRODUCT_NAME": "$(TARGET_NAME)",
+                    "RUN_SWIFT_ABI_CHECKER_TOOL": "YES",
+                    "SWIFT_EXEC": swiftCompilerPath.str,
+                    "SWIFT_VERSION": swiftVersion,
+                    "FRAMEWORK_SEARCH_PATHS": "/Target/Framework/Search/Path/A",
+                    "CODE_SIGNING_ALLOWED": "NO",
+                    "BUILD_LIBRARY_FOR_DISTRIBUTION": "YES",
+                    "SWIFT_ABI_CHECKER_BASELINE_DIR": "/tmp/mybaseline",
+                    "SWIFT_ABI_CHECKER_EXCEPTIONS_FILE": "/tmp/allow.txt",
+                    "TAPI_EXEC": tapiToolPath.str,
+                ])],
+            targets: [
+                TestStandardTarget(
+                    "Fwk",
+                    type: .framework,
+                    buildPhases: [
+                        TestSourcesBuildPhase(["Fwk.swift"])
+                    ]),
+            ])
+        let core = try await getCore()
+        let tester = try TaskConstructionTester(core, testProject)
+
+        let fs = PseudoFS()
+        try fs.createDirectory(.root.join("tmp"))
+        try fs.write(.root.join("tmp").join("allow.txt"), contents: "")
+        try await fs.writeJSON(.root.join("tmp/mybaseline/ABI/arm64e-ios.json"), .plDict([:]))
+
+        await tester.checkBuild(BuildParameters(action: .build, configuration: "Debug", overrides: ["SWIFT_API_DIGESTER_MODE": "abi"]), runDestination: .iOS, fs: fs) { results in
+            results.checkNoDiagnostics()
+            results.checkTask(.matchRuleType("CheckSwiftABI")) { task in
+                task.checkCommandLineContains(["-abi"])
+                task.checkCommandLineContains(["-use-interface-for-module"])
+            }
+        }
+
+        await tester.checkBuild(BuildParameters(action: .build, configuration: "Debug", overrides: ["SWIFT_API_DIGESTER_MODE": "api"]), runDestination: .iOS, fs: fs) { results in
+            results.checkNoDiagnostics()
+            results.checkTask(.matchRuleType("CheckSwiftABI")) { task in
+                task.checkCommandLineDoesNotContain("-abi")
+                task.checkCommandLineDoesNotContain("-use-interface-for-module")
+            }
         }
     }
 
