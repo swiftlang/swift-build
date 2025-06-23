@@ -41,6 +41,15 @@ struct LocalizationInfoOutput {
 
     /// Paths to .stringsdata files produced by this target, grouped by build attributes such as platform and architecture.
     fileprivate(set) var producedStringsdataPaths: [LocalizationBuildPortion: Set<Path>] = [:]
+
+    /// The name of the primary platform we were building for.
+    ///
+    /// Mac Catalyst is treated as its own platform.
+    fileprivate(set) var effectivePlatformName: String?
+
+    /// Paths to generated source code files holding string symbols, keyed by xcstrings file path.
+    fileprivate(set) var generatedSymbolFilesByXCStringsPath = [Path: Set<Path>]()
+
 }
 
 extension BuildDescriptionManager {
@@ -98,9 +107,24 @@ extension BuildDescription {
                 .reduce([:], { aggregate, partial in aggregate.merging(partial, uniquingKeysWith: +) })
                 .mapValues { Set($0) }
 
+            // Only really expecting to have one platform for a given build.
+            // So just use the first seen one as primary.
+            let effectivePlatformName = taskLocalizationOutputs.compactMap(\.effectivePlatformName).first
+
             outputsByTarget[targetGUID, default: LocalizationInfoOutput(targetIdentifier: targetGUID)]
                 .compilableXCStringsPaths.formUnion(taskXCStringsPaths)
             outputsByTarget[targetGUID]?.producedStringsdataPaths.merge(taskStringsdataPaths, uniquingKeysWith: { $0.union($1) })
+
+            if outputsByTarget[targetGUID]?.effectivePlatformName == nil && effectivePlatformName != nil {
+                outputsByTarget[targetGUID]?.effectivePlatformName = effectivePlatformName
+            }
+
+            let taskGeneratedSymbolFiles = taskLocalizationOutputs
+                .map(\.generatedSymbolFilesByXCStringsPath)
+                .reduce([:], { aggregate, partial in aggregate.merging(partial, uniquingKeysWith: +) })
+                .mapValues { Set($0) }
+
+            outputsByTarget[targetGUID]?.generatedSymbolFilesByXCStringsPath.merge(taskGeneratedSymbolFiles, uniquingKeysWith: { $0.union($1) })
         }
 
         return Array(outputsByTarget.values)

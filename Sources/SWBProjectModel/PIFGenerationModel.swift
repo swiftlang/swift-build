@@ -1130,6 +1130,11 @@ public struct SwiftBuildFileType: Sendable {
         fileTypeIdentifier: "folder.abstractassetcatalog"
     )
 
+    public static let xcstrings: SwiftBuildFileType = SwiftBuildFileType(
+        fileType: "xcstrings",
+        fileTypeIdentifier: "text.json.xcstrings"
+    )
+
     public static let xcdatamodeld: SwiftBuildFileType = SwiftBuildFileType(
         fileType: "xcdatamodeld",
         fileTypeIdentifier: "wrapper.xcdatamodeld"
@@ -1167,6 +1172,7 @@ public struct SwiftBuildFileType: Sendable {
 
     public static let all: [SwiftBuildFileType] = [
         .xcassets,
+        .xcstrings,
         .xcdatamodeld,
         .xcdatamodel,
         .xcmappingmodel,
