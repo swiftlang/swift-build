@@ -35,7 +35,7 @@ public final class UnifdefToolSpec : CommandLineToolSpec, SpecIdentifierType, @u
 
         // Set the exit status mode to 2, which is "exit status is 0 on success". (The default is 0 if nothing
         // changed and 1 if something changed.)
-        var args = [resolveExecutablePath(cbc, Path("unifdef")).str, "-x", "2"]
+        var args = [resolveExecutablePath(cbc.producer, Path("unifdef")).str, "-x", "2"]
         args += extraFlags
         if cbc.scope.evaluate(BuiltinMacros.IS_UNOPTIMIZED_BUILD) && !extraFlags.contains("-B") {
             // Add empty lines for any removed lines so that the source locations still match and thus we can go to

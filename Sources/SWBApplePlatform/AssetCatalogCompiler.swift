@@ -55,7 +55,7 @@ public final class ActoolCompilerSpec : GenericCompilerSpec, SpecIdentifierType,
     }
 
     private func assetTagCombinations(catalogInputs inputs: [FileToBuild], _ cbc: CommandBuildContext, _ delegate: any TaskGenerationDelegate) async throws -> Set<Set<String>> {
-        return try await executeExternalTool(cbc, delegate, commandLine: [resolveExecutablePath(cbc, cbc.scope.actoolExecutablePath()).str, "--print-asset-tag-combinations", "--output-format", "xml1"] + inputs.map { $0.absolutePath.str }, workingDirectory: cbc.producer.defaultWorkingDirectory, environment: environmentFromSpec(cbc, delegate).bindingsDictionary, executionDescription: "Compute asset tag combinations") { output in
+        return try await executeExternalTool(cbc, delegate, commandLine: [resolveExecutablePath(cbc, cbc.scope.actoolExecutablePath(), delegate: delegate).str, "--print-asset-tag-combinations", "--output-format", "xml1"] + inputs.map { $0.absolutePath.str }, workingDirectory: cbc.producer.defaultWorkingDirectory, environment: environmentFromSpec(cbc, delegate).bindingsDictionary, executionDescription: "Compute asset tag combinations") { output in
             struct AssetCatalogToolOutput: Decodable {
                 struct Diagnostic: Decodable {
                     let description: String

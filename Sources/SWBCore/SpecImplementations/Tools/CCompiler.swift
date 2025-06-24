@@ -1056,7 +1056,7 @@ public class ClangCompilerSpec : CompilerSpec, SpecIdentifierType, GCCCompatible
 
         // Start with the executable.
         let compilerExecPath = resolveExecutablePath(cbc, forLanguageOfFileType: resolvedInputFileType)
-        let launcher = resolveCompilerLauncher(cbc, compilerPath: compilerExecPath, delegate: delegate)
+        let launcher = await resolveCompilerLauncher(cbc, compilerPath: compilerExecPath, delegate: delegate)
         if let launcher {
             commandLine += [launcher.str]
         }
@@ -1114,7 +1114,7 @@ public class ClangCompilerSpec : CompilerSpec, SpecIdentifierType, GCCCompatible
         }
 
         // Add the prefix header arguments, if used.
-        let prefixInfo = addPrefixHeaderArgs(cbc, delegate, inputFileType: resolvedInputFileType, perFileFlags: perFileFlags, inputDeps: &inputDeps, commandLine: &commandLine, clangInfo: clangInfo)
+        let prefixInfo = await addPrefixHeaderArgs(cbc, delegate, inputFileType: resolvedInputFileType, perFileFlags: perFileFlags, inputDeps: &inputDeps, commandLine: &commandLine, clangInfo: clangInfo)
 
         // Add dependencies on the SDK used.
 
@@ -1426,7 +1426,7 @@ public class ClangCompilerSpec : CompilerSpec, SpecIdentifierType, GCCCompatible
     }
 
     /// Adds the arguments to use the prefix header, in the appropriate manner for the target.
-    private func addPrefixHeaderArgs(_ cbc: CommandBuildContext, _ delegate: any TaskGenerationDelegate, inputFileType: FileTypeSpec, perFileFlags: [String], inputDeps: inout [Path], commandLine: inout [String], clangInfo: DiscoveredClangToolSpecInfo?) -> ClangPrefixInfo? {
+    private func addPrefixHeaderArgs(_ cbc: CommandBuildContext, _ delegate: any TaskGenerationDelegate, inputFileType: FileTypeSpec, perFileFlags: [String], inputDeps: inout [Path], commandLine: inout [String], clangInfo: DiscoveredClangToolSpecInfo?) async -> ClangPrefixInfo? {
         // Don't use the prefix header if the input file opted out.
         guard cbc.inputs[0].shouldUsePrefixHeader else {
             return nil
@@ -1824,11 +1824,11 @@ public class ClangCompilerSpec : CompilerSpec, SpecIdentifierType, GCCCompatible
     private func resolveCompilerLauncher(_ cbc: CommandBuildContext, compilerPath: Path, delegate: any TaskGenerationDelegate) -> Path? {
         let value = cbc.scope.evaluate(BuiltinMacros.C_COMPILER_LAUNCHER)
         if !value.isEmpty {
-            return resolveExecutablePath(cbc, Path(value))
+            return resolveExecutablePath(cbc.producer, Path(value))
         }
         if cbc.scope.evaluate(BuiltinMacros.CLANG_CACHE_ENABLE_LAUNCHER) {
             let name = Path("clang-cache")
-            let resolved = resolveExecutablePath(cbc, name)
+            let resolved = resolveExecutablePath(cbc.producer, name)
             // Only set it as launcher if it has been found and is next to the compiler.
             if resolved != name && resolved.dirname == compilerPath.dirname {
                 return resolved

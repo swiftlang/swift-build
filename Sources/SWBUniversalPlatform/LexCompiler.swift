@@ -42,7 +42,7 @@ final class LexCompilerSpec : CompilerSpec, SpecIdentifierType, @unchecked Senda
         let lexFlags = cbc.scope.evaluate(BuiltinMacros.LEXFLAGS)
 
         // Compute the command line arguments.
-        var commandLine = [resolveExecutablePath(cbc, cbc.scope.evaluate(BuiltinMacros.LEX)).str]
+        var commandLine = [await resolveExecutablePath(cbc, cbc.scope.evaluate(BuiltinMacros.LEX), delegate: delegate).str]
         commandLine += await commandLineFromOptions(cbc, delegate, optionContext: discoveredCommandLineToolSpecInfo(cbc.producer, cbc.scope, delegate)).map(\.asString)
         commandLine += lexFlags
         if let perFileArgs = input.additionalArgs {

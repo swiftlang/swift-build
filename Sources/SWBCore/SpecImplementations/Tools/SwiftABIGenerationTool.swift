@@ -25,6 +25,15 @@ public final class SwiftABIGenerationToolSpec : GenericCommandLineToolSpec, Spec
         }
     }
 
+    override public func resolveExecutablePath(_ cbc: CommandBuildContext, _ path: Path, delegate: any CoreClientTargetDiagnosticProducingDelegate) async -> Path {
+        let swiftInfo = await cbc.producer.swiftCompilerSpec.discoveredCommandLineToolSpecInfo(cbc.producer, cbc.scope, delegate)
+        if let prospectivePath = swiftInfo?.toolPath.dirname.join(path), cbc.producer.executableSearchPaths.fs.exists(prospectivePath) {
+            return prospectivePath
+        }
+
+        return await super.resolveExecutablePath(cbc, path, delegate: delegate)
+    }
+
     override public func constructTasks(_ cbc: CommandBuildContext, _ delegate: any TaskGenerationDelegate) async {
         // FIXME: We should ensure this cannot happen.
         fatalError("unexpected direct invocation")

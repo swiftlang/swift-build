@@ -17,8 +17,8 @@ import SWBCore
 final class TestEntryPointGenerationToolSpec: GenericCommandLineToolSpec, SpecIdentifierType, @unchecked Sendable {
     static let identifier = "org.swift.test-entry-point-generator"
 
-    override func commandLineFromTemplate(_ cbc: CommandBuildContext, _ delegate: any TaskGenerationDelegate, optionContext: (any DiscoveredCommandLineToolSpecInfo)?, specialArgs: [String] = [], lookup: ((MacroDeclaration) -> MacroExpression?)? = nil) -> [CommandLineArgument] {
-        var args = super.commandLineFromTemplate(cbc, delegate, optionContext: optionContext, specialArgs: specialArgs, lookup: lookup)
+    override func commandLineFromTemplate(_ cbc: CommandBuildContext, _ delegate: any TaskGenerationDelegate, optionContext: (any DiscoveredCommandLineToolSpecInfo)?, specialArgs: [String] = [], lookup: ((MacroDeclaration) -> MacroExpression?)? = nil) async -> [CommandLineArgument] {
+        var args = await super.commandLineFromTemplate(cbc, delegate, optionContext: optionContext, specialArgs: specialArgs, lookup: lookup)
         for (toolchainPath, toolchainLibrarySearchPath) in cbc.producer.toolchains.map({ ($0.path, $0.librarySearchPaths) }) {
             if let path = toolchainLibrarySearchPath.findLibrary(operatingSystem: cbc.producer.hostOperatingSystem, basename: "IndexStore") {
                 args.append(contentsOf: ["--index-store-library-path", .path(path)])
@@ -41,7 +41,7 @@ final class TestEntryPointGenerationToolSpec: GenericCommandLineToolSpec, SpecId
     }
 
     public func constructTasks(_ cbc: CommandBuildContext, _ delegate: any TaskGenerationDelegate, indexStorePaths: [Path], indexUnitBasePaths: [Path]) async {
-        var commandLine = commandLineFromTemplate(cbc, delegate, optionContext: nil)
+        var commandLine = await commandLineFromTemplate(cbc, delegate, optionContext: nil)
 
         for indexStorePath in indexStorePaths {
             commandLine.append(contentsOf: ["--index-store", .path(indexStorePath)])

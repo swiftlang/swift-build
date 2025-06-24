@@ -567,7 +567,7 @@ public final class LdLinkerSpec : GenericLinkerSpec, SpecIdentifierType, @unchec
         }
 
         // Generate the command line.
-        var commandLine = commandLineFromTemplate(cbc, delegate, optionContext: optionContext, specialArgs: specialArgs, lookup: lookup).map(\.asString)
+        var commandLine = await commandLineFromTemplate(cbc, delegate, optionContext: optionContext, specialArgs: specialArgs, lookup: lookup).map(\.asString)
 
         // Add flags to emit SDK imports info.
         let sdkImportsInfoFile = cbc.scope.evaluate(BuiltinMacros.LD_SDK_IMPORTS_FILE)
@@ -589,7 +589,7 @@ public final class LdLinkerSpec : GenericLinkerSpec, SpecIdentifierType, @unchec
 
         // Select the driver to use based on the input file types, replacing the value computed by commandLineFromTemplate().
         let usedCXX = usedTools.values.contains(where: { $0.contains(where: { $0.languageDialect?.isPlusPlus ?? false }) })
-        commandLine[0] = resolveExecutablePath(cbc, computeLinkerPath(cbc, usedCXX: usedCXX)).str
+        commandLine[0] = await resolveExecutablePath(cbc, computeLinkerPath(cbc, usedCXX: usedCXX), delegate: delegate).str
 
         let entitlementsSection = cbc.scope.evaluate(BuiltinMacros.LD_ENTITLEMENTS_SECTION)
         if !entitlementsSection.isEmpty {
@@ -831,11 +831,11 @@ public final class LdLinkerSpec : GenericLinkerSpec, SpecIdentifierType, @unchec
         let optionContext = await discoveredCommandLineToolSpecInfo(cbc.producer, cbc.scope, delegate)
 
         // Generate the command line.
-        var commandLine = commandLineFromTemplate(cbc, delegate, optionContext: optionContext, specialArgs: specialArgs, lookup: lookup).map(\.asString)
+        var commandLine = await commandLineFromTemplate(cbc, delegate, optionContext: optionContext, specialArgs: specialArgs, lookup: lookup).map(\.asString)
 
         // Select the driver to use based on the input file types, replacing the value computed by commandLineFromTemplate().
         let usedCXX = usedTools.values.contains(where: { $0.contains(where: { $0.languageDialect?.isPlusPlus ?? false }) })
-        commandLine[0] = resolveExecutablePath(cbc, computeLinkerPath(cbc, usedCXX: usedCXX)).str
+        commandLine[0] = await resolveExecutablePath(cbc, computeLinkerPath(cbc, usedCXX: usedCXX), delegate: delegate).str
 
         let entitlementsSection = cbc.scope.evaluate(BuiltinMacros.LD_ENTITLEMENTS_SECTION)
         if !entitlementsSection.isEmpty {
@@ -916,7 +916,7 @@ public final class LdLinkerSpec : GenericLinkerSpec, SpecIdentifierType, @unchec
         }
 
         // Generate the command line.
-        let commandLine = commandLineFromTemplate(
+        let commandLine = await commandLineFromTemplate(
             cbc,
             delegate,
             optionContext: optionContext,
@@ -1599,7 +1599,7 @@ public final class LibtoolLinkerSpec : GenericLinkerSpec, SpecIdentifierType, @u
         let optionContext = await discoveredCommandLineToolSpecInfo(cbc.producer, cbc.scope, delegate)
 
         // Generate the command line.
-        let commandLine = commandLineFromTemplate(cbc, delegate, optionContext: optionContext, specialArgs: specialArgs).map(\.asString)
+        let commandLine = await commandLineFromTemplate(cbc, delegate, optionContext: optionContext, specialArgs: specialArgs).map(\.asString)
 
         // Compute the inputs and outputs.
         var inputs = inputPaths.map{ delegate.createNode($0) }

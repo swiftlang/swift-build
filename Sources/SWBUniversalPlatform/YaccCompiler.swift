@@ -64,7 +64,7 @@ final class YaccCompilerSpec : CompilerSpec, SpecIdentifierType, @unchecked Send
         delegate.declareGeneratedSourceFile(outputHeaderPath)
 
         // Compute the command arguments.
-        var args = [resolveExecutablePath(cbc, cbc.scope.evaluate(BuiltinMacros.YACC)).str]
+        var args = [await resolveExecutablePath(cbc, cbc.scope.evaluate(BuiltinMacros.YACC), delegate: delegate).str]
         // FIXME: Add the auto-generated options.
         args += cbc.scope.evaluate(BuiltinMacros.YACCFLAGS)
         if let perFileArgs = input.additionalArgs {
