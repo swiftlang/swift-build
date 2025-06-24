@@ -771,6 +771,9 @@ final class SourcesTaskProducer: FilesBasedBuildPhaseTaskProducerBase, FilesBase
         let packageTargetBundleAccessorResult = await generatePackageTargetBundleAccessorResult(scope)
         tasks += packageTargetBundleAccessorResult?.tasks ?? []
 
+        let bundleLookupHelperResult = await generateBundleLookupHelper(scope)
+        tasks += bundleLookupHelperResult?.tasks ?? []
+
         let embedInCodeAccessorResult: GeneratedResourceAccessorResult?
         if scope.evaluate(BuiltinMacros.GENERATE_EMBED_IN_CODE_ACCESSORS), let configuredTarget = context.configuredTarget, buildPhase.containsSwiftSources(context.workspaceContext.workspace, context, scope, context.filePathResolver) {
             let ownTargetBuildFilesToEmbed = ((context.workspaceContext.workspace.target(for: configuredTarget.target.guid) as? StandardTarget)?.buildPhases.compactMap { $0 as? BuildPhaseWithBuildFiles }.flatMap { $0.buildFiles }.filter { $0.resourceRule == .embedInCode }) ?? []
@@ -866,6 +869,10 @@ final class SourcesTaskProducer: FilesBasedBuildPhaseTaskProducerBase, FilesBase
 
                     if let packageTargetBundleAccessorResult {
                         result.append((packageTargetBundleAccessorResult.fileToBuild, packageTargetBundleAccessorResult.fileToBuildFileType, /* shouldUsePrefixHeader */ false))
+                    }
+
+                    if let bundleLookupHelperResult {
+                        result.append((bundleLookupHelperResult.fileToBuild, bundleLookupHelperResult.fileToBuildFileType, /* shouldUsePrefixHeader */ false))
                     }
 
                     if let embedInCodeAccessorResult {
@@ -1192,11 +1199,17 @@ final class SourcesTaskProducer: FilesBasedBuildPhaseTaskProducerBase, FilesBase
                 let buildFilesContext = BuildFilesProcessingContext(scope, belongsToPreferredArch: preferredArch == nil || preferredArch == arch, currentArchSpec: currentArchSpec)
                 var perArchTasks: [any PlannedTask] = []
                 await groupAndAddTasksForFiles(self, buildFilesContext, scope, filterToAPIRules: isForAPI, filterToHeaderRules: isForHeaders, &perArchTasks, extraResolvedBuildFiles: {
+                    var result: [(Path, FileTypeSpec, Bool)] = []
+
                     if let packageTargetBundleAccessorResult {
-                        return [(packageTargetBundleAccessorResult.fileToBuild, packageTargetBundleAccessorResult.fileToBuildFileType, /* shouldUsePrefixHeader */ false)]
-                    } else {
-                        return []
+                        result.append((packageTargetBundleAccessorResult.fileToBuild, packageTargetBundleAccessorResult.fileToBuildFileType, /* shouldUsePrefixHeader */ false))
                     }
+
+                    if let bundleLookupHelperResult {
+                        result.append((bundleLookupHelperResult.fileToBuild, bundleLookupHelperResult.fileToBuildFileType, /* shouldUsePrefixHeader */ false))
+                    }
+
+                    return result
                 }())
 
                 // Add all the collected per-arch tasks.
@@ -1725,7 +1738,43 @@ final class SourcesTaskProducer: FilesBasedBuildPhaseTaskProducerBase, FilesBase
         return GeneratedResourceAccessorResult(tasks: tasks, fileToBuild: filePath, fileToBuildFileType: context.lookupFileType(fileName: "sourcecode.swift")!)
     }
 
+    /// Generates a task for creating the `__BundleLookupHelper` class to enable `#bundle` support in mergeable libraries.
+    private func generateBundleLookupHelper(_ scope: MacroEvaluationScope) async -> GeneratedResourceAccessorResult? {
+        // We generate a __BundleLookupHelper class that Foundation's #bundle macro can use to lookup the resource bundle.
+        // ld will inject a mapping of class pointers to the correct resource bundle so that BundleForClass works at runtime.
+
+        // We only need this treatment for mergeable libraries at this time.
+        // Package targets do something similar but they generate the Bundle.module extensions and #bundle calls that.
+
+        // We need to do this for all mergeable libraries, even if it will just be re-exported in this build.
+        guard scope.evaluate(BuiltinMacros.MERGEABLE_LIBRARY) else {
+            return nil
+        }
+
+        let workspace = self.context.workspaceContext.workspace
+
+        // #bundle is a Swift macro, so this is only needed for Swift code.
+        guard buildPhase.containsSwiftSources(workspace, context, scope, context.filePathResolver) else {
+            return nil
+        }
+
+        let filePath = scope.evaluate(BuiltinMacros.DERIVED_SOURCES_DIR).join("bundle_lookup_helper.swift")
+
+        // We need one class with a relatively unique name that #bundle can use for bundle lookup.
+        // It cannot be less visible than internal since the #bundle expansion needs to be able to resolve it AND so ld will record the class->bundle mapping.
+        // We intentionally do not want a Foundation dependency in this generated code, so don't import Foundation.
+        let content = "internal class __BundleLookupHelper {}"
+
+        var tasks = [any PlannedTask]()
+        await appendGeneratedTasks(&tasks) { delegate in
+            context.writeFileSpec.constructFileTasks(CommandBuildContext(producer: context, scope: context.settings.globalScope, inputs: [], output: filePath), delegate, contents: ByteString(encodingAsUTF8: content), permissions: nil, preparesForIndexing: true, additionalTaskOrderingOptions: [.immediate, .ignorePhaseOrdering])
+        }
+        return GeneratedResourceAccessorResult(tasks: tasks, fileToBuild: filePath, fileToBuildFileType: context.lookupFileType(fileName: "sourcecode.swift")!)
+    }
+
     /// Generates a task for creating the resource bundle accessor for package targets.
+    ///
+    /// This produces the `Bundle.module` accessor.
     private func generatePackageTargetBundleAccessorResult(_ scope: MacroEvaluationScope) async -> GeneratedResourceAccessorResult? {
         let bundleName = scope.evaluate(BuiltinMacros.PACKAGE_RESOURCE_BUNDLE_NAME)
         let isRegularPackage = scope.evaluate(BuiltinMacros.PACKAGE_RESOURCE_TARGET_KIND) == .regular
