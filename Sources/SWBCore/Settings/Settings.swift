@@ -2548,6 +2548,7 @@ private class SettingsBuilder {
             if let origin = imageFormat.rpathOrigin {
                 sdkTable.push(BuiltinMacros.RPATH_ORIGIN, literal: origin)
             }
+            sdkTable.push(BuiltinMacros.PLATFORM_USES_DSYMS, literal: imageFormat.usesDsyms)
         }
 
         // Add additional SDK default settings.
