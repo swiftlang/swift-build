@@ -94,6 +94,7 @@ struct SpecializationParameters: Hashable, CustomStringConvertible {
             BuiltinMacros.SDK_VARIANT.name,
             BuiltinMacros.SUPPORTED_PLATFORMS.name,
             BuiltinMacros.TOOLCHAINS.name,
+            BuiltinMacros.SWIFT_ENABLE_COMPILE_CACHE.name,
         ]
         @preconcurrency @PluginExtensionSystemActor func sdkVariantInfoExtensions() -> [any SDKVariantInfoExtensionPoint.ExtensionProtocol] {
             core.pluginManager.extensions(of: SDKVariantInfoExtensionPoint.self)
@@ -137,6 +138,8 @@ struct SpecializationParameters: Hashable, CustomStringConvertible {
     let toolchain: [String]?
     /// Whether or not to use a suffixed SDK.
     let canonicalNameSuffix: String?
+    /// Whether or not to enable Swift compilation cache.
+    let swiftCompileCache: Bool?
 
     // Other properties.
 
@@ -227,16 +230,20 @@ struct SpecializationParameters: Hashable, CustomStringConvertible {
         if let toolchain = effectiveToolchainOverride(originalParameters: parameters, workspaceContext: workspaceContext) {
             overrides["TOOLCHAINS"] = toolchain.joined(separator: " ")
         }
+        if swiftCompileCache == true {
+            overrides[BuiltinMacros.SWIFT_ENABLE_COMPILE_CACHE.name] = "YES"
+        }
         return parameters.mergingOverrides(overrides)
     }
 
-    init(source: SpecializationSource, platform: Platform?, sdkVariant: SDKVariant?, supportedPlatforms: [String]?, toolchain: [String]?, canonicalNameSuffix: String?, superimposedProperties: SuperimposedProperties? = nil, diagnostics: [Diagnostic] = []) {
+    init(source: SpecializationSource, platform: Platform?, sdkVariant: SDKVariant?, supportedPlatforms: [String]?, toolchain: [String]?, canonicalNameSuffix: String?, swiftCompileCache: Bool? = nil, superimposedProperties: SuperimposedProperties? = nil, diagnostics: [Diagnostic] = []) {
         self.source = source
         self.platform = platform
         self.sdkVariant = sdkVariant
         self.supportedPlatforms = supportedPlatforms
         self.toolchain = toolchain
         self.canonicalNameSuffix = canonicalNameSuffix
+        self.swiftCompileCache = swiftCompileCache
         self.superimposedProperties = superimposedProperties
         self.diagnostics = diagnostics
     }
@@ -952,7 +959,18 @@ extension SpecializationParameters {
         }
 
         let fromPackage =  workspaceContext.workspace.project(for: forTarget).isPackage
-        let filteredSpecialization = SpecializationParameters(source: .synthesized, platform: imposedPlatform, sdkVariant: imposedSdkVariant, supportedPlatforms: imposedSupportedPlatforms, toolchain: imposedToolchain, canonicalNameSuffix: imposedCanonicalNameSuffix, superimposedProperties: specialization.superimposedProperties)
+
+        let imposedSwiftCompileCache: Bool?
+        if fromPackage {
+            imposedSwiftCompileCache = settings.globalScope.evaluate(BuiltinMacros.SWIFT_ENABLE_COMPILE_CACHE) || buildRequest.buildTargets.contains { buildTargetInfo in
+                let buildTargetSettings = buildRequestContext.getCachedSettings(buildTargetInfo.parameters, target: buildTargetInfo.target)
+                return buildTargetSettings.globalScope.evaluate(BuiltinMacros.SWIFT_ENABLE_COMPILE_CACHE)
+            }
+        } else {
+            imposedSwiftCompileCache = nil
+        }
+
+        let filteredSpecialization = SpecializationParameters(source: .synthesized, platform: imposedPlatform, sdkVariant: imposedSdkVariant, supportedPlatforms: imposedSupportedPlatforms, toolchain: imposedToolchain, canonicalNameSuffix: imposedCanonicalNameSuffix, swiftCompileCache: imposedSwiftCompileCache, superimposedProperties: specialization.superimposedProperties)
 
         // Otherwise, we need to create a new specialization; do so by imposing the specialization on the build parameters.
         // NOTE: If the target doesn't support specialization, then unless the target comes from a package, then it's important to **not** impart those settings unless they are coming from overrides. Doing so has the side-effect of causing dependencies of downstream targets to be specialized incorrectly (e.g. a specialized target shouldn't cause its own dependencies to be specialized).
