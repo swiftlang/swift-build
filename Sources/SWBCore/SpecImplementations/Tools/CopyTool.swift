@@ -129,7 +129,7 @@ public final class CopyToolSpec : CompilerSpec, SpecIdentifierType, @unchecked S
         // FIXME: The same comment above (w.r.t. how to bind this logic) applies here.
         if cbc.scope.evaluate(BuiltinMacros.PBXCP_STRIP_UNSIGNED_BINARIES, lookup: lookup) || !cbc.scope.evaluate(BuiltinMacros.PBXCP_STRIP_SUBPATHS, lookup: lookup).isEmpty {
             let insertIndex = commandLine.firstIndex(of: "-resolve-src-symlinks") ?? commandLine.endIndex
-            commandLine.replaceSubrange(insertIndex..<insertIndex, with: ["-strip-tool", resolveExecutablePath(cbc, Path("strip")).str])
+            commandLine.replaceSubrange(insertIndex..<insertIndex, with: ["-strip-tool", resolveExecutablePath(cbc.producer, Path("strip")).str])
         }
 
         // Skip the copy without erroring if the input item is missing. This is used for handling embedded bundles with the installloc action.

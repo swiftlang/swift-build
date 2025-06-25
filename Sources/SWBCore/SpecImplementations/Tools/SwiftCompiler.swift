@@ -2391,7 +2391,7 @@ public final class SwiftCompilerSpec : CompilerSpec, SpecIdentifierType, SwiftDi
 
             if cbc.scope.evaluate(BuiltinMacros.PLATFORM_REQUIRES_SWIFT_AUTOLINK_EXTRACT) {
                 let toolName = cbc.producer.hostOperatingSystem.imageFormat.executableName(basename: "swift-autolink-extract")
-                let toolPath = resolveExecutablePath(cbc, toolSpecInfo.toolPath.dirname.join(toolName))
+                let toolPath = await resolveExecutablePath(cbc, toolSpecInfo.toolPath.dirname.join(toolName), delegate: delegate)
 
                 delegate.createTask(
                     type: self,
