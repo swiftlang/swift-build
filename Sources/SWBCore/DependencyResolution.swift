@@ -189,8 +189,8 @@ struct SpecializationParameters: Hashable, CustomStringConvertible {
     func isCompatible(with configuredTarget: ConfiguredTarget, settings: Settings, workspaceContext: WorkspaceContext) -> Bool {
         let toolchain = effectiveToolchainOverride(originalParameters: configuredTarget.parameters, workspaceContext: workspaceContext)
         return (platform == nil || platform === settings.platform) &&
-            (sdkVariant == nil || sdkVariant?.name == settings.sdkVariant?.name) &&
-            (toolchain == nil || toolchain == settings.globalScope.evaluate(BuiltinMacros.TOOLCHAINS)) &&
+        (sdkVariant == nil || sdkVariant?.name == settings.sdkVariant?.name) &&
+        (toolchain == nil || toolchain == settings.toolchains.map(\.identifier)) &&
         (canonicalNameSuffix == nil || canonicalNameSuffix?.nilIfEmpty == settings.sdk?.canonicalNameSuffix)
     }
 
