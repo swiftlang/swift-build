@@ -183,7 +183,7 @@ public struct MacroValueAssignmentTable: Serializable, Sendable {
                     if effectiveConditionValue.evaluate(condition) == true {
                         // Condition evaluates to true, so we push an assignment with a condition set that excludes the condition.
                         let filteredConditions = conditions.conditions.filter{ $0.parameter != parameter }
-                        table.push(macro, assignment.expression, conditions: filteredConditions.isEmpty ? nil : MacroConditionSet(conditions: filteredConditions))
+                        table.push(macro, assignment.expression, conditions: filteredConditions.isEmpty ? nil : MacroConditionSet(conditions: filteredConditions), location: assignment.location)
                     }
                     else {
                         // Condition evaluates to false, so we elide the assignment.
@@ -191,7 +191,7 @@ public struct MacroValueAssignmentTable: Serializable, Sendable {
                 }
                 else {
                     // Assignment isn't conditioned on the specified parameter, so we just push it as-is.
-                    table.push(macro, assignment.expression, conditions: assignment.conditions)
+                    table.push(macro, assignment.expression, conditions: assignment.conditions, location: assignment.location)
                 }
             }
             bindAndPushAssignment(firstAssignment)
