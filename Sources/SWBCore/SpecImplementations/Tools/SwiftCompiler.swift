@@ -446,7 +446,9 @@ public struct SwiftTaskPayload: ParentTaskPayload {
     /// The preview build style in effect (dynamic replacement or XOJIT), if any.
     public let previewStyle: PreviewStyleMessagePayload?
 
-    init(moduleName: String, indexingPayload: SwiftIndexingPayload, previewPayload: SwiftPreviewPayload?, localizationPayload: SwiftLocalizationPayload?, numExpectedCompileSubtasks: Int, driverPayload: SwiftDriverPayload?, previewStyle: PreviewStyle?) {
+    public let moduleDependenciesContext: ModuleDependenciesContext?
+
+    init(moduleName: String, indexingPayload: SwiftIndexingPayload, previewPayload: SwiftPreviewPayload?, localizationPayload: SwiftLocalizationPayload?, numExpectedCompileSubtasks: Int, driverPayload: SwiftDriverPayload?, previewStyle: PreviewStyle?, moduleDependenciesContext: ModuleDependenciesContext?) {
         self.moduleName = moduleName
         self.indexingPayload = indexingPayload
         self.previewPayload = previewPayload
@@ -461,10 +463,11 @@ public struct SwiftTaskPayload: ParentTaskPayload {
         case nil:
             self.previewStyle = nil
         }
+        self.moduleDependenciesContext = moduleDependenciesContext
     }
 
     public func serialize<T: Serializer>(to serializer: T) {
-        serializer.serializeAggregate(7) {
+        serializer.serializeAggregate(8) {
             serializer.serialize(moduleName)
             serializer.serialize(indexingPayload)
             serializer.serialize(previewPayload)
@@ -472,11 +475,12 @@ public struct SwiftTaskPayload: ParentTaskPayload {
             serializer.serialize(numExpectedCompileSubtasks)
             serializer.serialize(driverPayload)
             serializer.serialize(previewStyle)
+            serializer.serialize(moduleDependenciesContext)
         }
     }
 
     public init(from deserializer: any Deserializer) throws {
-        try deserializer.beginAggregate(7)
+        try deserializer.beginAggregate(8)
         self.moduleName = try deserializer.deserialize()
         self.indexingPayload = try deserializer.deserialize()
         self.previewPayload = try deserializer.deserialize()
@@ -484,6 +488,7 @@ public struct SwiftTaskPayload: ParentTaskPayload {
         self.numExpectedCompileSubtasks = try deserializer.deserialize()
         self.driverPayload = try deserializer.deserialize()
         self.previewStyle = try deserializer.deserialize()
+        self.moduleDependenciesContext = try deserializer.deserialize()
     }
 }
 
@@ -2279,7 +2284,6 @@ public final class SwiftCompilerSpec : CompilerSpec, SpecIdentifierType, SwiftDi
                 ]
             }
 
-
             // BUILT_PRODUCTS_DIR here is guaranteed to be absolute by `getCommonTargetTaskOverrides`.
             let payload = SwiftTaskPayload(
                 moduleName: moduleName,
@@ -2296,7 +2300,9 @@ public final class SwiftCompilerSpec : CompilerSpec, SpecIdentifierType, SwiftDi
                 previewPayload: previewPayload,
                 localizationPayload: localizationPayload,
                 numExpectedCompileSubtasks: isUsingWholeModuleOptimization ? 1 : cbc.inputs.count,
-                driverPayload: await driverPayload(uniqueID: String(args.hashValue), scope: cbc.scope, delegate: delegate, compilationMode: compilationMode, isUsingWholeModuleOptimization: isUsingWholeModuleOptimization, args: args, tempDirPath: objectFileDir, explicitModulesTempDirPath: Path(cbc.scope.evaluate(BuiltinMacros.SWIFT_EXPLICIT_MODULES_OUTPUT_PATH)), variant: variant, arch: arch + compilationMode.moduleBaseNameSuffix, commandLine: ["builtin-SwiftDriver", "--"] + args, ruleInfo: ruleInfo(compilationMode.ruleNameIntegratedDriver, targetName), casOptions: casOptions, linkerResponseFilePath: moduleLinkerArgsPath), previewStyle: cbc.scope.previewStyle
+                driverPayload: await driverPayload(uniqueID: String(args.hashValue), scope: cbc.scope, delegate: delegate, compilationMode: compilationMode, isUsingWholeModuleOptimization: isUsingWholeModuleOptimization, args: args, tempDirPath: objectFileDir, explicitModulesTempDirPath: Path(cbc.scope.evaluate(BuiltinMacros.SWIFT_EXPLICIT_MODULES_OUTPUT_PATH)), variant: variant, arch: arch + compilationMode.moduleBaseNameSuffix, commandLine: ["builtin-SwiftDriver", "--"] + args, ruleInfo: ruleInfo(compilationMode.ruleNameIntegratedDriver, targetName), casOptions: casOptions, linkerResponseFilePath: moduleLinkerArgsPath),
+                previewStyle: cbc.scope.previewStyle,
+                moduleDependenciesContext: cbc.producer.moduleDependenciesContext
             )
 
             // Finally, assemble the input and output paths and create the Swift compiler command.

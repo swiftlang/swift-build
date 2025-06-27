@@ -750,6 +750,8 @@ public final class Settings: PlatformBuildContext, Sendable {
         targetBuildVersionPlatforms(in: globalScope)
     }
 
+    public let moduleDependencies: [ModuleDependency]
+
     public static func supportsMacCatalyst(scope: MacroEvaluationScope, core: Core) -> Bool {
         @preconcurrency @PluginExtensionSystemActor func sdkVariantInfoExtensions() -> [any SDKVariantInfoExtensionPoint.ExtensionProtocol] {
             core.pluginManager.extensions(of: SDKVariantInfoExtensionPoint.self)
@@ -905,6 +907,7 @@ public final class Settings: PlatformBuildContext, Sendable {
         }
 
         self.supportedBuildVersionPlatforms = effectiveSupportedPlatforms(sdkRegistry: sdkRegistry)
+        self.moduleDependencies = builder.moduleDependencies
 
         self.constructionComponents = builder.constructionComponents
     }
@@ -1290,6 +1293,8 @@ private class SettingsBuilder {
     /// The bound signing settings, once added in computeSigningSettings().
     var signingSettings: Settings.SigningSettings? = nil
 
+    var moduleDependencies: [ModuleDependency] = []
+
 
     // Mutable state of the builder as we're building up the settings table.
 
@@ -1622,6 +1627,13 @@ private class SettingsBuilder {
             pushTable(.none) {
                 $0.push(BuiltinMacros.EFFECTIVE_SWIFT_VERSION, literal: swiftVersion)
             }
+        }
+
+        do {
+            self.moduleDependencies = try createScope(sdkToUse: boundProperties.sdk).evaluate(BuiltinMacros.MODULE_DEPENDENCIES).map { try ModuleDependency(entry: $0) }
+        }
+        catch {
+            errors.append("Failed to parse \(BuiltinMacros.MODULE_DEPENDENCIES.name): \(error)")
         }
 
         // At this point settings construction is finished.
@@ -5347,26 +5359,6 @@ extension MacroEvaluationScope {
             return nil
         case (false, false):
             return nil
-        }
-    }
-}
-
-extension Settings {
-    public struct ModuleDependencyInfo {
-        let name: String
-        let isPublic: Bool
-    }
-
-    public var moduleDependencies: [ModuleDependencyInfo] {
-        self.globalScope.evaluate(BuiltinMacros.MODULE_DEPENDENCIES).compactMap {
-            let components = $0.components(separatedBy: " ")
-            guard let name = components.last else {
-                return nil
-            }
-            return ModuleDependencyInfo(
-                name: name,
-                isPublic: components.count > 1 && components.first == "public"
-            )
         }
     }
 }

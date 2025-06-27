@@ -34,6 +34,7 @@ add_library(SWBCore
   ConfiguredTarget.swift
   Core.swift
   CustomTaskTypeDescription.swift
+  Dependencies.swift
   DependencyInfoEditPayload.swift
   DependencyResolution.swift
   DiagnosticSupport.swift
