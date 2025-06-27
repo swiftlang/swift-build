@@ -121,6 +121,8 @@ public class TaskProducerContext: StaleFileRemovalContext, BuildFileResolution
     /// Whether a task planned by this producer has requested frontend command line emission.
     var emitFrontendCommandLines: Bool
 
+    public let moduleDependenciesContext: ModuleDependenciesContext?
+
     private struct State: Sendable {
         fileprivate var onDemandResourcesAssetPacks: [ODRTagSet: ODRAssetPackInfo] = [:]
         fileprivate var onDemandResourcesAssetPackSubPaths: [String: Set<String>] = [:]
@@ -433,6 +435,8 @@ public class TaskProducerContext: StaleFileRemovalContext, BuildFileResolution
         for note in settings.notes {
             delegate.note(context, note)
         }
+
+        self.moduleDependenciesContext = ModuleDependenciesContext(settings: settings)
     }
 
     /// The set of all known deployment target macro names, even if the platforms that use those settings are not installed.
