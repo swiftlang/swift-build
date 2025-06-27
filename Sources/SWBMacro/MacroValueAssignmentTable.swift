@@ -333,7 +333,7 @@ public final class MacroValueAssignment: Serializable, CustomStringConvertible, 
     private let _location: InternedMacroValueAssignmentLocation?
     private static let macroConfigPaths = SWBMutex<OrderedSet<Path>>(OrderedSet())
 
-    var location: MacroValueAssignmentLocation? {
+    public var location: MacroValueAssignmentLocation? {
         if let _location {
             return .init(
                 path: Self.macroConfigPaths.withLock { $0[_location.pathRef] },
@@ -509,5 +509,23 @@ private extension MacroValueAssignment {
     /// Returns true if unconditional assignment in the list is a literal.
     var containsUnconditionalLiteralInChain: Bool {
         return (expression.isLiteral && conditions == nil) || (next?.containsUnconditionalLiteralInChain ?? false)
+    }
+}
+
+// MARK: - Sequence Utilities
+
+extension MacroValueAssignment {
+    /// Returns a sequence that iterates through the linked list of `next` assignments starting from this node
+    public var sequence: some Sequence<MacroValueAssignment> {
+        struct Seq: Sequence, IteratorProtocol {
+            var current: MacroValueAssignment?
+
+            mutating func next() -> MacroValueAssignment? {
+                defer { current = current?.next }
+                return current
+            }
+        }
+
+        return Seq(current: self)
     }
 }

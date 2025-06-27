@@ -238,6 +238,23 @@ public final class SwiftModuleDependencyGraph: SwiftGlobalExplicitDependencyGrap
         return fileDependencies
     }
 
+    func mainModule(for key: String) async throws -> SwiftDriver.ModuleInfo? {
+        let graph = try await registryQueue.sync {
+            guard let driver = self.registry[key] else {
+                throw StubError.error("Unable to find jobs for key \(key). Be sure to plan the build ahead of fetching results.")
+            }
+            return driver.intermoduleDependencyGraph
+        }
+        guard let graph else { return nil }
+        return graph.mainModule
+    }
+
+    public func mainModuleImportModuleDependencies(for key: String) async throws -> [(ModuleDependency, importLocations: [SWBUtil.Diagnostic.Location])] {
+        try await mainModule(for: key)?.importInfos?.map {
+            (ModuleDependency($0), $0.sourceLocations.map { Diagnostic.Location($0) })
+        } ?? []
+    }
+
     public func queryTransitiveDependencyModuleNames(for key: String) async throws -> [String] {
         let graph = try await registryQueue.sync {
             guard let driver = self.registry[key] else {
@@ -847,5 +864,31 @@ extension SWBUtil.Diagnostic.Behavior {
         case .ignored:
             return .ignored
         }
+    }
+}
+
+extension SWBUtil.Diagnostic.Location {
+    init(_ loc: ScannerDiagnosticSourceLocation) {
+        self = .path(Path(loc.bufferIdentifier), line: loc.lineNumber, column: loc.columnNumber)
+    }
+}
+
+extension ModuleDependency.AccessLevel {
+    init(_ accessLevel: ImportInfo.ImportAccessLevel) {
+        switch accessLevel {
+        case .Private, .FilePrivate, .Internal:
+            self = .Private
+        case .Package:
+            self = .Package
+        case .Public:
+            self = .Public
+        }
+    }
+}
+
+extension ModuleDependency {
+    init(_ importInfo: ImportInfo) {
+        self.name = importInfo.importIdentifier
+        self.accessLevel = .init(importInfo.accessLevel)
     }
 }
