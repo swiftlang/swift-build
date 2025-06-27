@@ -2637,7 +2637,7 @@ public extension BuiltinMacros {
 }
 
 /// Enumeration macro type for tri-state booleans, typically used for warnings which can be set to "No", "Yes", or "Yes (Error)".
-public enum BooleanWarningLevel: String, Equatable, Hashable, Serializable, EnumerationMacroType, Encodable {
+public enum BooleanWarningLevel: String, Equatable, Hashable, Serializable, EnumerationMacroType, Codable {
     public static let defaultValue = BooleanWarningLevel.no
 
     case yesError = "YES_ERROR"
