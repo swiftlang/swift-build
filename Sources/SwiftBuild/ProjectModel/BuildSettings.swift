@@ -69,6 +69,7 @@ extension ProjectModel {
             case SWIFT_OBJC_INTERFACE_HEADER_DIR
             case SWIFT_OPTIMIZATION_LEVEL
             case SWIFT_VERSION
+            case SYMBOL_GRAPH_EXTRACTOR_OUTPUT_DIR
             case TARGET_NAME
             case TARGET_BUILD_DIR
             case TVOS_DEPLOYMENT_TARGET
