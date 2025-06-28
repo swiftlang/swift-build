@@ -42,17 +42,22 @@ public final class SwiftABICheckerToolSpec : GenericCommandLineToolSpec, SpecIde
         /// The path to the serialized diagnostic output.  Every clang task must provide this path.
         let serializedDiagnosticsPath: Path
 
-        init(serializedDiagnosticsPath: Path) {
+        let downgradeErrors: Bool
+
+        init(serializedDiagnosticsPath: Path, downgradeErrors: Bool) {
             self.serializedDiagnosticsPath = serializedDiagnosticsPath
+            self.downgradeErrors = downgradeErrors
         }
         public func serialize<T: Serializer>(to serializer: T) {
-            serializer.serializeAggregate(1) {
+            serializer.serializeAggregate(2) {
                 serializer.serialize(serializedDiagnosticsPath)
+                serializer.serialize(downgradeErrors)
             }
         }
         public init(from deserializer: any Deserializer) throws {
-            try deserializer.beginAggregate(1)
+            try deserializer.beginAggregate(2)
             self.serializedDiagnosticsPath = try deserializer.deserialize()
+            self.downgradeErrors = try deserializer.deserialize()
         }
     }
 
@@ -67,7 +72,12 @@ public final class SwiftABICheckerToolSpec : GenericCommandLineToolSpec, SpecIde
 
     // Override this func to ensure we can see these diagnostics in unit tests.
     public override func customOutputParserType(for task: any ExecutableTask) -> (any TaskOutputParser.Type)? {
-        return SerializedDiagnosticsOutputParser.self
+        let payload = task.payload! as! ABICheckerPayload
+        if payload.downgradeErrors {
+            return APIDigesterDowngradingSerializedDiagnosticsOutputParser.self
+        } else {
+            return SerializedDiagnosticsOutputParser.self
+        }
     }
     public func constructABICheckingTask(_ cbc: CommandBuildContext, _ delegate: any TaskGenerationDelegate, _ serializedDiagsPath: Path, _ baselinePath: Path?, _ allowlistPath: Path?) async {
         let toolSpecInfo: DiscoveredSwiftCompilerToolSpecInfo
@@ -86,6 +96,10 @@ public final class SwiftABICheckerToolSpec : GenericCommandLineToolSpec, SpecIde
         if let allowlistPath {
             commandLine += ["-breakage-allowlist-path", allowlistPath.normalize().str]
         }
+        let downgradeErrors = cbc.scope.evaluate(BuiltinMacros.SWIFT_ABI_CHECKER_DOWNGRADE_ERRORS)
+        if downgradeErrors {
+            commandLine += ["-disable-fail-on-error"]
+        }
         let allInputs = cbc.inputs.map { delegate.createNode($0.absolutePath) } + [baselinePath, allowlistPath].compactMap { $0 }.map { delegate.createNode($0.normalize()) }
         // Add import search paths
         for searchPath in SwiftCompilerSpec.collectInputSearchPaths(cbc, toolInfo: toolSpecInfo) {
@@ -95,7 +109,10 @@ public final class SwiftABICheckerToolSpec : GenericCommandLineToolSpec, SpecIde
         commandLine += cbc.scope.evaluate(BuiltinMacros.SWIFT_SYSTEM_INCLUDE_PATHS).flatMap { ["-I", $0] }
         commandLine += cbc.scope.evaluate(BuiltinMacros.SYSTEM_FRAMEWORK_SEARCH_PATHS).flatMap { ["-F", $0] }
         delegate.createTask(type: self,
-                            payload: ABICheckerPayload(serializedDiagnosticsPath: serializedDiagsPath),
+                            payload: ABICheckerPayload(
+                                serializedDiagnosticsPath: serializedDiagsPath,
+                                downgradeErrors: downgradeErrors
+                            ),
                             ruleInfo: defaultRuleInfo(cbc, delegate),
                             commandLine: commandLine,
                             environment: environmentFromSpec(cbc, delegate),
@@ -103,5 +120,42 @@ public final class SwiftABICheckerToolSpec : GenericCommandLineToolSpec, SpecIde
                             inputs: allInputs,
                             outputs: [delegate.createNode(cbc.output)],
                             enableSandboxing: enableSandboxing)
+    }
+}
+
+public final class APIDigesterDowngradingSerializedDiagnosticsOutputParser: TaskOutputParser {
+    private let task: any ExecutableTask
+
+    public let workspaceContext: WorkspaceContext
+    public let buildRequestContext: BuildRequestContext
+    public let delegate: any TaskOutputParserDelegate
+
+    required public init(for task: any ExecutableTask, workspaceContext: WorkspaceContext, buildRequestContext: BuildRequestContext, delegate: any TaskOutputParserDelegate, progressReporter: (any SubtaskProgressReporter)?) {
+        self.task = task
+        self.workspaceContext = workspaceContext
+        self.buildRequestContext = buildRequestContext
+        self.delegate = delegate
+    }
+
+    public func write(bytes: ByteString) {
+        // Forward the unparsed bytes immediately (without line buffering).
+        delegate.emitOutput(bytes)
+
+        // Disable diagnostic scraping, since we use serialized diagnostics.
+    }
+
+    public func close(result: TaskResult?) {
+        defer {
+            delegate.close()
+        }
+        // Don't try to read diagnostics if the process crashed or got cancelled as they were almost certainly not written in this case.
+        if result.shouldSkipParsingDiagnostics { return }
+
+        for path in task.type.serializedDiagnosticsPaths(task, workspaceContext.fs) {
+            let diagnostics = delegate.readSerializedDiagnostics(at: path, workingDirectory: task.workingDirectory, workspaceContext: workspaceContext)
+            for diagnostic in diagnostics {
+                delegate.diagnosticsEngine.emit(diagnostic.with(behavior: diagnostic.behavior == .error ? .warning : diagnostic.behavior))
+            }
+        }
     }
 }
