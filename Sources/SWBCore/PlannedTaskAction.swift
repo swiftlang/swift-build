@@ -264,7 +264,14 @@ public struct FileCopyTaskActionContext {
 extension FileCopyTaskActionContext {
     public init(_ cbc: CommandBuildContext) {
         let compilerPath = cbc.producer.clangSpec.resolveExecutablePath(cbc, forLanguageOfFileType: cbc.producer.lookupFileType(languageDialect: .c))
-        let linkerPath = cbc.producer.ldLinkerSpec.resolveExecutablePath(cbc.producer, Path(cbc.producer.ldLinkerSpec.computeExecutablePath(cbc)))
+        let linkerPath = cbc.producer.ldLinkerSpec.resolveExecutablePath(cbc.producer, cbc.producer.ldLinkerSpec.computeLinkerPath(cbc, usedCXX: false, lookup: { macro in
+            switch macro {
+            case BuiltinMacros.LINKER_DRIVER:
+                return cbc.scope.namespace.parseString("clang")
+            default:
+                return nil
+            }
+        }))
         let lipoPath = cbc.producer.lipoSpec.resolveExecutablePath(cbc.producer, Path(cbc.producer.lipoSpec.computeExecutablePath(cbc)))
 
         // If we couldn't find clang, skip the special stub binary handling. We may be using an Open Source toolchain which only has Swift. Also skip it for installLoc builds.
