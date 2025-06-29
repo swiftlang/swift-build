@@ -584,7 +584,6 @@ fileprivate struct ModuleMapTaskConstructionTests: CoreBasedTests {
                     #expect(contents == (OutputByteStream()
                                          <<< "framework module SwiftOnly {\n"
                                          <<< "  header \"SwiftOnly-Swift.h\"\n"
-                                         <<< "  requires objc\n"
                                          <<< "}\n").bytes)
                 }
 
@@ -629,7 +628,6 @@ fileprivate struct ModuleMapTaskConstructionTests: CoreBasedTests {
                                          <<< "\n"
                                          <<< "module ObjCCompatibilityHeader.Swift {\n"
                                          <<< "  header \"ObjCCompatibilityHeader-Swift.h\"\n"
-                                         <<< "  requires objc\n"
                                          <<< "}\n").bytes)
                 }
 
@@ -978,7 +976,6 @@ fileprivate struct ModuleMapTaskConstructionTests: CoreBasedTests {
                                                      <<< "\n"
                                                      <<< "module \(targetName).Swift {\n"
                                                      <<< "  header \"\(targetName)-Swift.h\"\n"
-                                                     <<< "  requires objc\n"
                                                      <<< "}\n").bytes)
                             }
 
