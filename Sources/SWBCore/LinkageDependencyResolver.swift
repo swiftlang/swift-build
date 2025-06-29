@@ -375,7 +375,7 @@ actor LinkageDependencyResolver {
             buildRequestContext.getCachedSettings($0.parameters, target: $0.target).globalScope.evaluate(BuiltinMacros.PRODUCT_MODULE_NAME)
         })
 
-        for moduleDependencyName in configuredTargetSettings.moduleDependencies.map { $0.name } {
+        for moduleDependencyName in (configuredTargetSettings.moduleDependencies.map { $0.name }) {
             if !moduleNamesOfExplicitDependencies.contains(moduleDependencyName), let implicitDependency = await implicitDependency(forModuleName: moduleDependencyName, from: configuredTarget, imposedParameters: imposedParameters, source: .moduleDependency(name: moduleDependencyName, buildSetting: BuiltinMacros.MODULE_DEPENDENCIES)) {
                 await result.append(ResolvedTargetDependency(target: implicitDependency, reason: .implicitBuildSetting(settingName: BuiltinMacros.MODULE_DEPENDENCIES.name, options: [moduleDependencyName])))
             }

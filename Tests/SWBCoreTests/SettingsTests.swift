@@ -4881,6 +4881,72 @@ import SWBMacro
         }
     }
 
+    @Test func targetConditionalLocation() async throws {
+        try await withTemporaryDirectory { (tmpDir: Path) in
+            let testWorkspace = TestWorkspace(
+                "Workspace",
+                sourceRoot: tmpDir.join("Test"),
+                projects: [TestPackageProject(
+                    "aProject",
+                    groupTree: TestGroup("SomeFiles", children: [
+                        TestFile("Project.xcconfig"),
+                    ]),
+                    buildConfigurations: [
+                        TestBuildConfiguration(
+                            "Debug",
+                            baseConfig: "Project.xcconfig",
+                            buildSettings: [
+                                "SDKROOT": "macosx",
+                                "OTHER_CFLAGS": "$(inherited) Project",
+                                "OTHER_LDFLAGS[target=Target]": "$(inherited) Project",
+                                "SUPPORTED_PLATFORMS": "$(AVAILABLE_PLATFORMS)",
+                                "SUPPORTS_MACCATALYST": "YES",
+                            ])
+                    ],
+                    targets: [
+                        TestStandardTarget("Target", type: .application),
+                    ])
+                ])
+            let workspace = try await testWorkspace.load(getCore())
+
+            let context = try await contextForTestData(workspace)
+            let buildRequestContext = BuildRequestContext(workspaceContext: context)
+            let testProject = context.workspace.projects[0]
+            let parameters = BuildParameters(action: .build, configuration: "Debug", activeRunDestination: .macOS)
+
+            let projectXcconfigPath = testWorkspace.sourceRoot.join("aProject/Project.xcconfig")
+            try await context.fs.writeFileContents(projectXcconfigPath) { stream in
+                stream <<<
+                    """
+                    OTHER_CFLAGS = XCConfig
+                    OTHER_LDFLAGS[target=Target] = XCConfig
+                    """
+            }
+
+            do {
+                let settings = Settings(workspaceContext: context, buildRequestContext: buildRequestContext, parameters: parameters, project: testProject, target: testProject.targets[0])
+
+                do {
+                    #expect(settings.globalScope.evaluate(BuiltinMacros.OTHER_CFLAGS) == ["XCConfig", "Project"])
+                    let macro = settings.globalScope.table.lookupMacro(BuiltinMacros.OTHER_CFLAGS)
+                    #expect(macro != nil)
+                    #expect(macro?.location == nil)
+                    #expect(macro?.next?.location == .init(path: projectXcconfigPath, startLine: 1, endLine: 1, startColumn: 15, endColumn: 24))
+                    #expect(macro?.next?.next == nil)
+                }
+
+                do {
+                    #expect(settings.globalScope.evaluate(BuiltinMacros.OTHER_LDFLAGS) == ["XCConfig", "Project"])
+                    let macro = settings.globalScope.table.lookupMacro(BuiltinMacros.OTHER_LDFLAGS)
+                    #expect(macro != nil)
+                    #expect(macro?.location == nil)
+                    #expect(macro?.next?.location == .init(path: projectXcconfigPath, startLine: 2, endLine: 2, startColumn: 31, endColumn: 40))
+                    #expect(macro?.next?.next == nil)
+                }
+            }
+        }
+    }
+
     @Test(.requireSDKs(.macOS, .iOS))
     func platformConditionals() async throws {
         let testWorkspace = try await TestWorkspace(

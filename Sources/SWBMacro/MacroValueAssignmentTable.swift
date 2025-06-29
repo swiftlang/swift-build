@@ -183,7 +183,7 @@ public struct MacroValueAssignmentTable: Serializable, Sendable {
                     if effectiveConditionValue.evaluate(condition) == true {
                         // Condition evaluates to true, so we push an assignment with a condition set that excludes the condition.
                         let filteredConditions = conditions.conditions.filter{ $0.parameter != parameter }
-                        table.push(macro, assignment.expression, conditions: filteredConditions.isEmpty ? nil : MacroConditionSet(conditions: filteredConditions))
+                        table.push(macro, assignment.expression, conditions: filteredConditions.isEmpty ? nil : MacroConditionSet(conditions: filteredConditions), location: assignment.location)
                     }
                     else {
                         // Condition evaluates to false, so we elide the assignment.
@@ -191,7 +191,7 @@ public struct MacroValueAssignmentTable: Serializable, Sendable {
                 }
                 else {
                     // Assignment isn't conditioned on the specified parameter, so we just push it as-is.
-                    table.push(macro, assignment.expression, conditions: assignment.conditions)
+                    table.push(macro, assignment.expression, conditions: assignment.conditions, location: assignment.location)
                 }
             }
             bindAndPushAssignment(firstAssignment)
@@ -333,7 +333,7 @@ public final class MacroValueAssignment: Serializable, CustomStringConvertible, 
     private let _location: InternedMacroValueAssignmentLocation?
     private static let macroConfigPaths = SWBMutex<OrderedSet<Path>>(OrderedSet())
 
-    var location: MacroValueAssignmentLocation? {
+    public var location: MacroValueAssignmentLocation? {
         if let _location {
             return .init(
                 path: Self.macroConfigPaths.withLock { $0[_location.pathRef] },
@@ -509,5 +509,23 @@ private extension MacroValueAssignment {
     /// Returns true if unconditional assignment in the list is a literal.
     var containsUnconditionalLiteralInChain: Bool {
         return (expression.isLiteral && conditions == nil) || (next?.containsUnconditionalLiteralInChain ?? false)
+    }
+}
+
+// MARK: - Sequence Utilities
+
+extension MacroValueAssignment {
+    /// Returns a sequence that iterates through the linked list of `next` assignments starting from this node
+    public var sequence: some Sequence<MacroValueAssignment> {
+        struct Seq: Sequence, IteratorProtocol {
+            var current: MacroValueAssignment?
+
+            mutating func next() -> MacroValueAssignment? {
+                defer { current = current?.next }
+                return current
+            }
+        }
+
+        return Seq(current: self)
     }
 }
