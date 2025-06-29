@@ -1560,7 +1560,7 @@ import SWBMacro
         }
 
         // Check with just LD.
-        for (name, expected) in [("file.c", "SomeCLinker"), ("file.cpp", "clang++")] {
+        for (name, expected) in [("file.c", core.hostOperatingSystem.imageFormat.executableName(basename:"SomeCLinker")), ("file.cpp", core.hostOperatingSystem.imageFormat.executableName(basename:"clang++"))] {
             try await check(name: name, expectedLinker: expected, macros: [
                 BuiltinMacros.LD: "SomeCLinker"
                 // NOTE: One wonders whether this shouldn't change the C++ linker.
@@ -1568,7 +1568,7 @@ import SWBMacro
         }
 
         // Check with LD & LDPLUSPLUS.
-        for (name, expected) in [("file.c", "SomeCLinker"), ("file.cpp", "SomeC++Linker")] {
+        for (name, expected) in [("file.c", core.hostOperatingSystem.imageFormat.executableName(basename:"SomeCLinker")), ("file.cpp", core.hostOperatingSystem.imageFormat.executableName(basename:"SomeC++Linker"))] {
             try await check(name: name, expectedLinker: expected, macros: [
                 BuiltinMacros.LD: "SomeCLinker",
                 BuiltinMacros.LDPLUSPLUS: "SomeC++Linker"
@@ -1576,7 +1576,7 @@ import SWBMacro
         }
 
         // Check with arch specific LD.
-        for (name, expected) in [("file.c", "SomeCLinker_x86_64"), ("file.cpp", "SomeC++Linker_x86_64")] {
+        for (name, expected) in [("file.c", core.hostOperatingSystem.imageFormat.executableName(basename:"SomeCLinker_x86_64")), ("file.cpp", core.hostOperatingSystem.imageFormat.executableName(basename:"SomeC++Linker_x86_64"))] {
             try await check(name: name, expectedLinker: expected, macros: [
                 BuiltinMacros.CURRENT_ARCH: "x86_64",
                 try core.specRegistry.internalMacroNamespace.declareStringMacro("LD_x86_64"): "SomeCLinker_x86_64",
