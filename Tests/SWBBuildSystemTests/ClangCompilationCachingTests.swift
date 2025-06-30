@@ -19,8 +19,7 @@ import SWBTestSupport
 import SWBUtil
 
 @Suite(.skipHostOS(.windows, "Windows platform has no CAS support yet"),
-       .requireDependencyScannerPlusCaching,
-       .flaky("A handful of Swift Build CAS tests fail when running the entire test suite"), .bug("rdar://146781403"))
+       .requireDependencyScannerPlusCaching)
 fileprivate struct ClangCompilationCachingTests: CoreBasedTests {
     let canUseCASPlugin: Bool
     let canUseCASPruning: Bool
@@ -176,6 +175,7 @@ fileprivate struct ClangCompilationCachingTests: CoreBasedTests {
     func testCachingBasic(usePlugin: Bool, runDestination: SWBProtocol.RunDestinationInfo) async throws {
         try await withTemporaryDirectory { tmpDirPath in
             var buildSettings: [String: String] = [
+                "CC": "/Users/Jan/Build.noindex/apple-llvm/release/bin/clang",
                 "SDKROOT": runDestination.sdk,
                 "PRODUCT_NAME": "$(TARGET_NAME)",
                 "CLANG_ENABLE_COMPILE_CACHE": "YES",
@@ -196,7 +196,7 @@ fileprivate struct ClangCompilationCachingTests: CoreBasedTests {
                         groupTree: TestGroup(
                             "Sources",
                             children: [
-                                TestFile("file.c"),
+                                TestFile("file.m"),
                             ]),
                         buildConfigurations: [TestBuildConfiguration(
                             "Debug",
@@ -206,22 +206,38 @@ fileprivate struct ClangCompilationCachingTests: CoreBasedTests {
                                 "Library",
                                 type: .staticLibrary,
                                 buildPhases: [
-                                    TestSourcesBuildPhase(["file.c"]),
+                                    TestSourcesBuildPhase(["file.m"]),
                                 ]),
                         ])])
 
             let tester = try await BuildOperationTester(getCore(), testWorkspace, simulated: false)
             let rawUserInfo = tester.userInfo
 
-            try await tester.fs.writeFileContents(testWorkspace.sourceRoot.join("aProject/file.c")) { stream in
+            try await tester.fs.writeFileContents(testWorkspace.sourceRoot.join("aProject/file.m")) { stream in
                 stream <<<
                 """
                 #include <stdio.h>
                 int something = 1;
+                
+                @interface B
+                -(void)m0;
+                +(void)m1;
+                @end
+                
+                @interface B(Cat1)
+                -(void)m2;
+                @end
+                
+                void test3(B *b) {
+                  [b m2];
+                }
                 """
             }
 
-            let metricsEnv = { (suffix: String) in ["SWIFTBUILD_METRICS_PATH": tmpDirPath.join("Test/aProject/build/XCBuildData/metrics-\(suffix).json").str] }
+            let metricsEnv = { (suffix: String) in [
+                "SWIFTBUILD_METRICS_PATH": tmpDirPath.join("Test/aProject/build/XCBuildData/metrics-\(suffix).json").str,
+                "CLANG_COMPILER_OBJC_MESSAGE_TRACE_PATH": tmpDirPath.join("Test/aProject/build/ObjC-message-trace.txt").str,
+            ]}
 
             tester.userInfo = rawUserInfo.withAdditionalEnvironment(environment: metricsEnv("one"))
             try await tester.checkBuild(
@@ -237,16 +253,18 @@ fileprivate struct ClangCompilationCachingTests: CoreBasedTests {
                 results.checkNote("0 hits / 1 cacheable task (0%)")
                 results.checkCompileCacheMiss(compileTask)
                 results.checkNoDiagnostics()
+
+                print(results.buildTranscript)
             }
 
             func readMetrics(_ suffix: String) throws -> String {
                 try tester.fs.read(tmpDirPath.join("Test/aProject/build/XCBuildData/metrics-\(suffix).json")).asString
             }
             #expect(try readMetrics("one") == #"{"global":{"clangCacheHits":0,"clangCacheMisses":1,"swiftCacheHits":0,"swiftCacheMisses":0},"tasks":{"CompileC":{"cacheMisses":1}}}"#)
+            #expect(tester.fs.exists(tmpDirPath.join("Test/aProject/build/ObjC-message-trace.txt")))
 
             // Touch the source file to trigger a new scan.
-            try await tester.fs.updateTimestamp(testWorkspace.sourceRoot.join("aProject/file.c"))
-
+            try await tester.fs.updateTimestamp(testWorkspace.sourceRoot.join("aProject/file.m"))
             tester.userInfo = rawUserInfo.withAdditionalEnvironment(environment: metricsEnv("two"))
             try await tester.checkBuild(
                 runDestination: runDestination,
@@ -270,7 +288,7 @@ fileprivate struct ClangCompilationCachingTests: CoreBasedTests {
             #expect(try readMetrics("two") == #"{"global":{"clangCacheHits":1,"clangCacheMisses":0,"swiftCacheHits":0,"swiftCacheMisses":0},"tasks":{"CompileC":{"cacheHits":1}}}"#)
 
             // Modify the source file to trigger a cache miss.
-            try await tester.fs.writeFileContents(testWorkspace.sourceRoot.join("aProject/file.c")) { stream in
+            try await tester.fs.writeFileContents(testWorkspace.sourceRoot.join("aProject/file.m")) { stream in
                 stream <<<
                 """
                 #include <stdio.h>
@@ -290,11 +308,24 @@ fileprivate struct ClangCompilationCachingTests: CoreBasedTests {
             #expect(try readMetrics("three") == #"{"global":{"clangCacheHits":0,"clangCacheMisses":1,"swiftCacheHits":0,"swiftCacheMisses":0},"tasks":{"CompileC":{"cacheMisses":1}}}"#)
 
             // Return to the original source -> should still be a hit.
-            try await tester.fs.writeFileContents(testWorkspace.sourceRoot.join("aProject/file.c")) { stream in
+            try await tester.fs.writeFileContents(testWorkspace.sourceRoot.join("aProject/file.m")) { stream in
                 stream <<<
                 """
                 #include <stdio.h>
                 int something = 1;
+                
+                @interface B
+                -(void)m0;
+                +(void)m1;
+                @end
+                
+                @interface B(Cat1)
+                -(void)m2;
+                @end
+                
+                void test3(B *b) {
+                  [b m2];
+                }
                 """
             }
 
