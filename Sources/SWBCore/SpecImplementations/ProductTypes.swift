@@ -260,31 +260,35 @@ public class ProductTypeSpec : Spec, SpecType, @unchecked Sendable {
     }
 
     /// Computes and returns additional arguments to pass to the linker appropriate for the product type.  Also returns a list of additional paths to treat as inputs to the link command, if appropriate.
-    func computeAdditionalLinkerArgs(_ producer: any CommandProducer, scope: MacroEvaluationScope) -> (args: [String], inputs: [Path]) {
+    func computeAdditionalLinkerArgs(_ producer: any CommandProducer, scope: MacroEvaluationScope, lookup: @escaping ((MacroDeclaration) -> MacroStringExpression?)) -> (args: [String], inputs: [Path]) {
         return ([], [])
     }
 
-    fileprivate func computeDylibArgs(_ producer: any CommandProducer, _ scope: MacroEvaluationScope) -> [String] {
+    fileprivate func computeDylibArgs(_ producer: any CommandProducer, _ scope: MacroEvaluationScope, lookup: @escaping ((MacroDeclaration) -> MacroStringExpression?)) -> [String] {
         var args = [String]()
 
         if producer.isApplePlatform {
-            let compatibilityVersion = scope.evaluate(BuiltinMacros.DYLIB_COMPATIBILITY_VERSION)
+            let compatibilityVersion = scope.evaluate(BuiltinMacros.DYLIB_COMPATIBILITY_VERSION, lookup: lookup)
             if !compatibilityVersion.isEmpty {
-                switch scope.evaluate(BuiltinMacros.LINKER_DRIVER) {
+                switch scope.evaluate(BuiltinMacros.LINKER_DRIVER, lookup: lookup) {
                 case .clang:
                     args += ["-compatibility_version", compatibilityVersion]
                 case .swiftc:
                     args += ["-Xlinker", "-compatibility_version", "-Xlinker", compatibilityVersion]
+                case .auto:
+                    preconditionFailure("Expected LINKER_DRIVER to be bound to a concrete value")
                 }
             }
 
-            let currentVersion = scope.evaluate(BuiltinMacros.DYLIB_CURRENT_VERSION)
+            let currentVersion = scope.evaluate(BuiltinMacros.DYLIB_CURRENT_VERSION, lookup: lookup)
             if !currentVersion.isEmpty {
-                switch scope.evaluate(BuiltinMacros.LINKER_DRIVER) {
+                switch scope.evaluate(BuiltinMacros.LINKER_DRIVER, lookup: lookup) {
                 case .clang:
                     args += ["-current_version", currentVersion]
                 case .swiftc:
                     args += ["-Xlinker", "-current_version", "-Xlinker", currentVersion]
+                case .auto:
+                    preconditionFailure("Expected LINKER_DRIVER to be bound to a concrete value")
                 }
             }
         }
@@ -563,9 +567,9 @@ public class FrameworkProductTypeSpec : BundleProductTypeSpec, @unchecked Sendab
     ])
 */
 
-    override func computeAdditionalLinkerArgs(_ producer: any CommandProducer, scope: MacroEvaluationScope) -> (args: [String], inputs: [Path]) {
+    override func computeAdditionalLinkerArgs(_ producer: any CommandProducer, scope: MacroEvaluationScope, lookup: @escaping ((MacroDeclaration) -> MacroStringExpression?)) -> (args: [String], inputs: [Path]) {
         if scope.evaluate(BuiltinMacros.MACH_O_TYPE) != "staticlib" {
-            return (computeDylibArgs(producer, scope), [])
+            return (computeDylibArgs(producer, scope, lookup: lookup), [])
         }
         return ([], [])
     }
@@ -801,9 +805,9 @@ public final class DynamicLibraryProductTypeSpec : LibraryProductTypeSpec, @unch
         return true
     }
 
-    override func computeAdditionalLinkerArgs(_ producer: any CommandProducer, scope: MacroEvaluationScope) -> (args: [String], inputs: [Path]) {
+    override func computeAdditionalLinkerArgs(_ producer: any CommandProducer, scope: MacroEvaluationScope, lookup: @escaping ((MacroDeclaration) -> MacroStringExpression?)) -> (args: [String], inputs: [Path]) {
         if scope.evaluate(BuiltinMacros.MACH_O_TYPE) != "staticlib" {
-            return (computeDylibArgs(producer, scope), [])
+            return (computeDylibArgs(producer, scope, lookup: lookup), [])
         }
         return ([], [])
     }
