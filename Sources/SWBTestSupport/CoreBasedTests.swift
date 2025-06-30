@@ -371,6 +371,13 @@ extension CoreBasedTests {
         try await SWBCore.discoveredSwiftCompilerInfo(MockCommandProducer(core: getCore(), productTypeIdentifier: "com.apple.product-type.framework", platform: nil, useStandardExecutableSearchPaths: true, toolchain: nil, fs: PseudoFS()), AlwaysDeferredCoreClientDelegate(), at: toolPath, blocklistsPathOverride: nil)
     }
 
+    package func discoveredLdLinkerInfo(at toolPath: Path) async throws -> DiscoveredLdLinkerToolSpecInfo {
+        guard let info = try await SWBCore.discoveredLinkerToolsInfo(MockCommandProducer(core: getCore(), productTypeIdentifier: "com.apple.product-type.framework", platform: nil, useStandardExecutableSearchPaths: true, toolchain: nil, fs: PseudoFS()), AlwaysDeferredCoreClientDelegate(), at: toolPath) as? DiscoveredLdLinkerToolSpecInfo else {
+            throw StubError.error("Could not get tool spec info for LdLinkerSpec")
+        }
+        return info
+    }
+
     package func discoveredTAPIToolInfo(at toolPath: Path) async throws -> DiscoveredTAPIToolSpecInfo {
         try await SWBCore.discoveredTAPIToolInfo(MockCommandProducer(core: getCore(), productTypeIdentifier: "com.apple.product-type.framework", platform: nil, useStandardExecutableSearchPaths: true, toolchain: nil, fs: PseudoFS()), AlwaysDeferredCoreClientDelegate(), at: toolPath)
     }

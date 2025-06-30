@@ -668,6 +668,19 @@
                 };
             },
 
+            {   Name = LD_ADD_MERGEABLE_DEBUG_HOOK;
+                Type = Boolean;
+                DefaultValue = "$(ADD_MERGEABLE_DEBUG_HOOK)";
+                CommandLineArgs = {
+                    YES = (
+                        "-Xlinker",
+                        "-add_mergeable_debug_hook",
+                    );
+                    NO = ();
+                };
+                SupportedVersionRanges = ( "1217" );
+            },
+
             {
                 Name = "LD_SHARED_CACHE_ELIGIBLE";
                 Type = Enumeration;

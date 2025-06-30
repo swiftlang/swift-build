@@ -420,6 +420,7 @@ public final class BuiltinMacros {
 
     // MARK: Mergeable libraries macros
 
+    public static let ADD_MERGEABLE_DEBUG_HOOK = BuiltinMacros.declareBooleanMacro("ADD_MERGEABLE_DEBUG_HOOK")
     public static let AUTOMATICALLY_MERGE_DEPENDENCIES = BuiltinMacros.declareBooleanMacro("AUTOMATICALLY_MERGE_DEPENDENCIES")
     public static let MERGEABLE_LIBRARY = BuiltinMacros.declareBooleanMacro("MERGEABLE_LIBRARY")
     public static let DONT_EMBED_REEXPORTED_MERGEABLE_LIBRARIES = BuiltinMacros.declareBooleanMacro("DONT_EMBED_REEXPORTED_MERGEABLE_LIBRARIES")
@@ -1000,6 +1001,7 @@ public final class BuiltinMacros {
     public static let SWIFT_ABI_CHECKER_EXCEPTIONS_FILE = BuiltinMacros.declareStringMacro("SWIFT_ABI_CHECKER_EXCEPTIONS_FILE")
     public static let SWIFT_ABI_GENERATION_TOOL_OUTPUT_DIR = BuiltinMacros.declareStringMacro("SWIFT_ABI_GENERATION_TOOL_OUTPUT_DIR")
     public static let SWIFT_ACCESS_NOTES_PATH = BuiltinMacros.declareStringMacro("SWIFT_ACCESS_NOTES_PATH")
+    public static let SWIFT_ACTIVE_COMPILATION_CONDITIONS = BuiltinMacros.declareStringListMacro("SWIFT_ACTIVE_COMPILATION_CONDITIONS")
     public static let SWIFT_ALLOW_INSTALL_OBJC_HEADER = BuiltinMacros.declareBooleanMacro("SWIFT_ALLOW_INSTALL_OBJC_HEADER")
     public static let __SWIFT_ALLOW_INSTALL_OBJC_HEADER_MESSAGE = BuiltinMacros.declareStringMacro("__SWIFT_ALLOW_INSTALL_OBJC_HEADER_MESSAGE")
     public static let SWIFT_COMPILATION_MODE = BuiltinMacros.declareStringMacro("SWIFT_COMPILATION_MODE")
@@ -1377,6 +1379,7 @@ public final class BuiltinMacros {
         ADDITIONAL_SDK_DIRS,
         AD_HOC_CODE_SIGNING_ALLOWED,
         __AD_HOC_CODE_SIGNING_NOT_ALLOWED_SUPPLEMENTAL_MESSAGE,
+        ADD_MERGEABLE_DEBUG_HOOK,
         AGGREGATE_TRACKED_DOMAINS,
         ALLOW_BUILD_REQUEST_OVERRIDES,
         ALLOW_DISJOINTED_DIRECTORIES_AS_DEPENDENCIES,
@@ -2174,6 +2177,7 @@ public final class BuiltinMacros {
         SWIFT_ABI_CHECKER_EXCEPTIONS_FILE,
         SWIFT_ABI_GENERATION_TOOL_OUTPUT_DIR,
         SWIFT_ACCESS_NOTES_PATH,
+        SWIFT_ACTIVE_COMPILATION_CONDITIONS,
         SWIFT_ALLOW_INSTALL_OBJC_HEADER,
         __SWIFT_ALLOW_INSTALL_OBJC_HEADER_MESSAGE,
         SWIFT_COMPILATION_MODE,

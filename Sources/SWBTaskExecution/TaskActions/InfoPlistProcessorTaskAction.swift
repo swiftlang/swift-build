@@ -1451,13 +1451,20 @@ public final class InfoPlistProcessorTaskAction: TaskAction
                 case iOS
                 case tvOS
                 case watchOS
+                case visionOS = "xrOS" // must be "xrOS" as it's compared against Platform.familyName
             }
 
             /// The values of the key that are deprecated, if only specific values are deprecated. `nil` indicates the key as a whole is deprecated.
             let values: [PropertyListItem]?
 
-            /// An infix to display in the "use (alternative) instead" portion of the deprecation message.
-            let alternate: String
+            enum MoreInfo {
+                /// An infix to display in the "use (alternative) instead" portion of the deprecation message.
+                case alternate(String)
+
+                case ignored(String)
+            }
+
+            let moreInfo: MoreInfo
 
             /// Mapping of platforms and the version of that platform beginning in which the deprecation warning should be shown.
             ///
@@ -1465,21 +1472,28 @@ public final class InfoPlistProcessorTaskAction: TaskAction
             /// If there is no version value present for a platform at all, no warning will ever be shown for that platform.
             let deprecationVersions: [DeprecationPlatform: Version]
 
-            init(values: [PropertyListItem]? = nil, alternate: String, deprecationVersions: [DeprecationPlatform: Version]) {
+            init(values: [PropertyListItem]? = nil, moreInfo: MoreInfo, deprecationVersions: [DeprecationPlatform: Version]) {
                 self.values = values
-                self.alternate = alternate
+                self.moreInfo = moreInfo
                 self.deprecationVersions = deprecationVersions
             }
         }
 
         let plistKeyDeprecationInfo: [PropertyListKeyPath: DeprecationInfo] = [
-            "UILaunchImages": .init(alternate: "launch storyboards", deprecationVersions: [.iOS: Version(), .tvOS: Version(13)]),
-            "CLKComplicationSupportedFamilies": .init(alternate: "the ClockKit complications API", deprecationVersions: [.watchOS: Version(7)]),
-            PropertyListKeyPath(.dict(.equal("NSAppTransportSecurity")), .dict(.equal("NSExceptionDomains")), .dict(.any), .any(.equal("NSExceptionMinimumTLSVersion"))): .init(values: [.plString("TLSv1.0"), .plString("TLSv1.1")], alternate: "TLSv1.2 or TLSv1.3", deprecationVersions: [
+            "UILaunchImages": .init(moreInfo: .alternate("launch storyboards"), deprecationVersions: [.iOS: Version(), .tvOS: Version(13)]),
+            "CLKComplicationSupportedFamilies": .init(moreInfo: .alternate("the ClockKit complications API"), deprecationVersions: [.watchOS: Version(7)]),
+            PropertyListKeyPath(.dict(.equal("NSAppTransportSecurity")), .dict(.equal("NSExceptionDomains")), .dict(.any), .any(.equal("NSExceptionMinimumTLSVersion"))): .init(values: [.plString("TLSv1.0"), .plString("TLSv1.1")], moreInfo: .alternate("TLSv1.2 or TLSv1.3"), deprecationVersions: [
                 .macOS: Version(12),
                 .iOS: Version(15),
                 .tvOS: Version(15),
                 .watchOS: Version(8)
+            ]),
+            "UIRequiresFullScreen": .init(moreInfo: .ignored("See the UIRequiresFullScreen documentation for more details."), deprecationVersions: [
+                .macOS: Version(26),
+                .iOS: Version(26),
+                .tvOS: Version(26),
+                .watchOS: Version(26),
+                .visionOS: Version(26),
             ])
         ]
 
@@ -1497,11 +1511,19 @@ public final class InfoPlistProcessorTaskAction: TaskAction
                         prefixPart = "'\(item.actualKeyPath.joined(separator: "' => '"))'"
                     }
 
+                    let suffixPart: String
+                    switch info.moreInfo {
+                    case let .alternate(alternate):
+                        suffixPart = ", use \(alternate) instead."
+                    case let .ignored(ignored):
+                        suffixPart = " and will be ignored in a future release. \(ignored)"
+                    }
+
                     let message: String
                     if deprecationVersion > Version() {
-                        message = "\(prefixPart) has been deprecated starting in \(context.platform?.familyDisplayName ?? "") \(deprecationVersion.canonicalDeploymentTargetForm.description), use \(info.alternate) instead."
+                        message = "\(prefixPart) has been deprecated starting in \(context.platform?.familyDisplayName ?? "") \(deprecationVersion.canonicalDeploymentTargetForm.description)\(suffixPart)"
                     } else {
-                        message = "\(prefixPart) has been deprecated, use \(info.alternate) instead."
+                        message = "\(prefixPart) has been deprecated\(suffixPart)"
                     }
 
                     if let deploymentTarget = deploymentTarget, deploymentTarget >= deprecationVersion {
