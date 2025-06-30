@@ -922,6 +922,58 @@ fileprivate enum TargetPlatformSpecializationMode {
         }
     }
 
+    @Test
+    func toolchainOverlaysViaOverridesDoNotConflictWithSpecialization() async throws {
+        let core = try await getCore()
+        let workspace = try TestWorkspace("Workspace",
+                                          projects: [TestPackageProject("aProject",
+                                                                        groupTree: TestGroup("SomeFiles"),
+                                                                        targets: [
+                                                                            TestAggregateTarget("ALL", dependencies: ["iOSFwk", "PackageLibProduct"]),
+                                                                            TestStandardTarget(
+                                                                                "iOSFwk",
+                                                                                type: .framework,
+                                                                                buildConfigurations: [
+                                                                                    TestBuildConfiguration("Debug", buildSettings: ["SDKROOT": "macosx"]),
+                                                                                ],
+                                                                                dependencies: ["PackageLibProduct"]
+                                                                            ),
+                                                                            TestPackageProductTarget(
+                                                                                "PackageLibProduct",
+                                                                                frameworksBuildPhase: TestFrameworksBuildPhase([
+                                                                                    TestBuildFile(.target("PackageLib"))]),
+                                                                                buildConfigurations: [
+                                                                                    // Targets need to opt-in to specialization.
+                                                                                    TestBuildConfiguration("Debug", buildSettings: [
+                                                                                        "SDKROOT": "auto",
+                                                                                        "SDK_VARIANT": "auto",
+                                                                                        "SUPPORTED_PLATFORMS": "macosx iphoneos iphonesimulator appletvos appletvsimulator watchos watchsimulator",
+                                                                                    ]),
+                                                                                ],
+                                                                                dependencies: ["PackageLib"]
+                                                                            ),
+                                                                            TestStandardTarget("PackageLib", type: .staticLibrary),
+                                                                        ]
+                                                                       )]
+        ).load(core)
+        let workspaceContext = WorkspaceContext(core: core, workspace: workspace, processExecutionCache: .sharedForTesting)
+        let project = workspace.projects[0]
+
+        // Configure the targets and create a BuildRequest.
+        let buildParameters = BuildParameters(configuration: "Debug", activeRunDestination: RunDestinationInfo.macOS, overrides: ["TOOLCHAINS": "com.fake-toolchain-identifier"])
+        let allTarget = BuildRequest.BuildTargetInfo(parameters: buildParameters, target: project.targets[0])
+        let packageTarget = BuildRequest.BuildTargetInfo(parameters: buildParameters, target: project.targets[2])
+        let buildRequest = BuildRequest(parameters: buildParameters, buildTargets: [allTarget, packageTarget], continueBuildingAfterErrors: true, useParallelTargets: false, useImplicitDependencies: false, useDryRun: false)
+        let buildRequestContext = BuildRequestContext(workspaceContext: workspaceContext)
+
+        for type in TargetGraphFactory.GraphType.allCases {
+            // Get the dependency closure for the build request and examine it.
+            let delegate = EmptyTargetDependencyResolverDelegate(workspace: workspaceContext.workspace)
+            _ = await TargetGraphFactory(workspaceContext: workspaceContext, buildRequest: buildRequest, buildRequestContext: buildRequestContext, delegate: delegate).graph(type: type)
+            delegate.checkNoDiagnostics()
+        }
+    }
+
     @Test(.requireSDKs(.macOS))
     func macCatalystSpecialization() async throws {
         let core = try await getCore()
