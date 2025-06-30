@@ -1413,6 +1413,16 @@
         UTI = "com.apple.dt.stickers";
     },
 
+    {
+        // Icon Composer icons are not really wrappers according to launch services, but we treat them like wrappers in Xcode as we want them to be opaque
+        Type = FileType;
+        Identifier = folder.iconcomposer.icon;
+        BasedOn = folder.abstractassetcatalog;
+        Extensions = (icon);
+        IsTransparent = NO;
+        UTI = "com.apple.iconcomposer.icon";
+    },
+
     // Archive file types
     {
         Type = FileType;

@@ -283,6 +283,8 @@ package final class TestFile: TestInternalStructureItem, CustomStringConvertible
             return "file.uicatalog"
         case ".xcassets":
             return "folder.assetcatalog"
+        case ".icon":
+            return "folder.iconcomposer.icon"
         case ".xcdatamodeld":
             return "wrapper.xcdatamodel"
         case ".xcfilelist":

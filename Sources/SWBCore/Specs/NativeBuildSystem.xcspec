@@ -294,7 +294,7 @@ When `GENERATE_INFOPLIST_FILE` is enabled, sets the value of the [CFBundleExecut
             },
             {   Name = EXCLUDED_RECURSIVE_SEARCH_PATH_SUBDIRECTORIES;
                 Type = StringList;
-                DefaultValue = "*.nib *.lproj *.framework *.gch *.xcode* *.xcassets (*) .DS_Store CVS .svn .git .hg *.pbproj *.pbxproj";
+                DefaultValue = "*.nib *.lproj *.framework *.gch *.xcode* *.xcassets *.icon (*) .DS_Store CVS .svn .git .hg *.pbproj *.pbxproj";
                 Category = "Search Paths";
             },
             {   Name = RECURSIVE_SEARCH_PATHS_FOLLOW_SYMLINKS;

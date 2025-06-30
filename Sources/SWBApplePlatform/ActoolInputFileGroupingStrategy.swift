@@ -33,7 +33,8 @@ import Foundation
         // TODO Should we make this a property of the product type?
         guard context.productType?.identifier == "com.apple.product-type.app-extension.messages-sticker-pack" else { return [] }
 
-        let catalogFileTypes = ["folder.assetcatalog", "folder.stickers"].map { context.lookupFileType(identifier: $0)! }
+        let fileTypes = ["folder.assetcatalog", "folder.stickers", "folder.iconcomposer.icon"]
+        let catalogFileTypes = fileTypes.map { context.lookupFileType(identifier: $0)! }
         let stringsFileType = context.lookupFileType(identifier: "text.plist.strings")!
 
         let catalogPaths = target.files.compactMap { ftb in catalogFileTypes.contains { ftb.fileType.conformsTo($0) } ? ftb.absolutePath : nil }
