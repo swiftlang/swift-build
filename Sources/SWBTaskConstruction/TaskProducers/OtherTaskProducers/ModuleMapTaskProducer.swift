@@ -404,7 +404,6 @@ final class ModuleMapTaskProducer: PhasedTaskProducer, TaskProducer {
                 outputStream <<< "module \(try moduleName.asModuleIdentifierString()).Swift {\n"
             }
             outputStream <<< "  header \"\(interfaceHeaderName.asCStringLiteralContent)\"\n"
-            outputStream <<< "  requires objc\n"
             outputStream <<< "}\n"
 
             return outputStream.bytes
