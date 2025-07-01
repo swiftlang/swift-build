@@ -22,15 +22,24 @@ import SWBTaskConstruction
 @Suite
 fileprivate struct AssetCatalogTaskConstructionTests: CoreBasedTests {
     func assetCatalogThinningTestProject(tmpDir: Path, thinningBuildSettings: [String: String]) async throws -> TestProject {
+        let testGroupChildren = [
+            TestFile("Test.swift"),
+            TestFile("Assets.xcassets"),
+            TestFile("Icon.icon"),
+        ]
+
+        let testResourceBuildPhaseFiles = [
+            TestBuildFile("Assets.xcassets"),
+            TestBuildFile("Icon.icon"),
+        ]
+
+
         return try await TestProject(
             "aProject",
             sourceRoot: tmpDir,
             groupTree: TestGroup(
                 "SomeFiles",
-                children: [
-                    TestFile("Test.swift"),
-                    TestFile("Assets.xcassets"),
-                ]),
+                children: testGroupChildren),
             buildConfigurations: [
                 TestBuildConfiguration(
                     "Debug",
@@ -60,9 +69,7 @@ fileprivate struct AssetCatalogTaskConstructionTests: CoreBasedTests {
                         TestSourcesBuildPhase([
                             TestBuildFile("Test.swift"),
                         ]),
-                        TestResourcesBuildPhase([
-                            TestBuildFile("Assets.xcassets"),
-                        ]),
+                        TestResourcesBuildPhase(testResourceBuildPhaseFiles),
                     ]
                 ),
             ], classPrefix: "XC")
@@ -82,36 +89,44 @@ fileprivate struct AssetCatalogTaskConstructionTests: CoreBasedTests {
 
             await tester.checkBuild(runDestination: .iOS) { results in
                 results.checkTask(.matchRuleType("CompileAssetCatalogVariant"), .matchRuleItem("thinned")) { task in
-                    task.checkCommandLine([actoolPath.str,
-                                           "\(SRCROOT)/Assets.xcassets",
-                                           "--compile", "\(SRCROOT)/build/aProject.build/Debug-iphoneos/App.build/assetcatalog_output/thinned",
-                                           "--output-format", "human-readable-text",
-                                           "--notices", "--warnings",
-                                           "--export-dependency-info", "\(SRCROOT)/build/aProject.build/Debug-iphoneos/App.build/assetcatalog_dependencies_thinned",
-                                           "--output-partial-info-plist", "\(SRCROOT)/build/aProject.build/Debug-iphoneos/App.build/assetcatalog_generated_info.plist_thinned",
-                                           "--compress-pngs",
-                                           "--enable-on-demand-resources", "NO",
-                                           "--filter-for-thinning-device-configuration", "myPhoneABCD,10-B",
-                                           "--filter-for-device-os-version", "12.1235",
-                                           "--development-region", "English",
-                                           "--target-device", "iphone",
-                                           "--minimum-deployment-target", results.runDestinationSDK.defaultDeploymentTarget,
-                                           "--platform", "iphoneos",])
+                    let commandLine = [
+                        actoolPath.str,
+                        "\(SRCROOT)/Assets.xcassets",
+                        "\(SRCROOT)/Icon.icon",
+                        "--compile", "\(SRCROOT)/build/aProject.build/Debug-iphoneos/App.build/assetcatalog_output/thinned",
+                        "--output-format", "human-readable-text",
+                        "--notices", "--warnings",
+                        "--export-dependency-info", "\(SRCROOT)/build/aProject.build/Debug-iphoneos/App.build/assetcatalog_dependencies_thinned",
+                        "--output-partial-info-plist", "\(SRCROOT)/build/aProject.build/Debug-iphoneos/App.build/assetcatalog_generated_info.plist_thinned",
+                        "--compress-pngs",
+                        "--enable-on-demand-resources", "NO",
+                        "--filter-for-thinning-device-configuration", "myPhoneABCD,10-B",
+                        "--filter-for-device-os-version", "12.1235",
+                        "--development-region", "English",
+                        "--target-device", "iphone",
+                        "--minimum-deployment-target", results.runDestinationSDK.defaultDeploymentTarget,
+                        "--platform", "iphoneos",
+                    ]
+                    task.checkCommandLine(commandLine)
                 }
                 results.checkTask(.matchRuleType("CompileAssetCatalogVariant"), .matchRuleItem("unthinned")) { task in
-                    task.checkCommandLine([actoolPath.str,
-                                           "\(SRCROOT)/Assets.xcassets",
-                                           "--compile", "\(SRCROOT)/build/aProject.build/Debug-iphoneos/App.build/assetcatalog_output/unthinned",
-                                           "--output-format", "human-readable-text",
-                                           "--notices", "--warnings",
-                                           "--export-dependency-info", "\(SRCROOT)/build/aProject.build/Debug-iphoneos/App.build/assetcatalog_dependencies_unthinned",
-                                           "--output-partial-info-plist", "\(SRCROOT)/build/aProject.build/Debug-iphoneos/App.build/assetcatalog_generated_info.plist_unthinned",
-                                           "--compress-pngs",
-                                           "--enable-on-demand-resources", "NO",
-                                           "--development-region", "English",
-                                           "--target-device", "iphone",
-                                           "--minimum-deployment-target", results.runDestinationSDK.defaultDeploymentTarget,
-                                           "--platform", "iphoneos",])
+                    let commandLine = [
+                        actoolPath.str,
+                        "\(SRCROOT)/Assets.xcassets",
+                        "\(SRCROOT)/Icon.icon",
+                        "--compile", "\(SRCROOT)/build/aProject.build/Debug-iphoneos/App.build/assetcatalog_output/unthinned",
+                        "--output-format", "human-readable-text",
+                        "--notices", "--warnings",
+                        "--export-dependency-info", "\(SRCROOT)/build/aProject.build/Debug-iphoneos/App.build/assetcatalog_dependencies_unthinned",
+                        "--output-partial-info-plist", "\(SRCROOT)/build/aProject.build/Debug-iphoneos/App.build/assetcatalog_generated_info.plist_unthinned",
+                        "--compress-pngs",
+                        "--enable-on-demand-resources", "NO",
+                        "--development-region", "English",
+                        "--target-device", "iphone",
+                        "--minimum-deployment-target", results.runDestinationSDK.defaultDeploymentTarget,
+                        "--platform", "iphoneos",
+                    ]
+                    task.checkCommandLine(commandLine)
                 }
 
                 results.checkNoDiagnostics()
@@ -134,39 +149,45 @@ fileprivate struct AssetCatalogTaskConstructionTests: CoreBasedTests {
 
             await tester.checkBuild(runDestination: .iOS) { results in
                 results.checkTask(.matchRuleType("CompileAssetCatalogVariant"), .matchRuleItem("thinned")) { task in
-                    task.checkCommandLine([actoolPath.str,
-                                           "\(SRCROOT)/Assets.xcassets",
-                                           "--compile", "\(SRCROOT)/build/aProject.build/Debug-iphoneos/App.build/assetcatalog_output/thinned",
-                                           "--output-format", "human-readable-text",
-                                           "--notices", "--warnings",
-                                           "--export-dependency-info", "\(SRCROOT)/build/aProject.build/Debug-iphoneos/App.build/assetcatalog_dependencies_thinned",
-                                           "--output-partial-info-plist", "\(SRCROOT)/build/aProject.build/Debug-iphoneos/App.build/assetcatalog_generated_info.plist_thinned",
-                                           "--compress-pngs",
-                                           "--enable-on-demand-resources", "NO",
-                                           "--filter-for-thinning-device-configuration", "myPhoneFooBar12,3-B",
-                                           // --filter-for-device-model should be hidden because of ASSETCATALOG_FILTER_FOR_THINNING_DEVICE_CONFIGURATION
-                                           "--filter-for-device-os-version", "13.2",
-                                           "--development-region", "English",
-                                           "--target-device", "iphone",
-                                           "--minimum-deployment-target", results.runDestinationSDK.defaultDeploymentTarget,
-                                           "--platform", "iphoneos",
-                                           ])
+                    let commandLine = [
+                        actoolPath.str,
+                        "\(SRCROOT)/Assets.xcassets",
+                        "\(SRCROOT)/Icon.icon",
+                        "--compile", "\(SRCROOT)/build/aProject.build/Debug-iphoneos/App.build/assetcatalog_output/thinned",
+                        "--output-format", "human-readable-text",
+                        "--notices", "--warnings",
+                        "--export-dependency-info", "\(SRCROOT)/build/aProject.build/Debug-iphoneos/App.build/assetcatalog_dependencies_thinned",
+                        "--output-partial-info-plist", "\(SRCROOT)/build/aProject.build/Debug-iphoneos/App.build/assetcatalog_generated_info.plist_thinned",
+                        "--compress-pngs",
+                        "--enable-on-demand-resources", "NO",
+                        "--filter-for-thinning-device-configuration", "myPhoneFooBar12,3-B",
+                        // --filter-for-device-model should be hidden because of ASSETCATALOG_FILTER_FOR_THINNING_DEVICE_CONFIGURATION
+                        "--filter-for-device-os-version", "13.2",
+                        "--development-region", "English",
+                        "--target-device", "iphone",
+                        "--minimum-deployment-target", results.runDestinationSDK.defaultDeploymentTarget,
+                        "--platform", "iphoneos",
+                    ]
+                    task.checkCommandLine(commandLine)
                 }
                 results.checkTask(.matchRuleType("CompileAssetCatalogVariant"), .matchRuleItem("unthinned")) { task in
-                    task.checkCommandLine([actoolPath.str,
-                                           "\(SRCROOT)/Assets.xcassets",
-                                           "--compile", "\(SRCROOT)/build/aProject.build/Debug-iphoneos/App.build/assetcatalog_output/unthinned",
-                                           "--output-format", "human-readable-text",
-                                           "--notices", "--warnings",
-                                           "--export-dependency-info", "\(SRCROOT)/build/aProject.build/Debug-iphoneos/App.build/assetcatalog_dependencies_unthinned",
-                                           "--output-partial-info-plist", "\(SRCROOT)/build/aProject.build/Debug-iphoneos/App.build/assetcatalog_generated_info.plist_unthinned",
-                                           "--compress-pngs",
-                                           "--enable-on-demand-resources", "NO",
-                                           "--development-region", "English",
-                                           "--target-device", "iphone",
-                                           "--minimum-deployment-target", results.runDestinationSDK.defaultDeploymentTarget,
-                                           "--platform", "iphoneos",
-                                           ])
+                    let commandLine = [
+                        actoolPath.str,
+                        "\(SRCROOT)/Assets.xcassets",
+                        "\(SRCROOT)/Icon.icon",
+                        "--compile", "\(SRCROOT)/build/aProject.build/Debug-iphoneos/App.build/assetcatalog_output/unthinned",
+                        "--output-format", "human-readable-text",
+                        "--notices", "--warnings",
+                        "--export-dependency-info", "\(SRCROOT)/build/aProject.build/Debug-iphoneos/App.build/assetcatalog_dependencies_unthinned",
+                        "--output-partial-info-plist", "\(SRCROOT)/build/aProject.build/Debug-iphoneos/App.build/assetcatalog_generated_info.plist_unthinned",
+                        "--compress-pngs",
+                        "--enable-on-demand-resources", "NO",
+                        "--development-region", "English",
+                        "--target-device", "iphone",
+                        "--minimum-deployment-target", results.runDestinationSDK.defaultDeploymentTarget,
+                        "--platform", "iphoneos",
+                    ]
+                    task.checkCommandLine(commandLine)
                 }
 
                 results.checkNoDiagnostics()
@@ -188,39 +209,45 @@ fileprivate struct AssetCatalogTaskConstructionTests: CoreBasedTests {
 
             await tester.checkBuild(runDestination: .iOS) { results in
                 results.checkTask(.matchRuleType("CompileAssetCatalogVariant"), .matchRuleItem("thinned")) { task in
-                    task.checkCommandLine([actoolPath.str,
-                                           "\(SRCROOT)/Assets.xcassets",
-                                           "--compile", "\(SRCROOT)/build/aProject.build/Debug-iphoneos/App.build/assetcatalog_output/thinned",
-                                           "--output-format", "human-readable-text",
-                                           "--notices", "--warnings",
-                                           "--export-dependency-info", "\(SRCROOT)/build/aProject.build/Debug-iphoneos/App.build/assetcatalog_dependencies_thinned",
-                                           "--output-partial-info-plist", "\(SRCROOT)/build/aProject.build/Debug-iphoneos/App.build/assetcatalog_generated_info.plist_thinned",
-                                           "--compress-pngs",
-                                           "--enable-on-demand-resources", "NO",
-                                           "--filter-for-device-model", "myPhoneFooBar12,3",
-                                           "--filter-for-device-os-version", "13.2",
-                                           "--development-region", "English",
-                                           "--target-device", "iphone",
-                                           "--minimum-deployment-target", results.runDestinationSDK.defaultDeploymentTarget,
-                                           "--platform", "iphoneos",
-                                           ])
+                    let commandLine = [
+                        actoolPath.str,
+                        "\(SRCROOT)/Assets.xcassets",
+                        "\(SRCROOT)/Icon.icon",
+                        "--compile", "\(SRCROOT)/build/aProject.build/Debug-iphoneos/App.build/assetcatalog_output/thinned",
+                        "--output-format", "human-readable-text",
+                        "--notices", "--warnings",
+                        "--export-dependency-info", "\(SRCROOT)/build/aProject.build/Debug-iphoneos/App.build/assetcatalog_dependencies_thinned",
+                        "--output-partial-info-plist", "\(SRCROOT)/build/aProject.build/Debug-iphoneos/App.build/assetcatalog_generated_info.plist_thinned",
+                        "--compress-pngs",
+                        "--enable-on-demand-resources", "NO",
+                        "--filter-for-device-model", "myPhoneFooBar12,3",
+                        "--filter-for-device-os-version", "13.2",
+                        "--development-region", "English",
+                        "--target-device", "iphone",
+                        "--minimum-deployment-target", results.runDestinationSDK.defaultDeploymentTarget,
+                        "--platform", "iphoneos",
+                    ]
+                    task.checkCommandLine(commandLine)
                 }
 
                 results.checkTask(.matchRuleType("CompileAssetCatalogVariant"), .matchRuleItem("unthinned")) { task in
-                    task.checkCommandLine([actoolPath.str,
-                                           "\(SRCROOT)/Assets.xcassets",
-                                           "--compile", "\(SRCROOT)/build/aProject.build/Debug-iphoneos/App.build/assetcatalog_output/unthinned",
-                                           "--output-format", "human-readable-text",
-                                           "--notices", "--warnings",
-                                           "--export-dependency-info", "\(SRCROOT)/build/aProject.build/Debug-iphoneos/App.build/assetcatalog_dependencies_unthinned",
-                                           "--output-partial-info-plist", "\(SRCROOT)/build/aProject.build/Debug-iphoneos/App.build/assetcatalog_generated_info.plist_unthinned",
-                                           "--compress-pngs",
-                                           "--enable-on-demand-resources", "NO",
-                                           "--development-region", "English",
-                                           "--target-device", "iphone",
-                                           "--minimum-deployment-target", results.runDestinationSDK.defaultDeploymentTarget,
-                                           "--platform", "iphoneos",
-                                           ])
+                    let commandLine = [
+                        actoolPath.str,
+                        "\(SRCROOT)/Assets.xcassets",
+                        "\(SRCROOT)/Icon.icon",
+                        "--compile", "\(SRCROOT)/build/aProject.build/Debug-iphoneos/App.build/assetcatalog_output/unthinned",
+                        "--output-format", "human-readable-text",
+                        "--notices", "--warnings",
+                        "--export-dependency-info", "\(SRCROOT)/build/aProject.build/Debug-iphoneos/App.build/assetcatalog_dependencies_unthinned",
+                        "--output-partial-info-plist", "\(SRCROOT)/build/aProject.build/Debug-iphoneos/App.build/assetcatalog_generated_info.plist_unthinned",
+                        "--compress-pngs",
+                        "--enable-on-demand-resources", "NO",
+                        "--development-region", "English",
+                        "--target-device", "iphone",
+                        "--minimum-deployment-target", results.runDestinationSDK.defaultDeploymentTarget,
+                        "--platform", "iphoneos",
+                    ]
+                    task.checkCommandLine(commandLine)
                 }
 
                 results.checkNoDiagnostics()
@@ -241,20 +268,23 @@ fileprivate struct AssetCatalogTaskConstructionTests: CoreBasedTests {
             await tester.checkBuild(runDestination: .iOS) { results in
                 for variant in ["thinned", "unthinned"] {
                     results.checkTask(.matchRuleType("CompileAssetCatalogVariant"), .matchRuleItem(variant)) { task in
-                        task.checkCommandLine([actoolPath.str,
-                                               "\(SRCROOT)/Assets.xcassets",
-                                               "--compile", "\(SRCROOT)/build/aProject.build/Debug-iphoneos/App.build/assetcatalog_output/\(variant)",
-                                               "--output-format", "human-readable-text",
-                                               "--notices", "--warnings",
-                                               "--export-dependency-info", "\(SRCROOT)/build/aProject.build/Debug-iphoneos/App.build/assetcatalog_dependencies_\(variant)",
-                                               "--output-partial-info-plist", "\(SRCROOT)/build/aProject.build/Debug-iphoneos/App.build/assetcatalog_generated_info.plist_\(variant)",
-                                               "--compress-pngs",
-                                               "--enable-on-demand-resources", "NO",
-                                               "--development-region", "English",
-                                               "--target-device", "iphone",
-                                               "--minimum-deployment-target", results.runDestinationSDK.defaultDeploymentTarget,
-                                               "--platform", "iphoneos",
-                                               ])
+                        let commandLine = [
+                            actoolPath.str,
+                            "\(SRCROOT)/Assets.xcassets",
+                            "\(SRCROOT)/Icon.icon",
+                            "--compile", "\(SRCROOT)/build/aProject.build/Debug-iphoneos/App.build/assetcatalog_output/\(variant)",
+                            "--output-format", "human-readable-text",
+                            "--notices", "--warnings",
+                            "--export-dependency-info", "\(SRCROOT)/build/aProject.build/Debug-iphoneos/App.build/assetcatalog_dependencies_\(variant)",
+                            "--output-partial-info-plist", "\(SRCROOT)/build/aProject.build/Debug-iphoneos/App.build/assetcatalog_generated_info.plist_\(variant)",
+                            "--compress-pngs",
+                            "--enable-on-demand-resources", "NO",
+                            "--development-region", "English",
+                            "--target-device", "iphone",
+                            "--minimum-deployment-target", results.runDestinationSDK.defaultDeploymentTarget,
+                            "--platform", "iphoneos",
+                        ]
+                        task.checkCommandLine(commandLine)
                     }
                 }
 
@@ -277,6 +307,7 @@ fileprivate struct AssetCatalogTaskConstructionTests: CoreBasedTests {
                 for variant in ["thinned", "unthinned"] {
                     let actoolCommandLine = try await [actoolPath.str,
                                                        "\(SRCROOT)/Assets.xcassets",
+                                                       "\(SRCROOT)/Icon.icon",
                                                        "--compile", "\(SRCROOT)/build/aProject.build/Debug-iphoneos/App.build/assetcatalog_output/\(variant)",
                                                        "--output-format", "human-readable-text",
                                                        "--notices", "--warnings",
@@ -297,6 +328,7 @@ fileprivate struct AssetCatalogTaskConstructionTests: CoreBasedTests {
 
                 let actoolCommandLine = try await [actoolPath.str,
                                                    "\(SRCROOT)/Assets.xcassets",
+                                                   "\(SRCROOT)/Icon.icon",
                                                    "--compile", "\(SRCROOT)/build/Debug-iphoneos/App.framework",
                                                    "--output-format", "human-readable-text",
                                                    "--notices", "--warnings",
@@ -308,7 +340,7 @@ fileprivate struct AssetCatalogTaskConstructionTests: CoreBasedTests {
                                                    "--target-device", "iphone",
                                                    "--minimum-deployment-target", results.runDestinationSDK.defaultDeploymentTarget,
                                                    "--platform", "iphoneos",
-                                                   ]
+                ]
 
                 let symbolsArgs = ["--bundle-identifier", "com.apple.project",
                                    "--generate-swift-asset-symbol-extensions", "NO",
@@ -351,6 +383,7 @@ fileprivate struct AssetCatalogTaskConstructionTests: CoreBasedTests {
                 for variant in ["thinned", "unthinned"] {
                     let actoolCommandLine = try await [actoolPath.str,
                                                        "\(SRCROOT)/Assets.xcassets",
+                                                       "\(SRCROOT)/Icon.icon",
                                                        "--compile", "\(SRCROOT)/build/aProject.build/Debug-iphoneos/App.build/assetcatalog_output/\(variant)",
                                                        "--output-format", "human-readable-text",
                                                        "--notices", "--warnings",
@@ -371,6 +404,7 @@ fileprivate struct AssetCatalogTaskConstructionTests: CoreBasedTests {
 
                 let actoolCommandLine = try await [actoolPath.str,
                                                    "\(SRCROOT)/Assets.xcassets",
+                                                   "\(SRCROOT)/Icon.icon",
                                                    "--compile", "\(SRCROOT)/build/Debug-iphoneos/App.framework",
                                                    "--output-format", "human-readable-text",
                                                    "--notices", "--warnings",
@@ -382,7 +416,7 @@ fileprivate struct AssetCatalogTaskConstructionTests: CoreBasedTests {
                                                    "--target-device", "iphone",
                                                    "--minimum-deployment-target", results.runDestinationSDK.defaultDeploymentTarget,
                                                    "--platform", "iphoneos",
-                                                   ]
+                ]
 
                 let symbolsArgs = ["--bundle-identifier", "com.apple.project",
                                    "--generate-asset-symbol-warnings", "NO",
