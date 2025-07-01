@@ -432,7 +432,10 @@ public struct ClangTaskPayload: ClangModuleVerifierPayloadType, DependencyInfoEd
 
     public let fileNameMapPath: Path?
 
-    fileprivate init(serializedDiagnosticsPath: Path?, indexingPayload: ClangIndexingPayload?, explicitModulesPayload: ClangExplicitModulesPayload? = nil, outputObjectFilePath: Path? = nil, fileNameMapPath: Path? = nil, developerPathString: String? = nil) {
+    public let moduleDependenciesContext: ModuleDependenciesContext?
+    public let traceFilePath: Path?
+
+    fileprivate init(serializedDiagnosticsPath: Path?, indexingPayload: ClangIndexingPayload?, explicitModulesPayload: ClangExplicitModulesPayload? = nil, outputObjectFilePath: Path? = nil, fileNameMapPath: Path? = nil, developerPathString: String? = nil, moduleDependenciesContext: ModuleDependenciesContext? = nil, traceFilePath: Path? = nil) {
         if let developerPathString, explicitModulesPayload == nil {
             self.dependencyInfoEditPayload = .init(removablePaths: [], removableBasenames: [], developerPath: Path(developerPathString))
         } else {
@@ -443,27 +446,33 @@ public struct ClangTaskPayload: ClangModuleVerifierPayloadType, DependencyInfoEd
         self.explicitModulesPayload = explicitModulesPayload
         self.outputObjectFilePath = outputObjectFilePath
         self.fileNameMapPath = fileNameMapPath
+        self.moduleDependenciesContext = moduleDependenciesContext
+        self.traceFilePath = traceFilePath
     }
 
     public func serialize<T: Serializer>(to serializer: T) {
-        serializer.serializeAggregate(6) {
+        serializer.serializeAggregate(8) {
             serializer.serialize(serializedDiagnosticsPath)
             serializer.serialize(indexingPayload)
             serializer.serialize(explicitModulesPayload)
             serializer.serialize(outputObjectFilePath)
             serializer.serialize(fileNameMapPath)
             serializer.serialize(dependencyInfoEditPayload)
+            serializer.serialize(moduleDependenciesContext)
+            serializer.serialize(traceFilePath)
         }
     }
 
     public init(from deserializer: any Deserializer) throws {
-        try deserializer.beginAggregate(6)
+        try deserializer.beginAggregate(8)
         self.serializedDiagnosticsPath = try deserializer.deserialize()
         self.indexingPayload = try deserializer.deserialize()
         self.explicitModulesPayload = try deserializer.deserialize()
         self.outputObjectFilePath = try deserializer.deserialize()
         self.fileNameMapPath = try deserializer.deserialize()
         self.dependencyInfoEditPayload = try deserializer.deserialize()
+        self.moduleDependenciesContext = try deserializer.deserialize()
+        self.traceFilePath = try deserializer.deserialize()
     }
 }
 
@@ -1156,6 +1165,22 @@ public class ClangCompilerSpec : CompilerSpec, SpecIdentifierType, GCCCompatible
             dependencyData = nil
         }
 
+        let moduleDependenciesContext = cbc.producer.moduleDependenciesContext
+        let traceFilePath: Path?
+        if clangInfo?.hasFeature("print-headers-direct-per-file") ?? false,
+            (moduleDependenciesContext?.validate ?? .defaultValue) != .no {
+            let file = Path(outputNode.path.str + ".trace.json")
+            commandLine += [
+                "-Xclang", "-header-include-file",
+                "-Xclang", file.str,
+                "-Xclang", "-header-include-filtering=direct-per-file",
+                "-Xclang", "-header-include-format=json"
+            ]
+            traceFilePath = file
+        } else {
+            traceFilePath = nil
+        }
+
         // Add the diagnostics serialization flag.  We currently place the diagnostics file right next to the output object file.
         let diagFilePath: Path?
         if let serializedDiagnosticsOptions = self.serializedDiagnosticsOptions(scope: cbc.scope, outputPath: outputNode.path) {
@@ -1266,7 +1291,9 @@ public class ClangCompilerSpec : CompilerSpec, SpecIdentifierType, GCCCompatible
             explicitModulesPayload: explicitModulesPayload,
             outputObjectFilePath: shouldGenerateRemarks ? outputNode.path : nil,
             fileNameMapPath: verifierPayload?.fileNameMapPath,
-            developerPathString: recordSystemHeaderDepsOutsideSysroot ? cbc.scope.evaluate(BuiltinMacros.DEVELOPER_DIR).str : nil
+            developerPathString: recordSystemHeaderDepsOutsideSysroot ? cbc.scope.evaluate(BuiltinMacros.DEVELOPER_DIR).str : nil,
+            moduleDependenciesContext: moduleDependenciesContext,
+            traceFilePath: traceFilePath
         )
 
         var inputNodes: [any PlannedNode] = inputDeps.map { delegate.createNode($0) }
@@ -1314,6 +1341,15 @@ public class ClangCompilerSpec : CompilerSpec, SpecIdentifierType, GCCCompatible
             extraInputs = [scanningOutput]
         } else {
             extraInputs = []
+        }
+
+        if let moduleDependenciesContext {
+            guard let jsonData = try? JSONEncoder(outputFormatting: [.prettyPrinted, .sortedKeys, .withoutEscapingSlashes]).encode(moduleDependenciesContext),
+               let signature = String(data: jsonData, encoding: .utf8) else {
+                delegate.error("failed to serialize 'MODULE_DEPENDENCIES' context information")
+                return
+            }
+            additionalSignatureData += "|\(signature)"
         }
 
         // Finally, create the task.

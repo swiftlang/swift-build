@@ -80,7 +80,60 @@ public struct ModuleDependenciesContext: Sendable, SerializableCodable {
         self.init(validate: validate, moduleDependencies: settings.moduleDependencies, fixItContext: fixItContext)
     }
 
-    /// Nil `imports` means the current toolchain doesn't have the features to gather imports. This is temporarily required to support running against older toolchains.
+    /// Make diagnostics for missing module dependencies from Clang imports.
+    ///
+    /// The compiler tracing information does not provide the import locations or whether they are public imports
+    /// (which depends on whether the import is in an installed header file).
+    /// If `files` is nil, the current toolchain does support the feature to trace imports.
+    public func makeDiagnostics(files: [Path]?) -> [Diagnostic] {
+        guard validate != .no else { return [] }
+        guard let files else {
+            return [Diagnostic(
+                behavior: .warning,
+                location: .unknown,
+                data: DiagnosticData("The current toolchain does not support \(BuiltinMacros.VALIDATE_MODULE_DEPENDENCIES.name)"))]
+        }
+
+        // The following is a provisional/incomplete mechanism for resolving a module dependency from a file path.
+        // For now, just grab the framework name and assume there is a module with the same name.
+        func findFrameworkName(_ file: Path) -> String? {
+            if file.fileExtension == "framework" {
+                return file.basenameWithoutSuffix
+            }
+            return file.dirname.isEmpty || file.dirname.isRoot ? nil : findFrameworkName(file.dirname)
+        }
+
+        let moduleDependencyNames = moduleDependencies.map { $0.name }
+        let fileNames = files.compactMap { findFrameworkName($0) }
+        let missingDeps = fileNames.filter {
+            return !moduleDependencyNames.contains($0)
+        }.map {
+            ModuleDependency(name: $0, accessLevel: .Private)
+        }
+
+        guard !missingDeps.isEmpty else { return [] }
+
+        let behavior: Diagnostic.Behavior = validate == .yesError ? .error : .warning
+
+        let fixIt = fixItContext?.makeFixIt(newModules: missingDeps)
+        let fixIts = fixIt.map { [$0] } ?? []
+
+        let message = "Missing entries in \(BuiltinMacros.MODULE_DEPENDENCIES.name): \(missingDeps.map { $0.asBuildSettingEntryQuotedIfNeeded }.sorted().joined(separator: " "))"
+
+        let location: Diagnostic.Location = fixIt.map {
+            Diagnostic.Location.path($0.sourceRange.path, line: $0.sourceRange.endLine, column: $0.sourceRange.endColumn)
+        } ?? Diagnostic.Location.buildSetting(BuiltinMacros.MODULE_DEPENDENCIES)
+
+        return [Diagnostic(
+            behavior: behavior,
+            location: location,
+            data: DiagnosticData(message),
+            fixIts: fixIts)]
+    }
+
+    /// Make diagnostics for missing module dependencies from Swift imports.
+    ///
+    /// If `imports` is nil, the current toolchain does not support the features to gather imports.
     public func makeDiagnostics(imports: [(ModuleDependency, importLocations: [Diagnostic.Location])]?) -> [Diagnostic] {
         guard validate != .no else { return [] }
         guard let imports else {
