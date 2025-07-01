@@ -83,6 +83,7 @@
                     Metal30 = ( "-std=metal3.0", );
                     Metal31 = ( "-std=metal3.1", );
                     Metal32 = ( "-std=metal3.2", );
+                    Metal40 = ( "-std=metal4.0", );
                 };
             },
             {
