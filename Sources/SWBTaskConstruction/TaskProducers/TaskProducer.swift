@@ -1356,7 +1356,7 @@ extension TaskProducerContext: CommandProducer {
         let indexEnableBuildArena = scope.evaluate(BuiltinMacros.INDEX_ENABLE_BUILD_ARENA)
         let isBundleProductType = productType?.conformsTo(identifier: "com.apple.product-type.bundle") ?? false
         let isStaticLibrary = scope.evaluate(BuiltinMacros.MACH_O_TYPE) == "staticlib"
-        let isObject = scope.evaluate(BuiltinMacros.MACH_O_TYPE) == "mh_object"
+        let isObject = scope.evaluate(BuiltinMacros.MACH_O_TYPE) == "mh_object" && productType?.conformsTo(identifier: "org.swift.product-type.library.object") != true
         let result = (isBuild || isLocExport)
             && !indexEnableBuildArena
             && (isBundleProductType || isStaticLibrary || isObject)

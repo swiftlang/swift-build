@@ -28,7 +28,8 @@
         ProgressDescription = "Creating static library";
         InputFileTypes = (
             // TODO: elf files instead
-            compiled.mach-o.objfile
+            compiled.mach-o.objfile,
+            compiled.object-library
         );
         Outputs = (
             // We're a linker-like task, so we expect to be given an output path in 'OutputPath'.
