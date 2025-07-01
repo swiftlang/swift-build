@@ -170,6 +170,37 @@
         );
     },
 
+    // Object library
+    {
+        Type = ProductType;
+        Identifier = org.swift.product-type.library.object;
+        Class = XCStandaloneExecutableProductType;
+        Name = "Object Library";
+        Description = "Object library";
+        IconNamePrefix = "TargetLibrary";
+        DefaultTargetName = "Object Library";
+        DefaultBuildProperties = {
+            FULL_PRODUCT_NAME = "$(EXECUTABLE_NAME)";
+            MACH_O_TYPE = "objectlib";
+            REZ_EXECUTABLE = YES;
+            EXECUTABLE_SUFFIX = ".$(EXECUTABLE_EXTENSION)";
+            EXECUTABLE_EXTENSION = "objlib";
+            PUBLIC_HEADERS_FOLDER_PATH = "/usr/local/include";
+            PRIVATE_HEADERS_FOLDER_PATH = "/usr/local/include";
+            INSTALL_PATH = "/usr/local/lib";
+            FRAMEWORK_FLAG_PREFIX = "-framework";
+            LIBRARY_FLAG_PREFIX = "-l";
+            LIBRARY_FLAG_NOSPACE = YES;
+            SKIP_INSTALL = YES;
+            STRIP_STYLE = "debugging";
+            GCC_INLINES_ARE_PRIVATE_EXTERN = YES;
+            CODE_SIGNING_ALLOWED = NO;
+        };
+        PackageTypes = (
+            org.swift.package-type.object-library
+        );
+    },
+
     //
     // Wrapper product types
     //
