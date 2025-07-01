@@ -105,9 +105,6 @@ public final class SwiftABICheckerToolSpec : GenericCommandLineToolSpec, SpecIde
         for searchPath in SwiftCompilerSpec.collectInputSearchPaths(cbc, toolInfo: toolSpecInfo) {
             commandLine += ["-I", searchPath]
         }
-        // swift-api-digester doesn't support -Isystem or -Fsystem.
-        commandLine += cbc.scope.evaluate(BuiltinMacros.SWIFT_SYSTEM_INCLUDE_PATHS).flatMap { ["-I", $0] }
-        commandLine += cbc.scope.evaluate(BuiltinMacros.SYSTEM_FRAMEWORK_SEARCH_PATHS).flatMap { ["-F", $0] }
         delegate.createTask(type: self,
                             payload: ABICheckerPayload(
                                 serializedDiagnosticsPath: serializedDiagsPath,
