@@ -1567,6 +1567,7 @@ fileprivate struct BuildToolTaskConstructionTests: CoreBasedTests {
                                   ["macosx", "Metal30"] : "-std=metal3.0",
                                   ["macosx", "Metal31"] : "-std=metal3.1",
                                   ["macosx", "Metal32"] : "-std=metal3.2",
+                                  ["macosx", "Metal40"] : "-std=metal4.0",
 
                                   ["iphoneos", "UseDeploymentTarget"] : "",
                                   ["iphoneos", "iOSMetal10"] : "-std=ios-metal1.0",
@@ -1580,6 +1581,7 @@ fileprivate struct BuildToolTaskConstructionTests: CoreBasedTests {
                                   ["iphoneos", "Metal30"] : "-std=metal3.0",
                                   ["iphoneos", "Metal31"] : "-std=metal3.1",
                                   ["iphoneos", "Metal32"] : "-std=metal3.2",
+                                  ["iphoneos", "Metal40"] : "-std=metal4.0",
 
                                   ["appletvos", "UseDeploymentTarget"] : "",
                                   ["appletvos", "Metal11"] : "-std=ios-metal1.1",
@@ -1592,10 +1594,12 @@ fileprivate struct BuildToolTaskConstructionTests: CoreBasedTests {
                                   ["appletvos", "Metal30"] : "-std=metal3.0",
                                   ["appletvos", "Metal31"] : "-std=metal3.1",
                                   ["appletvos", "Metal32"] : "-std=metal3.2",
+                                  ["appletvos", "Metal40"] : "-std=metal4.0",
 
                                   ["xros", "UseDeploymentTarget"] : "",
                                   ["xros", "Metal31"] : "-std=metal3.1",
                                   ["xros", "Metal32"] : "-std=metal3.2",
+                                  ["xros", "Metal40"] : "-std=metal4.0",
         ]
 
         for (language, expectedOption) in optionForLanguage {
