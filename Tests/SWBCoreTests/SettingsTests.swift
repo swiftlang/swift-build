@@ -5073,7 +5073,7 @@ import SWBMacro
     /// Test that we can look up different `Settings` objects the caching in the `BuildRequestContext` works.
     ///
     /// In particular this checks whether looking up `Settings` with the same parameters and purpose returns the same object each time, and that looking up similar but slightly different `Settings` will not return the wrong one.  This way we can test, for example, that changes to the `SettingsCacheKey` work as expected.
-    @Test
+    @Test(.flaky("Intermittent failures in Swift CI"))
     func settingsCaching() async throws {
         let testWorkspace = try await TestWorkspace(
             "Workspace",

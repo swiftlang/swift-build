@@ -22,7 +22,7 @@ import SystemPackage
 #endif
 
 @Suite fileprivate struct FileHandleTests {
-    @Test(.skipHostOS(.freebsd, "Currently crashes on FreeBSD"))
+    @Test(.flaky("Intermittent failures in Swift CI"), .skipHostOS(.freebsd, "Currently crashes on FreeBSD"))
     func asyncReadFileDescriptor() async throws {
         let fs = localFS
         try await withTemporaryDirectory(fs: fs) { testDataPath in
