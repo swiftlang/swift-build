@@ -275,6 +275,8 @@ public class ProductTypeSpec : Spec, SpecType, @unchecked Sendable {
                     args += ["-compatibility_version", compatibilityVersion]
                 case .swiftc:
                     args += ["-Xlinker", "-compatibility_version", "-Xlinker", compatibilityVersion]
+                case .qcc:
+                    break
                 case .auto:
                     preconditionFailure("Expected LINKER_DRIVER to be bound to a concrete value")
                 }
@@ -287,6 +289,8 @@ public class ProductTypeSpec : Spec, SpecType, @unchecked Sendable {
                     args += ["-current_version", currentVersion]
                 case .swiftc:
                     args += ["-Xlinker", "-current_version", "-Xlinker", currentVersion]
+                case .qcc:
+                    break
                 case .auto:
                     preconditionFailure("Expected LINKER_DRIVER to be bound to a concrete value")
                 }

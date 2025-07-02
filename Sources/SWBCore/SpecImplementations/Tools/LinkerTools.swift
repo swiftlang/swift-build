@@ -298,8 +298,10 @@ public final class LdLinkerSpec : GenericLinkerSpec, SpecIdentifierType, @unchec
         switch cbc.scope.evaluate(BuiltinMacros.LINKER_DRIVER) {
         case .clang:
             return .clang
+        case .qcc:
+            return .qcc
         case .swiftc:
-            return.swiftc
+            return .swiftc
         case .auto:
             if Self.isUsingSwift(usedTools) {
                 return .swiftc
@@ -1165,6 +1167,12 @@ public final class LdLinkerSpec : GenericLinkerSpec, SpecIdentifierType, @unchec
                 return Path(cbc.producer.hostOperatingSystem.imageFormat.executableName(basename: "clang++"))
             } else {
                 return Path(cbc.producer.hostOperatingSystem.imageFormat.executableName(basename: "clang"))
+            }
+        case .qcc:
+            if usedCXX {
+                return Path(cbc.producer.hostOperatingSystem.imageFormat.executableName(basename: "q++"))
+            } else {
+                return Path(cbc.producer.hostOperatingSystem.imageFormat.executableName(basename: "qcc"))
             }
         case .swiftc:
             return Path(cbc.producer.hostOperatingSystem.imageFormat.executableName(basename: "swiftc"))
