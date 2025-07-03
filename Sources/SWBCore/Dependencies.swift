@@ -80,6 +80,48 @@ public struct ModuleDependenciesContext: Sendable, SerializableCodable {
         self.init(validate: validate, moduleDependencies: settings.moduleDependencies, fixItContext: fixItContext)
     }
 
+    // For Clang imports, we do not get the import locations and do not know whether it was a public
+    // import (which depends on whether the import is in an installed header file).
+    public func makeDiagnostics(files: [Path]) -> [Diagnostic] {
+        guard validate != .no else { return [] }
+
+        // The following is a provisional/incomplete mechanism for resolving a module dependency from a file path.
+        // For now, just grab the framework name and assume there is a module with the same name.
+        func findFrameworkName(_ file: Path) -> String? {
+            if file.fileExtension == "framework" {
+                return file.basenameWithoutSuffix
+            }
+            return file.dirname.isEmpty || file.dirname.isRoot ? nil : findFrameworkName(file.dirname)
+        }
+
+        let moduleDependencyNames = moduleDependencies.map { $0.name }
+        let fileNames = files.compactMap { findFrameworkName($0) }
+        let missingDeps = fileNames.filter {
+            return !moduleDependencyNames.contains($0)
+        }.map {
+            ModuleDependency(name: $0, accessLevel: .Private)
+        }
+
+        guard !missingDeps.isEmpty else { return [] }
+
+        let behavior: Diagnostic.Behavior = validate == .yesError ? .error : .warning
+
+        let fixIt = fixItContext?.makeFixIt(newModules: missingDeps)
+        let fixIts = fixIt.map { [$0] } ?? []
+
+        let message = "Missing entries in \(BuiltinMacros.MODULE_DEPENDENCIES.name): \(missingDeps.map { $0.asBuildSettingEntryQuotedIfNeeded }.sorted().joined(separator: " "))"
+
+        let location: Diagnostic.Location = fixIt.map {
+            Diagnostic.Location.path($0.sourceRange.path, line: $0.sourceRange.endLine, column: $0.sourceRange.endColumn)
+        } ?? Diagnostic.Location.buildSetting(BuiltinMacros.MODULE_DEPENDENCIES)
+
+        return [Diagnostic(
+            behavior: behavior,
+            location: location,
+            data: DiagnosticData(message),
+            fixIts: fixIts)]
+    }
+
     /// Nil `imports` means the current toolchain doesn't have the features to gather imports. This is temporarily required to support running against older toolchains.
     public func makeDiagnostics(imports: [(ModuleDependency, importLocations: [Diagnostic.Location])]?) -> [Diagnostic] {
         guard validate != .no else { return [] }
@@ -180,5 +222,10 @@ public struct ModuleDependenciesContext: Sendable, SerializableCodable {
 
             return Diagnostic.FixIt(sourceRange: sourceRange, newText: newText)
         }
+    }
+
+    func signatureData() -> String {
+        let moduleNames = moduleDependencies.map { $0.name }
+        return "validate:\(validate),modules:\(moduleNames.joined(separator: ":"))"
     }
 }

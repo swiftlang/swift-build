@@ -248,6 +248,20 @@ public final class ClangCompileTaskAction: TaskAction, BuildValueValidatingTaskA
                 casDBs = nil
             }
 
+            // Check if verifying dependencies from trace data is enabled.
+            var traceFile: Path? = nil
+            var moduleDependenciesContext: ModuleDependenciesContext? = nil
+            if let payload = task.payload as? ClangTaskPayload {
+                traceFile = payload.traceFile
+                moduleDependenciesContext = payload.moduleDependenciesContext
+            }
+            if let traceFile {
+                // Remove the trace output file if it already exists.
+                if executionDelegate.fs.exists(traceFile) {
+                    try executionDelegate.fs.remove(traceFile)
+                }
+            }
+
             var lastResult: CommandResult? = nil
             for command in dependencyInfo.commands {
                 if let casDBs {
@@ -304,6 +318,24 @@ public final class ClangCompileTaskAction: TaskAction, BuildValueValidatingTaskA
                     return lastResult ?? .failed
                 }
             }
+
+            if let moduleDependenciesContext, let traceFile, lastResult == .succeeded {
+                // Verify the dependencies from the trace data.
+                let fs = executionDelegate.fs
+                let traceData = try JSONDecoder().decode(Array<TraceData>.self, from: fs.readMemoryMapped(traceFile))
+
+                var allFiles = Set<Path>()
+                traceData.forEach { allFiles.formUnion(Set($0.includes)) }
+                let diagnostics = moduleDependenciesContext.makeDiagnostics(files: Array(allFiles))
+                for diagnostic in diagnostics {
+                    outputDelegate.emit(diagnostic)
+                }
+
+                if diagnostics.contains(where: { $0.behavior == .error }) {
+                    return .failed
+                }
+            }
+
             return lastResult ?? .failed
         } catch {
             outputDelegate.emitError("\(error)")
@@ -430,4 +462,11 @@ public final class ClangCompileTaskAction: TaskAction, BuildValueValidatingTaskA
             activityReporter: dynamicExecutionDelegate
         )
     }
+}
+
+// Results from tracing header includes with "direct-per-file" filtering.
+// This is used to validate dependencies.
+fileprivate struct TraceData: Decodable {
+    let source: Path
+    let includes: [Path]
 }

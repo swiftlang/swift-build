@@ -147,6 +147,10 @@ extension CoreBasedTests {
             if clangInfo.clangVersion > Version(17) {
                 realToolFeatures.insert(.extractAPISupportsCPlusPlus)
             }
+            if let clangVersion = clangInfo.clangVersion, clangVersion >= Version(1700, 3, 10, 2) {
+                realToolFeatures.insert(.printHeadersDirectPerFile)
+            }
+
             return ToolFeatures(realToolFeatures)
         }
     }
