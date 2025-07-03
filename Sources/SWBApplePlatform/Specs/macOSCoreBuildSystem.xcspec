@@ -30,6 +30,12 @@
                 DefaultValue = "";
                 Category = "Deployment";
             },
+            {   Name = "REGISTER_APP_GROUPS";
+                Type = Boolean;
+                DefaultValue = NO;
+                Category = "Code Signing";
+                Description = "Register app groups in profiles.";
+            },
         );
     },
 
