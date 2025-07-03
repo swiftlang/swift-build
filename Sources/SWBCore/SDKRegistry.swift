@@ -452,9 +452,9 @@ public final class SDKVariant: PlatformInfoProvider, Sendable {
     private static func fallbackSwiftVersions(variantName name: String) -> (os: String?, concurrency: String?, span: String?) {
         switch name {
         case "macos", "macosx":
-            return ("10.14.4", "12.0", nil)
+            return ("10.14.4", "12.0", "26.0")
         default:
-            return (nil, nil, nil)
+            return (nil, nil, "26.0")
         }
     }
 
