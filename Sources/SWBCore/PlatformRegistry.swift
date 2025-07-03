@@ -76,7 +76,7 @@ public final class Platform: Sendable {
     /// Minimum OS version for Swift concurrency (Swift 5.5). If this is `nil`, the platform does not support Swift concurrency at all.
     fileprivate(set) var minimumOSForSwiftConcurrency: Version? = nil
 
-    /// Minimum OS version for Span in the standard library (Swift 6.2). If this is `nil`, the platform does not support Swift concurrency at all.
+    /// Minimum OS version for Span in the standard library (Swift 6.2). If this is `nil`, Span, MutableSpan, and related types are not available.
     fileprivate(set) var minimumOSForSwiftSpan: Version? = nil
 
     /// The canonical name of the public SDK for this platform.
@@ -296,7 +296,7 @@ extension Platform {
         return version >= minimumSwiftConcurrencyVersion
     }
 
-    /// Determines if the platform natively supports Swift 6.2's Span type. If `false`, then the Swift Span back-compat concurrency libs needs to be copied into the app/framework's bundle.
+    /// Determines if the platform natively supports Swift 6.2's Span type. If `false`, then the Swift Span back-compat lib needs to be copied into the app/framework's bundle.
     public func supportsSwiftSpanNatively(_ scope: MacroEvaluationScope, forceNextMajorVersion: Bool = false, considerTargetDeviceOSVersion: Bool = true) -> Bool? {
         guard let deploymentTarget = self.deploymentTargetMacro else { return false }
 
