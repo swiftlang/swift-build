@@ -529,13 +529,9 @@ class LocalFS: FSProxy, @unchecked Sendable {
 
     func write(_ path: Path, contents: (FileDescriptor) async throws -> Void) async throws {
         let fd = try FileDescriptor.open(FilePath(path.str), .writeOnly, options: [.create, .truncate], permissions: [.ownerReadWrite, .groupRead, .otherRead])
-        do {
+        return try await fd.closeAfter {
             try await contents(fd)
-        } catch {
-            _ = try? fd.close()
-            throw error
         }
-        try fd.close()
     }
 
     func append(_ path: Path, contents: ByteString) throws {
