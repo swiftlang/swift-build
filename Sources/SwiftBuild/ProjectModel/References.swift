@@ -216,6 +216,8 @@ extension ProjectModel.FileReference: Codable {
         // FIXME: This is probably now more important because of resources support.
         case "xcassets":
             return "folder.assetcatalog"
+        case "icon":
+            return "folder.iconcomposer.icon"
         case "xcstrings":
             return "text.json.xcstrings"
         case "storyboard":

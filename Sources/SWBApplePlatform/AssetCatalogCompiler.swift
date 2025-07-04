@@ -143,7 +143,8 @@ public final class ActoolCompilerSpec : GenericCompilerSpec, SpecIdentifierType,
         specialArgs += ["--platform", platformName]
 
         // File types
-        let catalogFileTypes = ["folder.assetcatalog", "folder.stickers"].map { cbc.producer.lookupFileType(identifier: $0)! }
+        let fileTypes = ["folder.assetcatalog", "folder.stickers", "folder.iconcomposer.icon"]
+        let catalogFileTypes = fileTypes.map { cbc.producer.lookupFileType(identifier: $0)! }
         let stringsFileType = cbc.producer.lookupFileType(identifier: "text.plist.strings")!
 
         // Construct the command line using this custom lookup function.

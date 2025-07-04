@@ -161,7 +161,7 @@
             {
                 Name = "EXCLUDED_RECURSIVE_SEARCH_PATH_SUBDIRECTORIES";
                 Type = stringlist;
-                DefaultValue = "*.nib *.lproj *.framework *.gch *.xcode* *.xcassets (*) .DS_Store CVS .svn .git .hg *.pbproj *.pbxproj";
+                DefaultValue = "*.nib *.lproj *.framework *.gch *.xcode* *.xcassets *.icon (*) .DS_Store CVS .svn .git .hg *.pbproj *.pbxproj";
             },
             {
                 Name = "PRECOMP_DESTINATION_DIR";
@@ -1194,6 +1194,7 @@ When `GENERATE_INFOPLIST_FILE` is enabled, sets the value of the [CFBundleIdenti
                 Name = "EXCLUDED_RECURSIVE_SEARCH_PATH_SUBDIRECTORIES";
                 Type = StringList;
                 Category = "Search Paths";
+                DefaultValue = "*.nib *.lproj *.framework *.gch *.xcode* *.xcassets *.icon (*) .DS_Store CVS .svn .git .hg *.pbproj *.pbxproj";
                 DefaultValue = "*.nib *.lproj *.framework *.gch *.xcode* *.xcassets (*) .DS_Store CVS .svn .git .hg *.pbproj *.pbxproj";
             },
             {
