@@ -313,8 +313,11 @@ public final class SDKVariant: PlatformInfoProvider, Sendable {
     /// Minimum OS version for Swift-in-the-OS support. If this is `nil`, the platform does not support Swift-in-the-OS at all.
     public let minimumOSForSwiftInTheOS: Version?
 
-    /// Minimum OS version for built-in Swift concurrency support. If this is `nil`, the platform does not support Swift concurrency at all.
+    /// Minimum OS version for built-in Swift concurrency support (Swift 5.5). If this is `nil`, the platform does not support Swift concurrency at all.
     public let minimumOSForSwiftConcurrency: Version?
+
+    /// Minimum OS version for built-in Swift Span support (Swift 6.2). If this is `nil`, the platform does not support Swift Span at all.
+    public let minimumOSForSwiftSpan: Version?
 
     /// The path prefix under which all built content produced by this SDK variant should be installed, relative to the system root.
     ///
@@ -392,9 +395,10 @@ public final class SDKVariant: PlatformInfoProvider, Sendable {
 
         self.clangRuntimeLibraryPlatformName = supportedTargetDict["ClangRuntimeLibraryPlatformName"]?.stringValue ?? Self.fallbackClangRuntimeLibraryPlatformName(variantName: name)
 
-        let (os, concurrency) = Self.fallbackSwiftVersions(variantName: name)
+        let (os, concurrency, span) = Self.fallbackSwiftVersions(variantName: name)
         self.minimumOSForSwiftInTheOS = try (supportedTargetDict["SwiftOSRuntimeMinimumDeploymentTarget"]?.stringValue ?? os).map { try Version($0) }
         self.minimumOSForSwiftConcurrency = try (supportedTargetDict["SwiftConcurrencyMinimumDeploymentTarget"]?.stringValue ?? concurrency).map { try Version($0) }
+        self.minimumOSForSwiftSpan = try (supportedTargetDict["SwiftSpanMinimumDeploymentTarget"]?.stringValue ?? span).map { try Version($0) }
 
         self.systemPrefix = supportedTargetDict["SystemPrefix"]?.stringValue ?? {
             switch name {
@@ -445,12 +449,12 @@ public final class SDKVariant: PlatformInfoProvider, Sendable {
         }
     }
 
-    private static func fallbackSwiftVersions(variantName name: String) -> (String?, String?) {
+    private static func fallbackSwiftVersions(variantName name: String) -> (os: String?, concurrency: String?, span: String?) {
         switch name {
         case "macos", "macosx":
-            return ("10.14.4", "12.0")
+            return ("10.14.4", "12.0", "26.0")
         default:
-            return (nil, nil)
+            return (nil, nil, "26.0")
         }
     }
 
