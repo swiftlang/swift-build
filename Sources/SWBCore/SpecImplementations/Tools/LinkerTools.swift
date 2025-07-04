@@ -314,6 +314,8 @@ public final class LdLinkerSpec : GenericLinkerSpec, SpecIdentifierType, @unchec
                 delegate.emit(Diagnostic(behavior: dyldEnvDiagnosticBehavior, location: .buildSetting(BuiltinMacros.OTHER_LDFLAGS), data: DiagnosticData("The \(BuiltinMacros.OTHER_LDFLAGS.name) build setting is not allowed to contain \(arg), use the dedicated LD_ENVIRONMENT build setting instead.")))
             case "-client_name":
                 delegate.emit(Diagnostic(behavior: dyldEnvDiagnosticBehavior, location: .buildSetting(BuiltinMacros.OTHER_LDFLAGS), data: DiagnosticData("The \(BuiltinMacros.OTHER_LDFLAGS.name) build setting is not allowed to contain \(arg), use the dedicated LD_CLIENT_NAME build setting instead.")))
+            case "-no_exported_symbols":
+                delegate.emit(Diagnostic(behavior: dyldEnvDiagnosticBehavior, location: .buildSetting(BuiltinMacros.OTHER_LDFLAGS), data: DiagnosticData("The \(BuiltinMacros.OTHER_LDFLAGS.name) build setting is not allowed to contain \(arg), use the dedicated LD_EXPORT_SYMBOLS build setting instead.")))
             default:
                 break
             }
@@ -504,6 +506,15 @@ public final class LdLinkerSpec : GenericLinkerSpec, SpecIdentifierType, @unchec
                     return nil
                 }
                 return cbc.scope.namespace.parseLiteralString(name)
+            case BuiltinMacros.DEAD_CODE_STRIPPING where isPreviewDylib:
+                // We need to keep otherwise unused stub executor library symbols present so
+                // PreviewsInjection can call them when doing the XOJIT handshake.
+                return cbc.scope.namespace.parseLiteralString("NO")
+            case BuiltinMacros.LD_EXPORT_SYMBOLS where isPreviewDylib,
+                BuiltinMacros.LD_EXPORT_GLOBAL_SYMBOLS where isPreviewDylib:
+                // We need to keep otherwise unused stub executor library symbols present so
+                // PreviewsInjection can call them when doing the XOJIT handshake.
+                return cbc.scope.namespace.parseLiteralString("YES")
             case BuiltinMacros.OTHER_LDFLAGS where isPreviewDylib:
                 let ldFlagsToEvaluate: [String]
                 if dyldEnvDiagnosticBehavior == .warning {
@@ -774,7 +785,7 @@ public final class LdLinkerSpec : GenericLinkerSpec, SpecIdentifierType, @unchec
             switch macro {
             case BuiltinMacros.LD_ENTRY_POINT where cbc.scope.previewStyle == .xojit:
                 return cbc.scope.namespace.parseLiteralString("___debug_blank_executor_main")
-            case BuiltinMacros.LD_EXPORT_GLOBAL_SYMBOLS:
+            case BuiltinMacros.LD_EXPORT_SYMBOLS, BuiltinMacros.LD_EXPORT_GLOBAL_SYMBOLS:
                 // We need to keep otherwise unused stub executor library symbols present so
                 // PreviewsInjection can call them when doing the XOJIT handshake.
                 return cbc.scope.namespace.parseLiteralString("YES")
@@ -1818,6 +1829,23 @@ fileprivate func filterLinkerFlagsWhenUnderPreviewsDylib(_ flags: [String]) -> [
             }
             else {
                 _ = it.next()
+            }
+            continue
+        }
+        else if flag == "-Wl,-no_exported_symbols" {
+            continue
+        }
+        else if flag == "-no_exported_symbols" && newFlags.last == "-Xlinker" {
+            // Filter out `-no_exported_symbols` when using the previews dylib, since this
+            // strips important symbols that are needed for the stub executor trampoline..
+            // Transition from `OTHER_LD_FLAGS` to the dedicated `LD_EXPORT_SYMBOLS` (by
+            // defining both at once) in order to remain compatible with Xcode versions both
+            // before and after this change.
+            newFlags.removeLast()
+            while let next = it.next() {
+                if next != "-Xlinker" {
+                    break
+                }
             }
             continue
         }
