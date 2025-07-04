@@ -2706,6 +2706,7 @@ public enum LinkerDriverChoice: String, Equatable, Hashable, EnumerationMacroTyp
     public static let defaultValue: LinkerDriverChoice = .clang
 
     case clang
+    case qcc
     case swiftc
     case auto
 }
