@@ -23,7 +23,7 @@ fileprivate struct UnitTestTaskConstructionTests: CoreBasedTests {
     // MARK: Framework test target
 
     /// Test task construction for a unit test target for macOS which is testing a framework.
-    @Test(.requireSDKs(.macOS))
+    @Test(.requireSDKs(.macOS), .requireXcode26())
     func frameworkUnitTestTarget_macOS() async throws {
         let swiftCompilerPath = try await self.swiftCompilerPath
         let swiftVersion = try await self.swiftVersion
@@ -366,7 +366,7 @@ fileprivate struct UnitTestTaskConstructionTests: CoreBasedTests {
     /// Test task construction for an application target on macOS with two test targets which are testing it using TEST_HOST. Both debug and install builds are tested.
     ///
     /// Two targets are used to check that the test frameworks are only copied once, and the app target is only re-signed once.
-    @Test(.requireSDKs(.macOS))
+    @Test(.requireSDKs(.macOS), .requireXcode26())
     func applicationUnitTestTarget_macOS() async throws {
         let swiftCompilerPath = try await self.swiftCompilerPath
         let swiftVersion = try await self.swiftVersion
@@ -2163,7 +2163,7 @@ fileprivate struct UnitTestTaskConstructionTests: CoreBasedTests {
 
 
     /// Test task construction for a UI test target for macOS.  Both debug and install builds are tested.
-    @Test(.requireSDKs(.macOS))
+    @Test(.requireSDKs(.macOS), .requireXcode26())
     func uITestTarget_macOS() async throws {
         let swiftCompilerPath = try await self.swiftCompilerPath
         let swiftVersion = try await self.swiftVersion

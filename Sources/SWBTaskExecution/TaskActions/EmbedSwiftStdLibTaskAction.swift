@@ -213,7 +213,7 @@ public final class EmbedSwiftStdLibTaskAction: TaskAction {
 
         func effectiveSourceDirectories(_ toolchainsDirs: OrderedSet<Path>, platform: String) -> [Path] {
             // FIXME: Maybe these should be defined within the toolchains or we could simply scan the toolchain directory as well.
-            let swiftBackdeploymentDirs = ["usr/lib/swift-5.0", "usr/lib/swift-5.5"]
+            let swiftBackdeploymentDirs = ["usr/lib/swift-5.0", "usr/lib/swift-5.5", "usr/lib/swift-6.2"]
 
             var dirs = [Path]()
             for dir in toolchainsDirs {
