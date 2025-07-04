@@ -432,7 +432,8 @@ fileprivate func copyTree(_ srcPath: Path, _ dstPath: Path, options: CopyOptions
         do {
             _srcPath = try localFS.realpath(srcPath)
         } catch let error as POSIXError {
-            outStream <<< "error: \(srcPath.str): \(String(cString: strerror(error.code)))\n"
+            // TODO: Does this really need to print specially for POSIXError?
+            outStream <<< "error: \(srcPath.str): \(error.underlyingError.description)\n"
             return false
         } catch {
             outStream <<< "error: \(srcPath.str): \(error.localizedDescription)\n"
@@ -441,7 +442,8 @@ fileprivate func copyTree(_ srcPath: Path, _ dstPath: Path, options: CopyOptions
         do {
             _dstPath = try localFS.realpath(dstPath)
         } catch let error as POSIXError {
-            outStream <<< "error: \(dstPath.str): \(String(cString: strerror(error.code)))\n"
+            // TODO: Does this really need to print specially for POSIXError?
+            outStream <<< "error: \(dstPath.str): \(error.underlyingError.description)\n"
             return false
         } catch {
             outStream <<< "error: \(srcPath.str): \(error.localizedDescription)\n"
