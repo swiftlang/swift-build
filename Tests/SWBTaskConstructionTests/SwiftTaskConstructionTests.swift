@@ -79,7 +79,7 @@ fileprivate struct SwiftTaskConstructionTests: CoreBasedTests {
         try await _testSwiftAppBasics(deploymentTargetVersion: "12.0", shouldEmitSwiftRPath: false, shouldFilterSwiftLibs: true, shouldBackDeploySwiftConcurrency: false, shouldBackDeploySwiftSpan: true)
     }
 
-    @Test(.requireSDKs(.macOS))
+    @Test(.requireSDKs(.macOS), .requireXcode26())
     func swiftAppBasics_postSwiftSpan() async throws {
         try await _testSwiftAppBasics(deploymentTargetVersion: "26.0", shouldEmitSwiftRPath: false, shouldFilterSwiftLibs: true, shouldBackDeploySwiftConcurrency: false, shouldBackDeploySwiftSpan: false)
     }
