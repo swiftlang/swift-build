@@ -51,7 +51,6 @@ fileprivate struct ProcessTests {
         }
     }
 
-    @Test(.requireThreadSafeWorkingDirectory)
     func workingDirectory() async throws {
         let previous = Path.currentDirectory.str
 
