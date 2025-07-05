@@ -1234,7 +1234,7 @@ import SWBMacro
         let mockFileType = try core.specRegistry.getSpec("file") as FileTypeSpec
         let cbc = CommandBuildContext(producer: producer, scope: mockScope, inputs: [FileToBuild(absolutePath: Path.root.join("tmp/obj/normal/x86_64/file1.o"), fileType: mockFileType)], output: Path.root.join("tmp/obj/normal/x86_64/output"))
 
-        // Test all permutations of library kind, linkage mode and search path usage, except for object files.
+        // Test all permutations of library kind, linkage mode and search path usage, except for object files and object libraries.
         func generateLibrarySpecifiers(kind: LinkerSpec.LibrarySpecifier.Kind) -> [LinkerSpec.LibrarySpecifier] {
             var result = [LinkerSpec.LibrarySpecifier]()
             for useSearchPaths in [true, false] {
@@ -1252,6 +1252,8 @@ import SWBMacro
                     case .framework:
                         filePath = Path.root.join("tmp/Foo\(suffix).framework")
                     case .object:
+                        continue
+                    case .objectLibrary:
                         continue
                     }
                     result.append(LinkerSpec.LibrarySpecifier(kind: kind, path: filePath, mode: mode, useSearchPaths: useSearchPaths, swiftModulePaths: [:], swiftModuleAdditionalLinkerArgResponseFilePaths: [:]))

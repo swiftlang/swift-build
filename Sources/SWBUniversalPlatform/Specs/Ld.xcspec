@@ -27,6 +27,7 @@
         ProgressDescription = Linking;
         InputFileTypes = (
             "compiled.mach-o.objfile",
+            "compiled.object-library",
             "compiled.mach-o.dylib",
             "sourcecode.text-based-dylib-definition",
             "wrapper.framework",

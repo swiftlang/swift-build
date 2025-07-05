@@ -139,6 +139,7 @@ add_library(SWBCore
   SpecImplementations/Tools/MergeInfoPlist.swift
   SpecImplementations/Tools/MkdirTool.swift
   SpecImplementations/Tools/ModulesVerifierTool.swift
+  SpecImplementations/Tools/ObjectLibraryAssembler.swift
   SpecImplementations/Tools/PLUtilTool.swift
   SpecImplementations/Tools/PrelinkedObjectLink.swift
   SpecImplementations/Tools/ProcessSDKImports.swift

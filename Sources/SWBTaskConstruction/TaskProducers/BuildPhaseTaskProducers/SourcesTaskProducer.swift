@@ -687,6 +687,15 @@ final class SourcesTaskProducer: FilesBasedBuildPhaseTaskProducerBase, FilesBase
                     xcframeworkSourcePath: xcframeworkPath,
                     privacyFile: nil
                 )
+            } else if fileType.conformsTo(identifier: "compiled.object-library") {
+                return LinkerSpec.LibrarySpecifier(
+                    kind: .objectLibrary,
+                    path: absolutePath,
+                    mode: .normal,
+                    useSearchPaths: false,
+                    swiftModulePaths: swiftModulePaths,
+                    swiftModuleAdditionalLinkerArgResponseFilePaths: swiftModuleAdditionalLinkerArgResponseFilePaths,
+                )
             } else {
                 // FIXME: Error handling.
                 return nil
@@ -1624,20 +1633,30 @@ final class SourcesTaskProducer: FilesBasedBuildPhaseTaskProducerBase, FilesBase
     /// Compute the linker to use in the given scope.
     private func getLinkerToUse(_ scope: MacroEvaluationScope) -> LinkerSpec {
         let isStaticLib = scope.evaluate(BuiltinMacros.MACH_O_TYPE) == "staticlib"
+        let isObjectLibrary = context.productType?.conformsTo(identifier: "org.swift.product-type.library.object") == true
 
         // Return the custom linker, if specified.
-        var identifier = scope.evaluate(isStaticLib ? BuiltinMacros.LIBRARIAN : BuiltinMacros.LINKER)
-        if !identifier.isEmpty {
-            let spec = context.getSpec(identifier)
-            if let linker = spec as? LinkerSpec {
-                return linker
-            }
+        if !isObjectLibrary {
+            let identifier = scope.evaluate(isStaticLib ? BuiltinMacros.LIBRARIAN : BuiltinMacros.LINKER)
+            if !identifier.isEmpty {
+                let spec = context.getSpec(identifier)
+                if let linker = spec as? LinkerSpec {
+                    return linker
+                }
 
-            // FIXME: Emit a warning here.
+                // FIXME: Emit a warning here.
+            }
         }
 
         // Return the default linker.
-        identifier = isStaticLib ? LibtoolLinkerSpec.identifier : LdLinkerSpec.identifier
+        let identifier: String
+        if isObjectLibrary {
+            identifier = ObjectLibraryAssemblerSpec.identifier
+        } else if isStaticLib {
+            identifier = LibtoolLinkerSpec.identifier
+        } else {
+            identifier = LdLinkerSpec.identifier
+        }
         return context.getSpec(identifier) as! LinkerSpec
     }
 

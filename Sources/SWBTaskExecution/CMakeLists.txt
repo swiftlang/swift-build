@@ -52,6 +52,7 @@ add_library(SWBTaskExecution
   TaskActions/LinkAssetCatalogTaskAction.swift
   TaskActions/LSRegisterURLTaskAction.swift
   TaskActions/MergeInfoPlistTaskAction.swift
+  TaskActions/ObjectLibraryAssemblerTaskAction.swift
   TaskActions/ODRAssetPackManifestTaskAction.swift
   TaskActions/PrecompileClangModuleTaskAction.swift
   TaskActions/ProcessProductEntitlementsTaskAction.swift

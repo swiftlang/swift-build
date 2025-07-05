@@ -24,14 +24,16 @@ open class LinkerSpec : CommandLineToolSpec, @unchecked Sendable {
             case textBased
             case framework
             case object
+            case objectLibrary
 
             public var description: String {
                 switch self {
-                case .static:       return "static library"
-                case .dynamic:      return "dynamic library"
-                case .textBased:    return "text-based stub"
-                case .framework:    return "framework"
-                case .object:       return "object file"
+                case .static:        return "static library"
+                case .dynamic:       return "dynamic library"
+                case .textBased:     return "text-based stub"
+                case .framework:     return "framework"
+                case .object:        return "object file"
+                case .objectLibrary: return "object library"
                 }
             }
         }
@@ -144,7 +146,7 @@ open class LinkerSpec : CommandLineToolSpec, @unchecked Sendable {
     /// Custom entry point for constructing linker tasks.
     public func constructLinkerTasks(_ cbc: CommandBuildContext, _ delegate: any TaskGenerationDelegate, libraries: [LibrarySpecifier], usedTools: [CommandLineToolSpec: Set<FileTypeSpec>]) async {
         /// Delegate to the generic machinery.
-        await delegate.createTask(type: self, ruleInfo: defaultRuleInfo(cbc, delegate), commandLine: commandLineFromTemplate(cbc, delegate, optionContext: discoveredCommandLineToolSpecInfo(cbc.producer, cbc.scope, delegate)).map(\.asString), environment: environmentFromSpec(cbc, delegate), workingDirectory: cbc.producer.defaultWorkingDirectory, inputs: cbc.inputs.map({ $0.absolutePath }), outputs: [cbc.output], action: nil, execDescription: resolveExecutionDescription(cbc, delegate), enableSandboxing: enableSandboxing)
+        await delegate.createTask(type: self, ruleInfo: defaultRuleInfo(cbc, delegate), commandLine: commandLineFromTemplate(cbc, delegate, optionContext: discoveredCommandLineToolSpecInfo(cbc.producer, cbc.scope, delegate)).map(\.asString), environment: environmentFromSpec(cbc, delegate), workingDirectory: cbc.producer.defaultWorkingDirectory, inputs: cbc.inputs.map({ $0.absolutePath }), outputs: [cbc.output], action: createTaskAction(cbc, delegate), execDescription: resolveExecutionDescription(cbc, delegate), enableSandboxing: enableSandboxing)
     }
 }
 
