@@ -104,7 +104,7 @@ final class SwiftStandardLibrariesTaskProducer: PhasedTaskProducer, TaskProducer
             let supportsConcurrencyNatively = context.platform?.supportsSwiftConcurrencyNatively(scope)
             let backDeploySwiftConcurrency = supportsConcurrencyNatively != nil && supportsConcurrencyNatively != true
 
-            let supportsSpanNatively = context.platform?.supportsSwiftSpanNatively(scope)
+            let supportsSpanNatively = context.platform?.supportsSwiftSpanNatively(scope, forceNextMajorVersion: false, considerTargetDeviceOSVersion: true)
             let backDeploySwiftSpan = supportsSpanNatively != nil && supportsSpanNatively != true
 
             let cbc = CommandBuildContext(producer: context, scope: scope, inputs: [ input ])

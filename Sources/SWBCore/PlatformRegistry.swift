@@ -297,7 +297,7 @@ extension Platform {
     }
 
     /// Determines if the platform natively supports Swift 6.2's Span type. If `false`, then the Swift Span back-compat lib needs to be copied into the app/framework's bundle.
-    public func supportsSwiftSpanNatively(_ scope: MacroEvaluationScope, forceNextMajorVersion: Bool = false, considerTargetDeviceOSVersion: Bool = true) -> Bool? {
+    public func supportsSwiftSpanNatively(_ scope: MacroEvaluationScope, forceNextMajorVersion: Bool, considerTargetDeviceOSVersion: Bool) -> Bool? {
         guard let deploymentTarget = self.deploymentTargetMacro else { return false }
 
         // If we have target device info and its platform matches the build platform, compare the device OS version
