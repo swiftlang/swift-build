@@ -228,6 +228,7 @@ fileprivate struct GeneratePreviewInfoTests: CoreBasedTests {
                                 "\(tmpDir.str)/Test/build/Test.build/Debug-iphoneos/App.build/Objects-normal/\(activeRunDestination.targetArchitecture)/App.LinkFileList",
                                 "-install_name",
                                 "@rpath/App.debug.dylib",
+                                "-dead_strip",
                                 "-Xlinker",
                                 "-object_path_lto",
                                 "-Xlinker",

@@ -524,10 +524,6 @@ public final class LdLinkerSpec : GenericLinkerSpec, SpecIdentifierType, @unchec
                     return nil
                 }
                 return cbc.scope.namespace.parseLiteralString(name)
-            case BuiltinMacros.DEAD_CODE_STRIPPING where isPreviewDylib:
-                // We need to keep otherwise unused stub executor library symbols present so
-                // PreviewsInjection can call them when doing the XOJIT handshake.
-                return cbc.scope.namespace.parseLiteralString("NO")
             case BuiltinMacros.LD_EXPORT_SYMBOLS where isPreviewDylib,
                 BuiltinMacros.LD_EXPORT_GLOBAL_SYMBOLS where isPreviewDylib:
                 // We need to keep otherwise unused stub executor library symbols present so
