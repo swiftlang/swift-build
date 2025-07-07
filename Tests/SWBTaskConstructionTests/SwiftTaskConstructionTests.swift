@@ -76,7 +76,7 @@ fileprivate struct SwiftTaskConstructionTests: CoreBasedTests {
 
     @Test(.requireSDKs(.macOS))
     func swiftAppBasics_postSwiftOS() async throws {
-        try await _testSwiftAppBasics(deploymentTargetVersion: "12.0", shouldEmitSwiftRPath: true, shouldFilterSwiftLibs: true, shouldBackDeploySwiftConcurrency: false, shouldBackDeploySwiftSpan: true)
+        try await _testSwiftAppBasics(deploymentTargetVersion: "12.0", shouldEmitSwiftRPath: true, shouldFilterSwiftLibs: true, shouldBackDeploySwiftConcurrency: false, shouldBackDeploySwiftSpan: true, missingSpanCompatibilitySuppressesRPath: true)
     }
 
     @Test(.requireSDKs(.macOS), .requireXcode26())
@@ -101,10 +101,12 @@ fileprivate struct SwiftTaskConstructionTests: CoreBasedTests {
 
     @Test(.requireSDKs(.macOS), .userDefaults(["AllowRuntimeSearchPathAdditionForSwiftConcurrency": "0"]))
     func swiftAppBasics_postSwiftOSDeploymentTarget_preSwiftConcurrencySupportedNatively_DisallowRpathInjection() async throws {
-        try await _testSwiftAppBasics(deploymentTargetVersion: "11.0", shouldEmitSwiftRPath:true, shouldFilterSwiftLibs: true, shouldBackDeploySwiftConcurrency: true, shouldBackDeploySwiftSpan: true)
+        try await _testSwiftAppBasics(deploymentTargetVersion: "11.0", shouldEmitSwiftRPath:true, shouldFilterSwiftLibs: true, shouldBackDeploySwiftConcurrency: true, shouldBackDeploySwiftSpan: true,
+        missingSpanCompatibilitySuppressesRPath: true)
     }
 
-    func _testSwiftAppBasics(deploymentTargetVersion: String, targetDeviceOSVersion: String? = nil, targetDevicePlatformName: String? = nil, toolchain toolchainIdentifier: String = "default", shouldEmitSwiftRPath: Bool, shouldFilterSwiftLibs: Bool, shouldBackDeploySwiftConcurrency: Bool, shouldBackDeploySwiftSpan: Bool) async throws {
+    func _testSwiftAppBasics(deploymentTargetVersion: String, targetDeviceOSVersion: String? = nil, targetDevicePlatformName: String? = nil, toolchain toolchainIdentifier: String = "default", shouldEmitSwiftRPath: Bool, shouldFilterSwiftLibs: Bool, shouldBackDeploySwiftConcurrency: Bool, shouldBackDeploySwiftSpan: Bool,
+        missingSpanCompatibilitySuppressesRPath: Bool = false) async throws {
         let swiftCompilerPath = try await self.swiftCompilerPath
         let swiftVersion = try await self.swiftVersion
         let swiftFeatures = try await self.swiftFeatures
@@ -188,6 +190,12 @@ fileprivate struct SwiftTaskConstructionTests: CoreBasedTests {
         let parameters = BuildParameters(configuration: "Debug", overrides: overrides)
         let defaultToolchain = try #require(core.toolchainRegistry.defaultToolchain)
         let effectiveToolchain = core.toolchainRegistry.lookup(toolchainIdentifier) ?? defaultToolchain
+
+        // Disable the expectation that we'll have the Swift rpath if we're testing with a version that
+        // predates the inclusion of the Span back-deployment library.
+        // NOTE: This should be removed when CI moves forward to Xcode 26 everywhere.
+        let predatesCompatibilitySpan = core.xcodeProductBuildVersion <= (try! ProductBuildVersion("17A1"))
+        let shouldEmitSwiftRPath = shouldEmitSwiftRPath && !(predatesCompatibilitySpan && missingSpanCompatibilitySuppressesRPath)
 
         // Check the debug build.
         await tester.checkBuild(parameters, runDestination: .macOS, fs: fs) { results in
