@@ -76,7 +76,7 @@ fileprivate struct SwiftTaskConstructionTests: CoreBasedTests {
 
     @Test(.requireSDKs(.macOS))
     func swiftAppBasics_postSwiftOS() async throws {
-        try await _testSwiftAppBasics(deploymentTargetVersion: "12.0", shouldEmitSwiftRPath: false, shouldFilterSwiftLibs: true, shouldBackDeploySwiftConcurrency: false, shouldBackDeploySwiftSpan: true)
+        try await _testSwiftAppBasics(deploymentTargetVersion: "12.0", shouldEmitSwiftRPath: true, shouldFilterSwiftLibs: true, shouldBackDeploySwiftConcurrency: false, shouldBackDeploySwiftSpan: true)
     }
 
     @Test(.requireSDKs(.macOS), .requireXcode26())
@@ -101,7 +101,7 @@ fileprivate struct SwiftTaskConstructionTests: CoreBasedTests {
 
     @Test(.requireSDKs(.macOS), .userDefaults(["AllowRuntimeSearchPathAdditionForSwiftConcurrency": "0"]))
     func swiftAppBasics_postSwiftOSDeploymentTarget_preSwiftConcurrencySupportedNatively_DisallowRpathInjection() async throws {
-        try await _testSwiftAppBasics(deploymentTargetVersion: "11.0", shouldEmitSwiftRPath:false, shouldFilterSwiftLibs: true, shouldBackDeploySwiftConcurrency: true, shouldBackDeploySwiftSpan: true)
+        try await _testSwiftAppBasics(deploymentTargetVersion: "11.0", shouldEmitSwiftRPath:true, shouldFilterSwiftLibs: true, shouldBackDeploySwiftConcurrency: true, shouldBackDeploySwiftSpan: true)
     }
 
     func _testSwiftAppBasics(deploymentTargetVersion: String, targetDeviceOSVersion: String? = nil, targetDevicePlatformName: String? = nil, toolchain toolchainIdentifier: String = "default", shouldEmitSwiftRPath: Bool, shouldFilterSwiftLibs: Bool, shouldBackDeploySwiftConcurrency: Bool, shouldBackDeploySwiftSpan: Bool) async throws {
