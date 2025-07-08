@@ -3563,7 +3563,7 @@ That command depends on command in Target 'agg2' (project \'aProject\'): script 
     }
 
 
-    @Test(.requireSDKs(.macOS))
+    @Test(.requireSDKs(.macOS), .requireXcode26())
     func copySwiftLibs_preSwiftOS_macos() async throws {
         // Swift does not exist in the OS, so shouldFilterSwiftLibs is false. macOS 10.14.3 does not
         // support use of back deployed span and concurrency, but if code using either has
@@ -3572,7 +3572,7 @@ That command depends on command in Target 'agg2' (project \'aProject\'): script 
         try await _testCopySwiftLibs(deploymentTarget: "10.14.3", shouldFilterSwiftLibs: false, shouldBackDeploySwiftConcurrency: true, shouldBackDeploySwiftSpan: true)
     }
 
-    @Test(.requireSDKs(.macOS))
+    @Test(.requireSDKs(.macOS), .requireXcode26())
     func copySwiftLibs_postSwiftOS_macos() async throws {
         // macOS 10.14.4 is the first version with Swift in the OS, so shouldFilterSwiftLibs should
         // be true on this and later versions. Both Concurrency and Span back deploy starting
@@ -3580,14 +3580,14 @@ That command depends on command in Target 'agg2' (project \'aProject\'): script 
         try await _testCopySwiftLibs(deploymentTarget: "10.14.4", shouldFilterSwiftLibs: true, shouldBackDeploySwiftConcurrency: true, shouldBackDeploySwiftSpan: true)
     }
 
-    @Test(.requireSDKs(.macOS))
+    @Test(.requireSDKs(.macOS), .requireXcode26())
     func copySwiftLibs_postSwiftOS_preSwiftConcurrency_macos() async throws {
         // macOS 11.5 includes Swift in the OS, but predates the OS copy of Concurrency.
         // Both Concurrency and Span should back deploy.
         try await _testCopySwiftLibs(deploymentTarget: "11.5", shouldFilterSwiftLibs: true, shouldBackDeploySwiftConcurrency: true, shouldBackDeploySwiftSpan: true)
     }
 
-    @Test(.requireSDKs(.macOS))
+    @Test(.requireSDKs(.macOS), .requireXcode26())
     func copySwiftLibs_postSwiftConcurrency_macos() async throws {
         // macOS 12.0 includes Swift and Concurrency in the OS but not Span.
         // Only Span should back deploy.
