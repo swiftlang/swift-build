@@ -30,12 +30,7 @@ fileprivate struct CustomTaskBuildOperationTests: CoreBasedTests {
             let destination: RunDestinationInfo = .host
             let core = try await getCore()
             let toolchain = try #require(core.toolchainRegistry.defaultToolchain)
-            let environment: [String: String]
-            if  destination.imageFormat(core) == .elf {
-                environment = ["LD_LIBRARY_PATH": toolchain.path.join("usr/lib/swift/\(destination.platform)").str]
-            } else {
-                environment = ProcessInfo.processInfo.environment.filter { $0.key.uppercased() == "PATH" } // important to allow swift to be looked up in PATH on Windows/Linux
-            }
+            let environment = destination.hostRuntimeEnvironment(core)
 
             let testProject = TestProject(
                 "aProject",
@@ -69,7 +64,7 @@ fileprivate struct CustomTaskBuildOperationTests: CoreBasedTests {
                         customTasks: [
                             TestCustomTask(
                                 commandLine: ["$(BUILD_DIR)/$(CONFIGURATION)$(EFFECTIVE_PLATFORM_NAME)/tool\(destination == .windows ? ".exe" : "")"],
-                                environment: environment,
+                                environment: .init(environment),
                                 workingDirectory: tmpDir.str,
                                 executionDescription: "My Custom Task",
                                 inputs: ["$(BUILD_DIR)/$(CONFIGURATION)$(EFFECTIVE_PLATFORM_NAME)/tool\(destination == .windows ? ".exe" : "")"],

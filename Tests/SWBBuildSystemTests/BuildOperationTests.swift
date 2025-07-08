@@ -145,15 +145,7 @@ fileprivate struct BuildOperationTests: CoreBasedTests {
             try await tester.checkBuild(runDestination: destination, signableTargets: Set(provisioningInputs.keys), signableTargetInputs: provisioningInputs) { results in
                 results.checkNoErrors()
 
-                let toolchain = try #require(core.toolchainRegistry.defaultToolchain)
-                let environment: Environment
-                if destination.imageFormat(core) == .elf {
-                    environment = ["LD_LIBRARY_PATH": toolchain.path.join("usr/lib/swift/\(destination.platform)").str]
-                } else {
-                    environment = .init()
-                }
-
-                let executionResult = try await Process.getOutput(url: URL(fileURLWithPath: projectDir.join("build").join("Debug\(destination.builtProductsDirSuffix)").join(core.hostOperatingSystem.imageFormat.executableName(basename: "tool")).str), arguments: [], environment: environment)
+                let executionResult = try await Process.getOutput(url: URL(fileURLWithPath: projectDir.join("build").join("Debug\(destination.builtProductsDirSuffix)").join(core.hostOperatingSystem.imageFormat.executableName(basename: "tool")).str), arguments: [], environment: destination.hostRuntimeEnvironment(core))
                 #expect(executionResult.exitStatus == .exit(0))
                 if core.hostOperatingSystem == .windows {
                     #expect(String(decoding: executionResult.stdout, as: UTF8.self) == "Hello world\r\n")
@@ -378,15 +370,7 @@ fileprivate struct BuildOperationTests: CoreBasedTests {
                     }
                 }
 
-                let toolchain = try #require(try await getCore().toolchainRegistry.defaultToolchain)
-                let environment: Environment
-                if destination.platform == "linux" {
-                    environment = ["LD_LIBRARY_PATH": toolchain.path.join("usr/lib/swift/linux").str]
-                } else {
-                    environment = .init()
-                }
-
-                let executionResult = try await Process.getOutput(url: URL(fileURLWithPath: projectDir.join("build").join("Debug\(destination.builtProductsDirSuffix)").join(core.hostOperatingSystem.imageFormat.executableName(basename: "tool")).str), arguments: [], environment: environment)
+                let executionResult = try await Process.getOutput(url: URL(fileURLWithPath: projectDir.join("build").join("Debug\(destination.builtProductsDirSuffix)").join(core.hostOperatingSystem.imageFormat.executableName(basename: "tool")).str), arguments: [], environment: destination.hostRuntimeEnvironment(core))
                 #expect(executionResult.exitStatus == .exit(0))
                 if core.hostOperatingSystem == .windows {
                     #expect(String(decoding: executionResult.stdout, as: UTF8.self) == "Hello world\r\n")
@@ -508,13 +492,7 @@ fileprivate struct BuildOperationTests: CoreBasedTests {
             try await tester.checkBuild(runDestination: destination, persistent: true) { results in
                 results.checkNoErrors()
 
-                let toolchain = try #require(try await getCore().toolchainRegistry.defaultToolchain)
-                let environment: Environment
-                if destination.platform == "linux" {
-                    environment = ["LD_LIBRARY_PATH": "\(toolchain.path.join("usr/lib/swift/linux").str):\(projectDir.join("build").join("Debug\(destination.builtProductsDirSuffix)"))"]
-                } else {
-                    environment = .init()
-                }
+                let environment = destination.hostRuntimeEnvironment(core)
 
                 do {
                     let executionResult = try await Process.getOutput(url: URL(fileURLWithPath: projectDir.join("build").join("Debug\(destination.builtProductsDirSuffix)").join(core.hostOperatingSystem.imageFormat.executableName(basename: "UnitTestRunner")).str), arguments: [], environment: environment)
