@@ -294,11 +294,20 @@ public final class LdLinkerSpec : GenericLinkerSpec, SpecIdentifierType, @unchec
         // And, if the deployment target does not support Swift Concurrency natively, then the rpath needs to be added as well so that the shim library can find the real implementation. Note that we assume `true` in the case where `supportsSwiftInTheOS` is `nil` as we don't have the platform data to make the correct choice; so fallback to existing behavior.
         // The all above discussion is only relevant for platforms that support Swift in the OS.
         let supportsSwiftConcurrencyNatively = cbc.producer.platform?.supportsSwiftConcurrencyNatively(cbc.scope, forceNextMajorVersion: false, considerTargetDeviceOSVersion: false) ?? true
+        let supportsSwiftSpanNatively = cbc.producer.platform?.supportsSwiftSpanNatively(cbc.scope, forceNextMajorVersion: false, considerTargetDeviceOSVersion: false) ?? true
         let shouldEmitRPathForSwiftConcurrency = UserDefaults.allowRuntimeSearchPathAdditionForSwiftConcurrency && !supportsSwiftConcurrencyNatively
-        if (cbc.producer.platform?.supportsSwiftInTheOS(cbc.scope, forceNextMajorVersion: true, considerTargetDeviceOSVersion: false) != true || cbc.producer.toolchains.usesSwiftOpenSourceToolchain || shouldEmitRPathForSwiftConcurrency) && isUsingSwift && cbc.producer.platform?.minimumOSForSwiftInTheOS != nil {
-                // NOTE: For swift.org toolchains, this is fine as `DYLD_LIBRARY_PATH` is used to override these settings.
+        let shouldEmitRPathForSwiftSpan = !cbc.scope.evaluate(BuiltinMacros.DISABLE_SWIFT_SPAN_COMPATIBILITY_RPATH) && !supportsSwiftSpanNatively
+        if (
+            cbc.producer.platform?.supportsSwiftInTheOS(cbc.scope, forceNextMajorVersion: true, considerTargetDeviceOSVersion: false) != true ||
+            cbc.producer.toolchains.usesSwiftOpenSourceToolchain ||
+            shouldEmitRPathForSwiftConcurrency ||
+            shouldEmitRPathForSwiftSpan
+        )
+            && isUsingSwift
+            && cbc.producer.platform?.minimumOSForSwiftInTheOS != nil {
+            // NOTE: For swift.org toolchains, this is fine as `DYLD_LIBRARY_PATH` is used to override these settings.
             let swiftABIVersion =  await (cbc.producer.swiftCompilerSpec.discoveredCommandLineToolSpecInfo(cbc.producer, cbc.scope, delegate) as? DiscoveredSwiftCompilerToolSpecInfo)?.swiftABIVersion
-                runpathSearchPaths.insert( swiftABIVersion.flatMap { "/usr/lib/swift-\($0)" } ?? "/usr/lib/swift", at: 0)
+            runpathSearchPaths.insert( swiftABIVersion.flatMap { "/usr/lib/swift-\($0)" } ?? "/usr/lib/swift", at: 0)
         }
 
         return runpathSearchPaths

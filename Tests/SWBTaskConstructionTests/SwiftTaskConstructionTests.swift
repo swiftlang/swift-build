@@ -71,35 +71,42 @@ fileprivate struct SwiftTaskConstructionTests: CoreBasedTests {
 
     @Test(.requireSDKs(.macOS))
     func swiftAppBasics_preSwiftOS() async throws {
-        try await _testSwiftAppBasics(deploymentTargetVersion: "10.14.0", shouldEmitSwiftRPath: true, shouldFilterSwiftLibs: false, shouldBackDeploySwiftConcurrency: true)
+        try await _testSwiftAppBasics(deploymentTargetVersion: "10.14.0", shouldEmitSwiftRPath: true, shouldFilterSwiftLibs: false, shouldBackDeploySwiftConcurrency: true, shouldBackDeploySwiftSpan: true)
     }
 
     @Test(.requireSDKs(.macOS))
     func swiftAppBasics_postSwiftOS() async throws {
-        try await _testSwiftAppBasics(deploymentTargetVersion: "12.0", shouldEmitSwiftRPath: false, shouldFilterSwiftLibs: true, shouldBackDeploySwiftConcurrency: false)
+        try await _testSwiftAppBasics(deploymentTargetVersion: "12.0", shouldEmitSwiftRPath: true, shouldFilterSwiftLibs: true, shouldBackDeploySwiftConcurrency: false, shouldBackDeploySwiftSpan: true, missingSpanCompatibilitySuppressesRPath: true)
+    }
+
+    @Test(.requireSDKs(.macOS), .requireXcode26())
+    func swiftAppBasics_postSwiftSpan() async throws {
+        try await _testSwiftAppBasics(deploymentTargetVersion: "26.0", shouldEmitSwiftRPath: false, shouldFilterSwiftLibs: true, shouldBackDeploySwiftConcurrency: false, shouldBackDeploySwiftSpan: false)
     }
 
     @Test(.requireSDKs(.macOS))
     func swiftAppBasics_preSwiftOSDeploymentTarget_postSwiftOSTargetDevice() async throws {
-        try await _testSwiftAppBasics(deploymentTargetVersion: "10.14.0", targetDeviceOSVersion: "11.0", targetDevicePlatformName: "macosx", shouldEmitSwiftRPath: true, shouldFilterSwiftLibs: true, shouldBackDeploySwiftConcurrency: true)
+        try await _testSwiftAppBasics(deploymentTargetVersion: "10.14.0", targetDeviceOSVersion: "11.0", targetDevicePlatformName: "macosx", shouldEmitSwiftRPath: true, shouldFilterSwiftLibs: true, shouldBackDeploySwiftConcurrency: true, shouldBackDeploySwiftSpan: true)
     }
 
     @Test(.requireSDKs(.macOS))
     func swiftAppBasics_preSwiftOSDeploymentTarget_postSwiftOSTargetDevice_mixedPlatform() async throws {
-        try await _testSwiftAppBasics(deploymentTargetVersion: "10.14.0", targetDeviceOSVersion: "14.0", targetDevicePlatformName: "iphoneos", shouldEmitSwiftRPath: true, shouldFilterSwiftLibs: false, shouldBackDeploySwiftConcurrency: true)
+        try await _testSwiftAppBasics(deploymentTargetVersion: "10.14.0", targetDeviceOSVersion: "14.0", targetDevicePlatformName: "iphoneos", shouldEmitSwiftRPath: true, shouldFilterSwiftLibs: false, shouldBackDeploySwiftConcurrency: true, shouldBackDeploySwiftSpan: true)
     }
 
     @Test(.requireSDKs(.macOS))
     func swiftAppBasics_postSwiftOSDeploymentTarget_preSwiftConcurrencySupportedNatively() async throws {
-        try await _testSwiftAppBasics(deploymentTargetVersion: "11.0", shouldEmitSwiftRPath: true, shouldFilterSwiftLibs: true, shouldBackDeploySwiftConcurrency: true)
+        try await _testSwiftAppBasics(deploymentTargetVersion: "11.0", shouldEmitSwiftRPath: true, shouldFilterSwiftLibs: true, shouldBackDeploySwiftConcurrency: true, shouldBackDeploySwiftSpan: true)
     }
 
     @Test(.requireSDKs(.macOS), .userDefaults(["AllowRuntimeSearchPathAdditionForSwiftConcurrency": "0"]))
     func swiftAppBasics_postSwiftOSDeploymentTarget_preSwiftConcurrencySupportedNatively_DisallowRpathInjection() async throws {
-        try await _testSwiftAppBasics(deploymentTargetVersion: "11.0", shouldEmitSwiftRPath:false, shouldFilterSwiftLibs: true, shouldBackDeploySwiftConcurrency: true)
+        try await _testSwiftAppBasics(deploymentTargetVersion: "11.0", shouldEmitSwiftRPath:true, shouldFilterSwiftLibs: true, shouldBackDeploySwiftConcurrency: true, shouldBackDeploySwiftSpan: true,
+        missingSpanCompatibilitySuppressesRPath: true)
     }
 
-    func _testSwiftAppBasics(deploymentTargetVersion: String, targetDeviceOSVersion: String? = nil, targetDevicePlatformName: String? = nil, toolchain toolchainIdentifier: String = "default", shouldEmitSwiftRPath: Bool, shouldFilterSwiftLibs: Bool, shouldBackDeploySwiftConcurrency: Bool) async throws {
+    func _testSwiftAppBasics(deploymentTargetVersion: String, targetDeviceOSVersion: String? = nil, targetDevicePlatformName: String? = nil, toolchain toolchainIdentifier: String = "default", shouldEmitSwiftRPath: Bool, shouldFilterSwiftLibs: Bool, shouldBackDeploySwiftConcurrency: Bool, shouldBackDeploySwiftSpan: Bool,
+        missingSpanCompatibilitySuppressesRPath: Bool = false) async throws {
         let swiftCompilerPath = try await self.swiftCompilerPath
         let swiftVersion = try await self.swiftVersion
         let swiftFeatures = try await self.swiftFeatures
@@ -183,6 +190,12 @@ fileprivate struct SwiftTaskConstructionTests: CoreBasedTests {
         let parameters = BuildParameters(configuration: "Debug", overrides: overrides)
         let defaultToolchain = try #require(core.toolchainRegistry.defaultToolchain)
         let effectiveToolchain = core.toolchainRegistry.lookup(toolchainIdentifier) ?? defaultToolchain
+
+        // Disable the expectation that we'll have the Swift rpath if we're testing with a version that
+        // predates the inclusion of the Span back-deployment library.
+        // NOTE: This should be removed when CI moves forward to Xcode 26 everywhere.
+        let predatesCompatibilitySpan = core.xcodeProductBuildVersion <= (try! ProductBuildVersion("17A1"))
+        let shouldEmitSwiftRPath = shouldEmitSwiftRPath && !(predatesCompatibilitySpan && missingSpanCompatibilitySuppressesRPath)
 
         // Check the debug build.
         await tester.checkBuild(parameters, runDestination: .macOS, fs: fs) { results in
@@ -412,7 +425,7 @@ fileprivate struct SwiftTaskConstructionTests: CoreBasedTests {
                 // There should be a 'CopySwiftLibs' task.
                 results.checkTask(.matchTarget(target), .matchRuleType("CopySwiftLibs")) { task -> Void in
                     task.checkRuleInfo(["CopySwiftLibs", "\(SRCROOT)/build/Debug/AppTarget.app"])
-                    task.checkCommandLine(([["builtin-swiftStdLibTool", "--copy", "--verbose", "--scan-executable", "\(SRCROOT)/build/Debug/AppTarget.app/Contents/MacOS/AppTarget", "--scan-folder", "\(SRCROOT)/build/Debug/AppTarget.app/Contents/Frameworks", "--scan-folder", "\(SRCROOT)/build/Debug/AppTarget.app/Contents/PlugIns", "--scan-folder", "\(SRCROOT)/build/Debug/AppTarget.app/Contents/Library/SystemExtensions", "--scan-folder", "\(SRCROOT)/build/Debug/AppTarget.app/Contents/Extensions", "--scan-folder", "\(SRCROOT)/build/Debug/FwkTarget.framework", "--platform", "macosx", "--toolchain", effectiveToolchain.path.str], (toolchainIdentifier == "default" ? [] : ["--toolchain", defaultToolchain.path.str]), ["--destination", "\(SRCROOT)/build/Debug/AppTarget.app/Contents/Frameworks", "--strip-bitcode", "--strip-bitcode-tool", "\(effectiveToolchain.path.str)/usr/bin/bitcode_strip", "--emit-dependency-info", "\(SRCROOT)/build/aProject.build/Debug/AppTarget.build/SwiftStdLibToolInputDependencies.dep"], shouldFilterSwiftLibs ? ["--filter-for-swift-os"] : [], shouldBackDeploySwiftConcurrency ? ["--back-deploy-swift-concurrency"] : []] as [[String]]).reduce([], +))
+                    task.checkCommandLine(([["builtin-swiftStdLibTool", "--copy", "--verbose", "--scan-executable", "\(SRCROOT)/build/Debug/AppTarget.app/Contents/MacOS/AppTarget", "--scan-folder", "\(SRCROOT)/build/Debug/AppTarget.app/Contents/Frameworks", "--scan-folder", "\(SRCROOT)/build/Debug/AppTarget.app/Contents/PlugIns", "--scan-folder", "\(SRCROOT)/build/Debug/AppTarget.app/Contents/Library/SystemExtensions", "--scan-folder", "\(SRCROOT)/build/Debug/AppTarget.app/Contents/Extensions", "--scan-folder", "\(SRCROOT)/build/Debug/FwkTarget.framework", "--platform", "macosx", "--toolchain", effectiveToolchain.path.str], (toolchainIdentifier == "default" ? [] : ["--toolchain", defaultToolchain.path.str]), ["--destination", "\(SRCROOT)/build/Debug/AppTarget.app/Contents/Frameworks", "--strip-bitcode", "--strip-bitcode-tool", "\(effectiveToolchain.path.str)/usr/bin/bitcode_strip", "--emit-dependency-info", "\(SRCROOT)/build/aProject.build/Debug/AppTarget.build/SwiftStdLibToolInputDependencies.dep"], shouldFilterSwiftLibs ? ["--filter-for-swift-os"] : [], shouldBackDeploySwiftConcurrency ? ["--back-deploy-swift-concurrency"] : [], shouldBackDeploySwiftSpan ? ["--back-deploy-swift-span"] : []] as [[String]]).reduce([], +))
 
                     task.checkInputs([
                         .path("\(SRCROOT)/build/Debug/AppTarget.app/Contents/MacOS/AppTarget"),

@@ -3562,27 +3562,53 @@ That command depends on command in Target 'agg2' (project \'aProject\'): script 
         }
     }
 
-    @Test(.requireSDKs(.macOS))
+
+    @Test(.requireSDKs(.macOS), .requireXcode26())
     func copySwiftLibs_preSwiftOS_macos() async throws {
-        try await _testCopySwiftLibs(deploymentTarget: "10.14.3", shouldFilterSwiftLibs: false, shouldBackDeploySwiftConcurrency: false)
+        // Swift does not exist in the OS, so shouldFilterSwiftLibs is false. macOS 10.14.3 does not
+        // support use of back deployed span and concurrency, but if code using either has
+        // availability guards with a version supporting back deployment, the compatibility
+        // libraries will be weakly linked and should be copied.
+        try await _testCopySwiftLibs(deploymentTarget: "10.14.3", shouldFilterSwiftLibs: false, shouldBackDeploySwiftConcurrency: true, shouldBackDeploySwiftSpan: true)
     }
 
-    @Test(.requireSDKs(.macOS))
+    @Test(.requireSDKs(.macOS), .requireXcode26())
     func copySwiftLibs_postSwiftOS_macos() async throws {
-        try await _testCopySwiftLibs(deploymentTarget: "10.14.4", shouldFilterSwiftLibs: true, shouldBackDeploySwiftConcurrency: true)
+        // macOS 10.14.4 is the first version with Swift in the OS, so shouldFilterSwiftLibs should
+        // be true on this and later versions. Both Concurrency and Span back deploy starting
+        // at this version.
+        try await _testCopySwiftLibs(deploymentTarget: "10.14.4", shouldFilterSwiftLibs: true, shouldBackDeploySwiftConcurrency: true, shouldBackDeploySwiftSpan: true)
     }
 
-    @Test(.requireSDKs(.macOS))
-    func copySwiftLibs_postSwiftConcurrency_macos() async throws {
-        try await _testCopySwiftLibs(deploymentTarget: "12.0", shouldFilterSwiftLibs: true, shouldBackDeploySwiftConcurrency: false)
-    }
-
-    @Test(.requireSDKs(.macOS))
+    @Test(.requireSDKs(.macOS), .requireXcode26())
     func copySwiftLibs_postSwiftOS_preSwiftConcurrency_macos() async throws {
-        try await _testCopySwiftLibs(deploymentTarget: "11.5", shouldFilterSwiftLibs: true, shouldBackDeploySwiftConcurrency: true)
+        // macOS 11.5 includes Swift in the OS, but predates the OS copy of Concurrency.
+        // Both Concurrency and Span should back deploy.
+        try await _testCopySwiftLibs(deploymentTarget: "11.5", shouldFilterSwiftLibs: true, shouldBackDeploySwiftConcurrency: true, shouldBackDeploySwiftSpan: true)
     }
 
-    func _testCopySwiftLibs(deploymentTarget: String, shouldFilterSwiftLibs: Bool, shouldBackDeploySwiftConcurrency: Bool, file: StaticString = #filePath, line: Int = #line) async throws {
+    @Test(.requireSDKs(.macOS), .requireXcode26())
+    func copySwiftLibs_postSwiftConcurrency_macos() async throws {
+        // macOS 12.0 includes Swift and Concurrency in the OS but not Span.
+        // Only Span should back deploy.
+        try await _testCopySwiftLibs(deploymentTarget: "12.0", shouldFilterSwiftLibs: true, shouldBackDeploySwiftConcurrency: false, shouldBackDeploySwiftSpan: true)
+    }
+
+    @Test(.requireSDKs(.macOS), .requireXcode26())
+    func copySwiftLibs_postSwiftSpan_macos() async throws {
+        // macOS 26.0 includes Swift, Concurrency, and Span in the OS.
+        try await _testCopySwiftLibs(deploymentTarget: "26.0", shouldFilterSwiftLibs: true, shouldBackDeploySwiftConcurrency: false, shouldBackDeploySwiftSpan: false)
+    }
+
+    func _testCopySwiftLibs(deploymentTarget: String, shouldFilterSwiftLibs: Bool, shouldBackDeploySwiftConcurrency: Bool, shouldBackDeploySwiftSpan: Bool, file: StaticString = #filePath, line: Int = #line) async throws {
+        let core = try await getCore()
+        let defaultDeploymentTarget = core.loadSDK(.macOS).defaultDeploymentTarget
+        let testsDeploymentTarget: String
+        if try Version(deploymentTarget) < Version(defaultDeploymentTarget) {
+            testsDeploymentTarget = defaultDeploymentTarget
+        } else {
+            testsDeploymentTarget = deploymentTarget
+        }
         // Create a temporary test workspace, consisting of:
         // - an application
         // - a framework embedded directly inside the application
@@ -3591,7 +3617,6 @@ That command depends on command in Target 'agg2' (project \'aProject\'): script 
         // All use Swift, and the point is to test that the right libswift libs
         // get copied as new import statements are added to the sources that are
         // only indirectly included inside the app.
-        let core = try await getCore()
         try await withTemporaryDirectory { tmpDirPath async throws -> Void in
             let testWorkspace = try await TestWorkspace(
                 "Test",
@@ -3757,7 +3782,7 @@ That command depends on command in Target 'agg2' (project \'aProject\'): script 
                                         "Debug",
                                         buildSettings: [
                                             // Override the deployment target for tests so we don't get a warning that our deployment target is higher than XCTest's.
-                                            "MACOSX_DEPLOYMENT_TARGET": core.loadSDK(.macOS).defaultDeploymentTarget
+                                            "MACOSX_DEPLOYMENT_TARGET": testsDeploymentTarget
                                         ]
                                     )
                                 ],
@@ -3784,6 +3809,8 @@ That command depends on command in Target 'agg2' (project \'aProject\'): script 
                     public func foo() -> NSString { return "Foo" }
                     @available(macOS 10.15, *)
                     public actor A { }
+                    @available(macOS 10.14.4, *)
+                    public func bar() { print(Span<Int>.self) }
                     """
             }
             try await tester.fs.writeFileContents(testWorkspace.sourceRoot.join("TestProject/SysExMain.swift")) { contents in
@@ -3793,6 +3820,8 @@ That command depends on command in Target 'agg2' (project \'aProject\'): script 
                     @available(macOS 10.15, *)
                     public actor A { }
                     @main struct Main { public static func main() { } }
+                    @available(macOS 10.14.4, *)
+                    public func bar() { print(Span<Int>.self) }
                     """
             }
             try await tester.fs.writeFileContents(testWorkspace.sourceRoot.join("TestProject/SubFrameworkSource.swift")) { contents in
@@ -3806,6 +3835,8 @@ That command depends on command in Target 'agg2' (project \'aProject\'): script 
                     @available(macOS 10.15, *)
                     public actor A { }
                     }
+                    @available(macOS 10.14.4, *)
+                    public func bar() { print(Span<Int>.self) }
                     """
             }
 
@@ -3883,26 +3914,25 @@ That command depends on command in Target 'agg2' (project \'aProject\'): script 
                     #expect(dependencyInfo.version == expectedDependencyInfo.version)
                     XCTAssertSuperset(Set(dependencyInfo.inputs), Set(expectedDependencyInfo.inputs))
 
-                    // Ensure that the dependency info is correct. Due to the changing nature of how Swift overlays are added, there is no need to be explicit about each one, so only the mechanism is validated by checking a handful of stable Swift overlays.
-                    if shouldFilterSwiftLibs && !shouldBackDeploySwiftConcurrency {
+                    // Check the baseline dependency info when nothing is backdeployed.
+                    if shouldFilterSwiftLibs && !shouldBackDeploySwiftConcurrency && !shouldBackDeploySwiftSpan {
                         #expect(dependencyInfo == expectedDependencyInfo)
                     }
+                    #expect(dependencyInfo.outputs.sorted().contains(expectedDependencyInfo.outputs.sorted()))
 
-                    if !shouldFilterSwiftLibs {
-                        #expect(dependencyInfo.inputs.contains(core.developerPath.path.join("Toolchains/XcodeDefault.xctoolchain/usr/lib/swift-5.0/macosx/libswiftCore.dylib").str))
-                        #expect(dependencyInfo.inputs.contains(core.developerPath.path.join("Toolchains/XcodeDefault.xctoolchain/usr/lib/swift-5.0/macosx/libswiftFoundation.dylib").str))
-                        #expect(dependencyInfo.outputs.sorted().contains(expectedDependencyInfo.outputs.sorted()))
-                        #expect(dependencyInfo.outputs.contains(buildDir.join("App.app/Contents/Frameworks/libswiftCore.dylib").str))
-                        #expect(dependencyInfo.outputs.contains(buildDir.join("App.app/Contents/Frameworks/libswiftFoundation.dylib").str))
-                    }
+                    // If we should not filter Swift libs, check they exist in the dependency info.
+                    #expect(dependencyInfo.inputs.contains(core.developerPath.path.join("Toolchains/XcodeDefault.xctoolchain/usr/lib/swift-5.0/macosx/libswiftCore.dylib").str) == !shouldFilterSwiftLibs)
+                    #expect(dependencyInfo.inputs.contains(core.developerPath.path.join("Toolchains/XcodeDefault.xctoolchain/usr/lib/swift-5.0/macosx/libswiftFoundation.dylib").str) == !shouldFilterSwiftLibs)
+                    #expect(dependencyInfo.outputs.contains(buildDir.join("App.app/Contents/Frameworks/libswiftCore.dylib").str) == !shouldFilterSwiftLibs)
+                    #expect(dependencyInfo.outputs.contains(buildDir.join("App.app/Contents/Frameworks/libswiftFoundation.dylib").str) == !shouldFilterSwiftLibs)
 
-                    if shouldBackDeploySwiftConcurrency {
-                        // Note all toolchains have this yet...
-                        if tester.fs.exists(core.developerPath.path.join("Toolchains/XcodeDefault.xctoolchain/usr/lib/swift-5.5/macosx/libswift_Concurrency.dylib")) {
-                            #expect(dependencyInfo.inputs.contains(core.developerPath.path.join("Toolchains/XcodeDefault.xctoolchain/usr/lib/swift-5.5/macosx/libswift_Concurrency.dylib").str))
-                            #expect(dependencyInfo.outputs.contains(buildDir.join("App.app/Contents/Frameworks/libswift_Concurrency.dylib").str))
-                        }
-                    }
+                    // If we should back deploy Concurrency, ensure it's in the dependency info.
+                    #expect(dependencyInfo.inputs.contains(core.developerPath.path.join("Toolchains/XcodeDefault.xctoolchain/usr/lib/swift-5.5/macosx/libswift_Concurrency.dylib").str) == shouldBackDeploySwiftConcurrency)
+                    #expect(dependencyInfo.outputs.contains(buildDir.join("App.app/Contents/Frameworks/libswift_Concurrency.dylib").str) == shouldBackDeploySwiftConcurrency)
+
+                    // If we should back deploy span, ensure it's in the dependency info.
+                    #expect(dependencyInfo.inputs.contains(core.developerPath.path.join("Toolchains/XcodeDefault.xctoolchain/usr/lib/swift-6.2/macosx/libswiftCompatibilitySpan.dylib").str) == shouldBackDeploySwiftSpan)
+                    #expect(dependencyInfo.outputs.contains(buildDir.join("App.app/Contents/Frameworks/libswiftCompatibilitySpan.dylib").str) == shouldBackDeploySwiftSpan)
                 }
 
                 do {
@@ -3928,47 +3958,42 @@ That command depends on command in Target 'agg2' (project \'aProject\'): script 
                     #expect(unitTestsDependencyInfo.version == unitTestsExpectedDependencyInfo.version)
                     XCTAssertSuperset(Set(unitTestsDependencyInfo.inputs), Set(unitTestsExpectedDependencyInfo.inputs))
 
-                    // Ensure that the dependency info is correct. Due to the changing nature of how Swift overlays are added, there is no need to be explicit about each one, so only the mechanism is validated by checking a handful of stable Swift overlays.
-                    if shouldFilterSwiftLibs && !shouldBackDeploySwiftConcurrency {
+                    // Ensure that the baseline dependency info is correct when nothing is backdeployed.
+                    if shouldFilterSwiftLibs && !shouldBackDeploySwiftConcurrency && !shouldBackDeploySwiftSpan {
                         #expect(unitTestsDependencyInfo == unitTestsExpectedDependencyInfo)
                     }
 
-                    if !shouldFilterSwiftLibs {
-                        if (try Version(core.loadSDK(.macOS).defaultDeploymentTarget)) < Version(10, 15) {
-                            #expect(unitTestsDependencyInfo.inputs.contains(core.developerPath.path.join("Toolchains/XcodeDefault.xctoolchain/usr/lib/swift-5.0/macosx/libswiftCore.dylib").str))
-                            #expect(unitTestsDependencyInfo.inputs.contains(core.developerPath.path.join("Toolchains/XcodeDefault.xctoolchain/usr/lib/swift-5.0/macosx/libswiftFoundation.dylib").str))
-                        }
+                    // As long as we weren't forced to raise the deployment target for tests, check the dependency info.
+                    if testsDeploymentTarget == deploymentTarget {
                         #expect(unitTestsDependencyInfo.outputs.sorted().contains(unitTestsExpectedDependencyInfo.outputs.sorted()))
-                        if (try Version(core.loadSDK(.macOS).defaultDeploymentTarget)) < Version(10, 15) {
-                            #expect(unitTestsDependencyInfo.outputs.contains(buildDir.join("UnitTests.xctest/Contents/Frameworks/libswiftCore.dylib").str))
-                            #expect(unitTestsDependencyInfo.outputs.contains(buildDir.join("UnitTests.xctest/Contents/Frameworks/libswiftFoundation.dylib").str))
-                        }
-                    }
 
-                    if shouldBackDeploySwiftConcurrency {
+                        #expect(unitTestsDependencyInfo.inputs.contains(core.developerPath.path.join("Toolchains/XcodeDefault.xctoolchain/usr/lib/swift-5.0/macosx/libswiftCore.dylib").str) == !shouldFilterSwiftLibs)
+                        #expect(unitTestsDependencyInfo.inputs.contains(core.developerPath.path.join("Toolchains/XcodeDefault.xctoolchain/usr/lib/swift-5.0/macosx/libswiftFoundation.dylib").str) == !shouldFilterSwiftLibs)
+                        #expect(unitTestsDependencyInfo.outputs.contains(buildDir.join("UnitTests.xctest/Contents/Frameworks/libswiftCore.dylib").str) == !shouldFilterSwiftLibs)
+                        #expect(unitTestsDependencyInfo.outputs.contains(buildDir.join("UnitTests.xctest/Contents/Frameworks/libswiftFoundation.dylib").str) == !shouldFilterSwiftLibs)
+
+
+                        #expect(unitTestsDependencyInfo.inputs.contains(core.developerPath.path.join("Toolchains/XcodeDefault.xctoolchain/usr/lib/swift-5.5/macosx/libswift_Concurrency.dylib").str) == shouldBackDeploySwiftConcurrency)
+                        #expect(unitTestsDependencyInfo.outputs.contains(buildDir.join("SwiftlessApp.app/Contents/Frameworks/libswift_Concurrency.dylib").str) == shouldBackDeploySwiftConcurrency)
+
                         // NOTE: Tests have their deployment target overridden.
-                        if (try Version(core.loadSDK(.macOS).defaultDeploymentTarget)) < Version(10, 15) {
-                            // Note all toolchains have this yet...
-                            if tester.fs.exists(core.developerPath.path.join("Toolchains/XcodeDefault.xctoolchain/usr/lib/swift-5.5/macosx/libswift_Concurrency.dylib")) {
-                                #expect(unitTestsDependencyInfo.inputs.contains(core.developerPath.path.join("Toolchains/XcodeDefault.xctoolchain/usr/lib/swift-5.5/macosx/libswift_Concurrency.dylib").str))
-                                #expect(unitTestsDependencyInfo.outputs.contains(buildDir.join("SwiftlessApp.app/Contents/Frameworks/libswift_Concurrency.dylib").str))
-                            }
-                        }
+                        #expect(unitTestsDependencyInfo.inputs.contains(core.developerPath.path.join("Toolchains/XcodeDefault.xctoolchain/usr/lib/swift-5.5/macosx/libswift_Concurrency.dylib").str) == shouldBackDeploySwiftSpan)
+                        #expect(unitTestsDependencyInfo.outputs.contains(buildDir.join("SwiftlessApp.app/Contents/Frameworks/libswift_Concurrency.dylib").str) == shouldBackDeploySwiftSpan)
                     }
                 }
 
                 do {
-                    // Checks that a Swift-free app which embeds a system extension using Swift Concurrency, embeds the back-deployment dylib.
+                    // Checks that a Swift-free app which embeds a system extension using Swift Concurrency and Span, embeds the back-deployment dylibs.
                     let swiftDepsPath = tmpDirPath.join(Path("Test/TestProject/build/TestProject.build/Debug/SwiftlessSysExApp.build/SwiftStdLibToolInputDependencies.dep"))
                     let dependencyInfo = try DependencyInfo(bytes: tester.fs.read(swiftDepsPath).bytes)
 
-                    if shouldBackDeploySwiftConcurrency {
-                        // Note all toolchains have this yet...
-                        if tester.fs.exists(core.developerPath.path.join("Toolchains/XcodeDefault.xctoolchain/usr/lib/swift-5.5/macosx/libswift_Concurrency.dylib")) {
-                            #expect(dependencyInfo.inputs.contains(core.developerPath.path.join("Toolchains/XcodeDefault.xctoolchain/usr/lib/swift-5.5/macosx/libswift_Concurrency.dylib").str))
-                            #expect(dependencyInfo.outputs.contains(buildDir.join("SwiftlessSysExApp.app/Contents/Frameworks/libswift_Concurrency.dylib").str))
-                        }
-                    }
+                    // If we should back deploy Concurrency, ensure it's in the dependency info.
+                    #expect(dependencyInfo.inputs.contains(core.developerPath.path.join("Toolchains/XcodeDefault.xctoolchain/usr/lib/swift-5.5/macosx/libswift_Concurrency.dylib").str) == shouldBackDeploySwiftConcurrency)
+                    #expect(dependencyInfo.outputs.contains(buildDir.join("SwiftlessSysExApp.app/Contents/Frameworks/libswift_Concurrency.dylib").str) == shouldBackDeploySwiftConcurrency)
+
+                    // If we should back deploy Span, ensure it's in the dependency info.
+                    #expect(dependencyInfo.inputs.contains(core.developerPath.path.join("Toolchains/XcodeDefault.xctoolchain/usr/lib/swift-6.2/macosx/libswiftCompatibilitySpan.dylib").str) == shouldBackDeploySwiftSpan)
+                    #expect(dependencyInfo.outputs.contains(buildDir.join("SwiftlessSysExApp.app/Contents/Frameworks/libswiftCompatibilitySpan.dylib").str) == shouldBackDeploySwiftSpan)
                 }
             }
 
