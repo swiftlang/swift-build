@@ -316,6 +316,26 @@ extension RunDestinationInfo {
             return .elf
         }
     }
+
+    /// An `Environment` object with `PATH` or `LD_LIBRARY_PATH` set appropriately pointing into the toolchain to be able to run a built Swift binary in tests.
+    ///
+    /// - note: On macOS, the OS provided Swift runtime is used, so `DYLD_LIBRARY_PATH` is never set for Mach-O destinations.
+    package func hostRuntimeEnvironment(_ core: Core, initialEnvironment: Environment = Environment()) -> Environment {
+        var environment = initialEnvironment
+        guard let toolchain = core.toolchainRegistry.defaultToolchain else {
+            return environment
+        }
+        switch imageFormat(core) {
+        case .elf:
+            environment.prependPath(key: "LD_LIBRARY_PATH", value: toolchain.path.join("usr/lib/swift/\(platform)").str)
+        case .pe:
+            environment.prependPath(key: .path, value: core.developerPath.path.join("Runtimes").join(toolchain.version.description).join("usr/bin").str)
+        case .macho:
+            // Fall back to the OS provided Swift runtime
+            break
+        }
+        return environment
+    }
 }
 
 extension _RunDestinationInfo {
