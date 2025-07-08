@@ -1344,12 +1344,16 @@ public class ClangCompilerSpec : CompilerSpec, SpecIdentifierType, GCCCompatible
         }
 
         if let moduleDependenciesContext {
-            guard let jsonData = try? JSONEncoder(outputFormatting: [.prettyPrinted, .sortedKeys, .withoutEscapingSlashes]).encode(moduleDependenciesContext),
-               let signature = String(data: jsonData, encoding: .utf8) else {
-                delegate.error("failed to serialize 'MODULE_DEPENDENCIES' context information")
+            do {
+                let jsonData = try JSONEncoder(outputFormatting: [.prettyPrinted, .sortedKeys, .withoutEscapingSlashes]).encode(moduleDependenciesContext)
+                guard let signature = String(data: jsonData, encoding: .utf8) else {
+                    throw StubError.error("non-UTF-8 data")
+                }
+                additionalSignatureData += "|\(signature)"
+            } catch {
+                delegate.error("failed to serialize 'MODULE_DEPENDENCIES' context information: \(error)")
                 return
             }
-            additionalSignatureData += "|\(signature)"
         }
 
         // Finally, create the task.
