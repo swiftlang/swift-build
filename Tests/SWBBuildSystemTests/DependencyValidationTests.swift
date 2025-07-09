@@ -446,7 +446,7 @@ fileprivate struct DependencyValidationTests: CoreBasedTests {
                 let buildRequest = BuildRequest(parameters: parameters, buildTargets: [BuildRequest.BuildTargetInfo(parameters: parameters, target: target)], continueBuildingAfterErrors: false, useParallelTargets: true, useImplicitDependencies: true, useDryRun: false)
 
                 try await tester.checkBuild(runDestination: .host, buildRequest: buildRequest, persistent: true) { results in
-                    guard !results.checkError(.prefix("The current toolchain does not support VALIDATE_MODULE_DEPENDENCIES"), failIfNotFound: false) else { return }
+                    guard !results.checkWarning(.prefix("The current toolchain does not support VALIDATE_MODULE_DEPENDENCIES"), failIfNotFound: false) else { return }
 
                     for expectedDiag in expectedDiags {
                         _ = results.check(.contains(expectedDiag.data.description), kind: expectedDiag.behavior, failIfNotFound: true, sourceLocation: #_sourceLocation) { diag in
