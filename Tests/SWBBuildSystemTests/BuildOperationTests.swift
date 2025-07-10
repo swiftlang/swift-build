@@ -5756,6 +5756,7 @@ That command depends on command in Target 'agg2' (project \'aProject\'): script 
 
     @Test(.requireSDKs(.macOS))
     func incrementalMetalLinkWithCodeSign() async throws {
+        let core = try await getCore()
         try await withTemporaryDirectory { tmpDirPath async throws -> Void in
             let testWorkspace = try await TestWorkspace(
                 "Test",
@@ -5773,6 +5774,7 @@ That command depends on command in Target 'agg2' (project \'aProject\'): script 
                                             "CODE_SIGN_IDENTITY": "-",
                                             "INFOPLIST_FILE": "Info.plist",
                                             "CODESIGN": "/usr/bin/true",
+                                            "TOOLCHAINS": core.environment["TOOLCHAINS"] ?? "$(inherited)",
                                             "SWIFT_VERSION": swiftVersion])],
                         targets: [
                             TestStandardTarget(
@@ -5781,7 +5783,7 @@ That command depends on command in Target 'agg2' (project \'aProject\'): script 
                                 buildPhases: [
                                     TestSourcesBuildPhase(["SwiftFile.swift", "Metal.metal"]),
                                 ])])])
-            let tester = try await BuildOperationTester(getCore(), testWorkspace, simulated: false, fileSystem: localFS)
+            let tester = try await BuildOperationTester(core, testWorkspace, simulated: false, fileSystem: localFS)
             let signableTargets: Set<String> = ["aFramework"]
 
             // Create the input files.
