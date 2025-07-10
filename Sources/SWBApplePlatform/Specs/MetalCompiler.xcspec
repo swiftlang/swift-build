@@ -252,6 +252,7 @@
                     Metal30,
                     Metal31,
                     Metal32,
+                    Metal40,
                 );
                 Category = BuildOptions;
             },
@@ -272,6 +273,7 @@
                     Metal30,
                     Metal31,
                     Metal32,
+                    Metal40,
                 );
                 CommandLineArgs = {
                     UseDeploymentTarget = (  );
@@ -286,6 +288,7 @@
                     Metal30 = ( "-std=metal3.0", );
                     Metal31 = ( "-std=metal3.1", );
                     Metal32 = ( "-std=metal3.2", );
+                    Metal40 = ( "-std=metal4.0", );
                 };
             },
             {

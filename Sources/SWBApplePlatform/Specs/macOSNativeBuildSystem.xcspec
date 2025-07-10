@@ -31,6 +31,12 @@
                 Category = "Deployment";
                 Description = "Path to a file specifying additional requirements for a product archive.";
             },
+            {   Name = "REGISTER_APP_GROUPS";
+                Type = Boolean;
+                DefaultValue = NO;
+                Category = "Code Signing";
+                Description = "Register app groups in profiles.";
+            },
         );
     }
 )
