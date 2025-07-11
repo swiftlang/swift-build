@@ -330,7 +330,7 @@ public final class Core: Sendable {
         // Search paths relative to SWBCore itself.
         do {
             func appendInferior(_ path: Path) {
-                if !developerPath.dirname.isAncestor(of: path) {
+                if !developerPath.path.dirname.isAncestor(of: path) {
                     result.append(path)
                 }
             }
