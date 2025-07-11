@@ -14,12 +14,10 @@ import SWBLibc
 
 public import protocol Foundation.LocalizedError
 
-#if os(Windows)
 #if canImport(System)
-import System
+public import System
 #else
-import SystemPackage
-#endif
+public import SystemPackage
 #endif
 
 public enum POSIX: Sendable {
@@ -78,12 +76,16 @@ public enum POSIX: Sendable {
 }
 
 public struct POSIXError: Error, LocalizedError, CustomStringConvertible, Equatable {
-    public let code: Int32
+    public let underlyingError: Errno
     public let context: String?
     public let arguments: [String]
 
+    public var code: Int32 {
+        underlyingError.rawValue
+    }
+
     public init(_ code: Int32, context: String? = nil, _ arguments: [String]) {
-        self.code = code
+        self.underlyingError = Errno(rawValue: code)
         self.context = context
         self.arguments = arguments
     }
@@ -93,7 +95,7 @@ public struct POSIXError: Error, LocalizedError, CustomStringConvertible, Equata
     }
 
     public var description: String {
-        let end = "\(String(cString: strerror(code))) (\(code))"
+        let end = "\(underlyingError.description) (\(code))"
         if let context {
             return "\(context)(\(arguments.joined(separator: ", "))): \(end)"
         }

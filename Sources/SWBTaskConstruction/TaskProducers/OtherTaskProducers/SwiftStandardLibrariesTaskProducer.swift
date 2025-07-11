@@ -104,10 +104,13 @@ final class SwiftStandardLibrariesTaskProducer: PhasedTaskProducer, TaskProducer
             let supportsConcurrencyNatively = context.platform?.supportsSwiftConcurrencyNatively(scope)
             let backDeploySwiftConcurrency = supportsConcurrencyNatively != nil && supportsConcurrencyNatively != true
 
+            let supportsSpanNatively = context.platform?.supportsSwiftSpanNatively(scope, forceNextMajorVersion: false, considerTargetDeviceOSVersion: true)
+            let backDeploySwiftSpan = supportsSpanNatively != nil && supportsSpanNatively != true
+
             let cbc = CommandBuildContext(producer: context, scope: scope, inputs: [ input ])
             let foldersToScanExpr: MacroStringListExpression? = foldersToScan.count > 0 ? scope.namespace.parseLiteralStringList(foldersToScan): nil
             await appendGeneratedTasks(&tasks) { delegate in
-                await context.swiftStdlibToolSpec.constructSwiftStdLibraryToolTask(cbc, delegate, foldersToScan: foldersToScanExpr, filterForSwiftOS: filterForSwiftOS, backDeploySwiftConcurrency: backDeploySwiftConcurrency)
+                await context.swiftStdlibToolSpec.constructSwiftStdLibraryToolTask(cbc, delegate, foldersToScan: foldersToScanExpr, filterForSwiftOS: filterForSwiftOS, backDeploySwiftConcurrency: backDeploySwiftConcurrency, backDeploySwiftSpan: backDeploySwiftSpan)
             }
         }
 

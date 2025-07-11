@@ -90,6 +90,8 @@
 "[MTL_LANGUAGE_REVISION]-description-[Metal31]" = "Metal 3.1";
 "[MTL_LANGUAGE_REVISION]-value-[Metal32]" = "Metal 3.2";
 "[MTL_LANGUAGE_REVISION]-description-[Metal32]" = "Metal 3.2";
+"[MTL_LANGUAGE_REVISION]-value-[Metal40]" = "Metal 4.0";
+"[MTL_LANGUAGE_REVISION]-description-[Metal40]" = "Metal 4.0";
 
 "[MTL_ENABLE_DEBUG_INFO]-name" = "Produce Debugging Information";
 "[MTL_ENABLE_DEBUG_INFO]-description" = "Debugging information is required for shader debugging and profiling.";

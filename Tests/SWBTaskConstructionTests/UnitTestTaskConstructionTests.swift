@@ -23,7 +23,7 @@ fileprivate struct UnitTestTaskConstructionTests: CoreBasedTests {
     // MARK: Framework test target
 
     /// Test task construction for a unit test target for macOS which is testing a framework.
-    @Test(.requireSDKs(.macOS))
+    @Test(.requireSDKs(.macOS), .requireXcode26())
     func frameworkUnitTestTarget_macOS() async throws {
         let swiftCompilerPath = try await self.swiftCompilerPath
         let swiftVersion = try await self.swiftVersion
@@ -387,7 +387,7 @@ fileprivate struct UnitTestTaskConstructionTests: CoreBasedTests {
     /// Test task construction for an application target on macOS with two test targets which are testing it using TEST_HOST. Both debug and install builds are tested.
     ///
     /// Two targets are used to check that the test frameworks are only copied once, and the app target is only re-signed once.
-    @Test(.requireSDKs(.macOS))
+    @Test(.requireSDKs(.macOS), .requireXcode26())
     func applicationUnitTestTarget_macOS() async throws {
         let swiftCompilerPath = try await self.swiftCompilerPath
         let swiftVersion = try await self.swiftVersion
@@ -2184,7 +2184,7 @@ fileprivate struct UnitTestTaskConstructionTests: CoreBasedTests {
 
 
     /// Test task construction for a UI test target for macOS.  Both debug and install builds are tested.
-    @Test(.requireSDKs(.macOS))
+    @Test(.requireSDKs(.macOS), .requireXcode26())
     func uITestTarget_macOS() async throws {
         let swiftCompilerPath = try await self.swiftCompilerPath
         let swiftVersion = try await self.swiftVersion
@@ -3159,7 +3159,7 @@ fileprivate struct UnitTestTaskConstructionTests: CoreBasedTests {
                 // There should be a 'CopySwiftLibs' task that includes a reference to the libXCTestSwiftSupport.dylib executable.
                 results.checkTask(.matchTarget(target), .matchRuleType("CopySwiftLibs")) { task in
                     task.checkRuleInfo(["CopySwiftLibs", "\(SRCROOT)/build/Debug-iphoneos/UITestTarget-Runner.app/PlugIns/UITestTarget.xctest"])
-                    task.checkCommandLine(["builtin-swiftStdLibTool", "--copy", "--verbose", "--sign", "105DE4E702E4", "--scan-executable", "\(SRCROOT)/build/Debug-iphoneos/UITestTarget-Runner.app/PlugIns/UITestTarget.xctest/UITestTarget", "--scan-folder", "\(SRCROOT)/build/Debug-iphoneos/UITestTarget-Runner.app/PlugIns/UITestTarget.xctest/Frameworks", "--scan-folder", "\(SRCROOT)/build/Debug-iphoneos/UITestTarget-Runner.app/PlugIns/UITestTarget.xctest/PlugIns", "--scan-folder", "\(SRCROOT)/build/Debug-iphoneos/UITestTarget-Runner.app/PlugIns/UITestTarget.xctest/SystemExtensions", "--scan-folder", "\(SRCROOT)/build/Debug-iphoneos/UITestTarget-Runner.app/PlugIns/UITestTarget.xctest/Extensions", "--platform", "iphoneos", "--toolchain", "\(core.developerPath.path.str)/Toolchains/XcodeDefault.xctoolchain", "--destination", "\(SRCROOT)/build/Debug-iphoneos/UITestTarget-Runner.app/PlugIns/UITestTarget.xctest/Frameworks", "--strip-bitcode", "--scan-executable", "\(core.developerPath.path.str)/Platforms/iPhoneOS.platform/Developer/usr/lib/libXCTestSwiftSupport.dylib", "--strip-bitcode-tool", "\(defaultToolchain.path.str)/usr/bin/bitcode_strip", "--emit-dependency-info", "\(SRCROOT)/build/aProject.build/Debug-iphoneos/UITestTarget.build/SwiftStdLibToolInputDependencies.dep", "--back-deploy-swift-concurrency"])
+                    task.checkCommandLine(["builtin-swiftStdLibTool", "--copy", "--verbose", "--sign", "105DE4E702E4", "--scan-executable", "\(SRCROOT)/build/Debug-iphoneos/UITestTarget-Runner.app/PlugIns/UITestTarget.xctest/UITestTarget", "--scan-folder", "\(SRCROOT)/build/Debug-iphoneos/UITestTarget-Runner.app/PlugIns/UITestTarget.xctest/Frameworks", "--scan-folder", "\(SRCROOT)/build/Debug-iphoneos/UITestTarget-Runner.app/PlugIns/UITestTarget.xctest/PlugIns", "--scan-folder", "\(SRCROOT)/build/Debug-iphoneos/UITestTarget-Runner.app/PlugIns/UITestTarget.xctest/SystemExtensions", "--scan-folder", "\(SRCROOT)/build/Debug-iphoneos/UITestTarget-Runner.app/PlugIns/UITestTarget.xctest/Extensions", "--platform", "iphoneos", "--toolchain", "\(core.developerPath.path.str)/Toolchains/XcodeDefault.xctoolchain", "--destination", "\(SRCROOT)/build/Debug-iphoneos/UITestTarget-Runner.app/PlugIns/UITestTarget.xctest/Frameworks", "--strip-bitcode", "--scan-executable", "\(core.developerPath.path.str)/Platforms/iPhoneOS.platform/Developer/usr/lib/libXCTestSwiftSupport.dylib", "--strip-bitcode-tool", "\(defaultToolchain.path.str)/usr/bin/bitcode_strip", "--emit-dependency-info", "\(SRCROOT)/build/aProject.build/Debug-iphoneos/UITestTarget.build/SwiftStdLibToolInputDependencies.dep", "--back-deploy-swift-concurrency", "--back-deploy-swift-span"])
                 }
             }
 

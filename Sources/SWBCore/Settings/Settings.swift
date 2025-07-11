@@ -146,6 +146,11 @@ fileprivate struct PreOverridesSettings {
             table.push(BuiltinMacros.LM_SKIP_METADATA_EXTRACTION, BuiltinMacros.namespace.parseString("YES"))
         }
 
+        // This is a hack to prevent Span back deployment from causing excessive test churn when using an older Xcode in Swift CI.
+        if core.xcodeProductBuildVersion <= (try! ProductBuildVersion("17A1")) {
+            table.push(BuiltinMacros.DISABLE_SWIFT_SPAN_COMPATIBILITY_RPATH, BuiltinMacros.namespace.parseString("YES"))
+        }
+
         // Add the "calculated" settings.
         addCalculatedUniversalDefaults(&table)
 
