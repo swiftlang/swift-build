@@ -919,6 +919,7 @@ package final class TestStandardTarget: TestInternalTarget, Sendable {
         case staticFramework
         case staticLibrary
         case objectFile
+        case objectLibrary
         case dynamicLibrary
         case bundle
         case xpcService
@@ -961,6 +962,8 @@ package final class TestStandardTarget: TestInternalTarget, Sendable {
                 return "com.apple.product-type.library.static"
             case .objectFile:
                 return "com.apple.product-type.objfile"
+            case .objectLibrary:
+                return "org.swift.product-type.library.object"
             case .dynamicLibrary:
                 return "com.apple.product-type.library.dynamic"
             case .bundle:
@@ -1030,6 +1033,8 @@ package final class TestStandardTarget: TestInternalTarget, Sendable {
                 return "lib\(name).a"
             case .objectFile:
                 return "\(name).o"
+            case .objectLibrary:
+                return "\(name).objlib"
             case .dynamicLibrary:
                 // FIXME: This should be based on the target platform, not the host. See also: <rdar://problem/29410050> Swift Build doesn't support product references with non-constant basenames
                 guard let suffix = try? ProcessInfo.processInfo.hostOperatingSystem().imageFormat.dynamicLibraryExtension else {

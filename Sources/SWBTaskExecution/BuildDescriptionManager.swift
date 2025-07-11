@@ -891,6 +891,10 @@ extension BuildSystemTaskPlanningDelegate: TaskActionCreationDelegate {
     func createProcessSDKImportsTaskAction() -> any PlannedTaskAction {
         return ProcessSDKImportsTaskAction()
     }
+
+    func createObjectLibraryAssemblerTaskAction() -> any PlannedTaskAction {
+        return ObjectLibraryAssemblerTaskAction()
+    }
 }
 
 fileprivate extension BuildDescription {

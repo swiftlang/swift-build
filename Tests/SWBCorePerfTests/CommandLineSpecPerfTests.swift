@@ -233,6 +233,10 @@ extension CapturingTaskGenerationDelegate: TaskActionCreationDelegate {
     func createProcessSDKImportsTaskAction() -> any PlannedTaskAction {
         return ProcessSDKImportsTaskAction()
     }
+
+    func createObjectLibraryAssemblerTaskAction() -> any PlannedTaskAction {
+        return ObjectLibraryAssemblerTaskAction()
+    }
 }
 
 extension CapturingTaskGenerationDelegate: CoreClientDelegate {

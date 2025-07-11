@@ -346,6 +346,7 @@ public protocol TaskActionCreationDelegate
     func createSignatureCollectionTaskAction() -> any PlannedTaskAction
     func createClangModuleVerifierInputGeneratorTaskAction() -> any PlannedTaskAction
     func createProcessSDKImportsTaskAction() -> any PlannedTaskAction
+    func createObjectLibraryAssemblerTaskAction() -> any PlannedTaskAction
 }
 
 extension TaskActionCreationDelegate {

@@ -37,6 +37,7 @@ SwiftBuild_Bundle(MODULE SWBUniversalPlatform FILES
   Specs/Ld.xcspec
   Specs/Lex.xcspec
   Specs/Libtool.xcspec
+  Specs/ObjectLibraryAssembler.xcspec
   Specs/PackageTypes.xcspec
   Specs/PBXCp.xcspec
   Specs/ProductTypes.xcspec

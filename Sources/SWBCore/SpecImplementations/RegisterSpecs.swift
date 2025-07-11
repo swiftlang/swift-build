@@ -58,6 +58,7 @@ public struct BuiltinSpecsExtension: SpecificationsExtension {
             LibtoolLinkerSpec.self,
             LipoToolSpec.self,
             MkdirToolSpec.self,
+            ObjectLibraryAssemblerSpec.self,
             PLUtilToolSpec.self,
             ProductPackagingToolSpec.self,
             ShellScriptToolSpec.self,
