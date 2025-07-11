@@ -14,6 +14,8 @@ public import SWBCore
 import SWBLibc
 import SWBUtil
 import Foundation
+internal import SwiftDriver
+internal import SWBMacro
 
 final public class SwiftDriverTaskAction: TaskAction, BuildValueValidatingTaskAction {
     public override class var toolIdentifier: String {
@@ -91,6 +93,20 @@ final public class SwiftDriverTaskAction: TaskAction, BuildValueValidatingTaskAc
                 message += "\n\tVerification:\n" + jobsDebugDescription(plannedBuild.verificationPlannedDriverJobs())
 
                 outputDelegate.emitNote(message)
+            }
+
+            if driverPayload.explicitModulesEnabled,
+               let moduleDependenciesContext = payload.moduleDependenciesContext
+            {
+                let imports = try await dependencyGraph.mainModuleImportModuleDependencies(for: driverPayload.uniqueID)
+                let diagnostics = moduleDependenciesContext.makeDiagnostics(imports: imports)
+                for diagnostic in diagnostics {
+                    outputDelegate.emit(diagnostic)
+                }
+
+                if (diagnostics.contains { $0.behavior == .error }) {
+                    return .failed
+                }
             }
 
             if driverPayload.reportRequiredTargetDependencies != .no && driverPayload.explicitModulesEnabled, let target = task.forTarget {
