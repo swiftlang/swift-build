@@ -1,0 +1,42 @@
+//===----------------------------------------------------------------------===//
+//
+// This source file is part of the Swift open source project
+//
+// Copyright (c) 2024 Apple Inc. and the Swift project authors
+// Licensed under Apache License v2.0 with Runtime Library Exception
+//
+// See http://swift.org/LICENSE.txt for license information
+// See http://swift.org/CONTRIBUTORS.txt for the list of Swift project authors
+//
+//===----------------------------------------------------------------------===//
+
+(
+    {
+        Type = Compiler;
+        Identifier = "com.apple.compilers.extract-appextensionpoints";
+        Name = "ExtensionPoint Extractor";
+        Description = "Extracts Extension Point definition";
+        CommandLine = "exutil extract-extension-points --module-name $(PRODUCT_MODULE_NAME) --sdk-root $(SDKROOT) --xcode-version $(XCODE_PRODUCT_BUILD_VERSION) --platform-family $(PLATFORM_FAMILY_NAME) --deployment-target $($(DEPLOYMENT_TARGET_SETTING_NAME)) --bundle-identifier $(PRODUCT_BUNDLE_IDENTIFIER) --output $(TARGET_BUILD_DIR)/$(EXTENSIONS_FOLDER_PATH)/$(PRODUCT_MODULE_NAME).appexpt [inputs]";
+        RuleName = "ExtensionPointExtractor";
+        ExecDescription = "Extract Extension Point definition";
+        ProgressDescription = "Extracting Extension Point definition";
+        Outputs = (
+            "$(TARGET_BUILD_DIR)/$(EXTENSIONS_FOLDER_PATH)/$(PRODUCT_MODULE_NAME).appexpt"
+        );
+        IsArchitectureNeutral = YES;
+        CommandOutputParser = XCGenericCommandOutputParser;
+    },
+
+    {
+        Type = Compiler;
+        Identifier = "com.apple.compilers.appextension-plist-generator";
+        Name = "AppExtension plist generator";
+        Description = "Generates the required ExtensionKit plist keys";
+        CommandLine = "exutil generate-appextension-plist --module-name $(PRODUCT_MODULE_NAME) --sdk-root $(SDKROOT) --xcode-version $(XCODE_PRODUCT_BUILD_VERSION) --platform-family $(PLATFORM_FAMILY_NAME) --deployment-target $($(DEPLOYMENT_TARGET_SETTING_NAME)) --bundle-identifier $(PRODUCT_BUNDLE_IDENTIFIER) --output [output] [inputs]";
+        RuleName = "AppExtensionPListGenerator";
+        ExecDescription = "Generate AppExtension plist";
+        ProgressDescription = "Generating AppExtension plist";
+        IsArchitectureNeutral = YES;
+        CommandOutputParser = XCGenericCommandOutputParser;
+    },
+)
