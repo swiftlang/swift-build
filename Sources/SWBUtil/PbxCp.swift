@@ -298,8 +298,9 @@ fileprivate func copyRegular(_ srcPath: Path, _ srcParentPath: Path, _ dstPath: 
 
 func _copyFile(_ srcPath: Path, _ dstPath: Path) throws {
     do {
+        let existingPermissions: FilePermissions = try localFS.getFilePermissions(srcPath)
         var permissions: FilePermissions = [.ownerRead, .ownerWrite, .groupRead, .groupWrite, .otherRead, .otherWrite]
-        if try localFS.isExecutable(srcPath) {
+        if existingPermissions.contains(.ownerExecute) {
             permissions.insert([.ownerExecute, .groupExecute, .otherExecute])
         }
         let dstFd = try FileDescriptor.open(FilePath(dstPath.str), .writeOnly, options: [.create, .truncate], permissions: permissions)
