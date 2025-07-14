@@ -35,6 +35,13 @@ public final class PrelinkedObjectLinkSpec: CommandLineToolSpec, SpecImplementat
         var commandLine = [toolSpecInfo.toolPath.str]
         commandLine += ["-r", "-arch", arch]
 
+        if let buildPlatform = cbc.producer.sdk?.targetBuildVersionPlatform(sdkVariant: cbc.producer.sdkVariant),
+           let deploymentTargetMacro = cbc.producer.platform?.deploymentTargetMacro,
+           let minDeploymentTarget = cbc.scope.evaluate(deploymentTargetMacro).nilIfEmpty,
+           let sdkVersion = cbc.producer.sdk?.version {
+            commandLine += ["-platform_version", "\(buildPlatform.rawValue)", minDeploymentTarget, sdkVersion.canonicalDeploymentTargetForm.description]
+        }
+
         // We do not pass the deployment target to the linker here.  Instead the linker infers the platform and deployment target from the .o files being collected.  We did briefly pass it to the linker to silence a linker warning - if we ever see issues here we should confer with the linker folks to make sure we do the right thing.  See <rdar://problem/51800525> for more about the history here.
 
         let sysroot = cbc.scope.evaluate(BuiltinMacros.SDK_DIR)
