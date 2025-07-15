@@ -19,7 +19,13 @@ import SWBUtil
 import WinSDK
 #endif
 
-@Suite(.skipInGitHubActions("failing in the GitHub actions runner environment"), .skipHostOS(.windows))
+#if canImport(System)
+import System
+#else
+import SystemPackage
+#endif
+
+@Suite(.skipHostOS(.windows))
 fileprivate struct ServiceConsoleTests {
     @Test
     func emptyInput() async throws {
@@ -92,7 +98,13 @@ fileprivate struct ServiceConsoleTests {
             await #expect(try cli.exitStatus.wasSignaled)
 
             // Now wait for the service subprocess to exit, without any further communication.
-            try await serviceExitPromise.value
+            try await withTimeout(timeout: .seconds(30), description: "Service process exit promise 30-second limit") {
+                try await withTaskCancellationHandler {
+                    try await serviceExitPromise.value
+                } onCancel: {
+                    serviceExitPromise.fail(throwing: CancellationError())
+                }
+            }
         }
     }
 
@@ -124,6 +136,31 @@ private var SYNCHRONIZE: DWORD {
 }
 
 extension HANDLE: @retroactive @unchecked Sendable {}
+
+func WaitForSingleObjectAsync(_ handle: HANDLE) async throws {
+    var waitHandle: HANDLE?
+    defer {
+        if let waitHandle {
+            _ = UnregisterWait(waitHandle)
+        }
+    }
+
+    try await withCheckedThrowingContinuation { (continuation: CheckedContinuation<Void, any Error>) in
+        if !RegisterWaitForSingleObject(
+            &waitHandle,
+            handle,
+            { context, _ in
+                let continuation = Unmanaged<AnyObject>.fromOpaque(context!).takeRetainedValue() as! CheckedContinuation<Void, any Error>
+                continuation.resume()
+            },
+            Unmanaged.passRetained(continuation as AnyObject).toOpaque(),
+            INFINITE,
+            ULONG(WT_EXECUTEONLYONCE | WT_EXECUTELONGFUNCTION)
+        ) {
+            continuation.resume(throwing: Win32Error(GetLastError()))
+        }
+    }
+}
 #endif
 
 extension Processes {
@@ -134,24 +171,31 @@ extension Processes {
             throw Win32Error(GetLastError())
         }
         defer { CloseHandle(proc) }
-        Thread.detachNewThread {
-            if WaitForSingleObject(proc, INFINITE) == WAIT_FAILED {
-                promise.fail(throwing: Win32Error(GetLastError()))
-                return
-            }
-            promise.fulfill(with: ())
+        Task<Void, Never> {
+            await promise.fulfill(with: Result.catching { try await WaitForSingleObjectAsync(proc) })
         }
         #else
-        Task<Void, Never>.detached {
-            while true {
-                // We use getpgid() here to detect when the process has exited (it is not a child). Surprisingly, getpgid() is substantially faster than using kill(pid, 0) here because kill still returns success for zombies, and the service has been reparented to launchd. // ignore-unacceptable-language; POSIX API
-                do {
-                    if getpgid(pid) < 0 {
-                        // We expect the signal to eventually fail with "No such process".
-                        if errno != ESRCH {
-                            throw StubError.error("unexpected exit code: \(errno)")
+        Task<Void, Never> {
+            func wait(pid: pid_t) throws -> Bool {
+                repeat {
+                    do {
+                        var siginfo = siginfo_t()
+                        if waitid(P_PID, id_t(pid), &siginfo, WEXITED | WNOWAIT | WNOHANG) != 0 {
+                            throw Errno(rawValue: errno)
                         }
-                        break
+                        return siginfo.si_pid == pid
+                    } catch Errno.noChildProcess {
+                        return true
+                    } catch Errno.interrupted {
+                        // ignore
+                    }
+                } while true
+            }
+            while !Task.isCancelled {
+                do {
+                    if try wait(pid: pid) {
+                        promise.fulfill(with: ())
+                        return
                     }
                     try await Task.sleep(for: .microseconds(1000))
                 } catch {
@@ -159,9 +203,25 @@ extension Processes {
                     return
                 }
             }
-            promise.fulfill(with: ())
+            promise.fail(throwing: CancellationError())
         }
         #endif
         return promise
     }
 }
+
+#if !os(Windows) && !canImport(Darwin) && !os(FreeBSD)
+fileprivate extension siginfo_t {
+    var si_pid: pid_t {
+        #if os(OpenBSD)
+        return _data._proc._pid
+        #elseif canImport(Glibc)
+        return _sifields._sigchld.si_pid
+        #elseif canImport(Musl)
+        return __si_fields.__si_common.__first.__piduid.si_pid
+        #elseif canImport(Bionic)
+        return _sifields._kill._pid
+        #endif
+    }
+}
+#endif
