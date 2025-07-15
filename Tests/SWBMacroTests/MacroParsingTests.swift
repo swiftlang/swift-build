@@ -790,7 +790,7 @@ fileprivate let testFileData = [
         }
         func endPreprocessorInclusion() {
         }
-        func foundMacroValueAssignment(_ macroName: String, conditions: [(param: String, pattern: String)], value: String, parser: MacroConfigFileParser) {
+        func foundMacroValueAssignment(_ macroName: String, conditions: [(param: String, pattern: String)], value: String, path: Path, startLine: Int, endLine: Int, startColumn: Int, endColumn: Int, parser: MacroConfigFileParser) {
         }
 
         func handleDiagnostic(_ diagnostic: MacroConfigFileDiagnostic, parser: MacroConfigFileParser) {
@@ -804,19 +804,41 @@ fileprivate let testFileData = [
         MacroConfigFileParser(byteString: "// [-Wnullability-completeness-on-arrays] \t\t\t(on)  Warns about missing nullability annotations on array parameters.", path: Path(""), delegate: delegate).parse()
         #expect(delegate.diagnosticMessages == [String]())
     }
+
+    @Test
+    func parserProvidesLocationInformation() throws {
+        TestMacroConfigFileParser("#include \"Multiline.xcconfig\"",
+                                  expectedAssignments: [
+                                    (macro: "FEATURE_DEFINES_A", conditions: [], value: "$(A) $(B) $(C)"),
+                                    (macro: "FEATURE_DEFINES_B", conditions: [], value: "$(D) $(E) $(F)"),
+                                    (macro: "FEATURE_DEFINES_C", conditions: [], value: "$(G) $(H)"),
+                                    (macro: "FEATURE_DEFINES_D", conditions: [], value: "$(I)")
+                                  ],
+                                  expectedDiagnostics: [],
+                                  expectedLocations: [
+                                    (macro: "FEATURE_DEFINES_A", path: .init("Multiline.xcconfig"), startLine: 1, endLine: 2, startColumn: 20, endColumn: 37),
+                                    (macro: "FEATURE_DEFINES_B", path: .init("Multiline.xcconfig"), startLine: 3, endLine: 5, startColumn: 20, endColumn: 87),
+                                    (macro: "FEATURE_DEFINES_C", path: .init("Multiline.xcconfig"), startLine: 6, endLine: 9, startColumn: 20, endColumn: 61),
+                                    (macro: "FEATURE_DEFINES_D", path: .init("Multiline.xcconfig"), startLine: 10, endLine: 11, startColumn: 20, endColumn: 45),
+                                  ],
+                                  expectedIncludeDirectivesCount: 1
+        )
+    }
 }
 
 // We used typealiased tuples for simplicity and readability.
 typealias ConditionInfo = (param: String, pattern: String)
 typealias AssignmentInfo = (macro: String, conditions: [ConditionInfo], value: String)
 typealias DiagnosticInfo = (level: MacroConfigFileDiagnostic.Level, kind: MacroConfigFileDiagnostic.Kind, line: Int)
+typealias LocationInfo = (macro: String, path: Path, startLine: Int, endLine: Int, startColumn: Int, endColumn: Int)
 
-private func TestMacroConfigFileParser(_ string: String, expectedAssignments: [AssignmentInfo], expectedDiagnostics: [DiagnosticInfo], expectedIncludeDirectivesCount: Int, sourceLocation: SourceLocation = #_sourceLocation) {
+private func TestMacroConfigFileParser(_ string: String, expectedAssignments: [AssignmentInfo], expectedDiagnostics: [DiagnosticInfo], expectedLocations: [LocationInfo]? = nil, expectedIncludeDirectivesCount: Int, sourceLocation: SourceLocation = #_sourceLocation) {
 
     /// We use a custom delegate to test that we’re getting the expected results, which for the sake of convenience are just kept in (name, conds:[(cond-param, cond-value)], value) tuples, i.e. conditions is an array of two-element tuples.
     class ConfigFileParserTestDelegate : MacroConfigFileParserDelegate {
         var assignments = Array<AssignmentInfo>()
         var diagnostics = Array<DiagnosticInfo>()
+        var locations = Array<LocationInfo>()
 
         var includeDirectivesCount = 0
 
@@ -834,9 +856,10 @@ private func TestMacroConfigFileParser(_ string: String, expectedAssignments: [A
         func endPreprocessorInclusion() {
             self.includeDirectivesCount += 1
         }
-        func foundMacroValueAssignment(_ macroName: String, conditions: [(param: String, pattern: String)], value: String, parser: MacroConfigFileParser) {
+        func foundMacroValueAssignment(_ macroName: String, conditions: [(param: String, pattern: String)], value: String, path: Path, startLine: Int, endLine: Int, startColumn: Int, endColumn: Int, parser: MacroConfigFileParser) {
             // print("\(parser.lineNumber): \(macroName)\(conditions.map({ "[\($0.param)=\($0.pattern)]" }).joinWithSeparator(""))=\(value)")
             assignments.append((macro: macroName, conditions: conditions, value: value))
+            locations.append((macro: macroName, path: path, startLine: startLine, endLine: endLine, startColumn: startColumn, endColumn: endColumn))
         }
         func handleDiagnostic(_ diagnostic: MacroConfigFileDiagnostic, parser: MacroConfigFileParser) {
             // print("\(parser.lineNumber): \(diagnostic)")
@@ -856,6 +879,10 @@ private func TestMacroConfigFileParser(_ string: String, expectedAssignments: [A
 
     // Check the diagnostics that the delegate saw against the expected ones.
     #expect(delegate.diagnostics == expectedDiagnostics, "expected parse diagnostics \(expectedDiagnostics), but instead got \(delegate.diagnostics)", sourceLocation: sourceLocation)
+
+    if let expectedLocations {
+        #expect(delegate.locations == expectedLocations, "expected parse locations \(expectedLocations), but instead ogt \(delegate.locations)", sourceLocation: sourceLocation)
+    }
 
     #expect(delegate.includeDirectivesCount == expectedIncludeDirectivesCount, "expected number of configs parsed to be \(expectedIncludeDirectivesCount), but instead got \(delegate.includeDirectivesCount)", sourceLocation: sourceLocation)
 }
@@ -882,6 +909,14 @@ func ==(lhs: DiagnosticInfo, rhs: DiagnosticInfo) -> Bool {
 }
 
 func ==(lhs: [DiagnosticInfo], rhs: [DiagnosticInfo]) -> Bool {
+    return lhs.count == rhs.count && zip(lhs, rhs).filter({ return !($0.0 == $0.1) }).isEmpty
+}
+
+func ==(lhs: LocationInfo, rhs: LocationInfo) -> Bool {
+    return (lhs.macro == rhs.macro) && (lhs.path == rhs.path) && (lhs.startLine == rhs.startLine) && (lhs.endLine == rhs.endLine) && (lhs.startColumn == rhs.startColumn) && (lhs.endColumn == rhs.endColumn)
+}
+
+func ==(lhs: [LocationInfo], rhs: [LocationInfo]) -> Bool {
     return lhs.count == rhs.count && zip(lhs, rhs).filter({ return !($0.0 == $0.1) }).isEmpty
 }
 

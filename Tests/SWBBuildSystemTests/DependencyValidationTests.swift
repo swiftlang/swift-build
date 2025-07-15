@@ -15,6 +15,7 @@ import SWBTestSupport
 import SWBUtil
 import Testing
 import SWBProtocol
+import SWBMacro
 
 @Suite
 fileprivate struct DependencyValidationTests: CoreBasedTests {
@@ -322,6 +323,138 @@ fileprivate struct DependencyValidationTests: CoreBasedTests {
 
             try await tester.checkBuild(parameters: parameters, runDestination: .macOS) { results in
                 results.checkNoDiagnostics()
+            }
+        }
+    }
+
+    @Test(.requireSDKs(.host))
+    func validateModuleDependencies() async throws {
+        try await withTemporaryDirectory { tmpDir in
+            let testWorkspace = try await TestWorkspace(
+                "Test",
+                sourceRoot: tmpDir.join("Test"),
+                projects: [
+                    TestProject(
+                        "Project",
+                        groupTree: TestGroup(
+                            "Sources",
+                            children: [
+                                TestFile("Swift.swift"),
+                                TestFile("Project.xcconfig"),
+                            ]),
+                        buildConfigurations: [TestBuildConfiguration(
+                            "Debug",
+                            baseConfig: "Project.xcconfig",
+                            buildSettings: [
+                                "PRODUCT_NAME": "$(TARGET_NAME)",
+                                "CLANG_ENABLE_MODULES": "YES",
+                                "CLANG_ENABLE_EXPLICIT_MODULES": "YES",
+                                "SWIFT_ENABLE_EXPLICIT_MODULES": "YES",
+                                "SWIFT_UPCOMING_FEATURE_INTERNAL_IMPORTS_BY_DEFAULT": "YES",
+                                "SWIFT_VERSION": swiftVersion,
+                                "DEFINES_MODULE": "YES",
+                                "DSTROOT": tmpDir.join("dstroot").str,
+                                "VALIDATE_MODULE_DEPENDENCIES": "YES_ERROR",
+                                "SDKROOT": "$(HOST_PLATFORM)",
+                                "SUPPORTED_PLATFORMS": "$(HOST_PLATFORM)",
+
+                                // Temporarily override to use the latest toolchain in CI because we depend on swift and swift-driver changes which aren't in the baseline tools yet
+                                "TOOLCHAINS": "swift",
+                            ])],
+                        targets: [
+                            TestStandardTarget(
+                                "TargetA",
+                                type: .framework,
+                                buildPhases: [
+                                    TestSourcesBuildPhase(["Swift.swift"]),
+                                ]),
+                            TestStandardTarget(
+                                "TargetB",
+                                type: .framework,
+                                buildPhases: [
+                                    TestSourcesBuildPhase(["Swift.swift"]),
+                                ]),
+                        ]),
+                ])
+
+            let tester = try await BuildOperationTester(getCore(), testWorkspace, simulated: false)
+
+            let swiftSourcePath = testWorkspace.sourceRoot.join("Project/Swift.swift")
+            try await tester.fs.writeFileContents(swiftSourcePath) { stream in
+                stream <<<
+            """
+            import Foundation
+            """
+            }
+
+            let projectXCConfigPath = testWorkspace.sourceRoot.join("Project/Project.xcconfig")
+            try await tester.fs.writeFileContents(projectXCConfigPath) { stream in
+                stream <<<
+            """
+            MODULE_DEPENDENCIES[target=TargetA] = Dispatch
+            """
+            }
+
+            let expectedDiagsByTarget: [String: [Diagnostic]] = [
+                "TargetA": [
+                    Diagnostic(
+                        behavior: .error,
+                        location: Diagnostic.Location.path(projectXCConfigPath, line: 1, column: 47),
+                        data: DiagnosticData("Missing entries in MODULE_DEPENDENCIES: Foundation"),
+                        fixIts: [
+                            Diagnostic.FixIt(
+                                sourceRange: Diagnostic.SourceRange(path: projectXCConfigPath, startLine: 1, startColumn: 47, endLine: 1, endColumn: 47),
+                                newText: " Foundation"),
+                        ],
+                        childDiagnostics: [
+                            Diagnostic(
+                                behavior: .error,
+                                location: Diagnostic.Location.path(swiftSourcePath, line: 1, column: 8),
+                                data: DiagnosticData("Missing entry in MODULE_DEPENDENCIES: Foundation"),
+                                fixIts: [Diagnostic.FixIt(
+                                    sourceRange: Diagnostic.SourceRange(path: projectXCConfigPath, startLine: 1, startColumn: 47, endLine: 1, endColumn: 47),
+                                    newText: " Foundation")],
+                            ),
+                        ]),
+                ],
+                "TargetB": [
+                    Diagnostic(
+                        behavior: .error,
+                        location: Diagnostic.Location.path(projectXCConfigPath, line: 0, column: 0),
+                        data: DiagnosticData("Missing entries in MODULE_DEPENDENCIES: Foundation"),
+                        fixIts: [
+                            Diagnostic.FixIt(
+                                sourceRange: Diagnostic.SourceRange(path: projectXCConfigPath, startLine: 0, startColumn: 0, endLine: 0, endColumn: 0),
+                                newText: "\nMODULE_DEPENDENCIES[target=TargetB] = $(inherited) Foundation\n"),
+                        ],
+                        childDiagnostics: [
+                            Diagnostic(
+                                behavior: .error,
+                                location: Diagnostic.Location.path(swiftSourcePath, line: 1, column: 8),
+                                data: DiagnosticData("Missing entry in MODULE_DEPENDENCIES: Foundation"),
+                                fixIts: [Diagnostic.FixIt(
+                                    sourceRange: Diagnostic.SourceRange(path: projectXCConfigPath, startLine: 0, startColumn: 0, endLine: 0, endColumn: 0),
+                                    newText: "\nMODULE_DEPENDENCIES[target=TargetB] = $(inherited) Foundation\n")],
+                            ),
+                        ]),
+                ],
+            ]
+
+            for (targetName, expectedDiags) in expectedDiagsByTarget {
+                let target = try #require(tester.workspace.projects.only?.targets.first { $0.name == targetName })
+                let parameters = BuildParameters(configuration: "Debug")
+                let buildRequest = BuildRequest(parameters: parameters, buildTargets: [BuildRequest.BuildTargetInfo(parameters: parameters, target: target)], continueBuildingAfterErrors: false, useParallelTargets: true, useImplicitDependencies: true, useDryRun: false)
+
+                try await tester.checkBuild(runDestination: .host, buildRequest: buildRequest, persistent: true) { results in
+                    guard !results.checkError(.prefix("The current toolchain does not support VALIDATE_MODULE_DEPENDENCIES"), failIfNotFound: false) else { return }
+
+                    for expectedDiag in expectedDiags {
+                        _ = results.check(.contains(expectedDiag.data.description), kind: expectedDiag.behavior, failIfNotFound: true, sourceLocation: #_sourceLocation) { diag in
+                            #expect(expectedDiag == diag)
+                            return true
+                        }
+                    }
+                }
             }
         }
     }
