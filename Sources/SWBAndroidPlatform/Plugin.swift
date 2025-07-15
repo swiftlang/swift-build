@@ -54,7 +54,7 @@ struct AndroidEnvironmentExtension: EnvironmentExtension {
             if let latest = try? await plugin.cachedAndroidSDKInstallations(host: context.hostOperatingSystem).first {
                 return [
                     "ANDROID_SDK_ROOT": latest.path.str,
-                    "ANDROID_NDK_ROOT": latest.ndkPath?.str,
+                    "ANDROID_NDK_ROOT": latest.ndks.last?.path.str,
                 ].compactMapValues { $0 }
             }
         default:
@@ -112,9 +112,12 @@ struct AndroidSDKRegistryExtension: SDKRegistryExtension {
             return []
         }
 
-        guard let abis = androidSdk.abis, let deploymentTargetRange = androidSdk.deploymentTargetRange else {
+        guard let androidNdk = androidSdk.latestNDK else {
             return []
         }
+
+        let abis = androidNdk.abis
+        let deploymentTargetRange = androidNdk.deploymentTargetRange
 
         let allPossibleTriples = abis.values.flatMap { abi in
             (max(deploymentTargetRange.min, abi.min_os_version)...deploymentTargetRange.max).map { deploymentTarget in
@@ -147,7 +150,7 @@ struct AndroidSDKRegistryExtension: SDKRegistryExtension {
             swiftSettings = [:]
         }
 
-        return [(androidSdk.sysroot ?? .root, androidPlatform, [
+        return [(androidNdk.sysroot, androidPlatform, [
             "Type": .plString("SDK"),
             "Version": .plString("0.0.0"),
             "CanonicalName": .plString("android"),
@@ -184,7 +187,7 @@ struct AndroidToolchainRegistryExtension: ToolchainRegistryExtension {
     let plugin: AndroidPlugin
 
     func additionalToolchains(context: any ToolchainRegistryExtensionAdditionalToolchainsContext) async throws -> [Toolchain] {
-        guard let toolchainPath = try? await plugin.cachedAndroidSDKInstallations(host: context.hostOperatingSystem).first?.toolchainPath else {
+        guard let toolchainPath = try? await plugin.cachedAndroidSDKInstallations(host: context.hostOperatingSystem).first?.latestNDK?.toolchainPath else {
             return []
         }
 
