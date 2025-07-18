@@ -47,9 +47,9 @@ struct TaskProducersExtension: TaskProducerExtension {
     }
 
     var unorderedPostSetupTaskProducers: [any TaskProducerFactory] {
-        [
-            StubBinaryTaskProducerFactory()
-        ]
+        [StubBinaryTaskProducerFactory(),
+         AppExtensionInfoPlistGeneratorTaskProducerFactory(),
+         ExtensionPointExtractorTaskProducerFactory()]
     }
 
     var unorderedPostBuildPhasesTaskProducers: [any TaskProducerFactory] {
@@ -60,6 +60,26 @@ struct TaskProducersExtension: TaskProducerExtension {
 
     var globalTaskProducers: [any GlobalTaskProducerFactory] {
         [StubBinaryTaskProducerFactory()]
+    }
+}
+
+struct ExtensionPointExtractorTaskProducerFactory: TaskProducerFactory {
+    var name: String {
+        "ExtensionPointExtractorTaskProducer"
+    }
+
+    func createTaskProducer(_ context: TargetTaskProducerContext, startPhaseNodes: [PlannedVirtualNode], endPhaseNode: PlannedVirtualNode) -> any TaskProducer {
+        ExtensionPointExtractorTaskProducer(context, phaseStartNodes: startPhaseNodes, phaseEndNode: endPhaseNode)
+    }
+}
+
+struct AppExtensionInfoPlistGeneratorTaskProducerFactory: TaskProducerFactory {
+    var name: String {
+        "AppExtensionInfoPlistGeneratorTaskProducer"
+    }
+
+    func createTaskProducer(_ context: TargetTaskProducerContext, startPhaseNodes: [PlannedVirtualNode], endPhaseNode: PlannedVirtualNode) -> any TaskProducer {
+        AppExtensionInfoPlistGeneratorTaskProducer(context, phaseStartNodes: startPhaseNodes, phaseEndNode: endPhaseNode)
     }
 }
 
@@ -100,9 +120,11 @@ struct RealityAssetsTaskProducerFactory: TaskProducerFactory {
 struct ApplePlatformSpecsExtension: SpecificationsExtension {
     func specificationClasses() -> [any SpecIdentifierType.Type] {
         [
-            ActoolCompilerSpec.self,
+            AppExtensionPlistGeneratorSpec.self,
             AppIntentsMetadataCompilerSpec.self,
             AppIntentsSSUTrainingCompilerSpec.self,
+            ExtensionPointExtractorSpec.self,
+            ActoolCompilerSpec.self,
             CoreDataModelCompilerSpec.self,
             CoreMLCompilerSpec.self,
             CopyTiffFileSpec.self,
@@ -232,7 +254,12 @@ struct AppleSettingsBuilderExtension: SettingsBuilderExtension {
         ]
     }
 
-    func addBuiltinDefaults(fromEnvironment environment: [String : String], parameters: BuildParameters) throws -> [String : String] { [:] }
+    func addBuiltinDefaults(fromEnvironment environment: [String : String], parameters: BuildParameters) throws -> [String : String] {
+        let appIntentsProtocols = "AppIntent EntityQuery AppEntity TransientEntity AppEnum AppShortcutProviding AppShortcutsProvider AnyResolverProviding AppIntentsPackage DynamicOptionsProvider _IntentValueRepresentable _AssistantIntentsProvider _GenerativeFunctionExtractable IntentValueQuery Resolver"
+        let extensionKitProtocols = "AppExtension ExtensionPointDefining"
+        let constValueProtocols = [appIntentsProtocols, extensionKitProtocols].joined(separator: " ")
+        return ["SWIFT_EMIT_CONST_VALUE_PROTOCOLS" : constValueProtocols]
+    }
     func addOverrides(fromEnvironment: [String : String], parameters: BuildParameters) throws -> [String : String] { [:] }
     func addProductTypeDefaults(productType: ProductTypeSpec) -> [String : String] { [:] }
     func addSDKOverridingSettings(_ sdk: SDK, _ variant: SDKVariant?, _ sparseSDKs: [SDK], specLookupContext: any SWBCore.SpecLookupContext) throws -> [String : String] { [:] }

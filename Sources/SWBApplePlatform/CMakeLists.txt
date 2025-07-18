@@ -17,7 +17,9 @@ add_library(SWBApplePlatform
   CoreDataCompiler.swift
   CoreMLCompiler.swift
   DittoTool.swift
+  ExtensionPointExtractorTaskProducer.swift
   ExtensionPointsCompiler.swift
+  EXUtil.swift
   IIGCompiler.swift
   InstrumentsPackageBuilderSpec.swift
   IntentsCompiler.swift
@@ -63,6 +65,7 @@ SwiftBuild_Bundle(MODULE SWBApplePlatform FILES
   Specs/Embedded-Shared.xcspec
   Specs/Embedded-Simulator.xcspec
   Specs/EmbeddedBinaryValidationUtility.xcspec
+  Specs/EXUtil.xcspec
   Specs/GenerateAppPlaygroundAssetCatalog.xcspec
   Specs/GenerateTextureAtlas.xcspec
   Specs/IBCompiler.xcspec

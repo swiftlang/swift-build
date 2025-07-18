@@ -2940,12 +2940,6 @@ That command depends on command in Target 'agg2' (project \'aProject\'): script 
                 "Versions/A/Resources/Info.plist",
                 "Versions/A/Resources/ja.lproj",
                 "Versions/A/Resources/ja.lproj/Localizable.strings",
-                "Versions/A/_CodeSignature",
-                "Versions/A/_CodeSignature/CodeDirectory",
-                "Versions/A/_CodeSignature/CodeRequirements",
-                "Versions/A/_CodeSignature/CodeRequirements-1",
-                "Versions/A/_CodeSignature/CodeResources",
-                "Versions/A/_CodeSignature/CodeSignature",
                 "Versions/Current",
             ]
 
@@ -2982,12 +2976,6 @@ That command depends on command in Target 'agg2' (project \'aProject\'): script 
                     "Versions/A/Headers/AFwk.h",
                     "Versions/A/Resources/AResource.plist",
                     "Versions/A/Resources/Info.plist",
-                    "Versions/A/_CodeSignature",
-                    "Versions/A/_CodeSignature/CodeDirectory",
-                    "Versions/A/_CodeSignature/CodeRequirements",
-                    "Versions/A/_CodeSignature/CodeRequirements-1",
-                    "Versions/A/_CodeSignature/CodeResources",
-                    "Versions/A/_CodeSignature/CodeSignature",
                     "Versions/Current",
                 ])
             }
@@ -3073,7 +3061,7 @@ That command depends on command in Target 'agg2' (project \'aProject\'): script 
                 ]))
             }
 
-            let sourceDynamicFrameworkFiles = try tester.fs.traverse(sourceDynamicFrameworkPath, { $0.relativeSubpath(from: sourceDynamicFrameworkPath) }).sorted()
+            let sourceDynamicFrameworkFiles = try tester.fs.traverse(sourceDynamicFrameworkPath, { $0.relativeSubpath(from: sourceDynamicFrameworkPath) }).sorted().filter { !$0.contains("_CodeSignature") }
             if runDestination.platform == "macosx" {
                 XCTAssertEqualSequences(sourceDynamicFrameworkFiles, [
                     "ADynamicFwk",
@@ -3087,12 +3075,6 @@ That command depends on command in Target 'agg2' (project \'aProject\'): script 
                     "Versions/A/Resources",
                     "Versions/A/Resources/ADynamicResource.plist",
                     "Versions/A/Resources/Info.plist",
-                    "Versions/A/_CodeSignature",
-                    "Versions/A/_CodeSignature/CodeDirectory",
-                    "Versions/A/_CodeSignature/CodeRequirements",
-                    "Versions/A/_CodeSignature/CodeRequirements-1",
-                    "Versions/A/_CodeSignature/CodeResources",
-                    "Versions/A/_CodeSignature/CodeSignature",
                     "Versions/Current",
                 ])
             } else {
@@ -3102,8 +3084,6 @@ That command depends on command in Target 'agg2' (project \'aProject\'): script 
                     "Headers",
                     "Headers/ADynamicFwk.h",
                     "Info.plist",
-                    "_CodeSignature",
-                    "_CodeSignature/CodeResources",
                 ])
             }
 
@@ -3123,7 +3103,7 @@ That command depends on command in Target 'agg2' (project \'aProject\'): script 
                 ]))
             }
 
-            let sourceStaticFrameworkFiles = try tester.fs.traverse(sourceStaticFrameworkPath, { $0.relativeSubpath(from: sourceStaticFrameworkPath) }).sorted()
+            let sourceStaticFrameworkFiles = try tester.fs.traverse(sourceStaticFrameworkPath, { $0.relativeSubpath(from: sourceStaticFrameworkPath) }).sorted().filter { !$0.contains("_CodeSignature") }
             if runDestination.platform == "macosx" {
                 XCTAssertEqualSequences(sourceStaticFrameworkFiles, [
                     "AStaticFwk",
@@ -3137,12 +3117,6 @@ That command depends on command in Target 'agg2' (project \'aProject\'): script 
                     "Versions/A/Resources",
                     "Versions/A/Resources/AStaticResource.plist",
                     "Versions/A/Resources/Info.plist",
-                    "Versions/A/_CodeSignature",
-                    "Versions/A/_CodeSignature/CodeDirectory",
-                    "Versions/A/_CodeSignature/CodeRequirements",
-                    "Versions/A/_CodeSignature/CodeRequirements-1",
-                    "Versions/A/_CodeSignature/CodeResources",
-                    "Versions/A/_CodeSignature/CodeSignature",
                     "Versions/Current",
                 ])
             } else {
@@ -3152,12 +3126,6 @@ That command depends on command in Target 'agg2' (project \'aProject\'): script 
                     "Headers",
                     "Headers/AStaticFwk.h",
                     "Info.plist",
-                    "_CodeSignature",
-                    "_CodeSignature/CodeDirectory",
-                    "_CodeSignature/CodeRequirements",
-                    "_CodeSignature/CodeRequirements-1",
-                    "_CodeSignature/CodeResources",
-                    "_CodeSignature/CodeSignature",
                 ])
             }
 
@@ -3211,7 +3179,7 @@ That command depends on command in Target 'agg2' (project \'aProject\'): script 
                             task.checkCommandLine(["builtin-copy", "-exclude", ".DS_Store", "-exclude", "CVS", "-exclude", ".svn", "-exclude", ".git", "-exclude", ".hg", "-exclude", "Headers", "-exclude", "PrivateHeaders", "-exclude", "Modules", "-exclude", "*.tbd", "-resolve-src-symlinks"] + (keepStaticBinary ? [] : ["-remove-static-executable"]) + ["\(tmpDirPath.str)/ADynamicFwk.framework", frameworkDestinationDir])
 
                             let destDynamicFrameworkPath = Path("\(frameworkDestinationDir)/ADynamicFwk.framework")
-                            let delta = try Set(sourceDynamicFrameworkFiles).diff(against: tester.fs.traverse(destDynamicFrameworkPath, { $0.relativeSubpath(from: destDynamicFrameworkPath) }))
+                            let delta = try Set(sourceDynamicFrameworkFiles).diff(against: tester.fs.traverse(destDynamicFrameworkPath, { $0.relativeSubpath(from: destDynamicFrameworkPath) }).filter{ !$0.contains("_CodeSignature") })
                             XCTAssertEqualSequences(delta.right, [])
 
                             // Check that we removed all the headers
@@ -3233,7 +3201,7 @@ That command depends on command in Target 'agg2' (project \'aProject\'): script 
                             task.checkCommandLine(["builtin-copy", "-exclude", ".DS_Store", "-exclude", "CVS", "-exclude", ".svn", "-exclude", ".git", "-exclude", ".hg", "-exclude", "Headers", "-exclude", "PrivateHeaders", "-exclude", "Modules", "-exclude", "*.tbd", "-resolve-src-symlinks"] + (keepStaticBinary ? [] : ["-remove-static-executable"]) + ["\(tmpDirPath.str)/AStaticFwk.framework", frameworkDestinationDir])
 
                             let destStaticFrameworkPath = Path("\(frameworkDestinationDir)/AStaticFwk.framework")
-                            let delta = try Set(sourceStaticFrameworkFiles).diff(against: tester.fs.traverse(destStaticFrameworkPath, { $0.relativeSubpath(from: destStaticFrameworkPath) }))
+                            let delta = try Set(sourceStaticFrameworkFiles).diff(against: tester.fs.traverse(destStaticFrameworkPath, { $0.relativeSubpath(from: destStaticFrameworkPath) }).filter{ !$0.contains("_CodeSignature") })
                             XCTAssertEqualSequences(delta.right, [])
 
                             // Check that we removed all the headers, as well as the binary (since it is static), if configured
@@ -3252,22 +3220,10 @@ That command depends on command in Target 'agg2' (project \'aProject\'): script 
                                         "Headers/AStaticFwk.h",
                                     ])
                                 } else if useAppStoreCodelessFrameworksWorkaround {
-                                    let additionalFiles: [String]
-                                    if codesign {
-                                        additionalFiles = [
-                                            "_CodeSignature/CodeDirectory",
-                                            "_CodeSignature/CodeRequirements",
-                                            "_CodeSignature/CodeRequirements-1",
-                                            "_CodeSignature/CodeSignature",
-                                        ]
-                                    } else {
-                                        additionalFiles = []
-                                    }
-
                                     XCTAssertEqualSequences(delta.left.sorted(), [
                                         "Headers",
                                         "Headers/AStaticFwk.h",
-                                    ] + additionalFiles)
+                                    ])
                                 } else {
                                     XCTAssertEqualSequences(delta.left.sorted(), [
                                         "AStaticFwk",
@@ -5768,6 +5724,7 @@ That command depends on command in Target 'agg2' (project \'aProject\'): script 
 
     @Test(.requireSDKs(.macOS))
     func incrementalMetalLinkWithCodeSign() async throws {
+        let core = try await getCore()
         try await withTemporaryDirectory { tmpDirPath async throws -> Void in
             let testWorkspace = try await TestWorkspace(
                 "Test",
@@ -5785,6 +5742,7 @@ That command depends on command in Target 'agg2' (project \'aProject\'): script 
                                             "CODE_SIGN_IDENTITY": "-",
                                             "INFOPLIST_FILE": "Info.plist",
                                             "CODESIGN": "/usr/bin/true",
+                                            "TOOLCHAINS": core.environment["TOOLCHAINS"] ?? "$(inherited)",
                                             "SWIFT_VERSION": swiftVersion])],
                         targets: [
                             TestStandardTarget(
@@ -5793,7 +5751,7 @@ That command depends on command in Target 'agg2' (project \'aProject\'): script 
                                 buildPhases: [
                                     TestSourcesBuildPhase(["SwiftFile.swift", "Metal.metal"]),
                                 ])])])
-            let tester = try await BuildOperationTester(getCore(), testWorkspace, simulated: false, fileSystem: localFS)
+            let tester = try await BuildOperationTester(core, testWorkspace, simulated: false, fileSystem: localFS)
             let signableTargets: Set<String> = ["aFramework"]
 
             // Create the input files.

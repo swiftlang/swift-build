@@ -325,6 +325,7 @@ fileprivate struct BuildCommandTests: CoreBasedTests {
 
     @Test(.requireSDKs(.macOS), .requireXcode16())
     func singleFileCompileMetal() async throws {
+        let core = try await getCore()
         try await withTemporaryDirectory { tmpDirPath async throws -> Void in
             let testWorkspace = try await TestWorkspace(
                 "Test",
@@ -337,6 +338,7 @@ fileprivate struct BuildCommandTests: CoreBasedTests {
                             "Debug",
                             buildSettings: ["PRODUCT_NAME": "$(TARGET_NAME)",
                                             "SWIFT_ENABLE_EXPLICIT_MODULES": "NO",
+                                            "TOOLCHAINS": core.environment["TOOLCHAINS"] ?? "$(inherited)",
                                             "SWIFT_VERSION": swiftVersion])],
                         targets: [
                             TestStandardTarget(
@@ -348,7 +350,7 @@ fileprivate struct BuildCommandTests: CoreBasedTests {
                     )
                 ]
             )
-            let tester = try await BuildOperationTester(getCore(), testWorkspace, simulated: false)
+            let tester = try await BuildOperationTester(core, testWorkspace, simulated: false)
 
             let metalFile = testWorkspace.sourceRoot.join("aProject/Metal.metal")
             try await tester.fs.writeFileContents(metalFile) { stream in }

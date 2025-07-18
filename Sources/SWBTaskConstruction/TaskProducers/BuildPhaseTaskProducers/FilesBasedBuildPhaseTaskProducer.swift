@@ -76,7 +76,7 @@ package final class BuildFilesProcessingContext: BuildFileFilteringContext {
     /// The resources directory for the product, if relevant.
     public let resourcesDir: Path
     /// The resources intermediates directory, if appropriate.
-    let tmpResourcesDir: Path
+    public let tmpResourcesDir: Path
 
     /// True if the build files belongs to the preferred arch among the archs we're processing.
     ///

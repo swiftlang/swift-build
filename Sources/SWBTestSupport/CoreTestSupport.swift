@@ -70,6 +70,40 @@ extension Core {
             try POSIX.unsetenv(variable)
         }
 
+        // Handle Xcodes with an unbundled Metal toolchain by querying `xcodebuild` if needed.
+        //
+        // If the given environment already contains `EXTERNAL_TOOLCHAINS_DIR` and `TOOLCHAINS`, we're assuming that we do not have to obtain any toolchain information.
+        var environment = environment
+        if (try? ProcessInfo.processInfo.hostOperatingSystem()) == .macOS, !(environment.contains("EXTERNAL_TOOLCHAINS_DIR") && environment.contains("TOOLCHAINS")) {
+            let activeDeveloperPath: Path
+            if let developerPath {
+                activeDeveloperPath = developerPath.path
+            } else {
+                activeDeveloperPath = try await Xcode.getActiveDeveloperDirectoryPath()
+            }
+            let defaultToolchainPath = activeDeveloperPath.join("Toolchains/XcodeDefault.xctoolchain")
+
+            if !localFS.exists(defaultToolchainPath.join("usr/metal/current")) {
+                struct MetalToolchainInfo: Decodable {
+                    let buildVersion: String
+                    let status: String
+                    let toolchainIdentifier: String
+                    let toolchainSearchPath: String
+                }
+
+                let result = try await Process.getOutput(url: URL(fileURLWithPath: activeDeveloperPath.join("usr/bin/xcodebuild").str), arguments: ["-showComponent", "metalToolchain", "-json"], environment: ["DEVELOPER_DIR": activeDeveloperPath.str])
+                if result.exitStatus != .exit(0) {
+                    throw StubError.error("xcodebuild failed: \(String(data: result.stdout, encoding: .utf8) ?? "")\n\(String(data: result.stderr, encoding: .utf8) ?? "")")
+                }
+
+                let metalToolchainInfo = try JSONDecoder().decode(MetalToolchainInfo.self, from: result.stdout)
+                environment.addContents(of: [
+                    "TOOLCHAINS": "\(metalToolchainInfo.toolchainIdentifier) $(inherited)",
+                    "EXTERNAL_TOOLCHAINS_DIR": metalToolchainInfo.toolchainSearchPath,
+                ])
+            }
+        }
+
         // When this code is being loaded directly via unit tests *and* we detect the products directory we are running in is for Xcode, then we should run using inferior search paths.
         let inferiorProductsPath: Path? = self.inferiorProductsPath()
 
