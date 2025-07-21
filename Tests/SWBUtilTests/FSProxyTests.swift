@@ -350,11 +350,21 @@ import SWBTestSupport
             // Test setting file permissions.
             let execPath = tmpDir.join("script.sh")
             try localFS.write(execPath, contents: [])
+            #expect(try localFS.getFilePermissions(execPath) == 0o644)
+            #expect(try localFS.getFileInfo(execPath).permissions == 0o644)
             #expect(try !localFS.isExecutable(execPath))
-
             try localFS.setFilePermissions(execPath, permissions: 0o755)
             #expect(try localFS.getFilePermissions(execPath) == 0o755)
+            #expect(try localFS.getFileInfo(execPath).permissions == 0o755)
             #expect(try localFS.isExecutable(execPath))
+
+            let linkPath = tmpDir.join("script")
+            try localFS.symlink(linkPath, target: Path("script.sh"))
+            #expect(try localFS.getFilePermissions(linkPath) == 0o755)
+            #expect(try localFS.getFileInfo(linkPath).permissions == 0o755)
+            try localFS.setFilePermissions(linkPath, permissions: 0o644)
+            #expect(try localFS.getFilePermissions(linkPath) == 0o644)
+            #expect(try localFS.getFileInfo(linkPath).permissions == 0o644)
         }
     }
 
@@ -804,16 +814,28 @@ import SWBTestSupport
 
         // Test default permissions.
         #expect(try fs.getFilePermissions(.root) == 0o755)
+        #expect(try fs.getFileInfo(.root).permissions == 0o755)
         let filePath = Path.root.join("file.txt")
         try fs.write(filePath, contents: [])
         #expect(try fs.getFilePermissions(filePath) == 0o644)
+        #expect(try fs.getFileInfo(filePath).permissions == 0o644)
 
         // Test setting file permissions.
         let execPath = Path.root.join("script.sh")
         try fs.write(execPath, contents: [])
         #expect(try fs.getFilePermissions(execPath) == 0o644)
+        #expect(try fs.getFileInfo(execPath).permissions == 0o644)
         try fs.setFilePermissions(execPath, permissions: 0o755)
         #expect(try fs.getFilePermissions(execPath) == 0o755)
+        #expect(try fs.getFileInfo(execPath).permissions == 0o755)
+
+        let linkPath = Path.root.join("script")
+        try fs.symlink(linkPath, target: Path("script.sh"))
+        #expect(try fs.getFilePermissions(linkPath) == 0o755)
+        #expect(try fs.getFileInfo(linkPath).permissions == 0o755)
+        try fs.setFilePermissions(linkPath, permissions: 0o644)
+        #expect(try fs.getFilePermissions(linkPath) == 0o644)
+        #expect(try fs.getFileInfo(linkPath).permissions == 0o644)
     }
 
     @Test
