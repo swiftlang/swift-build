@@ -138,7 +138,7 @@ public struct ModuleDependenciesContext: Sendable, SerializableCodable {
         guard validate != .no else { return [] }
         guard let imports else {
             return [Diagnostic(
-                behavior: .error,
+                behavior: .warning,
                 location: .unknown,
                 data: DiagnosticData("The current toolchain does not support \(BuiltinMacros.VALIDATE_MODULE_DEPENDENCIES.name)"))]
         }
