@@ -70,7 +70,11 @@ func swiftSettings(languageMode: SwiftLanguageMode) -> [SwiftSetting] {
 let package = Package(
     name: "SwiftBuild",
     defaultLocalization: "en",
-    platforms: [.macOS("13.0"), .iOS("17.0"), .macCatalyst("17.0")],
+    platforms: [
+        .macOS(.v14),
+        .iOS("17.0"),
+        .macCatalyst("17.0"),
+    ],
     products: [
         .executable(name: "swbuild", targets: ["swbuild"]),
         .executable(name: "SWBBuildServiceBundle", targets: ["SWBBuildServiceBundle"]),
