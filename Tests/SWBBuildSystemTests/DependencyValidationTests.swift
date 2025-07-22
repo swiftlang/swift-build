@@ -481,7 +481,7 @@ fileprivate struct DependencyValidationTests: CoreBasedTests {
                                     "CLANG_ENABLE_MODULES": "YES",
                                     "CLANG_ENABLE_EXPLICIT_MODULES": "YES",
                                     "GENERATE_INFOPLIST_FILE": "YES",
-                                    "MODULE_DEPENDENCIES": "Foundation",
+                                    "MODULE_DEPENDENCIES": "Accelerate",
                                     "VALIDATE_MODULE_DEPENDENCIES": "YES_ERROR",
                                     "SDKROOT": "$(HOST_PLATFORM)",
                                     "SUPPORTED_PLATFORMS": "$(HOST_PLATFORM)",
@@ -507,6 +507,7 @@ fileprivate struct DependencyValidationTests: CoreBasedTests {
             try await tester.fs.writeFileContents(SRCROOT.join("Sources/CoreFoo.m")) { contents in
                 contents <<< """
                     #include <Foundation/Foundation.h>
+                    #include <Foundation/NSObject.h>
                     #include <Accelerate/Accelerate.h>
 
                     void f0(void) { };
@@ -515,7 +516,7 @@ fileprivate struct DependencyValidationTests: CoreBasedTests {
 
             // Expect complaint about undeclared dependency
             try await tester.checkBuild(parameters: BuildParameters(configuration: "Debug"), runDestination: .host, persistent: true) { results in
-                results.checkError(.contains("Missing entries in MODULE_DEPENDENCIES: Accelerate"))
+                results.checkError(.contains("Missing entries in MODULE_DEPENDENCIES: Foundation (for task"))
             }
 
             // Declaring dependencies resolves the problem
