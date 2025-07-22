@@ -1354,6 +1354,19 @@
                 };
             },
 
+            {
+                Name = "SWIFT_ENABLE_VERSION_INDEPENDENT_APINOTES";
+                Type = Boolean;
+                DefaultValue = NO;
+                CommandLineArgs = {
+                    YES = (
+                        "-Xfrontend",
+                        "-version-independent-apinotes",
+                    );
+                    NO = ();
+                };
+            },
+
             // Hidden clang importer options to control C++ behavior
             // in the clang importer, not visible in build settings.
             {
