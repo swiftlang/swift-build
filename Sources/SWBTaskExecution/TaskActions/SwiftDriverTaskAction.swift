@@ -96,17 +96,16 @@ final public class SwiftDriverTaskAction: TaskAction, BuildValueValidatingTaskAc
             }
 
             if driverPayload.explicitModulesEnabled,
-               let moduleDependenciesContext = payload.moduleDependenciesContext
+               let dependencyValidationPayload = payload.dependencyValidationPayload
             {
                 let imports = try await dependencyGraph.mainModuleImportModuleDependencies(for: driverPayload.uniqueID)
-                let diagnostics = moduleDependenciesContext.makeDiagnostics(imports: imports)
-                for diagnostic in diagnostics {
-                    outputDelegate.emit(diagnostic)
-                }
-
-                if (diagnostics.contains { $0.behavior == .error }) {
-                    return .failed
-                }
+                let validationInfo = DependencyValidationInfo(imports: imports)
+                _ = try executionDelegate.fs.writeIfChanged(
+                    dependencyValidationPayload.dependencyValidationOutputPath,
+                    contents: ByteString(
+                        JSONEncoder(outputFormatting: .sortedKeys).encode(validationInfo)
+                    )
+                )
             }
 
             if driverPayload.reportRequiredTargetDependencies != .no && driverPayload.explicitModulesEnabled, let target = task.forTarget {

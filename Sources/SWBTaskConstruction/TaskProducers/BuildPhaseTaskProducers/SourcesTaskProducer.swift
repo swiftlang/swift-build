@@ -758,6 +758,7 @@ final class SourcesTaskProducer: FilesBasedBuildPhaseTaskProducerBase, FilesBase
         }
 
         var tasks: [any PlannedTask] = []
+        var dependencyDataFiles: [PlannedPathNode] = []
 
         // Generate any auxiliary files whose content is not per-arch or per-variant.
         // For the index build arena it is important to avoid adding this because it forces creation of the Swift module due to the generated ObjC header being an input dependency. This is unnecessary work since we don't need to generate the Swift module of the target to be able to successfully create a compiler AST for the Swift files of the target.
@@ -903,6 +904,8 @@ final class SourcesTaskProducer: FilesBasedBuildPhaseTaskProducerBase, FilesBase
                         case "swiftmodule":
                             dsymutilInputNodes.append(object)
                             break
+                        case "dependencies":
+                            dependencyDataFiles.append(MakePlannedPathNode(object.path))
                         default:
                             break
                         }
@@ -1592,6 +1595,20 @@ final class SourcesTaskProducer: FilesBasedBuildPhaseTaskProducerBase, FilesBase
         if isForInstallLoc {
             // For installLoc, we really only care about valid localized content from the sources task producer
             tasks = tasks.filter { $0.inputs.contains(where: { $0.path.isValidLocalizedContent(scope) || $0.path.fileExtension == "xcstrings" }) }
+        }
+
+        // Create a task to validate dependencies if that feature is enabled.
+        if let moduleDependenciesContext = context.moduleDependenciesContext, moduleDependenciesContext.validate != .no {
+            var validateDepsTasks = [any PlannedTask]()
+            await appendGeneratedTasks(&validateDepsTasks, usePhasedOrdering: true) { delegate in
+                await context.validateDependenciesSpec.createTasks(
+                    CommandBuildContext(producer: context, scope: scope, inputs: []),
+                    delegate,
+                    dependencyInfos: dependencyDataFiles,
+                    payload: .init(moduleDependenciesContext: moduleDependenciesContext)
+                )
+            }
+            tasks.append(contentsOf: validateDepsTasks)
         }
 
         return tasks

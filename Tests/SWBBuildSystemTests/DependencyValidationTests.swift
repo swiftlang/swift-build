@@ -471,7 +471,8 @@ fileprivate struct DependencyValidationTests: CoreBasedTests {
                         groupTree: TestGroup(
                             "Sources", path: "Sources",
                             children: [
-                                TestFile("CoreFoo.m")
+                                TestFile("CoreFoo.m"),
+                                TestFile("CoreBar.m"),
                             ]),
                         buildConfigurations: [
                             TestBuildConfiguration(
@@ -493,7 +494,7 @@ fileprivate struct DependencyValidationTests: CoreBasedTests {
                             TestStandardTarget(
                                 "CoreFoo", type: .framework,
                                 buildPhases: [
-                                    TestSourcesBuildPhase(["CoreFoo.m"]),
+                                    TestSourcesBuildPhase(["CoreFoo.m", "CoreBar.m"]),
                                     TestFrameworksBuildPhase()
                                 ])
                         ])
@@ -504,14 +505,16 @@ fileprivate struct DependencyValidationTests: CoreBasedTests {
             let SRCROOT = testWorkspace.sourceRoot.join("aProject")
 
             // Write the source files.
-            try await tester.fs.writeFileContents(SRCROOT.join("Sources/CoreFoo.m")) { contents in
-                contents <<< """
-                    #include <Foundation/Foundation.h>
-                    #include <Foundation/NSObject.h>
-                    #include <Accelerate/Accelerate.h>
+            for stem in ["Foo", "Bar"] {
+                try await tester.fs.writeFileContents(SRCROOT.join("Sources/Core\(stem).m")) { contents in
+                    contents <<< """
+                        #include <Foundation/Foundation.h>
+                        #include <Foundation/NSObject.h>
+                        #include <Accelerate/Accelerate.h>
 
-                    void f0(void) { };
-                """
+                        void f\(stem)(void) { };
+                    """
+                }
             }
 
             // Expect complaint about undeclared dependency

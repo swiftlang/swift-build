@@ -251,12 +251,15 @@ public final class ClangCompileTaskAction: TaskAction, BuildValueValidatingTaskA
             // Check if verifying dependencies from trace data is enabled.
             let traceFilePath: Path?
             let moduleDependenciesContext: ModuleDependenciesContext?
+            let dependencyValidationOutputPath: Path?
             if let payload = task.payload as? ClangTaskPayload {
                 traceFilePath = payload.traceFilePath
                 moduleDependenciesContext = payload.moduleDependenciesContext
+                dependencyValidationOutputPath = payload.dependencyValidationOutputPath
             } else {
                 traceFilePath = nil
                 moduleDependenciesContext = nil
+                dependencyValidationOutputPath = nil
             }
             if let traceFilePath {
                 // Remove the trace output file if it already exists.
@@ -335,13 +338,15 @@ public final class ClangCompileTaskAction: TaskAction, BuildValueValidatingTaskA
                 } else {
                     files = nil
                 }
-                let diagnostics = moduleDependenciesContext.makeDiagnostics(files: files)
-                for diagnostic in diagnostics {
-                    outputDelegate.emit(diagnostic)
-                }
 
-                if diagnostics.contains(where: { $0.behavior == .error }) {
-                    return .failed
+                if let dependencyValidationOutputPath {
+                    let validationInfo = DependencyValidationInfo(files: files)
+                    _ = try executionDelegate.fs.writeIfChanged(
+                        dependencyValidationOutputPath,
+                        contents: ByteString(
+                            JSONEncoder(outputFormatting: .sortedKeys).encode(validationInfo)
+                        )
+                    )
                 }
             }
 
