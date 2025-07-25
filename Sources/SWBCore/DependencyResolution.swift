@@ -630,11 +630,13 @@ extension SpecializationParameters {
     ///
     /// Note there's an exception for this for host build tools, which are required for compilation
     /// and must therefore be configured (and registered as a dependency) regardless
-    nonisolated func isTargetSuitableForPlatformForIndex(_ target: Target, parameters: BuildParameters, imposedParameters: SpecializationParameters?, dependencies: OrderedSet<ConfiguredTarget>? = nil) -> Bool {
+    nonisolated func isTargetSuitableForPlatformForIndex(_ target: Target, parameters: BuildParameters, imposedParameters: SpecializationParameters?) -> Bool {
         guard buildRequest.buildsIndexWorkspaceDescription else { return true }
 
-        // Host tools case, always supported we'll override the parameters with that of the host regardless.
-        if target.isHostBuildTool || dependencies?.contains(where: { $0.target.isHostBuildTool }) == true {
+        // Host tools case, always supported since we'll override the parameters with that of the
+        // host regardless. Any dependencies will have the host platform imposed on them through
+        // `imposedParameters`.
+        if target.isHostBuildTool {
             return true
         }
 
