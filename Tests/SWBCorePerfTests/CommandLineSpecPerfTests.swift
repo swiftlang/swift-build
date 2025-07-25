@@ -233,6 +233,10 @@ extension CapturingTaskGenerationDelegate: TaskActionCreationDelegate {
     func createProcessSDKImportsTaskAction() -> any PlannedTaskAction {
         return ProcessSDKImportsTaskAction()
     }
+
+    func createValidateDependenciesTaskAction() -> any PlannedTaskAction {
+        return ValidateProductTaskAction()
+    }
 }
 
 extension CapturingTaskGenerationDelegate: CoreClientDelegate {

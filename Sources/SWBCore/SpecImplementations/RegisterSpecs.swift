@@ -126,6 +126,7 @@ public struct BuiltinSpecsExtension: SpecificationsExtension {
             RegisterExecutionPolicyExceptionToolSpec.self,
             SwiftHeaderToolSpec.self,
             TAPIMergeToolSpec.self,
+            ValidateDependenciesSpec.self,
             ValidateDevelopmentAssets.self,
             ConstructStubExecutorFileListToolSpec.self,
             GateSpec.self,
