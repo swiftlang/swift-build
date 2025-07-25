@@ -3535,6 +3535,33 @@ For more information on mergeable libraries, see [Configuring your project to us
                 Category = BuildOptions;
                 Description = "Enables building with code coverage instrumentation. This is only used when the build has code coverage enabled, which is typically done via the Xcode scheme or test plan settings.";
             },
+            {   Name = ENABLE_ENHANCED_SECURITY;
+                Type = Boolean;
+                DefaultValue = NO;
+                Category = SecurityPolicy;
+            },
+            {   Name = ENABLE_POINTER_AUTHENTICATION;
+                Type = Boolean;
+                DefaultValue = "$(ENABLE_ENHANCED_SECURITY)";
+                Category = SecurityPolicy;
+            },
+            {   Name = ENABLE_SECURITY_COMPILER_WARNINGS;
+                Type = Boolean;
+                DefaultValue = "$(ENABLE_ENHANCED_SECURITY)";
+                Category = SecurityPolicy;
+            },
+            {
+                Name = "ENABLE_C_BOUNDS_SAFETY";
+                Type = Boolean;
+                DefaultValue = NO;
+                Category = Security;
+            },
+            {
+                Name = "ENABLE_CPLUSPLUS_BOUNDS_SAFE_BUFFERS";
+                Type = Boolean;
+                DefaultValue = NO;
+                Category = Security;
+            },
             {   Name = ENABLE_TESTABILITY;
                 Type = Boolean;
                 DefaultValue = NO;
