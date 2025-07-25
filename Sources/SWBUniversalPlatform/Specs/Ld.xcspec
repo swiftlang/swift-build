@@ -736,7 +736,6 @@
                     );
                 };
             },
-
             {
                 Name = "__CREATE_INFOPLIST_SECTION_IN_BINARY";
                 Type = Boolean;

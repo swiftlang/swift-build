@@ -8429,6 +8429,82 @@ fileprivate struct TaskConstructionTests: CoreBasedTests {
     }
 
     @Test(.requireSDKs(.macOS))
+    func zeroStackInit() async throws {
+        try await withTemporaryDirectory { tmpDir in
+            let testProject = TestProject(
+                "aProject",
+                sourceRoot: tmpDir,
+                groupTree: TestGroup(
+                    "SomeFiles", path: "Sources",
+                    children: [
+                        TestFile("SourceFile.c"),
+                    ]),
+                buildConfigurations: [
+                    TestBuildConfiguration("Debug")
+                ],
+                targets: [
+                    TestStandardTarget(
+                        "AppTarget",
+                        type: .application,
+                        buildConfigurations: [
+                            TestBuildConfiguration("Debug", buildSettings: [
+                                "GENERATE_INFOPLIST_FILE": "YES"
+                            ])
+                        ],
+                        buildPhases: [
+                            TestSourcesBuildPhase([
+                                "SourceFile.c"
+                            ])
+                        ]
+                    )]
+            )
+
+            let fs = PseudoFS()
+
+            let core = try await getCore()
+            let tester = try TaskConstructionTester(core, testProject)
+            let enableStackZeroInitSetting = "CLANG_ENABLE_STACK_ZERO_INIT";
+            let enableEnhancedSecuritySetting = "ENABLE_ENHANCED_SECURITY"
+
+            func test(task: any PlannedTask, overrides: [String: String]) -> Void {
+                if let val = overrides[enableStackZeroInitSetting] {
+                    if val == "YES" {
+                        task.checkCommandLineContains(["-ftrivial-auto-var-init=zero"])
+                    } else if val == "NO" {
+                        task.checkCommandLineNoMatch([.contains("-ftrivial-auto-var-init")])
+                    }
+                } else if let val = overrides[enableEnhancedSecuritySetting] {
+                    if val == "YES" {
+                        task.checkCommandLineContains(["-ftrivial-auto-var-init=zero"])
+                    } else if val == "NO" {
+                        task.checkCommandLineNoMatch([.contains("-ftrivial-auto-var-init")])
+                    }
+                } else {
+                    task.checkCommandLineNoMatch([.contains("-ftrivial-auto-var-init")])
+                }
+            }
+
+            let overrides = [
+                [:],
+                [enableStackZeroInitSetting: "YES"],
+                [enableStackZeroInitSetting: "NO"],
+
+                [enableStackZeroInitSetting: "YES", enableEnhancedSecuritySetting: "YES"],
+                [enableStackZeroInitSetting: "YES", enableEnhancedSecuritySetting: "NO"],
+                [enableStackZeroInitSetting: "NO", enableEnhancedSecuritySetting: "YES"],
+            ]
+
+            for override in overrides {
+                await tester.checkBuild(BuildParameters(configuration: "Debug", overrides: override), runDestination: .macOS, fs: fs) { results -> Void in
+                    results.checkTarget("AppTarget") { target -> Void in
+                        results.checkTask(.matchTarget(target), .matchRuleType("CompileC"), body: {task in test(task: task, overrides: override)})
+                    }
+                }
+            }
+        }
+    }
+
+    @Test(.requireSDKs(.macOS))
     func typedMemoryOperations() async throws {
         try await withTemporaryDirectory { tmpDir in
             let testProject = TestProject(
@@ -8465,8 +8541,10 @@ fileprivate struct TaskConstructionTests: CoreBasedTests {
             let tester = try TaskConstructionTester(core, testProject)
             let typedMemoryOperationsC = "CLANG_ENABLE_C_TYPED_ALLOCATOR_SUPPORT";
             let typedMemoryOperationsCXX = "CLANG_ENABLE_CPLUSPLUS_TYPED_ALLOCATOR_SUPPORT";
+            let enableEnhancedSecuritySetting = "ENABLE_ENHANCED_SECURITY"
 
             func test(task: any PlannedTask, overrides: [String: String]) -> Void {
+
                 if let val = overrides[typedMemoryOperationsC] {
                     if val == "YES" {
                         task.checkCommandLineContains(["-ftyped-memory-operations"])
@@ -8487,6 +8565,16 @@ fileprivate struct TaskConstructionTests: CoreBasedTests {
                         task.checkCommandLineDoesNotContain("-fno-typed-cxx-new-delete")
                         task.checkCommandLineDoesNotContain("-fno-typed-cxx-delete")
                     }
+                } else if let val = overrides[enableEnhancedSecuritySetting] {
+                    if val == "YES" {
+                        task.checkCommandLineContains(["-ftyped-memory-operations"])
+                        task.checkCommandLineContains(["-ftyped-cxx-new-delete", "-ftyped-cxx-delete"])
+                    } else if val == "NO" {
+                        task.checkCommandLineDoesNotContain("-ftyped-cxx-new-delete")
+                        task.checkCommandLineDoesNotContain("-ftyped-cxx-delete")
+                        task.checkCommandLineDoesNotContain("-fno-typed-cxx-new-delete")
+                        task.checkCommandLineDoesNotContain("-fno-typed-cxx-delete")
+                    }
                 }
             }
 
@@ -8497,6 +8585,22 @@ fileprivate struct TaskConstructionTests: CoreBasedTests {
                 [typedMemoryOperationsCXX: "YES"],
                 [typedMemoryOperationsCXX: "NO"],
                 [typedMemoryOperationsCXX: "compiler-default"],
+
+                [enableEnhancedSecuritySetting: "YES"],
+                [enableEnhancedSecuritySetting: "NO"],
+                [enableEnhancedSecuritySetting: "NO", typedMemoryOperationsC: "NO"],
+                [enableEnhancedSecuritySetting: "NO", typedMemoryOperationsC: "YES"],
+                [enableEnhancedSecuritySetting: "YES", typedMemoryOperationsC: "NO"],
+                [enableEnhancedSecuritySetting: "YES", typedMemoryOperationsC: "YES"],
+                [enableEnhancedSecuritySetting: "YES", typedMemoryOperationsC: "compiler-default"],
+                [enableEnhancedSecuritySetting: "YES", typedMemoryOperationsC: "compiler-default"],
+
+                [enableEnhancedSecuritySetting: "NO", typedMemoryOperationsCXX: "NO"],
+                [enableEnhancedSecuritySetting: "NO", typedMemoryOperationsCXX: "YES"],
+                [enableEnhancedSecuritySetting: "YES", typedMemoryOperationsCXX: "NO"],
+                [enableEnhancedSecuritySetting: "YES", typedMemoryOperationsCXX: "YES"],
+                [enableEnhancedSecuritySetting: "YES", typedMemoryOperationsCXX: "compiler-default"],
+                [enableEnhancedSecuritySetting: "YES", typedMemoryOperationsCXX: "compiler-default"],
             ]
 
             for override in overrides {
@@ -8513,6 +8617,268 @@ fileprivate struct TaskConstructionTests: CoreBasedTests {
             }
         }
     }
+
+    @Test(.requireSDKs(.macOS))
+    func warnShadow() async throws {
+        try await withTemporaryDirectory { tmpDir in
+            let testProject = TestProject(
+                "aProject",
+                sourceRoot: tmpDir,
+                groupTree: TestGroup(
+                    "SomeFiles", path: "Sources",
+                    children: [
+                        TestFile("SourceFile.c"),
+                    ]),
+                buildConfigurations: [
+                    TestBuildConfiguration("Debug")
+                ],
+                targets: [
+                    TestStandardTarget(
+                        "AppTarget",
+                        type: .application,
+                        buildConfigurations: [
+                            TestBuildConfiguration("Debug", buildSettings: [
+                                "GENERATE_INFOPLIST_FILE": "YES"
+                            ])
+                        ],
+                        buildPhases: [
+                            TestSourcesBuildPhase([
+                                "SourceFile.c"
+                            ])
+                        ]
+                    )]
+            )
+
+            let fs = PseudoFS()
+
+            let core = try await getCore()
+            let tester = try TaskConstructionTester(core, testProject)
+            let warnShadowSetting = "GCC_WARN_SHADOW";
+            let enableEnhancedSecuritySetting = "ENABLE_ENHANCED_SECURITY"
+
+            func test(task: any PlannedTask, overrides: [String: String]) -> Void {
+                if let val = overrides[warnShadowSetting] {
+                    if val == "YES" {
+                        task.checkCommandLineContains(["-Wshadow"])
+                    } else if (val == "NO") {
+                        task.checkCommandLineContains(["-Wno-shadow"])
+                    }
+                } else if let val = overrides[enableEnhancedSecuritySetting] {
+                    if val == "YES" {
+                        task.checkCommandLineContains(["-Wshadow"])
+                    } else if val == "NO" {
+                        task.checkCommandLineDoesNotContain("-Wshadow")
+                        task.checkCommandLineContains(["-Wno-shadow"])
+                    }
+                }
+            }
+
+            let overrides = [
+                [warnShadowSetting: "YES"],
+                [warnShadowSetting: "NO"],
+                [enableEnhancedSecuritySetting: "YES"],
+                [enableEnhancedSecuritySetting: "NO"],
+
+                [warnShadowSetting: "NO", enableEnhancedSecuritySetting: "YES"],
+                [warnShadowSetting: "YES", enableEnhancedSecuritySetting: "NO"],
+            ]
+
+            for override in overrides {
+                await tester.checkBuild(BuildParameters(configuration: "Debug", overrides: override), runDestination: .macOS, fs: fs) { results -> Void in
+                    results.checkTarget("AppTarget") { target -> Void in
+                        results.checkTask(.matchTarget(target), .matchRuleType("CompileC"), body: {task in test(task: task, overrides: override)})
+                    }
+                }
+            }
+        }
+    }
+
+    @Test(.requireSDKs(.macOS))
+    func warnEmptyBody() async throws {
+        try await withTemporaryDirectory { tmpDir in
+            let testProject = TestProject(
+                "aProject",
+                sourceRoot: tmpDir,
+                groupTree: TestGroup(
+                    "SomeFiles", path: "Sources",
+                    children: [
+                        TestFile("SourceFile.c"),
+                    ]),
+                buildConfigurations: [
+                    TestBuildConfiguration("Debug")
+                ],
+                targets: [
+                    TestStandardTarget(
+                        "AppTarget",
+                        type: .application,
+                        buildConfigurations: [
+                            TestBuildConfiguration("Debug", buildSettings: [
+                                "GENERATE_INFOPLIST_FILE": "YES"
+                            ])
+                        ],
+                        buildPhases: [
+                            TestSourcesBuildPhase([
+                                "SourceFile.c"
+                            ])
+                        ]
+                    )]
+            )
+
+            let fs = PseudoFS()
+
+            let core = try await getCore()
+            let tester = try TaskConstructionTester(core, testProject)
+            let warnEmptyBodySetting = "CLANG_WARN_EMPTY_BODY";
+            let enableEnhancedSecuritySetting = "ENABLE_ENHANCED_SECURITY"
+
+            func test(task: any PlannedTask, overrides: [String: String]) -> Void {
+                if let val = overrides[warnEmptyBodySetting] {
+                    if val == "YES" {
+                        task.checkCommandLineContains(["-Wempty-body"])
+                    } else if (val == "NO") {
+                        task.checkCommandLineContains(["-Wno-empty-body"])
+                    }
+                } else if let val = overrides[enableEnhancedSecuritySetting] {
+                    if val == "YES" {
+                        task.checkCommandLineContains(["-Wempty-body"])
+                    } else if val == "NO" {
+                        task.checkCommandLineDoesNotContain("-Wempty-body")
+                        task.checkCommandLineContains(["-Wno-empty-body"])
+                    }
+                }
+            }
+
+            let overrides = [
+                [warnEmptyBodySetting: "YES"],
+                [warnEmptyBodySetting: "NO"],
+                [enableEnhancedSecuritySetting: "YES"],
+                [enableEnhancedSecuritySetting: "NO"],
+
+                [warnEmptyBodySetting: "NO", enableEnhancedSecuritySetting: "YES"],
+                [warnEmptyBodySetting: "YES", enableEnhancedSecuritySetting: "NO"],
+            ]
+
+            for override in overrides {
+                await tester.checkBuild(BuildParameters(configuration: "Debug", overrides: override), runDestination: .macOS, fs: fs) { results -> Void in
+                    results.checkTarget("AppTarget") { target -> Void in
+                        results.checkTask(.matchTarget(target), .matchRuleType("CompileC"), body: {task in test(task: task, overrides: override)})
+                    }
+                }
+            }
+        }
+    }
+
+    @Test(.requireSDKs(.macOS))
+    func securityCompilerWarnings() async throws {
+        try await withTemporaryDirectory { tmpDir in
+            let testProject = TestProject(
+                "aProject",
+                sourceRoot: tmpDir,
+                groupTree: TestGroup(
+                    "SomeFiles", path: "Sources",
+                    children: [
+                        TestFile("SourceFile.c"),
+                    ]),
+                buildConfigurations: [
+                    TestBuildConfiguration("Debug")
+                ],
+                targets: [
+                    TestStandardTarget(
+                        "AppTarget",
+                        type: .application,
+                        buildConfigurations: [
+                            TestBuildConfiguration("Debug", buildSettings: [
+                                "GENERATE_INFOPLIST_FILE": "YES"
+                            ])
+                        ],
+                        buildPhases: [
+                            TestSourcesBuildPhase([
+                                "SourceFile.c"
+                            ])
+                        ]
+                    )]
+            )
+
+            let fs = PseudoFS()
+
+            let core = try await getCore()
+            let tester = try TaskConstructionTester(core, testProject)
+            let enableSecurityCompilerWarningsSetting = "ENABLE_SECURITY_COMPILER_WARNINGS";
+            let enableEnhancedSecuritySetting = "ENABLE_ENHANCED_SECURITY"
+
+            func generateWarningFlags(enabled: Bool) -> [String] {
+                let prefix = enabled ? "-W" : "-Wno-"
+                return ["\(prefix)builtin-memcpy-chk-size",
+                        "\(prefix)format-nonliteral",
+                        "\(prefix)array-bounds",
+                        "\(prefix)array-bounds-pointer-arithmetic",
+                        "\(prefix)suspicious-memaccess",
+                        "\(prefix)sizeof-array-div",
+                        "\(prefix)sizeof-pointer-div",
+                        "\(prefix)return-stack-address",]
+            }
+
+            func test(task: any PlannedTask, overrides: [String: String]) -> Void {
+
+                if let val = overrides[enableSecurityCompilerWarningsSetting] {
+                    if val == "YES" {
+                        for enabledWarning in generateWarningFlags(enabled: true) {
+                            task.checkCommandLineContains([enabledWarning])
+                        }
+                        for disabledWarning in generateWarningFlags(enabled: false) {
+                            task.checkCommandLineDoesNotContain(disabledWarning)
+                        }
+                    } else if val == "NO" {
+                        // Pass nothing on NO
+                        for enabledWarning in generateWarningFlags(enabled: true) {
+                            task.checkCommandLineDoesNotContain(enabledWarning)
+                        }
+                        for disabledWarning in generateWarningFlags(enabled: false) {
+                            task.checkCommandLineDoesNotContain(disabledWarning)
+                        }
+                    }
+                } else if let val = overrides[enableEnhancedSecuritySetting] {
+                    if val == "YES" {
+                        for enabledWarning in generateWarningFlags(enabled: true) {
+                            task.checkCommandLineContains([enabledWarning])
+                        }
+                        for disabledWarning in generateWarningFlags(enabled: false) {
+                            task.checkCommandLineDoesNotContain(disabledWarning)
+                        }
+                    } else if val == "NO" {
+                        // Pass nothing on NO
+                        for enabledWarning in generateWarningFlags(enabled: true) {
+                            task.checkCommandLineDoesNotContain(enabledWarning)
+                        }
+                        for disabledWarning in generateWarningFlags(enabled: false) {
+                            task.checkCommandLineDoesNotContain(disabledWarning)
+                        }
+                    }
+                }
+            }
+
+            let overrides = [
+                [enableSecurityCompilerWarningsSetting: "YES"],
+                [enableSecurityCompilerWarningsSetting: "NO"],
+
+                [enableEnhancedSecuritySetting: "YES"],
+                [enableEnhancedSecuritySetting: "NO"],
+                [enableEnhancedSecuritySetting: "NO", enableSecurityCompilerWarningsSetting: "NO"],
+                [enableEnhancedSecuritySetting: "NO", enableSecurityCompilerWarningsSetting: "YES"],
+                [enableEnhancedSecuritySetting: "YES", enableSecurityCompilerWarningsSetting: "NO"],
+                [enableEnhancedSecuritySetting: "YES", enableSecurityCompilerWarningsSetting: "YES"],
+            ]
+
+            for override in overrides {
+                await tester.checkBuild(BuildParameters(configuration: "Debug", overrides: override), runDestination: .macOS, fs: fs) { results -> Void in
+                    results.checkTarget("AppTarget") { target -> Void in
+                        results.checkTask(.matchTarget(target), .matchRuleType("CompileC"), body: {task in test(task: task, overrides: override)})
+                    }
+                }
+            }
+        }
+    }
+
 
     @Test(.requireSDKs(.macOS))
     func unsafeBufferUsage() async throws {
@@ -8549,7 +8915,10 @@ fileprivate struct TaskConstructionTests: CoreBasedTests {
 
             let core = try await getCore()
             let tester = try TaskConstructionTester(core, testProject)
-            let unsafeBufferUsageWarn = "CLANG_WARN_UNSAFE_BUFFER_USAGE";
+            let unsafeBufferUsageWarn = "CLANG_WARN_UNSAFE_BUFFER_USAGE"
+
+            // This setting enables both the CLANG_WARN_UNSAFE_BUFFER_USAGE and CLANG_CXX_STANDARD_LIBRARY_HARDENING
+            let enableBoundsSafeBuffers = "ENABLE_CPLUSPLUS_BOUNDS_SAFE_BUFFERS"
 
             func test(task: any PlannedTask, overrides: [String: String]) -> Void {
                 if let val = overrides[unsafeBufferUsageWarn] {
@@ -8563,6 +8932,15 @@ fileprivate struct TaskConstructionTests: CoreBasedTests {
                         task.checkCommandLineDoesNotContain("-Wunsafe-buffer-usage")
                         task.checkCommandLineDoesNotContain("-Wno-unsafe-buffer-usage")
                     }
+                } else if let val = overrides[enableBoundsSafeBuffers] {
+                    // When CLANG_WARN_UNSAFE_BUFFER_USAGE is not explicitly set, enable -Wunsafe-buffer-usage as on error when ENABLE_CPLUSPLUS_BOUNDS_SAFE_BUFFERS is YES.
+                    if (val == "YES") {
+                        task.checkCommandLineContains(["-Werror=unsafe-buffer-usage"])
+                    } else if (val == "NO") {
+                        task.checkCommandLineDoesNotContain("-Wunsafe-buffer-usage")
+                        task.checkCommandLineDoesNotContain("-Wno-unsafe-buffer-usage")
+                        task.checkCommandLineDoesNotContain("-Werror=unsafe-buffer-usage")
+                    }
                 }
             }
 
@@ -8571,6 +8949,15 @@ fileprivate struct TaskConstructionTests: CoreBasedTests {
                 [unsafeBufferUsageWarn: "NO"],
                 [unsafeBufferUsageWarn: "YES_ERROR"],
                 [unsafeBufferUsageWarn: "DEFAULT"],
+
+                [enableBoundsSafeBuffers: "YES"],
+                [enableBoundsSafeBuffers: "NO"],
+
+                [enableBoundsSafeBuffers: "YES", unsafeBufferUsageWarn: "NO"],
+                [enableBoundsSafeBuffers: "NO", unsafeBufferUsageWarn: "YES"],
+                [enableBoundsSafeBuffers: "NO", unsafeBufferUsageWarn: "YES_ERROR"],
+                [enableBoundsSafeBuffers: "NO", unsafeBufferUsageWarn: "YES_DEFAULT"],
+
             ]
 
             for override in overrides {
@@ -8582,6 +8969,225 @@ fileprivate struct TaskConstructionTests: CoreBasedTests {
             }
         }
     }
+
+    @Test(.requireSDKs(.macOS))
+    func boundsSafetyCLanguageExtension() async throws {
+        try await withTemporaryDirectory { tmpDir in
+            let testProject = TestProject(
+                "aProject",
+                sourceRoot: tmpDir,
+                groupTree: TestGroup(
+                    "SomeFiles", path: "Sources",
+                    children: [
+                        TestFile("SourceFile.c"),
+                    ]),
+                buildConfigurations: [
+                    TestBuildConfiguration("Debug")
+                ],
+                targets: [
+                    TestStandardTarget(
+                        "AppTarget",
+                        type: .application,
+                        buildConfigurations: [
+                            TestBuildConfiguration("Debug", buildSettings: [
+                                "GENERATE_INFOPLIST_FILE": "YES"
+                            ])
+                        ],
+                        buildPhases: [
+                            TestSourcesBuildPhase([
+                                "SourceFile.c"
+                            ])
+                        ]
+                    )]
+            )
+
+            let fs = PseudoFS()
+
+            let core = try await getCore()
+            let tester = try TaskConstructionTester(core, testProject)
+            let enableBoundsSafetySetting = "CLANG_ENABLE_BOUNDS_SAFETY";
+
+            func test(task: any PlannedTask, overrides: [String: String]) -> Void {
+                if let val = overrides[enableBoundsSafetySetting] {
+                    if val == "YES" {
+                        task.checkCommandLineContains(["-fbounds-safety"])
+                    } else if (val == "NO") {
+                        task.checkCommandLineDoesNotContain("-fbounds-safety")
+                    }
+                }
+            }
+
+            let overrides = [
+                [enableBoundsSafetySetting: "YES"],
+                [enableBoundsSafetySetting: "NO"],
+            ]
+
+            for override in overrides {
+                await tester.checkBuild(BuildParameters(configuration: "Debug", overrides: override), runDestination: .macOS, fs: fs) { results -> Void in
+                    results.checkTarget("AppTarget") { target -> Void in
+                        results.checkTask(.matchTarget(target), .matchRuleType("CompileC"), body: {task in test(task: task, overrides: override)})
+                    }
+                }
+            }
+        }
+    }
+
+
+    @Test(.requireSDKs(.macOS))
+    func libCPPLibraryHardening() async throws {
+        try await withTemporaryDirectory { tmpDir in
+            let testProject = TestProject(
+                "aProject",
+                sourceRoot: tmpDir,
+                groupTree: TestGroup(
+                    "SomeFiles", path: "Sources",
+                    children: [
+                        TestFile("SourceFile.cpp"),
+                    ]),
+                buildConfigurations: [
+                    TestBuildConfiguration("Debug")
+                ],
+                targets: [
+                    TestStandardTarget(
+                        "AppTarget",
+                        type: .application,
+                        buildConfigurations: [
+                            TestBuildConfiguration("Debug", buildSettings: [
+                                "GENERATE_INFOPLIST_FILE": "YES"
+                            ])
+                        ],
+                        buildPhases: [
+                            TestSourcesBuildPhase([
+                                "SourceFile.cpp"
+                            ])
+                        ]
+                    )]
+            )
+
+            let fs = PseudoFS()
+
+            let core = try await getCore()
+            let tester = try TaskConstructionTester(core, testProject)
+            let cppHardeningSetting = "CLANG_CXX_STANDARD_LIBRARY_HARDENING"
+            let gccOptimizationLevelSetting = "GCC_OPTIMIZATION_LEVEL"
+
+            // When either ENABLE_ENHANCED_SECURITY or ENABLE_CPLUSPLUS_BOUNDS_SAFE_BUFFERS are YES and CLANG_CXX_STANDARD_LIBRARY_HARDENING
+            // is not explicitly set, then fast hardening mode should be enabled for all but debug builds.
+            let enableEnhancedSecuritySetting = "ENABLE_ENHANCED_SECURITY"
+            let enableBoundsSafeBuffersSetting = "ENABLE_CPLUSPLUS_BOUNDS_SAFE_BUFFERS"
+
+            func test(task: any PlannedTask, overrides: [String: String]) -> Void {
+                enum HardeningMode {
+                    case NONE
+                    case FAST
+                    case EXTENSIVE
+                    case DEBUG
+                }
+
+                func checkCommandLineHardening(mode: HardeningMode, sourceLocation: SourceLocation = #_sourceLocation) {
+                    task.checkCommandLineContains(["-D_LIBCPP_HARDENING_MODE=_LIBCPP_HARDENING_MODE_\(mode)"])
+                }
+
+                func checkCommandLineNoHardening(sourceLocation: SourceLocation = #_sourceLocation) {
+                    task.checkCommandLineNoMatch([.contains("-D_LIBCPP_HARDENING_MODE")])
+                }
+
+
+                if let cppHardeningSettingVal = overrides[cppHardeningSetting] {
+                    // When CLANG_CXX_STANDARD_LIBRARY_HARDENING is set, it wins and sets hardening mode policy
+                    switch cppHardeningSettingVal {
+                    case "":
+                        // When the value is not set, no hardening should be passed so that the compiler can determine the appropriate default
+                        // if any, based on the target triple.
+                        checkCommandLineNoHardening()
+                    case "none":
+                        checkCommandLineHardening(mode: .NONE)
+                    case "fast":
+                        checkCommandLineHardening(mode: .FAST)
+                    case "extensive":
+                        checkCommandLineHardening(mode: .EXTENSIVE)
+                    case "debug":
+                        checkCommandLineHardening(mode: .DEBUG)
+                    default:
+                        assertionFailure("Unexpected CLANG_CXX_STANDARD_LIBRARY_HARDENING override")
+                    }
+                } else {
+                    // When CLANG_CXX_STANDARD_LIBRARY_HARDENING is not set, the command-line depends on GCC_OPTIMIZATION_LEVEL and ENABLE_ENHANCED_SECURITY
+
+                    // If the optimization level is set and it is -O0, then the hardening is DEBUG.
+                    // Otherwise, the hardening level depends on ENABLE_ENHANCED_SECURITY. If enhanced security is enabled, then the default for non -O0 is FAST; otherwise
+                    // the default is to not set the hardening level.
+
+                    let isOptLevelZero = (overrides[gccOptimizationLevelSetting] == .some("0"))
+                    let isEnhancedSecurityEnabled = (overrides[enableEnhancedSecuritySetting] == .some("YES"))
+                    let isEnableBoundsSafeBuffersEnabled = (overrides[enableBoundsSafeBuffersSetting] == .some("YES"))
+
+                    if isOptLevelZero {
+                        checkCommandLineHardening(mode: .DEBUG)
+                    } else if isEnhancedSecurityEnabled || isEnableBoundsSafeBuffersEnabled {
+                        checkCommandLineHardening(mode: .FAST)
+                    } else {
+                        checkCommandLineNoHardening()
+                    }
+                }
+            }
+
+            let overrides = [
+                [gccOptimizationLevelSetting: "0"],
+                [gccOptimizationLevelSetting: "1"],
+                [gccOptimizationLevelSetting: "2"],
+                [gccOptimizationLevelSetting: "3"],
+                [gccOptimizationLevelSetting: "fast"],
+                [gccOptimizationLevelSetting: "s"],
+                [gccOptimizationLevelSetting: "z"],
+
+                [cppHardeningSetting: ""],
+                [cppHardeningSetting: "none"],
+                [cppHardeningSetting: "fast"],
+                [cppHardeningSetting: "extensive"],
+                [cppHardeningSetting: "debug"],
+
+                [gccOptimizationLevelSetting: "0", enableEnhancedSecuritySetting: "YES", cppHardeningSetting: "none"],
+
+                [gccOptimizationLevelSetting: "0", enableEnhancedSecuritySetting: "YES"],
+                [gccOptimizationLevelSetting: "1", enableEnhancedSecuritySetting: "YES"],
+                [gccOptimizationLevelSetting: "2", enableEnhancedSecuritySetting: "YES"],
+                [gccOptimizationLevelSetting: "3", enableEnhancedSecuritySetting: "YES"],
+                [gccOptimizationLevelSetting: "fast", enableEnhancedSecuritySetting: "YES"],
+                [gccOptimizationLevelSetting: "s", enableEnhancedSecuritySetting: "YES"],
+                [gccOptimizationLevelSetting: "z", enableEnhancedSecuritySetting: "YES"],
+
+                [gccOptimizationLevelSetting: "0", enableBoundsSafeBuffersSetting: "YES"],
+                [gccOptimizationLevelSetting: "1", enableBoundsSafeBuffersSetting: "YES"],
+                [gccOptimizationLevelSetting: "2", enableBoundsSafeBuffersSetting: "YES"],
+                [gccOptimizationLevelSetting: "3", enableBoundsSafeBuffersSetting: "YES"],
+                [gccOptimizationLevelSetting: "fast", enableBoundsSafeBuffersSetting: "YES"],
+                [gccOptimizationLevelSetting: "s", enableBoundsSafeBuffersSetting: "YES"],
+                [gccOptimizationLevelSetting: "z", enableBoundsSafeBuffersSetting: "YES"],
+
+                [gccOptimizationLevelSetting: "0", enableEnhancedSecuritySetting: "YES", enableBoundsSafeBuffersSetting: "YES"],
+                [gccOptimizationLevelSetting: "0", enableEnhancedSecuritySetting: "YES", enableBoundsSafeBuffersSetting: "NO"],
+                [gccOptimizationLevelSetting: "0", enableEnhancedSecuritySetting: "NO", enableBoundsSafeBuffersSetting: "YES"],
+                [gccOptimizationLevelSetting: "0", enableEnhancedSecuritySetting: "NO", enableBoundsSafeBuffersSetting: "NO"],
+                [gccOptimizationLevelSetting: "s", enableEnhancedSecuritySetting: "YES", enableBoundsSafeBuffersSetting: "YES"],
+                [gccOptimizationLevelSetting: "s", enableEnhancedSecuritySetting: "YES", enableBoundsSafeBuffersSetting: "NO"],
+                [gccOptimizationLevelSetting: "s", enableEnhancedSecuritySetting: "NO", enableBoundsSafeBuffersSetting: "YES"],
+                [gccOptimizationLevelSetting: "s", enableEnhancedSecuritySetting: "NO", enableBoundsSafeBuffersSetting: "NO"],
+
+                [enableEnhancedSecuritySetting: "YES"],
+                [enableBoundsSafeBuffersSetting: "YES"],
+            ]
+
+            for override in overrides {
+                await tester.checkBuild(BuildParameters(configuration: "Debug", overrides: override), runDestination: .macOS, fs: fs) { results -> Void in
+                    results.checkTarget("AppTarget") { target -> Void in
+                        results.checkTask(.matchTarget(target), .matchRuleType("CompileC"), body: {task in test(task: task, overrides: override)})
+                    }
+                }
+            }
+        }
+    }
+
 
     @Test(.requireSDKs(.macOS))
     func warningSuppression() async throws {

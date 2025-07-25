@@ -695,6 +695,23 @@ The restrictions on `offsetof` may be relaxed in a future version of the C++ sta
 "[CLANG_ENABLE_MODULES]-value-[YES]" = "Yes";
 "[CLANG_ENABLE_MODULES]-value-[NO]" = "No";
 
+"[CLANG_ENABLE_STACK_ZERO_INIT]-name" = "Enable Stack Zero Initialization";
+"[CLANG_ENABLE_STACK_ZERO_INIT]-description" = "Automatically initializes stack variables to zero as a security protection.";
+"[CLANG_ENABLE_STACK_ZERO_INIT]-value-[YES]" = "Yes";
+"[CLANG_ENABLE_STACK_ZERO_INIT]-value-[NO]" = "No";
+
+"[CLANG_ENABLE_C_TYPED_ALLOCATOR_SUPPORT]-name" = "Enable Typed Allocator in C";
+"[CLANG_ENABLE_C_TYPED_ALLOCATOR_SUPPORT]-description" = "Enables compiler rewriting of allocation calls in C to provide type information to the allocator. Mitigates use-after-free security vulnerabilities.";
+"[CLANG_ENABLE_C_TYPED_ALLOCATOR_SUPPORT]-value-[YES]" = "Yes";
+"[CLANG_ENABLE_C_TYPED_ALLOCATOR_SUPPORT]-value-[NO]" = "No";
+"[CLANG_ENABLE_C_TYPED_ALLOCATOR_SUPPORT]-value-[compiler-default]" = "Compiler Default";
+
+"[CLANG_ENABLE_CPLUSPLUS_TYPED_ALLOCATOR_SUPPORT]-name" = "Enable Typed Allocator in C++";
+"[CLANG_ENABLE_CPLUSPLUS_TYPED_ALLOCATOR_SUPPORT]-description" = "Enables compiler rewriting of allocation calls in C++ to provide type information to the allocator. Mitigates use-after-free security vulnerabilities.";
+"[CLANG_ENABLE_CPLUSPLUS_TYPED_ALLOCATOR_SUPPORT]-value-[YES]" = "Yes";
+"[CLANG_ENABLE_CPLUSPLUS_TYPED_ALLOCATOR_SUPPORT]-value-[NO]" = "No";
+"[CLANG_ENABLE_CPLUSPLUS_TYPED_ALLOCATOR_SUPPORT]-value-[compiler-default]" = "Compiler Default";
+
 "[CLANG_MODULES_AUTOLINK]-name" = "Link Frameworks Automatically";
 "[CLANG_MODULES_AUTOLINK]-description" = "Automatically link SDK frameworks that are referenced using `#import` or `#include`. This feature requires also enabling support for modules. This build setting only applies to C-family languages.";
 "[CLANG_MODULES_AUTOLINK]-value-[YES]" = "Yes (when modules are enabled)";
