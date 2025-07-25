@@ -176,16 +176,15 @@ fileprivate struct HostBuildToolBuildOperationTests: CoreBasedTests {
                         "GENERATE_INFOPLIST_FILE": "YES",
                         "PRODUCT_NAME": "$(TARGET_NAME)",
                         "CODE_SIGNING_ALLOWED": "NO",
+                        "SDKROOT": "auto",
+                        "SUPPORTED_PLATFORMS": "$(AVAILABLE_PLATFORMS)",
                     ]),
             ],
             targets: [
                 TestStandardTarget("TransitivePackageDep", type: .objectFile, buildConfigurations: [
                     TestBuildConfiguration(
                         "Debug",
-                        buildSettings: [
-                            "SDKROOT": "auto",
-                            "SUPPORTED_PLATFORMS": "macosx iphoneos iphonesimulator",
-                        ],
+                        buildSettings: [:],
                         impartedBuildProperties:
                             TestImpartedBuildProperties(
                                 buildSettings: [
@@ -195,14 +194,7 @@ fileprivate struct HostBuildToolBuildOperationTests: CoreBasedTests {
                 ], buildPhases: [
                     TestSourcesBuildPhase(["transitivedep.swift"])
                 ]),
-                TestStandardTarget("PackageDep", type: .staticLibrary, buildConfigurations: [
-                    TestBuildConfiguration(
-                        "Debug",
-                        buildSettings: [
-                            "SDKROOT": "auto",
-                            "SUPPORTED_PLATFORMS": "macosx iphoneos iphonesimulator",
-                        ]),
-                ], buildPhases: [
+                TestStandardTarget("PackageDep", type: .staticLibrary, buildPhases: [
                     TestSourcesBuildPhase(["dep.swift"]),
                     TestFrameworksBuildPhase([
                         TestBuildFile(.target("TransitivePackageDep"))
@@ -214,14 +206,7 @@ fileprivate struct HostBuildToolBuildOperationTests: CoreBasedTests {
                     TestFrameworksBuildPhase([
                         TestBuildFile(.target("PackageDep")),
                     ]
-                ), buildConfigurations: [
-                    TestBuildConfiguration(
-                        "Debug",
-                        buildSettings: [
-                            "SDKROOT": "auto",
-                            "SUPPORTED_PLATFORMS": "macosx iphoneos iphonesimulator",
-                        ]),
-                ], dependencies: [
+                ), dependencies: [
                     "PackageDep"
                 ]),
         ])
@@ -240,43 +225,25 @@ fileprivate struct HostBuildToolBuildOperationTests: CoreBasedTests {
                         "GENERATE_INFOPLIST_FILE": "YES",
                         "PRODUCT_NAME": "$(TARGET_NAME)",
                         "CODE_SIGNING_ALLOWED": "NO",
+                        "SDKROOT": "auto",
+                        "SUPPORTED_PLATFORMS": "$(AVAILABLE_PLATFORMS)",
                     ]),
             ],
             targets: [
-                TestStandardTarget("HostTool", type: .hostBuildTool, buildConfigurations: [
-                    TestBuildConfiguration(
-                        "Debug",
-                        buildSettings: [
-                            "SDKROOT": "auto",
-                        ])
-                ], buildPhases: [
+                TestStandardTarget("HostTool", type: .hostBuildTool, buildPhases: [
                     TestSourcesBuildPhase(["tool.swift"]),
                     TestFrameworksBuildPhase([TestBuildFile(.target("PackageDepProduct"))])
                 ], dependencies: [
                     "PackageDepProduct"
                 ]),
-                TestStandardTarget("HostToolClientLib", type: .objectFile, buildConfigurations: [
-                    TestBuildConfiguration(
-                        "Debug",
-                        buildSettings: [
-                            "SDKROOT": "auto",
-                            "SUPPORTED_PLATFORMS": "macosx iphoneos iphonesimulator",
-                        ]),
-                ], buildPhases: [
+                TestStandardTarget("HostToolClientLib", type: .objectFile, buildPhases: [
                     TestSourcesBuildPhase(["lib.swift"]),
                 ], dependencies: [
                     "HostTool"
                 ]),
                 TestPackageProductTarget("HostToolClientLibProduct", frameworksBuildPhase:
                     TestFrameworksBuildPhase([TestBuildFile(.target("HostToolClientLib"))]
-                ), buildConfigurations: [
-                    TestBuildConfiguration(
-                        "Debug",
-                        buildSettings: [
-                            "SDKROOT": "auto",
-                            "SUPPORTED_PLATFORMS": "macosx iphoneos iphonesimulator",
-                        ]),
-                ], dependencies: [
+                ), dependencies: [
                     "HostToolClientLib"
                 ]),
         ])
