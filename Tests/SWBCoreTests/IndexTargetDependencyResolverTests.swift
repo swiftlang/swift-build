@@ -949,8 +949,12 @@ import SWBUtil
             #expect(results.targets(packageProduct).map{ results.targetNameAndPlatform($0) } == ["PackageLibProduct-iphoneos"])
             #expect(results.targets(unreferencedPackageLib).map{ results.targetNameAndPlatform($0) } == ["UnreferencedPackageLib-iphoneos"])
 
-            try results.checkDependencies(of: .init(packageLib2, "iphoneos"), are: [])
-
+            switch results.graphType {
+            case .dependency:
+                try results.checkDependencies(of: packageLib2, are: [.init(packageTool, "macos")])
+            case .linkage:
+                try results.checkDependencies(of: packageLib2, are: [])
+            }
             results.delegate.checkNoDiagnostics()
         }
     }

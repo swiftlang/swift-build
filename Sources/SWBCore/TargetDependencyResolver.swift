@@ -680,7 +680,7 @@ fileprivate extension TargetDependencyResolver {
         }
 
         // Add the discovered info.
-        let discoveredInfo = await computeDiscoveredTargetInfo(for: configuredTarget, imposedParameters: imposedParameters, dependencyPath: nil, resolver: resolver)
+        let discoveredInfo = await computeDiscoveredTargetInfo(for: configuredTarget, imposedParameters: imposedParameters, resolver: resolver)
         discoveredTargets[configuredTarget] = discoveredInfo
 
         // If we have no dependencies, we are done.
@@ -742,7 +742,7 @@ fileprivate extension TargetDependencyResolver {
             discoveredInfo = info
         } else {
             if resolver.makeAggregateTargetsTransparentForSpecialization {
-                discoveredInfo = await computeDiscoveredTargetInfo(for: configuredTarget, imposedParameters: imposedParameters, dependencyPath: dependencyPath, resolver: resolver)
+                discoveredInfo = await computeDiscoveredTargetInfo(for: configuredTarget, imposedParameters: imposedParameters, resolver: resolver)
             } else {
                 var immediateDependencies = [ResolvedTargetDependency]()
                 var packageProductDependencies = [PackageProductTarget]()
@@ -820,14 +820,14 @@ fileprivate extension TargetDependencyResolver {
     }
 
     /// Discover the info for a configured target with the given imposed parameters.
-    private func computeDiscoveredTargetInfo(for configuredTarget: ConfiguredTarget, imposedParameters: SpecializationParameters?, dependencyPath: OrderedSet<ConfiguredTarget>?, resolver: isolated DependencyResolver) async -> DiscoveredTargetInfo {
+    private func computeDiscoveredTargetInfo(for configuredTarget: ConfiguredTarget, imposedParameters: SpecializationParameters?, resolver: isolated DependencyResolver) async -> DiscoveredTargetInfo {
         var immediateDependencies = [ResolvedTargetDependency]()
         var packageProductDependencies = [PackageProductTarget]()
         for dependency in resolver.explicitDependencies(for: configuredTarget) {
             if let asPackageProduct = dependency as? PackageProductTarget {
                 packageProductDependencies.append(asPackageProduct)
             } else {
-                if !resolver.isTargetSuitableForPlatformForIndex(dependency, parameters: configuredTarget.parameters, imposedParameters: imposedParameters, dependencies: dependencyPath) {
+                if !resolver.isTargetSuitableForPlatformForIndex(dependency, parameters: configuredTarget.parameters, imposedParameters: imposedParameters) {
                     continue
                 }
 
