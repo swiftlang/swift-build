@@ -214,6 +214,7 @@ fileprivate struct HostBuildToolBuildOperationTests: CoreBasedTests {
         let hostToolsPackage = try await TestPackageProject(
             "HostToolsPackage",
             groupTree: TestGroup("Foo", children: [
+                TestFile("tooldep.swift"),
                 TestFile("tool.swift"),
                 TestFile("lib.swift"),
             ]),
@@ -230,11 +231,18 @@ fileprivate struct HostBuildToolBuildOperationTests: CoreBasedTests {
                     ]),
             ],
             targets: [
+                TestStandardTarget("HostToolDep", type: .objectFile, buildPhases: [
+                    TestSourcesBuildPhase(["tooldep.swift"]),
+                ]),
                 TestStandardTarget("HostTool", type: .hostBuildTool, buildPhases: [
                     TestSourcesBuildPhase(["tool.swift"]),
-                    TestFrameworksBuildPhase([TestBuildFile(.target("PackageDepProduct"))])
+                    TestFrameworksBuildPhase([
+                        TestBuildFile(.target("PackageDepProduct")),
+                        TestBuildFile(.target("HostToolDep")),
+                    ]),
                 ], dependencies: [
-                    "PackageDepProduct"
+                    "PackageDepProduct",
+                    "HostToolDep",
                 ]),
                 TestStandardTarget("HostToolClientLib", type: .objectFile, buildPhases: [
                     TestSourcesBuildPhase(["lib.swift"]),
@@ -274,14 +282,22 @@ fileprivate struct HostBuildToolBuildOperationTests: CoreBasedTests {
                 """
             }
 
+            try await fs.writeFileContents(root.join("HostToolsPackage/tooldep.swift")) { stream in
+                stream <<<
+                """
+                public let samePackageMsg = "Hello from host tool same-package dependency!"
+                """
+            }
+
             try await fs.writeFileContents(root.join("HostToolsPackage/tool.swift")) { stream in
                 stream <<<
                 """
                 import PackageDep
+                import HostToolDep
 
                 @main struct Foo {
                     static func main() {
-                        print("Hello from host tool! " + dependencyMessage)
+                        print("Hello from host tool! " + dependencyMessage + samePackageMsg)
                     }
                 }
                 """
@@ -405,15 +421,57 @@ fileprivate struct HostBuildToolBuildOperationTests: CoreBasedTests {
         }
     }
 
-    @Test(.requireSDKs(.macOS, .iOS), arguments: [RunDestinationInfo.anyMac, .anyMacCatalyst, .anyiOSDevice])
-    func testHostToolsAndDependenciesAreBuiltDuringIndexingPreparationForPackage(destination: RunDestinationInfo) async throws {
-        try await withHostToolsPackages { tester, testWorkspace in
-            try await tester.checkIndexBuild(prepareTargets: testWorkspace.projects[1].targets.map(\.guid), workspaceOperation: false, runDestination: destination, persistent: true) { results in
+    @Test(.requireSDKs(.macOS, .iOS), arguments: [RunDestinationInfo.anyMac, .anyMacCatalyst, .anyiOSDevice], [true, false])
+    func testHostToolsAndDependenciesAreBuiltDuringIndexingPreparationForPackage(
+        destination: RunDestinationInfo, targetBuild: Bool
+    ) async throws {
+        let clientPackage = try await TestPackageProject(
+            "ClientPackage",
+            groupTree: TestGroup("Client", children: [
+                TestFile("main.swift"),
+            ]),
+            buildConfigurations: [
+                TestBuildConfiguration(
+                    "Debug",
+                    buildSettings: [
+                        "SWIFT_VERSION": swiftVersion,
+                        "GENERATE_INFOPLIST_FILE": "YES",
+                        "PRODUCT_NAME": "$(TARGET_NAME)",
+                        "CODE_SIGNING_ALLOWED": "NO",
+                        "SDKROOT": "auto",
+                        "SUPPORTED_PLATFORMS": "$(AVAILABLE_PLATFORMS)",
+                    ]),
+            ],
+            targets: [
+                TestStandardTarget("HostToolClient", type: .objectFile, buildPhases: [
+                    TestSourcesBuildPhase(["main.swift"]),
+                    TestFrameworksBuildPhase([TestBuildFile(.target("HostToolClientLibProduct"))]),
+                ], dependencies: [
+                    "HostToolClientLibProduct"
+                ]),
+        ])
+
+        try await withHostToolsPackages(clients: clientPackage) { tester, testWorkspace in
+            try await tester.fs.writeFileContents(testWorkspace.sourceRoot.join("ClientPackage/main.swift")) { stream in
+                stream <<<
+                """
+                print("Hello, world!")
+                """
+            }
+
+            let clientTarget = try #require(clientPackage.targets.first)
+            try await tester.checkIndexBuild(
+                prepareTargets: [clientTarget.guid],
+                buildTargets: targetBuild ? [clientTarget] : nil,
+                workspaceOperation: false, runDestination: destination,
+                persistent: true
+            ) { results in
                 results.checkNoDiagnostics()
 
                 results.checkTaskExists(.matchTargetName("HostTool"), .matchRuleType("Ld"))
                 try results.checkTask(.matchTargetName("HostTool"), .matchRuleType(ProductPlan.preparedForIndexPreCompilationRuleName)) { task in
                     try results.checkTaskFollows(task, .matchTargetName("PackageDep"), .matchRuleType("Libtool"))
+                    try results.checkTaskFollows(task, .matchTargetName("HostToolDep"), .matchRuleType("SwiftDriver Compilation"))
                 }
             }
         }
