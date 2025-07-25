@@ -111,8 +111,7 @@ actor LinkageDependencyResolver {
                 if Task.isCancelled { return }
                 let configuredTarget = topLevelTargetsToDiscover[i]
                 let imposedParameters = resolver.specializationParameters(configuredTarget, workspaceContext: workspaceContext, buildRequest: buildRequest, buildRequestContext: buildRequestContext)
-                let dependenciesOnPath = LinkageDependencies()
-                await linkageDependencies(for: configuredTarget, imposedParameters: imposedParameters, dependenciesOnPath: dependenciesOnPath)
+                await linkageDependencies(for: configuredTarget, imposedParameters: imposedParameters)
             }
         }
 
@@ -130,7 +129,7 @@ actor LinkageDependencyResolver {
     private var dependenciesPerTarget = [ConfiguredTarget: [ResolvedTargetDependency]]()
     private var visitedDiscoveredTargets = Set<ConfiguredTarget>()
 
-    private func linkageDependencies(for configuredTarget: ConfiguredTarget, imposedParameters: SpecializationParameters?, dependenciesOnPath: LinkageDependencies) async {
+    private func linkageDependencies(for configuredTarget: ConfiguredTarget, imposedParameters: SpecializationParameters?) async {
         // Track that we have visited this target.
         let visited = !visitedDiscoveredTargets.insert(configuredTarget).inserted
 
@@ -156,7 +155,7 @@ actor LinkageDependencyResolver {
                 return nil
             }
             let buildParameters = resolver.buildParametersByTarget[target] ?? configuredTarget.parameters
-            if await !resolver.isTargetSuitableForPlatformForIndex(target, parameters: buildParameters, imposedParameters: imposedParameters, dependencies: dependenciesOnPath.path) {
+            if await !resolver.isTargetSuitableForPlatformForIndex(target, parameters: buildParameters, imposedParameters: imposedParameters) {
                 return nil
             }
             let effectiveImposedParameters = imposedParameters?.effectiveParameters(target: configuredTarget, dependency: ConfiguredTarget(parameters: buildParameters, target: target), dependencyResolver: resolver)
@@ -184,7 +183,7 @@ actor LinkageDependencyResolver {
             } else {
                 imposedParametersForDependency = resolver.specializationParameters(dependency.target, workspaceContext: workspaceContext, buildRequest: buildRequest, buildRequestContext: buildRequestContext)
             }
-            await self.linkageDependencies(for: dependency.target, imposedParameters: imposedParametersForDependency, dependenciesOnPath: dependenciesOnPath)
+            await self.linkageDependencies(for: dependency.target, imposedParameters: imposedParametersForDependency)
         }
     }
 
@@ -604,8 +603,4 @@ private extension Path {
     var stem: String? {
         return basenameWithoutSuffix.nilIfEmpty
     }
-}
-
-fileprivate actor LinkageDependencies {
-    var path: OrderedSet<ConfiguredTarget> = []
 }
