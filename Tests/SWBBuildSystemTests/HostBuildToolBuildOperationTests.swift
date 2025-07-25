@@ -158,21 +158,6 @@ fileprivate struct HostBuildToolBuildOperationTests: CoreBasedTests {
         }
     }
 
-    @Test(.requireSDKs(.macOS))
-    func hostToolsAndDependenciesAreBuiltDuringIndexingPreparation_Mac() async throws {
-        try await testHostToolsAndDependenciesAreBuiltDuringIndexingPreparation(destination: .anyMac)
-    }
-
-    @Test(.requireSDKs(.macOS, .iOS))
-    func hostToolsAndDependenciesAreBuiltDuringIndexingPreparation_MacCatalyst() async throws {
-        try await testHostToolsAndDependenciesAreBuiltDuringIndexingPreparation(destination: .anyMacCatalyst)
-    }
-
-    @Test(.requireSDKs(.macOS, .iOS))
-    func hostToolsAndDependenciesAreBuiltDuringIndexingPreparation_iOS() async throws {
-        try await testHostToolsAndDependenciesAreBuiltDuringIndexingPreparation(destination: .anyiOSDevice)
-    }
-
     private func withHostToolsPackages(
         clients: TestProject...,
         body: (BuildOperationTester, TestWorkspace) async throws -> Void
@@ -346,6 +331,7 @@ fileprivate struct HostBuildToolBuildOperationTests: CoreBasedTests {
         }
     }
 
+    @Test(.requireSDKs(.macOS, .iOS), arguments: [RunDestinationInfo.anyMac, .anyMacCatalyst, .anyiOSDevice])
     func testHostToolsAndDependenciesAreBuiltDuringIndexingPreparation(destination: RunDestinationInfo) async throws {
         let testProject = try await TestProject(
             "aProject",
@@ -452,10 +438,10 @@ fileprivate struct HostBuildToolBuildOperationTests: CoreBasedTests {
         }
     }
 
-    @Test(.requireSDKs(.macOS))
-    func testHostToolsAndDependenciesAreBuiltDuringIndexingPreparationForPackage() async throws {
+    @Test(.requireSDKs(.macOS, .iOS), arguments: [RunDestinationInfo.anyMac, .anyMacCatalyst, .anyiOSDevice])
+    func testHostToolsAndDependenciesAreBuiltDuringIndexingPreparationForPackage(destination: RunDestinationInfo) async throws {
         try await withHostToolsPackages { tester, testWorkspace in
-            try await tester.checkIndexBuild(prepareTargets: testWorkspace.projects[1].targets.map(\.guid), workspaceOperation: false, runDestination: .anyMac, persistent: true) { results in
+            try await tester.checkIndexBuild(prepareTargets: testWorkspace.projects[1].targets.map(\.guid), workspaceOperation: false, runDestination: destination, persistent: true) { results in
                 results.checkNoDiagnostics()
 
                 results.checkTaskExists(.matchTargetName("HostTool"), .matchRuleType("Ld"))
