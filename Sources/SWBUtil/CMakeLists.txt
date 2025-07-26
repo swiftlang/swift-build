@@ -39,6 +39,7 @@ add_library(SWBUtil
   EnvironmentKey.swift
   EnvironmentHelpers.swift
   Error.swift
+  FileDescriptor.swift
   FileHandle+Async.swift
   FilesSignature.swift
   fnmatch.swift
