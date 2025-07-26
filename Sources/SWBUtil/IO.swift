@@ -23,7 +23,7 @@ public struct IOPipe: Sendable {
     public let writeEnd: FileDescriptor
 
     public init() throws {
-        let (readEnd, writeEnd) = try FileDescriptor.pipe()
+        let (readEnd, writeEnd) = try FileDescriptor._pipe2(options: .closeOnExec)
         self.readEnd = readEnd
         self.writeEnd = writeEnd
     }

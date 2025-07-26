@@ -10,21 +10,10 @@
 //
 //===----------------------------------------------------------------------===//
 
-// This framework defines functionality for Swift Build which is not presently written in Swift for some reason.
+#ifndef SWBCSUPPORT_POSIXSHIMS_H
+#define SWBCSUPPORT_POSIXSHIMS_H
 
-#ifndef SWBCSUPPORT_H
-#define SWBCSUPPORT_H
+int swb_pipe2(int pipefd[2], int flags);
+int swb_dup3(int oldfd, int newfd, int flags);
 
-#if __has_include(<TargetConditionals.h>)
-#include <TargetConditionals.h>
 #endif
-
-#include "CLibclang.h"
-#include "CLibRemarksHelper.h"
-#include "IndexStore.h"
-#include "PluginAPI.h"
-#include "PluginAPI_functions.h"
-#include "PluginAPI_types.h"
-#include "POSIXShims.h"
-
-#endif // SWBCSUPPORT_H

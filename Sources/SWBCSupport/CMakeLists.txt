@@ -11,6 +11,7 @@ See http://swift.org/CONTRIBUTORS.txt for Swift project authors
 add_library(SWBCSupport
   CLibclang.cpp
   CLibRemarksHelper.c
+  POSIXShims.c
   empty.swift)
 # Use swiftc as the linker so we pick up search paths for the blocks runtime,
 # and enable C++ interop so it delegates to clang++.
