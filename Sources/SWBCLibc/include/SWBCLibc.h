@@ -26,3 +26,16 @@ typedef struct {
 
 int dladdr(void *addr, Dl_info *info);
 #endif
+
+#if !defined(_WIN32)
+#include <fcntl.h>
+
+// Duplicates `fd` onto the lowest-numbered unused file descriptor, atomically
+// setting the close-on-exec flag. Unlike a `dup()` followed by a separate
+// `fcntl(F_SETFD, FD_CLOEXEC)`, this cannot race against a concurrent
+// `fork()`/`exec()` in another thread. Returns the new descriptor, or -1 with
+// `errno` set.
+static inline int swb_dup_cloexec(int fd) {
+    return fcntl(fd, F_DUPFD_CLOEXEC, 0);
+}
+#endif
