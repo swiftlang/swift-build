@@ -1075,6 +1075,112 @@ import SWBMacro
         }
     }
 
+    @Test
+    func clangCompileTaskConstructionWithCXX20ModulesDisabled() async throws {
+        let core = try await getCore()
+        let clangSpec = try core.specRegistry.getSpec("com.apple.compilers.llvm.clang.1_0") as CommandLineToolSpec
+
+        // Create the dummy table.  We include all the defaults for the tool specification.
+        var table = MacroValueAssignmentTable(namespace: core.specRegistry.internalMacroNamespace)
+        for option in clangSpec.flattenedOrderedBuildOptions {
+            guard let value = option.defaultValue else { continue }
+            table.push(option.macro, value)
+        }
+        // We also add some other settings that are more contextual in nature.
+        table.push(BuiltinMacros.CURRENT_ARCH, literal: "x86_64")
+        table.push(BuiltinMacros.arch, literal: "x86_64")
+        table.push(BuiltinMacros.LLVM_TARGET_TRIPLE_VENDOR, literal: "apple")
+        table.push(BuiltinMacros.LLVM_TARGET_TRIPLE_OS_VERSION, BuiltinMacros.namespace.parseString("$(SWIFT_PLATFORM_TARGET_PREFIX)$($(DEPLOYMENT_TARGET_SETTING_NAME))"))
+        table.push(BuiltinMacros.SWIFT_PLATFORM_TARGET_PREFIX, literal: "macos")
+        table.push(BuiltinMacros.DEPLOYMENT_TARGET_SETTING_NAME, literal: "MACOSX_DEPLOYMENT_TARGET")
+        table.push(BuiltinMacros.MACOSX_DEPLOYMENT_TARGET, literal: "13.0")
+        table.push(BuiltinMacros.CURRENT_VARIANT, literal: "normal")
+        table.push(BuiltinMacros.PRODUCT_NAME, literal: "Product")
+        table.push(BuiltinMacros.TEMP_DIR, literal: Path.root.join("tmp").str)
+        table.push(BuiltinMacros.OBJECT_FILE_DIR, literal: Path.root.join("tmp/output/obj").str)
+        table.push(BuiltinMacros.PER_ARCH_OBJECT_FILE_DIR, BuiltinMacros.namespace.parseString("$(OBJECT_FILE_DIR)-$(CURRENT_VARIANT)/$(CURRENT_ARCH)"))
+        table.push(BuiltinMacros.BUILT_PRODUCTS_DIR, literal: Path.root.join("tmp/output/sym").str)
+        table.push(BuiltinMacros.ENABLE_DEFAULT_SEARCH_PATHS, literal: true)
+        table.push(BuiltinMacros.CLANG_ENABLE_MODULES, literal: false)
+
+        // Turn off response files, so we can directly check arguments
+        table.push(BuiltinMacros.CLANG_USE_RESPONSE_FILE, literal: false)
+
+        /// Utility method to create a task and pass it to a checker block.
+        func createTask(with table: MacroValueAssignmentTable, cxxLangMode: String , spec: String, _ checkTask: ((inout PlannedTaskBuilder) -> Void),
+                        sourceLocation: SourceLocation = #_sourceLocation) async throws {
+            var configTable = table
+            configTable.push(BuiltinMacros.CLANG_CXX_LANGUAGE_STANDARD, literal: cxxLangMode)
+            // Create the delegate, scope, file type, etc.
+            let producer = try MockCommandProducer(core: core, productTypeIdentifier: "com.apple.product-type.framework", platform: "macosx")
+            let delegate = try CapturingTaskGenerationDelegate(producer: producer, userPreferences: .defaultForTesting)
+            let dummyScope = MacroEvaluationScope(table: configTable)
+            let dummyFileType = try core.specRegistry.getSpec(spec) as FileTypeSpec
+
+            // Create the build context for the command.
+            let cbc = CommandBuildContext(producer: producer, scope: dummyScope, inputs: [FileToBuild(absolutePath: Path.root.join("tmp/input.mm"), fileType: dummyFileType)], output: nil)
+
+            // Ask the specification to construct the tasks.
+            await clangSpec.constructTasks(cbc, delegate)
+
+            guard var task = delegate.shellTasks.last, task.ruleInfo.first == "CompileC" else {
+                Issue.record("Failed to find compile task")
+                return
+            }
+            checkTask(&task)
+        }
+
+        for cxxLangMode in ["c++20", "c++23", "gnu++20", "gnu++23"] {
+            try await createTask(with: table, cxxLangMode: cxxLangMode, spec: "sourcecode.cpp.objcpp") { task in
+                #expect(task.ruleInfo == ["CompileC", Path.root.join("tmp/output/obj-normal/x86_64/input.o").str, Path.root.join("tmp/input.mm").str, "normal", "x86_64", "objective-c++", "com.apple.compilers.llvm.clang.1_0"])
+                #expect(task.execDescription == "Compile input.mm (x86_64)")
+                #expect(clangSpec.interestingPath(for: Task(&task))?.str == Path.root.join("tmp/input.mm").str)
+                task.checkCommandLineMatches(["-std=\(cxxLangMode)", .anySequence, "-fno-cxx-modules", .anySequence])
+                task.checkCommandLineDoesNotContain("-fmodules")
+                task.checkCommandLineDoesNotContain("-fcxx-modules")
+
+                task.checkInputs([
+                    .path(Path.root.join("tmp/input.mm").str)
+                ])
+                task.checkOutputs([
+                    .path(Path.root.join("tmp/output/obj-normal/x86_64/input.o").str)
+                ])
+                #expect(task.dependencyData != nil)
+                #expect(task.payload != nil)
+            }
+        }
+
+        // Validate that the presence of -fcxx-modules shows up **after** the disablement flag.
+        table.push(BuiltinMacros.OTHER_CPLUSPLUSFLAGS, literal: ["-fcxx-modules"])
+        try await createTask(with: table, cxxLangMode: "c++20", spec: "sourcecode.cpp.objcpp") { task in
+            #expect(task.ruleInfo == ["CompileC", Path.root.join("tmp/output/obj-normal/x86_64/input.o").str, Path.root.join("tmp/input.mm").str, "normal", "x86_64", "objective-c++", "com.apple.compilers.llvm.clang.1_0"])
+            #expect(task.execDescription == "Compile input.mm (x86_64)")
+            task.checkCommandLineMatches(["-fno-cxx-modules", .anySequence, "-fcxx-modules"])
+        }
+
+        // Validate that no explicit module options are passed on language modes less than c++20.
+        // Note, the current compiler default is c++14.
+        for cxxLangMode in ["c++98", "gnu++0x", "c++17", "gnu++14", "compiler-default"] {
+            try await createTask(with: table, cxxLangMode: cxxLangMode, spec: "sourcecode.cpp.objcpp") { task in
+                #expect(task.ruleInfo == ["CompileC", Path.root.join("tmp/output/obj-normal/x86_64/input.o").str, Path.root.join("tmp/input.mm").str, "normal", "x86_64", "objective-c++", "com.apple.compilers.llvm.clang.1_0"])
+                #expect(task.execDescription == "Compile input.mm (x86_64)")
+                #expect(clangSpec.interestingPath(for: Task(&task))?.str == Path.root.join("tmp/input.mm").str)
+                task.checkCommandLineDoesNotContain("-fno-cxx-modules")
+
+                task.checkInputs([
+                    .path(Path.root.join("tmp/input.mm").str)
+                ])
+                task.checkOutputs([
+                    .path(Path.root.join("tmp/output/obj-normal/x86_64/input.o").str)
+                ])
+                #expect(task.dependencyData != nil)
+                #expect(task.payload != nil)
+            }
+        }
+
+
+    }
+
 
     /// Check that C_COMPILER_LAUNCHER is honored.
     @Test(.skipHostOS(.windows, "output file is coming out as tmp\\input.o (non-absolute)"))
