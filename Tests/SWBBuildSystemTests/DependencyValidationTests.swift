@@ -327,7 +327,7 @@ fileprivate struct DependencyValidationTests: CoreBasedTests {
         }
     }
 
-    @Test(.requireSDKs(.host))
+    @Test(.requireSDKs(.host), .skipHostOS(.windows, "toolchain too old"), .skipHostOS(.linux, "toolchain too old"))
     func validateModuleDependenciesSwift() async throws {
         try await withTemporaryDirectory { tmpDir in
             let testWorkspace = try await TestWorkspace(
