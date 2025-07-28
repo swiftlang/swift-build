@@ -161,6 +161,7 @@ add_library(SWBCore
   SpecImplementations/Tools/TiffUtilTool.swift
   SpecImplementations/Tools/TouchTool.swift
   SpecImplementations/Tools/UnifdefTool.swift
+  SpecImplementations/Tools/ValidateDependencies.swift
   SpecImplementations/Tools/ValidateDevelopmentAssets.swift
   SpecImplementations/Tools/ValidateEmbeddedBinaryTool.swift
   SpecImplementations/Tools/ValidateProductTool.swift
