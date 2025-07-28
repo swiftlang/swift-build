@@ -203,6 +203,15 @@
                     NO = ();
                 };
             },
+            {
+                Name = LM_ENABLE_APP_NAME_OVERRIDE;
+                Type = Boolean;
+                DefaultValue = NO;
+                CommandLineArgs = {
+                    YES = ( "--app-shortcuts-app-name-override" );
+                    NO = ();
+                };
+            },
         );
     },
 )
