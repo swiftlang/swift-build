@@ -3939,11 +3939,11 @@ When this setting is enabled:
                 Description = "When `GENERATE_INFOPLIST_FILE` is enabled, sets the value of the [NSCalendarsFullAccessUsageDescription](https://developer.apple.com/documentation/bundleresources/information_property_list/nscalendarsfullaccessusagedescription) key in the `Info.plist` file to the value of this build setting.";
             },
             {
-                Name = INFOPLIST_KEY_NSCalendarsWriteOnlyUsageDescription;
+                Name = INFOPLIST_KEY_NSCalendarsWriteOnlyAccessUsageDescription;
                 Type = String;
                 Category = "Info.plist Values";
                 DisplayName = "Privacy - Calendars Write Only Usage Description";
-                Description = "When `GENERATE_INFOPLIST_FILE` is enabled, sets the value of the [NSCalendarsWriteOnlyUsageDescription](https://developer.apple.com/documentation/bundleresources/information_property_list/nscalendarswriteonlyusagedescription) key in the `Info.plist` file to the value of this build setting.";
+                Description = "When `GENERATE_INFOPLIST_FILE` is enabled, sets the value of the [NSCalendarsWriteOnlyAccessUsageDescription](https://developer.apple.com/documentation/bundleresources/information_property_list/nscalendarswriteonlyaccessusagedescription) key in the `Info.plist` file to the value of this build setting.";
             },
             {
                 Name = INFOPLIST_KEY_NSCameraUsageDescription;

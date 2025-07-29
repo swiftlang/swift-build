@@ -1220,7 +1220,7 @@ public final class BuiltinMacros {
     public static let INFOPLIST_KEY_NSBluetoothWhileInUseUsageDescription = BuiltinMacros.declareStringMacro("INFOPLIST_KEY_NSBluetoothWhileInUseUsageDescription")
     public static let INFOPLIST_KEY_NSCalendarsUsageDescription = BuiltinMacros.declareStringMacro("INFOPLIST_KEY_NSCalendarsUsageDescription")
     public static let INFOPLIST_KEY_NSCalendarsFullAccessUsageDescription = BuiltinMacros.declareStringMacro("INFOPLIST_KEY_NSCalendarsFullAccessUsageDescription")
-    public static let INFOPLIST_KEY_NSCalendarsWriteOnlyUsageDescription = BuiltinMacros.declareStringMacro("INFOPLIST_KEY_NSCalendarsWriteOnlyAccessUsageDescription")
+    public static let INFOPLIST_KEY_NSCalendarsWriteOnlyAccessUsageDescription = BuiltinMacros.declareStringMacro("INFOPLIST_KEY_NSCalendarsWriteOnlyAccessUsageDescription")
     public static let INFOPLIST_KEY_NSCameraUsageDescription = BuiltinMacros.declareStringMacro("INFOPLIST_KEY_NSCameraUsageDescription")
     public static let INFOPLIST_KEY_NSContactsUsageDescription = BuiltinMacros.declareStringMacro("INFOPLIST_KEY_NSContactsUsageDescription")
     public static let INFOPLIST_KEY_NSCriticalMessagingUsageDescription = BuiltinMacros.declareStringMacro("INFOPLIST_KEY_NSCriticalMessagingUsageDescription")
@@ -2466,7 +2466,7 @@ public final class BuiltinMacros {
         INFOPLIST_KEY_NSBluetoothWhileInUseUsageDescription,
         INFOPLIST_KEY_NSCalendarsUsageDescription,
         INFOPLIST_KEY_NSCalendarsFullAccessUsageDescription,
-        INFOPLIST_KEY_NSCalendarsWriteOnlyUsageDescription,
+        INFOPLIST_KEY_NSCalendarsWriteOnlyAccessUsageDescription,
         INFOPLIST_KEY_NSCameraUsageDescription,
         INFOPLIST_KEY_NSContactsUsageDescription,
         INFOPLIST_KEY_NSCriticalMessagingUsageDescription,
