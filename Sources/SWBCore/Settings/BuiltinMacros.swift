@@ -1215,14 +1215,19 @@ public final class BuiltinMacros {
     public static let INFOPLIST_KEY_ITSAppUsesNonExemptEncryption = BuiltinMacros.declareBooleanMacro("INFOPLIST_KEY_ITSAppUsesNonExemptEncryption")
     public static let INFOPLIST_KEY_ITSEncryptionExportComplianceCode = BuiltinMacros.declareStringMacro("INFOPLIST_KEY_ITSEncryptionExportComplianceCode")
     public static let INFOPLIST_KEY_NFCReaderUsageDescription = BuiltinMacros.declareStringMacro("INFOPLIST_KEY_NFCReaderUsageDescription")
+    public static let INFOPLIST_KEY_NSAccessoryTrackingUsageDescription = BuiltinMacros.declareStringMacro("INFOPLIST_KEY_NSAccessoryTrackingUsageDescription")
+    public static let INFOPLIST_KEY_NSAppDataUsageDescription = BuiltinMacros.declareStringMacro("INFOPLIST_KEY_NSAppDataUsageDescription")
     public static let INFOPLIST_KEY_NSAppleEventsUsageDescription = BuiltinMacros.declareStringMacro("INFOPLIST_KEY_NSAppleEventsUsageDescription")
     public static let INFOPLIST_KEY_NSAppleMusicUsageDescription = BuiltinMacros.declareStringMacro("INFOPLIST_KEY_NSAppleMusicUsageDescription")
     public static let INFOPLIST_KEY_NSBluetoothAlwaysUsageDescription = BuiltinMacros.declareStringMacro("INFOPLIST_KEY_NSBluetoothAlwaysUsageDescription")
     public static let INFOPLIST_KEY_NSBluetoothPeripheralUsageDescription = BuiltinMacros.declareStringMacro("INFOPLIST_KEY_NSBluetoothPeripheralUsageDescription")
     public static let INFOPLIST_KEY_NSBluetoothWhileInUseUsageDescription = BuiltinMacros.declareStringMacro("INFOPLIST_KEY_NSBluetoothWhileInUseUsageDescription")
     public static let INFOPLIST_KEY_NSCalendarsUsageDescription = BuiltinMacros.declareStringMacro("INFOPLIST_KEY_NSCalendarsUsageDescription")
+    public static let INFOPLIST_KEY_NSCalendarsFullAccessUsageDescription = BuiltinMacros.declareStringMacro("INFOPLIST_KEY_NSCalendarsFullAccessUsageDescription")
+    public static let INFOPLIST_KEY_NSCalendarsWriteOnlyAccessUsageDescription = BuiltinMacros.declareStringMacro("INFOPLIST_KEY_NSCalendarsWriteOnlyAccessUsageDescription")
     public static let INFOPLIST_KEY_NSCameraUsageDescription = BuiltinMacros.declareStringMacro("INFOPLIST_KEY_NSCameraUsageDescription")
     public static let INFOPLIST_KEY_NSContactsUsageDescription = BuiltinMacros.declareStringMacro("INFOPLIST_KEY_NSContactsUsageDescription")
+    public static let INFOPLIST_KEY_NSCriticalMessagingUsageDescription = BuiltinMacros.declareStringMacro("INFOPLIST_KEY_NSCriticalMessagingUsageDescription")
     public static let INFOPLIST_KEY_NSDesktopFolderUsageDescription = BuiltinMacros.declareStringMacro("INFOPLIST_KEY_NSDesktopFolderUsageDescription")
     public static let INFOPLIST_KEY_NSDocumentsFolderUsageDescription = BuiltinMacros.declareStringMacro("INFOPLIST_KEY_NSDocumentsFolderUsageDescription")
     public static let INFOPLIST_KEY_NSDownloadsFolderUsageDescription = BuiltinMacros.declareStringMacro("INFOPLIST_KEY_NSDownloadsFolderUsageDescription")
@@ -1230,8 +1235,10 @@ public final class BuiltinMacros {
     public static let INFOPLIST_KEY_NSFallDetectionUsageDescription = BuiltinMacros.declareStringMacro("INFOPLIST_KEY_NSFallDetectionUsageDescription")
     public static let INFOPLIST_KEY_NSFileProviderDomainUsageDescription = BuiltinMacros.declareStringMacro("INFOPLIST_KEY_NSFileProviderDomainUsageDescription")
     public static let INFOPLIST_KEY_NSFileProviderPresenceUsageDescription = BuiltinMacros.declareStringMacro("INFOPLIST_KEY_NSFileProviderPresenceUsageDescription")
+    public static let INFOPLIST_KEY_NSFinancialDataUsageDescription = BuiltinMacros.declareStringMacro("INFOPLIST_KEY_NSFinancialDataUsageDescription")
     public static let INFOPLIST_KEY_NSFocusStatusUsageDescription = BuiltinMacros.declareStringMacro("INFOPLIST_KEY_NSFocusStatusUsageDescription")
     public static let INFOPLIST_KEY_NSGKFriendListUsageDescription = BuiltinMacros.declareStringMacro("INFOPLIST_KEY_NSGKFriendListUsageDescription")
+    public static let INFOPLIST_KEY_NSHandsTrackingUsageDescription = BuiltinMacros.declareStringMacro("INFOPLIST_KEY_NSHandsTrackingUsageDescription")
     public static let INFOPLIST_KEY_NSHealthClinicalHealthRecordsShareUsageDescription = BuiltinMacros.declareStringMacro("INFOPLIST_KEY_NSHealthClinicalHealthRecordsShareUsageDescription")
     public static let INFOPLIST_KEY_NSHealthShareUsageDescription = BuiltinMacros.declareStringMacro("INFOPLIST_KEY_NSHealthShareUsageDescription")
     public static let INFOPLIST_KEY_NSHealthUpdateUsageDescription = BuiltinMacros.declareStringMacro("INFOPLIST_KEY_NSHealthUpdateUsageDescription")
@@ -1243,6 +1250,7 @@ public final class BuiltinMacros {
     public static let INFOPLIST_KEY_NSLocationTemporaryUsageDescription = BuiltinMacros.declareStringMacro("INFOPLIST_KEY_NSLocationTemporaryUsageDescription")
     public static let INFOPLIST_KEY_NSLocationUsageDescription = BuiltinMacros.declareStringMacro("INFOPLIST_KEY_NSLocationUsageDescription")
     public static let INFOPLIST_KEY_NSLocationWhenInUseUsageDescription = BuiltinMacros.declareStringMacro("INFOPLIST_KEY_NSLocationWhenInUseUsageDescription")
+    public static let INFOPLIST_KEY_NSMainCameraUsageDescription = BuiltinMacros.declareStringMacro("INFOPLIST_KEY_NSMainCameraUsageDescription")
     public static let INFOPLIST_KEY_NSMicrophoneUsageDescription = BuiltinMacros.declareStringMacro("INFOPLIST_KEY_NSMicrophoneUsageDescription")
     public static let INFOPLIST_KEY_NSMotionUsageDescription = BuiltinMacros.declareStringMacro("INFOPLIST_KEY_NSMotionUsageDescription")
     public static let INFOPLIST_KEY_NSNearbyInteractionAllowOnceUsageDescription = BuiltinMacros.declareStringMacro("INFOPLIST_KEY_NSNearbyInteractionAllowOnceUsageDescription")
@@ -1251,6 +1259,7 @@ public final class BuiltinMacros {
     public static let INFOPLIST_KEY_NSPhotoLibraryAddUsageDescription = BuiltinMacros.declareStringMacro("INFOPLIST_KEY_NSPhotoLibraryAddUsageDescription")
     public static let INFOPLIST_KEY_NSPhotoLibraryUsageDescription = BuiltinMacros.declareStringMacro("INFOPLIST_KEY_NSPhotoLibraryUsageDescription")
     public static let INFOPLIST_KEY_NSRemindersUsageDescription = BuiltinMacros.declareStringMacro("INFOPLIST_KEY_NSRemindersUsageDescription")
+    public static let INFOPLIST_KEY_NSRemindersFullAccessUsageDescription = BuiltinMacros.declareStringMacro("INFOPLIST_KEY_NSRemindersFullAccessUsageDescription")
     public static let INFOPLIST_KEY_NSRemovableVolumesUsageDescription = BuiltinMacros.declareStringMacro("INFOPLIST_KEY_NSRemovableVolumesUsageDescription")
     public static let INFOPLIST_KEY_NSSensorKitPrivacyPolicyURL = BuiltinMacros.declareStringMacro("INFOPLIST_KEY_NSSensorKitPrivacyPolicyURL")
     public static let INFOPLIST_KEY_NSSensorKitUsageDescription = BuiltinMacros.declareStringMacro("INFOPLIST_KEY_NSSensorKitUsageDescription")
@@ -1261,6 +1270,7 @@ public final class BuiltinMacros {
     public static let INFOPLIST_KEY_NSUserTrackingUsageDescription = BuiltinMacros.declareStringMacro("INFOPLIST_KEY_NSUserTrackingUsageDescription")
     public static let INFOPLIST_KEY_NSVideoSubscriberAccountUsageDescription = BuiltinMacros.declareStringMacro("INFOPLIST_KEY_NSVideoSubscriberAccountUsageDescription")
     public static let INFOPLIST_KEY_NSVoIPUsageDescription = BuiltinMacros.declareStringMacro("INFOPLIST_KEY_NSVoIPUsageDescription")
+    public static let INFOPLIST_KEY_NSWorldSensingUsageDescription = BuiltinMacros.declareStringMacro("INFOPLIST_KEY_NSWorldSensingUsageDescription")
     public static let INFOPLIST_KEY_OSBundleUsageDescription = BuiltinMacros.declareStringMacro("INFOPLIST_KEY_OSBundleUsageDescription")
 
     // Info.plist Keys - macOS
@@ -2454,6 +2464,8 @@ public final class BuiltinMacros {
         // Info.plist Keys - Usage Descriptions
         INFOPLIST_KEY_ITSAppUsesNonExemptEncryption,
         INFOPLIST_KEY_ITSEncryptionExportComplianceCode,
+        INFOPLIST_KEY_NSAccessoryTrackingUsageDescription,
+        INFOPLIST_KEY_NSAppDataUsageDescription,
         INFOPLIST_KEY_NFCReaderUsageDescription,
         INFOPLIST_KEY_NSAppleEventsUsageDescription,
         INFOPLIST_KEY_NSAppleMusicUsageDescription,
@@ -2461,8 +2473,11 @@ public final class BuiltinMacros {
         INFOPLIST_KEY_NSBluetoothPeripheralUsageDescription,
         INFOPLIST_KEY_NSBluetoothWhileInUseUsageDescription,
         INFOPLIST_KEY_NSCalendarsUsageDescription,
+        INFOPLIST_KEY_NSCalendarsFullAccessUsageDescription,
+        INFOPLIST_KEY_NSCalendarsWriteOnlyAccessUsageDescription,
         INFOPLIST_KEY_NSCameraUsageDescription,
         INFOPLIST_KEY_NSContactsUsageDescription,
+        INFOPLIST_KEY_NSCriticalMessagingUsageDescription,
         INFOPLIST_KEY_NSDesktopFolderUsageDescription,
         INFOPLIST_KEY_NSDocumentsFolderUsageDescription,
         INFOPLIST_KEY_NSDownloadsFolderUsageDescription,
@@ -2470,8 +2485,10 @@ public final class BuiltinMacros {
         INFOPLIST_KEY_NSFallDetectionUsageDescription,
         INFOPLIST_KEY_NSFileProviderDomainUsageDescription,
         INFOPLIST_KEY_NSFileProviderPresenceUsageDescription,
+        INFOPLIST_KEY_NSFinancialDataUsageDescription,
         INFOPLIST_KEY_NSFocusStatusUsageDescription,
         INFOPLIST_KEY_NSGKFriendListUsageDescription,
+        INFOPLIST_KEY_NSHandsTrackingUsageDescription,
         INFOPLIST_KEY_NSHealthClinicalHealthRecordsShareUsageDescription,
         INFOPLIST_KEY_NSHealthShareUsageDescription,
         INFOPLIST_KEY_NSHealthUpdateUsageDescription,
@@ -2483,6 +2500,7 @@ public final class BuiltinMacros {
         INFOPLIST_KEY_NSLocationTemporaryUsageDescription,
         INFOPLIST_KEY_NSLocationUsageDescription,
         INFOPLIST_KEY_NSLocationWhenInUseUsageDescription,
+        INFOPLIST_KEY_NSMainCameraUsageDescription,
         INFOPLIST_KEY_NSMicrophoneUsageDescription,
         INFOPLIST_KEY_NSMotionUsageDescription,
         INFOPLIST_KEY_NSNearbyInteractionAllowOnceUsageDescription,
@@ -2491,6 +2509,7 @@ public final class BuiltinMacros {
         INFOPLIST_KEY_NSPhotoLibraryAddUsageDescription,
         INFOPLIST_KEY_NSPhotoLibraryUsageDescription,
         INFOPLIST_KEY_NSRemindersUsageDescription,
+        INFOPLIST_KEY_NSRemindersFullAccessUsageDescription,
         INFOPLIST_KEY_NSRemovableVolumesUsageDescription,
         INFOPLIST_KEY_NSSensorKitPrivacyPolicyURL,
         INFOPLIST_KEY_NSSensorKitUsageDescription,
@@ -2501,6 +2520,7 @@ public final class BuiltinMacros {
         INFOPLIST_KEY_NSUserTrackingUsageDescription,
         INFOPLIST_KEY_NSVideoSubscriberAccountUsageDescription,
         INFOPLIST_KEY_NSVoIPUsageDescription,
+        INFOPLIST_KEY_NSWorldSensingUsageDescription,
         INFOPLIST_KEY_OSBundleUsageDescription,
 
         // Info.plist Keys - macOS
