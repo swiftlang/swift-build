@@ -29,11 +29,11 @@ fileprivate struct DependencyVerificationTaskConstructionTests: CoreBasedTests {
         return "\(srcroot.str)/build/\(project).build/Debug/\(target).build/Objects-normal/x86_64/\(filename)"
     }
 
-    @Test(.requireSDKs(.macOS), .requireClangFeatures(.printHeadersDirectPerFile))
-    func addsTraceArgsWhenValidationEnabled() async throws {
+    @Test(.requireSDKs(.macOS), .requireClangFeatures(.printHeadersDirectPerFile), arguments: ["MODULE", "HEADER"])
+    func addsTraceArgsWhenValidationEnabled(depKind: String) async throws {
         try await testWith([
-            "MODULE_DEPENDENCIES": "Foo",
-            "VALIDATE_MODULE_DEPENDENCIES": "YES_ERROR"
+            "\(depKind)_DEPENDENCIES": "Foo",
+            "VALIDATE_\(depKind)_DEPENDENCIES": "YES_ERROR"
         ]) { tester, srcroot in
             await tester.checkBuild(runDestination: .macOS, fs: localFS) { results in
                 results.checkTask(.compileC(target, fileName: source)) { task in

@@ -620,4 +620,69 @@ fileprivate struct DependencyValidationTests: CoreBasedTests {
         }
     }
 
+    @Test(.requireSDKs(.host), .requireClangFeatures(.printHeadersDirectPerFile), arguments: ["YES", "NO"])
+    func validateHeaderDependencies(enableModules: String) async throws {
+        try await withTemporaryDirectory { tmpDir async throws -> Void in
+            let testWorkspace = TestWorkspace(
+                "Test",
+                sourceRoot: tmpDir.join("Test"),
+                projects: [
+                    TestProject(
+                        "aProject",
+                        groupTree: TestGroup(
+                            "Sources", path: "Sources",
+                            children: [
+                                TestFile("CoreFoo.c")
+                            ]),
+                        buildConfigurations: [
+                            TestBuildConfiguration(
+                                "Debug",
+                                buildSettings: [
+                                    "PRODUCT_NAME": "$(TARGET_NAME)",
+                                    "CLANG_ENABLE_MODULES": enableModules,
+                                    "CLANG_ENABLE_EXPLICIT_MODULES": enableModules,
+                                    "GENERATE_INFOPLIST_FILE": "YES",
+                                    "HEADER_DEPENDENCIES": "stdio.h",
+                                    "VALIDATE_HEADER_DEPENDENCIES": "YES_ERROR",
+                                    "SDKROOT": "$(HOST_PLATFORM)",
+                                    "SUPPORTED_PLATFORMS": "$(HOST_PLATFORM)",
+                                    "DSTROOT": tmpDir.join("dstroot").str,
+                                ]
+                            )
+                        ],
+                        targets: [
+                            TestStandardTarget(
+                                "CoreFoo", type: .framework,
+                                buildPhases: [
+                                    TestSourcesBuildPhase(["CoreFoo.c"]),
+                                    TestFrameworksBuildPhase()
+                                ])
+                        ])
+                ]
+            )
+
+            let tester = try await BuildOperationTester(getCore(), testWorkspace, simulated: false)
+            let SRCROOT = testWorkspace.sourceRoot.join("aProject")
+
+            // Write the source files.
+            try await tester.fs.writeFileContents(SRCROOT.join("Sources/CoreFoo.c")) { contents in
+                contents <<< """
+                    #include <stdio.h>
+                    #include <stdlib.h>
+
+                    void f0(void) { };
+                """
+            }
+
+            // Expect complaint about undeclared dependency
+            try await tester.checkBuild(parameters: BuildParameters(configuration: "Debug"), runDestination: .host, persistent: true) { results in
+                results.checkError(.contains("Missing entries in HEADER_DEPENDENCIES: stdlib.h"))
+            }
+
+            // Declaring dependencies resolves the problem
+            try await tester.checkBuild(parameters: BuildParameters(configuration: "Debug", overrides: ["HEADER_DEPENDENCIES": "stdio.h stdlib.h"]), runDestination: .host, persistent: true) { results in
+                results.checkNoErrors()
+            }
+        }
+    }
 }

@@ -26,7 +26,7 @@ public final class ValidateDependenciesTaskAction: TaskAction {
             return .failed
         }
 
-        guard let context = (task.payload as? ValidateDependenciesPayload)?.moduleDependenciesContext else {
+        guard let payload = (task.payload as? ValidateDependenciesPayload) else {
             if let payload = task.payload {
                 outputDelegate.emitError("invalid task payload: \(payload)")
             } else {
@@ -36,7 +36,8 @@ public final class ValidateDependenciesTaskAction: TaskAction {
         }
 
         do {
-            var allClangFiles = Set<String>()
+            var allClangIncludes = Set<Path>()
+            var allClangImports = Set<DependencyValidationInfo.Import>()
             var allSwiftImports = Set<DependencyValidationInfo.Import>()
             var unsupported = false
 
@@ -45,9 +46,12 @@ public final class ValidateDependenciesTaskAction: TaskAction {
                 let info = try JSONDecoder().decode(DependencyValidationInfo.self, from: inputData)
 
                 switch info.payload {
-                case .clangDependencies(let files):
-                    files.forEach {
-                        allClangFiles.insert($0)
+                case .clangDependencies(let imports, let includes):
+                    imports.forEach {
+                        allClangImports.insert($0)
+                    }
+                    includes.forEach {
+                        allClangIncludes.insert($0)
                     }
                 case .swiftDependencies(let imports):
                     imports.forEach {
@@ -60,33 +64,42 @@ public final class ValidateDependenciesTaskAction: TaskAction {
 
             var diagnostics: [Diagnostic] = []
 
-            if unsupported {
-                diagnostics.append(contentsOf: context.makeDiagnostics(missingDependencies: nil))
-            } else {
-                let clangMissingDeps = context.computeMissingDependencies(files: allClangFiles.map { Path($0) })
-                let swiftMissingDeps = context.computeMissingDependencies(imports: allSwiftImports.map { ($0.dependency, $0.importLocations) })
+            if let moduleContext = payload.moduleDependenciesContext {
+                if unsupported {
+                    diagnostics.append(contentsOf: moduleContext.makeDiagnostics(missingDependencies: nil))
+                } else {
+                    let clangMissingDeps = moduleContext.computeMissingDependencies(imports: allClangImports.map { ($0.dependency, $0.importLocations) }, fromSwift: false)
+                    let swiftMissingDeps = moduleContext.computeMissingDependencies(imports: allSwiftImports.map { ($0.dependency, $0.importLocations) }, fromSwift: true)
 
-                // Update Swift dependencies with information from Clang dependencies on the same module.
-                var clangMissingDepsByName = [String: (ModuleDependency, importLocations: [Diagnostic.Location])]()
-                clangMissingDeps?.forEach {
-                    clangMissingDepsByName[$0.0.name] = $0
-                }
-                let updatedSwiftMissingDeps: [(ModuleDependency, importLocations: [Diagnostic.Location])] = swiftMissingDeps?.map {
-                    if let clangMissingDep = clangMissingDepsByName[$0.0.name] {
-                        return (
-                            ModuleDependency(name: $0.0.name, accessLevel: max($0.0.accessLevel, clangMissingDep.0.accessLevel)),
-                            $0.importLocations + clangMissingDep.importLocations
-                        )
-                    } else {
-                        return $0
+                    // Update Swift dependencies with information from Clang dependencies on the same module.
+                    var clangMissingDepsByName = [String: (ModuleDependency, importLocations: [Diagnostic.Location])]()
+                    clangMissingDeps?.forEach {
+                        clangMissingDepsByName[$0.0.name] = $0
                     }
-                } ?? []
+                    let updatedSwiftMissingDeps: [(ModuleDependency, importLocations: [Diagnostic.Location])] = swiftMissingDeps?.map {
+                        if let clangMissingDep = clangMissingDepsByName[$0.0.name] {
+                            return (
+                                ModuleDependency(name: $0.0.name, accessLevel: max($0.0.accessLevel, clangMissingDep.0.accessLevel)),
+                                $0.importLocations + clangMissingDep.importLocations
+                            )
+                        } else {
+                            return $0
+                        }
+                    } ?? []
 
-                // Filter missing C dependencies by known Swift dependencies to avoid duplicate diagnostics.
-                let swiftImports = Set(allSwiftImports.map { $0.dependency.name })
-                let uniqueClangMissingDeps = clangMissingDeps?.filter { !swiftImports.contains($0.0.name) } ?? []
+                    // Filter missing C dependencies by known Swift dependencies to avoid duplicate diagnostics.
+                    let swiftImports = Set(allSwiftImports.map { $0.dependency.name })
+                    let uniqueClangMissingDeps = clangMissingDeps?.filter { !swiftImports.contains($0.0.name) } ?? []
 
-                diagnostics.append(contentsOf: context.makeDiagnostics(missingDependencies: uniqueClangMissingDeps + updatedSwiftMissingDeps))
+                    diagnostics.append(contentsOf: moduleContext.makeDiagnostics(missingDependencies: uniqueClangMissingDeps + updatedSwiftMissingDeps))
+                }
+            }
+            if let headerContext = payload.headerDependenciesContext {
+                if unsupported {
+                    diagnostics.append(contentsOf: headerContext.makeDiagnostics(includes: nil))
+                } else {
+                    diagnostics.append(contentsOf: headerContext.makeDiagnostics(includes: Array(allClangIncludes)))
+                }
             }
 
             for diagnostic in diagnostics {

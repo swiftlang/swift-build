@@ -337,6 +337,7 @@ public protocol TaskActionCreationDelegate
     func createValidateProductTaskAction() -> any PlannedTaskAction
     func createConstructStubExecutorInputFileListTaskAction() -> any PlannedTaskAction
     func createClangCompileTaskAction() -> any PlannedTaskAction
+    func createClangNonModularCompileTaskAction() -> any PlannedTaskAction
     func createClangScanTaskAction() -> any PlannedTaskAction
     func createSwiftDriverTaskAction() -> any PlannedTaskAction
     func createSwiftCompilationRequirementTaskAction() -> any PlannedTaskAction
