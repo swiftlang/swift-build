@@ -105,17 +105,17 @@ public struct ModuleDependenciesContext: Sendable, SerializableCodable {
 
         let moduleDependencyNames = moduleDependencies.map { $0.name }
         let fileNames = files.compactMap { findFrameworkName($0) }
-        let missingDeps = fileNames.filter {
+        let missingDeps = Set(fileNames.filter {
             return !moduleDependencyNames.contains($0)
         }.map {
             ModuleDependency(name: $0, accessLevel: .Private)
-        }
+        })
 
         guard !missingDeps.isEmpty else { return [] }
 
         let behavior: Diagnostic.Behavior = validate == .yesError ? .error : .warning
 
-        let fixIt = fixItContext?.makeFixIt(newModules: missingDeps)
+        let fixIt = fixItContext?.makeFixIt(newModules: Array(missingDeps))
         let fixIts = fixIt.map { [$0] } ?? []
 
         let message = "Missing entries in \(BuiltinMacros.MODULE_DEPENDENCIES.name): \(missingDeps.map { $0.asBuildSettingEntryQuotedIfNeeded }.sorted().joined(separator: " "))"
