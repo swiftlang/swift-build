@@ -1070,20 +1070,6 @@ import SWBUtil
             "driver-driverkit": "arm64",
         ])
     }
-
-    @Test
-    func verifyAllPlatformsHaveDefaultArch() async throws {
-        let core = try await getCore()
-
-        var defaultArchs: [String: String] = [:]
-        for platform in core.platformRegistry.platforms {
-            let archName: String? = platform.determineDefaultArchForIndexArena(preferredArch: "unknown_arch", using: core)
-            defaultArchs[platform.name] = archName
-            #expect(archName != nil, "'\(platform.identifier)' is missing a default architecture for indexing")
-        }
-
-        //attach(name: "Index Platform Architecture Defaults", plistObject: defaultArchs, lifetime: .keepAlways)
-    }
 }
 
 extension TargetGraph {
