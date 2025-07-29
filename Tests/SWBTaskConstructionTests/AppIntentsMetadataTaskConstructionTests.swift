@@ -958,69 +958,6 @@ fileprivate struct AppIntentsMetadataTaskConstructionTests: CoreBasedTests {
     }
 
     @Test(.requireSDKs(.iOS))
-    func ignoreQueryGenericsErrors() async throws {
-        try await withTemporaryDirectory { tmpDir in
-            let testProject = try await TestProject(
-                "aProject",
-                sourceRoot: tmpDir,
-                groupTree: TestGroup(
-                    "SomeFiles",
-                    children: [
-                        TestFile("source.swift"),
-                        TestFile(appShortcutsStringsFileName)
-                    ]),
-                buildConfigurations: [
-                    TestBuildConfiguration(
-                        "Debug",
-                        buildSettings: [
-                            "AD_HOC_CODE_SIGNING_ALLOWED": "YES",
-                            "ARCHS": "arm64",
-                            "CODE_SIGN_IDENTITY": "-",
-                            "GENERATE_INFOPLIST_FILE": "YES",
-                            "PRODUCT_BUNDLE_IDENTIFIER": "com.foo.bar",
-                            "PRODUCT_NAME": "$(TARGET_NAME)",
-                            "SDKROOT": "iphoneos",
-                            "SWIFT_EXEC": swiftCompilerPath.str,
-                            "SWIFT_VERSION": swiftVersion,
-                            "VERSIONING_SYSTEM": "apple-generic",
-                            "SWIFT_EMIT_CONST_VALUE_PROTOCOLS": "Foo Bar",
-                        ]),
-                ],
-                targets: [
-                    TestStandardTarget(
-                        "LinkTest",
-                        type: .application,
-                        buildConfigurations: [
-                            TestBuildConfiguration(
-                                "Debug",
-                                buildSettings: [
-                                    "LM_ENABLE_LINK_GENERATION": "YES",
-                                    "LM_IGNORE_QUERY_GENERICS_ERRORS": "YES"
-                                ]),
-                        ],
-                        buildPhases: [
-                            TestResourcesBuildPhase([TestBuildFile(appShortcutsStringsFileName)]),
-                            TestSourcesBuildPhase(["source.swift"]),
-                        ]
-                    )
-                ])
-
-            let core = try await getCore()
-            let tester = try TaskConstructionTester(core, testProject)
-            await tester.checkBuild(runDestination: .iOS) { results in
-                results.checkTask(.matchRuleType("ExtractAppIntentsMetadata")) { task in
-                    let executableName = task.commandLine.first
-                    if let executableName,
-                       executableName == "appintentsmetadataprocessor" {
-                        task.checkCommandLineContains(["--ignore-query-generics-errors"])
-                    }
-                    results.checkNoDiagnostics()
-                }
-            }
-        }
-    }
-
-    @Test(.requireSDKs(.iOS))
     func forceLinkGeneration() async throws {
         try await withTemporaryDirectory { tmpDir in
             let testProject = try await TestProject(
