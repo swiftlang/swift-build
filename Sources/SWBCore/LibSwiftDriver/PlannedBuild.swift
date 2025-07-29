@@ -529,6 +529,16 @@ extension LibSwiftDriver {
             }
         }
 
+        public func getCrashReproducerCommand(for job: PlannedSwiftDriverJob, output dir: Path) async throws -> [String]? {
+            try await dispatchQueue.sync {
+                let driverJob = try self.driverJob(for: job)
+                guard let reproJob = self.jobExecutionDelegate?.getReproducerJob(job: driverJob, output: try VirtualPath(path: dir.str)) else {
+                  return nil
+                }
+                return try self.argsResolver.resolveArgumentList(for: reproJob, useResponseFiles: .heuristic)
+            }
+        }
+
         public func getDiscoveredJobsAfterFinishing(job: PlannedSwiftDriverJob) throws -> [PlannedSwiftDriverJob] {
 
             dispatchQueue.blocking_sync {
