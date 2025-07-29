@@ -25,7 +25,7 @@ import System
 import SystemPackage
 #endif
 
-@Suite(.skipHostOS(.windows))
+@Suite
 fileprivate struct ServiceConsoleTests {
     @Test
     func emptyInput() async throws {
