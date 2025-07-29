@@ -623,26 +623,20 @@ extension SpecializationParameters {
 
     /// Determines whether a target should be configured for the given platform in the index arena.
     ///
-    /// The arena is used for two purposes:
-    ///   1. To retrieve settings for a given target
-    ///   2. To produce products of source dependencies for compilation purposes (it does not produce binaries)
+    /// When building a workspace build description, we configure for all possible platforms. As such,
+    /// we want to avoid unnecessarily configuring targets for unsupported platforms. When building a
+    /// target or package description, we are only configuring for a single platform and can therefore
+    /// avoid this check since we assume any dependency will necessary.
     ///
-    /// Thus, in general if a target doesn't support a platform, we don't want to configure it for that platform. If a
-    /// dependency is not supported for the platform of the dependent, presumably the dependent will not be able
-    /// to use its products for compilation purposes, since the source products will be put in a different platform
-    /// directory and/or they will not be usable by the dependent (e.g. the module will not be importable from a
-    /// different platform). If the dependency was intended to be usable from that platform for compilation purposes,
-    /// it would be a supported platform.
-    ///
-    /// There's an exception for this for a dependent host tool, which are required for compilation and must therefore
-    /// be configured (and registered as a dependency) regardless.
-    nonisolated func isTargetSuitableForPlatformForIndex(_ target: Target, parameters: BuildParameters, imposedParameters: SpecializationParameters?, dependencies: OrderedSet<ConfiguredTarget>? = nil) -> Bool {
-        if !buildRequest.enableIndexBuildArena {
-            return true
-        }
+    /// Note there's an exception for this for host build tools, which are required for compilation
+    /// and must therefore be configured (and registered as a dependency) regardless
+    nonisolated func isTargetSuitableForPlatformForIndex(_ target: Target, parameters: BuildParameters, imposedParameters: SpecializationParameters?) -> Bool {
+        guard buildRequest.buildsIndexWorkspaceDescription else { return true }
 
-        // Host tools case, always supported we'll override the parameters with that of the host regardless.
-        if target.isHostBuildTool || dependencies?.contains(where: { $0.target.isHostBuildTool }) == true {
+        // Host tools case, always supported since we'll override the parameters with that of the
+        // host regardless. Any dependencies will have the host platform imposed on them through
+        // `imposedParameters`.
+        if target.isHostBuildTool {
             return true
         }
 
