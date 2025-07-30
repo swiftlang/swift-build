@@ -405,9 +405,7 @@ extension FSProxy {
         // Many filesystems on other platforms (e.g. various non-ext4 temporary filesystems on Linux) don't support xattrs and will return ENOTSUP.
         // In particular, tmpfs doesn't support xattrs on Linux unless `CONFIG_TMPFS_XATTR` is enabled in the kernel config.
         // FIXME: Detect whether the FS supports xattrs at runtime
-        #if canImport(Darwin)
         try setExtendedAttribute(path, key: Self.CreatedByBuildSystemAttribute, value: Self.CreatedByBuildSystemAttributeOnValue)
-        #endif
     }
 
     public func commandLineArgumentsToApplyCreatedByBuildSystemAttribute(to path: Path) -> [String] {

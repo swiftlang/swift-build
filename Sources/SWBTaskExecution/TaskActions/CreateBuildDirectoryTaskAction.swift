@@ -28,12 +28,22 @@ public final class CreateBuildDirectoryTaskAction: TaskAction {
 
         do {
             try fs.createDirectory(directoryPath, recursive: true)
-            try fs.setCreatedByBuildSystemAttribute(directoryPath)
-            return .succeeded
         } catch {
             outputDelegate?.emitError(error.localizedDescription)
             return .failed
         }
+
+        // Warn on darwin if we are unable to set the "CreateByBuildSystem"
+        // attribute
+        do {
+            try fs.setCreatedByBuildSystemAttribute(directoryPath)
+        } catch {
+            #if canImport(Darwin)
+            outputDelegate?.emitWarning("Failed to set build system attribute on \(directoryPath.str): \(error.localizedDescription)")
+            #endif
+        }
+
+        return .succeeded
     }
 
     public override func performTaskAction(
