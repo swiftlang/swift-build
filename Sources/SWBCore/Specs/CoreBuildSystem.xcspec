@@ -3913,6 +3913,20 @@ When this setting is enabled:
                 Description = "When `GENERATE_INFOPLIST_FILE` is enabled, sets the value of the [NFCReaderUsageDescription](https://developer.apple.com/documentation/bundleresources/information_property_list/nfcreaderusagedescription) key in the `Info.plist` file to the value of this build setting.";
             },
             {
+                Name = INFOPLIST_KEY_NSAccessoryTrackingUsageDescription;
+                Type = String;
+                Category = "Info.plist Values";
+                DisplayName = "Privacy - Accessory Tracking Usage Description";
+                Description = "When `GENERATE_INFOPLIST_FILE` is enabled, sets the value of the [NSAccessoryTrackingUsageDescription](https://developer.apple.com/documentation/bundleresources/information_property_list/nsaccessorytrackingusagedescription) key in the `Info.plist` file to the value of this build setting.";
+            },
+            {
+                Name = INFOPLIST_KEY_NSAppDataUsageDescription;
+                Type = String;
+                Category = "Info.plist Values";
+                DisplayName = "Privacy - Other Application Data Usage Description";
+                Description = "When `GENERATE_INFOPLIST_FILE` is enabled, sets the value of the [NSAppDataUsageDescription](https://developer.apple.com/documentation/bundleresources/information_property_list/nsappdatausagedescription) key in the `Info.plist` file to the value of this build setting.";
+            },
+            {
                 Name = INFOPLIST_KEY_NSAppleEventsUsageDescription;
                 Type = String;
                 Category = "Info.plist Values";
@@ -3955,6 +3969,20 @@ When this setting is enabled:
                 Description = "When `GENERATE_INFOPLIST_FILE` is enabled, sets the value of the [NSCalendarsUsageDescription](https://developer.apple.com/documentation/bundleresources/information_property_list/nscalendarsusagedescription) key in the `Info.plist` file to the value of this build setting.";
             },
             {
+                Name = INFOPLIST_KEY_NSCalendarsFullAccessUsageDescription;
+                Type = String;
+                Category = "Info.plist Values";
+                DisplayName = "Privacy - Calendars Full Access Usage Description";
+                Description = "When `GENERATE_INFOPLIST_FILE` is enabled, sets the value of the [NSCalendarsFullAccessUsageDescription](https://developer.apple.com/documentation/bundleresources/information_property_list/nscalendarsfullaccessusagedescription) key in the `Info.plist` file to the value of this build setting.";
+            },
+            {
+                Name = INFOPLIST_KEY_NSCalendarsWriteOnlyAccessUsageDescription;
+                Type = String;
+                Category = "Info.plist Values";
+                DisplayName = "Privacy - Calendars Write Only Usage Description";
+                Description = "When `GENERATE_INFOPLIST_FILE` is enabled, sets the value of the [NSCalendarsWriteOnlyAccessUsageDescription](https://developer.apple.com/documentation/bundleresources/information_property_list/nscalendarswriteonlyaccessusagedescription) key in the `Info.plist` file to the value of this build setting.";
+            },
+            {
                 Name = INFOPLIST_KEY_NSCameraUsageDescription;
                 Type = String;
                 Category = "Info.plist Values";
@@ -3967,6 +3995,13 @@ When this setting is enabled:
                 Category = "Info.plist Values";
                 DisplayName = "Privacy - Contacts Usage Description";
                 Description = "When `GENERATE_INFOPLIST_FILE` is enabled, sets the value of the [NSContactsUsageDescription](https://developer.apple.com/documentation/bundleresources/information_property_list/nscontactsusagedescription) key in the `Info.plist` file to the value of this build setting.";
+            },
+            {
+                Name = INFOPLIST_KEY_NSCriticalMessagingUsageDescription;
+                Type = String;
+                Category = "Info.plist Values";
+                DisplayName = "Privacy - Critical Messaging Usage Description";
+                Description = "When `GENERATE_INFOPLIST_FILE` is enabled, sets the value of the [NSCriticalMessagingUsageDescription](https://developer.apple.com/documentation/bundleresources/information_property_list/nscriticalmessagingusagedescription) key in the `Info.plist` file to the value of this build setting.";
             },
             {
                 Name = INFOPLIST_KEY_NSDesktopFolderUsageDescription;
@@ -4018,6 +4053,13 @@ When this setting is enabled:
                 Description = "When `GENERATE_INFOPLIST_FILE` is enabled, sets the value of the NSFileProviderPresenceUsageDescription key in the `Info.plist` file to the value of this build setting.";
             },
             {
+                Name = INFOPLIST_KEY_NSFinancialDataUsageDescription;
+                Type = String;
+                Category = "Info.plist Values";
+                DisplayName = "Privacy - Financial Data Usage Description";
+                Description = "When `GENERATE_INFOPLIST_FILE` is enabled, sets the value of the [NSFinancialDataUsageDescription](https://developer.apple.com/documentation/bundleresources/information_property_list/nsfinancialdatausagedescription) key in the `Info.plist` file to the value of this build setting.";
+            },
+            {
                 Name = INFOPLIST_KEY_NSFocusStatusUsageDescription;
                 Type = String;
                 Category = "Info.plist Values";
@@ -4030,6 +4072,13 @@ When this setting is enabled:
                 Category = "Info.plist Values";
                 DisplayName = "Privacy - GameKit Friend List Usage Description";
                 Description = "When `GENERATE_INFOPLIST_FILE` is enabled, sets the value of the [NSGKFriendListUsageDescription](https://developer.apple.com/documentation/bundleresources/information_property_list/nsgkfriendlistusagedescription) key in the `Info.plist` file to the value of this build setting.";
+            },
+            {
+                Name = INFOPLIST_KEY_NSHandsTrackingUsageDescription;
+                Type = String;
+                Category = "Info.plist Values";
+                DisplayName = "Privacy - Hands Tracking Usage Description";
+                Description = "When `GENERATE_INFOPLIST_FILE` is enabled, sets the value of the [NSHandsTrackingUsageDescription](https://developer.apple.com/documentation/bundleresources/information_property_list/nshandstrackingusagedescription) key in the `Info.plist` file to the value of this build setting.";
             },
             {
                 Name = INFOPLIST_KEY_NSHealthClinicalHealthRecordsShareUsageDescription;
@@ -4109,6 +4158,13 @@ When this setting is enabled:
                 Description = "When `GENERATE_INFOPLIST_FILE` is enabled, sets the value of the [NSLocationWhenInUseUsageDescription](https://developer.apple.com/documentation/bundleresources/information_property_list/nslocationwheninuseusagedescription) key in the `Info.plist` file to the value of this build setting.";
             },
             {
+                Name = INFOPLIST_KEY_NSMainCameraUsageDescription;
+                Type = String;
+                Category = "Info.plist Values";
+                DisplayName = "Privacy - Main Camera Usage Description";
+                Description = "When `GENERATE_INFOPLIST_FILE` is enabled, sets the value of the [NSMainCameraUsageDescription](https://developer.apple.com/documentation/bundleresources/information_property_list/nsmaincamerausagedescription) key in the `Info.plist` file to the value of this build setting.";
+            },
+            {
                 Name = INFOPLIST_KEY_NSMicrophoneUsageDescription;
                 Type = String;
                 Category = "Info.plist Values";
@@ -4163,6 +4219,13 @@ When this setting is enabled:
                 Category = "Info.plist Values";
                 DisplayName = "Privacy - Reminders Usage Description";
                 Description = "When `GENERATE_INFOPLIST_FILE` is enabled, sets the value of the [NSRemindersUsageDescription](https://developer.apple.com/documentation/bundleresources/information_property_list/nsremindersusagedescription) key in the `Info.plist` file to the value of this build setting.";
+            },
+            {
+                Name = INFOPLIST_KEY_NSRemindersFullAccessUsageDescription;
+                Type = String;
+                Category = "Info.plist Values";
+                DisplayName = "Privacy - Reminders Full Access Usage Description";
+                Description = "When `GENERATE_INFOPLIST_FILE` is enabled, sets the value of the [NSRemindersFullAccessUsageDescription](https://developer.apple.com/documentation/bundleresources/information_property_list/nsremindersfullaccessusagedescription) key in the `Info.plist` file to the value of this build setting.";
             },
             {
                 Name = INFOPLIST_KEY_NSRemovableVolumesUsageDescription;
@@ -4233,6 +4296,13 @@ When this setting is enabled:
                 Category = "Info.plist Values";
                 DisplayName = "Privacy - VoIP Usage Description";
                 Description = "When `GENERATE_INFOPLIST_FILE` is enabled, sets the value of the NSVoIPUsageDescription key in the `Info.plist` file to the value of this build setting.";
+            },
+            {
+                Name = INFOPLIST_KEY_NSWorldSensingUsageDescription;
+                Type = String;
+                Category = "Info.plist Values";
+                DisplayName = "Privacy - World Sensing Usage Description";
+                Description = "When `GENERATE_INFOPLIST_FILE` is enabled, sets the value of the [NSWorldSensingUsageDescription](https://developer.apple.com/documentation/bundleresources/information_property_list/nsworldsensingusagedescription) key in the `Info.plist` file to the value of this build setting.";
             },
             {
                 Name = INFOPLIST_KEY_OSBundleUsageDescription;
