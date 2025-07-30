@@ -191,7 +191,7 @@ public struct CodeSignatureInfo: Codable, Sendable {
 
         let result2 = SecCodeCopySigningInformation(code!, [SecCSFlags(rawValue: kSecCSSigningInformation)], &info)
         if result2 != 0 {
-            throw MacError(result)
+            throw MacError(result2)
         }
 
         if !skipValidation {

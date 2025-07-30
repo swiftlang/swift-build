@@ -536,7 +536,7 @@
                 FileTypes = (
                     "sourcecode.c.c",
                 );
-                DefaultValue = NO;
+                DefaultValue = "$(ENABLE_C_BOUNDS_SAFETY)";
                 CommandLineArgs = {
                     YES = ( "-fbounds-safety" );
                     NO  = ();
@@ -640,14 +640,74 @@
                 Category = LanguageCXX;
             },
             {
-                Name = __LIBRARY_HARDENING_DEFAULT_VALUE_0;
+                Name = __ENHANCED_SECURITY_OR_BOUNDS_SAFE_BUFFERS_YES_YES;
+                Type = String;
+                DefaultValue = "YES";
+            },
+            {
+                Name = __ENHANCED_SECURITY_OR_BOUNDS_SAFE_BUFFERS_YES_NO;
+                Type = String;
+                DefaultValue = "YES";
+            },
+            {
+                Name = __ENHANCED_SECURITY_OR_BOUNDS_SAFE_BUFFERS_NO_YES;
+                Type = String;
+                DefaultValue = "YES";
+            },
+            {
+                Name = __ENHANCED_SECURITY_OR_BOUNDS_SAFE_BUFFERS_NO_NO;
+                Type = String;
+                DefaultValue = "NO";
+            },
+            {
+                Name = __ENHANCED_SECURITY_OR_BOUNDS_SAFE_BUFFERS;
+                Type = String;
+                DefaultValue = "$(__ENHANCED_SECURITY_OR_BOUNDS_SAFE_BUFFERS_$(ENABLE_ENHANCED_SECURITY)_$(ENABLE_CPLUSPLUS_BOUNDS_SAFE_BUFFERS))";
+            },
+            {
+                Name = __LIBRARY_HARDENING_DEFAULT_VALUE_OPT_LEVEL_0_ENHANCED_SECURITY_OR_BOUNDS_SAFE_BUFFERS_YES;
                 Type = String;
                 DefaultValue = "debug";
             },
             {
+                Name = __LIBRARY_HARDENING_DEFAULT_VALUE_OPT_LEVEL_0_ENHANCED_SECURITY_OR_BOUNDS_SAFE_BUFFERS_NO;
+                Type = String;
+                DefaultValue = "debug";
+            },
+            {
+                Name = __LIBRARY_HARDENING_DEFAULT_VALUE_OPT_LEVEL_1_ENHANCED_SECURITY_OR_BOUNDS_SAFE_BUFFERS_YES;
+                Type = String;
+                DefaultValue = "fast";
+            },
+            {
+                Name = __LIBRARY_HARDENING_DEFAULT_VALUE_OPT_LEVEL_2_ENHANCED_SECURITY_OR_BOUNDS_SAFE_BUFFERS_YES;
+                Type = String;
+                DefaultValue = "fast";
+            },
+            {
+                Name = __LIBRARY_HARDENING_DEFAULT_VALUE_OPT_LEVEL_3_ENHANCED_SECURITY_OR_BOUNDS_SAFE_BUFFERS_YES;
+                Type = String;
+                DefaultValue = "fast";
+            },
+            {
+                Name = __LIBRARY_HARDENING_DEFAULT_VALUE_OPT_LEVEL_s_ENHANCED_SECURITY_OR_BOUNDS_SAFE_BUFFERS_YES;
+                Type = String;
+                DefaultValue = "fast";
+            },
+            {
+                Name = __LIBRARY_HARDENING_DEFAULT_VALUE_OPT_LEVEL_fast_ENHANCED_SECURITY_OR_BOUNDS_SAFE_BUFFERS_YES;
+                Type = String;
+                DefaultValue = "fast";
+            },
+            {
+                Name = __LIBRARY_HARDENING_DEFAULT_VALUE_OPT_LEVEL_z_ENHANCED_SECURITY_OR_BOUNDS_SAFE_BUFFERS_YES;
+                Type = String;
+                DefaultValue = "fast";
+            },
+            {
                 Name = __LIBRARY_HARDENING_DEFAULT_VALUE;
                 Type = String;
-                DefaultValue = "$(__LIBRARY_HARDENING_DEFAULT_VALUE_$(GCC_OPTIMIZATION_LEVEL))";
+                DefaultValue = "$(__LIBRARY_HARDENING_DEFAULT_VALUE_OPT_LEVEL_$(GCC_OPTIMIZATION_LEVEL)_ENHANCED_SECURITY_OR_BOUNDS_SAFE_BUFFERS_$(__ENHANCED_SECURITY_OR_BOUNDS_SAFE_BUFFERS))";
             },
             {
                 Name = "CLANG_CXX_STANDARD_LIBRARY_HARDENING";
@@ -737,10 +797,25 @@
                 Category = LanguageCXX;
             },
             {
+                Name = "_UNSAFE_BUFFER_USAGE_DEFAULT_ENABLE_SAFE_BUFFERS_NO";
+                Type = String;
+                DefaultValue = "DEFAULT";
+            },
+            {
+                Name = "_UNSAFE_BUFFER_USAGE_DEFAULT_ENABLE_SAFE_BUFFERS_YES";
+                Type = String;
+                DefaultValue = "YES_ERROR";
+            },
+            {
+                Name = "_UNSAFE_BUFFER_USAGE_DEFAULT";
+                Type = String;
+                DefaultValue = "$(_UNSAFE_BUFFER_USAGE_DEFAULT_ENABLE_SAFE_BUFFERS_$(ENABLE_CPLUSPLUS_BOUNDS_SAFE_BUFFERS))";
+            },
+            {
                 Name = "CLANG_WARN_UNSAFE_BUFFER_USAGE";
                 Type = Enumeration;
                 Values = ( DEFAULT, YES, YES_ERROR, NO );
-                DefaultValue = DEFAULT;
+                DefaultValue = "$(_UNSAFE_BUFFER_USAGE_DEFAULT)";
                 CommandLineArgs = {
                     DEFAULT = ();
                     NO = ( "-Wno-unsafe-buffer-usage" );
@@ -801,7 +876,7 @@
             {
                 Name = "GCC_OPTIMIZATION_LEVEL";
                 Type = Enumeration;
-                // NOTE: Updating these values requires updating LLVM_OPTIMIZATION_LEVEL_VAL_X.
+                // NOTE: Updating these values requires updating LLVM_OPTIMIZATION_LEVEL_VAL_X and CLANG_CXX_STANDARD_LIBRARY_HARDENING.
                 Values = (
                     0,
                     1,
@@ -944,6 +1019,22 @@
                     NO = ();
                 };
                 Category = WarningsPolicy;
+            },
+            {   Name = CLANG_ENABLE_SECURITY_COMPILER_WARNINGS;
+                Type = Boolean;
+                DefaultValue = "$(ENABLE_SECURITY_COMPILER_WARNINGS)";
+                CommandLineArgs = {
+                  YES = ("-Wbuiltin-memcpy-chk-size",
+                         "-Wformat-nonliteral",
+                         "-Warray-bounds",
+                         "-Warray-bounds-pointer-arithmetic",
+                         "-Wsuspicious-memaccess",
+                         "-Wsizeof-array-div",
+                         "-Wsizeof-pointer-div",
+                         "-Wreturn-stack-address");
+                  NO  = ();
+                };
+                // Hidden.
             },
             {
                 Name = "GCC_TREAT_IMPLICIT_FUNCTION_DECLARATIONS_AS_ERRORS";
@@ -1381,7 +1472,7 @@
             {
                 Name = "CLANG_WARN_EMPTY_BODY";
                 Type = Boolean;
-                DefaultValue = NO;
+                DefaultValue = "$(CLANG_ENABLE_SECURITY_COMPILER_WARNINGS)";
                 CommandLineArgs = {
                     YES = ( "-Wempty-body" );
                     NO = ( "-Wno-empty-body" );
@@ -1447,7 +1538,7 @@
             {
                 Name = "GCC_WARN_SHADOW";
                 Type = Boolean;
-                DefaultValue = NO;
+                DefaultValue = "$(CLANG_ENABLE_SECURITY_COMPILER_WARNINGS)";
                 CommandLineArgs = {
                     YES = (
                         "-Wshadow",
@@ -1801,6 +1892,27 @@
                 Category = Warnings;
             },
             {
+                Name = "CLANG_ENABLE_STACK_ZERO_INIT";
+                Type = Boolean;
+                DefaultValue = "$(ENABLE_ENHANCED_SECURITY)";
+                Category = Security;
+            },
+            {
+                Name = "_CLANG_TRIVIAL_AUTO_VAR_INIT_DEFAULT_ENABLE_ZERO_INIT_YES";
+                Type = Boolean;
+                DefaultValue = "zero";
+            },
+            {
+                Name = "_CLANG_TRIVIAL_AUTO_VAR_INIT_DEFAULT_ENABLE_ZERO_INIT_NO";
+                Type = Boolean;
+                DefaultValue = "default";
+            },
+            {
+                Name = "_CLANG_TRIVIAL_AUTO_VAR_INIT_DEFAULT";
+                Type = String;
+                DefaultValue = "$(_CLANG_TRIVIAL_AUTO_VAR_INIT_DEFAULT_ENABLE_ZERO_INIT_$(CLANG_ENABLE_STACK_ZERO_INIT))";
+            },
+            {
                 Name = "CLANG_TRIVIAL_AUTO_VAR_INIT";
                 Type = Enumeration;
                 Values = (
@@ -1809,7 +1921,7 @@
                     zero,
                     pattern,
                 );
-                DefaultValue = default;
+                DefaultValue = "$(_CLANG_TRIVIAL_AUTO_VAR_INIT_DEFAULT)";
                 CommandLineArgs = {
                     default = ( );
                     uninitialized = ( "-ftrivial-auto-var-init=uninitialized" );
@@ -2900,7 +3012,17 @@
                 Condition = "$(CLANG_UNDEFINED_BEHAVIOR_SANITIZER_TRAP_ON_SECURITY_ISSUES) && $(GCC_OPTIMIZATION_LEVEL) != 0";
             },
             {
-                Name = "CLANG_ENABLE_C_TYPED_ALLOCATOR_SUPPORT";
+                Name = "_CLANG_ENABLE_TYPED_ALLOCATOR_SUPPORT_DEFAULT_ENHANCED_SECURITY_YES";
+                Type = Enumeration;
+                Values = (
+                    compiler-default,
+                    YES,
+                    NO,
+                );
+                DefaultValue = YES;
+            },
+            {
+                Name = "_CLANG_ENABLE_TYPED_ALLOCATOR_SUPPORT_DEFAULT_ENHANCED_SECURITY_NO";
                 Type = Enumeration;
                 Values = (
                     compiler-default,
@@ -2908,11 +3030,32 @@
                     NO,
                 );
                 DefaultValue = compiler-default;
+            },
+            {
+                Name = "_CLANG_ENABLE_TYPED_ALLOCATOR_SUPPORT_DEFAULT";
+                Type = Enumeration;
+                Values = (
+                    compiler-default,
+                    YES,
+                    NO,
+                );
+                DefaultValue = "$(_CLANG_ENABLE_TYPED_ALLOCATOR_SUPPORT_DEFAULT_ENHANCED_SECURITY_$(ENABLE_ENHANCED_SECURITY))";
+            },
+            {
+                Name = "CLANG_ENABLE_C_TYPED_ALLOCATOR_SUPPORT";
+                Type = Enumeration;
+                Values = (
+                    compiler-default,
+                    YES,
+                    NO,
+                );
+                DefaultValue = "$(_CLANG_ENABLE_TYPED_ALLOCATOR_SUPPORT_DEFAULT)";
                 CommandLineArgs = {
                   compiler-default = ();
                   YES = ("-ftyped-memory-operations");
                   NO  = ("-fno-typed-memory-operations");
                 };
+                Category = Language;
             },
             {
                 Name = "CLANG_ENABLE_CPLUSPLUS_TYPED_ALLOCATOR_SUPPORT";
@@ -2922,7 +3065,7 @@
                     YES,
                     NO,
                 );
-                DefaultValue = compiler-default;
+                DefaultValue = "$(_CLANG_ENABLE_TYPED_ALLOCATOR_SUPPORT_DEFAULT)";
                 CommandLineArgs = {
                   compiler-default = ();
                   YES = ("-ftyped-cxx-new-delete", "-ftyped-cxx-delete");
@@ -2933,6 +3076,7 @@
                     YES = ("-ftyped-cxx-new-delete", "-ftyped-cxx-delete");
                     NO = ();
                 };
+                Category = LanguageCXX;
             },
             {
                 Name = "CLANG_OMIT_FRAME_POINTERS";

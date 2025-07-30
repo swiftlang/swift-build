@@ -672,6 +672,35 @@ Typically this path is not set per target, but is provided as an option on the c
 "[MODULE_STOP]-name" = "Module Stop Routine";
 "[MODULE_STOP]-description" = "This defines the name of the kernel module stop routine. This is only used when building kernel extensions.";
 
+// Security Settings
+
+"[SecurityPolicy]-category" = "Security";
+
+"[ENABLE_ENHANCED_SECURITY]-name" = "Enable Enhanced Security";
+"[ENABLE_ENHANCED_SECURITY]-description" = "Enables a set of security build settings, including pointer authentication, typed allocator support, hardened C++ standard library, and security-related compiler warnings. These settings can be disabled individually.";
+"[ENABLE_ENHANCED_SECURITY]-value-[YES]" = "Yes";
+"[ENABLE_ENHANCED_SECURITY]-value-[NO]" = "No";
+
+"[ENABLE_POINTER_AUTHENTICATION]-name" = "Enable Pointer Authentication";
+"[ENABLE_POINTER_AUTHENTICATION]-description" = "Builds the target with pointer authentication enabled. Adds an additional architectural slice (arm64e) with pointer authentication instructions.";
+"[ENABLE_POINTER_AUTHENTICATION]-value-[YES]" = "Yes";
+"[ENABLE_POINTER_AUTHENTICATION]-value-[NO]" = "No";
+
+"[ENABLE_SECURITY_COMPILER_WARNINGS]-name" = "Enable Security-Relevant Compiler Warnings";
+"[ENABLE_SECURITY_COMPILER_WARNINGS]-description" = "Enables a set of security-relevant compiler warnings that check for common bounds-safety and lifetime-safety issues.";
+"[ENABLE_SECURITY_COMPILER_WARNINGS]-value-[YES]" = "Yes";
+"[ENABLE_SECURITY_COMPILER_WARNINGS]-value-[NO]" = "No";
+
+"[ENABLE_C_BOUNDS_SAFETY]-name" = "Enable Language Extension for Bounds Safety in C";
+"[ENABLE_C_BOUNDS_SAFETY]-description" = "Enables the -fbounds-safety language extension, which guarantees bounds safety for C";
+"[ENABLE_C_BOUNDS_SAFETY]-value-[NO]" = "No";
+"[ENABLE_C_BOUNDS_SAFETY]-value-[YES]" = "Yes";
+
+"[ENABLE_CPLUSPLUS_BOUNDS_SAFE_BUFFERS]-name" = "Enforce Bounds-Safe Buffer Usage in C++";
+"[ENABLE_CPLUSPLUS_BOUNDS_SAFE_BUFFERS]-description" = "Enables a strict programming model that guarantees bounds safety in C++ by rejecting raw pointer arithmetic (enabling the -Wunsafe-buffer-usage warning as an error) and requiring the use of hardened C++ Standard Library APIs for buffer manipulation.";
+"[ENABLE_CPLUSPLUS_BOUNDS_SAFE_BUFFERS]-value-[NO]" = "No";
+"[ENABLE_CPLUSPLUS_BOUNDS_SAFE_BUFFERS]-value-[YES]" = "Yes";
+
 // Compiler Version
 
 "[GCC_VERSION]-name" = "Compiler for C/C++/Objective-C";

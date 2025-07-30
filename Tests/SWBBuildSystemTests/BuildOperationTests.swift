@@ -6692,10 +6692,10 @@ That command depends on command in Target 'agg2' (project \'aProject\'): script 
     }
 
     @Test(.requireSDKs(.iOS))
-    func pointerAuthenticationBuildSetting() async throws {
+    func pointerAuthenticationBuildSetting_iOS() async throws {
         func test(buildSettings: [String: String], expectedArchs: [String], line: UInt = #line) async throws {
 
-            try await withTemporaryDirectory { tmpDirPath async throws -> Void in
+            try await withTemporaryDirectory { (tmpDirPath: Path) async throws -> Void in
                 let testWorkspace = try await TestWorkspace(
                     "Test",
                     sourceRoot: tmpDirPath.join("Test"),
@@ -6731,8 +6731,80 @@ That command depends on command in Target 'agg2' (project \'aProject\'): script 
                     try await tester.fs.writeFileContents(swiftFile) { stream in }
                 }
 
-                try await tester.checkBuild(runDestination: .anyiOSDevice) { results in
+                try await tester.checkBuild(runDestination: .anyiOSDevice) { results -> Void in
                     results.checkNoErrors()
+
+                    for arch in expectedArchs {
+                        results.checkTask(.matchRuleType("CompileC"), .matchRuleItemPattern(.suffix("File.c")), .matchRuleItem(arch)) { _ in }
+                        results.checkTask(.matchRuleType("CompileC"), .matchRuleItemPattern(.suffix("File.m")), .matchRuleItem(arch)) { _ in }
+                        results.checkTask(.matchRuleType("SwiftCompile"), .matchRuleItem(arch)) { _ in }
+                        results.checkTask(.matchRuleType("SwiftEmitModule"), .matchRuleItem(arch)) { _ in }
+
+                    }
+                }
+            }
+        }
+
+        try await test(buildSettings: ["ENABLE_POINTER_AUTHENTICATION": "YES"], expectedArchs: ["arm64", "arm64e"])
+        try await test(buildSettings: ["ENABLE_POINTER_AUTHENTICATION": "NO"], expectedArchs: ["arm64"])
+
+        // ENABLE_ENHANCED_SECURITY enables pointer authentication unless ENABLE_POINTER_AUTHENTICATION is explicitly disabled.
+        try await test(buildSettings: ["ENABLE_ENHANCED_SECURITY": "YES"], expectedArchs: ["arm64", "arm64e"])
+        try await test(buildSettings: ["ENABLE_ENHANCED_SECURITY": "NO"], expectedArchs: ["arm64"])
+        try await test(buildSettings: ["ENABLE_ENHANCED_SECURITY": "YES", "ENABLE_POINTER_AUTHENTICATION": "NO"], expectedArchs: ["arm64"])
+        try await test(buildSettings: ["ENABLE_ENHANCED_SECURITY": "NO", "ENABLE_POINTER_AUTHENTICATION": "YES"], expectedArchs: ["arm64e"])
+    }
+
+    @Test(.requireSDKs(.macOS))
+    func pointerAuthenticationBuildSetting_macOS() async throws {
+        func test(buildSettings: [String: String], expectedArchs: [String], line: UInt = #line) async throws {
+
+            try await withTemporaryDirectory { (tmpDirPath: Path) async throws -> Void in
+                let testWorkspace = try await TestWorkspace(
+                    "Test",
+                    sourceRoot: tmpDirPath.join("Test"),
+                    projects: [
+                        TestProject(
+                            "aProject",
+                            groupTree: TestGroup("Sources", children: [
+                                TestFile("File.c"),
+                                TestFile("File.swift"),
+                                TestFile("File.m"),
+                            ]),
+                            buildConfigurations: [TestBuildConfiguration(
+                                "Debug",
+                                buildSettings: [
+                                    "SDKROOT": "macosx",
+                                    "DONT_GENERATE_INFOPLIST_FILE": "YES",
+                                    "PRODUCT_NAME": "$(TARGET_NAME)",
+                                    "SWIFT_VERSION": swiftVersion,
+                                ])],
+                            targets: [
+                                TestStandardTarget(
+                                    "aFramework", type: .framework,
+                                    buildConfigurations: [TestBuildConfiguration("Debug", buildSettings: buildSettings)],
+                                    buildPhases: [
+                                        TestSourcesBuildPhase(["File.c", "File.swift", "File.m"]),
+                                    ]),
+                                TestStandardTarget(
+                                    "anApp", type: .application,
+                                    buildConfigurations: [TestBuildConfiguration("Debug", buildSettings: buildSettings)],
+                                    buildPhases: [
+                                        TestSourcesBuildPhase(["File.c", "File.swift", "File.m"]),
+                                    ])
+                            ])])
+
+                let tester = try await BuildOperationTester(getCore(), testWorkspace, simulated: false)
+
+                // create the files
+                for file in ["File.swift", "File.c", "File.m"] {
+                    let swiftFile = testWorkspace.sourceRoot.join("aProject/\(file)")
+                    try await tester.fs.writeFileContents(swiftFile) { stream in }
+                }
+
+                try await tester.checkBuild(runDestination: .anyMac) { results -> Void in
+                    results.checkNoErrors()
+
 
                     for arch in expectedArchs {
                         results.checkTask(.matchRuleType("CompileC"), .matchRuleItemPattern(.suffix("File.c")), .matchRuleItem(arch)) { _ in }
@@ -6744,8 +6816,14 @@ That command depends on command in Target 'agg2' (project \'aProject\'): script 
             }
         }
 
-        try await test(buildSettings: ["ENABLE_POINTER_AUTHENTICATION": "YES"], expectedArchs: ["arm64", "arm64e"])
-        try await test(buildSettings: ["ENABLE_POINTER_AUTHENTICATION": "NO"], expectedArchs: ["arm64"])
+        try await test(buildSettings: ["ENABLE_POINTER_AUTHENTICATION": "YES"], expectedArchs: ["x86_64", "arm64", "arm64e"])
+        try await test(buildSettings: ["ENABLE_POINTER_AUTHENTICATION": "NO"], expectedArchs: ["x86_64", "arm64"])
+
+        // ENABLE_ENHANCED_SECURITY enables pointer authentication unless ENABLE_POINTER_AUTHENTICATION is explicitly disabled.
+        try await test(buildSettings: ["ENABLE_ENHANCED_SECURITY": "YES"], expectedArchs: ["x86_64", "arm64", "arm64e"])
+        try await test(buildSettings: ["ENABLE_ENHANCED_SECURITY": "NO"], expectedArchs: ["x86_64", "arm64"])
+        try await test(buildSettings: ["ENABLE_ENHANCED_SECURITY": "YES", "ENABLE_POINTER_AUTHENTICATION": "NO"], expectedArchs: ["x86_64", "arm64"])
+        try await test(buildSettings: ["ENABLE_ENHANCED_SECURITY": "NO", "ENABLE_POINTER_AUTHENTICATION": "YES"], expectedArchs: ["x86_64", "arm64e"])
     }
 
     @Test(.requireSDKs(.macOS))
