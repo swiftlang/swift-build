@@ -44,21 +44,10 @@ public final class ValidateDependenciesSpec: CommandLineToolSpec, SpecImplementa
     }
 }
 
-public struct ValidateDependenciesPayload: TaskPayload, Sendable {
+public struct ValidateDependenciesPayload: TaskPayload, Sendable, SerializableCodable {
     public let moduleDependenciesContext: ModuleDependenciesContext
 
     public init(moduleDependenciesContext: ModuleDependenciesContext) {
         self.moduleDependenciesContext = moduleDependenciesContext
-    }
-
-    public func serialize<T: Serializer>(to serializer: T) {
-        serializer.serializeAggregate(1) {
-            serializer.serialize(moduleDependenciesContext)
-        }
-    }
-
-    public init(from deserializer: any Deserializer) throws {
-        try deserializer.beginAggregate(1)
-        self.moduleDependenciesContext = try deserializer.deserialize()
     }
 }

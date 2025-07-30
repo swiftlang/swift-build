@@ -240,6 +240,11 @@ public struct DependencyValidationInfo: Hashable, Sendable, Codable {
     public struct Import: Hashable, Sendable, Codable {
         public let dependency: ModuleDependency
         public let importLocations: [Diagnostic.Location]
+
+        public init(dependency: ModuleDependency, importLocations: [Diagnostic.Location]) {
+            self.dependency = dependency
+            self.importLocations = importLocations
+        }
     }
 
     public enum Payload: Hashable, Sendable, Codable {
@@ -250,19 +255,7 @@ public struct DependencyValidationInfo: Hashable, Sendable, Codable {
 
     public let payload: Payload
 
-    public init(files: [Path]?) {
-        if let files {
-            self.payload = .clangDependencies(files: files.map { $0.str })
-        } else {
-            self.payload = .unsupported
-        }
-    }
-
-    public init(imports: [(ModuleDependency, importLocations: [SWBUtil.Diagnostic.Location])]?) {
-        if let imports {
-            self.payload = .swiftDependencies(imports: imports.map { Import(dependency: $0.0, importLocations: $0.importLocations) })
-        } else {
-            self.payload = .unsupported
-        }
+    public init(payload: Payload) {
+        self.payload = payload
     }
 }

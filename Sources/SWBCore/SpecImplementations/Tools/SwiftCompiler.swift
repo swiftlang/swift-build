@@ -273,26 +273,13 @@ public struct SwiftSourceFileIndexingInfo: SourceFileIndexingInfo {
     }
 }
 
-public struct SwiftDependencyValidationPayload: Serializable, Encodable, Sendable {
+public struct SwiftDependencyValidationPayload: SerializableCodable, Encodable, Sendable {
     public let dependencyValidationOutputPath: Path
     public let moduleDependenciesContext: ModuleDependenciesContext
 
     public init(dependencyValidationOutputPath: Path, moduleDependenciesContext: ModuleDependenciesContext) {
         self.dependencyValidationOutputPath = dependencyValidationOutputPath
         self.moduleDependenciesContext = moduleDependenciesContext
-    }
-
-    public func serialize<T: Serializer>(to serializer: T) {
-        serializer.serializeAggregate(2) {
-            serializer.serialize(dependencyValidationOutputPath)
-            serializer.serialize(moduleDependenciesContext)
-        }
-    }
-
-    public init(from deserializer: any Deserializer) throws {
-        try deserializer.beginAggregate(2)
-        self.dependencyValidationOutputPath = try deserializer.deserialize()
-        self.moduleDependenciesContext = try deserializer.deserialize()
     }
 }
 

@@ -98,8 +98,13 @@ final public class SwiftDriverTaskAction: TaskAction, BuildValueValidatingTaskAc
             if driverPayload.explicitModulesEnabled,
                let dependencyValidationPayload = payload.dependencyValidationPayload
             {
-                let imports = try await dependencyGraph.mainModuleImportModuleDependencies(for: driverPayload.uniqueID)
-                let validationInfo = DependencyValidationInfo(imports: imports)
+                let payload: DependencyValidationInfo.Payload
+                if let imports = try await dependencyGraph.mainModuleImportModuleDependencies(for: driverPayload.uniqueID) {
+                    payload = .swiftDependencies(imports: imports.map { .init(dependency: $0.0, importLocations: $0.importLocations) })
+                } else {
+                    payload = .unsupported
+                }
+                let validationInfo = DependencyValidationInfo(payload: payload)
                 _ = try executionDelegate.fs.writeIfChanged(
                     dependencyValidationPayload.dependencyValidationOutputPath,
                     contents: ByteString(

@@ -325,22 +325,22 @@ public final class ClangCompileTaskAction: TaskAction, BuildValueValidatingTaskA
                 }
             }
 
-            if let moduleDependenciesContext, lastResult == .succeeded {
+            if lastResult == .succeeded {
                 // Verify the dependencies from the trace data.
-                let files: [Path]?
+                let payload: DependencyValidationInfo.Payload
                 if let traceFilePath {
                     let fs = executionDelegate.fs
                     let traceData = try JSONDecoder().decode(Array<TraceData>.self, from: Data(fs.read(traceFilePath)))
 
                     var allFiles = Set<Path>()
                     traceData.forEach { allFiles.formUnion(Set($0.includes)) }
-                    files = Array(allFiles)
+                    payload = .clangDependencies(files: allFiles.map { $0.str })
                 } else {
-                    files = nil
+                    payload = .unsupported
                 }
 
                 if let dependencyValidationOutputPath {
-                    let validationInfo = DependencyValidationInfo(files: files)
+                    let validationInfo = DependencyValidationInfo(payload: payload)
                     _ = try executionDelegate.fs.writeIfChanged(
                         dependencyValidationOutputPath,
                         contents: ByteString(
