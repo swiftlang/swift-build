@@ -529,4 +529,76 @@ fileprivate struct DependencyValidationTests: CoreBasedTests {
         }
     }
 
+    @Test(.requireSDKs(.host), .requireClangFeatures(.printHeadersDirectPerFile), .skipHostOS(.windows, "toolchain too old"), .skipHostOS(.linux, "toolchain too old"))
+    func validateModuleDependenciesMixedSource() async throws {
+        try await withTemporaryDirectory { tmpDir async throws -> Void in
+            let testWorkspace = try await TestWorkspace(
+                "Test",
+                sourceRoot: tmpDir.join("Test"),
+                projects: [
+                    TestProject(
+                        "aProject",
+                        groupTree: TestGroup(
+                            "Sources", path: "Sources",
+                            children: [
+                                TestFile("CoreFoo.m"),
+                                TestFile("Swift.swift"),
+                            ]),
+                        buildConfigurations: [
+                            TestBuildConfiguration(
+                                "Debug",
+                                buildSettings: [
+                                    "PRODUCT_NAME": "$(TARGET_NAME)",
+                                    "CLANG_ENABLE_MODULES": "YES",
+                                    "CLANG_ENABLE_EXPLICIT_MODULES": "YES",
+                                    "SWIFT_ENABLE_EXPLICIT_MODULES": "YES",
+                                    "SWIFT_UPCOMING_FEATURE_INTERNAL_IMPORTS_BY_DEFAULT": "YES",
+                                    "SWIFT_VERSION": swiftVersion,
+                                    "GENERATE_INFOPLIST_FILE": "YES",
+                                    "VALIDATE_MODULE_DEPENDENCIES": "YES_ERROR",
+                                    "SDKROOT": "$(HOST_PLATFORM)",
+                                    "SUPPORTED_PLATFORMS": "$(HOST_PLATFORM)",
+                                    "DSTROOT": tmpDir.join("dstroot").str,
+
+                                    // Temporarily override to use the latest toolchain in CI because we depend on swift and swift-driver changes which aren't in the baseline tools yet
+                                    "TOOLCHAINS": "swift",
+                                    // We still want to use the default clang since that is used to gate the test
+                                    "CC": defaultClangPath.str,
+                                ]
+                            )
+                        ],
+                        targets: [
+                            TestStandardTarget(
+                                "CoreFoo", type: .framework,
+                                buildPhases: [
+                                    TestSourcesBuildPhase(["CoreFoo.m", "Swift.swift"]),
+                                    TestFrameworksBuildPhase()
+                                ])
+                        ])
+                ]
+            )
+
+            let tester = try await BuildOperationTester(getCore(), testWorkspace, simulated: false)
+            let SRCROOT = testWorkspace.sourceRoot.join("aProject")
+
+            try await tester.fs.writeFileContents(SRCROOT.join("Sources/Swift.swift")) { stream in
+                stream <<< """
+                    import Foundation
+                """
+            }
+
+            try await tester.fs.writeFileContents(SRCROOT.join("Sources/CoreFoo.m")) { contents in
+                contents <<< """
+                    #include <Foundation/Foundation.h>
+
+                    void f(void) { };
+                """
+            }
+
+            try await tester.checkBuild(parameters: BuildParameters(configuration: "Debug"), runDestination: .host, persistent: true) { results in
+                results.checkError(.contains("Missing entries in MODULE_DEPENDENCIES: Foundation"))
+            }
+        }
+    }
+
 }

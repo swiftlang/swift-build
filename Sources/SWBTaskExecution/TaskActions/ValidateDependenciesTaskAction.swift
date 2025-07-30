@@ -61,9 +61,15 @@ public final class ValidateDependenciesTaskAction: TaskAction {
             var diagnostics: [Diagnostic] = []
 
             if unsupported {
-                diagnostics.append(contentsOf: context.makeDiagnostics(files: nil))
+                diagnostics.append(contentsOf: context.makeDiagnostics(missingDependencies: nil))
             } else {
-                diagnostics.append(contentsOf: context.makeDiagnostics(files: allFiles.map { Path($0) }))
+                // Filter missing C dependencies by known Swift dependencies to avoid duplicate diagnostics between the two.
+                let swiftImports = allImports.map { $0.dependency.name }
+                let missingDependencies = context.computeMissingDependencies(files: allFiles.map { Path($0) })?.filter {
+                    !swiftImports.contains($0.name)
+                }
+
+                diagnostics.append(contentsOf: context.makeDiagnostics(missingDependencies: missingDependencies))
                 diagnostics.append(contentsOf: context.makeDiagnostics(imports: allImports.map { ($0.dependency, $0.importLocations) }))
             }
 

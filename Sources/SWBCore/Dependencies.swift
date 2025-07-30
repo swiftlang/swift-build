@@ -80,18 +80,15 @@ public struct ModuleDependenciesContext: Sendable, SerializableCodable {
         self.init(validate: validate, moduleDependencies: settings.moduleDependencies, fixItContext: fixItContext)
     }
 
-    /// Make diagnostics for missing module dependencies from Clang imports.
+    /// Compute missing module dependencies from Clang imports.
     ///
     /// The compiler tracing information does not provide the import locations or whether they are public imports
     /// (which depends on whether the import is in an installed header file).
     /// If `files` is nil, the current toolchain does support the feature to trace imports.
-    public func makeDiagnostics(files: [Path]?) -> [Diagnostic] {
+    public func computeMissingDependencies(files: [Path]?) -> [ModuleDependency]? {
         guard validate != .no else { return [] }
         guard let files else {
-            return [Diagnostic(
-                behavior: .warning,
-                location: .unknown,
-                data: DiagnosticData("The current toolchain does not support \(BuiltinMacros.VALIDATE_MODULE_DEPENDENCIES.name)"))]
+            return nil
         }
 
         // The following is a provisional/incomplete mechanism for resolving a module dependency from a file path.
@@ -111,14 +108,26 @@ public struct ModuleDependenciesContext: Sendable, SerializableCodable {
             ModuleDependency(name: $0, accessLevel: .Private)
         })
 
-        guard !missingDeps.isEmpty else { return [] }
+        return Array(missingDeps)
+    }
+
+    /// Make diagnostics for missing module dependencies from Clang imports.
+    public func makeDiagnostics(missingDependencies: [ModuleDependency]?) -> [Diagnostic] {
+        guard let missingDependencies else {
+            return [Diagnostic(
+                behavior: .warning,
+                location: .unknown,
+                data: DiagnosticData("The current toolchain does not support \(BuiltinMacros.VALIDATE_MODULE_DEPENDENCIES.name)"))]
+        }
+
+        guard !missingDependencies.isEmpty else { return [] }
 
         let behavior: Diagnostic.Behavior = validate == .yesError ? .error : .warning
 
-        let fixIt = fixItContext?.makeFixIt(newModules: Array(missingDeps))
+        let fixIt = fixItContext?.makeFixIt(newModules: Array(missingDependencies))
         let fixIts = fixIt.map { [$0] } ?? []
 
-        let message = "Missing entries in \(BuiltinMacros.MODULE_DEPENDENCIES.name): \(missingDeps.map { $0.asBuildSettingEntryQuotedIfNeeded }.sorted().joined(separator: " "))"
+        let message = "Missing entries in \(BuiltinMacros.MODULE_DEPENDENCIES.name): \(missingDependencies.map { $0.asBuildSettingEntryQuotedIfNeeded }.sorted().joined(separator: " "))"
 
         let location: Diagnostic.Location = fixIt.map {
             Diagnostic.Location.path($0.sourceRange.path, line: $0.sourceRange.endLine, column: $0.sourceRange.endColumn)
