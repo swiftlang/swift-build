@@ -420,11 +420,11 @@ fileprivate struct DependencyValidationTests: CoreBasedTests {
                 "TargetB": [
                     Diagnostic(
                         behavior: .error,
-                        location: Diagnostic.Location.path(projectXCConfigPath, line: 0, column: 0),
+                        location: Diagnostic.Location.path(projectXCConfigPath, line: .max, column: .max),
                         data: DiagnosticData("Missing entries in MODULE_DEPENDENCIES: Foundation"),
                         fixIts: [
                             Diagnostic.FixIt(
-                                sourceRange: Diagnostic.SourceRange(path: projectXCConfigPath, startLine: 0, startColumn: 0, endLine: 0, endColumn: 0),
+                                sourceRange: Diagnostic.SourceRange(path: projectXCConfigPath, startLine: .max, startColumn: .max, endLine: .max, endColumn: .max),
                                 newText: "\nMODULE_DEPENDENCIES[target=TargetB] = $(inherited) Foundation\n"),
                         ],
                         childDiagnostics: [
@@ -433,7 +433,7 @@ fileprivate struct DependencyValidationTests: CoreBasedTests {
                                 location: Diagnostic.Location.path(swiftSourcePath, line: 1, column: 8),
                                 data: DiagnosticData("Missing entry in MODULE_DEPENDENCIES: Foundation"),
                                 fixIts: [Diagnostic.FixIt(
-                                    sourceRange: Diagnostic.SourceRange(path: projectXCConfigPath, startLine: 0, startColumn: 0, endLine: 0, endColumn: 0),
+                                    sourceRange: Diagnostic.SourceRange(path: projectXCConfigPath, startLine: .max, startColumn: .max, endLine: .max, endColumn: .max),
                                     newText: "\nMODULE_DEPENDENCIES[target=TargetB] = $(inherited) Foundation\n")],
                             ),
                         ]),
