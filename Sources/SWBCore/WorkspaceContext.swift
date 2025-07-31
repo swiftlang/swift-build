@@ -401,10 +401,20 @@ extension FSProxy {
         return try getExtendedAttribute(path, key: Self.CreatedByBuildSystemAttribute) == Self.CreatedByBuildSystemAttributeOnValue
     }
 
+    /// Sets the "CreatedByBuildSystem" extended attribute on the specified
+    /// path.
+    ///
+    /// - Important: The caller is responsible for catching and handling
+    ///   failures if the filesystem does not support extended attributes. Many
+    ///   filesystems (e.g. various non-ext4 temporary filesystems on Linux)
+    ///   don't support xattrs and will return `ENOTSUP`. In particular, tmpfs
+    ///   doesn't support xattrs on Linux unless `CONFIG_TMPFS_XATTR` is enabled
+    ///   in the kernel config.
+    ///
+    /// - Parameter path: The path on which to set the extended attribute.
+    /// - Throws: An error if the operation fails, including when the filesystem
+    ///   doesn't support extended attributes.
     public func setCreatedByBuildSystemAttribute(_ path: Path) throws {
-        // Many filesystems on other platforms (e.g. various non-ext4 temporary filesystems on Linux) don't support xattrs and will return ENOTSUP.
-        // In particular, tmpfs doesn't support xattrs on Linux unless `CONFIG_TMPFS_XATTR` is enabled in the kernel config.
-        // FIXME: Detect whether the FS supports xattrs at runtime
         try setExtendedAttribute(path, key: Self.CreatedByBuildSystemAttribute, value: Self.CreatedByBuildSystemAttributeOnValue)
     }
 

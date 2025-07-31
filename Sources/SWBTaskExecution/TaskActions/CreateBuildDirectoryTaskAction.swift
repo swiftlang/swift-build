@@ -33,7 +33,7 @@ public final class CreateBuildDirectoryTaskAction: TaskAction {
             return .failed
         }
 
-        // Warn on darwin if we are unable to set the "CreateByBuildSystem"
+        // Warn on Darwin if we are unable to set the "CreatedByBuildSystem"
         // attribute
         do {
             try fs.setCreatedByBuildSystemAttribute(directoryPath)
