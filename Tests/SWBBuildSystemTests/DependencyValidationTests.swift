@@ -19,6 +19,23 @@ import SWBMacro
 
 @Suite
 fileprivate struct DependencyValidationTests: CoreBasedTests {
+    @Test
+    func moduleDependencyAccessLevelComparable() async throws {
+        #expect(ModuleDependency.AccessLevel.Private == .Private)
+        #expect(ModuleDependency.AccessLevel.Private < .Package)
+        #expect(ModuleDependency.AccessLevel.Private < .Public)
+
+        #expect(ModuleDependency.AccessLevel.Package == .Package)
+        #expect(ModuleDependency.AccessLevel.Package < .Public)
+        #expect(ModuleDependency.AccessLevel.Package > .Private)
+
+        #expect(ModuleDependency.AccessLevel.Public == .Public)
+        #expect(ModuleDependency.AccessLevel.Public > .Private)
+        #expect(ModuleDependency.AccessLevel.Public > .Package)
+
+        #expect(max(ModuleDependency.AccessLevel.Public, ModuleDependency.AccessLevel.Private) == .Public)
+    }
+
     @Test(.requireSDKs(.macOS))
     func dependencyValidation() async throws {
         try await testDependencyValidation(BuildParameters(configuration: "Debug"))

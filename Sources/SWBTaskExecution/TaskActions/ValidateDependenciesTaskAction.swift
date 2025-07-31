@@ -63,14 +63,30 @@ public final class ValidateDependenciesTaskAction: TaskAction {
             if unsupported {
                 diagnostics.append(contentsOf: context.makeDiagnostics(missingDependencies: nil))
             } else {
-                // Filter missing C dependencies by known Swift dependencies to avoid duplicate diagnostics between the two.
-                let swiftImports = allImports.map { $0.dependency.name }
-                let missingDependencies = context.computeMissingDependencies(files: allFiles.map { Path($0) })?.filter {
-                    !swiftImports.contains($0.name)
-                }
+                let clangMissingDeps = context.computeMissingDependencies(files: allFiles.map { Path($0) })
+                let swiftMissingDeps = context.computeMissingDependencies(imports: allImports.map { ($0.dependency, $0.importLocations) })
 
-                diagnostics.append(contentsOf: context.makeDiagnostics(missingDependencies: missingDependencies))
-                diagnostics.append(contentsOf: context.makeDiagnostics(imports: allImports.map { ($0.dependency, $0.importLocations) }))
+                // Update Swift dependencies with information from Clang dependencies on the same module.
+                var clangMissingDepsByName = [String: (ModuleDependency, importLocations: [Diagnostic.Location])]()
+                clangMissingDeps?.forEach {
+                    clangMissingDepsByName[$0.0.name] = $0
+                }
+                let updatedSwiftMissingDeps: [(ModuleDependency, importLocations: [Diagnostic.Location])] = swiftMissingDeps?.map {
+                    if let clangMissingDep = clangMissingDepsByName[$0.0.name] {
+                        return (
+                            ModuleDependency(name: $0.0.name, accessLevel: max($0.0.accessLevel, clangMissingDep.0.accessLevel)),
+                            $0.importLocations + clangMissingDep.importLocations
+                        )
+                    } else {
+                        return $0
+                    }
+                } ?? []
+
+                // Filter missing C dependencies by known Swift dependencies to avoid duplicate diagnostics.
+                let swiftImports = allImports.map { $0.dependency.name }
+                let uniqueClangMissingDeps = clangMissingDeps?.filter { !swiftImports.contains($0.0.name) } ?? []
+
+                diagnostics.append(contentsOf: context.makeDiagnostics(missingDependencies: uniqueClangMissingDeps + updatedSwiftMissingDeps))
             }
 
             for diagnostic in diagnostics {

@@ -17,7 +17,7 @@ public struct ModuleDependency: Hashable, Sendable, SerializableCodable {
     public let name: String
     public let accessLevel: AccessLevel
 
-    public enum AccessLevel: String, Hashable, Sendable, CaseIterable, Codable, Serializable {
+    public enum AccessLevel: String, Hashable, Sendable, CaseIterable, Codable, Serializable, Comparable {
         case Private = "private"
         case Package = "package"
         case Public = "public"
@@ -28,6 +28,18 @@ public struct ModuleDependency: Hashable, Sendable, SerializableCodable {
             }
 
             self = accessLevel
+        }
+
+        // This allows easy merging of different access levels to always end up with the broadest one needed for a target.
+        public static func < (lhs: Self, rhs: Self) -> Bool {
+            switch lhs {
+            case .Private:
+                return true
+            case .Public:
+                return false
+            case .Package:
+                return rhs == .Public
+            }
         }
     }
 
@@ -85,7 +97,7 @@ public struct ModuleDependenciesContext: Sendable, SerializableCodable {
     /// The compiler tracing information does not provide the import locations or whether they are public imports
     /// (which depends on whether the import is in an installed header file).
     /// If `files` is nil, the current toolchain does support the feature to trace imports.
-    public func computeMissingDependencies(files: [Path]?) -> [ModuleDependency]? {
+    public func computeMissingDependencies(files: [Path]?) -> [(ModuleDependency, importLocations: [Diagnostic.Location])]? {
         guard validate != .no else { return [] }
         guard let files else {
             return nil
@@ -108,11 +120,30 @@ public struct ModuleDependenciesContext: Sendable, SerializableCodable {
             ModuleDependency(name: $0, accessLevel: .Private)
         })
 
-        return Array(missingDeps)
+        return missingDeps.map { ($0, []) }
     }
 
-    /// Make diagnostics for missing module dependencies from Clang imports.
-    public func makeDiagnostics(missingDependencies: [ModuleDependency]?) -> [Diagnostic] {
+    /// Compute missing module dependencies from Swift imports.
+    ///
+    /// If `imports` is nil, the current toolchain does not support the features to gather imports.
+    public func computeMissingDependencies(imports: [(ModuleDependency, importLocations: [Diagnostic.Location])]?) -> [(ModuleDependency, importLocations: [Diagnostic.Location])]? {
+        guard validate != .no else { return [] }
+        guard let imports else {
+            return nil
+        }
+
+        return imports.filter {
+            // ignore module deps without source locations, these are inserted by swift / swift-build and we should treat them as implementation details which we can track without needing the user to declare them
+            if $0.importLocations.isEmpty { return false }
+
+            // TODO: if the difference is just the access modifier, we emit a new entry, but ultimately our fixit should update the existing entry or emit an error about a conflict
+            if moduleDependencies.contains($0.0) { return false }
+            return true
+        }
+    }
+
+    /// Make diagnostics for missing module dependencies.
+    public func makeDiagnostics(missingDependencies: [(ModuleDependency, importLocations: [Diagnostic.Location])]?) -> [Diagnostic] {
         guard let missingDependencies else {
             return [Diagnostic(
                 behavior: .warning,
@@ -124,51 +155,10 @@ public struct ModuleDependenciesContext: Sendable, SerializableCodable {
 
         let behavior: Diagnostic.Behavior = validate == .yesError ? .error : .warning
 
-        let fixIt = fixItContext?.makeFixIt(newModules: Array(missingDependencies))
+        let fixIt = fixItContext?.makeFixIt(newModules: missingDependencies.map { $0.0 })
         let fixIts = fixIt.map { [$0] } ?? []
 
-        let message = "Missing entries in \(BuiltinMacros.MODULE_DEPENDENCIES.name): \(missingDependencies.map { $0.asBuildSettingEntryQuotedIfNeeded }.sorted().joined(separator: " "))"
-
-        let location: Diagnostic.Location = fixIt.map {
-            Diagnostic.Location.path($0.sourceRange.path, line: $0.sourceRange.endLine, column: $0.sourceRange.endColumn)
-        } ?? Diagnostic.Location.buildSetting(BuiltinMacros.MODULE_DEPENDENCIES)
-
-        return [Diagnostic(
-            behavior: behavior,
-            location: location,
-            data: DiagnosticData(message),
-            fixIts: fixIts)]
-    }
-
-    /// Make diagnostics for missing module dependencies from Swift imports.
-    ///
-    /// If `imports` is nil, the current toolchain does not support the features to gather imports.
-    public func makeDiagnostics(imports: [(ModuleDependency, importLocations: [Diagnostic.Location])]?) -> [Diagnostic] {
-        guard validate != .no else { return [] }
-        guard let imports else {
-            return [Diagnostic(
-                behavior: .warning,
-                location: .unknown,
-                data: DiagnosticData("The current toolchain does not support \(BuiltinMacros.VALIDATE_MODULE_DEPENDENCIES.name)"))]
-        }
-
-        let missingDeps = imports.filter {
-            // ignore module deps without source locations, these are inserted by swift / swift-build and we should treat them as implementation details which we can track without needing the user to declare them
-            if $0.importLocations.isEmpty { return false }
-
-            // TODO: if the difference is just the access modifier, we emit a new entry, but ultimately our fixit should update the existing entry or emit an error about a conflict
-            if moduleDependencies.contains($0.0) { return false }
-            return true
-        }
-
-        guard !missingDeps.isEmpty else { return [] }
-
-        let behavior: Diagnostic.Behavior = validate == .yesError ? .error : .warning
-
-        let fixIt = fixItContext?.makeFixIt(newModules: missingDeps.map { $0.0 })
-        let fixIts = fixIt.map { [$0] } ?? []
-
-        let importDiags: [Diagnostic] = missingDeps
+        let importDiags: [Diagnostic] = missingDependencies
             .flatMap { dep in
                 dep.1.map {
                     return Diagnostic(
@@ -179,7 +169,7 @@ public struct ModuleDependenciesContext: Sendable, SerializableCodable {
                 }
             }
 
-        let message = "Missing entries in \(BuiltinMacros.MODULE_DEPENDENCIES.name): \(missingDeps.map { $0.0.asBuildSettingEntryQuotedIfNeeded }.sorted().joined(separator: " "))"
+        let message = "Missing entries in \(BuiltinMacros.MODULE_DEPENDENCIES.name): \(missingDependencies.map { $0.0.asBuildSettingEntryQuotedIfNeeded }.sorted().joined(separator: " "))"
 
         let location: Diagnostic.Location = fixIt.map {
             Diagnostic.Location.path($0.sourceRange.path, line: $0.sourceRange.endLine, column: $0.sourceRange.endColumn)
