@@ -309,9 +309,64 @@ extension CommandProducer {
         return cache as! T
     }
 
+    func effectiveBuildOptions(_ spec: PropertyDomainSpec) -> [BuildOption] {
+        specRegistry.effectiveBuildOptions(spec)
+    }
+
+    func effectiveFlattenedOrderedBuildOptions(_ spec: PropertyDomainSpec, filter: BuildOptionsFilter = .all) -> [BuildOption] {
+        specRegistry.effectiveFlattenedOrderedBuildOptions(spec, filter: filter)
+    }
+
     /// Compute the expanded search path list (i.e. with recursive entries expanded) for the given macro.
     func expandedSearchPaths(for macro: PathListMacroDeclaration, scope: MacroEvaluationScope) -> [String] {
         return expandedSearchPaths(for: scope.evaluate(macro), scope: scope)
+    }
+}
+
+/// Which build options to include when evaluating the command line of a spec. This primarily exists because the Clang spec wants to specially evaluate a bunch of options as "constant" (see `getStandardFlags`), which we can't guarantee to be the case for extended options.
+public enum BuildOptionsFilter {
+    /// Include only build options declared on the spec and its supertypes.
+    case specOnly
+
+    /// Include only extended build options declared via any `BuildSettingsExtension` specs.
+    case extendedOnly
+
+    /// Include build options declared by the spec itself and its supertypes, as well as via any `BuildSettingsExtension` specs.
+    case all
+}
+
+extension SpecRegistry {
+    func effectiveBuildOptions(_ spec: PropertyDomainSpec) -> [BuildOption] {
+        var options: [BuildOption] = []
+        options.append(contentsOf: spec.buildOptions)
+        for extensionSpec in findSpecs(BuildSettingsExtensionSpec.self) where spec.conformsTo(identifier: extensionSpec.extendsConformsTo) {
+            options.append(contentsOf: extensionSpec.buildOptions)
+        }
+        return options
+    }
+
+    func effectiveFlattenedBuildOptions(_ spec: PropertyDomainSpec) -> [String: BuildOption] {
+        var options = spec.flattenedBuildOptions
+        for extensionSpec in findSpecs(BuildSettingsExtensionSpec.self) where spec.conformsTo(identifier: extensionSpec.extendsConformsTo) {
+            options.merge(extensionSpec.flattenedBuildOptions, uniquingKeysWith: { _, new in
+                // Should duplicates be an error?
+                return new
+            })
+        }
+        return options
+    }
+
+    func effectiveFlattenedOrderedBuildOptions(_ spec: PropertyDomainSpec, filter: BuildOptionsFilter) -> [BuildOption] {
+        var options: [BuildOption] = []
+        if filter == .all || filter == .specOnly {
+            options.append(contentsOf: spec.flattenedOrderedBuildOptions)
+        }
+        if filter == .all || filter == .extendedOnly {
+            for extensionSpec in findSpecs(BuildSettingsExtensionSpec.self) where spec.conformsTo(identifier: extensionSpec.extendsConformsTo) {
+                options.append(contentsOf: extensionSpec.flattenedOrderedBuildOptions)
+            }
+        }
+        return options
     }
 }
 

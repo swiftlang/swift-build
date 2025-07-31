@@ -322,7 +322,7 @@ extension FilesBasedBuildPhaseTaskProducer {
 }
 
 /// Base class for build phase tasks producers which are based around processing file references.
-class FilesBasedBuildPhaseTaskProducerBase: PhasedTaskProducer {
+package class FilesBasedBuildPhaseTaskProducerBase: PhasedTaskProducer {
     /// Captures the state used when expanding groups, to prevent recursion.
     struct GroupContext {
         /// The set of rules which have been used during this evaluation. Each individual rule is used at most once.
@@ -859,7 +859,7 @@ class FilesBasedBuildPhaseTaskProducerBase: PhasedTaskProducer {
     }
 
     /// Construct the tasks for the given rule against the supplied context.
-    func constructTasksForRule(_ rule: any BuildRuleAction, _ cbc: CommandBuildContext, _ delegate: any TaskGenerationDelegate) async {
+    package func constructTasksForRule(_ rule: any BuildRuleAction, _ cbc: CommandBuildContext, _ delegate: any TaskGenerationDelegate) async {
         // Evaluate the rule.
         if let action = rule as? BuildRuleTaskAction {
             let spec = action.toolSpec.resolveConcreteSpec(cbc)

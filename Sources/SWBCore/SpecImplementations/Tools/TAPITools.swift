@@ -40,7 +40,7 @@ public final class TAPIToolSpec : GenericCommandLineToolSpec, GCCCompatibleCompi
     }
 
     // FIXME: Ideally this would just go in the spec itself
-    public override func commandLineFromOptions(_ cbc: CommandBuildContext, _ delegate: any DiagnosticProducingDelegate, optionContext: (any BuildOptionGenerationContext)?, lookup: ((MacroDeclaration) -> MacroExpression?)? = nil) -> [CommandLineArgument] {
+    public override func commandLineFromOptions(_ cbc: CommandBuildContext, _ delegate: any DiagnosticProducingDelegate, optionContext: (any BuildOptionGenerationContext)?, buildOptionsFilter: BuildOptionsFilter, lookup: ((MacroDeclaration) -> MacroExpression?)? = nil) -> [CommandLineArgument] {
         let innerLookup: ((MacroDeclaration) -> MacroExpression?) = { macro in
             switch macro {
             case BuiltinMacros.TAPI_HEADER_SEARCH_PATHS:
@@ -67,7 +67,7 @@ public final class TAPIToolSpec : GenericCommandLineToolSpec, GCCCompatibleCompi
 
         let tapiFileListArgs: [CommandLineArgument] = ["-filelist", .path(Path(cbc.scope.evaluate(BuiltinMacros.TapiFileListPath, lookup: lookup)))]
 
-        return super.commandLineFromOptions(cbc, delegate, optionContext: optionContext, lookup: requiresSRCROOTSupport ? innerLookup : lookup) + tapiFileListArgs
+        return super.commandLineFromOptions(cbc, delegate, optionContext: optionContext, buildOptionsFilter: buildOptionsFilter, lookup: requiresSRCROOTSupport ? innerLookup : lookup) + tapiFileListArgs
     }
 
     /// Construct a new task to run the TAPI tool.

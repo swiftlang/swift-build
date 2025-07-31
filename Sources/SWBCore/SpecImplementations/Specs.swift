@@ -457,6 +457,20 @@ public final class BuildSettingsSpec : PropertyDomainSpec, SpecType, @unchecked 
     }
 }
 
+public final class BuildSettingsExtensionSpec: PropertyDomainSpec, SpecType, @unchecked Sendable {
+    class public override var typeName: String {
+        return "BuildSettingsExtension"
+    }
+
+    /// The spec identifier that specs must conform to in order for these build settings to be incorporated into them.
+    let extendsConformsTo: String
+
+    public required init(_ parser: SpecParser, _ basedOnSpec: Spec?) {
+        extendsConformsTo = parser.parseRequiredString("ExtendsConformsTo")
+        super.init(parser, basedOnSpec)
+    }
+}
+
 public final class BuildSystemSpec : PropertyDomainSpec, SpecType, @unchecked Sendable {
     class public override var typeName: String {
         return "BuildSystem"

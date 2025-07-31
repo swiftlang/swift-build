@@ -83,7 +83,7 @@ fileprivate struct PreOverridesSettings {
             let ignoredMacros: [MacroDeclaration] = [BuiltinMacros.OutputFormat, BuiltinMacros.OutputPath]
 
             for spec in specs {
-                for option in spec.flattenedBuildOptions.values {
+                for option in core.specRegistry.effectiveFlattenedBuildOptions(spec).values {
                     guard !ignoredMacros.contains(option.macro) else { continue }
 
                     if let value = option.defaultValue {
@@ -236,11 +236,11 @@ fileprivate struct PreOverridesSettings {
             // Add the defaults from all the registered tools in the given domain.
             //
             // FIXME: This is somewhat wasteful, as we end up duplicating values for super specifications. However, that lets us keep the condition set required to enable a particular compiler very simple.
-            let unionedDefaults = unionedToolDefaults(domain: domain)
+            let unionedDefaults = unionedToolDefaults(domain: domain).table
             let customizedDefaults = MacroValueAssignmentTable(namespace: core.specRegistry.internalMacroNamespace)
             for spec in core.specRegistry.findSpecs(CompilerSpec.self, domain: domain) {
                 // Add all the necessary defaults.
-                for option in spec.flattenedBuildOptions.values {
+                for option in core.specRegistry.effectiveFlattenedBuildOptions(spec).values {
                     if let defaultValue = option.defaultValue {
                         // Only push the default value if it diverges from the existing default.
                         //

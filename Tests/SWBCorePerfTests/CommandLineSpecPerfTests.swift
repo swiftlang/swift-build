@@ -13,7 +13,7 @@
 import Testing
 
 import SWBTestSupport
-import SWBCore
+@_spi(Testing) import SWBCore
 import SWBUtil
 import enum SWBProtocol.ExternalToolResult
 import struct SWBProtocol.BuildOperationTaskEnded

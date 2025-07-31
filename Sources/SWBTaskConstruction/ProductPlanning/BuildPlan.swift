@@ -172,9 +172,12 @@ package final class BuildPlan: StaleFileRemovalContext {
                 progressContinuation.yield(())
                 if delegate.cancelled { return }
 
-                // FIXME: Change this API to just return an array for now.
-                let tasks = await Array(producer.generateTasks())
-                aggregationQueue.async {
+                var tasks = await producer.generateTasks()
+                for ext in await taskProducerExtensions(planRequest.workspaceContext) {
+                    await ext.generateAdditionalTasks(&tasks, producer)
+                }
+
+                aggregationQueue.async { [tasks] in
                     productPlanResultContext.addPlannedTasks(tasks)
                 }
             }

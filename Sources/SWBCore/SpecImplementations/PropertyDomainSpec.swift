@@ -343,7 +343,7 @@ private let buildOptionTypes: [String: any BuildOptionType] = [
     let inputInclusions: [MacroStringExpression]?
 
     /// Additional output dependencies to consider when this build option is active.
-    let outputDependencies: [MacroStringExpression]?
+    let outputDependencies: [(path: MacroStringExpression, fileType: MacroStringExpression?)]?
 
     /// Helper function for extract an individual value definition from a dictionary.
     private static func parseBuildOptionValue(_ parser: SpecParser, _ name: String, _ type: any BuildOptionType, _ data: [String: PropertyListItem]) -> (String, BuildOptionValue)? {
@@ -804,7 +804,7 @@ private let buildOptionTypes: [String: any BuildOptionType] = [
         var dependencyFormat: DependencyDataFormat? = nil
         var featureFlags: [String]? = nil
         var inputInclusions: [MacroStringExpression]? = nil
-        var outputDependencies: [MacroStringExpression]? = nil
+        var outputDependencies: [(path: MacroStringExpression, fileType: MacroStringExpression?)]? = nil
         for (key, valueData) in items {
             switch key {
             case "Name":
@@ -1031,14 +1031,36 @@ private let buildOptionTypes: [String: any BuildOptionType] = [
             case "OutputDependencies":
                 switch valueData {
                 case .plString(let value):
-                    outputDependencies = [parser.delegate.internalMacroNamespace.parseString(value)]
+                    outputDependencies = [(parser.delegate.internalMacroNamespace.parseString(value), nil)]
                 case .plArray(let values):
                     outputDependencies = values.compactMap({ data in
-                        guard case .plString(let value) = data else {
-                            error("expected all string values in array for '\(key)'")
+                        switch data {
+                        case let .plString(value):
+                            return (parser.delegate.internalMacroNamespace.parseString(value), nil)
+                        case let .plDict(value):
+                            let path: MacroStringExpression
+                            switch value["Path"] {
+                            case let .plString(expr):
+                                path = parser.delegate.internalMacroNamespace.parseString(expr)
+                            default:
+                                error("expected string value for subkey 'Path' in element of array in '\(key)'")
+                                return nil
+                            }
+
+                            let fileType: MacroStringExpression
+                            switch value["FileType"] {
+                            case let .plString(expr):
+                                fileType = parser.delegate.internalMacroNamespace.parseString(expr)
+                            default:
+                                error("expected string value for subkey 'FileType' in element of array in '\(key)'")
+                                return nil
+                            }
+
+                            return (path, fileType)
+                        default:
+                            error("expected all string or dictionary values in array for '\(key)'")
                             return nil
                         }
-                        return parser.delegate.internalMacroNamespace.parseString(value)
                     })
                 default:
                     error("expected string or array value for build option key '\(key)'")
@@ -1720,11 +1742,11 @@ open class PropertyDomainSpec : Spec, @unchecked Sendable {
 
 
 /// Extensions to PropertyDomainSpec for performance testing.
-public extension PropertyDomainSpec {
+extension PropertyDomainSpec {
 
     /// Creates and returns a ``MacroValueAssignmentTable`` populated with the default values of the receiver's build options.
     /// The table's namespace is also returned so that the caller can add further settings to it if desired.
-    func macroTableForBuildOptionDefaults(_ core: Core) -> (MacroValueAssignmentTable, MacroNamespace) {
+    @_spi(Testing) public func macroTableForBuildOptionDefaults(_ core: Core) -> (MacroValueAssignmentTable, MacroNamespace) {
         var table = MacroValueAssignmentTable(namespace: core.specRegistry.internalMacroNamespace)
         for option in self.flattenedOrderedBuildOptions {
             guard let value = option.defaultValue else { continue }

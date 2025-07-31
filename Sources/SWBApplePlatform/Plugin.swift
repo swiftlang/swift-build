@@ -37,7 +37,6 @@ struct AppleDeveloperDirectoryExtension: DeveloperDirectoryExtension {
 }
 
 struct TaskProducersExtension: TaskProducerExtension {
-
     func createPreSetupTaskProducers(_ context: TaskProducerContext) -> [any TaskProducer] {
         [DevelopmentAssetsTaskProducer(context)]
     }
@@ -60,6 +59,9 @@ struct TaskProducersExtension: TaskProducerExtension {
 
     var globalTaskProducers: [any GlobalTaskProducerFactory] {
         [StubBinaryTaskProducerFactory()]
+    }
+
+    func generateAdditionalTasks(_ tasks: inout [any SWBCore.PlannedTask], _ producer: any SWBTaskConstruction.TaskProducer) {
     }
 }
 
