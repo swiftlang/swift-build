@@ -30,6 +30,7 @@ public struct BuiltinSpecsExtension: SpecificationsExtension {
             ArchitectureSpec.self,
             BuildPhaseSpec.self,
             BuildSettingsSpec.self,
+            BuildSettingsExtensionSpec.self,
             BuildSystemSpec.self,
             CommandLineToolSpec.self,
             CompilerSpec.self,

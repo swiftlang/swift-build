@@ -239,7 +239,12 @@ public final class ActoolCompilerSpec : GenericCompilerSpec, SpecIdentifierType,
         // which it currently receives a listing of via the assetcatalog_dependencies file produced by actool.
         let carFiles = [cbc.resourcesDir?.join("Assets.car")].compactMap { $0 }.map(delegate.createNode)
 
-        let outputs = evaluatedOutputsResult + (additionalEvaluatedOutputsResult.outputs ).map(delegate.createNode)
+        let outputs = evaluatedOutputsResult + (additionalEvaluatedOutputsResult.outputs).map { output in
+            if let fileTypeIdentifier = output.fileType, let fileType = cbc.producer.lookupFileType(identifier: fileTypeIdentifier) {
+                delegate.declareOutput(FileToBuild(absolutePath: output.path, fileType: fileType))
+            }
+            return delegate.createNode(output.path)
+        }
         guard !outputs.isEmpty else { preconditionFailure("ActoolCompilerSpec.constructTasks() invoked with no outputs defined") }
 
         let assetSymbolInputs = cbc.inputs

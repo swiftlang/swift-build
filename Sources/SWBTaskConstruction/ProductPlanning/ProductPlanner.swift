@@ -14,7 +14,7 @@ import SWBCore
 import SWBUtil
 import SWBMacro
 
-@PluginExtensionSystemActor private func taskProducerExtensions(_ workspaceContext: WorkspaceContext) -> [any TaskProducerExtension] {
+@PluginExtensionSystemActor internal func taskProducerExtensions(_ workspaceContext: WorkspaceContext) -> [any TaskProducerExtension] {
     let extensions = workspaceContext.core.pluginManager.extensions(of: TaskProducerExtensionPoint.self)
 
     // Sort the extensions using their type name so we always go through them in a stable order.

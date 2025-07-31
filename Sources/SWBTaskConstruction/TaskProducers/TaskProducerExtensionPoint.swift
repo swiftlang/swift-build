@@ -28,6 +28,8 @@ package protocol TaskProducerExtension: Sendable {
     var unorderedPostSetupTaskProducers: [any TaskProducerFactory] { get }
     var unorderedPostBuildPhasesTaskProducers: [any TaskProducerFactory] { get }
     var globalTaskProducers: [any GlobalTaskProducerFactory] { get }
+
+    func generateAdditionalTasks(_ tasks: inout [any PlannedTask], _ producer: any TaskProducer) async
 }
 
 package protocol TaskProducerFactory: Sendable {

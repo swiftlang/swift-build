@@ -74,6 +74,9 @@ struct UniversalPlatformTaskProducerExtension: TaskProducerExtension {
     var unorderedPostBuildPhasesTaskProducers: [any SWBTaskConstruction.TaskProducerFactory] { [] }
 
     var globalTaskProducers: [any SWBTaskConstruction.GlobalTaskProducerFactory] { [] }
+
+    func generateAdditionalTasks(_ tasks: inout [any SWBCore.PlannedTask], _ producer: any SWBTaskConstruction.TaskProducer) {
+    }
 }
 
 struct UniversalPlatformTaskActionExtension: TaskActionExtension {
