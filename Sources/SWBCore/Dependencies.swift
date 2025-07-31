@@ -205,10 +205,10 @@ public struct ModuleDependenciesContext: Sendable, SerializableCodable {
                 self.init(sourceRange: .init(path: location.path, startLine: location.endLine, startColumn: location.endColumn, endLine: location.endLine, endColumn: location.endColumn), modificationStyle: .appendToExistingAssignment)
             }
             else if let path = settings.constructionComponents.targetXcconfigPath {
-                self.init(sourceRange: .init(path: path, startLine: 0, startColumn: 0, endLine: 0, endColumn: 0), modificationStyle: .insertNewAssignment(targetNameCondition: nil))
+                self.init(sourceRange: .init(path: path, startLine: .max, startColumn: .max, endLine: .max, endColumn: .max), modificationStyle: .insertNewAssignment(targetNameCondition: nil))
             }
             else if let path = settings.constructionComponents.projectXcconfigPath {
-                self.init(sourceRange: .init(path: path, startLine: 0, startColumn: 0, endLine: 0, endColumn: 0), modificationStyle: .insertNewAssignment(targetNameCondition: target.name))
+                self.init(sourceRange: .init(path: path, startLine: .max, startColumn: .max, endLine: .max, endColumn: .max), modificationStyle: .insertNewAssignment(targetNameCondition: target.name))
             }
             else {
                 return nil
