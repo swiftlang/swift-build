@@ -239,4 +239,8 @@ extension CapturingTaskGenerationDelegate: TaskActionCreationDelegate {
     package func createProcessSDKImportsTaskAction() -> any PlannedTaskAction {
         return ProcessSDKImportsTaskAction()
     }
+
+    package func createValidateDependenciesTaskAction() -> any PlannedTaskAction {
+        return ValidateDependenciesTaskAction()
+    }
 }

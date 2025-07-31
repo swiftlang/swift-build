@@ -63,7 +63,7 @@ public struct ModuleDependency: Hashable, Sendable, SerializableCodable {
 }
 
 public struct ModuleDependenciesContext: Sendable, SerializableCodable {
-    var validate: BooleanWarningLevel
+    public var validate: BooleanWarningLevel
     var moduleDependencies: [ModuleDependency]
     var fixItContext: FixItContext?
 
@@ -233,5 +233,29 @@ public struct ModuleDependenciesContext: Sendable, SerializableCodable {
 
             return Diagnostic.FixIt(sourceRange: sourceRange, newText: newText)
         }
+    }
+}
+
+public struct DependencyValidationInfo: Hashable, Sendable, Codable {
+    public struct Import: Hashable, Sendable, Codable {
+        public let dependency: ModuleDependency
+        public let importLocations: [Diagnostic.Location]
+
+        public init(dependency: ModuleDependency, importLocations: [Diagnostic.Location]) {
+            self.dependency = dependency
+            self.importLocations = importLocations
+        }
+    }
+
+    public enum Payload: Hashable, Sendable, Codable {
+        case clangDependencies(files: [String])
+        case swiftDependencies(imports: [Import])
+        case unsupported
+    }
+
+    public let payload: Payload
+
+    public init(payload: Payload) {
+        self.payload = payload
     }
 }

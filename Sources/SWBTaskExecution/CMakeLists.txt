@@ -70,6 +70,7 @@ add_library(SWBTaskExecution
   TaskActions/SwiftDriverTaskAction.swift
   TaskActions/SwiftHeaderToolTaskAction.swift
   TaskActions/TaskAction.swift
+  TaskActions/ValidateDependenciesTaskAction.swift
   TaskActions/ValidateDevelopmentAssetsTaskAction.swift
   TaskActions/ValidateProductTaskAction.swift
   TaskResult.swift
