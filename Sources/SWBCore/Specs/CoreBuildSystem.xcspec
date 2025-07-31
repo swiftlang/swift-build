@@ -1195,7 +1195,6 @@ When `GENERATE_INFOPLIST_FILE` is enabled, sets the value of the [CFBundleIdenti
                 Type = StringList;
                 Category = "Search Paths";
                 DefaultValue = "*.nib *.lproj *.framework *.gch *.xcode* *.xcassets *.icon (*) .DS_Store CVS .svn .git .hg *.pbproj *.pbxproj";
-                DefaultValue = "*.nib *.lproj *.framework *.gch *.xcode* *.xcassets (*) .DS_Store CVS .svn .git .hg *.pbproj *.pbxproj";
             },
             {
                 Name = "VERSIONING_SYSTEM";
@@ -3661,6 +3660,13 @@ When this setting is enabled:
                 DisplayName = "Localization Prefers String Catalogs";
                 Category = "Localization";
                 Description = "When enabled, string tables generated in a localization export will prefer the String Catalog format.";
+            },
+            {   Name = STRING_CATALOG_GENERATE_SYMBOLS;
+                Type = Boolean;
+                DefaultValue = NO;
+                DisplayName = "Generate String Catalog Symbols";
+                Category = "Localization";
+                Description = "When enabled, symbols will be generated for manually-managed strings in String Catalogs.";
             },
 
             // rdar://108915072 (Move Siri Category and relevant configs out of CoreBuildSystem)

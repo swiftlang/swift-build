@@ -1398,7 +1398,7 @@ package final class TaskActionRegistry: Sendable {
         implementations = try TaskActionExtensionPoint.taskActionImplementations(pluginManager: pluginManager)
     }
 
-    func withSerializationContext<T>(_ block: () throws -> T) rethrows -> T {
+    @_spi(Testing) public func withSerializationContext<T>(_ block: () throws -> T) rethrows -> T {
         try TaskAction.$taskActionImplementations.withValue(implementations) {
             try block()
         }
