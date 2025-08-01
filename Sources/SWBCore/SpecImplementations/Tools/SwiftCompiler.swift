@@ -1809,7 +1809,7 @@ public final class SwiftCompilerSpec : CompilerSpec, SpecIdentifierType, SwiftDi
                 // Instructs the driver to perform build planning with explicit module builds
                 if explicitModuleBuildEnabled {
                     args.append("-explicit-module-build")
-                    let explicitDependencyOutputPath = Path(cbc.scope.evaluate(BuiltinMacros.SWIFT_EXPLICIT_MODULES_OUTPUT_PATH))
+                    let explicitDependencyOutputPath = cbc.scope.evaluate(BuiltinMacros.SWIFT_EXPLICIT_MODULES_OUTPUT_PATH)
                     args.append(contentsOf: ["-module-cache-path", explicitDependencyOutputPath.str])
                     let moduleCacheDir = cbc.scope.evaluate(BuiltinMacros.MODULE_CACHE_DIR)
                     if LibSwiftDriver.supportsDriverFlag(spelled: "-clang-scanner-module-cache-path"),
@@ -2296,7 +2296,7 @@ public final class SwiftCompilerSpec : CompilerSpec, SpecIdentifierType, SwiftDi
                 previewPayload: previewPayload,
                 localizationPayload: localizationPayload,
                 numExpectedCompileSubtasks: isUsingWholeModuleOptimization ? 1 : cbc.inputs.count,
-                driverPayload: await driverPayload(uniqueID: String(args.hashValue), scope: cbc.scope, delegate: delegate, compilationMode: compilationMode, isUsingWholeModuleOptimization: isUsingWholeModuleOptimization, args: args, tempDirPath: objectFileDir, explicitModulesTempDirPath: Path(cbc.scope.evaluate(BuiltinMacros.SWIFT_EXPLICIT_MODULES_OUTPUT_PATH)), variant: variant, arch: arch + compilationMode.moduleBaseNameSuffix, commandLine: ["builtin-SwiftDriver", "--"] + args, ruleInfo: ruleInfo(compilationMode.ruleNameIntegratedDriver, targetName), casOptions: casOptions, linkerResponseFilePath: moduleLinkerArgsPath), previewStyle: cbc.scope.previewStyle
+                driverPayload: await driverPayload(uniqueID: String(args.hashValue), scope: cbc.scope, delegate: delegate, compilationMode: compilationMode, isUsingWholeModuleOptimization: isUsingWholeModuleOptimization, args: args, tempDirPath: objectFileDir, explicitModulesTempDirPath: cbc.scope.evaluate(BuiltinMacros.SWIFT_EXPLICIT_MODULES_OUTPUT_PATH), variant: variant, arch: arch + compilationMode.moduleBaseNameSuffix, commandLine: ["builtin-SwiftDriver", "--"] + args, ruleInfo: ruleInfo(compilationMode.ruleNameIntegratedDriver, targetName), casOptions: casOptions, linkerResponseFilePath: moduleLinkerArgsPath), previewStyle: cbc.scope.previewStyle
             )
 
             // Finally, assemble the input and output paths and create the Swift compiler command.

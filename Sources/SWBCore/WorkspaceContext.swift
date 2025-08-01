@@ -352,7 +352,7 @@ public final class WorkspaceContext: Sendable {
     private let headerIndexCache = AsyncSingleValueCache<WorkspaceHeaderIndex, Never>()
 
     public var buildDirectoryMacros: [PathMacroDeclaration] {
-        return [BuiltinMacros.DSTROOT, BuiltinMacros.OBJROOT, BuiltinMacros.SYMROOT, BuiltinMacros.BUILT_PRODUCTS_DIR, BuiltinMacros.EAGER_LINKING_INTERMEDIATE_TBD_DIR]
+        return [BuiltinMacros.DSTROOT, BuiltinMacros.OBJROOT, BuiltinMacros.SYMROOT, BuiltinMacros.BUILT_PRODUCTS_DIR, BuiltinMacros.EAGER_LINKING_INTERMEDIATE_TBD_DIR, BuiltinMacros.SWIFT_EXPLICIT_MODULES_OUTPUT_PATH, BuiltinMacros.CLANG_EXPLICIT_MODULES_OUTPUT_PATH]
     }
 
     /// The path to the module session file for the workspace given a set of build parameters.
