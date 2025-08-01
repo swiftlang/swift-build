@@ -1368,7 +1368,8 @@ public class ClangCompilerSpec : CompilerSpec, SpecIdentifierType, GCCCompatible
             extraInputs = []
         }
 
-        if let moduleDependenciesContext {
+        // If validation is set to `YES_ERROR`, individual Clang tasks emit diagnostics, so they need this data in their signature. Otherwise, diagnostics are handled by the per-target validation action so individual compiles are not affected by changes to validation-related build settings.
+        if let moduleDependenciesContext, moduleDependenciesContext.validate == .yesError {
             do {
                 let jsonData = try JSONEncoder(outputFormatting: [.prettyPrinted, .sortedKeys, .withoutEscapingSlashes]).encode(moduleDependenciesContext)
                 guard let signature = String(data: jsonData, encoding: .utf8) else {

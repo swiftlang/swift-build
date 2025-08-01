@@ -1002,6 +1002,10 @@ extension BuildOperation: TaskExecutionDelegate {
     package var emitFrontendCommandLines: Bool {
         buildDescription.emitFrontendCommandLines
     }
+
+    package var continueBuildingAfterErrors: Bool {
+        request.continueBuildingAfterErrors
+    }
 }
 
 // BuildOperation uses reference semantics.

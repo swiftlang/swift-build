@@ -42,6 +42,7 @@ struct MockExecutionDelegate: TaskExecutionDelegate {
     var namespace: MacroNamespace
     var requestContext: SWBCore.BuildRequestContext { fatalError() }
     var emitFrontendCommandLines: Bool { false }
+    var continueBuildingAfterErrors: Bool { false }
     private var core: Core?
 
     func taskDiscoveredRequiredTargetDependency(target: ConfiguredTarget, antecedent: ConfiguredTarget, reason: RequiredTargetDependencyReason, warningLevel: BooleanWarningLevel) {}

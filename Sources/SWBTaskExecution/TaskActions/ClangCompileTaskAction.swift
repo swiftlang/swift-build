@@ -261,6 +261,20 @@ public final class ClangCompileTaskAction: TaskAction, BuildValueValidatingTaskA
                 moduleDependenciesContext = nil
                 dependencyValidationOutputPath = nil
             }
+
+            // Emit per-task diagnostics if validation is set to `YES_ERROR` and we're not continuing to build after errors.
+            let moduleDependenciesEmitPerTaskDiagnostics = moduleDependenciesContext?.validate == .yesError && !executionDelegate.continueBuildingAfterErrors
+            if moduleDependenciesEmitPerTaskDiagnostics, let dependencyValidationOutputPath {
+                // Since we're emitting per task diagnostics, communicate empty diagnostics to the validation task.
+                let validationInfo = DependencyValidationInfo(payload: .clangDependencies(files: []))
+                _ = try executionDelegate.fs.writeIfChanged(
+                    dependencyValidationOutputPath,
+                    contents: ByteString(
+                        JSONEncoder(outputFormatting: .sortedKeys).encode(validationInfo)
+                    )
+                )
+            }
+
             if let traceFilePath {
                 // Remove the trace output file if it already exists.
                 if executionDelegate.fs.exists(traceFilePath) {
@@ -325,28 +339,41 @@ public final class ClangCompileTaskAction: TaskAction, BuildValueValidatingTaskA
                 }
             }
 
-            if lastResult == .succeeded {
+            if lastResult == .succeeded, let moduleDependenciesContext {
                 // Verify the dependencies from the trace data.
                 let payload: DependencyValidationInfo.Payload
+                var allFiles = Set<Path>()
                 if let traceFilePath {
                     let fs = executionDelegate.fs
                     let traceData = try JSONDecoder().decode(Array<TraceData>.self, from: Data(fs.read(traceFilePath)))
 
-                    var allFiles = Set<Path>()
                     traceData.forEach { allFiles.formUnion(Set($0.includes)) }
                     payload = .clangDependencies(files: allFiles.map { $0.str })
                 } else {
                     payload = .unsupported
                 }
 
-                if let dependencyValidationOutputPath {
-                    let validationInfo = DependencyValidationInfo(payload: payload)
-                    _ = try executionDelegate.fs.writeIfChanged(
-                        dependencyValidationOutputPath,
-                        contents: ByteString(
-                            JSONEncoder(outputFormatting: .sortedKeys).encode(validationInfo)
+                if moduleDependenciesEmitPerTaskDiagnostics {
+                    let missingDeps = moduleDependenciesContext.computeMissingDependencies(files: Array(allFiles))
+                    let diagnostics = moduleDependenciesContext.makeDiagnostics(missingDependencies: missingDeps)
+
+                    for diagnostic in diagnostics {
+                        outputDelegate.emit(diagnostic)
+                    }
+
+                    if diagnostics.contains(where: { $0.behavior == .error }) {
+                        return .failed
+                    }
+                } else {
+                    if let dependencyValidationOutputPath {
+                        let validationInfo = DependencyValidationInfo(payload: payload)
+                        _ = try executionDelegate.fs.writeIfChanged(
+                            dependencyValidationOutputPath,
+                            contents: ByteString(
+                                JSONEncoder(outputFormatting: .sortedKeys).encode(validationInfo)
+                            )
                         )
-                    )
+                    }
                 }
             }
 

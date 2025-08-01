@@ -583,6 +583,8 @@ public protocol TaskExecutionDelegate
 
     var namespace: MacroNamespace { get }
 
+    var continueBuildingAfterErrors: Bool { get }
+
     /// Notifies the delegate that this task has discovered a target dependency which must exist to ensure deterministic builds.
     func taskDiscoveredRequiredTargetDependency(target: ConfiguredTarget, antecedent: ConfiguredTarget, reason: RequiredTargetDependencyReason, warningLevel: BooleanWarningLevel)
 }
