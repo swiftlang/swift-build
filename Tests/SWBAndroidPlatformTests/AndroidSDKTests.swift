@@ -24,22 +24,74 @@ fileprivate struct AndroidSDKTests {
         // It's OK if `installations` is an empty set, the host system might have no Android SDK/NDK installed
         for installation in installations {
             #expect(installation.host == host)
-            #expect(installation.latestNDK == installation.ndks.last)
         }
     }
 
-    @Test func abis_r22() async throws {
-        try await withNDKVersion(version: Version("22.1.7171670")) { host, fs, ndkVersionPath in
-            let error = #expect(throws: StubError.self) {
-                try AndroidSDK.NDK.findInstallations(host: host, sdkPath: ndkVersionPath.dirname.dirname, fs: fs)
+    @Test(.skipHostOS(.windows, "This test inherently relies on Unix-style paths"))
+    func debian() async throws {
+        let fs = PseudoFS()
+        let sdkPath = try AbsolutePath(validating: "/usr/lib/android-sdk")
+        try fs.createDirectory(sdkPath.path, recursive: true)
+        try await withNDKVersions(fs: fs, sdkPath: sdkPath, versions: Version("24"), Version("25"), Version("26")) { host, fs, sdkPath, ndkVersionPaths in
+            for ndkVersionPath in ndkVersionPaths {
+                try await fs.writeFileContents(ndkVersionPath.path.join("meta").join("abis.json")) { contents in
+                    contents <<<
+                """
+                {
+                }
+                """
+                }
+
+                try await fs.writeFileContents(ndkVersionPath.path.join("meta").join("platforms.json")) { contents in
+                    contents <<<
+                """
+                {
+                    "min": 21,
+                    "max": 35,
+                    "aliases": {
+                    }
+                }
+                """
+                }
             }
-            #expect(error?.description == "Android NDK version at path '\(ndkVersionPath.str)' is not supported (r23 or later required)")
+
+            try fs.symlink(Path("/usr/lib/android-ndk"), target: ndkVersionPaths[1].path)
+
+            let installations = try AndroidSDK.NDK.findInstallations(host: host, sdkPath: sdkPath, fs: fs)
+            let installation = try #require(installations.preferredNDK)
+            #expect(installations.ndks.count == 3)
+            #expect(installation != installations.ndks.first)
+            #expect(installation == installations.ndks[1])
+            #expect(installation != installations.ndks.last)
+            #expect(installation.host == host)
+            #expect(installation.path == ndkVersionPaths[1])
+            #expect(try installation.version == Version("25"))
+            #expect(installation.deploymentTargetRange.min == 21)
+            #expect(installation.deploymentTargetRange.max == 35)
+
+            #expect(installation.abis.isEmpty)
+        }
+    }
+
+    @Test func unsupportedVersions() async throws {
+        try await withNDKVersion(version: Version("22.1.7171670")) { host, fs, sdkPath, ndkVersionPath in
+            let error = try #require(throws: AndroidSDK.NDK.Error.self) {
+                try AndroidSDK.NDK.findInstallations(host: host, sdkPath: sdkPath, fs: fs)
+            }
+            #expect(error.description == "All installed NDK versions are not supported (r23 or later required)")
+        }
+
+        try await withNDKVersion(version: Version("22.1.7171670")) { host, fs, sdkPath, ndkVersionPath in
+            let error = try #require(throws: AndroidSDK.NDK.Error.self) {
+                try AndroidSDK.NDK(host: host, path: ndkVersionPath, fs: fs)
+            }
+            #expect(error.description == "Android NDK version at path '\(ndkVersionPath.path.str)' is not supported (r23 or later required)")
         }
     }
 
     @Test func abis_r26_3() async throws {
-        try await withNDKVersion(version: Version("26.3.11579264")) { host, fs, ndkVersionPath in
-            try await fs.writeFileContents(ndkVersionPath.join("meta").join("abis.json")) { contents in
+        try await withNDKVersion(version: Version("26.3.11579264")) { host, fs, sdkPath, ndkVersionPath in
+            try await fs.writeFileContents(ndkVersionPath.path.join("meta").join("abis.json")) { contents in
                 contents <<<
                 """
                 {
@@ -83,7 +135,7 @@ fileprivate struct AndroidSDKTests {
                 """
             }
 
-            try await fs.writeFileContents(ndkVersionPath.join("meta").join("platforms.json")) { contents in
+            try await fs.writeFileContents(ndkVersionPath.path.join("meta").join("platforms.json")) { contents in
                 contents <<<
                 """
                 {
@@ -115,8 +167,8 @@ fileprivate struct AndroidSDKTests {
                 """
             }
 
-            let installations = try AndroidSDK.NDK.findInstallations(host: host, sdkPath: ndkVersionPath.dirname.dirname, fs: fs)
-            let installation = try #require(installations.only)
+            let installations = try AndroidSDK.NDK.findInstallations(host: host, sdkPath: sdkPath, fs: fs)
+            let installation = try #require(installations.ndks.only)
             #expect(installation.host == host)
             #expect(installation.path == ndkVersionPath)
             #expect(try installation.version == Version("26.3.11579264"))
@@ -180,8 +232,8 @@ fileprivate struct AndroidSDKTests {
     }
 
     @Test func abis_r27() async throws {
-        try await withNDKVersion(version: Version("27.0.11718014")) { host, fs, ndkVersionPath in
-            try await fs.writeFileContents(ndkVersionPath.join("meta").join("abis.json")) { contents in
+        try await withNDKVersion(version: Version("27.0.11718014")) { host, fs, sdkPath, ndkVersionPath in
+            try await fs.writeFileContents(ndkVersionPath.path.join("meta").join("abis.json")) { contents in
                 contents <<<
                 """
                 {
@@ -239,7 +291,7 @@ fileprivate struct AndroidSDKTests {
                 """
             }
 
-            try await fs.writeFileContents(ndkVersionPath.join("meta").join("platforms.json")) { contents in
+            try await fs.writeFileContents(ndkVersionPath.path.join("meta").join("platforms.json")) { contents in
                 contents <<<
                 """
                 {
@@ -272,8 +324,8 @@ fileprivate struct AndroidSDKTests {
                 """
             }
 
-            let installations = try AndroidSDK.NDK.findInstallations(host: host, sdkPath: ndkVersionPath.dirname.dirname, fs: fs)
-            let installation = try #require(installations.only)
+            let installations = try AndroidSDK.NDK.findInstallations(host: host, sdkPath: sdkPath, fs: fs)
+            let installation = try #require(installations.ndks.only)
             #expect(installation.host == host)
             #expect(installation.path == ndkVersionPath)
             #expect(try installation.version == Version("27.0.11718014"))
@@ -349,13 +401,26 @@ fileprivate struct AndroidSDKTests {
         }
     }
 
-    private func withNDKVersion(version: Version, _ block: (OperatingSystem, any FSProxy, Path) async throws -> ()) async throws {
-        let fs = PseudoFS()
-        let ndkPath = Path.root.join("ndk")
-        let ndkVersionPath = ndkPath.join(version.description)
-        try fs.createDirectory(ndkPath, recursive: true)
-        try fs.createDirectory(ndkVersionPath.join("meta"), recursive: true)
+    private func withNDKVersions(fs: PseudoFS = PseudoFS(), sdkPath: AbsolutePath = .root, versions: Version..., block: (OperatingSystem, any FSProxy, AbsolutePath, [AbsolutePath]) async throws -> ()) async throws {
+        let ndkPath = sdkPath.path.join("ndk")
+        let ndkVersionPaths = try await versions.asyncMap { version in
+            let ndkVersionPath = ndkPath.join(version.description)
+            try fs.createDirectory(ndkPath, recursive: true)
+            try fs.createDirectory(ndkVersionPath.join("meta"), recursive: true)
+            try await fs.writeFileContents(ndkVersionPath.join("source.properties")) {
+                $0 <<< "Pkg.Desc = Android NDK\n"
+                $0 <<< "Pkg.Revision = \(version.description)-beta1\n"
+                $0 <<< "Pkg.BaseRevision = \(version.description)\n"
+            }
+            return ndkVersionPath
+        }
         let host = try ProcessInfo.processInfo.hostOperatingSystem()
-        try await block(host, fs, ndkVersionPath)
+        try await block(host, fs, sdkPath, ndkVersionPaths.map { try AbsolutePath(validating: $0) })
+    }
+
+    private func withNDKVersion(fs: PseudoFS = PseudoFS(), sdkPath: AbsolutePath = .root, version: Version, _ block: (OperatingSystem, any FSProxy, AbsolutePath, AbsolutePath) async throws -> ()) async throws {
+        try await withNDKVersions(fs: fs, sdkPath: sdkPath, versions: version) { host, fs, sdkPath, ndkVersionPaths in
+            try await block(host, fs, sdkPath, ndkVersionPaths[0])
+        }
     }
 }

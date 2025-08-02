@@ -1006,6 +1006,10 @@ public struct RelativePath: Hashable, Equatable, Serializable, Sendable {
 }
 
 extension AbsolutePath {
+    public static var root: AbsolutePath {
+        AbsolutePath(.root)!
+    }
+
     public var dirname: AbsolutePath {
         AbsolutePath(path.dirname)!
     }
