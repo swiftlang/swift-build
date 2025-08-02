@@ -11,7 +11,7 @@
 //===----------------------------------------------------------------------===//
 
 public import SWBUtil
-import SWBCore
+public import SWBCore
 import SWBMacro
 import Foundation
 
@@ -24,7 +24,7 @@ import Foundation
     manager.register(AndroidToolchainRegistryExtension(plugin: plugin), type: ToolchainRegistryExtensionPoint.self)
 }
 
-final class AndroidPlugin: Sendable {
+@_spi(Testing) public final class AndroidPlugin: Sendable {
     private let androidSDKInstallations = AsyncCache<OperatingSystem, [AndroidSDK]>()
 
     func cachedAndroidSDKInstallations(host: OperatingSystem) async throws -> [AndroidSDK] {
@@ -32,6 +32,18 @@ final class AndroidPlugin: Sendable {
             // Always pass localFS because this will be cached, and executes a process on the host system so there's no reason to pass in any proxy.
             try await AndroidSDK.findInstallations(host: host, fs: localFS)
         }
+    }
+
+    @_spi(Testing) public func effectiveInstallation(host: OperatingSystem) async throws -> (sdk: AndroidSDK, ndk: AndroidSDK.NDK)? {
+        guard let androidSdk = try? await cachedAndroidSDKInstallations(host: host).first else {
+            return nil
+        }
+
+        guard let androidNdk = androidSdk.preferredNDK else {
+            return nil
+        }
+
+        return (androidSdk, androidNdk)
     }
 }
 
@@ -52,9 +64,13 @@ struct AndroidEnvironmentExtension: EnvironmentExtension {
         switch context.hostOperatingSystem {
         case .windows, .macOS, .linux:
             if let latest = try? await plugin.cachedAndroidSDKInstallations(host: context.hostOperatingSystem).first {
+                let sdkPath = latest.path.path.str
+                let ndkPath = latest.preferredNDK?.path.path.str
                 return [
-                    "ANDROID_SDK_ROOT": latest.path.str,
-                    "ANDROID_NDK_ROOT": latest.ndks.last?.path.str,
+                    "ANDROID_HOME": sdkPath,
+                    "ANDROID_SDK_ROOT": sdkPath,
+                    "ANDROID_NDK_ROOT": ndkPath,
+                    "ANDROID_NDK_HOME": ndkPath,
                 ].compactMapValues { $0 }
             }
         default:
@@ -80,10 +96,10 @@ struct AndroidPlatformExtension: PlatformInfoExtension {
     }
 }
 
-struct AndroidSDKRegistryExtension: SDKRegistryExtension {
-    let plugin: AndroidPlugin
+@_spi(Testing) public struct AndroidSDKRegistryExtension: SDKRegistryExtension {
+    @_spi(Testing) public let plugin: AndroidPlugin
 
-    func additionalSDKs(context: any SDKRegistryExtensionAdditionalSDKsContext) async throws -> [(path: Path, platform: SWBCore.Platform?, data: [String: PropertyListItem])] {
+    public func additionalSDKs(context: any SDKRegistryExtensionAdditionalSDKsContext) async throws -> [(path: Path, platform: SWBCore.Platform?, data: [String: PropertyListItem])] {
         let host = context.hostOperatingSystem
         guard let androidPlatform = context.platformRegistry.lookup(name: "android") else {
             return []
@@ -108,11 +124,7 @@ struct AndroidSDKRegistryExtension: SDKRegistryExtension {
             "AR": .plString(host.imageFormat.executableName(basename: "llvm-ar")),
         ]
 
-        guard let androidSdk = try? await plugin.cachedAndroidSDKInstallations(host: host).first else {
-            return []
-        }
-
-        guard let androidNdk = androidSdk.latestNDK else {
+        guard let (_, androidNdk) = try await plugin.effectiveInstallation(host: host) else {
             return []
         }
 
@@ -150,7 +162,7 @@ struct AndroidSDKRegistryExtension: SDKRegistryExtension {
             swiftSettings = [:]
         }
 
-        return [(androidNdk.sysroot, androidPlatform, [
+        return [(androidNdk.sysroot.path, androidPlatform, [
             "Type": .plString("SDK"),
             "Version": .plString("0.0.0"),
             "CanonicalName": .plString("android"),
@@ -187,7 +199,7 @@ struct AndroidToolchainRegistryExtension: ToolchainRegistryExtension {
     let plugin: AndroidPlugin
 
     func additionalToolchains(context: any ToolchainRegistryExtensionAdditionalToolchainsContext) async throws -> [Toolchain] {
-        guard let toolchainPath = try? await plugin.cachedAndroidSDKInstallations(host: context.hostOperatingSystem).first?.latestNDK?.toolchainPath else {
+        guard let toolchainPath = try? await plugin.cachedAndroidSDKInstallations(host: context.hostOperatingSystem).first?.preferredNDK?.toolchainPath else {
             return []
         }
 
@@ -197,13 +209,13 @@ struct AndroidToolchainRegistryExtension: ToolchainRegistryExtension {
                 displayName: "Android",
                 version: Version(0, 0, 0),
                 aliases: [],
-                path: toolchainPath,
+                path: toolchainPath.path,
                 frameworkPaths: [],
                 libraryPaths: [],
                 defaultSettings: [:],
                 overrideSettings: [:],
                 defaultSettingsWhenPrimary: [:],
-                executableSearchPaths: [toolchainPath.join("bin")],
+                executableSearchPaths: [toolchainPath.path.join("bin")],
                 testingLibraryPlatformNames: [],
                 fs: context.fs)
         ]

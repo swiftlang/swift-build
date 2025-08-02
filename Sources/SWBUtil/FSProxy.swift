@@ -879,9 +879,13 @@ public class PseudoFS: FSProxy, @unchecked Sendable {
 
     public func realpath(_ path: Path) throws -> Path {
         // TODO: Update this to actually return the link target when we support
-        // symlinks; for now it just returns the input, which seems reasonably
-        // correct.
-        return path
+        // symlinks; for now it just returns the input (or the link target if it's a symlink),
+        // which seems reasonably correct for simple cases.
+        do {
+            return try readlink(path)
+        } catch {
+            return path
+        }
     }
 
     public func readlink(_ path: Path) throws -> Path {
