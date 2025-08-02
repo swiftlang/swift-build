@@ -2983,7 +2983,7 @@ public final class SwiftCompilerSpec : CompilerSpec, SpecIdentifierType, SwiftDi
         var inputPaths: [Path] = []
         if !forTAPI {
             // TAPI can't use all of the additional linker options, and its spec has all of the build setting/option arguments that it can use.
-            args = self.flattenedOrderedBuildOptions.map { $0.getAdditionalLinkerArgs(producer, scope: scope, inputFileTypes: inputFileTypes) }.filter { !$0.isEmpty }
+            args = producer.effectiveFlattenedOrderedBuildOptions(self).map { $0.getAdditionalLinkerArgs(producer, scope: scope, inputFileTypes: inputFileTypes) }.filter { !$0.isEmpty }
         }
 
         // Determine if we are forced to use the standard system location; this is currently only for OS adopters of Swift, not any client.

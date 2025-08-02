@@ -626,7 +626,7 @@ public class ClangCompilerSpec : CompilerSpec, SpecIdentifierType, GCCCompatible
         var commandLine = Array<String>()
 
         // Add the arguments from the specification.
-        commandLine += self.commandLineFromOptions(producer, scope: scope, inputFileType: inputFileType, optionContext: optionContext,lookup: { declaration in
+        commandLine += self.commandLineFromOptions(producer, scope: scope, inputFileType: inputFileType, optionContext: optionContext, buildOptionsFilter: .specOnly, lookup: { declaration in
             if declaration.name == "CLANG_INDEX_STORE_ENABLE" && optionContext is DiscoveredClangToolSpecInfo {
                 let clangToolInfo = optionContext as! DiscoveredClangToolSpecInfo
                 if !clangToolInfo.isAppleClang {
@@ -1119,6 +1119,18 @@ public class ClangCompilerSpec : CompilerSpec, SpecIdentifierType, GCCCompatible
         inputDeps.append(contentsOf: constantFlags.headerSearchPaths.inputPaths)
 #endif
 
+        let cbcWithOutput = cbc.outputs.isEmpty ? cbc.appendingOutputs([outputNode.path]) : cbc
+        commandLine += self.commandLineFromOptions(cbc.producer, scope: cbc.scope, inputFileType: resolvedInputFileType, optionContext: clangInfo, buildOptionsFilter: .extendedOnly, lookup: {
+            self.lookup($0, cbcWithOutput, delegate)
+        }).map(\.asString)
+
+        let additionalOutputs = await self.additionalEvaluatedOutputs(cbcWithOutput, delegate)
+        for output in additionalOutputs.outputs {
+            if let fileTypeIdentifier = output.fileType, let fileType = cbc.producer.lookupFileType(identifier: fileTypeIdentifier) {
+                delegate.declareOutput(FileToBuild(absolutePath: output.path, fileType: fileType))
+            }
+        }
+
         // Add custom per-file flags.
         var perFileFlags = [String]()
         if let perFileArgs = input.additionalArgs {
@@ -1370,7 +1382,7 @@ public class ClangCompilerSpec : CompilerSpec, SpecIdentifierType, GCCCompatible
         }
 
         // Finally, create the task.
-        delegate.createTask(type: self, dependencyData: dependencyData, payload: payload, ruleInfo: ruleInfo, additionalSignatureData: additionalSignatureData, commandLine: commandLine, additionalOutput: additionalOutput, environment: environmentBindings, workingDirectory: compilerWorkingDirectory(cbc), inputs: inputNodes + extraInputs, outputs: [outputNode] + extraOutputs, action: action ?? delegate.taskActionCreationDelegate.createDeferredExecutionTaskActionIfRequested(userPreferences: cbc.producer.userPreferences), execDescription: resolveExecutionDescription(cbc, delegate), enableSandboxing: enableSandboxing, additionalTaskOrderingOptions: [.compilationForIndexableSourceFile], usesExecutionInputs: usesExecutionInputs, showEnvironment: true, priority: .preferred)
+        delegate.createTask(type: self, dependencyData: dependencyData, payload: payload, ruleInfo: ruleInfo, additionalSignatureData: additionalSignatureData, commandLine: commandLine, additionalOutput: additionalOutput, environment: environmentBindings, workingDirectory: compilerWorkingDirectory(cbc), inputs: inputNodes + extraInputs, outputs: [outputNode] + extraOutputs + additionalOutputs.outputs.map { delegate.createNode($0.path) }, action: action ?? delegate.taskActionCreationDelegate.createDeferredExecutionTaskActionIfRequested(userPreferences: cbc.producer.userPreferences), execDescription: resolveExecutionDescription(cbc, delegate), enableSandboxing: enableSandboxing, additionalTaskOrderingOptions: [.compilationForIndexableSourceFile], usesExecutionInputs: usesExecutionInputs, showEnvironment: true, priority: .preferred)
 
         // If the object file verifier is enabled and we are building with explicit modules, also create a job to produce adjacent objects using implicit modules, then compare the results.
         if cbc.scope.evaluate(BuiltinMacros.CLANG_ENABLE_EXPLICIT_MODULES_OBJECT_FILE_VERIFIER) && action != nil {

@@ -419,7 +419,12 @@ public final class LdLinkerSpec : GenericLinkerSpec, SpecIdentifierType, @unchec
 
         // Add the additional outputs defined by the spec.  These are not declared as outputs but should be processed by the tool separately.
         let additionalEvaluatedOutputsResult = await additionalEvaluatedOutputs(cbc, delegate)
-        outputs.append(contentsOf: additionalEvaluatedOutputsResult.outputs.map({ delegate.createNode($0) }))
+        outputs.append(contentsOf: additionalEvaluatedOutputsResult.outputs.map { output in
+            if let fileTypeIdentifier = output.fileType, let fileType = cbc.producer.lookupFileType(identifier: fileTypeIdentifier) {
+                delegate.declareOutput(FileToBuild(absolutePath: output.path, fileType: fileType))
+            }
+            return delegate.createNode(output.path)
+        })
 
         if let infoPlistContent = additionalEvaluatedOutputsResult.generatedInfoPlistContent {
             delegate.declareGeneratedInfoPlistContent(infoPlistContent)

@@ -103,7 +103,7 @@ public class TaskProducerContext: StaleFileRemovalContext, BuildFileResolution
     let provisionalTasks: [String: ProvisionalTask]
 
     /// The build rule set for file references (includes system rules as well as any custom rules).
-    let buildRuleSet: any BuildRuleSet
+    package let buildRuleSet: any BuildRuleSet
 
     /// The default working directory path to use.
     ///

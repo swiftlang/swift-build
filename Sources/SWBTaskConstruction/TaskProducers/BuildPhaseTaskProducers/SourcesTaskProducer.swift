@@ -196,7 +196,7 @@ private final class SourcesPhaseBasedTaskGenerationDelegate: TaskGenerationDeleg
     }
 }
 
-final class SourcesTaskProducer: FilesBasedBuildPhaseTaskProducerBase, FilesBasedBuildPhaseTaskProducer {
+package final class SourcesTaskProducer: FilesBasedBuildPhaseTaskProducerBase, FilesBasedBuildPhaseTaskProducer {
     typealias ManagedBuildPhase = SourcesBuildPhase
 
     /// A virtual node representing the (conservative) construction of all non-Swift-generated headers.
@@ -312,7 +312,7 @@ final class SourcesTaskProducer: FilesBasedBuildPhaseTaskProducerBase, FilesBase
     /// The default `TaskOrderingOptions` are used for the compile tasks in the architecture-variant loop, as the default options are primarily concerned with compilation. Other tasks set up by this producer use the `nonCompilationTaskOrderingOptions` below.  But be mindful of which options are being used when adding new tasks to this producer.
     ///
     /// The rule of thumb is that using the default options imposes _more_ ordering constraints on a task.
-    override var defaultTaskOrderingOptions: TaskOrderingOptions {
+    package override var defaultTaskOrderingOptions: TaskOrderingOptions {
         let scope = self.context.settings.globalScope
 
         var options = [TaskOrderingOptions]()
@@ -340,7 +340,7 @@ final class SourcesTaskProducer: FilesBasedBuildPhaseTaskProducerBase, FilesBase
     ///
     /// We override this to auto-attach tasks to the generated headers completion ordering gate.
     @discardableResult
-    override func appendGeneratedTasks( _ tasks: inout [any PlannedTask], options: TaskOrderingOptions? = nil, body: (any TaskGenerationDelegate) async -> Void) async -> (tasks: [any PlannedTask], outputs: [FileToBuild]) {
+    package override func appendGeneratedTasks( _ tasks: inout [any PlannedTask], options: TaskOrderingOptions? = nil, body: (any TaskGenerationDelegate) async -> Void) async -> (tasks: [any PlannedTask], outputs: [FileToBuild]) {
         return await super.appendGeneratedTasks(&tasks, options: options) { delegate in
             await body(SourcesPhaseBasedTaskGenerationDelegate(producer: self, userPreferences: context.workspaceContext.userPreferences, delegate: delegate))
         }
@@ -703,7 +703,7 @@ final class SourcesTaskProducer: FilesBasedBuildPhaseTaskProducerBase, FilesBase
         prepareTargetForIndexInputsObjectSet.formUnion(newInputs.map{ ObjectIdentifier($0) })
     }
 
-    func prepare() {
+    package func prepare() {
         // CodeSigning in a monster... really, it is. Further, we don't actually have a model where we can perform proper pre-planning to determine what inputs will cause downstream outputs to end up in a particular location. Every source file has the potential to contribute some type of output that ends up in the wrapper.
         // For example, every metal file creates a library that is embedded into the product wrapper. However, the build system doesn't actually *know* that, as the outputs aren't really tracked in a way that the CodeSign task itself can depend on it.
         // What the build system does _know_, is that _all_ source files run tools that can potentially end up invalidating the code signature. Until we have a proper pre-planning (e.g. or dry-run) model (or a model that allows us to have dependencies on task producers), we need to be more conservative in our tracking of inputs, even if they can result in additional codesign work.
@@ -722,7 +722,7 @@ final class SourcesTaskProducer: FilesBasedBuildPhaseTaskProducerBase, FilesBase
     }
 
     /// Compute a flattened list of build files to use
-    func generateTasks() async -> [any PlannedTask] {
+    package func generateTasks() async -> [any PlannedTask] {
         // NOTE: The sources build phase uses its own generateTasks() to deal with the per-variant and per-arch nature.
         let scope = context.settings.globalScope
 

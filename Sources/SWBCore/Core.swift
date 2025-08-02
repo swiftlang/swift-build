@@ -596,6 +596,7 @@ public final class Core: Sendable {
 
         let specs: [SpecDump] = specRegistry.domains.flatMap { domain -> [SpecDump] in
             let allSpecs = specRegistry.findSpecs(BuildSettingsSpec.self, domain: domain, includeInherited: false)
+                + specRegistry.findSpecs(BuildSettingsExtensionSpec.self, domain: domain, includeInherited: false)
                 + specRegistry.findSpecs(BuildSystemSpec.self, domain: domain, includeInherited: false)
                 + specRegistry.findSpecs(CommandLineToolSpec.self, domain: domain, includeInherited: false)
             return allSpecs.map { spec in

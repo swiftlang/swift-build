@@ -86,7 +86,12 @@ public class IbtoolCompilerSpec : GenericCompilerSpec, IbtoolCompilerSupport, @u
 
         // Add the additional outputs defined by the spec.  These are not declared as outputs but should be processed by the tool separately.
         let additionalEvaluatedOutputsResult = await additionalEvaluatedOutputs(cbc, delegate)
-        outputs += additionalEvaluatedOutputsResult.outputs.map(delegate.createNode)
+        outputs += additionalEvaluatedOutputsResult.outputs.map { output in
+            if let fileTypeIdentifier = output.fileType, let fileType = cbc.producer.lookupFileType(identifier: fileTypeIdentifier) {
+                delegate.declareOutput(FileToBuild(absolutePath: output.path, fileType: fileType))
+            }
+            return delegate.createNode(output.path)
+        }
 
         if let infoPlistContent = additionalEvaluatedOutputsResult.generatedInfoPlistContent {
             delegate.declareGeneratedInfoPlistContent(infoPlistContent)
