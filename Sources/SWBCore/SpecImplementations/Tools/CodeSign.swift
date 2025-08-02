@@ -23,7 +23,7 @@ public final class CodesignToolSpec : CommandLineToolSpec, SpecIdentifierType, @
             codesign = Path("/usr/bin/codesign")
         }
         if !codesign.isAbsolute {
-            codesign = resolveExecutablePath(cbc, codesign)
+            codesign = resolveExecutablePath(cbc.producer, codesign)
         }
         return codesign.str
     }

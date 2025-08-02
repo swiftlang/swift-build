@@ -362,16 +362,24 @@ extension Dictionary: PropertyListItemConvertible where Key == String, Value: Pr
 }
 
 public extension PropertyListItem {
-    init(_ x: any PropertyListItemConvertible) {
+    init<T>(_ x: T) where T: PropertyListItemConvertible {
         self = x.propertyListItem
     }
 
-    // Will remove this with rdar://problem/44204273
+    /// This overload is intended only to support arrays with heterogeneous values.
+    /// For example: ["", 42] can be represented as [any PropertyListItemConvertible]
+    /// but `any PropertyListItemConvertible` doesn't actually conform to
+    /// `PropertyListItemConvertible` hence we cannot use the overload above.
+    @_disfavoredOverload
     init(_ x: [any PropertyListItemConvertible]) {
         self = .plArray(x.map{$0.propertyListItem})
     }
 
-    // Will remove this with rdar://problem/44204273
+    /// This overload is intended only to support dictionaries with heterogeneous values.
+    /// For example: ["q": "", "a": 42] can be represented as [String: any PropertyListItemConvertible]
+    /// but `any PropertyListItemConvertible` doesn't actually conform to
+    /// `PropertyListItemConvertible`.
+    @_disfavoredOverload
     init(_ x: [String: any PropertyListItemConvertible]) {
         self = .plDict(x.mapValues { $0.propertyListItem })
     }

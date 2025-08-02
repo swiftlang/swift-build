@@ -25,7 +25,7 @@ import System
 import SystemPackage
 #endif
 
-@Suite(.skipHostOS(.windows))
+@Suite
 fileprivate struct ServiceConsoleTests {
     @Test
     func emptyInput() async throws {
@@ -39,7 +39,7 @@ fileprivate struct ServiceConsoleTests {
             let standardOutput = task._makeStream(for: \.standardOutputPipe, using: outputPipe)
             let promise: Promise<Processes.ExitStatus, any Error> = try task.launch()
 
-            let data = try await standardOutput.reduce(into: [], { $0.append($1) })
+            let data = try await standardOutput.reduce(into: [], { $0.append(contentsOf: $1) })
             let output = String(decoding: data, as: UTF8.self)
 
             // Verify there were no errors.

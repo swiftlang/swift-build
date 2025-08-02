@@ -14,6 +14,7 @@ import Testing
 
 import SWBCore
 import SWBTestSupport
+import SwiftBuildTestSupport
 import SWBUtil
 import SWBMacro
 import SWBProtocol

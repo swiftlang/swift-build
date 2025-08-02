@@ -15,6 +15,7 @@ import Testing
 import SWBBuildSystem
 import SWBCore
 import SWBTestSupport
+import SwiftBuildTestSupport
 import SWBTaskExecution
 @_spi(Testing) import SWBUtil
 import SWBLibc
@@ -307,7 +308,7 @@ fileprivate struct BuildTaskBehaviorTests: CoreBasedTests {
     }
 
     /// Check that we honor specs which are unsafe to interrupt.
-    @Test(.requireSDKs(.host), .skipHostOS(.windows, "no bash shell"))
+    @Test(.requireSDKs(.host), .skipHostOS(.windows, "no bash shell"), .skipHostOS(.freebsd, "Currently hangs on FreeBSD"))
     func unsafeToInterrupt() async throws {
         let fs = localFS
         let output = MakePlannedVirtualNode("<WAIT>")

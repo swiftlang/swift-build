@@ -197,6 +197,7 @@ public struct BuildRequestMessagePayload: SerializableCodable, Equatable, Sendab
         case hideShellScriptEnvironment
         case useParallelTargets
         case useImplicitDependencies
+        case recordBuildBacktraces
         case generatePrecompiledModulesReport
         case useDryRun
         case showNonLoggedProgress
@@ -219,6 +220,7 @@ public struct BuildRequestMessagePayload: SerializableCodable, Equatable, Sendab
         self.hideShellScriptEnvironment = try container.decode(Bool.self, forKey: BuildRequestMessagePayload.CodingKeys.hideShellScriptEnvironment)
         self.useParallelTargets = try container.decode(Bool.self, forKey: BuildRequestMessagePayload.CodingKeys.useParallelTargets)
         self.useImplicitDependencies = try container.decode(Bool.self, forKey: BuildRequestMessagePayload.CodingKeys.useImplicitDependencies)
+        self.recordBuildBacktraces = try container.decodeIfPresent(Bool.self, forKey: .recordBuildBacktraces)
         self.generatePrecompiledModulesReport = try container.decodeIfPresent(Bool.self, forKey: .generatePrecompiledModulesReport)
         self.useDryRun = try container.decode(Bool.self, forKey: BuildRequestMessagePayload.CodingKeys.useDryRun)
         self.showNonLoggedProgress = try container.decode(Bool.self, forKey: BuildRequestMessagePayload.CodingKeys.showNonLoggedProgress)
@@ -242,6 +244,7 @@ public struct BuildRequestMessagePayload: SerializableCodable, Equatable, Sendab
         try container.encode(self.hideShellScriptEnvironment, forKey: BuildRequestMessagePayload.CodingKeys.hideShellScriptEnvironment)
         try container.encode(self.useParallelTargets, forKey: BuildRequestMessagePayload.CodingKeys.useParallelTargets)
         try container.encode(self.useImplicitDependencies, forKey: BuildRequestMessagePayload.CodingKeys.useImplicitDependencies)
+        try container.encodeIfPresent(self.recordBuildBacktraces, forKey: .recordBuildBacktraces)
         try container.encodeIfPresent(self.generatePrecompiledModulesReport, forKey: .generatePrecompiledModulesReport)
         try container.encode(self.useDryRun, forKey: BuildRequestMessagePayload.CodingKeys.useDryRun)
         try container.encode(self.showNonLoggedProgress, forKey: BuildRequestMessagePayload.CodingKeys.showNonLoggedProgress)

@@ -38,7 +38,7 @@ public final class MigCompilerSpec : CompilerSpec, SpecIdentifierType, @unchecke
         return cbc.scope.migExecutablePath().str
     }
 
-    public override func resolveExecutablePath(_ cbc: CommandBuildContext, _ path: Path) -> Path {
+    public override func resolveExecutablePath(_ cbc: CommandBuildContext, _ path: Path, delegate: any CoreClientTargetDiagnosticProducingDelegate) async -> Path {
         return resolveExecutablePath(cbc.producer, Path(computeExecutablePath(cbc)))
     }
 

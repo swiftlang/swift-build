@@ -11,6 +11,7 @@
 //===----------------------------------------------------------------------===//
 
 public import SWBUtil
+import Synchronization
 
 /// A mapping from macro declarations to corresponding macro value assignments, each of which is a linked list of macro expressions in precedence order.  At the moment it doesn’t support conditional assignments, but that functionality will be implemented soon.
 public struct MacroValueAssignmentTable: Serializable, Sendable {
@@ -77,11 +78,11 @@ public struct MacroValueAssignmentTable: Serializable, Sendable {
 
 
     /// Adds a mapping from `macro` to `value`, inserting it ahead of any already existing assignment for the same macro.  Unless the value refers to the lower-precedence expression (using `$(inherited)` notation), any existing assignments are shadowed but not removed.
-    public mutating func push(_ macro: MacroDeclaration, _ value: MacroExpression, conditions: MacroConditionSet? = nil) {
+    public mutating func push(_ macro: MacroDeclaration, _ value: MacroExpression, conditions: MacroConditionSet? = nil, location: MacroValueAssignmentLocation? = nil) {
         assert(namespace.lookupMacroDeclaration(macro.name) === macro)
         // Validate the type.
         assert(macro.type.matchesExpressionType(value))
-        valueAssignments[macro] = MacroValueAssignment(expression: value, conditions: conditions, next: valueAssignments[macro])
+        valueAssignments[macro] = MacroValueAssignment(expression: value, conditions: conditions, next: valueAssignments[macro], location: location)
     }
 
     /// Adds a mapping from each of the macro-to-value mappings in `otherTable`, inserting them ahead of any already existing assignments in the receiving table.  The other table isn’t affected in any way (in particular, no reference is kept from the receiver to the other table).
@@ -104,6 +105,10 @@ public struct MacroValueAssignmentTable: Serializable, Sendable {
     /// Returns `true` if the table contains no entries.
     public var isEmpty: Bool {
         return valueAssignments.isEmpty
+    }
+
+    public func location(of macro: MacroDeclaration) -> MacroValueAssignmentLocation? {
+        return lookupMacro(macro)?.location
     }
 
     public func bindConditionParameter(_ parameter: MacroConditionParameter, _ conditionValues: [String]) -> MacroValueAssignmentTable {
@@ -178,7 +183,7 @@ public struct MacroValueAssignmentTable: Serializable, Sendable {
                     if effectiveConditionValue.evaluate(condition) == true {
                         // Condition evaluates to true, so we push an assignment with a condition set that excludes the condition.
                         let filteredConditions = conditions.conditions.filter{ $0.parameter != parameter }
-                        table.push(macro, assignment.expression, conditions: filteredConditions.isEmpty ? nil : MacroConditionSet(conditions: filteredConditions))
+                        table.push(macro, assignment.expression, conditions: filteredConditions.isEmpty ? nil : MacroConditionSet(conditions: filteredConditions), location: assignment.location)
                     }
                     else {
                         // Condition evaluates to false, so we elide the assignment.
@@ -186,7 +191,7 @@ public struct MacroValueAssignmentTable: Serializable, Sendable {
                 }
                 else {
                     // Assignment isn't conditioned on the specified parameter, so we just push it as-is.
-                    table.push(macro, assignment.expression, conditions: assignment.conditions)
+                    table.push(macro, assignment.expression, conditions: assignment.conditions, location: assignment.location)
                 }
             }
             bindAndPushAssignment(firstAssignment)
@@ -325,11 +330,40 @@ public final class MacroValueAssignment: Serializable, CustomStringConvertible, 
     /// Reference to the next (lower precedence) assignment in the linked list, or nil if this is the last one.
     public let next: MacroValueAssignment?
 
+    private let _location: InternedMacroValueAssignmentLocation?
+    private static let macroConfigPaths = SWBMutex<OrderedSet<Path>>(OrderedSet())
+
+    public var location: MacroValueAssignmentLocation? {
+        if let _location {
+            return .init(
+                path: Self.macroConfigPaths.withLock { $0[_location.pathRef] },
+                startLine: _location.startLine,
+                endLine: _location.endLine,
+                startColumn: _location.startColumn,
+                endColumn: _location.endColumn
+            )
+        } else {
+            return nil
+        }
+    }
+
     /// Initializes the macro value assignment to represent `expression`, with the next existing macro value assignment (if any).
-    init(expression: MacroExpression, conditions: MacroConditionSet? = nil, next: MacroValueAssignment?) {
+    init(expression: MacroExpression, conditions: MacroConditionSet? = nil, next: MacroValueAssignment?, location: MacroValueAssignmentLocation?) {
         self.expression = expression
         self.conditions = conditions
         self.next = next
+
+        if let location {
+            self._location = InternedMacroValueAssignmentLocation(
+                pathRef: Self.macroConfigPaths.withLock({ $0.append(location.path).index }),
+                startLine: location.startLine,
+                endLine: location.endLine,
+                startColumn: location.startColumn,
+                endColumn: location.endColumn
+            )
+        } else {
+            self._location = nil
+        }
     }
 
     /// Returns the first macro value assignment that is reachable from the receiver and whose conditions match the given set of parameter values, or nil if there is no such assignment value.  The returned assignment may be the receiver itself, or it may be any assignment that’s downstream in the linked list of macro value assignments, or it may be nil if there is none.  Unconditional macro value assignments are considered to match any conditions.  Conditions that reference parameters that don’t have a value in `paramValues` are only considered to match if the match pattern is `*`, i.e. the “match-anything” pattern (which is effectively a no-op).
@@ -381,18 +415,71 @@ public final class MacroValueAssignment: Serializable, CustomStringConvertible, 
     // MARK: Serialization
 
     public func serialize<T: Serializer>(to serializer: T) {
-        serializer.beginAggregate(3)
+        serializer.beginAggregate(4)
         serializer.serialize(expression)
         serializer.serialize(conditions)
         serializer.serialize(next)
+        serializer.serialize(_location)
         serializer.endAggregate()
     }
 
     public init(from deserializer: any Deserializer) throws {
-        try deserializer.beginAggregate(3)
+        try deserializer.beginAggregate(4)
         self.expression = try deserializer.deserialize()
         self.conditions = try deserializer.deserialize()
         self.next = try deserializer.deserialize()
+        self._location = try deserializer.deserialize()
+    }
+}
+
+public struct MacroValueAssignmentLocation: Sendable, Equatable {
+    public let path: Path
+    public let startLine: Int
+    public let endLine: Int
+    public let startColumn: Int
+    public let endColumn: Int
+
+    public init(path: Path, startLine: Int, endLine: Int, startColumn: Int, endColumn: Int) {
+        self.path = path
+        self.startLine = startLine
+        self.endLine = endLine
+        self.startColumn = startColumn
+        self.endColumn = endColumn
+    }
+}
+
+private struct InternedMacroValueAssignmentLocation: Serializable, Sendable {
+    let pathRef: OrderedSet<Path>.Index
+    public let startLine: Int
+    public let endLine: Int
+    let startColumn: Int
+    let endColumn: Int
+
+    init(pathRef: OrderedSet<Path>.Index, startLine: Int, endLine: Int, startColumn: Int, endColumn: Int) {
+        self.pathRef = pathRef
+        self.startLine = startLine
+        self.endLine = endLine
+        self.startColumn = startColumn
+        self.endColumn = endColumn
+    }
+
+    public func serialize<T>(to serializer: T) where T : SWBUtil.Serializer {
+        serializer.beginAggregate(5)
+        serializer.serialize(pathRef)
+        serializer.serialize(startLine)
+        serializer.serialize(endLine)
+        serializer.serialize(startColumn)
+        serializer.serialize(endColumn)
+        serializer.endAggregate()
+    }
+
+    public init(from deserializer: any SWBUtil.Deserializer) throws {
+        try deserializer.beginAggregate(5)
+        self.pathRef = try deserializer.deserialize()
+        self.startLine = try deserializer.deserialize()
+        self.endLine = try deserializer.deserialize()
+        self.startColumn = try deserializer.deserialize()
+        self.endColumn = try deserializer.deserialize()
     }
 }
 
@@ -411,10 +498,10 @@ private func insertCopiesOfMacroValueAssignmentNodes(_ srcAsgn: MacroValueAssign
     }
 
     if let srcNext = srcAsgn.next {
-        return MacroValueAssignment(expression: srcAsgn.expression, conditions:srcAsgn.conditions, next: insertCopiesOfMacroValueAssignmentNodes(srcNext, inFrontOf: dstAsgn))
+        return MacroValueAssignment(expression: srcAsgn.expression, conditions:srcAsgn.conditions, next: insertCopiesOfMacroValueAssignmentNodes(srcNext, inFrontOf: dstAsgn), location: srcAsgn.location)
     }
     else {
-        return MacroValueAssignment(expression: srcAsgn.expression, conditions:srcAsgn.conditions, next: dstAsgn)
+        return MacroValueAssignment(expression: srcAsgn.expression, conditions:srcAsgn.conditions, next: dstAsgn, location: srcAsgn.location)
     }
 }
 
@@ -422,5 +509,23 @@ private extension MacroValueAssignment {
     /// Returns true if unconditional assignment in the list is a literal.
     var containsUnconditionalLiteralInChain: Bool {
         return (expression.isLiteral && conditions == nil) || (next?.containsUnconditionalLiteralInChain ?? false)
+    }
+}
+
+// MARK: - Sequence Utilities
+
+extension MacroValueAssignment {
+    /// Returns a sequence that iterates through the linked list of `next` assignments starting from this node
+    public var sequence: some Sequence<MacroValueAssignment> {
+        struct Seq: Sequence, IteratorProtocol {
+            var current: MacroValueAssignment?
+
+            mutating func next() -> MacroValueAssignment? {
+                defer { current = current?.next }
+                return current
+            }
+        }
+
+        return Seq(current: self)
     }
 }

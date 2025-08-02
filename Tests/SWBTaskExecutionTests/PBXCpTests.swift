@@ -442,21 +442,32 @@ fileprivate struct PBXCpTests: CoreBasedTests {
     fileprivate let buffer0 = [UInt8](repeating: 0xAA, count: 1024 * 513)
     fileprivate let buffer1 = [UInt8](repeating: 0x55, count: 1024 * 513)
 
-    @Test(.skipHostOS(.windows, "LocalFS needs to use stat64 on windows...."),
-          .skipInGitHubActions("GitHub action runners do not have enough storage space for this test"))
+    @Test
     func largerFile() async throws {
-        try await withTemporaryDirectory { tmp in
+        let iterationCount = 4096
+        let buffers = buffer0 + buffer1
+        let requiredSpace = ByteCount(Int64(buffers.count * (iterationCount + 1) * 2 * 2))
+        let fs = localFS
+        try await withTemporaryDirectory(fs: fs) { tmp in
+            // If the available free disk space on this filesystem is less than twice the amount of data the test is expected to write (2 copies of the file times 2), skip it
+            if let freeSpace = try fs.getFreeDiskSpace(tmp), freeSpace < requiredSpace {
+                withKnownIssue {
+                    Issue.record("There is not enough free disk space to run this test (required: \(requiredSpace), free: \(freeSpace))")
+                    return
+                }
+            }
+
             // Test copying a large file.
             let src = tmp.join("src")
             let sName = src.join("file")
             let dst = tmp.join("dst")
             let dName = dst.join("file")
-            let fs = localFS
+
 
             try fs.createDirectory(src, recursive: true)
             var size = 0
             try await fs.write(sName) { fd in
-                for _ in 0...4096 {
+                for _ in 0...iterationCount {
                     size += try fd.writeAll(buffer0)
                     size += try fd.writeAll(buffer1)
                 }
@@ -470,8 +481,10 @@ fileprivate struct PBXCpTests: CoreBasedTests {
                     "copying src/...\n   copying file...\n    \(size) bytes\n"
                 ))
                 // Check permissions
-                let dstPerm = try fs.getFilePermissions(dName)
-                #expect(dstPerm == 0o644) // files are created with u+rw, g+wr, o+rw (and +x if src is executable) permissions and umask will adjust
+                if try ProcessInfo.processInfo.hostOperatingSystem() != .windows {
+                    let dstPerm = try fs.getFilePermissions(dName)
+                    #expect(dstPerm == 0o644) // files are created with u+rw, g+wr, o+rw (and +x if src is executable) permissions and umask will adjust
+                }
                 #expect(FileManager.default.contentsEqual(atPath: sName.str, andPath: dName.str))
             }
         }
@@ -553,7 +566,7 @@ fileprivate struct PBXCpTests: CoreBasedTests {
         }
     }
 
-    @Test
+    @Test(.skipHostOS(.freebsd, "Currently hangs on FreeBSD"))
     func skipCopyIfContentsEqual() async throws {
         try await withTemporaryDirectory { tmp in
             let src = tmp.join("src")

@@ -99,6 +99,10 @@ extension ProcessInfo {
         return .windows
         #elseif os(Linux)
         return .linux
+        #elseif os(FreeBSD)
+        return .freebsd
+        #elseif os(OpenBSD)
+        return .openbsd
         #else
         if try FileManager.default.isReadableFile(atPath: systemVersionPlistURL.filePath.str) {
             switch try systemVersion().productName {
@@ -129,6 +133,8 @@ public enum OperatingSystem: Hashable, Sendable {
     case visionOS(simulator: Bool)
     case windows
     case linux
+    case freebsd
+    case openbsd
     case android
     case unknown
 
@@ -157,7 +163,7 @@ public enum OperatingSystem: Hashable, Sendable {
             return .macho
         case .windows:
             return .pe
-        case .linux, .android, .unknown:
+        case .linux, .freebsd, .openbsd, .android, .unknown:
             return .elf
         }
     }
@@ -211,6 +217,35 @@ extension ImageFormat {
             return false
         default:
             return true
+        }
+    }
+
+    public var usesRpaths: Bool {
+        switch self {
+            case .macho, .elf:
+                return true
+            case .pe:
+                return false
+        }
+    }
+
+    public var rpathOrigin: String? {
+        switch self {
+        case .macho:
+            return "@loader_path"
+        case .elf:
+            return "$ORIGIN"
+        default:
+            return nil
+        }
+    }
+
+    public var usesDsyms: Bool {
+        switch self {
+        case .macho:
+            return true
+        default:
+            return false
         }
     }
 }

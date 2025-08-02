@@ -147,6 +147,10 @@ extension CoreBasedTests {
             if clangInfo.clangVersion > Version(17) {
                 realToolFeatures.insert(.extractAPISupportsCPlusPlus)
             }
+            if let clangVersion = clangInfo.clangVersion, clangVersion >= Version(1700, 3, 10, 2) {
+                realToolFeatures.insert(.printHeadersDirectPerFile)
+            }
+
             return ToolFeatures(realToolFeatures)
         }
     }
@@ -240,14 +244,6 @@ extension CoreBasedTests {
             let (core, defaultToolchain) = try await coreAndToolchain()
             let fallbacklibtool = Path("/usr/bin/llvm-lib")
             return try #require(defaultToolchain.executableSearchPaths.findExecutable(operatingSystem: core.hostOperatingSystem, basename: "llvm-lib") ?? (localFS.exists(fallbacklibtool) ? fallbacklibtool : nil), "couldn't find llvm-lib in default toolchain")
-        }
-    }
-
-    /// If compilation caching is supported.
-    package var supportsCompilationCaching: Bool {
-        get async throws {
-            let core = try await getCore()
-            return Settings.supportsCompilationCaching(core)
         }
     }
 

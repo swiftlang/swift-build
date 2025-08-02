@@ -926,6 +926,7 @@ package final class TestStandardTarget: TestInternalTarget, Sendable {
         case extensionKitExtension
         case xcodeExtension
         case unitTest
+        case swiftpmTestRunner
         case uiTest
         case multiDeviceUITest
         case systemExtension
@@ -974,6 +975,8 @@ package final class TestStandardTarget: TestInternalTarget, Sendable {
                 return "com.apple.product-type.xcode-extension"
             case .unitTest:
                 return "com.apple.product-type.bundle.unit-test"
+            case .swiftpmTestRunner:
+                return "com.apple.product-type.tool.swiftpm-test-runner"
             case .uiTest:
                 return "com.apple.product-type.bundle.ui-testing"
             case .multiDeviceUITest:
@@ -1017,7 +1020,8 @@ package final class TestStandardTarget: TestInternalTarget, Sendable {
                  .appClip:
                 return "\(name).app"
             case .commandLineTool,
-                 .hostBuildTool:
+                 .hostBuildTool,
+                 .swiftpmTestRunner:
                 return "\(name)"
             case .framework,
                  .staticFramework:

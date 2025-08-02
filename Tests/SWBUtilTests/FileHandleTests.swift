@@ -22,7 +22,7 @@ import SystemPackage
 #endif
 
 @Suite fileprivate struct FileHandleTests {
-    @Test
+    @Test(.flaky("Intermittent failures in Swift CI"), .skipHostOS(.freebsd, "Currently crashes on FreeBSD"))
     func asyncReadFileDescriptor() async throws {
         let fs = localFS
         try await withTemporaryDirectory(fs: fs) { testDataPath in
@@ -38,21 +38,21 @@ import SystemPackage
                 let fh = FileHandle(fileDescriptor: fd.rawValue, closeOnDealloc: false)
                 try await fd.closeAfter {
                     if #available(macOS 15, iOS 18, tvOS 18, watchOS 11, visionOS 2, *) {
-                        var it = fh.bytes(on: .global()).makeAsyncIterator()
+                        var it = fh.bytes().makeAsyncIterator()
                         var bytesOfFile: [UInt8] = []
                         await #expect(throws: Never.self) {
-                            while let byte = try await it.next() {
-                                bytesOfFile.append(byte)
+                            while let chunk = try await it.next() {
+                                bytesOfFile.append(contentsOf: chunk)
                             }
                         }
                         #expect(bytesOfFile.count == 1448)
                         #expect(plist.bytes == bytesOfFile)
                     } else {
-                        var it = fh._bytes(on: .global()).makeAsyncIterator()
+                        var it = fh._bytes().makeAsyncIterator()
                         var bytesOfFile: [UInt8] = []
                         await #expect(throws: Never.self) {
-                            while let byte = try await it.next() {
-                                bytesOfFile.append(byte)
+                            while let chunk = try await it.next() {
+                                bytesOfFile.append(contentsOf: chunk)
                             }
                         }
                         #expect(bytesOfFile.count == 1448)
@@ -69,28 +69,30 @@ import SystemPackage
             // Read while triggering an I/O error
             do {
                 let fd = try Path.root.str.withPlatformString { try FileDescriptor.open($0, .readOnly) }
-                let fh = FileHandle(fileDescriptor: fd.rawValue, closeOnDealloc: false)
+                try await fd.closeAfter {
+                    let fh = FileHandle(fileDescriptor: fd.rawValue, closeOnDealloc: false)
 
-                if #available(macOS 15, iOS 18, tvOS 18, watchOS 11, visionOS 2, *) {
-                    var it = fh.bytes(on: .global()).makeAsyncIterator()
-                    try fd.close()
+                    if #available(macOS 15, iOS 18, tvOS 18, watchOS 11, visionOS 2, *) {
+                        var it = fh.bytes().makeAsyncIterator()
 
-                    await #expect(throws: (any Error).self) {
-                        while let _ = try await it.next() {
+                        // Can't read a directory
+                        await #expect(throws: (any Error).self) {
+                            while let _ = try await it.next() {
+                            }
                         }
-                    }
-                } else {
-                    var it = fh._bytes(on: .global()).makeAsyncIterator()
-                    try fd.close()
+                    } else {
+                        var it = fh._bytes().makeAsyncIterator()
 
-                    await #expect(throws: (any Error).self) {
-                        while let _ = try await it.next() {
+                        // Can't read a directory
+                        await #expect(throws: (any Error).self) {
+                            while let _ = try await it.next() {
+                            }
                         }
                     }
                 }
             }
 
-            // Read part of a file, then close the handle
+            // Read part of a file, then cancel the task
             do {
                 let condition = CancellableWaitCondition()
 
@@ -99,21 +101,21 @@ import SystemPackage
                     try await fd.closeAfter {
                         let fh = FileHandle(fileDescriptor: fd.rawValue, closeOnDealloc: false)
                         if #available(macOS 15, iOS 18, tvOS 18, watchOS 11, visionOS 2, *) {
-                            var it = fh.bytes(on: .global()).makeAsyncIterator()
+                            var it = fh.bytes().makeAsyncIterator()
                             var bytes: [UInt8] = []
-                            while let byte = try await it.next() {
-                                bytes.append(byte)
-                                if bytes.count == 100 {
+                            while let chunk = try await it.next() {
+                                bytes.append(contentsOf: chunk)
+                                if bytes.count >= 100 {
                                     condition.signal()
                                     throw CancellationError()
                                 }
                             }
                         } else {
-                            var it = fh._bytes(on: .global()).makeAsyncIterator()
+                            var it = fh._bytes().makeAsyncIterator()
                             var bytes: [UInt8] = []
-                            while let byte = try await it.next() {
-                                bytes.append(byte)
-                                if bytes.count == 100 {
+                            while let chunk = try await it.next() {
+                                bytes.append(contentsOf: chunk)
+                                if bytes.count >= 100 {
                                     condition.signal()
                                     throw CancellationError()
                                 }

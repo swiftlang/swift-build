@@ -189,6 +189,8 @@ public protocol CommandProducer: PlatformBuildContext, SpecLookupContext, Refere
 
     var processSDKImportsSpec: ProcessSDKImportsSpec { get }
 
+    var validateDependenciesSpec: ValidateDependenciesSpec { get }
+
     /// The default working directory to use for a task, if it doesn't have a stronger preference.
     var defaultWorkingDirectory: Path { get }
 
@@ -264,13 +266,13 @@ public protocol CommandProducer: PlatformBuildContext, SpecLookupContext, Refere
 
     var targetShouldBuildModuleForInstallAPI: Bool { get }
 
-    var supportsCompilationCaching: Bool { get }
-
     func lookupLibclang(path: Path) -> (libclang: Libclang?, version: Version?)
 
     var userPreferences: UserPreferences { get }
 
     var hostOperatingSystem: OperatingSystem { get }
+
+    var moduleDependenciesContext: ModuleDependenciesContext? { get }
 }
 
 extension CommandProducer {

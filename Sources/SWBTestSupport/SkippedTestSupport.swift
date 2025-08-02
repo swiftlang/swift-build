@@ -49,6 +49,10 @@ extension KnownSDK {
             return windows
         case .success(.linux):
             return linux
+        case .success(.freebsd):
+            return freebsd
+        case .success(.openbsd):
+            return openbsd
         case .success(.android):
             return android
         case .success(.unknown), .failure:
@@ -69,6 +73,8 @@ extension KnownSDK {
 extension KnownSDK {
     package static let windows: Self = "windows"
     package static let linux: Self = "linux"
+    package static let freebsd: Self = "freebsd"
+    package static let openbsd: Self = "openbsd"
     package static let android: Self = "android"
     package static let qnx: Self = "qnx"
     package static let wasi: Self = "wasi"
@@ -196,7 +202,7 @@ extension Trait where Self == Testing.ConditionTrait {
         }
     }
 
-    package static func requireSystemPackages(apt: String..., yum: String..., sourceLocation: SourceLocation = #_sourceLocation) -> Self {
+    package static func requireSystemPackages(apt: String..., yum: String..., freebsd: String..., sourceLocation: SourceLocation = #_sourceLocation) -> Self {
         enabled("required system packages are not installed") {
             func checkInstalled(hostOS: OperatingSystem, packageManagerPath: Path, args: [String], packages: [String], regex: Regex<(Substring, name: Substring)>) async throws -> Bool {
                 if try ProcessInfo.processInfo.hostOperatingSystem() == hostOS && localFS.exists(packageManagerPath) {
@@ -222,7 +228,9 @@ extension Trait where Self == Testing.ConditionTrait {
             // spelled `--installed` in newer versions of yum, but Amazon Linux 2 is on older versions
             let yum = try await checkInstalled(hostOS: .linux, packageManagerPath: Path("/usr/bin/yum"), args: ["list", "installed", "yum"], packages: yum, regex: #/(?<name>.+)\./#)
 
-            return apt && yum
+            let freebsd = try await checkInstalled(hostOS: .freebsd, packageManagerPath: Path("/usr/sbin/pkg"), args: ["info"], packages: freebsd, regex: #/^Name(?:[ ]+): (?<name>.+)$/#)
+
+            return apt && yum && freebsd
         }
     }
 
@@ -363,12 +371,6 @@ extension Trait where Self == Testing.ConditionTrait {
         }
     }
 
-    package static var requireCompilationCaching: Self {
-        enabled("compilation caching is not supported") {
-            try await ConditionTraitContext.shared.supportsCompilationCaching
-        }
-    }
-
     package static var requireDependencyScannerPlusCaching: Self {
         disabled {
             let libclang = try #require(try await ConditionTraitContext.shared.libclang)
@@ -393,7 +395,7 @@ extension Trait where Self == Testing.ConditionTrait {
 
     package static var requireCASValidation: Self {
         enabled {
-            guard try await ConditionTraitContext.shared.supportsCompilationCaching, UserDefaults.enableCASValidation else {
+            guard UserDefaults.enableCASValidation else {
                 return false
             }
             guard let path = try? await ConditionTraitContext.shared.llvmCasToolPath else {

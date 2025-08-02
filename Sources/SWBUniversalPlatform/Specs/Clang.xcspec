@@ -3078,6 +3078,25 @@
                 };
                 Category = LanguageCXX;
             },
+            {
+                Name = "CLANG_OMIT_FRAME_POINTERS";
+                Type = Enumeration;
+                Values = (
+                    "compiler-default",
+                    YES,
+                    NO,
+                );
+                CommandLineArgs = {
+                    YES = (
+                        "-fomit-frame-pointer",
+                    );
+                    NO = (
+                        "-fno-omit-frame-pointer",
+                    );
+                    "<<otherwise>>" = ();
+                };
+                DefaultValue = "compiler-default";
+            },
             // Index-while-building options, not visible in build settings.
             {
                 Name = "CLANG_INDEX_STORE_PATH";

@@ -755,6 +755,8 @@ public final class Settings: PlatformBuildContext, Sendable {
         targetBuildVersionPlatforms(in: globalScope)
     }
 
+    public let moduleDependencies: [ModuleDependency]
+
     public static func supportsMacCatalyst(scope: MacroEvaluationScope, core: Core) -> Bool {
         @preconcurrency @PluginExtensionSystemActor func sdkVariantInfoExtensions() -> [any SDKVariantInfoExtensionPoint.ExtensionProtocol] {
             core.pluginManager.extensions(of: SDKVariantInfoExtensionPoint.self)
@@ -767,15 +769,6 @@ public final class Settings: PlatformBuildContext, Sendable {
         return supportsMacCatalystMacros.contains { scope.evaluate(scope.namespace.parseString("$(\($0)")).boolValue } ||
             // For index build ensure zippered frameworks can be configured separately for both macOS and macCatalyst.
             (scope.evaluate(BuiltinMacros.IS_ZIPPERED) && scope.evaluate(BuiltinMacros.INDEX_ENABLE_BUILD_ARENA))
-    }
-
-    public static func supportsCompilationCaching(_ core: Core) -> Bool {
-        @preconcurrency @PluginExtensionSystemActor func featureAvailabilityExtensions() -> [any FeatureAvailabilityExtensionPoint.ExtensionProtocol] {
-            core.pluginManager.extensions(of: FeatureAvailabilityExtensionPoint.self)
-        }
-        return featureAvailabilityExtensions().contains {
-            $0.supportsCompilationCaching
-        }
     }
 
     public var enableTargetPlatformSpecialization: Bool {
@@ -910,6 +903,7 @@ public final class Settings: PlatformBuildContext, Sendable {
         }
 
         self.supportedBuildVersionPlatforms = effectiveSupportedPlatforms(sdkRegistry: sdkRegistry)
+        self.moduleDependencies = builder.moduleDependencies
 
         self.constructionComponents = builder.constructionComponents
     }
@@ -1295,6 +1289,8 @@ private class SettingsBuilder {
     /// The bound signing settings, once added in computeSigningSettings().
     var signingSettings: Settings.SigningSettings? = nil
 
+    var moduleDependencies: [ModuleDependency] = []
+
 
     // Mutable state of the builder as we're building up the settings table.
 
@@ -1627,6 +1623,13 @@ private class SettingsBuilder {
             pushTable(.none) {
                 $0.push(BuiltinMacros.EFFECTIVE_SWIFT_VERSION, literal: swiftVersion)
             }
+        }
+
+        do {
+            self.moduleDependencies = try createScope(sdkToUse: boundProperties.sdk).evaluate(BuiltinMacros.MODULE_DEPENDENCIES).map { try ModuleDependency(entry: $0) }
+        }
+        catch {
+            errors.append("Failed to parse \(BuiltinMacros.MODULE_DEPENDENCIES.name): \(error)")
         }
 
         // At this point settings construction is finished.
@@ -2573,6 +2576,10 @@ private class SettingsBuilder {
             sdkTable.push(BuiltinMacros.DYNAMIC_LIBRARY_EXTENSION, literal: imageFormat.dynamicLibraryExtension)
             sdkTable.push(BuiltinMacros.PLATFORM_REQUIRES_SWIFT_AUTOLINK_EXTRACT, literal: imageFormat.requiresSwiftAutolinkExtract)
             sdkTable.push(BuiltinMacros.PLATFORM_REQUIRES_SWIFT_MODULEWRAP, literal: imageFormat.requiresSwiftModulewrap)
+            if let origin = imageFormat.rpathOrigin {
+                sdkTable.push(BuiltinMacros.RPATH_ORIGIN, literal: origin)
+            }
+            sdkTable.push(BuiltinMacros.PLATFORM_USES_DSYMS, literal: imageFormat.usesDsyms)
         }
 
         // Add additional SDK default settings.
@@ -5331,6 +5338,10 @@ extension OperatingSystem {
                 return "windows"
             case .linux:
                 return "linux"
+            case .freebsd:
+                return "freebsd"
+            case .openbsd:
+                return "openbsd"
             case .android:
                 return "android"
             case .unknown:

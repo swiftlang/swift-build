@@ -467,6 +467,10 @@ extension TestTaskPlanningDelegate: TaskActionCreationDelegate {
     package func createProcessSDKImportsTaskAction() -> any PlannedTaskAction {
         return ProcessSDKImportsTaskAction()
     }
+
+    package func createValidateDependenciesTaskAction() -> any PlannedTaskAction {
+        return ValidateProductTaskAction()
+    }
 }
 
 package final class CancellingTaskPlanningDelegate: TestTaskPlanningDelegate, @unchecked Sendable {

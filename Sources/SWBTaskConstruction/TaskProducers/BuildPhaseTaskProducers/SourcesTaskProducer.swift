@@ -349,6 +349,9 @@ package final class SourcesTaskProducer: FilesBasedBuildPhaseTaskProducerBase, F
     /// Returns `true` if the target which defines the settings in the given `scope` should generate a dSYM file.
     /// - remark: This method allows this task producer to ask this question about other targets by passing a `scope` for the target in question.
     private func shouldGenerateDSYM(_ scope: MacroEvaluationScope) -> Bool {
+        guard scope.evaluate(BuiltinMacros.PLATFORM_USES_DSYMS) else {
+            return false
+        }
         let dSYMForDebugInfo = scope.evaluate(BuiltinMacros.GCC_GENERATE_DEBUGGING_SYMBOLS) && scope.evaluate(BuiltinMacros.DEBUG_INFORMATION_FORMAT) == "dwarf-with-dsym"
         // When emitting remarks, for now, a dSYM is required (<rdar://problem/45458590>)
         let dSYMForRemarks = scope.evaluate(BuiltinMacros.CLANG_GENERATE_OPTIMIZATION_REMARKS)
@@ -755,6 +758,7 @@ package final class SourcesTaskProducer: FilesBasedBuildPhaseTaskProducerBase, F
         }
 
         var tasks: [any PlannedTask] = []
+        var dependencyDataFiles: [PlannedPathNode] = []
 
         // Generate any auxiliary files whose content is not per-arch or per-variant.
         // For the index build arena it is important to avoid adding this because it forces creation of the Swift module due to the generated ObjC header being an input dependency. This is unnecessary work since we don't need to generate the Swift module of the target to be able to successfully create a compiler AST for the Swift files of the target.
@@ -900,6 +904,8 @@ package final class SourcesTaskProducer: FilesBasedBuildPhaseTaskProducerBase, F
                         case "swiftmodule":
                             dsymutilInputNodes.append(object)
                             break
+                        case "dependencies":
+                            dependencyDataFiles.append(MakePlannedPathNode(object.path))
                         default:
                             break
                         }
@@ -1589,6 +1595,20 @@ package final class SourcesTaskProducer: FilesBasedBuildPhaseTaskProducerBase, F
         if isForInstallLoc {
             // For installLoc, we really only care about valid localized content from the sources task producer
             tasks = tasks.filter { $0.inputs.contains(where: { $0.path.isValidLocalizedContent(scope) || $0.path.fileExtension == "xcstrings" }) }
+        }
+
+        // Create a task to validate dependencies if that feature is enabled.
+        if let moduleDependenciesContext = context.moduleDependenciesContext, moduleDependenciesContext.validate != .no {
+            var validateDepsTasks = [any PlannedTask]()
+            await appendGeneratedTasks(&validateDepsTasks, usePhasedOrdering: true) { delegate in
+                await context.validateDependenciesSpec.createTasks(
+                    CommandBuildContext(producer: context, scope: scope, inputs: []),
+                    delegate,
+                    dependencyInfos: dependencyDataFiles,
+                    payload: .init(moduleDependenciesContext: moduleDependenciesContext)
+                )
+            }
+            tasks.append(contentsOf: validateDepsTasks)
         }
 
         return tasks
