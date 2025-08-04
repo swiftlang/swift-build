@@ -55,6 +55,7 @@ add_library(SWBUtil
   LazyCache.swift
   Library.swift
   LineReader.swift
+  LLVMTriple.swift
   Lock.swift
   MachO.swift
   Math.swift
