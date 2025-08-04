@@ -195,12 +195,28 @@ final class ResourcesTaskProducer: FilesBasedBuildPhaseTaskProducerBase, FilesBa
         }
     }
 
+    override func buildFilesToSkip(_ scope: MacroEvaluationScope) async -> Set<Ref<SWBCore.BuildFile>> {
+        // Some files might generate sources (e.g. generating symbols) and thus were moved to the Sources phase.
+        // So they should be skipped in Resources.
+
+        let standardTarget = targetContext.configuredTarget?.target as? StandardTarget
+        let sourceFiles = standardTarget?.sourcesBuildPhase?.buildFiles ?? []
+        let resourceFiles = standardTarget?.resourcesBuildPhase?.buildFiles ?? []
+
+        guard !sourceFiles.isEmpty && !resourceFiles.isEmpty else {
+            return []
+        }
+
+        let files = await sourceGenerationInputFiles(from: resourceFiles, scope: scope)
+        return Set(files.map({ Ref($0) }))
+    }
+
     override func additionalFilesToBuild(_ scope: MacroEvaluationScope) -> [FileToBuild] {
         var additionalFilesToBuild: [FileToBuild] = []
 
-        // Add the generated xcassets when we're not generating asset symbols since we'll be handling the other xcassets here as well.
+        // Add the generated xcassets when there are no sources since we'll be handling the other xcassets here as well.
         let sourceFiles = (self.targetContext.configuredTarget?.target as? StandardTarget)?.sourcesBuildPhase?.buildFiles.count ?? 0
-        if (!scope.evaluate(BuiltinMacros.ASSETCATALOG_COMPILER_GENERATE_ASSET_SYMBOLS) || sourceFiles == 0) && scope.evaluate(BuiltinMacros.APP_PLAYGROUND_GENERATE_ASSET_CATALOG) {
+        if sourceFiles == 0 && scope.evaluate(BuiltinMacros.APP_PLAYGROUND_GENERATE_ASSET_CATALOG) {
             let assetCatalogToBeGenerated = scope.evaluate(BuiltinMacros.APP_PLAYGROUND_GENERATED_ASSET_CATALOG_FILE)
             additionalFilesToBuild.append(
                 FileToBuild(absolutePath: assetCatalogToBeGenerated, inferringTypeUsing: context)
