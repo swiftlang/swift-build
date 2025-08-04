@@ -198,8 +198,8 @@ package final class BuildDescriptionManager: Sendable {
 
             moduleCachePathsPerTarget[target] = [
                 settings.globalScope.evaluate(BuiltinMacros.MODULE_CACHE_DIR),
-                Path(settings.globalScope.evaluate(BuiltinMacros.SWIFT_EXPLICIT_MODULES_OUTPUT_PATH)),
-                Path(settings.globalScope.evaluate(BuiltinMacros.CLANG_EXPLICIT_MODULES_OUTPUT_PATH)),
+                settings.globalScope.evaluate(BuiltinMacros.SWIFT_EXPLICIT_MODULES_OUTPUT_PATH),
+                settings.globalScope.evaluate(BuiltinMacros.CLANG_EXPLICIT_MODULES_OUTPUT_PATH),
             ]
 
             if shouldValidateCAS, settings.globalScope.evaluate(BuiltinMacros.CLANG_ENABLE_COMPILE_CACHE) || settings.globalScope.evaluate(BuiltinMacros.SWIFT_ENABLE_COMPILE_CACHE) {
