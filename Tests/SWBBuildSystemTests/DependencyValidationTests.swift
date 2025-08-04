@@ -601,19 +601,21 @@ fileprivate struct DependencyValidationTests: CoreBasedTests {
             try await tester.fs.writeFileContents(SRCROOT.join("Sources/Swift.swift")) { stream in
                 stream <<< """
                     import Foundation
+                    import AppKit
                 """
             }
 
             try await tester.fs.writeFileContents(SRCROOT.join("Sources/CoreFoo.m")) { contents in
                 contents <<< """
                     #include <Foundation/Foundation.h>
+                    #include <Accelerate/Accelerate.h>
 
                     void f(void) { };
                 """
             }
 
             try await tester.checkBuild(parameters: BuildParameters(configuration: "Debug"), runDestination: .host, persistent: true) { results in
-                results.checkError(.contains("Missing entries in MODULE_DEPENDENCIES: Foundation"))
+                results.checkError(.contains("Missing entries in MODULE_DEPENDENCIES: Accelerate AppKit Foundation"))
             }
         }
     }

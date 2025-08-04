@@ -36,8 +36,8 @@ public final class ValidateDependenciesTaskAction: TaskAction {
         }
 
         do {
-            var allFiles = Set<String>()
-            var allImports = Set<DependencyValidationInfo.Import>()
+            var allClangFiles = Set<String>()
+            var allSwiftImports = Set<DependencyValidationInfo.Import>()
             var unsupported = false
 
             for inputPath in task.inputPaths {
@@ -47,11 +47,11 @@ public final class ValidateDependenciesTaskAction: TaskAction {
                 switch info.payload {
                 case .clangDependencies(let files):
                     files.forEach {
-                        allFiles.insert($0)
+                        allClangFiles.insert($0)
                     }
                 case .swiftDependencies(let imports):
                     imports.forEach {
-                        allImports.insert($0)
+                        allSwiftImports.insert($0)
                     }
                 case .unsupported:
                     unsupported = true
@@ -63,8 +63,8 @@ public final class ValidateDependenciesTaskAction: TaskAction {
             if unsupported {
                 diagnostics.append(contentsOf: context.makeDiagnostics(missingDependencies: nil))
             } else {
-                let clangMissingDeps = context.computeMissingDependencies(files: allFiles.map { Path($0) })
-                let swiftMissingDeps = context.computeMissingDependencies(imports: allImports.map { ($0.dependency, $0.importLocations) })
+                let clangMissingDeps = context.computeMissingDependencies(files: allClangFiles.map { Path($0) })
+                let swiftMissingDeps = context.computeMissingDependencies(imports: allSwiftImports.map { ($0.dependency, $0.importLocations) })
 
                 // Update Swift dependencies with information from Clang dependencies on the same module.
                 var clangMissingDepsByName = [String: (ModuleDependency, importLocations: [Diagnostic.Location])]()
@@ -83,7 +83,7 @@ public final class ValidateDependenciesTaskAction: TaskAction {
                 } ?? []
 
                 // Filter missing C dependencies by known Swift dependencies to avoid duplicate diagnostics.
-                let swiftImports = allImports.map { $0.dependency.name }
+                let swiftImports = Set(allSwiftImports.map { $0.dependency.name })
                 let uniqueClangMissingDeps = clangMissingDeps?.filter { !swiftImports.contains($0.0.name) } ?? []
 
                 diagnostics.append(contentsOf: context.makeDiagnostics(missingDependencies: uniqueClangMissingDeps + updatedSwiftMissingDeps))
