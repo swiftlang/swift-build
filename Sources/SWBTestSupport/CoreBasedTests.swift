@@ -155,6 +155,14 @@ extension CoreBasedTests {
         }
     }
 
+    /// The path to clang in the default toolchain.
+    public var defaultClangPath: Path {
+        get async throws {
+            let clangInfo = try await clangInfo
+            return clangInfo.toolPath
+        }
+    }
+
     /// The path to the libClang.dylib compiler in the default toolchain.
     package var libClangPath: Path {
         get async throws {
