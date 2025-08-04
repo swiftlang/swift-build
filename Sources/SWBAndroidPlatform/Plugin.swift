@@ -131,11 +131,14 @@ struct AndroidPlatformExtension: PlatformInfoExtension {
         let abis = androidNdk.abis
         let deploymentTargetRange = androidNdk.deploymentTargetRange
 
-        let allPossibleTriples = abis.values.flatMap { abi in
-            (max(deploymentTargetRange.min, abi.min_os_version)...deploymentTargetRange.max).map { deploymentTarget in
+        let allPossibleTriples = try abis.values.flatMap { abi in
+            try (max(deploymentTargetRange.min, abi.min_os_version)...deploymentTargetRange.max).map { deploymentTarget in
                 var triple = abi.llvm_triple
                 triple.vendor = "unknown" // Android NDK uses "none", Swift SDKs use "unknown"
-                triple.environment += "\(deploymentTarget)"
+                guard let env = triple.environment else {
+                    throw StubError.error("Android triples must have an environment")
+                }
+                triple.environment = "\(env)\(deploymentTarget)"
                 return triple
             }
         }.map(\.description)
@@ -173,8 +176,8 @@ struct AndroidPlatformExtension: PlatformInfoExtension {
             "CustomProperties": .plDict([
                 // Unlike most platforms, the Android version goes on the environment field rather than the system field
                 // FIXME: Make this configurable in a better way so we don't need to push build settings at the SDK definition level
-                "LLVM_TARGET_TRIPLE_OS_VERSION": .plString("linux"),
-                "LLVM_TARGET_TRIPLE_SUFFIX": .plString("-android$(ANDROID_DEPLOYMENT_TARGET)"),
+                "LLVM_TARGET_TRIPLE_OS_VERSION": .plString("$(SWIFT_PLATFORM_TARGET_PREFIX)"),
+                "LLVM_TARGET_TRIPLE_SUFFIX": .plString("-android$($(DEPLOYMENT_TARGET_SETTING_NAME))"),
             ].merging(swiftSettings, uniquingKeysWith: { _, new in new })),
             "SupportedTargets": .plDict([
                 "android": .plDict([
