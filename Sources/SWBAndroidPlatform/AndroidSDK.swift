@@ -134,30 +134,6 @@ public import Foundation
                 case bits64 = 64
             }
 
-            @_spi(Testing) public struct LLVMTriple: Codable, Equatable, Sendable {
-                public var arch: String
-                public var vendor: String
-                public var system: String
-                public var environment: String
-
-                var description: String {
-                    "\(arch)-\(vendor)-\(system)-\(environment)"
-                }
-
-                public init(from decoder: any Decoder) throws {
-                    let container = try decoder.singleValueContainer()
-                    let triple = try container.decode(String.self)
-                    if let match = try #/(?<arch>.+)-(?<vendor>.+)-(?<system>.+)-(?<environment>.+)/#.wholeMatch(in: triple) {
-                        self.arch = String(match.output.arch)
-                        self.vendor = String(match.output.vendor)
-                        self.system = String(match.output.system)
-                        self.environment = String(match.output.environment)
-                    } else {
-                        throw DecodingError.dataCorruptedError(in: container, debugDescription: "Invalid triple string: \(triple)")
-                    }
-                }
-            }
-
             public let bitness: Bitness
             public let `default`: Bool
             public let deprecated: Bool

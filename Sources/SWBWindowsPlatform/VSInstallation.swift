@@ -57,14 +57,14 @@ public struct VSInstallation: Decodable, Sendable {
         ]
         let executionResult = try await Process.getOutput(url: URL(fileURLWithPath: vswhere.str), arguments: args)
         guard executionResult.exitStatus.isSuccess else {
-            throw RunProcessNonZeroExitError(args: args, workingDirectory: nil, environment: [:], status: executionResult.exitStatus, stdout: ByteString(executionResult.stdout), stderr: ByteString(executionResult.stderr))
+            throw RunProcessNonZeroExitError(args: [vswhere.str] + args, workingDirectory: nil, environment: [:], status: executionResult.exitStatus, stdout: ByteString(executionResult.stdout), stderr: ByteString(executionResult.stderr))
         }
         return try JSONDecoder().decode([VSInstallation].self, from: executionResult.stdout)
     }
 
     private static func vswherePath(fs: any FSProxy) throws -> Path? {
         var paths: [Path] = []
-        if let path = try POSIX.getenv("PATH") {
+        if let path = getEnvironmentVariable(.path) {
             paths.append(contentsOf: path.split(separator: Path.pathEnvironmentSeparator).map(Path.init).filter {
                 // PATH may contain unexpanded shell variable references
                 $0.isAbsolute

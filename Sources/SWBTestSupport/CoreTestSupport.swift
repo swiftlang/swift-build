@@ -56,7 +56,7 @@ extension Core {
             developerPath = .xcode(xcodeDeveloperDirPath)
         } else {
             // In the context of auto-generated package schemes, try to infer the active Xcode.
-            let potentialDeveloperPath = getEnvironmentVariable("PATH")?.components(separatedBy: String(Path.pathEnvironmentSeparator)).first.map(Path.init)?.dirname.dirname
+            let potentialDeveloperPath = getEnvironmentVariable(.path)?.components(separatedBy: String(Path.pathEnvironmentSeparator)).first.map(Path.init)?.dirname.dirname
             let versionInfo = potentialDeveloperPath?.dirname.join("version.plist")
             if let versionInfo = versionInfo, (try? PropertyList.fromPath(versionInfo, fs: localFS))?.dictValue?["ProjectName"] == "IDEApplication" {
                 developerPath = potentialDeveloperPath.map { .xcode($0) }
