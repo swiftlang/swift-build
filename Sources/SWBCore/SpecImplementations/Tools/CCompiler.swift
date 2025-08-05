@@ -988,7 +988,7 @@ public class ClangCompilerSpec : CompilerSpec, SpecIdentifierType, GCCCompatible
                     usesCompilerLauncher: usesCompilerLauncher,
                     // This path is scoped to the project, so ideally different targets that use the same modules would
                     // share precompiled modules.
-                    outputPath: Path(cbc.scope.evaluate(BuiltinMacros.CLANG_EXPLICIT_MODULES_OUTPUT_PATH)),
+                    outputPath: cbc.scope.evaluate(BuiltinMacros.CLANG_EXPLICIT_MODULES_OUTPUT_PATH),
                     scanningOutputPath: scanningOutputPath,
                     casOptions: casOptions,
                     cacheFallbackIfNotAvailable: cbc.scope.evaluate(BuiltinMacros.CLANG_CACHE_FALLBACK_IF_UNAVAILABLE),

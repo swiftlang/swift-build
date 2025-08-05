@@ -506,8 +506,8 @@ public final class BuiltinMacros {
     public static let CLANG_ENABLE_EXPLICIT_MODULES_WITH_COMPILER_LAUNCHER = BuiltinMacros.declareBooleanMacro("CLANG_ENABLE_EXPLICIT_MODULES_WITH_COMPILER_LAUNCHER")
     public static let CLANG_EXPLICIT_MODULES_LIBCLANG_PATH = BuiltinMacros.declareStringMacro("CLANG_EXPLICIT_MODULES_LIBCLANG_PATH")
     public static let CLANG_EXPLICIT_MODULES_IGNORE_LIBCLANG_VERSION_MISMATCH = BuiltinMacros.declareBooleanMacro("CLANG_EXPLICIT_MODULES_IGNORE_LIBCLANG_VERSION_MISMATCH")
-    public static let CLANG_EXPLICIT_MODULES_OUTPUT_PATH = BuiltinMacros.declareStringMacro("CLANG_EXPLICIT_MODULES_OUTPUT_PATH")
-    public static let SWIFT_EXPLICIT_MODULES_OUTPUT_PATH = BuiltinMacros.declareStringMacro("SWIFT_EXPLICIT_MODULES_OUTPUT_PATH")
+    public static let CLANG_EXPLICIT_MODULES_OUTPUT_PATH = BuiltinMacros.declarePathMacro("CLANG_EXPLICIT_MODULES_OUTPUT_PATH")
+    public static let SWIFT_EXPLICIT_MODULES_OUTPUT_PATH = BuiltinMacros.declarePathMacro("SWIFT_EXPLICIT_MODULES_OUTPUT_PATH")
     public static let CLANG_ENABLE_COMPILE_CACHE = BuiltinMacros.declareBooleanMacro("CLANG_ENABLE_COMPILE_CACHE")
     public static let CLANG_CACHE_FINE_GRAINED_OUTPUTS = BuiltinMacros.declareEnumMacro("CLANG_CACHE_FINE_GRAINED_OUTPUTS") as EnumMacroDeclaration<FineGrainedCachingSetting>
     public static let CLANG_CACHE_FINE_GRAINED_OUTPUTS_VERIFICATION = BuiltinMacros.declareEnumMacro("CLANG_CACHE_FINE_GRAINED_OUTPUTS_VERIFICATION") as EnumMacroDeclaration<FineGrainedCachingVerificationSetting>
