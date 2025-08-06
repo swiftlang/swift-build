@@ -15,9 +15,27 @@ import SWBTestSupport
 import SWBUtil
 import Testing
 import SWBProtocol
+import SWBMacro
 
 @Suite
 fileprivate struct DependencyValidationTests: CoreBasedTests {
+    @Test
+    func moduleDependencyAccessLevelComparable() async throws {
+        #expect(ModuleDependency.AccessLevel.Private == .Private)
+        #expect(ModuleDependency.AccessLevel.Private < .Package)
+        #expect(ModuleDependency.AccessLevel.Private < .Public)
+
+        #expect(ModuleDependency.AccessLevel.Package == .Package)
+        #expect(ModuleDependency.AccessLevel.Package < .Public)
+        #expect(ModuleDependency.AccessLevel.Package > .Private)
+
+        #expect(ModuleDependency.AccessLevel.Public == .Public)
+        #expect(ModuleDependency.AccessLevel.Public > .Private)
+        #expect(ModuleDependency.AccessLevel.Public > .Package)
+
+        #expect(max(ModuleDependency.AccessLevel.Public, ModuleDependency.AccessLevel.Private) == .Public)
+    }
+
     @Test(.requireSDKs(.macOS))
     func dependencyValidation() async throws {
         try await testDependencyValidation(BuildParameters(configuration: "Debug"))
@@ -325,4 +343,281 @@ fileprivate struct DependencyValidationTests: CoreBasedTests {
             }
         }
     }
+
+    @Test(.requireSDKs(.host), .skipHostOS(.windows, "toolchain too old"), .skipHostOS(.linux, "toolchain too old"))
+    func validateModuleDependenciesSwift() async throws {
+        try await withTemporaryDirectory { tmpDir in
+            let testWorkspace = try await TestWorkspace(
+                "Test",
+                sourceRoot: tmpDir.join("Test"),
+                projects: [
+                    TestProject(
+                        "Project",
+                        groupTree: TestGroup(
+                            "Sources",
+                            children: [
+                                TestFile("Swift.swift"),
+                                TestFile("Project.xcconfig"),
+                            ]),
+                        buildConfigurations: [TestBuildConfiguration(
+                            "Debug",
+                            baseConfig: "Project.xcconfig",
+                            buildSettings: [
+                                "PRODUCT_NAME": "$(TARGET_NAME)",
+                                "CLANG_ENABLE_MODULES": "YES",
+                                "CLANG_ENABLE_EXPLICIT_MODULES": "YES",
+                                "SWIFT_ENABLE_EXPLICIT_MODULES": "YES",
+                                "SWIFT_UPCOMING_FEATURE_INTERNAL_IMPORTS_BY_DEFAULT": "YES",
+                                "SWIFT_VERSION": swiftVersion,
+                                "DEFINES_MODULE": "YES",
+                                "DSTROOT": tmpDir.join("dstroot").str,
+                                "VALIDATE_MODULE_DEPENDENCIES": "YES_ERROR",
+                                "SDKROOT": "$(HOST_PLATFORM)",
+                                "SUPPORTED_PLATFORMS": "$(HOST_PLATFORM)",
+
+                                // Temporarily override to use the latest toolchain in CI because we depend on swift and swift-driver changes which aren't in the baseline tools yet
+                                "TOOLCHAINS": "swift",
+                            ])],
+                        targets: [
+                            TestStandardTarget(
+                                "TargetA",
+                                type: .framework,
+                                buildPhases: [
+                                    TestSourcesBuildPhase(["Swift.swift"]),
+                                ]),
+                            TestStandardTarget(
+                                "TargetB",
+                                type: .framework,
+                                buildPhases: [
+                                    TestSourcesBuildPhase(["Swift.swift"]),
+                                ]),
+                        ]),
+                ])
+
+            let tester = try await BuildOperationTester(getCore(), testWorkspace, simulated: false)
+
+            let swiftSourcePath = testWorkspace.sourceRoot.join("Project/Swift.swift")
+            try await tester.fs.writeFileContents(swiftSourcePath) { stream in
+                stream <<<
+            """
+            import Foundation
+            """
+            }
+
+            let projectXCConfigPath = testWorkspace.sourceRoot.join("Project/Project.xcconfig")
+            try await tester.fs.writeFileContents(projectXCConfigPath) { stream in
+                stream <<<
+            """
+            MODULE_DEPENDENCIES[target=TargetA] = Dispatch
+            """
+            }
+
+            let expectedDiagsByTarget: [String: [Diagnostic]] = [
+                "TargetA": [
+                    Diagnostic(
+                        behavior: .error,
+                        location: Diagnostic.Location.path(projectXCConfigPath, line: 1, column: 47),
+                        data: DiagnosticData("Missing entries in MODULE_DEPENDENCIES: Foundation"),
+                        fixIts: [
+                            Diagnostic.FixIt(
+                                sourceRange: Diagnostic.SourceRange(path: projectXCConfigPath, startLine: 1, startColumn: 47, endLine: 1, endColumn: 47),
+                                newText: " Foundation"),
+                        ],
+                        childDiagnostics: [
+                            Diagnostic(
+                                behavior: .error,
+                                location: Diagnostic.Location.path(swiftSourcePath, line: 1, column: 8),
+                                data: DiagnosticData("Missing entry in MODULE_DEPENDENCIES: Foundation"),
+                                fixIts: [Diagnostic.FixIt(
+                                    sourceRange: Diagnostic.SourceRange(path: projectXCConfigPath, startLine: 1, startColumn: 47, endLine: 1, endColumn: 47),
+                                    newText: " Foundation")],
+                            ),
+                        ]),
+                ],
+                "TargetB": [
+                    Diagnostic(
+                        behavior: .error,
+                        location: Diagnostic.Location.path(projectXCConfigPath, line: .max, column: .max),
+                        data: DiagnosticData("Missing entries in MODULE_DEPENDENCIES: Foundation"),
+                        fixIts: [
+                            Diagnostic.FixIt(
+                                sourceRange: Diagnostic.SourceRange(path: projectXCConfigPath, startLine: .max, startColumn: .max, endLine: .max, endColumn: .max),
+                                newText: "\nMODULE_DEPENDENCIES[target=TargetB] = $(inherited) Foundation\n"),
+                        ],
+                        childDiagnostics: [
+                            Diagnostic(
+                                behavior: .error,
+                                location: Diagnostic.Location.path(swiftSourcePath, line: 1, column: 8),
+                                data: DiagnosticData("Missing entry in MODULE_DEPENDENCIES: Foundation"),
+                                fixIts: [Diagnostic.FixIt(
+                                    sourceRange: Diagnostic.SourceRange(path: projectXCConfigPath, startLine: .max, startColumn: .max, endLine: .max, endColumn: .max),
+                                    newText: "\nMODULE_DEPENDENCIES[target=TargetB] = $(inherited) Foundation\n")],
+                            ),
+                        ]),
+                ],
+            ]
+
+            for (targetName, expectedDiags) in expectedDiagsByTarget {
+                let target = try #require(tester.workspace.projects.only?.targets.first { $0.name == targetName })
+                let parameters = BuildParameters(configuration: "Debug")
+                let buildRequest = BuildRequest(parameters: parameters, buildTargets: [BuildRequest.BuildTargetInfo(parameters: parameters, target: target)], continueBuildingAfterErrors: false, useParallelTargets: true, useImplicitDependencies: true, useDryRun: false)
+
+                try await tester.checkBuild(runDestination: .host, buildRequest: buildRequest, persistent: true) { results in
+                    guard !results.checkWarning(.prefix("The current toolchain does not support VALIDATE_MODULE_DEPENDENCIES"), failIfNotFound: false) else { return }
+
+                    for expectedDiag in expectedDiags {
+                        _ = results.check(.contains(expectedDiag.data.description), kind: expectedDiag.behavior, failIfNotFound: true, sourceLocation: #_sourceLocation) { diag in
+                            #expect(expectedDiag == diag)
+                            return true
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    @Test(.requireSDKs(.host), .requireClangFeatures(.printHeadersDirectPerFile))
+    func validateModuleDependenciesClang() async throws {
+        try await withTemporaryDirectory { tmpDir async throws -> Void in
+            let testWorkspace = TestWorkspace(
+                "Test",
+                sourceRoot: tmpDir.join("Test"),
+                projects: [
+                    TestProject(
+                        "aProject",
+                        groupTree: TestGroup(
+                            "Sources", path: "Sources",
+                            children: [
+                                TestFile("CoreFoo.m"),
+                                TestFile("CoreBar.m"),
+                            ]),
+                        buildConfigurations: [
+                            TestBuildConfiguration(
+                                "Debug",
+                                buildSettings: [
+                                    "PRODUCT_NAME": "$(TARGET_NAME)",
+                                    "CLANG_ENABLE_MODULES": "YES",
+                                    "CLANG_ENABLE_EXPLICIT_MODULES": "YES",
+                                    "GENERATE_INFOPLIST_FILE": "YES",
+                                    "MODULE_DEPENDENCIES": "Accelerate",
+                                    "VALIDATE_MODULE_DEPENDENCIES": "YES_ERROR",
+                                    "SDKROOT": "$(HOST_PLATFORM)",
+                                    "SUPPORTED_PLATFORMS": "$(HOST_PLATFORM)",
+                                    "DSTROOT": tmpDir.join("dstroot").str,
+                                ]
+                            )
+                        ],
+                        targets: [
+                            TestStandardTarget(
+                                "CoreFoo", type: .framework,
+                                buildPhases: [
+                                    TestSourcesBuildPhase(["CoreFoo.m", "CoreBar.m"]),
+                                    TestFrameworksBuildPhase()
+                                ])
+                        ])
+                ]
+            )
+
+            let tester = try await BuildOperationTester(getCore(), testWorkspace, simulated: false)
+            let SRCROOT = testWorkspace.sourceRoot.join("aProject")
+
+            // Write the source files.
+            for stem in ["Foo", "Bar"] {
+                try await tester.fs.writeFileContents(SRCROOT.join("Sources/Core\(stem).m")) { contents in
+                    contents <<< """
+                        #include <Foundation/Foundation.h>
+                        #include <Foundation/NSObject.h>
+                        #include <Accelerate/Accelerate.h>
+
+                        void f\(stem)(void) { };
+                    """
+                }
+            }
+
+            // Expect complaint about undeclared dependency
+            try await tester.checkBuild(parameters: BuildParameters(configuration: "Debug"), runDestination: .host, persistent: true) { results in
+                results.checkError(.contains("Missing entries in MODULE_DEPENDENCIES: Foundation (for task"))
+            }
+
+            // Declaring dependencies resolves the problem
+            try await tester.checkBuild(parameters: BuildParameters(configuration: "Debug", overrides: ["MODULE_DEPENDENCIES": "Foundation Accelerate"]), runDestination: .host, persistent: true) { results in
+                results.checkNoErrors()
+            }
+        }
+    }
+
+    @Test(.requireSDKs(.host), .requireClangFeatures(.printHeadersDirectPerFile), .skipHostOS(.windows, "toolchain too old"), .skipHostOS(.linux, "toolchain too old"))
+    func validateModuleDependenciesMixedSource() async throws {
+        try await withTemporaryDirectory { tmpDir async throws -> Void in
+            let testWorkspace = try await TestWorkspace(
+                "Test",
+                sourceRoot: tmpDir.join("Test"),
+                projects: [
+                    TestProject(
+                        "aProject",
+                        groupTree: TestGroup(
+                            "Sources", path: "Sources",
+                            children: [
+                                TestFile("CoreFoo.m"),
+                                TestFile("Swift.swift"),
+                            ]),
+                        buildConfigurations: [
+                            TestBuildConfiguration(
+                                "Debug",
+                                buildSettings: [
+                                    "PRODUCT_NAME": "$(TARGET_NAME)",
+                                    "CLANG_ENABLE_MODULES": "YES",
+                                    "CLANG_ENABLE_EXPLICIT_MODULES": "YES",
+                                    "SWIFT_ENABLE_EXPLICIT_MODULES": "YES",
+                                    "SWIFT_UPCOMING_FEATURE_INTERNAL_IMPORTS_BY_DEFAULT": "YES",
+                                    "SWIFT_VERSION": swiftVersion,
+                                    "GENERATE_INFOPLIST_FILE": "YES",
+                                    "VALIDATE_MODULE_DEPENDENCIES": "YES_ERROR",
+                                    "SDKROOT": "$(HOST_PLATFORM)",
+                                    "SUPPORTED_PLATFORMS": "$(HOST_PLATFORM)",
+                                    "DSTROOT": tmpDir.join("dstroot").str,
+
+                                    // Temporarily override to use the latest toolchain in CI because we depend on swift and swift-driver changes which aren't in the baseline tools yet
+                                    "TOOLCHAINS": "swift",
+                                    // We still want to use the default clang since that is used to gate the test
+                                    "CC": defaultClangPath.str,
+                                ]
+                            )
+                        ],
+                        targets: [
+                            TestStandardTarget(
+                                "CoreFoo", type: .framework,
+                                buildPhases: [
+                                    TestSourcesBuildPhase(["CoreFoo.m", "Swift.swift"]),
+                                    TestFrameworksBuildPhase()
+                                ])
+                        ])
+                ]
+            )
+
+            let tester = try await BuildOperationTester(getCore(), testWorkspace, simulated: false)
+            let SRCROOT = testWorkspace.sourceRoot.join("aProject")
+
+            try await tester.fs.writeFileContents(SRCROOT.join("Sources/Swift.swift")) { stream in
+                stream <<< """
+                    import Foundation
+                    import AppKit
+                """
+            }
+
+            try await tester.fs.writeFileContents(SRCROOT.join("Sources/CoreFoo.m")) { contents in
+                contents <<< """
+                    #include <Foundation/Foundation.h>
+                    #include <Accelerate/Accelerate.h>
+
+                    void f(void) { };
+                """
+            }
+
+            try await tester.checkBuild(parameters: BuildParameters(configuration: "Debug"), runDestination: .host, persistent: true) { results in
+                results.checkError(.contains("Missing entries in MODULE_DEPENDENCIES: Accelerate AppKit Foundation"))
+            }
+        }
+    }
+
 }

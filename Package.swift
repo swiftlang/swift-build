@@ -70,7 +70,11 @@ func swiftSettings(languageMode: SwiftLanguageMode) -> [SwiftSetting] {
 let package = Package(
     name: "SwiftBuild",
     defaultLocalization: "en",
-    platforms: [.macOS("13.0"), .iOS("17.0"), .macCatalyst("17.0")],
+    platforms: [
+        .macOS(.v14),
+        .iOS("17.0"),
+        .macCatalyst("17.0"),
+    ],
     products: [
         .executable(name: "swbuild", targets: ["swbuild"]),
         .executable(name: "SWBBuildServiceBundle", targets: ["SWBBuildServiceBundle"]),
@@ -369,7 +373,7 @@ let package = Package(
         // Perf tests
         .testTarget(
             name: "SWBBuildSystemPerfTests",
-            dependencies: ["SWBBuildSystem", "SWBTestSupport"],
+            dependencies: ["SWBBuildSystem", "SWBTestSupport", "SwiftBuildTestSupport"],
             swiftSettings: swiftSettings(languageMode: .v6)),
         .testTarget(
             name: "SWBCASPerfTests",
@@ -455,11 +459,11 @@ if useLocalDependencies {
     }
 } else {
     package.dependencies += [
-        .package(url: "https://github.com/swiftlang/swift-driver.git", branch: "release/6.2"),
+        .package(url: "https://github.com/swiftlang/swift-driver.git", branch: "main"),
         .package(url: "https://github.com/apple/swift-system.git", .upToNextMajor(from: "1.5.0")),
         .package(url: "https://github.com/apple/swift-argument-parser.git", from: "1.0.3"),
     ]
     if !useLLBuildFramework {
-        package.dependencies += [.package(url: "https://github.com/swiftlang/swift-llbuild.git", branch: "release/6.2"),]
+        package.dependencies += [.package(url: "https://github.com/swiftlang/swift-llbuild.git", branch: "main"),]
     }
 }

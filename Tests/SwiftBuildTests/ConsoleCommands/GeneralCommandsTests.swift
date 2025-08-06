@@ -15,7 +15,7 @@ import SwiftBuild
 import SWBTestSupport
 import SWBUtil
 
-@Suite(.skipInGitHubActions("failing in the GitHub actions runner environment"), .skipHostOS(.windows))
+@Suite(.skipHostOS(.windows))
 fileprivate struct GeneralCommandsTests {
     @Test(.skipHostOS(.windows), // PTY not supported on Windows
         .requireHostOS(.macOS)) // something with terminal echo is different on macOS vs Linux

@@ -13,6 +13,7 @@
 import SWBCore
 import SWBTaskConstruction
 import SWBMacro
+import SWBUtil
 
 class TestEntryPointTaskProducer: PhasedTaskProducer, TaskProducer {
     func generateTasks() async -> [any PlannedTask] {
@@ -21,8 +22,54 @@ class TestEntryPointTaskProducer: PhasedTaskProducer, TaskProducer {
             await self.appendGeneratedTasks(&tasks) { delegate in
                 let scope = context.settings.globalScope
                 let outputPath = scope.evaluate(BuiltinMacros.GENERATED_TEST_ENTRY_POINT_PATH)
-                let cbc = CommandBuildContext(producer: context, scope: scope, inputs: [], outputs: [outputPath])
-                await context.testEntryPointGenerationToolSpec.constructTasks(cbc, delegate)
+
+                guard let configuredTarget = context.configuredTarget else {
+                    context.error("Cannot generate a test entry point without a target")
+                    return
+                }
+                var indexStoreDirectories: OrderedSet<Path> = []
+                var linkerFileLists: OrderedSet<Path> = []
+                var indexUnitBasePaths: OrderedSet<Path> = []
+                var binaryPaths: OrderedSet<Path> = []
+                for directDependency in context.globalProductPlan.dependencies(of: configuredTarget) {
+                    let settings = context.globalProductPlan.planRequest.buildRequestContext.getCachedSettings(directDependency.parameters, target: directDependency.target)
+                    guard settings.productType?.conformsTo(identifier: "com.apple.product-type.bundle.unit-test") == true else {
+                        continue
+                    }
+                    guard settings.globalScope.evaluate(BuiltinMacros.SWIFT_INDEX_STORE_ENABLE) else {
+                        context.error("Cannot perform test discovery for '\(directDependency.target.name)' because index while building is disabled")
+                        continue
+                    }
+                    let path = settings.globalScope.evaluate(BuiltinMacros.SWIFT_INDEX_STORE_PATH)
+                    guard !path.isEmpty else {
+                        continue
+                    }
+                    indexStoreDirectories.append(path)
+
+                    for arch in settings.globalScope.evaluate(BuiltinMacros.ARCHS) {
+                        for variant in settings.globalScope.evaluate(BuiltinMacros.BUILD_VARIANTS) {
+                            let innerScope = settings.globalScope
+                                .subscope(binding: BuiltinMacros.archCondition, to: arch)
+                                .subscope(binding: BuiltinMacros.variantCondition, to: variant)
+                            let linkerFileListPath = innerScope.evaluate(BuiltinMacros.__INPUT_FILE_LIST_PATH__)
+                            if !linkerFileListPath.isEmpty {
+                                linkerFileLists.append(linkerFileListPath)
+                            }
+                            let objroot = innerScope.evaluate(BuiltinMacros.OBJROOT)
+                            if !objroot.isEmpty {
+                                indexUnitBasePaths.append(objroot)
+                            }
+
+                            let binaryPath = innerScope.evaluate(BuiltinMacros.TARGET_BUILD_DIR).join(innerScope.evaluate(BuiltinMacros.EXECUTABLE_PATH)).normalize()
+                            binaryPaths.append(binaryPath)
+                        }
+                    }
+                }
+
+                let inputs: [FileToBuild] = linkerFileLists.map { FileToBuild(absolutePath: $0, fileType: self.context.workspaceContext.core.specRegistry.getSpec("text") as! FileTypeSpec) } + binaryPaths.map { FileToBuild(absolutePath: $0, fileType: self.context.workspaceContext.core.specRegistry.getSpec("compiled.mach-o") as! FileTypeSpec) }
+
+                let cbc = CommandBuildContext(producer: context, scope: scope, inputs: inputs, outputs: [outputPath])
+                await context.testEntryPointGenerationToolSpec.constructTasks(cbc, delegate, indexStorePaths: indexStoreDirectories.elements, indexUnitBasePaths: indexUnitBasePaths.elements)
             }
         }
         return tasks

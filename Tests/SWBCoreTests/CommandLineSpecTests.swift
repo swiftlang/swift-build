@@ -1234,7 +1234,7 @@ import SWBMacro
         let mockFileType = try core.specRegistry.getSpec("file") as FileTypeSpec
         let cbc = CommandBuildContext(producer: producer, scope: mockScope, inputs: [FileToBuild(absolutePath: Path.root.join("tmp/obj/normal/x86_64/file1.o"), fileType: mockFileType)], output: Path.root.join("tmp/obj/normal/x86_64/output"))
 
-        // Test all permutations of library kind, linkage mode and search path usage, except for object files.
+        // Test all permutations of library kind, linkage mode and search path usage, except for object files and object libraries.
         func generateLibrarySpecifiers(kind: LinkerSpec.LibrarySpecifier.Kind) -> [LinkerSpec.LibrarySpecifier] {
             var result = [LinkerSpec.LibrarySpecifier]()
             for useSearchPaths in [true, false] {
@@ -1252,6 +1252,8 @@ import SWBMacro
                     case .framework:
                         filePath = Path.root.join("tmp/Foo\(suffix).framework")
                     case .object:
+                        continue
+                    case .objectLibrary:
                         continue
                     }
                     result.append(LinkerSpec.LibrarySpecifier(kind: kind, path: filePath, mode: mode, useSearchPaths: useSearchPaths, swiftModulePaths: [:], swiftModuleAdditionalLinkerArgResponseFilePaths: [:]))
@@ -1560,7 +1562,7 @@ import SWBMacro
         }
 
         // Check with just LD.
-        for (name, expected) in [("file.c", "SomeCLinker"), ("file.cpp", "clang++")] {
+        for (name, expected) in [("file.c", core.hostOperatingSystem.imageFormat.executableName(basename:"SomeCLinker")), ("file.cpp", core.hostOperatingSystem.imageFormat.executableName(basename:"clang++"))] {
             try await check(name: name, expectedLinker: expected, macros: [
                 BuiltinMacros.LD: "SomeCLinker"
                 // NOTE: One wonders whether this shouldn't change the C++ linker.
@@ -1568,7 +1570,7 @@ import SWBMacro
         }
 
         // Check with LD & LDPLUSPLUS.
-        for (name, expected) in [("file.c", "SomeCLinker"), ("file.cpp", "SomeC++Linker")] {
+        for (name, expected) in [("file.c", core.hostOperatingSystem.imageFormat.executableName(basename:"SomeCLinker")), ("file.cpp", core.hostOperatingSystem.imageFormat.executableName(basename:"SomeC++Linker"))] {
             try await check(name: name, expectedLinker: expected, macros: [
                 BuiltinMacros.LD: "SomeCLinker",
                 BuiltinMacros.LDPLUSPLUS: "SomeC++Linker"
@@ -1576,7 +1578,7 @@ import SWBMacro
         }
 
         // Check with arch specific LD.
-        for (name, expected) in [("file.c", "SomeCLinker_x86_64"), ("file.cpp", "SomeC++Linker_x86_64")] {
+        for (name, expected) in [("file.c", core.hostOperatingSystem.imageFormat.executableName(basename:"SomeCLinker_x86_64")), ("file.cpp", core.hostOperatingSystem.imageFormat.executableName(basename:"SomeC++Linker_x86_64"))] {
             try await check(name: name, expectedLinker: expected, macros: [
                 BuiltinMacros.CURRENT_ARCH: "x86_64",
                 try core.specRegistry.internalMacroNamespace.declareStringMacro("LD_x86_64"): "SomeCLinker_x86_64",

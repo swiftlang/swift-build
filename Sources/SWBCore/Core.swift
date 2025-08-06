@@ -245,6 +245,12 @@ public final class Core: Sendable {
                 // If the ProductBuildVersion key is missing, we use "UNKNOWN" as the value.
                 self.xcodeProductBuildVersion = info.productBuildVersion ?? ProductBuildVersion(major: 0, train: "A", build: 0, buildSuffix: "")
                 self.xcodeProductBuildVersionString = info.productBuildVersion?.description ?? "UNKNOWN"
+
+                // Enforce a minimum Xcode version for Open Source testing workflows
+                let minimumXcodeVersion = Version(16, 2)
+                if xcodeVersion < minimumXcodeVersion {
+                    throw StubError.error("This build of Swift Build requires a minimum Xcode version of \(minimumXcodeVersion.description) (current version: \(xcodeVersion.zeroTrimmed.description)).")
+                }
             } else {
                 // Set an arbitrary version for testing purposes.
                 self.xcodeVersion = Version(99, 99, 99)

@@ -30,8 +30,8 @@ import SWBTestSupport
 
 @Suite(.requireXcode16())
 fileprivate struct BuildOperationTests: CoreBasedTests {
-    @Test(.requireSDKs(.host), arguments: ["clang", "swiftc"])
-    func commandLineTool(linkerDriver: String) async throws {
+    @Test(.requireSDKs(.host), arguments: [("clang", "-Onone"), ("swiftc", "-Onone"), ("swiftc", "-Owholemodule")])
+    func commandLineTool(linkerDriver: String, optimizationLevel: String) async throws {
         try await withTemporaryDirectory { (tmpDir: Path) in
             let testProject = try await TestProject(
                 "TestProject",
@@ -55,6 +55,7 @@ fileprivate struct BuildOperationTests: CoreBasedTests {
                         "SUPPORTED_PLATFORMS": "$(HOST_PLATFORM)",
                         "SWIFT_VERSION": swiftVersion,
                         "LINKER_DRIVER": linkerDriver,
+                        "SWIFT_OPTIMIZATION_LEVEL": optimizationLevel,
                     ])
                 ],
                 targets: [
@@ -383,7 +384,7 @@ fileprivate struct BuildOperationTests: CoreBasedTests {
 
     @Test(.requireSDKs(.host), .skipHostOS(.macOS), .skipHostOS(.windows, "cannot find testing library"))
     func unitTestWithGeneratedEntryPoint() async throws {
-        try await withTemporaryDirectory { (tmpDir: Path) in
+        try await withTemporaryDirectory(removeTreeOnDeinit: false) { (tmpDir: Path) in
             let testProject = try await TestProject(
                 "TestProject",
                 sourceRoot: tmpDir,
@@ -401,15 +402,34 @@ fileprivate struct BuildOperationTests: CoreBasedTests {
                         "SDKROOT": "$(HOST_PLATFORM)",
                         "SUPPORTED_PLATFORMS": "$(HOST_PLATFORM)",
                         "SWIFT_VERSION": swiftVersion,
+                        "INDEX_DATA_STORE_DIR": "\(tmpDir.join("index").str)",
+                        "LINKER_DRIVER": "swiftc"
                     ])
                 ],
                 targets: [
                     TestStandardTarget(
-                        "test",
+                        "UnitTestRunner",
+                        type: .swiftpmTestRunner,
+                        buildConfigurations: [
+                            TestBuildConfiguration("Debug", buildSettings: [
+                                "LD_RUNPATH_SEARCH_PATHS": "$(RPATH_ORIGIN)",
+                            ]),
+                        ],
+                        buildPhases: [
+                            TestSourcesBuildPhase(),
+                            TestFrameworksBuildPhase([
+                                "MyTests.so"
+                            ])
+                        ],
+                        dependencies: ["MyTests"]
+                    ),
+                    TestStandardTarget(
+                        "MyTests",
                         type: .unitTest,
                         buildConfigurations: [
                             TestBuildConfiguration("Debug", buildSettings: [
-                                "LD_RUNPATH_SEARCH_PATHS": "@loader_path/",
+                                "LD_RUNPATH_SEARCH_PATHS": "$(RPATH_ORIGIN)",
+                                "LD_DYLIB_INSTALL_NAME": "MyTests.so"
                             ])
                         ],
                         buildPhases: [
@@ -417,17 +437,18 @@ fileprivate struct BuildOperationTests: CoreBasedTests {
                             TestFrameworksBuildPhase([
                                 TestBuildFile(.target("library")),
                             ])
-                        ],
-                        dependencies: [
+                        ], dependencies: [
                             "library"
-                        ]
+                        ],
+                        productReferenceName: "MyTests.so"
                     ),
                     TestStandardTarget(
                         "library",
                         type: .dynamicLibrary,
                         buildConfigurations: [
                             TestBuildConfiguration("Debug", buildSettings: [
-                                "DYLIB_INSTALL_NAME_BASE": "$ORIGIN",
+                                "LD_RUNPATH_SEARCH_PATHS": "$(RPATH_ORIGIN)",
+                                "LD_DYLIB_INSTALL_NAME": "liblibrary.so",
 
                                 // FIXME: Find a way to make these default
                                 "EXECUTABLE_PREFIX": "lib",
@@ -441,7 +462,7 @@ fileprivate struct BuildOperationTests: CoreBasedTests {
                 ])
             let core = try await getCore()
             let tester = try await BuildOperationTester(core, testProject, simulated: false)
-
+            try localFS.createDirectory(tmpDir.join("index"))
             let projectDir = tester.workspace.projects[0].sourceRoot
 
             try await tester.fs.writeFileContents(projectDir.join("library.swift")) { stream in
@@ -451,10 +472,17 @@ fileprivate struct BuildOperationTests: CoreBasedTests {
             try await tester.fs.writeFileContents(projectDir.join("test.swift")) { stream in
                 stream <<< """
                     import Testing
+                    import XCTest
                     import library
                     @Suite struct MySuite {
-                        @Test func myTest() async throws {
+                        @Test func myTest() {
                             #expect(foo() == 42)
+                        }
+                    }
+
+                    final class MYXCTests: XCTestCase {
+                        func testFoo() {
+                            XCTAssertTrue(true)
                         }
                     }
                 """
@@ -466,8 +494,14 @@ fileprivate struct BuildOperationTests: CoreBasedTests {
 
                 let environment = destination.hostRuntimeEnvironment(core)
 
-                let executionResult = try await Process.getOutput(url: URL(fileURLWithPath: projectDir.join("build").join("Debug\(destination.builtProductsDirSuffix)").join(core.hostOperatingSystem.imageFormat.executableName(basename: "test.xctest")).str), arguments: ["--testing-library", "swift-testing"], environment: environment)
-                #expect(String(decoding: executionResult.stderr, as: UTF8.self).contains("Test run started"))
+                do {
+                    let executionResult = try await Process.getOutput(url: URL(fileURLWithPath: projectDir.join("build").join("Debug\(destination.builtProductsDirSuffix)").join(core.hostOperatingSystem.imageFormat.executableName(basename: "UnitTestRunner")).str), arguments: [], environment: environment)
+                    #expect(String(decoding: executionResult.stdout, as: UTF8.self).contains("Executed 1 test"))
+                }
+                do {
+                    let executionResult = try await Process.getOutput(url: URL(fileURLWithPath: projectDir.join("build").join("Debug\(destination.builtProductsDirSuffix)").join(core.hostOperatingSystem.imageFormat.executableName(basename: "UnitTestRunner")).str), arguments: ["--testing-library", "swift-testing"], environment: environment)
+                    #expect(String(decoding: executionResult.stderr, as: UTF8.self).contains("Test run with 1 test "))
+                }
             }
         }
     }
@@ -4709,7 +4743,7 @@ That command depends on command in Target 'agg2' (project \'aProject\'): script 
             try await tester.checkBuild(runDestination: .macOS, persistent: true) { results in
                 if !SWBFeatureFlag.performOwnershipAnalysis.value {
                     for _ in 0..<4 {
-                        results.checkError(.contains("No such file or directory (2) (for task: [\"Copy\""))
+                        results.checkError(.contains("couldn’t be opened because there is no such file. (for task: [\"Copy\""))
                     }
                 }
                 results.checkError(.contains("unterminated string literal"))
@@ -5003,7 +5037,7 @@ That command depends on command in Target 'agg2' (project \'aProject\'): script 
                 }
                 if !SWBFeatureFlag.performOwnershipAnalysis.value {
                     for fname in ["aFramework.swiftmodule", "aFramework.swiftdoc", "aFramework.swiftsourceinfo", "aFramework.abi.json"] {
-                        results.checkError(.contains("\(tmpDirPath.str)/Test/aProject/build/aProject.build/Debug/aFramework.build/Objects-normal/x86_64/\(fname)): No such file or directory (2)"))
+                        results.checkError(.contains("The file “\(fname)” couldn’t be opened because there is no such file."))
                     }
                 }
                 results.checkError("Build input file cannot be found: \'\(tmpDirPath.str)/Test/aProject/File.swift\'. Did you forget to declare this file as an output of a script phase or custom build rule which produces it? (for task: [\"ExtractAppIntentsMetadata\"])")

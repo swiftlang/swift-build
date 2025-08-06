@@ -25,7 +25,7 @@ public enum TargetDependencyReason: Sendable {
     /// - parameter buildPhase: The name of the build phase used to find this linkage. This is used for diagnostics.
     case implicitBuildPhaseLinkage(filename: String, buildableItem: BuildFile.BuildableItem, buildPhase: String)
     /// The upstream target has an implicit dependency on the target due to options being passed via a build setting.
-    case implicitBuildSettingLinkage(settingName: String, options: [String])
+    case implicitBuildSetting(settingName: String, options: [String])
     /// The upstream target has a transitive dependency on the target via target(s) which were removed from the build graph.
     case impliedByTransitiveDependencyViaRemovedTargets(intermediateTargetName: String)
 }
@@ -213,7 +213,7 @@ public struct TargetBuildGraph: TargetGraph, Sendable {
                     dependencyString = "Explicit dependency on \(dependencyDescription)"
                 case .implicitBuildPhaseLinkage(filename: let filename, buildableItem: _, buildPhase: let buildPhase):
                     dependencyString = "Implicit dependency on \(dependencyDescription) via file '\(filename)' in build phase '\(buildPhase)'"
-                case .implicitBuildSettingLinkage(settingName: let settingName, options: let options):
+                case .implicitBuildSetting(settingName: let settingName, options: let options):
                     dependencyString = "Implicit dependency on \(dependencyDescription) via options '\(options.joined(separator: " "))' in build setting '\(settingName)'"
                 case .impliedByTransitiveDependencyViaRemovedTargets(let intermediateTargetName):
                     dependencyString = "Dependency on \(dependencyDescription) via transitive dependency through '\(intermediateTargetName)'"
@@ -680,7 +680,7 @@ fileprivate extension TargetDependencyResolver {
         }
 
         // Add the discovered info.
-        let discoveredInfo = await computeDiscoveredTargetInfo(for: configuredTarget, imposedParameters: imposedParameters, dependencyPath: nil, resolver: resolver)
+        let discoveredInfo = await computeDiscoveredTargetInfo(for: configuredTarget, imposedParameters: imposedParameters, resolver: resolver)
         discoveredTargets[configuredTarget] = discoveredInfo
 
         // If we have no dependencies, we are done.
@@ -742,7 +742,7 @@ fileprivate extension TargetDependencyResolver {
             discoveredInfo = info
         } else {
             if resolver.makeAggregateTargetsTransparentForSpecialization {
-                discoveredInfo = await computeDiscoveredTargetInfo(for: configuredTarget, imposedParameters: imposedParameters, dependencyPath: dependencyPath, resolver: resolver)
+                discoveredInfo = await computeDiscoveredTargetInfo(for: configuredTarget, imposedParameters: imposedParameters, resolver: resolver)
             } else {
                 var immediateDependencies = [ResolvedTargetDependency]()
                 var packageProductDependencies = [PackageProductTarget]()
@@ -820,14 +820,14 @@ fileprivate extension TargetDependencyResolver {
     }
 
     /// Discover the info for a configured target with the given imposed parameters.
-    private func computeDiscoveredTargetInfo(for configuredTarget: ConfiguredTarget, imposedParameters: SpecializationParameters?, dependencyPath: OrderedSet<ConfiguredTarget>?, resolver: isolated DependencyResolver) async -> DiscoveredTargetInfo {
+    private func computeDiscoveredTargetInfo(for configuredTarget: ConfiguredTarget, imposedParameters: SpecializationParameters?, resolver: isolated DependencyResolver) async -> DiscoveredTargetInfo {
         var immediateDependencies = [ResolvedTargetDependency]()
         var packageProductDependencies = [PackageProductTarget]()
         for dependency in resolver.explicitDependencies(for: configuredTarget) {
             if let asPackageProduct = dependency as? PackageProductTarget {
                 packageProductDependencies.append(asPackageProduct)
             } else {
-                if !resolver.isTargetSuitableForPlatformForIndex(dependency, parameters: configuredTarget.parameters, imposedParameters: imposedParameters, dependencies: dependencyPath) {
+                if !resolver.isTargetSuitableForPlatformForIndex(dependency, parameters: configuredTarget.parameters, imposedParameters: imposedParameters) {
                     continue
                 }
 

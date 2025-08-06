@@ -19,7 +19,7 @@ import SWBUtil
 import SWBTaskExecution
 import SWBProtocol
 
-@Suite(.requireSwiftFeatures(.compilationCaching), .requireCompilationCaching,
+@Suite(.requireSwiftFeatures(.compilationCaching),
        .flaky("A handful of Swift Build CAS tests fail when running the entire test suite"), .bug("rdar://146781403"))
 fileprivate struct SwiftCompilationCachingTests: CoreBasedTests {
     @Test(.requireSDKs(.iOS))

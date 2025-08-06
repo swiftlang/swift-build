@@ -233,6 +233,18 @@ extension CapturingTaskGenerationDelegate: TaskActionCreationDelegate {
     func createProcessSDKImportsTaskAction() -> any PlannedTaskAction {
         return ProcessSDKImportsTaskAction()
     }
+
+    func createValidateDependenciesTaskAction() -> any PlannedTaskAction {
+        return ValidateProductTaskAction()
+    }
+
+    func createObjectLibraryAssemblerTaskAction() -> any PlannedTaskAction {
+        return ObjectLibraryAssemblerTaskAction()
+    }
+
+    func createLinkerTaskAction(expandResponseFiles: Bool) -> any PlannedTaskAction {
+        return LinkerTaskAction(expandResponseFiles: expandResponseFiles)
+    }
 }
 
 extension CapturingTaskGenerationDelegate: CoreClientDelegate {

@@ -222,7 +222,7 @@ final public class DocumentationCompilerSpec: GenericCompilerSpec, SpecIdentifie
             return nil
         }
 
-        let commandLine = commandLineFromTemplate(cbc, delegate, optionContext: specInfo, specialArgs: symbolGraphArgs + documentationKindArgs, lookup: lookup).map(\.asString)
+        let commandLine = await commandLineFromTemplate(cbc, delegate, optionContext: specInfo, specialArgs: symbolGraphArgs + documentationKindArgs, lookup: lookup).map(\.asString)
 
         // Attach a payload with information about what built documentation this task will output.
         let outputDir = cbc.scope.evaluate(BuiltinMacros.DOCC_ARCHIVE_PATH)

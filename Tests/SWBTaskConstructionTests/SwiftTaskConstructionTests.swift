@@ -627,7 +627,6 @@ fileprivate struct SwiftTaskConstructionTests: CoreBasedTests {
                 #expect(contents == (OutputByteStream()
                                      <<< "framework module CoreFoo {\n"
                                      <<< "  header \"CoreFoo-Swift.h\"\n"
-                                     <<< "  requires objc\n"
                                      <<< "}\n").bytes)
             }
         }
@@ -1107,7 +1106,6 @@ fileprivate struct SwiftTaskConstructionTests: CoreBasedTests {
                     stream <<< "\n"
                     stream <<< "module CoreFoo.Swift {\n"
                     stream <<< "  header \"CoreFoo-Swift.h\"\n"
-                    stream <<< "  requires objc\n"
                     stream <<< "}\n"
                     #expect(contents == stream.bytes)
 

@@ -35,7 +35,7 @@ public final class LipoToolSpec: GenericCommandLineToolSpec, SpecIdentifierType,
     }
 
     private func lipoToolPath(_ cbc: CommandBuildContext) -> Path {
-        return resolveExecutablePath(cbc, Path(computeExecutablePath(cbc)))
+        return resolveExecutablePath(cbc.producer, Path(computeExecutablePath(cbc)))
     }
 
     public override func constructTasks(_ cbc: CommandBuildContext, _ delegate: any TaskGenerationDelegate) async {

@@ -25,6 +25,15 @@ public final class SwiftABIGenerationToolSpec : GenericCommandLineToolSpec, Spec
         }
     }
 
+    override public func resolveExecutablePath(_ cbc: CommandBuildContext, _ path: Path, delegate: any CoreClientTargetDiagnosticProducingDelegate) async -> Path {
+        let swiftInfo = await cbc.producer.swiftCompilerSpec.discoveredCommandLineToolSpecInfo(cbc.producer, cbc.scope, delegate)
+        if let prospectivePath = swiftInfo?.toolPath.dirname.join(path), cbc.producer.executableSearchPaths.fs.exists(prospectivePath) {
+            return prospectivePath
+        }
+
+        return await super.resolveExecutablePath(cbc, path, delegate: delegate)
+    }
+
     override public func constructTasks(_ cbc: CommandBuildContext, _ delegate: any TaskGenerationDelegate) async {
         // FIXME: We should ensure this cannot happen.
         fatalError("unexpected direct invocation")
@@ -40,13 +49,10 @@ public final class SwiftABIGenerationToolSpec : GenericCommandLineToolSpec, Spec
 
         var commandLine = await commandLineFromTemplate(cbc, delegate, optionContext: discoveredCommandLineToolSpecInfo(cbc.producer, cbc.scope, delegate)).map(\.asString)
         commandLine += ["-o", baselineFile.normalize().str]
-        // swift-api-digester doesn't support -Fsystem or -Isystem.
-        commandLine += cbc.scope.evaluate(BuiltinMacros.SYSTEM_FRAMEWORK_SEARCH_PATHS).flatMap { ["-F", $0] }
         // Add import search paths
         for searchPath in SwiftCompilerSpec.collectInputSearchPaths(cbc, toolInfo: toolSpecInfo) {
             commandLine += ["-I", searchPath]
         }
-        commandLine += cbc.scope.evaluate(BuiltinMacros.SWIFT_SYSTEM_INCLUDE_PATHS).flatMap { ["-I", $0] }
         delegate.createTask(type: self,
                             ruleInfo: defaultRuleInfo(cbc, delegate),
                             commandLine: commandLine,

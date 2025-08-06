@@ -34,6 +34,7 @@ add_library(SWBCore
   ConfiguredTarget.swift
   Core.swift
   CustomTaskTypeDescription.swift
+  Dependencies.swift
   DependencyInfoEditPayload.swift
   DependencyResolution.swift
   DiagnosticSupport.swift
@@ -138,6 +139,7 @@ add_library(SWBCore
   SpecImplementations/Tools/MergeInfoPlist.swift
   SpecImplementations/Tools/MkdirTool.swift
   SpecImplementations/Tools/ModulesVerifierTool.swift
+  SpecImplementations/Tools/ObjectLibraryAssembler.swift
   SpecImplementations/Tools/PLUtilTool.swift
   SpecImplementations/Tools/PrelinkedObjectLink.swift
   SpecImplementations/Tools/ProcessSDKImports.swift
@@ -160,6 +162,7 @@ add_library(SWBCore
   SpecImplementations/Tools/TiffUtilTool.swift
   SpecImplementations/Tools/TouchTool.swift
   SpecImplementations/Tools/UnifdefTool.swift
+  SpecImplementations/Tools/ValidateDependencies.swift
   SpecImplementations/Tools/ValidateDevelopmentAssets.swift
   SpecImplementations/Tools/ValidateEmbeddedBinaryTool.swift
   SpecImplementations/Tools/ValidateProductTool.swift

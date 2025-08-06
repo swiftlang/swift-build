@@ -248,6 +248,26 @@ public final class ClangCompileTaskAction: TaskAction, BuildValueValidatingTaskA
                 casDBs = nil
             }
 
+            // Check if verifying dependencies from trace data is enabled.
+            let traceFilePath: Path?
+            let moduleDependenciesContext: ModuleDependenciesContext?
+            let dependencyValidationOutputPath: Path?
+            if let payload = task.payload as? ClangTaskPayload {
+                traceFilePath = payload.traceFilePath
+                moduleDependenciesContext = payload.moduleDependenciesContext
+                dependencyValidationOutputPath = payload.dependencyValidationOutputPath
+            } else {
+                traceFilePath = nil
+                moduleDependenciesContext = nil
+                dependencyValidationOutputPath = nil
+            }
+            if let traceFilePath {
+                // Remove the trace output file if it already exists.
+                if executionDelegate.fs.exists(traceFilePath) {
+                    try executionDelegate.fs.remove(traceFilePath)
+                }
+            }
+
             var lastResult: CommandResult? = nil
             for command in dependencyInfo.commands {
                 if let casDBs {
@@ -304,6 +324,32 @@ public final class ClangCompileTaskAction: TaskAction, BuildValueValidatingTaskA
                     return lastResult ?? .failed
                 }
             }
+
+            if lastResult == .succeeded {
+                // Verify the dependencies from the trace data.
+                let payload: DependencyValidationInfo.Payload
+                if let traceFilePath {
+                    let fs = executionDelegate.fs
+                    let traceData = try JSONDecoder().decode(Array<TraceData>.self, from: Data(fs.read(traceFilePath)))
+
+                    var allFiles = Set<Path>()
+                    traceData.forEach { allFiles.formUnion(Set($0.includes)) }
+                    payload = .clangDependencies(files: allFiles.map { $0.str })
+                } else {
+                    payload = .unsupported
+                }
+
+                if let dependencyValidationOutputPath {
+                    let validationInfo = DependencyValidationInfo(payload: payload)
+                    _ = try executionDelegate.fs.writeIfChanged(
+                        dependencyValidationOutputPath,
+                        contents: ByteString(
+                            JSONEncoder(outputFormatting: .sortedKeys).encode(validationInfo)
+                        )
+                    )
+                }
+            }
+
             return lastResult ?? .failed
         } catch {
             outputDelegate.emitError("\(error)")
@@ -430,4 +476,11 @@ public final class ClangCompileTaskAction: TaskAction, BuildValueValidatingTaskA
             activityReporter: dynamicExecutionDelegate
         )
     }
+}
+
+// Results from tracing header includes with "direct-per-file" filtering.
+// This is used to validate dependencies.
+fileprivate struct TraceData: Decodable {
+    let source: Path
+    let includes: [Path]
 }

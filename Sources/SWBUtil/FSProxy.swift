@@ -10,7 +10,7 @@
 //
 //===----------------------------------------------------------------------===//
 
-public import SWBLibc
+import SWBLibc
 
 #if canImport(System)
 public import System
@@ -18,6 +18,7 @@ public import System
 public import SystemPackage
 #endif
 
+public import struct Foundation.CocoaError
 public import struct Foundation.Data
 public import struct Foundation.Date
 public import struct Foundation.FileAttributeKey
@@ -28,82 +29,91 @@ public import struct Foundation.URL
 public import struct Foundation.URLResourceKey
 public import struct Foundation.URLResourceValues
 public import struct Foundation.UUID
+public import struct Foundation.FileAttributeType
+public import struct Foundation.FileAttributeKey
+public import struct Foundation.TimeInterval
+public import class Foundation.NSDictionary
+#if canImport(Darwin)
+import struct ObjectiveC.ObjCBool
+#endif
 
 #if os(Windows)
-// Windows' POSIX layer does not have S_IFLNK, so define it.
-// We only need it for PseudoFS.
-fileprivate let S_IFLNK: Int32 = 0o0120000
+public import struct WinSDK.HANDLE
 #endif
+
 
 /// File system information for a particular file.
 ///
 /// This is a simple wrapper for stat() information.
 public struct FileInfo: Equatable, Sendable {
-    public let statBuf: stat
+    public let fileAttrs: [FileAttributeKey: any Sendable]
 
-    public init(_ statBuf: stat) {
-        self.statBuf = statBuf
+    public init(_ fileAttrs: [FileAttributeKey: any Sendable]) {
+        self.fileAttrs = fileAttrs
+    }
+
+    func _readFileAttributePrimitive<T: BinaryInteger>(_ value: Any?, as type: T.Type) -> T? {
+        guard let value else { return nil }
+        if let exact = value as? T {
+            return exact
+        } else if let binInt = value as? (any BinaryInteger), let result = T(exactly: binInt) {
+            return result
+        }
+        return nil
     }
 
     public var isFile: Bool {
-        #if os(Windows)
-        return (statBuf.st_mode & UInt16(ucrt.S_IFREG)) != 0
-        #else
-        return (statBuf.st_mode & S_IFREG) != 0
-        #endif
+        return (fileAttrs[.type] as! FileAttributeType == .typeRegular)
     }
 
     public var isDirectory: Bool {
-        #if os(Windows)
-        return (statBuf.st_mode & UInt16(ucrt.S_IFDIR)) != 0
-        #else
-        return (statBuf.st_mode & S_IFDIR) != 0
-        #endif
+        return fileAttrs[.type] as! FileAttributeType == .typeDirectory 
     }
 
     public var isSymlink: Bool {
-        #if os(Windows)
-        return (statBuf.st_mode & UInt16(S_IFLNK)) == S_IFLNK
-        #else
-        return (statBuf.st_mode & S_IFMT) == S_IFLNK
-        #endif
+        return fileAttrs[.type] as! FileAttributeType == .typeSymbolicLink 
     }
 
-    public var isExecutable: Bool {
-        #if os(Windows)
-        // Per https://learn.microsoft.com/en-us/cpp/c-runtime-library/reference/stat-functions, "user execute bits are set according to the filename extension".
-        // Don't use FileManager.isExecutableFile due to https://github.com/swiftlang/swift-foundation/issues/860
-        return (statBuf.st_mode & UInt16(_S_IEXEC)) != 0
-        #else
-        return (statBuf.st_mode & S_IXUSR) != 0
-        #endif
+    public var size: Int64 {
+        return _readFileAttributePrimitive(fileAttrs[.size], as: Int64.self) ?? 0
     }
 
-    public var permissions: Int {
-        return Int(statBuf.st_mode & 0o777)
+    public var permissions: UInt16 {
+        return _readFileAttributePrimitive(fileAttrs[.posixPermissions], as: UInt16.self) ?? 0
     }
 
-    public var owner: Int {
-        return Int(statBuf.st_uid)
+    public var owner: UInt {
+        return _readFileAttributePrimitive(fileAttrs[.ownerAccountID], as: UInt.self) ?? 0
     }
 
-    public var group: Int {
-        return Int(statBuf.st_gid)
-    }
-
-    public var modificationTimestamp: time_t {
-        return statBuf.st_mtimespec.tv_sec
+    public var group: UInt {
+        return _readFileAttributePrimitive(fileAttrs[.groupOwnerAccountID], as: UInt.self) ?? 0
     }
 
     public var modificationDate: Date {
-        let secs = statBuf.st_mtimespec.tv_sec
-        let nsecs = statBuf.st_mtimespec.tv_nsec
-        // Using reference date, instead of 1970, which offers a bit more nanosecond precision since it is a lower absolute number.
-        return Date(timeIntervalSinceReferenceDate: Double(secs) - Date.timeIntervalBetween1970AndReferenceDate + (1.0e-9 * Double(nsecs)))
+        return fileAttrs[.modificationDate] as! Date
+    }
+
+    public var modificationTimestamp: Int64 {
+        let date = fileAttrs[.modificationDate] as! Date
+        return Int64(date.timeIntervalSince1970)
+    }
+
+    public var modificationNanoseconds: Int {
+        let date = fileAttrs[.modificationDate] as! Date
+        return Int(date.timeIntervalSince1970 * 1_000_000_000.0 - Double(date.timeIntervalSince1970) * 1_000_000_000.0)
+    }
+
+    public var iNode: UInt64 {
+        return _readFileAttributePrimitive(fileAttrs[.systemFileNumber], as: UInt64.self) ?? 0
+    }
+
+    public var deviceID: Int32 {
+        return _readFileAttributePrimitive(fileAttrs[.systemNumber], as: Int32.self) ?? 0
     }
 
     public static func ==(lhs: FileInfo, rhs: FileInfo) -> Bool {
-        return lhs.statBuf == rhs.statBuf
+        return NSDictionary(dictionary: lhs.fileAttrs).isEqual(NSDictionary(dictionary: rhs.fileAttrs))
     }
 }
 
@@ -150,7 +160,11 @@ public protocol FSProxy: AnyObject, Sendable {
     // FIXME: Need to document behavior w.r.t. error handling.
     func isDirectory(_ path: Path) -> Bool
 
-    /// Checks whether the given path has the execute bit (which on Windows is determined by the file extension).
+    /// Checks whether the given path is executable.
+    ///
+    /// On Windows, this is determined by the file extension (based on `SHGetFileInfo`), while on Unix it's determined by `access`, which means a file may be deemed executable even if no execute bit is set in the POSIX permissions.
+    ///
+    /// - seealso: [_stat, _stat32, _stat64, _stati64, _stat32i64, _stat64i32, _wstat, _wstat32, _wstat64, _wstati64, _wstat32i64, _wstat64i32](https://learn.microsoft.com/en-us/cpp/c-runtime-library/reference/stat-functions)
     func isExecutable(_ path: Path) throws -> Bool
 
     /// Checks whether the given path is a symlink, also returning whether the linked file exists.
@@ -297,19 +311,23 @@ public extension FSProxy {
     }
 
     func getFileSize(_ path: Path) throws -> ByteCount {
-        try ByteCount(Int64(getFileInfo(path).statBuf.st_size))
+        try ByteCount(Int64(getFileInfo(path).size))
+    }
+
+    func getFilePermissions(_ path: Path) throws -> FilePermissions {
+        try FilePermissions(rawValue: CModeT(getFilePermissions(path)))
     }
 }
 
 fileprivate extension FSProxy {
-    func createFileInfo(_ statBuf: stat) -> FileInfo {
+    func createFileInfo(_ fileAttrs: [FileAttributeKey: any Sendable]) -> FileInfo {
         if fileSystemMode == .deviceAgnostic {
-            var buf = statBuf
-            buf.st_ino = 0
-            buf.st_dev = 0
+            var buf = fileAttrs
+            buf[.systemFileNumber] = 0
+            buf[.systemNumber] = 0
             return FileInfo(buf)
         }
-        return FileInfo(statBuf)
+        return FileInfo(fileAttrs)
     }
 }
 
@@ -348,28 +366,30 @@ class LocalFS: FSProxy, @unchecked Sendable {
 
     /// Check whether a filesystem entity exists at the given path.
     func exists(_ path: Path) -> Bool {
-        var statBuf = stat()
-        if stat(path.str, &statBuf) < 0 {
-            return false
-        }
-        return true
+        fileManager.fileExists(atPath: path.str)
     }
 
     /// Check whether the given path is a directory.
     ///
     /// If the given path is a symlink to a directory, then this will return true if the destination of the symlink is a directory.
     func isDirectory(_ path: Path) -> Bool {
-        var statBuf = stat()
-        if stat(path.str, &statBuf) < 0 {
-            return false
+#if canImport(Darwin)
+        var isDirectory: ObjCBool = false
+        if fileManager.fileExists(atPath: path.str, isDirectory: &isDirectory) {
+            return isDirectory.boolValue
         }
-        return createFileInfo(statBuf).isDirectory
+#else
+        var isDirectory = false
+        if fileManager.fileExists(atPath: path.str, isDirectory: &isDirectory) {
+            return isDirectory
+        }
+#endif
+        return false
     }
 
     /// Check whether a given path is a symlink.
     /// - parameter destinationExists: If the path is a symlink, then this `inout` parameter will be set to `true` if the destination exists.  Otherwise it will be set to `false`.
     func isSymlink(_ path: Path, _ destinationExists: inout Bool) -> Bool {
-        #if os(Windows)
         do {
             let destination = try fileManager.destinationOfSymbolicLink(atPath: path.str)
             destinationExists = exists((path.isAbsolute ? path.dirname : Path.currentDirectory).join(destination))
@@ -378,22 +398,6 @@ class LocalFS: FSProxy, @unchecked Sendable {
             destinationExists = false
             return false
         }
-        #else
-        destinationExists = false
-        var statBuf = stat()
-        if lstat(path.str, &statBuf) < 0 {
-            return false
-        }
-        guard createFileInfo(statBuf).isSymlink else {
-            return false
-        }
-        statBuf = stat()
-        if stat(path.str, &statBuf) < 0 {
-            return true
-        }
-        destinationExists = true
-        return true
-        #endif
     }
 
     func listdir(_ path: Path) throws -> [String] {
@@ -403,71 +407,53 @@ class LocalFS: FSProxy, @unchecked Sendable {
     /// Creates a directory at the given path.  Throws an exception if it cannot do so.
     /// - parameter recursive: If `false`, then the parent directory at `path` must already exist in order to create the directory.  If it doesn't, then it will return without creating the directory (it will not throw an exception).  If `true`, then the directory hierarchy of `path` will be created if possible.
     func createDirectory(_ path: Path, recursive: Bool) throws {
-        // Try to create the directory.
-        #if os(Windows)
+        guard path.isAbsolute else {
+            throw StubError.error("Cannot recursively create directory at non-absolute path: \(path.str)")
+        }
+        // If something exists at this path, then we examine it to see whether it means we're okay.
         do {
-            return try fileManager.createDirectory(atPath: path.str, withIntermediateDirectories: recursive)
-        } catch {
-            throw StubError.error("Could not create directory at path '\(path.str)': \(error)")
-        }
-        #else
-        let result = mkdir(path.str, S_IRWXU | S_IRWXG | S_IRWXO)
-
-        // If it succeeded, we are done.
-        if result == 0 {
-            return
-        }
-
-        // If the failure was because something exists at this path, then we examine it to see whether it means we're okay.
-        if errno == EEXIST {
-            var destinationExists = false
-            if isDirectory(path) {
-                // If the item at the path is a directory, then we're good.  This includes if it's a symlink which points to a directory.
-                return
-            }
-            else if isSymlink(path, &destinationExists) {
-                // If the item at the path is a symlink, then we check whether it's a broken symlink or points to something that is not a directory.
-                if destinationExists {
-                    // The destination does exist, so it's not a directory.
-                    throw StubError.error("File is a symbolic link which references a path which is not a directory: \(path.str)")
+            try fileManager.createDirectory(atPath: path.str, withIntermediateDirectories: false)
+        } catch let error as CocoaError {
+            if error.code == .fileWriteFileExists || error.code == .fileWriteUnknown {
+                var destinationExists = false
+                if isDirectory(path) {
+                    // If the item at the path is a directory, then we're good.  This includes if it's a symlink which points to a directory.
+                    return
+                }
+                else if isSymlink(path, &destinationExists) {
+                    // If the item at the path is a symlink, then we check whether it's a broken symlink or points to something that is not a directory.
+                    if destinationExists {
+                        // The destination does exist, so it's not a directory.
+                        throw StubError.error("File is a symbolic link which references a path which is not a directory: \(path.str)")
+                    }
+                    else {
+                        // The destination does not exist - throw an exception because we have a broken symlink.
+                        throw StubError.error("File is a broken symbolic link: \(path.str)")
+                    }
                 }
                 else {
-                    // The destination does not exist - throw an exception because we have a broken symlink.
-                    throw StubError.error("File is a broken symbolic link: \(path.str)")
+                    /// The path exists but is not a directory
+                    throw StubError.error("File exists but is not a directory: \(path.str)")
                 }
             }
-            else {
-                /// The path exists but is not a directory
-                throw StubError.error("File exists but is not a directory: \(path.str)")
-            }
-        }
+            if recursive && !path.isRoot {
+                if error.code == .fileNoSuchFile {
+                    // Attempt to create the parent.
+                    try createDirectory(path.dirname, recursive: true)
 
-        // If we are recursive and not the root path, then...
-        if recursive && !path.isRoot {
-            // If it failed due to ENOENT (e.g., a missing parent), then attempt to create the parent and retry.
-            if errno == ENOENT {
-                // Attempt to create the parent.
-                guard path.isAbsolute else {
-                    throw StubError.error("Cannot recursively create directory at non-absolute path: \(path.str)")
+                    // Re-attempt creation, non-recursively.
+                    try createDirectory(path)
+
+                    // We are done.
+                    return
                 }
-                try createDirectory(path.dirname, recursive: true)
-
-                // Re-attempt creation, non-recursively.
-                try createDirectory(path)
-
-                // We are done.
-                return
+                // If our parent is not a directory, then report that.
+                if !isDirectory(path.dirname) {
+                    throw StubError.error("File exists but is not a directory: \(path.dirname.str)")
+                }
             }
-
-            // If our parent is not a directory, then report that.
-            if !isDirectory(path.dirname) {
-                throw StubError.error("File exists but is not a directory: \(path.dirname.str)")
-            }
+            throw error
         }
-
-        // Otherwise, we failed due to some other error. Report it.
-        throw POSIXError(errno, context: "mkdir", path.str, "S_IRWXU | S_IRWXG | S_IRWXO")
-        #endif
     }
 
     func createTemporaryDirectory(parent: Path) throws -> Path {
@@ -551,13 +537,9 @@ class LocalFS: FSProxy, @unchecked Sendable {
 
     func write(_ path: Path, contents: (FileDescriptor) async throws -> Void) async throws {
         let fd = try FileDescriptor.open(FilePath(path.str), .writeOnly, options: [.create, .truncate], permissions: [.ownerReadWrite, .groupRead, .otherRead])
-        do {
+        return try await fd.closeAfter {
             try await contents(fd)
-        } catch {
-            _ = try? fd.close()
-            throw error
         }
-        try fd.close()
     }
 
     func append(_ path: Path, contents: ByteString) throws {
@@ -569,49 +551,21 @@ class LocalFS: FSProxy, @unchecked Sendable {
     }
 
     func remove(_ path: Path) throws {
-        guard unlink(path.str) == 0 else {
-            throw POSIXError(errno, context: "unlink", path.str)
-        }
+        try fileManager.removeItem(atPath: path.str)
     }
 
     func removeDirectory(_ path: Path) throws {
         if isDirectory(path) {
-            #if os(Windows)
             try fileManager.removeItem(atPath: path.str)
-            #else
-            var paths = [path]
-            try traverse(path) { paths.append($0) }
-            for path in paths.reversed() {
-                guard SWBLibc.remove(path.str) == 0 else {
-                    throw POSIXError(errno, context: "remove", path.str)
-                }
-            }
-            #endif
         }
     }
 
     func setFilePermissions(_ path: Path, permissions: Int) throws {
-        #if os(Windows)
-        // permissions work differently on Windows
-        #else
-        try eintrLoop {
-            guard chmod(path.str, mode_t(permissions)) == 0 else {
-                throw POSIXError(errno, context: "chmod", path.str, String(mode_t(permissions)))
-            }
-        }
-        #endif
+        try fileManager.setAttributes([.posixPermissions: Int(permissions)], ofItemAtPath: path.str)
     }
 
     func setFileOwnership(_ path: Path, owner: Int, group: Int) throws {
-        #if os(Windows)
-        // permissions work differently on Windows
-        #else
-        try eintrLoop {
-            guard chown(path.str, uid_t(owner), gid_t(group)) == 0 else {
-                throw POSIXError(errno, context: "chown", path.str, String(uid_t(owner)), String(gid_t(group)))
-            }
-        }
-        #endif
+        try fileManager.setAttributes([.ownerAccountID: owner, .groupOwnerAccountID: group], ofItemAtPath: path.str)
     }
 
     func touch(_ path: Path) throws {
@@ -627,24 +581,23 @@ class LocalFS: FSProxy, @unchecked Sendable {
     }
 
     func getFileInfo(_ path: Path) throws -> FileInfo {
-        var buf = stat()
-
-        try eintrLoop {
-            guard stat(path.str, &buf) == 0 else {
-                throw POSIXError(errno, context: "stat", path.str)
+        if isSymlink(path) {
+            var destinationPath = try fileManager.destinationOfSymbolicLink(atPath: path.str)
+            if !Path(destinationPath).isAbsolute {
+                destinationPath = path.dirname.join(Path(destinationPath)).str
             }
+            return createFileInfo(try fileManager.attributesOfItem(atPath: destinationPath))
         }
-
-        return createFileInfo(buf)
+        return createFileInfo(try fileManager.attributesOfItem(atPath: path.str))
     }
 
     func getFilePermissions(_ path: Path) throws -> Int {
-        return try getFileInfo(path).permissions
+        return try Int(getFileInfo(path).permissions)
     }
 
     func getFileOwnership(_ path: Path) throws -> (owner: Int, group: Int) {
         let fileInfo = try getFileInfo(path)
-        return (fileInfo.owner, fileInfo.group)
+        return (Int(fileInfo.owner), Int(fileInfo.group))
     }
 
     func getFileTimestamp(_ path: Path) throws -> Int {
@@ -652,7 +605,7 @@ class LocalFS: FSProxy, @unchecked Sendable {
     }
 
     func isExecutable(_ path: Path) throws -> Bool {
-        return try getFileInfo(path).isExecutable
+        return fileManager.isExecutableFile(atPath: path.str)
     }
 
     func isFile(_ path: Path) throws -> Bool {
@@ -660,27 +613,7 @@ class LocalFS: FSProxy, @unchecked Sendable {
     }
 
     func getLinkFileInfo(_ path: Path) throws -> FileInfo {
-        var buf = stat()
-        #if os(Windows)
-        try eintrLoop {
-            guard stat(path.str, &buf) == 0 else {
-                throw POSIXError(errno, context: "lstat", path.str)
-            }
-        }
-
-        var destinationExists = false
-        if isSymlink(path, &destinationExists) {
-            buf.st_mode &= ~UInt16(ucrt.S_IFREG)
-            buf.st_mode |= UInt16(S_IFLNK)
-        }
-        #else
-        try eintrLoop {
-            guard lstat(path.str, &buf) == 0 else {
-                throw POSIXError(errno, context: "lstat", path.str)
-            }
-        }
-        #endif
-        return createFileInfo(buf)
+        return try createFileInfo(fileManager.attributesOfItem(atPath: path.str))
     }
 
     @discardableResult func traverse<T>(_ path: Path, _ f: (Path) throws -> T?) throws -> [T] {
@@ -700,11 +633,7 @@ class LocalFS: FSProxy, @unchecked Sendable {
     }
 
     func symlink(_ path: Path, target: Path) throws {
-        #if os(Windows)
         try fileManager.createSymbolicLink(atPath: path.str, withDestinationPath: target.str)
-        #else
-        guard SWBLibc.symlink(target.str, path.str) == 0 else { throw POSIXError(errno, context: "symlink", target.str, path.str) }
-        #endif
     }
 
     func setIsExcludedFromBackup(_ path: Path, _ value: Bool) throws {
@@ -854,18 +783,7 @@ class LocalFS: FSProxy, @unchecked Sendable {
     }
 
     func readlink(_ path: Path) throws -> Path {
-        #if os(Windows)
         return try Path(fileManager.destinationOfSymbolicLink(atPath: path.str))
-        #else
-        let buf = UnsafeMutablePointer<Int8>.allocate(capacity: Int(PATH_MAX) + 1)
-        defer { buf.deallocate() }
-        let result = SWBLibc.readlink(path.str, buf, Int(PATH_MAX))
-        guard result >= 0 else {
-            throw POSIXError(errno, context: "readlink", path.str)
-        }
-        buf[result] = 0
-        return Path(String.init(cString: buf))
-        #endif
     }
 
     func getFreeDiskSpace(_ path: Path) throws -> ByteCount? {
@@ -943,7 +861,7 @@ public class PseudoFS: FSProxy, @unchecked Sendable {
         }
 
         // Write the symlink.
-        directory.contents[path.basename] = Node(.symlink(target), permissions: 0o644, timestamp: getTimestamp(), inode: nextInode())
+        directory.contents[path.basename] = Node(.symlink(target), permissions: 0o755, timestamp: getTimestamp(), inode: nextInode())
         parent.timestamp = getTimestamp()
     }
 
@@ -1331,45 +1249,29 @@ public class PseudoFS: FSProxy, @unchecked Sendable {
     public func getFileInfo(_ path: Path) throws -> FileInfo {
         return try queue.blocking_sync {
             guard let node = getNode(path) else { throw POSIXError(ENOENT) }
+
+            let type: FileAttributeType
+            let size: Int
             switch node.contents {
             case .file(let contents):
-                var info = stat()
-                #if os(Windows)
-                info.st_mtimespec = timespec(tv_sec: Int64(node.timestamp), tv_nsec: 0)
-                #else
-                info.st_mtimespec = timespec(tv_sec: time_t(node.timestamp), tv_nsec: 0)
-                #endif
-                info.st_size = off_t(contents.bytes.count)
-                info.st_dev = node.device
-                info.st_ino = node.inode
-                return createFileInfo(info)
+                type = .typeRegular
+                size = contents.bytes.count
             case .directory(let dir):
-                var info = stat()
-                #if os(Windows)
-                info.st_mode = UInt16(ucrt.S_IFDIR)
-                info.st_mtimespec = timespec(tv_sec: Int64(node.timestamp), tv_nsec: 0)
-                #else
-                info.st_mode = S_IFDIR
-                info.st_mtimespec = timespec(tv_sec: time_t(node.timestamp), tv_nsec: 0)
-                #endif
-                info.st_size = off_t(dir.contents.count)
-                info.st_dev = node.device
-                info.st_ino = node.inode
-                return createFileInfo(info)
-            case .symlink(_):
-                var info = stat()
-                #if os(Windows)
-                info.st_mode = UInt16(S_IFLNK)
-                info.st_mtimespec = timespec(tv_sec: Int64(node.timestamp), tv_nsec: 0)
-                #else
-                info.st_mode = S_IFLNK
-                info.st_mtimespec = timespec(tv_sec: time_t(node.timestamp), tv_nsec: 0)
-                #endif
-                info.st_size = off_t(0)
-                info.st_dev = node.device
-                info.st_ino = node.inode
-                return createFileInfo(info)
+                type = .typeDirectory
+                size = dir.contents.count
+            case .symlink(let destination):
+                type = .typeSymbolicLink
+                size = destination.str.utf8.count
             }
+
+            let info: [FileAttributeKey: any Sendable] = [
+                .modificationDate : Date(timeIntervalSince1970: TimeInterval(node.timestamp)),
+                .type: type,
+                .size: size,
+                .posixPermissions: node.permissions,
+                .systemNumber: node.device,
+                .systemFileNumber: node.inode]
+            return createFileInfo(info)
         }
     }
 
@@ -1484,72 +1386,6 @@ public func createFS(simulated: Bool, ignoreFileSystemDeviceInodeChanges: Bool) 
         return LocalFS(ignoreFileSystemDeviceInodeChanges: ignoreFileSystemDeviceInodeChanges)
     }
 }
-
-fileprivate extension stat {
-    static func ==(lhs: stat, rhs: stat) -> Bool {
-        return (
-            lhs.st_dev == rhs.st_dev &&
-            lhs.st_ino == rhs.st_ino &&
-            lhs.st_mode == rhs.st_mode &&
-            lhs.st_nlink == rhs.st_nlink &&
-            lhs.st_uid == rhs.st_uid &&
-            lhs.st_gid == rhs.st_gid &&
-            lhs.st_rdev == rhs.st_rdev &&
-            lhs.st_atimespec == rhs.st_atimespec &&
-            lhs.st_mtimespec == rhs.st_mtimespec &&
-            lhs.st_ctimespec == rhs.st_ctimespec &&
-            lhs.st_size == rhs.st_size)
-    }
-}
-
-extension timespec: Equatable {
-    public static func ==(lhs: timespec, rhs: timespec) -> Bool {
-        return lhs.tv_sec == rhs.tv_sec && lhs.tv_nsec == rhs.tv_nsec
-    }
-}
-
-#if os(Windows)
-public struct timespec: Sendable {
-    public let tv_sec: Int64
-    public let tv_nsec: Int64
-}
-
-extension stat {
-    public var st_atim: timespec {
-        get { timespec(tv_sec: st_atime, tv_nsec: 0) }
-        set { st_atime = newValue.tv_sec }
-    }
-
-    public var st_mtim: timespec {
-        get { timespec(tv_sec: st_mtime, tv_nsec: 0) }
-        set { st_mtime = newValue.tv_sec }
-    }
-
-    public var st_ctim: timespec {
-        get { timespec(tv_sec: st_ctime, tv_nsec: 0) }
-        set { st_ctime = newValue.tv_sec }
-    }
-}
-#endif
-
-#if !canImport(Darwin)
-extension stat {
-    public var st_atimespec: timespec {
-        get { st_atim }
-        set { st_atim = newValue }
-    }
-
-    public var st_mtimespec: timespec {
-        get { st_mtim }
-        set { st_mtim = newValue }
-    }
-
-    public var st_ctimespec: timespec {
-        get { st_ctim }
-        set { st_ctim = newValue }
-    }
-}
-#endif
 
 #if os(Windows)
 extension HANDLE {

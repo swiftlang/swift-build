@@ -371,12 +371,6 @@ extension Trait where Self == Testing.ConditionTrait {
         }
     }
 
-    package static var requireCompilationCaching: Self {
-        enabled("compilation caching is not supported") {
-            try await ConditionTraitContext.shared.supportsCompilationCaching
-        }
-    }
-
     package static var requireDependencyScannerPlusCaching: Self {
         disabled {
             let libclang = try #require(try await ConditionTraitContext.shared.libclang)
@@ -401,7 +395,7 @@ extension Trait where Self == Testing.ConditionTrait {
 
     package static var requireCASValidation: Self {
         enabled {
-            guard try await ConditionTraitContext.shared.supportsCompilationCaching, UserDefaults.enableCASValidation else {
+            guard UserDefaults.enableCASValidation else {
                 return false
             }
             guard let path = try? await ConditionTraitContext.shared.llvmCasToolPath else {

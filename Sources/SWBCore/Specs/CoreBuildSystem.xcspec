@@ -304,6 +304,7 @@
                     "mh_bundle",
                     staticlib,
                     "mh_object",
+                    "objectlib",
                 );
                 DefaultValue = "";
             },
@@ -1351,6 +1352,9 @@ When `GENERATE_INFOPLIST_FILE` is enabled, sets the value of the [CFBundleIdenti
                     {
                         Value = "mh_object";
                     },
+                    {
+                        Value = "objectlib";
+                    },
                 );
                 DefaultValue = "";
                 ConditionFlavors = (
@@ -1591,6 +1595,16 @@ When `GENERATE_INFOPLIST_FILE` is enabled, sets the value of the [CFBundleIdenti
                 Name = "OTHER_LDFLAGS";
                 Type = StringList;
                 Category = "Linking - General";
+                DefaultValue = "";
+                ConditionFlavors = (
+                    arch,
+                    sdk,
+                );
+            },
+            {
+                Name = "MODULE_DEPENDENCIES";
+                Type = StringList;
+                Category = BuildOptions;
                 DefaultValue = "";
                 ConditionFlavors = (
                     arch,

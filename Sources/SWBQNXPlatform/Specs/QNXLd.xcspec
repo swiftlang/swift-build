@@ -97,6 +97,11 @@
                 Condition = "$(ALTERNATE_LINKER) == gold";
             },
             {
+                Name = "DEAD_CODE_STRIPPING";
+                Type = Boolean;
+                Condition = "NO";
+            },
+            {
                 // Frameworks are Mac specific
                 Name = "SYSTEM_FRAMEWORK_SEARCH_PATHS";
                 Type = PathList;
