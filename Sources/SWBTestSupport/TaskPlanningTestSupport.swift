@@ -471,6 +471,14 @@ extension TestTaskPlanningDelegate: TaskActionCreationDelegate {
     package func createValidateDependenciesTaskAction() -> any PlannedTaskAction {
         return ValidateProductTaskAction()
     }
+
+    package func createObjectLibraryAssemblerTaskAction() -> any PlannedTaskAction {
+        return ObjectLibraryAssemblerTaskAction()
+    }
+
+    package func createLinkerTaskAction(expandResponseFiles: Bool) -> any PlannedTaskAction {
+        return LinkerTaskAction(expandResponseFiles: expandResponseFiles)
+    }
 }
 
 package final class CancellingTaskPlanningDelegate: TestTaskPlanningDelegate, @unchecked Sendable {

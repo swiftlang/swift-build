@@ -356,7 +356,7 @@ package final class SourcesTaskProducer: FilesBasedBuildPhaseTaskProducerBase, F
         // When emitting remarks, for now, a dSYM is required (<rdar://problem/45458590>)
         let dSYMForRemarks = scope.evaluate(BuiltinMacros.CLANG_GENERATE_OPTIMIZATION_REMARKS)
         let dSYM = dSYMForDebugInfo || dSYMForRemarks
-        return dSYM && scope.evaluate(BuiltinMacros.MACH_O_TYPE) != "staticlib" && scope.evaluate(BuiltinMacros.MACH_O_TYPE) != "mh_object"
+        return dSYM && !["staticlib", "mh_object", "objectlib"].contains(scope.evaluate(BuiltinMacros.MACH_O_TYPE))
     }
 
     /// Computes and returns a list of libraries to include when linking.
@@ -686,6 +686,15 @@ package final class SourcesTaskProducer: FilesBasedBuildPhaseTaskProducerBase, F
                     explicitDependencies: outputFilePaths,
                     xcframeworkSourcePath: xcframeworkPath,
                     privacyFile: nil
+                )
+            } else if fileType.conformsTo(identifier: "compiled.object-library") {
+                return LinkerSpec.LibrarySpecifier(
+                    kind: .objectLibrary,
+                    path: absolutePath,
+                    mode: .normal,
+                    useSearchPaths: false,
+                    swiftModulePaths: swiftModulePaths,
+                    swiftModuleAdditionalLinkerArgResponseFilePaths: swiftModuleAdditionalLinkerArgResponseFilePaths,
                 )
             } else {
                 // FIXME: Error handling.
@@ -1640,21 +1649,33 @@ package final class SourcesTaskProducer: FilesBasedBuildPhaseTaskProducerBase, F
 
     /// Compute the linker to use in the given scope.
     private func getLinkerToUse(_ scope: MacroEvaluationScope) -> LinkerSpec {
-        let isStaticLib = scope.evaluate(BuiltinMacros.MACH_O_TYPE) == "staticlib"
+        let identifier: String
+        switch scope.evaluate(BuiltinMacros.MACH_O_TYPE) {
+        case "objectlib":
+            identifier = ObjectLibraryAssemblerSpec.identifier
+        case "staticlib":
+            let override = scope.evaluate(BuiltinMacros.LIBRARIAN)
+            if !override.isEmpty {
+                let spec = context.getSpec(override)
+                if let linker = spec as? LinkerSpec {
+                    return linker
+                }
 
-        // Return the custom linker, if specified.
-        var identifier = scope.evaluate(isStaticLib ? BuiltinMacros.LIBRARIAN : BuiltinMacros.LINKER)
-        if !identifier.isEmpty {
-            let spec = context.getSpec(identifier)
-            if let linker = spec as? LinkerSpec {
-                return linker
+                // FIXME: Emit a warning here.
             }
+            identifier = LibtoolLinkerSpec.identifier
+        default:
+            let override = scope.evaluate(BuiltinMacros.LINKER)
+            if !override.isEmpty {
+                let spec = context.getSpec(override)
+                if let linker = spec as? LinkerSpec {
+                    return linker
+                }
 
-            // FIXME: Emit a warning here.
+                // FIXME: Emit a warning here.
+            }
+            identifier = LdLinkerSpec.identifier
         }
-
-        // Return the default linker.
-        identifier = isStaticLib ? LibtoolLinkerSpec.identifier : LdLinkerSpec.identifier
         return context.getSpec(identifier) as! LinkerSpec
     }
 

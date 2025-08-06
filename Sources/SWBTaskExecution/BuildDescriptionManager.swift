@@ -895,6 +895,14 @@ extension BuildSystemTaskPlanningDelegate: TaskActionCreationDelegate {
     func createValidateDependenciesTaskAction() -> any PlannedTaskAction {
         return ValidateDependenciesTaskAction()
     }
+
+    func createObjectLibraryAssemblerTaskAction() -> any PlannedTaskAction {
+        return ObjectLibraryAssemblerTaskAction()
+    }
+
+    func createLinkerTaskAction(expandResponseFiles: Bool) -> any PlannedTaskAction {
+        return LinkerTaskAction(expandResponseFiles: expandResponseFiles)
+    }
 }
 
 fileprivate extension BuildDescription {

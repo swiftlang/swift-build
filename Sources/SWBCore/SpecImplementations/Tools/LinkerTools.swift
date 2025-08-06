@@ -918,7 +918,7 @@ public final class LdLinkerSpec : GenericLinkerSpec, SpecIdentifierType, @unchec
         )
 
         // Create the task.
-        delegate.createTask(type: self, payload: payload, ruleInfo: defaultRuleInfo(cbc, delegate), commandLine: commandLine, environment: environmentFromSpec(cbc, delegate), workingDirectory: cbc.producer.defaultWorkingDirectory, inputs: inputs, outputs: outputs, action: nil, execDescription: resolveExecutionDescription(cbc, delegate), enableSandboxing: enableSandboxing)
+        delegate.createTask(type: self, payload: payload, ruleInfo: defaultRuleInfo(cbc, delegate), commandLine: commandLine, environment: environmentFromSpec(cbc, delegate), workingDirectory: cbc.producer.defaultWorkingDirectory, inputs: inputs, outputs: outputs, action: createTaskAction(cbc, delegate), execDescription: resolveExecutionDescription(cbc, delegate), enableSandboxing: enableSandboxing)
     }
 
     public func constructPreviewsBlankInjectionDylibTask(
@@ -992,7 +992,7 @@ public final class LdLinkerSpec : GenericLinkerSpec, SpecIdentifierType, @unchec
             workingDirectory: cbc.producer.defaultWorkingDirectory,
             inputs: [],
             outputs: outputs,
-            action: nil,
+            action: createTaskAction(cbc, delegate),
             execDescription: resolveExecutionDescription(cbc, delegate),
             enableSandboxing: enableSandboxing
         )
@@ -1246,6 +1246,9 @@ public final class LdLinkerSpec : GenericLinkerSpec, SpecIdentifierType, @unchec
             case .object:
                 // Object files are added to linker inputs in the sources task producer.
                 return ([], [])
+            case .objectLibrary:
+                let pathFlags = specifier.absolutePathFlagsForLd()
+                return (pathFlags, [specifier.path])
             }
         }.reduce(([], [])) { (lhs, rhs) in (lhs.args + rhs.args, lhs.inputs + rhs.inputs) }
     }
@@ -1367,6 +1370,11 @@ public final class LdLinkerSpec : GenericLinkerSpec, SpecIdentifierType, @unchec
         return LdLinkerOutputParser.self
     }
 
+    override public func createTaskAction(_ cbc: CommandBuildContext, _ delegate: any TaskGenerationDelegate) -> (any PlannedTaskAction)? {
+        let useResponseFile = cbc.scope.evaluate(BuiltinMacros.CLANG_USE_RESPONSE_FILE)
+        return delegate.taskActionCreationDelegate.createLinkerTaskAction(expandResponseFiles: !useResponseFile)
+    }
+
     override public func discoveredCommandLineToolSpecInfo(_ producer: any CommandProducer, _ scope: MacroEvaluationScope, _ delegate: any CoreClientTargetDiagnosticProducingDelegate) async -> (any DiscoveredCommandLineToolSpecInfo)? {
         // The ALTERNATE_LINKER is the 'name' of the linker not the executable name, clang will find the linker binary based on name passed via -fuse-ld, but we need to discover
         // its properties by executing the actual binary. There is a common filename when the linker is not "ld" across all platforms using "ld.<ALTERNAME_LINKER>(.exe)"
@@ -1482,6 +1490,9 @@ fileprivate extension LinkerSpec.LibrarySpecifier {
         case (.object, _):
             // Object files are added to linker inputs in the sources task producer.
             return []
+        case (.objectLibrary, _):
+            // Object libraries can't be found via search paths.
+            return []
         }
     }
 
@@ -1518,6 +1529,8 @@ fileprivate extension LinkerSpec.LibrarySpecifier {
         case (.object, _):
             // Object files are added to linker inputs in the sources task producer.
             return []
+        case (.objectLibrary, _):
+            return ["@\(path.join("args.resp").str)"]
         }
     }
 }
@@ -1574,6 +1587,11 @@ public final class LibtoolLinkerSpec : GenericLinkerSpec, SpecIdentifierType, @u
         }
     }
 
+    override public func createTaskAction(_ cbc: CommandBuildContext, _ delegate: any TaskGenerationDelegate) -> (any PlannedTaskAction)? {
+        let useResponseFile = cbc.scope.evaluate(BuiltinMacros.LIBTOOL_USE_RESPONSE_FILE)
+        return delegate.taskActionCreationDelegate.createLinkerTaskAction(expandResponseFiles: !useResponseFile)
+    }
+
     override public func constructLinkerTasks(_ cbc: CommandBuildContext, _ delegate: any TaskGenerationDelegate, libraries: [LibrarySpecifier], usedTools: [CommandLineToolSpec: Set<FileTypeSpec>]) async {
         var inputPaths = cbc.inputs.map({ $0.absolutePath })
         var specialArgs = [String]()
@@ -1618,6 +1636,10 @@ public final class LibtoolLinkerSpec : GenericLinkerSpec, SpecIdentifierType, @u
             case .object:
                 // Object files are added to linker inputs in the sources task producer and so end up in the link-file-list.
                 return []
+
+            case .objectLibrary:
+                inputPaths.append(specifier.path)
+                return ["@\(specifier.path.join("args.resp").str)"]
 
             case .framework:
                 // A static library can build against a framework, since the library in the framework could be a static library, which is valid, and we can't tell here whether it is or not.  So we leave it to libtool to do the right thing here.
@@ -1710,7 +1732,7 @@ public final class LibtoolLinkerSpec : GenericLinkerSpec, SpecIdentifierType, @u
             workingDirectory: cbc.producer.defaultWorkingDirectory,
             inputs: inputs,
             outputs: outputs,
-            action: nil,
+            action: createTaskAction(cbc, delegate),
             execDescription: resolveExecutionDescription(cbc, delegate),
             enableSandboxing: enableSandboxing
         )

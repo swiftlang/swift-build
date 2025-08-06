@@ -50,8 +50,10 @@ add_library(SWBTaskExecution
   TaskActions/GenericCachingTaskAction.swift
   TaskActions/InfoPlistProcessorTaskAction.swift
   TaskActions/LinkAssetCatalogTaskAction.swift
+  TaskActions/LinkerTaskAction.swift
   TaskActions/LSRegisterURLTaskAction.swift
   TaskActions/MergeInfoPlistTaskAction.swift
+  TaskActions/ObjectLibraryAssemblerTaskAction.swift
   TaskActions/ODRAssetPackManifestTaskAction.swift
   TaskActions/PrecompileClangModuleTaskAction.swift
   TaskActions/ProcessProductEntitlementsTaskAction.swift

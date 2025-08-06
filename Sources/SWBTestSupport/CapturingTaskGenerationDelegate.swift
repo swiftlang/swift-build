@@ -243,4 +243,12 @@ extension CapturingTaskGenerationDelegate: TaskActionCreationDelegate {
     package func createValidateDependenciesTaskAction() -> any PlannedTaskAction {
         return ValidateDependenciesTaskAction()
     }
+    
+    package func createObjectLibraryAssemblerTaskAction() -> any PlannedTaskAction {
+        return ObjectLibraryAssemblerTaskAction()
+    }
+
+    package func createLinkerTaskAction(expandResponseFiles: Bool) -> any PlannedTaskAction {
+        return LinkerTaskAction(expandResponseFiles: expandResponseFiles)
+    }
 }
