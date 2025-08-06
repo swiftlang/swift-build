@@ -90,7 +90,7 @@ extension Process {
     /// - note: This method sets the process's termination handler, if one is set.
     /// - throws: ``CancellationError`` if the task was cancelled. Applies only when `interruptible` is true.
     /// - throws: Rethrows the error from ``Process/run`` if the task could not be launched.
-    public func run(interruptible: Bool = true) async throws {
+    public func run(interruptible: Bool = true, onStarted: () -> () = { }) async throws {
         @Sendable func cancelIfRunning() {
             // Only send the termination signal if the process is already running.
             // We might have created the termination monitoring continuation at this
@@ -115,6 +115,7 @@ extension Process {
                     }
 
                     try run()
+                    onStarted()
                 } catch {
                     terminationHandler = nil
 
