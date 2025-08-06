@@ -397,7 +397,7 @@ import SWBMacro
                 if let project = settings.project {
                     #expect(settings.globalScope.evaluate(BuiltinMacros.OBJROOT) == Path("\(project.sourceRoot.str)/build"))
                     #expect(settings.globalScope.evaluate(BuiltinMacros.CONFIGURATION_BUILD_DIR) == Path("\(project.sourceRoot.str)/build/Config1"))
-                    #expect(settings.globalScope.evaluate(BuiltinMacros.CLANG_EXPLICIT_MODULES_OUTPUT_PATH) == "\(project.sourceRoot.str)/build/ExplicitPrecompiledModules")
+                    #expect(settings.globalScope.evaluate(BuiltinMacros.CLANG_EXPLICIT_MODULES_OUTPUT_PATH).str == "\(project.sourceRoot.str)/build/ExplicitPrecompiledModules")
                 }
 
                 // check that we get the right value for VERSION_INFO_STRING, which validates we parsed it correctly.

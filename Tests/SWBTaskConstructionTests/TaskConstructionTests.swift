@@ -2136,6 +2136,8 @@ fileprivate struct TaskConstructionTests: CoreBasedTests {
                             .namePattern(.prefix("CreateBuildDirectory-/tmp/Test/aProject/build")),
                             .namePattern(.prefix("CreateBuildDirectory-/tmp/Test/aProject/build/Release\(runDestination.builtProductsDirSuffix)/BuiltProducts")),
                             .namePattern(.prefix("CreateBuildDirectory-/tmp/Test/aProject/build/EagerLinkingTBDs")),
+                            .namePattern(.prefix("CreateBuildDirectory-/tmp/Test/aProject/build/SwiftExplicitPrecompiledModules")),
+                            .namePattern(.prefix("CreateBuildDirectory-/tmp/Test/aProject/build/ExplicitPrecompiledModules")),
                             .namePattern(.and(.prefix("target"), .suffix("-begin-compiling"))),
                         ])
                     } else {
@@ -8258,6 +8260,30 @@ fileprivate struct TaskConstructionTests: CoreBasedTests {
 
                 results.checkTask(.matchRuleType("CreateBuildDirectory"), .matchRuleItem("\(tmpDir.str)/build/a/b/c/d/EagerLinkingTBDs/Debug")) { task in
                     task.checkInputs([.path("\(tmpDir.str)/build/a/b/c/d")])
+                }
+
+                results.checkTask(.matchRuleType("CreateBuildDirectory"), .matchRuleItem("\(tmpDir.str)/build/a/b/c/d/ExplicitPrecompiledModules")) { task in
+                    task.checkInputs([.path("\(tmpDir.str)/build/a/b/c/d")])
+                }
+
+                results.checkTask(.matchRuleType("CreateBuildDirectory"), .matchRuleItem("\(tmpDir.str)/build/a/b/c/d/SwiftExplicitPrecompiledModules")) { task in
+                    task.checkInputs([.path("\(tmpDir.str)/build/a/b/c/d")])
+                }
+
+                results.checkTask(.matchRuleType("CreateBuildDirectory"), .matchRuleItem("\(tmpDir.str)/build/a/b/ExplicitPrecompiledModules")) { task in
+                    task.checkInputs([.path("\(tmpDir.str)/build/a/b")])
+                }
+
+                results.checkTask(.matchRuleType("CreateBuildDirectory"), .matchRuleItem("\(tmpDir.str)/build/a/b/SwiftExplicitPrecompiledModules")) { task in
+                    task.checkInputs([.path("\(tmpDir.str)/build/a/b")])
+                }
+
+                results.checkTask(.matchRuleType("CreateBuildDirectory"), .matchRuleItem("\(tmpDir.str)/build/a/ExplicitPrecompiledModules")) { task in
+                    task.checkInputs([.path("\(tmpDir.str)/build/a")])
+                }
+
+                results.checkTask(.matchRuleType("CreateBuildDirectory"), .matchRuleItem("\(tmpDir.str)/build/a/SwiftExplicitPrecompiledModules")) { task in
+                    task.checkInputs([.path("\(tmpDir.str)/build/a")])
                 }
 
                 results.checkTask(.matchRuleType("CreateBuildDirectory"), .matchRuleItem("\(tmpDir.str)/build/a/b/c/d")) { task in
