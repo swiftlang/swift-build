@@ -10,6 +10,7 @@
 //
 //===----------------------------------------------------------------------===//
 
+private import Foundation
 public import SWBUtil
 import SWBMacro
 
@@ -39,8 +40,17 @@ public final class ValidateDependenciesSpec: CommandLineToolSpec, SpecImplementa
         guard let configuredTarget = cbc.producer.configuredTarget else {
             return
         }
+
+        let jsonData: Data
+        do {
+            jsonData = try JSONEncoder(outputFormatting: [.prettyPrinted, .sortedKeys, .withoutEscapingSlashes]).encode(payload)
+        } catch {
+            delegate.error("Error serializing \(payload): \(error)")
+            return
+        }
+        let signature = String(decoding: jsonData, as: UTF8.self)
         let output =  delegate.createVirtualNode("ValidateDependencies \(configuredTarget.guid)")
-        delegate.createTask(type: self, payload: payload, ruleInfo: ["ValidateDependencies"], commandLine: ["builtin-validate-dependencies"] + dependencyInfos.map { $0.path.str }, environment: EnvironmentBindings(), workingDirectory: cbc.producer.defaultWorkingDirectory, inputs: dependencyInfos + cbc.commandOrderingInputs, outputs: [output], action: delegate.taskActionCreationDelegate.createValidateDependenciesTaskAction(), preparesForIndexing: false, enableSandboxing: false)
+        delegate.createTask(type: self, payload: payload, ruleInfo: ["ValidateDependencies"], additionalSignatureData: signature, commandLine: ["builtin-validate-dependencies"] + dependencyInfos.map { $0.path.str }, environment: EnvironmentBindings(), workingDirectory: cbc.producer.defaultWorkingDirectory, inputs: dependencyInfos + cbc.commandOrderingInputs, outputs: [output], action: delegate.taskActionCreationDelegate.createValidateDependenciesTaskAction(), preparesForIndexing: false, enableSandboxing: false)
     }
 }
 
