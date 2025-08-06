@@ -249,58 +249,25 @@ package final class SourcesTaskProducer: FilesBasedBuildPhaseTaskProducerBase, F
         super.init(context, buildPhase: sourcesBuildPhase, phaseStartNodes: phaseStartNodes, phaseEndNode: phaseEndNode, phaseEndTask: phaseEndTask)
     }
 
-    override func additionalBuildFiles(_ scope: MacroEvaluationScope) -> [BuildFile] {
-        var additionalBuildFiles = [BuildFile]()
-
-        // Both Asset Catalogs and String Catalogs need moved to the Sources phase to enable codegen.
-        // This isn't great but can be removed once we eliminate build phases.
+    override func additionalBuildFiles(_ scope: MacroEvaluationScope) async -> [BuildFile] {
+        // Some files might generate sources (e.g. generating symbols) and thus need to be in the Sources phase.
 
         let standardTarget = targetContext.configuredTarget?.target as? StandardTarget
-        let sourceFiles = standardTarget?.sourcesBuildPhase?.buildFiles.count ?? 0
+        let sourceFiles = standardTarget?.sourcesBuildPhase?.buildFiles ?? []
+        let resourceFiles = standardTarget?.resourcesBuildPhase?.buildFiles ?? []
 
-        if scope.evaluate(BuiltinMacros.ASSETCATALOG_COMPILER_GENERATE_ASSET_SYMBOLS) && (sourceFiles > 0) {
-            // Add xcassets to Compile Sources phase to enable codegen.
-            let catalogs = standardTarget?.resourcesBuildPhase?.buildFiles.filter { buildFile in
-                isAssetCatalog(scope: scope, buildFile: buildFile, context: targetContext, includeGenerated: true)
-            } ?? []
-            additionalBuildFiles.append(contentsOf: catalogs)
+        guard !sourceFiles.isEmpty && !resourceFiles.isEmpty else {
+            return []
         }
 
-        if scope.evaluate(BuiltinMacros.STRING_CATALOG_GENERATE_SYMBOLS) && (sourceFiles > 0) {
-            let allResources = standardTarget?.resourcesBuildPhase?.buildFiles ?? []
-            var stringCatalogs = [BuildFile]()
-            var stringTableNames = Set<String>()
-            var extraFiles = [BuildFile]()
-
-            // Add xcstrings to Compile Sources phase to enable codegen.
-            for buildFile in allResources {
-                if let fileRef = try? targetContext.resolveBuildFileReference(buildFile), fileRef.fileType.conformsTo(identifier: "text.json.xcstrings") {
-                    stringTableNames.insert(fileRef.absolutePath.basenameWithoutSuffix)
-                    stringCatalogs.append(buildFile)
-                }
-            }
-
-            // The xcstrings file grouping strategy also subsumes same-named .strings and .stringsdict files.
-            let stringsFileTypes = ["text.plist.strings", "text.plist.stringsdict"].map { context.lookupFileType(identifier: $0)! }
-            for buildFile in allResources {
-                if let fileRef = try? targetContext.resolveBuildFileReference(buildFile),
-                   fileRef.fileType.conformsToAny(stringsFileTypes),
-                   stringTableNames.contains(fileRef.absolutePath.basenameWithoutSuffix) {
-                    extraFiles.append(buildFile)
-                }
-            }
-
-            additionalBuildFiles.append(contentsOf: stringCatalogs + extraFiles)
-        }
-
-        return additionalBuildFiles
+        return await sourceGenerationInputFiles(from: resourceFiles, scope: scope)
     }
 
     override func additionalFilesToBuild(_ scope: MacroEvaluationScope) -> [FileToBuild] {
         var additionalFilesToBuild: [FileToBuild] = []
         let sourceFiles = (self.targetContext.configuredTarget?.target as? StandardTarget)?.sourcesBuildPhase?.buildFiles.count ?? 0
-        if scope.evaluate(BuiltinMacros.ASSETCATALOG_COMPILER_GENERATE_ASSET_SYMBOLS) && sourceFiles > 0 && scope.evaluate(BuiltinMacros.APP_PLAYGROUND_GENERATE_ASSET_CATALOG) {
-            // Add the generated xcassets if we're generating asset symbols since we'll be handling the other xcassets here as well.
+        if sourceFiles > 0 && scope.evaluate(BuiltinMacros.APP_PLAYGROUND_GENERATE_ASSET_CATALOG) {
+            // Add the generated xcassets since we'll be handling the other xcassets here as well.
             let assetCatalogToBeGenerated = scope.evaluate(BuiltinMacros.APP_PLAYGROUND_GENERATED_ASSET_CATALOG_FILE)
             additionalFilesToBuild.append(
                 FileToBuild(absolutePath: assetCatalogToBeGenerated, inferringTypeUsing: context)
