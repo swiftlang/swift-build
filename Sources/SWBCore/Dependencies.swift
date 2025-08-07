@@ -192,14 +192,14 @@ public struct ModuleDependenciesContext: Sendable, SerializableCodable {
         }
 
         func makeFixIt(newModules: [ModuleDependency]) -> Diagnostic.FixIt {
-            let stringValue = newModules.map { $0.asBuildSettingEntryQuotedIfNeeded }.sorted().joined(separator: " ")
+            let stringValue = newModules.map { $0.asBuildSettingEntryQuotedIfNeeded }.sorted().map { " \\\n    \($0)" }.joined(separator: "")
             let newText: String
             switch modificationStyle {
             case .appendToExistingAssignment:
-                newText = " \(stringValue)"
+                newText = stringValue
             case .insertNewAssignment(let targetNameCondition):
                 let targetCondition = targetNameCondition.map { "[target=\($0)]" } ?? ""
-                newText = "\n\(BuiltinMacros.MODULE_DEPENDENCIES.name)\(targetCondition) = $(inherited) \(stringValue)\n"
+                newText = "\n\(BuiltinMacros.MODULE_DEPENDENCIES.name)\(targetCondition) = $(inherited)\(stringValue)\n"
             }
 
             return Diagnostic.FixIt(sourceRange: sourceRange, newText: newText)
