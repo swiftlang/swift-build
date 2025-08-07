@@ -421,7 +421,7 @@ fileprivate struct DependencyValidationTests: CoreBasedTests {
                         fixIts: [
                             Diagnostic.FixIt(
                                 sourceRange: Diagnostic.SourceRange(path: projectXCConfigPath, startLine: 1, startColumn: 47, endLine: 1, endColumn: 47),
-                                newText: " Foundation"),
+                                newText: " \\\n    Foundation"),
                         ],
                         childDiagnostics: [
                             Diagnostic(
@@ -430,7 +430,7 @@ fileprivate struct DependencyValidationTests: CoreBasedTests {
                                 data: DiagnosticData("Missing entry in MODULE_DEPENDENCIES: Foundation"),
                                 fixIts: [Diagnostic.FixIt(
                                     sourceRange: Diagnostic.SourceRange(path: projectXCConfigPath, startLine: 1, startColumn: 47, endLine: 1, endColumn: 47),
-                                    newText: " Foundation")],
+                                    newText: " \\\n    Foundation")],
                             ),
                         ]),
                 ],
@@ -442,7 +442,7 @@ fileprivate struct DependencyValidationTests: CoreBasedTests {
                         fixIts: [
                             Diagnostic.FixIt(
                                 sourceRange: Diagnostic.SourceRange(path: projectXCConfigPath, startLine: .max, startColumn: .max, endLine: .max, endColumn: .max),
-                                newText: "\nMODULE_DEPENDENCIES[target=TargetB] = $(inherited) Foundation\n"),
+                                newText: "\nMODULE_DEPENDENCIES[target=TargetB] = $(inherited) \\\n    Foundation\n"),
                         ],
                         childDiagnostics: [
                             Diagnostic(
@@ -451,7 +451,7 @@ fileprivate struct DependencyValidationTests: CoreBasedTests {
                                 data: DiagnosticData("Missing entry in MODULE_DEPENDENCIES: Foundation"),
                                 fixIts: [Diagnostic.FixIt(
                                     sourceRange: Diagnostic.SourceRange(path: projectXCConfigPath, startLine: .max, startColumn: .max, endLine: .max, endColumn: .max),
-                                    newText: "\nMODULE_DEPENDENCIES[target=TargetB] = $(inherited) Foundation\n")],
+                                    newText: "\nMODULE_DEPENDENCIES[target=TargetB] = $(inherited) \\\n    Foundation\n")],
                             ),
                         ]),
                 ],
