@@ -17,12 +17,7 @@
 
 import Foundation
 
-#if canImport(ArgumentParserInternal)
-    // remove once rdar://140831929 is resolved
-    public import ArgumentParserInternal
-#else
-    public import ArgumentParser
-#endif
+public import ArgumentParser
 
 import SWBCSupport
 import SWBLibc
