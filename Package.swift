@@ -20,6 +20,7 @@ let appleOS = true
 let appleOS = false
 #endif
 
+let isStaticBuild = Context.environment["SWIFTBUILD_STATIC_LINK"] != nil
 let useLocalDependencies = Context.environment["SWIFTCI_USE_LOCAL_DEPS"] != nil
 let useLLBuildFramework = Context.environment["SWIFTBUILD_LLBUILD_FWK"] != nil
 
@@ -444,6 +445,12 @@ for target in package.targets {
     // Add dependencies on "plugins" so they can be loaded in the build service and in tests, as we don't have true plugin targets.
     if ["SWBBuildService", "SWBTestSupport"].contains(target.name) {
         target.dependencies += pluginTargetNames.map { .target(name: $0) }
+    }
+}
+
+if isStaticBuild {
+    package.targets = package.targets.filter { target in
+        target.type != .test && !target.name.hasSuffix("TestSupport")
     }
 }
 
