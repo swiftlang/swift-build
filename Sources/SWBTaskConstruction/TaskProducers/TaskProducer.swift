@@ -122,6 +122,7 @@ public class TaskProducerContext: StaleFileRemovalContext, BuildFileResolution
     var emitFrontendCommandLines: Bool
 
     public let moduleDependenciesContext: ModuleDependenciesContext?
+    public let headerDependenciesContext: HeaderDependenciesContext?
 
     private struct State: Sendable {
         fileprivate var onDemandResourcesAssetPacks: [ODRTagSet: ODRAssetPackInfo] = [:]
@@ -439,6 +440,7 @@ public class TaskProducerContext: StaleFileRemovalContext, BuildFileResolution
         }
 
         self.moduleDependenciesContext = ModuleDependenciesContext(settings: settings)
+        self.headerDependenciesContext = HeaderDependenciesContext(settings: settings)
     }
 
     /// The set of all known deployment target macro names, even if the platforms that use those settings are not installed.

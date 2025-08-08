@@ -856,6 +856,10 @@ extension BuildSystemTaskPlanningDelegate: TaskActionCreationDelegate {
         return ClangCompileTaskAction()
     }
 
+    func createClangNonModularCompileTaskAction() -> any PlannedTaskAction {
+        return ClangNonModularCompileTaskAction()
+    }
+
     func createClangScanTaskAction() -> any PlannedTaskAction {
         return ClangScanTaskAction()
     }

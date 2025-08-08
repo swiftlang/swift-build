@@ -55,9 +55,11 @@ public final class ValidateDependenciesSpec: CommandLineToolSpec, SpecImplementa
 }
 
 public struct ValidateDependenciesPayload: TaskPayload, Sendable, SerializableCodable {
-    public let moduleDependenciesContext: ModuleDependenciesContext
+    public let moduleDependenciesContext: ModuleDependenciesContext?
+    public let headerDependenciesContext: HeaderDependenciesContext?
 
-    public init(moduleDependenciesContext: ModuleDependenciesContext) {
+    public init(moduleDependenciesContext: ModuleDependenciesContext?, headerDependenciesContext: HeaderDependenciesContext?) {
         self.moduleDependenciesContext = moduleDependenciesContext
+        self.headerDependenciesContext = headerDependenciesContext
     }
 }

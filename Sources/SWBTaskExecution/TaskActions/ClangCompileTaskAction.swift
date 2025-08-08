@@ -250,15 +250,12 @@ public final class ClangCompileTaskAction: TaskAction, BuildValueValidatingTaskA
 
             // Check if verifying dependencies from trace data is enabled.
             let traceFilePath: Path?
-            let moduleDependenciesContext: ModuleDependenciesContext?
             let dependencyValidationOutputPath: Path?
             if let payload = task.payload as? ClangTaskPayload {
                 traceFilePath = payload.traceFilePath
-                moduleDependenciesContext = payload.moduleDependenciesContext
                 dependencyValidationOutputPath = payload.dependencyValidationOutputPath
             } else {
                 traceFilePath = nil
-                moduleDependenciesContext = nil
                 dependencyValidationOutputPath = nil
             }
             if let traceFilePath {
@@ -334,7 +331,8 @@ public final class ClangCompileTaskAction: TaskAction, BuildValueValidatingTaskA
 
                     var allFiles = Set<Path>()
                     traceData.forEach { allFiles.formUnion(Set($0.includes)) }
-                    payload = .clangDependencies(files: allFiles.map { $0.str })
+                    let (imports, includes) = separateImportsFromIncludes(allFiles)
+                    payload = .clangDependencies(imports: imports, includes: includes)
                 } else {
                     payload = .unsupported
                 }
@@ -355,6 +353,31 @@ public final class ClangCompileTaskAction: TaskAction, BuildValueValidatingTaskA
             outputDelegate.emitError("\(error)")
             return .failed
         }
+    }
+
+    // Clang's dependency tracing does not currently clearly distinguish modular imports from non-modular includes.
+    // Until that gets fixed, just guess that if the file is contained in a framework, it comes from a module with
+    // the same name. That is obviously not going to be reliable but it unblocks us from continuing experiments with
+    // dependency specifications.
+    private func separateImportsFromIncludes(_ files: Set<Path>) -> ([DependencyValidationInfo.Import], [Path]) {
+        func findFrameworkName(_ file: Path) -> String? {
+            if file.fileExtension == "framework" {
+                return file.basenameWithoutSuffix
+            }
+            return file.dirname.isEmpty || file.dirname.isRoot ? nil : findFrameworkName(file.dirname)
+        }
+        var moduleNames: [String] = []
+        var includeFiles: [Path] = []
+        for file in files {
+            if let frameworkName = findFrameworkName(file) {
+                moduleNames.append(frameworkName)
+            } else {
+                includeFiles.append(file)
+            }
+        }
+        let moduleDependencies = moduleNames.map { ModuleDependency(name: $0, accessLevel: .Private) }
+        let moduleImports = moduleDependencies.map { DependencyValidationInfo.Import(dependency: $0, importLocations: []) }
+        return (moduleImports, includeFiles)
     }
 
     /// Intended to be called during task dependency setup.
@@ -475,6 +498,83 @@ public final class ClangCompileTaskAction: TaskAction, BuildValueValidatingTaskA
             enableStrictCASErrors: enableStrictCASErrors,
             activityReporter: dynamicExecutionDelegate
         )
+    }
+}
+
+public final class ClangNonModularCompileTaskAction: TaskAction {
+    public override class var toolIdentifier: String {
+        return "ccompile-nonmodular"
+    }
+
+    override public func performTaskAction(
+        _ task: any ExecutableTask,
+        dynamicExecutionDelegate: any DynamicTaskExecutionDelegate,
+        executionDelegate: any TaskExecutionDelegate,
+        clientDelegate: any TaskExecutionClientDelegate,
+        outputDelegate: any TaskOutputDelegate,
+    ) async -> CommandResult {
+        do {
+            // Check if verifying dependencies from trace data is enabled.
+            let traceFilePath: Path?
+            let dependencyValidationOutputPath: Path?
+            if let payload = task.payload as? ClangTaskPayload {
+                traceFilePath = payload.traceFilePath
+                dependencyValidationOutputPath = payload.dependencyValidationOutputPath
+            } else {
+                traceFilePath = nil
+                dependencyValidationOutputPath = nil
+            }
+            if let traceFilePath {
+                // Remove the trace output file if it already exists.
+                if executionDelegate.fs.exists(traceFilePath) {
+                    try executionDelegate.fs.remove(traceFilePath)
+                }
+            }
+
+            let processDelegate = TaskProcessDelegate(outputDelegate: outputDelegate)
+            try await spawn(
+                commandLine: Array(task.commandLineAsStrings),
+                environment: task.environment.bindingsDictionary,
+                workingDirectory: task.workingDirectory,
+                dynamicExecutionDelegate: dynamicExecutionDelegate,
+                clientDelegate: clientDelegate,
+                processDelegate: processDelegate,
+            )
+            if let error = processDelegate.executionError {
+                outputDelegate.error(error)
+                return .failed
+            }
+            let execResult = processDelegate.commandResult ?? .failed
+
+            if execResult == .succeeded {
+                let payload: DependencyValidationInfo.Payload
+                if let traceFilePath {
+                    let fs = executionDelegate.fs
+                    let traceData = try JSONDecoder().decode(Array<TraceData>.self, from: fs.readMemoryMapped(traceFilePath))
+
+                    var allFiles = Set<Path>()
+                    traceData.forEach { allFiles.formUnion(Set($0.includes)) }
+                    payload = .clangDependencies(imports: [], includes: Array(allFiles))
+                } else {
+                    payload = .unsupported
+                }
+
+                if let dependencyValidationOutputPath {
+                    let validationInfo = DependencyValidationInfo(payload: payload)
+                    _ = try executionDelegate.fs.writeIfChanged(
+                        dependencyValidationOutputPath,
+                        contents: ByteString(
+                            JSONEncoder(outputFormatting: .sortedKeys).encode(validationInfo)
+                        )
+                    )
+                }
+            }
+
+            return execResult
+        } catch {
+            outputDelegate.error(error.localizedDescription)
+            return .failed
+        }
     }
 }
 

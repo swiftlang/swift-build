@@ -1612,6 +1612,16 @@ When `GENERATE_INFOPLIST_FILE` is enabled, sets the value of the [CFBundleIdenti
                 );
             },
             {
+                Name = "HEADER_DEPENDENCIES";
+                Type = StringList;
+                Category = BuildOptions;
+                DefaultValue = "";
+                ConditionFlavors = (
+                    arch,
+                    sdk,
+                );
+            },
+            {
                 Name = "GENERATE_PRELINK_OBJECT_FILE";
                 Type = Boolean;
                 Category = "Linking - General";

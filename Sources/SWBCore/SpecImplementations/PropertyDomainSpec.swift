@@ -101,6 +101,7 @@ private final class EnumBuildOptionType : BuildOptionType {
             return try namespace.declareEnumMacro(name) as EnumMacroDeclaration<PackageResourceTargetKind>
         case "VALIDATE_DEPENDENCIES",
             "VALIDATE_MODULE_DEPENDENCIES",
+            "VALIDATE_HEADER_DEPENDENCIES",
             "VALIDATE_DEVELOPMENT_ASSET_PATHS":
             return try namespace.declareEnumMacro(name) as EnumMacroDeclaration<BooleanWarningLevel>
         case "STRIP_STYLE":

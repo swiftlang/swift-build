@@ -756,6 +756,7 @@ public final class Settings: PlatformBuildContext, Sendable {
     }
 
     public let moduleDependencies: [ModuleDependency]
+    public let headerDependencies: [HeaderDependency]
 
     public static func supportsMacCatalyst(scope: MacroEvaluationScope, core: Core) -> Bool {
         @preconcurrency @PluginExtensionSystemActor func sdkVariantInfoExtensions() -> [any SDKVariantInfoExtensionPoint.ExtensionProtocol] {
@@ -904,6 +905,7 @@ public final class Settings: PlatformBuildContext, Sendable {
 
         self.supportedBuildVersionPlatforms = effectiveSupportedPlatforms(sdkRegistry: sdkRegistry)
         self.moduleDependencies = builder.moduleDependencies
+        self.headerDependencies = builder.headerDependencies
 
         self.constructionComponents = builder.constructionComponents
     }
@@ -1290,6 +1292,7 @@ private class SettingsBuilder {
     var signingSettings: Settings.SigningSettings? = nil
 
     var moduleDependencies: [ModuleDependency] = []
+    var headerDependencies: [HeaderDependency] = []
 
 
     // Mutable state of the builder as we're building up the settings table.
@@ -1630,6 +1633,12 @@ private class SettingsBuilder {
         }
         catch {
             errors.append("Failed to parse \(BuiltinMacros.MODULE_DEPENDENCIES.name): \(error)")
+        }
+        do {
+            self.headerDependencies = try createScope(sdkToUse: boundProperties.sdk).evaluate(BuiltinMacros.HEADER_DEPENDENCIES).map { try HeaderDependency(entry: $0) }
+        }
+        catch {
+            errors.append("Failed to parse \(BuiltinMacros.HEADER_DEPENDENCIES.name): \(error)")
         }
 
         // At this point settings construction is finished.

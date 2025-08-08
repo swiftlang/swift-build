@@ -53,6 +53,7 @@ public struct BuiltinTaskActionsExtension: TaskActionExtension {
             38: GenericCachingTaskAction.self,
             39: ProcessSDKImportsTaskAction.self,
             40: ValidateDependenciesTaskAction.self,
+            41: ClangNonModularCompileTaskAction.self,
             42: ObjectLibraryAssemblerTaskAction.self,
             43: LinkerTaskAction.self,
         ]

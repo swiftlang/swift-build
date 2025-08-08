@@ -732,6 +732,7 @@ public final class BuiltinMacros {
     public static let GLOBAL_CFLAGS = BuiltinMacros.declareStringListMacro("GLOBAL_CFLAGS")
     public static let HEADERMAP_INCLUDES_FRAMEWORK_ENTRIES_FOR_TARGETS_NOT_BEING_BUILT = BuiltinMacros.declareBooleanMacro("HEADERMAP_INCLUDES_FRAMEWORK_ENTRIES_FOR_TARGETS_NOT_BEING_BUILT")
     public static let HEADERMAP_USES_VFS = BuiltinMacros.declareBooleanMacro("HEADERMAP_USES_VFS")
+    public static let HEADER_DEPENDENCIES = BuiltinMacros.declareStringListMacro("HEADER_DEPENDENCIES")
     public static let HEADER_OUTPUT_DIR = BuiltinMacros.declareStringMacro("HEADER_OUTPUT_DIR")
     public static let HEADER_SEARCH_PATHS = BuiltinMacros.declarePathListMacro("HEADER_SEARCH_PATHS")
     public static let IBC_REGIONS_AND_STRINGS_FILES = BuiltinMacros.declareStringListMacro("IBC_REGIONS_AND_STRINGS_FILES")
@@ -1145,6 +1146,7 @@ public final class BuiltinMacros {
     public static let VALIDATE_PRODUCT = BuiltinMacros.declareBooleanMacro("VALIDATE_PRODUCT")
     public static let VALIDATE_DEPENDENCIES = BuiltinMacros.declareEnumMacro("VALIDATE_DEPENDENCIES") as EnumMacroDeclaration<BooleanWarningLevel>
     public static let VALIDATE_DEVELOPMENT_ASSET_PATHS = BuiltinMacros.declareEnumMacro("VALIDATE_DEVELOPMENT_ASSET_PATHS") as EnumMacroDeclaration<BooleanWarningLevel>
+    public static let VALIDATE_HEADER_DEPENDENCIES = BuiltinMacros.declareEnumMacro("VALIDATE_HEADER_DEPENDENCIES") as EnumMacroDeclaration<BooleanWarningLevel>
     public static let VALIDATE_MODULE_DEPENDENCIES = BuiltinMacros.declareEnumMacro("VALIDATE_MODULE_DEPENDENCIES") as EnumMacroDeclaration<BooleanWarningLevel>
     public static let VECTOR_SUFFIX = BuiltinMacros.declareStringMacro("VECTOR_SUFFIX")
     public static let VERBOSE_PBXCP = BuiltinMacros.declareBooleanMacro("VERBOSE_PBXCP")
@@ -1798,6 +1800,7 @@ public final class BuiltinMacros {
         GROUP,
         HEADERMAP_INCLUDES_FRAMEWORK_ENTRIES_FOR_TARGETS_NOT_BEING_BUILT,
         HEADERMAP_USES_VFS,
+        HEADER_DEPENDENCIES,
         HEADER_SEARCH_PATHS,
         HEADER_OUTPUT_DIR,
         HOME,
@@ -2373,6 +2376,7 @@ public final class BuiltinMacros {
         VALIDATE_PRODUCT,
         VALIDATE_DEPENDENCIES,
         VALIDATE_DEVELOPMENT_ASSET_PATHS,
+        VALIDATE_HEADER_DEPENDENCIES,
         VALIDATE_MODULE_DEPENDENCIES,
         VALID_ARCHS,
         VECTOR_SUFFIX,
