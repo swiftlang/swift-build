@@ -207,7 +207,7 @@ Pascal string literals take the form `\"\\pstring\"` . The special escape sequen
 "[GCC_SHORT_ENUMS]-name" = "Short Enumeration Constants";
 "[GCC_SHORT_ENUMS]-description" = "Make enums only as large as needed for the range of possible values.
 
-This setting generates code that may not binary compatible with code generated without this setting or with macOS frameworks.";
+This setting generates code that may not be binary compatible with code generated without this setting or with macOS frameworks.";
 "[GCC_SHORT_ENUMS]-value-[NO]" = "No";
 "[GCC_SHORT_ENUMS]-value-[YES]" = "Yes";
 
