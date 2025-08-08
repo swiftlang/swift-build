@@ -161,11 +161,9 @@ extension Process {
 
         let streams = setup(process)
 
-        async let outputTask = await collect(streams)
-
         try await process.run(interruptible: interruptible)
 
-        let output = try await outputTask
+        let output = try await collect(streams)
 
         #if !canImport(Darwin)
         // Clear the pipes to prevent file descriptor leaks on platforms using swift-corelibs-foundation
