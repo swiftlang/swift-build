@@ -240,7 +240,7 @@ fileprivate struct ServiceTests {
 
     @Test(.requireSDKs(.macOS), .skipSwiftPackage, .skipIfEnvironment(key: "DYLD_IMAGE_SUFFIX", value: "_asan"), .disabled(if: getEnvironmentVariable("CI")?.isEmpty == false))
     func ASanBuildService() async throws {
-        let testBundleExecutableFilePath = Library.locate(Self.self)
+        let testBundleExecutableFilePath = try Library.locate(Self.self)
 
         // Whether the current XCTest executable is running in ASan mode. Most likely never true.
         let runningWithASanSupport = testBundleExecutableFilePath.str.hasSuffix("_asan")
