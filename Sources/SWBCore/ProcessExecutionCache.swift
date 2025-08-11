@@ -17,11 +17,6 @@ public final class ProcessExecutionCache: Sendable {
     private let workingDirectory: Path?
 
     public init(workingDirectory: Path? = .root) {
-        // FIXME: Work around lack of thread-safe working directory support in Foundation (Amazon Linux 2, OpenBSD). Executing processes in the current working directory is less deterministic, but all of the clients which use this class are generally not expected to be sensitive to the working directory anyways. This workaround can be removed once we drop support for Amazon Linux 2 and/or adopt swift-subprocess and/or Foundation.Process's working directory support is made thread safe.
-        if try! Process.hasUnsafeWorkingDirectorySupport {
-            self.workingDirectory = nil
-            return
-        }
         self.workingDirectory = workingDirectory
     }
 
