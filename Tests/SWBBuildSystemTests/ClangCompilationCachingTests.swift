@@ -1579,7 +1579,7 @@ fileprivate struct ClangCompilationCachingTests: CoreBasedTests {
             func checkModuleCommandLine(task: Task, results: BuildOperationTester.BuildResults, name: String) {
                 // The final command-line is only known to the dynamic task, but it's printed to output so we can check that.
                 results.checkTaskOutput(task) { output in
-                    XCTAssertMatch(output.stringValue, .contains(#"\#(name)\=/\^mod"#))
+                    XCTAssertMatch(output.stringValue, .or(.contains(#"\#(name)\=/\^mod"#), .contains(#"\#(name) /\^mod"#)))
                     checkCommandLineCommon(output: output)
                 }
             }
@@ -1842,6 +1842,7 @@ fileprivate struct ClangCompilationCachingTests: CoreBasedTests {
                 "CLANG_ENABLE_COMPILE_CACHE": enableCaching ? "YES" : "NO",
                 "CLANG_ENABLE_MODULES": "NO",
                 "COMPILATION_CACHE_CAS_PATH": casPath.str,
+                "DSTROOT": tmpDirPath.join("dstroot").str,
             ]
             if usePlugin {
                 buildSettings["COMPILATION_CACHE_ENABLE_PLUGIN"] = "YES"
@@ -1966,7 +1967,11 @@ fileprivate struct ClangCompilationCachingTests: CoreBasedTests {
             // Ignore output for plugin CAS since it may not yet support validation.
             try await checkBuild("validated successfully\n")
             // Create an error and trigger revalidation by messing with the validation data.
-            try tester.fs.move(casPath.join("builtin/v1.1/v8.data"), to: casPath.join("builtin/v1.1/v8.data.moved"))
+            let dataDir = casPath.join("builtin").join("v1.1")
+            let dataFile = try #require(tester.fs.listdir(dataDir).first {
+                $0.hasSuffix(".data") && $0.hasPrefix("v")
+            })
+            try tester.fs.move(dataDir.join(dataFile), to: dataDir.join("moved"))
             try await tester.fs.writeFileContents(casPath.join("builtin/v1.validation")) { stream in
                 stream <<< "0"
             }
