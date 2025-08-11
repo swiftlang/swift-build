@@ -175,6 +175,10 @@ extension Trait where Self == Testing.ConditionTrait {
         return .skipIfEnvironmentVariableSet(key: "GITHUB_ACTIONS")
     }
 
+    package static func skipInXcodeCloud(_ comment: Comment? = nil) -> Self {
+        return .skipIfEnvironmentVariableSet(key: "CI_XCODE_CLOUD")
+    }
+
     package static func requireClangFeatures(_ requiredFeatures: DiscoveredClangToolSpecInfo.FeatureFlag...) -> Self {
         enabled("Clang compiler does not support features: \(requiredFeatures)") {
             let features = try await ConditionTraitContext.shared.clangFeatures
