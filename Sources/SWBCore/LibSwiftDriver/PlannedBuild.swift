@@ -25,7 +25,7 @@ private extension Path {
     init(_ virtualPath: TypedVirtualPath) throws {
         switch virtualPath.file {
         case let .absolute(absPath): self = Path(absPath.pathString)
-        case .standardInput, .standardOutput, .fileList, .relative, .temporary, .temporaryWithKnownContents:
+        case .standardInput, .standardOutput, .fileList, .relative, .temporary, .temporaryWithKnownContents, .buildArtifactWithKnownContents:
             fallthrough
         @unknown default:
             throw StubError.error("Cannot build Path from \(virtualPath); unimplemented path type.")
