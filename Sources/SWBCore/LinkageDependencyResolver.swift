@@ -166,7 +166,7 @@ actor LinkageDependencyResolver {
                 return nil
             }
             let buildParameters = resolver.buildParametersByTarget[target] ?? configuredTarget.parameters
-            if await !resolver.isTargetSuitableForPlatformForIndex(target, parameters: buildParameters, imposedParameters: imposedParameters) {
+            if !resolver.isTargetSuitableForPlatformForIndex(target, parameters: buildParameters, imposedParameters: imposedParameters) {
                 return nil
             }
             let effectiveImposedParameters = imposedParameters?.effectiveParameters(target: configuredTarget, dependency: ConfiguredTarget(parameters: buildParameters, target: target), dependencyResolver: resolver)
