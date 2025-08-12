@@ -1145,6 +1145,7 @@ public final class BuiltinMacros {
     public static let VALIDATE_PLIST_FILES_WHILE_COPYING = BuiltinMacros.declareBooleanMacro("VALIDATE_PLIST_FILES_WHILE_COPYING")
     public static let VALIDATE_PRODUCT = BuiltinMacros.declareBooleanMacro("VALIDATE_PRODUCT")
     public static let VALIDATE_DEPENDENCIES = BuiltinMacros.declareEnumMacro("VALIDATE_DEPENDENCIES") as EnumMacroDeclaration<BooleanWarningLevel>
+    public static let VALIDATE_DEPENDENCIES_DOWNGRADE_ERRORS = BuiltinMacros.declareBooleanMacro("VALIDATE_DEPENDENCIES_DOWNGRADE_ERRORS")
     public static let VALIDATE_DEVELOPMENT_ASSET_PATHS = BuiltinMacros.declareEnumMacro("VALIDATE_DEVELOPMENT_ASSET_PATHS") as EnumMacroDeclaration<BooleanWarningLevel>
     public static let VALIDATE_HEADER_DEPENDENCIES = BuiltinMacros.declareEnumMacro("VALIDATE_HEADER_DEPENDENCIES") as EnumMacroDeclaration<BooleanWarningLevel>
     public static let VALIDATE_MODULE_DEPENDENCIES = BuiltinMacros.declareEnumMacro("VALIDATE_MODULE_DEPENDENCIES") as EnumMacroDeclaration<BooleanWarningLevel>
@@ -2375,6 +2376,7 @@ public final class BuiltinMacros {
         VALIDATE_CAS_EXEC,
         VALIDATE_PRODUCT,
         VALIDATE_DEPENDENCIES,
+        VALIDATE_DEPENDENCIES_DOWNGRADE_ERRORS,
         VALIDATE_DEVELOPMENT_ASSET_PATHS,
         VALIDATE_HEADER_DEPENDENCIES,
         VALIDATE_MODULE_DEPENDENCIES,
