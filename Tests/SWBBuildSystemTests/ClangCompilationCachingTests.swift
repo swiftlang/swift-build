@@ -19,7 +19,7 @@ import SWBTestSupport
 import SWBUtil
 
 @Suite(.skipHostOS(.windows, "Windows platform has no CAS support yet"),
-       .requireDependencyScannerPlusCaching, .skipInXcodeCloud("flaky tests"))
+       .requireDependencyScannerPlusCaching, .skipInXcodeCloud("flaky tests"), .requireXcode26())
 fileprivate struct ClangCompilationCachingTests: CoreBasedTests {
     let canUseCASPlugin: Bool
     let canUseCASPruning: Bool

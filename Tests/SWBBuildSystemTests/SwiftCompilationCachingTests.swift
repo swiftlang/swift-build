@@ -20,7 +20,7 @@ import SWBTaskExecution
 import SWBProtocol
 
 @Suite(.requireSwiftFeatures(.compilationCaching),
-       .skipInXcodeCloud("flaky tests"))
+       .skipInXcodeCloud("flaky tests"), .requireXcode26())
 fileprivate struct SwiftCompilationCachingTests: CoreBasedTests {
     @Test(.requireSDKs(.iOS))
     func swiftCachingSimple() async throws {

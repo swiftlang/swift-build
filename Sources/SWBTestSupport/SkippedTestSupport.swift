@@ -299,7 +299,10 @@ extension Trait where Self == Testing.ConditionTrait {
     /// Constructs a condition trait that causes a test to be disabled if not running against a version of Xcode within the given range.
     package static func requireXcodeBuildVersions<R: RangeExpression>(in range: @Sendable @autoclosure @escaping () throws -> R, sourceLocation: SourceLocation = #_sourceLocation) -> Self where R.Bound == ProductBuildVersion {
         enabled("Xcode version is not suitable", sourceLocation: sourceLocation, {
-            return try await range().contains(InstalledXcode.currentlySelected().productBuildVersion())
+            guard let installedVersion =  try? await InstalledXcode.currentlySelected().productBuildVersion() else {
+                return true
+            }
+            return try range().contains(installedVersion)
         })
     }
 

@@ -192,7 +192,7 @@ fileprivate struct ClangModuleVerifierTests: CoreBasedTests {
     }
 
     @Test(.requireSDKs(.macOS), .requireClangFeatures(.wSystemHeadersInModule), .requireDependencyScannerPlusCaching,
-          .skipInXcodeCloud("flaky tests"))
+          .skipInXcodeCloud("flaky tests"), .requireXcode26())
     func cachedBuild() async throws {
         try await withTemporaryDirectory { (tmpDirPath: Path) in
             let archs = ["arm64", "x86_64"]
