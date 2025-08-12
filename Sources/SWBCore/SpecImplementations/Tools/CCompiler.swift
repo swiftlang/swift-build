@@ -1065,7 +1065,7 @@ public class ClangCompilerSpec : CompilerSpec, SpecIdentifierType, GCCCompatible
 
         // Start with the executable.
         let compilerExecPath = resolveExecutablePath(cbc, forLanguageOfFileType: resolvedInputFileType)
-        let launcher = await resolveCompilerLauncher(cbc, compilerPath: compilerExecPath, delegate: delegate)
+        let launcher = resolveCompilerLauncher(cbc, compilerPath: compilerExecPath, delegate: delegate)
         if let launcher {
             commandLine += [launcher.str]
         }
