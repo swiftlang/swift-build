@@ -466,8 +466,6 @@ import SWBTestSupport
             let fileAtts = try FileManager.default.attributesOfItem(atPath: filePath.str)
             let fileMgrModDate = try #require(fileAtts[FileAttributeKey.modificationDate] as? Date)
 
-            // not working on Windows for some reason
-            let hostOS = try ProcessInfo.processInfo.hostOperatingSystem()
             #expect(fsModDate == fileMgrModDate)
         }
     }
