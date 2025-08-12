@@ -366,7 +366,7 @@ fileprivate struct UnitTestTaskConstructionTests: CoreBasedTests {
         await tester.checkBuild(runDestination: .linux, fs: fs) { results in
             results.checkTarget("UnitTestRunner") { target in
                 results.checkTask(.matchTarget(target), .matchRuleType("GenerateTestEntryPoint")) { task in
-                    task.checkCommandLineMatches([.suffix("builtin-generateTestEntryPoint"), "--output", .suffix("test_entry_point.swift"), "--index-store-library-path", .suffix("libIndexStore.so"), "--linker-filelist", .suffix("UnitTestTarget.LinkFileList"), "--index-store", "/index", "--index-unit-base-path", "/tmp/Test/aProject/build"])
+                    task.checkCommandLineMatches([.suffix("builtin-generateTestEntryPoint"), "--output", .suffix("test_entry_point.swift"), "--discover-tests", "--index-store-library-path", .suffix("libIndexStore.so"), "--linker-filelist", .suffix("UnitTestTarget.LinkFileList"), "--index-store", "/index", "--index-unit-base-path", "/tmp/Test/aProject/build"])
                     task.checkInputs([
                         .pathPattern(.suffix("UnitTestTarget.LinkFileList")),
                         .pathPattern(.suffix("UnitTestTarget.so")),
