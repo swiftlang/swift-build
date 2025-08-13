@@ -116,36 +116,39 @@ extension Process {
                 let stderrData = try await stderrStream.collect()
                 return (stdoutData: stdoutData, stderrData: stderrData)
             }
-            
             return Processes.ExecutionResult(exitStatus: exitStatus, stdout: Data(output.stdoutData), stderr: Data(output.stderrData))
         }
     }
 
     public static func getMergedOutput(url: URL, arguments: [String], currentDirectoryURL: URL? = nil, environment: Environment? = nil, interruptible: Bool = true) async throws -> (exitStatus: Processes.ExitStatus, output: Data) {
         if #available(macOS 15, iOS 18, tvOS 18, watchOS 11, visionOS 2, *) {
-            // Extend the lifetime of the pipe to avoid file descriptors being closed until the AsyncStream is finished being consumed.
-            return try await withExtendedLifetime(Pipe()) { pipe in
-                let (exitStatus, output) = try await _getOutput(url: url, arguments: arguments, currentDirectoryURL: currentDirectoryURL, environment: environment, interruptible: interruptible) { process in
-                    process.standardOutputPipe = pipe
-                    process.standardErrorPipe = pipe
-                    return pipe.fileHandleForReading.bytes()
-                } collect: { stream in
-                    try await stream.collect()
-                }
-                return (exitStatus: exitStatus, output: Data(output))
+            let pipe = Pipe()
+
+            // Extend the lifetime of the pipes to avoid file descriptors being closed until the AsyncStream is finished being consumed.
+            defer { withExtendedLifetime(pipe) {} }
+
+            let (exitStatus, output) = try await _getOutput(url: url, arguments: arguments, currentDirectoryURL: currentDirectoryURL, environment: environment, interruptible: interruptible) { process in
+                process.standardOutputPipe = pipe
+                process.standardErrorPipe = pipe
+                return pipe.fileHandleForReading.bytes()
+            } collect: { stream in
+                try await stream.collect()
             }
+            return (exitStatus: exitStatus, output: Data(output))
         } else {
-            // Extend the lifetime of the pipe to avoid file descriptors being closed until the AsyncStream is finished being consumed.
-            return try await withExtendedLifetime(Pipe()) { pipe in
-                let (exitStatus, output) = try await _getOutput(url: url, arguments: arguments, currentDirectoryURL: currentDirectoryURL, environment: environment, interruptible: interruptible) { process in
-                    process.standardOutputPipe = pipe
-                    process.standardErrorPipe = pipe
-                    return pipe.fileHandleForReading._bytes()
-                } collect: { stream in
-                    try await stream.collect()
-                }
-                return (exitStatus: exitStatus, output: Data(output))
+            let pipe = Pipe()
+
+            // Extend the lifetime of the pipes to avoid file descriptors being closed until the AsyncStream is finished being consumed.
+            defer { withExtendedLifetime(pipe) {} }
+
+            let (exitStatus, output) = try await _getOutput(url: url, arguments: arguments, currentDirectoryURL: currentDirectoryURL, environment: environment, interruptible: interruptible) { process in
+                process.standardOutputPipe = pipe
+                process.standardErrorPipe = pipe
+                return pipe.fileHandleForReading._bytes()
+            } collect: { stream in
+                try await stream.collect()
             }
+            return (exitStatus: exitStatus, output: Data(output))
         }
     }
 
