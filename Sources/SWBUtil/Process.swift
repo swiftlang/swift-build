@@ -85,6 +85,10 @@ extension Process {
             let stdoutPipe = Pipe()
             let stderrPipe = Pipe()
 
+            // Extend the lifetime of the pipes to avoid file descriptors being closed until the AsyncStream is finished being consumed.
+            defer { withExtendedLifetime(stdoutPipe) {} }
+            defer { withExtendedLifetime(stderrPipe) {} }
+
             let (exitStatus, output) = try await _getOutput(url: url, arguments: arguments, currentDirectoryURL: currentDirectoryURL, environment: environment, interruptible: interruptible) { process in
                 let stdoutStream = process.makeStream(for: \.standardOutputPipe, using: stdoutPipe)
                 let stderrStream = process.makeStream(for: \.standardErrorPipe, using: stderrPipe)
@@ -98,6 +102,10 @@ extension Process {
         } else {
             let stdoutPipe = Pipe()
             let stderrPipe = Pipe()
+
+            // Extend the lifetime of the pipes to avoid file descriptors being closed until the AsyncStream is finished being consumed.
+            defer { withExtendedLifetime(stdoutPipe) {} }
+            defer { withExtendedLifetime(stderrPipe) {} }
 
             let (exitStatus, output) = try await _getOutput(url: url, arguments: arguments, currentDirectoryURL: currentDirectoryURL, environment: environment, interruptible: interruptible) { process in
                 let stdoutStream = process._makeStream(for: \.standardOutputPipe, using: stdoutPipe)
@@ -116,6 +124,9 @@ extension Process {
         if #available(macOS 15, iOS 18, tvOS 18, watchOS 11, visionOS 2, *) {
             let pipe = Pipe()
 
+            // Extend the lifetime of the pipes to avoid file descriptors being closed until the AsyncStream is finished being consumed.
+            defer { withExtendedLifetime(pipe) {} }
+
             let (exitStatus, output) = try await _getOutput(url: url, arguments: arguments, currentDirectoryURL: currentDirectoryURL, environment: environment, interruptible: interruptible) { process in
                 process.standardOutputPipe = pipe
                 process.standardErrorPipe = pipe
@@ -126,6 +137,9 @@ extension Process {
             return (exitStatus: exitStatus, output: Data(output))
         } else {
             let pipe = Pipe()
+
+            // Extend the lifetime of the pipes to avoid file descriptors being closed until the AsyncStream is finished being consumed.
+            defer { withExtendedLifetime(pipe) {} }
 
             let (exitStatus, output) = try await _getOutput(url: url, arguments: arguments, currentDirectoryURL: currentDirectoryURL, environment: environment, interruptible: interruptible) { process in
                 process.standardOutputPipe = pipe
