@@ -726,7 +726,6 @@ public final class BuiltinMacros {
     public static let GENERATE_RESOURCE_ACCESSORS = BuiltinMacros.declareBooleanMacro("GENERATE_RESOURCE_ACCESSORS")
     public static let GENERATE_TEST_ENTRY_POINT = BuiltinMacros.declareBooleanMacro("GENERATE_TEST_ENTRY_POINT")
     public static let GENERATED_TEST_ENTRY_POINT_PATH = BuiltinMacros.declarePathMacro("GENERATED_TEST_ENTRY_POINT_PATH")
-    public static let GENERATED_TEST_ENTRY_POINT_INCLUDE_DISCOVERED_TESTS = BuiltinMacros.declareBooleanMacro("GENERATED_TEST_ENTRY_POINT_INCLUDE_DISCOVERED_TESTS")
     public static let GENERATE_TEXT_BASED_STUBS = BuiltinMacros.declareBooleanMacro("GENERATE_TEXT_BASED_STUBS")
     public static let GENERATE_INTERMEDIATE_TEXT_BASED_STUBS = BuiltinMacros.declareBooleanMacro("GENERATE_INTERMEDIATE_TEXT_BASED_STUBS")
     public static let GLOBAL_API_NOTES_PATH = BuiltinMacros.declareStringMacro("GLOBAL_API_NOTES_PATH")
@@ -1793,7 +1792,6 @@ public final class BuiltinMacros {
         GENERATE_RESOURCE_ACCESSORS,
         GENERATE_TEST_ENTRY_POINT,
         GENERATED_TEST_ENTRY_POINT_PATH,
-        GENERATED_TEST_ENTRY_POINT_INCLUDE_DISCOVERED_TESTS,
         GENERATE_TEXT_BASED_STUBS,
         GENERATE_INTERMEDIATE_TEXT_BASED_STUBS,
         GID,
