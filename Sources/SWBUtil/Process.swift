@@ -130,7 +130,7 @@ extension Process {
             let (exitStatus, output) = try await _getOutput(url: url, arguments: arguments, currentDirectoryURL: currentDirectoryURL, environment: environment, interruptible: interruptible) { process in
                 process.standardOutputPipe = pipe
                 process.standardErrorPipe = pipe
-                return pipe.fileHandleForReading.bytes()
+                return pipe.fileHandleForReading.bytes(on: .global())
             } collect: { stream in
                 try await stream.collect()
             }
@@ -144,7 +144,7 @@ extension Process {
             let (exitStatus, output) = try await _getOutput(url: url, arguments: arguments, currentDirectoryURL: currentDirectoryURL, environment: environment, interruptible: interruptible) { process in
                 process.standardOutputPipe = pipe
                 process.standardErrorPipe = pipe
-                return pipe.fileHandleForReading._bytes()
+                return pipe.fileHandleForReading._bytes(on: .global())
             } collect: { stream in
                 try await stream.collect()
             }
