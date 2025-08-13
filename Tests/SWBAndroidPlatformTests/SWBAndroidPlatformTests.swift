@@ -39,7 +39,7 @@ fileprivate struct AndroidBuildOperationTests: CoreBasedTests {
                         "CODE_SIGNING_ALLOWED": "NO",
                         "DEFINES_MODULE": "YES",
                         "PRODUCT_NAME": "$(TARGET_NAME)",
-                        "SDKROOT": "android",
+                        "SDKROOT": "android.ndk",
                         "SUPPORTED_PLATFORMS": "android",
                         "ANDROID_DEPLOYMENT_TARGET": "22.0",
                         "ANDROID_DEPLOYMENT_TARGET[arch=riscv64]": "35.0",
