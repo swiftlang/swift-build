@@ -25,24 +25,30 @@ class TestEntryPointGenerationTaskAction: TaskAction {
             let options = try Options.parse(Array(task.commandLineAsStrings.dropFirst()))
 
             var tests: [IndexStore.TestCaseClass] = []
-            var objects: [Path] = []
-            for linkerFilelist in options.linkerFilelist {
-                let filelistContents = String(String(decoding: try executionDelegate.fs.read(linkerFilelist), as: UTF8.self))
-                let entries = filelistContents.split(separator: "\n", omittingEmptySubsequences: true).map { Path($0) }.map {
-                    for indexUnitBasePath in options.indexUnitBasePath {
-                        if let remappedPath = generateIndexOutputPath(from: $0, basePath: indexUnitBasePath) {
-                            return remappedPath
+            if options.discoverTests {
+                var objects: [Path] = []
+                for linkerFilelist in options.linkerFilelist {
+                    let filelistContents = String(String(decoding: try executionDelegate.fs.read(linkerFilelist), as: UTF8.self))
+                    let entries = filelistContents.split(separator: "\n", omittingEmptySubsequences: true).map { Path($0) }.map {
+                        for indexUnitBasePath in options.indexUnitBasePath {
+                            if let remappedPath = generateIndexOutputPath(from: $0, basePath: indexUnitBasePath) {
+                                return remappedPath
+                            }
                         }
+                        return $0
                     }
-                    return $0
+                    objects.append(contentsOf: entries)
                 }
-                objects.append(contentsOf: entries)
-            }
-            let indexStoreAPI = try IndexStoreAPI(dylib: options.indexStoreLibraryPath)
-            for indexStore in options.indexStore {
-                let store = try IndexStore.open(store: indexStore, api: indexStoreAPI)
-                let testInfo = try store.listTests(in: objects)
-                tests.append(contentsOf: testInfo)
+                guard let indexStoreLibraryPath = options.indexStoreLibraryPath else {
+                    outputDelegate.emitError("Test discovery was requested, but failed to lookup index store library in toolchain")
+                    return .failed
+                }
+                let indexStoreAPI = try IndexStoreAPI(dylib: indexStoreLibraryPath)
+                for indexStore in options.indexStore {
+                    let store = try IndexStore.open(store: indexStore, api: indexStoreAPI)
+                    let testInfo = try store.listTests(in: objects)
+                    tests.append(contentsOf: testInfo)
+                }
             }
 
             try executionDelegate.fs.write(options.output, contents: ByteString(encodingAsUTF8: """
@@ -52,7 +58,7 @@ class TestEntryPointGenerationTaskAction: TaskAction {
             
             \(testObservationFragment)
             
-            import XCTest
+            public import XCTest
             \(discoveredTestsFragment(tests: tests))
 
             @main
@@ -94,16 +100,7 @@ class TestEntryPointGenerationTaskAction: TaskAction {
                         }
                     }
                     #endif
-                    if testingLibrary == "xctest" {
-                        #if !os(Windows) && \(options.enableExperimentalTestOutput)
-                        _ = Self.testOutputPath().map { SwiftPMXCTestObserver(testOutputPath: testOutputPath) }
-                        #endif
-                        #if os(WASI)
-                        await XCTMain(__allDiscoveredTests()) as Never
-                        #else
-                        XCTMain(__allDiscoveredTests()) as Never
-                        #endif
-                    }
+                    \(xctestFragment(enableExperimentalTestOutput: options.enableExperimentalTestOutput, disable: !options.discoverTests))
                 }
                 #else
                 static func main() async {
@@ -113,16 +110,7 @@ class TestEntryPointGenerationTaskAction: TaskAction {
                         await Testing.__swiftPMEntryPoint() as Never
                     }
                     #endif
-                    if testingLibrary == "xctest" {
-                        #if !os(Windows) && \(options.enableExperimentalTestOutput)
-                        _ = Self.testOutputPath().map { SwiftPMXCTestObserver(testOutputPath: testOutputPath) }
-                        #endif
-                        #if os(WASI)
-                        await XCTMain(__allDiscoveredTests()) as Never
-                        #else
-                        XCTMain(__allDiscoveredTests()) as Never
-                        #endif
-                    }
+                    \(xctestFragment(enableExperimentalTestOutput: options.enableExperimentalTestOutput, disable: !options.discoverTests))
                 }
                 #endif
             }
@@ -137,14 +125,18 @@ class TestEntryPointGenerationTaskAction: TaskAction {
 
     private struct Options: ParsableArguments {
         @Option var output: Path
-        @Option var indexStoreLibraryPath: Path
-        @Option var linkerFilelist: [Path]
-        @Option var indexStore: [Path]
-        @Option var indexUnitBasePath: [Path]
+        @Option var indexStoreLibraryPath: Path? = nil
+        @Option() var linkerFilelist: [Path] = []
+        @Option var indexStore: [Path] = []
+        @Option var indexUnitBasePath: [Path] = []
         @Flag var enableExperimentalTestOutput: Bool = false
+        @Flag var discoverTests: Bool = false
     }
 
     private func discoveredTestsFragment(tests: [IndexStore.TestCaseClass]) -> String {
+        guard !tests.isEmpty else {
+            return ""
+        }
         var fragment = ""
         for moduleName in Set(tests.map { $0.module }).sorted() {
             fragment += "@testable import \(moduleName)\n"
@@ -174,11 +166,29 @@ class TestEntryPointGenerationTaskAction: TaskAction {
         return fragment
     }
 
+    private func xctestFragment(enableExperimentalTestOutput: Bool, disable: Bool) -> String {
+        guard !disable else {
+            return ""
+        }
+        return """
+        if testingLibrary == "xctest" {
+            #if !os(Windows) && \(enableExperimentalTestOutput)
+            _ = Self.testOutputPath().map { SwiftPMXCTestObserver(testOutputPath: testOutputPath) }
+            #endif
+            #if os(WASI)
+            await XCTMain(__allDiscoveredTests()) as Never
+            #else
+            XCTMain(__allDiscoveredTests()) as Never
+            #endif
+        }
+        """
+    }
+
     private var testObservationFragment: String =
         """
         #if !os(Windows) // Test observation is not supported on Windows
-        import Foundation
-        import XCTest
+        public import Foundation
+        public import XCTest
         
         public final class SwiftPMXCTestObserver: NSObject {
             let testOutputPath: String
@@ -562,7 +572,7 @@ class TestEntryPointGenerationTaskAction: TaskAction {
             }
         }
         
-        import XCTest
+        public import XCTest
         
         #if canImport(Darwin) // XCTAttachment is unavailable in swift-corelibs-xctest.
         extension TestAttachment {
