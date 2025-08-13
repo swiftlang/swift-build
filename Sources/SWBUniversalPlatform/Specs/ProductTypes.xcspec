@@ -335,9 +335,6 @@
 
             PROVISIONING_PROFILE_SUPPORTED = YES;
             PROVISIONING_PROFILE_REQUIRED = NO;
-
-            GENERATE_TEST_ENTRY_POINT = "$(GENERATE_TEST_ENTRYPOINTS_FOR_BUNDLES)";
-            GENERATED_TEST_ENTRY_POINT_PATH = "$(DERIVED_SOURCES_DIR)/test_entry_point.swift";
         };
         PackageTypes = (
             com.apple.package-type.bundle.unit-test
@@ -356,7 +353,6 @@
             ENABLE_TESTING_SEARCH_PATHS = YES;
             GENERATE_TEST_ENTRY_POINT = YES;
             GENERATED_TEST_ENTRY_POINT_PATH = "$(DERIVED_SOURCES_DIR)/test_entry_point.swift";
-            GENERATED_TEST_ENTRY_POINT_INCLUDE_DISCOVERED_TESTS = YES;
         };
         PackageTypes = (
             com.apple.package-type.mach-o-executable
