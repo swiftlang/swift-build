@@ -20,6 +20,9 @@ public let initializePlugin: PluginInitializationFunction = { manager in
     manager.register(UniversalPlatformSpecsExtension(), type: SpecificationsExtensionPoint.self)
     manager.register(UniversalPlatformTaskProducerExtension(), type: TaskProducerExtensionPoint.self)
     manager.register(UniversalPlatformTaskActionExtension(), type: TaskActionExtensionPoint.self)
+
+    manager.register(BareMetalPlatformExtension(), type: PlatformInfoExtensionPoint.self)
+    manager.register(BareMetalSDKRegistryExtension(), type: SDKRegistryExtensionPoint.self)
 }
 
 struct UniversalPlatformSpecsExtension: SpecificationsExtension {
