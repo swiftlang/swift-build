@@ -625,10 +625,16 @@
             },
             {
                 Name = "SWIFT_STRICT_MEMORY_SAFETY";
-                Type = Boolean;
+                Type = Enumeration;
+                Values = (
+                    YES,
+                    MIGRATE,
+                    NO,
+                );
                 DefaultValue = "NO";
                 CommandLineArgs = {
                     YES = ( "-strict-memory-safety" );
+                    MIGRATE = ( "-strict-memory-safety:migrate" );
                     NO = ();
                 };
                 DisplayName = "Strict Memory Safety";
@@ -820,10 +826,16 @@
 
             {
                 Name = "SWIFT_UPCOMING_FEATURE_MEMBER_IMPORT_VISIBILITY";
-                Type = Boolean;
+                Type = Enumeration;
+                Values = (
+                    YES,
+                    MIGRATE,
+                    NO,
+                );
                 DefaultValue = NO;
                 CommandLineArgs = {
                     YES = ( "-enable-upcoming-feature", "MemberImportVisibility" );
+                    MIGRATE = ( "-enable-upcoming-feature", "MemberImportVisibility:migrate" );
                     NO  = ();
                 };
                 DisplayName = "Member Import Visibility";
@@ -852,10 +864,16 @@
 
             {
                 Name = "SWIFT_UPCOMING_FEATURE_INFER_ISOLATED_CONFORMANCES";
-                Type = Boolean;
+                Type = Enumeration;
+                Values = (
+                    YES,
+                    MIGRATE,
+                    NO,
+                );
                 DefaultValue = "$(SWIFT_APPROACHABLE_CONCURRENCY)";
                 CommandLineArgs = {
                     YES = ( "-enable-upcoming-feature", "InferIsolatedConformances" );
+                    MIGRATE = ( "-enable-upcoming-feature", "InferIsolatedConformances:migrate" );
                     NO  = ();
                 };
                 DisplayName = "Infer Isolated Conformances";
