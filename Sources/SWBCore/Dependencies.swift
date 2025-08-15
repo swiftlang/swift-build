@@ -88,8 +88,9 @@ public struct ModuleDependenciesContext: Sendable, SerializableCodable {
     public init?(settings: Settings) {
         let validate = settings.globalScope.evaluate(BuiltinMacros.VALIDATE_MODULE_DEPENDENCIES)
         guard validate != .no else { return nil }
+        let downgrade = settings.globalScope.evaluate(BuiltinMacros.VALIDATE_DEPENDENCIES_DOWNGRADE_ERRORS)
         let fixItContext = ModuleDependenciesContext.FixItContext(settings: settings)
-        self.init(validate: validate, moduleDependencies: settings.moduleDependencies, fixItContext: fixItContext)
+        self.init(validate: downgrade ? .yes : validate, moduleDependencies: settings.moduleDependencies, fixItContext: fixItContext)
     }
 
     /// Compute missing module dependencies.
@@ -269,8 +270,9 @@ public struct HeaderDependenciesContext: Sendable, SerializableCodable {
     public init?(settings: Settings) {
         let validate = settings.globalScope.evaluate(BuiltinMacros.VALIDATE_HEADER_DEPENDENCIES)
         guard validate != .no else { return nil }
+        let downgrade = settings.globalScope.evaluate(BuiltinMacros.VALIDATE_DEPENDENCIES_DOWNGRADE_ERRORS)
         let fixItContext = HeaderDependenciesContext.FixItContext(settings: settings)
-        self.init(validate: validate, headerDependencies: settings.headerDependencies, fixItContext: fixItContext)
+        self.init(validate: downgrade ? .yes : validate, headerDependencies: settings.headerDependencies, fixItContext: fixItContext)
     }
 
     /// Make diagnostics for missing header dependencies.

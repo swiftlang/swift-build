@@ -546,8 +546,8 @@ fileprivate struct DependencyValidationTests: CoreBasedTests {
         }
     }
 
-    @Test(.requireSDKs(.host), .requireClangFeatures(.printHeadersDirectPerFile), .skipHostOS(.windows, "toolchain too old"), .skipHostOS(.linux, "toolchain too old"))
-    func validateModuleDependenciesMixedSource() async throws {
+    @Test(.requireSDKs(.host), .requireClangFeatures(.printHeadersDirectPerFile), .skipHostOS(.windows, "toolchain too old"), .skipHostOS(.linux, "toolchain too old"), arguments: [false, true])
+    func validateModuleDependenciesMixedSource(downgradeErrors: Bool) async throws {
         try await withTemporaryDirectory { tmpDir async throws -> Void in
             let testWorkspace = try await TestWorkspace(
                 "Test",
@@ -573,6 +573,7 @@ fileprivate struct DependencyValidationTests: CoreBasedTests {
                                     "SWIFT_VERSION": swiftVersion,
                                     "GENERATE_INFOPLIST_FILE": "YES",
                                     "VALIDATE_MODULE_DEPENDENCIES": "YES_ERROR",
+                                    "VALIDATE_DEPENDENCIES_DOWNGRADE_ERRORS": downgradeErrors ? "YES" : "NO",
                                     "SDKROOT": "$(HOST_PLATFORM)",
                                     "SUPPORTED_PLATFORMS": "$(HOST_PLATFORM)",
                                     "DSTROOT": tmpDir.join("dstroot").str,
@@ -615,7 +616,11 @@ fileprivate struct DependencyValidationTests: CoreBasedTests {
             }
 
             try await tester.checkBuild(parameters: BuildParameters(configuration: "Debug"), runDestination: .host, persistent: true) { results in
-                results.checkError(.contains("Missing entries in MODULE_DEPENDENCIES: Accelerate AppKit Foundation"))
+                if downgradeErrors {
+                    results.checkWarning(.contains("Missing entries in MODULE_DEPENDENCIES: Accelerate AppKit Foundation"))
+                } else {
+                    results.checkError(.contains("Missing entries in MODULE_DEPENDENCIES: Accelerate AppKit Foundation"))
+                }
             }
         }
     }
