@@ -149,26 +149,44 @@ struct AndroidPlatformExtension: PlatformInfoExtension {
             hostOperatingSystem: context.hostOperatingSystem
         )) ?? []
 
-        let swiftSettings: [String: PropertyListItem]
-        // FIXME: We need a way to narrow down the list, possibly by passing down a Swift SDK identifier from SwiftPM
-        // The resource path should be the same for all triples in an Android Swift SDK
-        if let androidSwiftSDK = androidSwiftSDKs.only, let swiftResourceDir = Set(androidSwiftSDK.targetTriples.values.map { tripleProperties in androidSwiftSDK.path.join(tripleProperties.swiftResourcesPath) }).only {
-            swiftSettings = [
-                "SWIFT_LIBRARY_PATH": .plString(swiftResourceDir.join("android").str),
-                "SWIFT_RESOURCE_DIR": .plString(swiftResourceDir.str),
-                "SWIFT_TARGET_TRIPLE": .plString("$(CURRENT_ARCH)-unknown-$(SWIFT_PLATFORM_TARGET_PREFIX)$(LLVM_TARGET_TRIPLE_SUFFIX)"),
-                "LIBRARY_SEARCH_PATHS": "$(inherited) $(SWIFT_RESOURCE_DIR)/../$(__ANDROID_TRIPLE_$(CURRENT_ARCH))",
-            ].merging(abis.map {
-                ("__ANDROID_TRIPLE_\($0.value.llvm_triple.arch)", .plString($0.value.triple))
-            }, uniquingKeysWith: { _, new in new })
-        } else {
-            swiftSettings = [:]
-        }
+        return try androidSwiftSDKs.map { androidSwiftSDK in
+            let perArchSwiftResourceDirs = try Dictionary(grouping: androidSwiftSDK.targetTriples, by: { try LLVMTriple($0.key).arch }).mapValues {
+                let paths = Set($0.compactMap { $0.value.swiftResourcesPath })
+                guard let path = paths.only else {
+                    throw StubError.error("The resource path should be the same for all triples of the same architecture in an Android Swift SDK")
+                }
+                return Path(path)
+            }
 
-        return [(androidNdk.sysroot.path, androidPlatform, [
+            return sdk(
+                canonicalName: androidSwiftSDK.identifier,
+                androidPlatform: androidPlatform,
+                androidNdk: androidNdk,
+                defaultProperties: defaultProperties,
+                customProperties: [
+                    "SWIFT_TARGET_TRIPLE": .plString("$(CURRENT_ARCH)-unknown-$(SWIFT_PLATFORM_TARGET_PREFIX)$(LLVM_TARGET_TRIPLE_SUFFIX)"),
+                    "LIBRARY_SEARCH_PATHS": "$(inherited) $(SWIFT_RESOURCE_DIR)/../$(__ANDROID_TRIPLE_$(CURRENT_ARCH))",
+                ].merging(perArchSwiftResourceDirs.map {
+                    [
+                        ("SWIFT_LIBRARY_PATH[arch=\($0.key)]", .plString($0.value.join("android").str)),
+                        ("SWIFT_RESOURCE_DIR[arch=\($0.key)]", .plString($0.value.str)),
+                    ]
+                }.flatMap { $0 }, uniquingKeysWith: { _, new in new }).merging(abis.map {
+                    ("__ANDROID_TRIPLE_\($0.value.llvm_triple.arch)", .plString($0.value.triple))
+                }, uniquingKeysWith: { _, new in new }))
+        } + [
+            // Fallback SDK for when there are no Swift SDKs (Android SDK is still usable for C/C++-only code)
+            sdk(androidPlatform: androidPlatform, androidNdk: androidNdk, defaultProperties: defaultProperties)
+        ]
+    }
+
+    private func sdk(canonicalName: String? = nil, androidPlatform: Platform, androidNdk: AndroidSDK.NDK, defaultProperties: [String: PropertyListItem], customProperties: [String: PropertyListItem] = [:]) -> (path: Path, platform: SWBCore.Platform?, data: [String: PropertyListItem]) {
+        return (androidNdk.sysroot.path, androidPlatform, [
             "Type": .plString("SDK"),
-            "Version": .plString("0.0.0"),
-            "CanonicalName": .plString("android"),
+            "Version": .plString(androidNdk.version.description),
+            "CanonicalName": .plString(canonicalName ?? "android\(androidNdk.version.description)"),
+            // "android.ndk" is an alias for the "Android SDK without a Swift SDK" scenario in order for tests to deterministically pick a single Android destination regardless of how many Android Swift SDKs may be installed.
+            "Aliases": .plArray([.plString("android")] + (canonicalName == nil ? [.plString("android.ndk")] : [])),
             "IsBaseSDK": .plBool(true),
             "DefaultProperties": .plDict([
                 "PLATFORM_NAME": .plString("android"),
@@ -178,14 +196,14 @@ struct AndroidPlatformExtension: PlatformInfoExtension {
                 // FIXME: Make this configurable in a better way so we don't need to push build settings at the SDK definition level
                 "LLVM_TARGET_TRIPLE_OS_VERSION": .plString("$(SWIFT_PLATFORM_TARGET_PREFIX)"),
                 "LLVM_TARGET_TRIPLE_SUFFIX": .plString("-android$($(DEPLOYMENT_TARGET_SETTING_NAME))"),
-            ].merging(swiftSettings, uniquingKeysWith: { _, new in new })),
+            ].merging(customProperties, uniquingKeysWith: { _, new in new })),
             "SupportedTargets": .plDict([
                 "android": .plDict([
-                    "Archs": .plArray(abis.map { .plString($0.value.llvm_triple.arch) }),
+                    "Archs": .plArray(androidNdk.abis.map { .plString($0.value.llvm_triple.arch) }),
                     "DeploymentTargetSettingName": .plString("ANDROID_DEPLOYMENT_TARGET"),
-                    "DefaultDeploymentTarget": .plString("\(deploymentTargetRange.min)"),
-                    "MinimumDeploymentTarget": .plString("\(deploymentTargetRange.min)"),
-                    "MaximumDeploymentTarget": .plString("\(deploymentTargetRange.max)"),
+                    "DefaultDeploymentTarget": .plString("\(androidNdk.deploymentTargetRange.min)"),
+                    "MinimumDeploymentTarget": .plString("\(androidNdk.deploymentTargetRange.min)"),
+                    "MaximumDeploymentTarget": .plString("\(androidNdk.deploymentTargetRange.max)"),
                     "LLVMTargetTripleEnvironment": .plString("android"), // FIXME: androideabi for armv7!
                     "LLVMTargetTripleSys": .plString("linux"),
                     "LLVMTargetTripleVendor": .plString("none"),
@@ -194,7 +212,7 @@ struct AndroidPlatformExtension: PlatformInfoExtension {
             "Toolchains": .plArray([
                 .plString("android")
             ])
-        ])]
+        ])
     }
 }
 
