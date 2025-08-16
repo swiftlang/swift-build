@@ -1623,7 +1623,7 @@ private class SettingsBuilder {
                 swiftVersion = ""
             }
 
-            pushTable(.none) {
+            pushTable(.exported) {
                 $0.push(BuiltinMacros.EFFECTIVE_SWIFT_VERSION, literal: swiftVersion)
             }
         }
