@@ -76,35 +76,39 @@ public struct ModuleDependency: Hashable, Sendable, SerializableCodable {
 
 public struct ModuleDependenciesContext: Sendable, SerializableCodable {
     public var validate: BooleanWarningLevel
+    public var validateUnused: BooleanWarningLevel
     var moduleDependencies: [ModuleDependency]
     var fixItContext: FixItContext?
 
-    init(validate: BooleanWarningLevel, moduleDependencies: [ModuleDependency], fixItContext: FixItContext? = nil) {
+    init(validate: BooleanWarningLevel, validateUnused: BooleanWarningLevel, moduleDependencies: [ModuleDependency], fixItContext: FixItContext? = nil) {
         self.validate = validate
+        self.validateUnused = validateUnused
         self.moduleDependencies = moduleDependencies
         self.fixItContext = fixItContext
     }
 
     public init?(settings: Settings) {
         let validate = settings.globalScope.evaluate(BuiltinMacros.VALIDATE_MODULE_DEPENDENCIES)
-        guard validate != .no else { return nil }
+        let validateUnused = settings.globalScope.evaluate(BuiltinMacros.VALIDATE_UNUSED_MODULE_DEPENDENCIES)
+        guard validate != .no || validateUnused != .no else { return nil }
         let downgrade = settings.globalScope.evaluate(BuiltinMacros.VALIDATE_DEPENDENCIES_DOWNGRADE_ERRORS)
-        let fixItContext = ModuleDependenciesContext.FixItContext(settings: settings)
-        self.init(validate: downgrade ? .yes : validate, moduleDependencies: settings.moduleDependencies, fixItContext: fixItContext)
+        let fixItContext = validate != .no ? ModuleDependenciesContext.FixItContext(settings: settings) : nil
+        self.init(validate: downgrade ? .yes : validate, validateUnused: validateUnused, moduleDependencies: settings.moduleDependencies, fixItContext: fixItContext)
+    }
+
+    public func makeUnsupportedToolchainDiagnostic() -> Diagnostic {
+        Diagnostic(
+            behavior: .warning,
+            location: .unknown,
+            data: DiagnosticData("The current toolchain does not support \(BuiltinMacros.VALIDATE_MODULE_DEPENDENCIES.name)"))
     }
 
     /// Compute missing module dependencies.
-    ///
-    /// If `imports` is nil, the current toolchain does not support the features to gather imports.
     public func computeMissingDependencies(
-        imports: [(ModuleDependency, importLocations: [Diagnostic.Location])]?,
+        imports: [(ModuleDependency, importLocations: [Diagnostic.Location])],
         fromSwift: Bool
-    ) -> [(ModuleDependency, importLocations: [Diagnostic.Location])]? {
+    ) -> [(ModuleDependency, importLocations: [Diagnostic.Location])] {
         guard validate != .no else { return [] }
-        guard let imports else {
-            return nil
-        }
-
         return imports.filter {
             // ignore module deps without source locations, these are inserted by swift / swift-build and we should treat them as implementation details which we can track without needing the user to declare them
             if fromSwift && $0.importLocations.isEmpty { return false }
@@ -115,45 +119,63 @@ public struct ModuleDependenciesContext: Sendable, SerializableCodable {
         }
     }
 
+    public func computeUnusedDependencies(usedModuleNames: Set<String>) -> [ModuleDependency] {
+        guard validateUnused != .no else { return [] }
+        return moduleDependencies.filter { !usedModuleNames.contains($0.name) }
+    }
+
     /// Make diagnostics for missing module dependencies.
-    public func makeDiagnostics(missingDependencies: [(ModuleDependency, importLocations: [Diagnostic.Location])]?) -> [Diagnostic] {
-        guard let missingDependencies else {
-            return [Diagnostic(
-                behavior: .warning,
-                location: .unknown,
-                data: DiagnosticData("The current toolchain does not support \(BuiltinMacros.VALIDATE_MODULE_DEPENDENCIES.name)"))]
+    public func makeDiagnostics(missingDependencies: [(ModuleDependency, importLocations: [Diagnostic.Location])], unusedDependencies: [ModuleDependency]) -> [Diagnostic] {
+        let missingDiagnostics: [Diagnostic]
+        if !missingDependencies.isEmpty {
+            let behavior: Diagnostic.Behavior = validate == .yesError ? .error : .warning
+
+            let fixIt = fixItContext?.makeFixIt(newModules: missingDependencies.map { $0.0 })
+            let fixIts = fixIt.map { [$0] } ?? []
+
+            let importDiags: [Diagnostic] = missingDependencies
+                .flatMap { dep in
+                    dep.1.map {
+                        return Diagnostic(
+                            behavior: behavior,
+                            location: $0,
+                            data: DiagnosticData("Missing entry in \(BuiltinMacros.MODULE_DEPENDENCIES.name): \(dep.0.asBuildSettingEntryQuotedIfNeeded)"),
+                            fixIts: fixIts)
+                    }
+                }
+
+            let message = "Missing entries in \(BuiltinMacros.MODULE_DEPENDENCIES.name): \(missingDependencies.map { $0.0.asBuildSettingEntryQuotedIfNeeded }.sorted().joined(separator: " "))"
+
+            let location: Diagnostic.Location = fixIt.map {
+                Diagnostic.Location.path($0.sourceRange.path, line: $0.sourceRange.endLine, column: $0.sourceRange.endColumn)
+            } ?? Diagnostic.Location.buildSetting(BuiltinMacros.MODULE_DEPENDENCIES)
+
+            missingDiagnostics = [Diagnostic(
+                behavior: behavior,
+                location: location,
+                data: DiagnosticData(message),
+                fixIts: fixIts,
+                childDiagnostics: importDiags)]
+        }
+        else {
+            missingDiagnostics = []
         }
 
-        guard !missingDependencies.isEmpty else { return [] }
+        let unusedDiagnostics: [Diagnostic]
+        if !unusedDependencies.isEmpty {
+            let message = "Unused entries in \(BuiltinMacros.MODULE_DEPENDENCIES.name): \(unusedDependencies.map { $0.name }.sorted().joined(separator: " "))"
+            // TODO location & fixit
+            unusedDiagnostics = [Diagnostic(
+                behavior: validateUnused == .yesError ? .error : .warning,
+                location: .unknown,
+                data: DiagnosticData(message),
+                fixIts: [])]
+        }
+        else {
+            unusedDiagnostics = []
+        }
 
-        let behavior: Diagnostic.Behavior = validate == .yesError ? .error : .warning
-
-        let fixIt = fixItContext?.makeFixIt(newModules: missingDependencies.map { $0.0 })
-        let fixIts = fixIt.map { [$0] } ?? []
-
-        let importDiags: [Diagnostic] = missingDependencies
-            .flatMap { dep in
-                dep.1.map {
-                    return Diagnostic(
-                        behavior: behavior,
-                        location: $0,
-                        data: DiagnosticData("Missing entry in \(BuiltinMacros.MODULE_DEPENDENCIES.name): \(dep.0.asBuildSettingEntryQuotedIfNeeded)"),
-                        fixIts: fixIts)
-                }
-            }
-
-        let message = "Missing entries in \(BuiltinMacros.MODULE_DEPENDENCIES.name): \(missingDependencies.map { $0.0.asBuildSettingEntryQuotedIfNeeded }.sorted().joined(separator: " "))"
-
-        let location: Diagnostic.Location = fixIt.map {
-            Diagnostic.Location.path($0.sourceRange.path, line: $0.sourceRange.endLine, column: $0.sourceRange.endColumn)
-        } ?? Diagnostic.Location.buildSetting(BuiltinMacros.MODULE_DEPENDENCIES)
-
-        return [Diagnostic(
-            behavior: behavior,
-            location: location,
-            data: DiagnosticData(message),
-            fixIts: fixIts,
-            childDiagnostics: importDiags)]
+        return missingDiagnostics + unusedDiagnostics
     }
 
     struct FixItContext: Sendable, SerializableCodable {
@@ -169,6 +191,7 @@ public struct ModuleDependenciesContext: Sendable, SerializableCodable {
             guard let target = settings.target else { return nil }
             let thisTargetCondition = MacroCondition(parameter: BuiltinMacros.targetNameCondition, valuePattern: target.name)
 
+            // TODO: if you have an assignment in a project-xcconfig and another assignment in target-settings, this would find the project-xcconfig assignment, but updating that might have no effect depending on the target-settings assignment
             if let assignment = (settings.globalScope.table.lookupMacro(BuiltinMacros.MODULE_DEPENDENCIES)?.sequence.first {
                    $0.location != nil && ($0.conditions?.conditions == [thisTargetCondition] || ($0.conditions?.conditions.isEmpty ?? true))
                }),
