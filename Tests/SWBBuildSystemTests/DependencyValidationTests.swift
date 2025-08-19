@@ -690,4 +690,92 @@ fileprivate struct DependencyValidationTests: CoreBasedTests {
             }
         }
     }
+
+    @Test(.requireSDKs(.host), .requireClangFeatures(.printHeadersDirectPerFile), .skipHostOS(.windows, "toolchain too old"), .skipHostOS(.linux, "toolchain too old"))
+    func validateUnusedModuleDependencies() async throws {
+        try await withTemporaryDirectory { tmpDir in
+            let testWorkspace = try await TestWorkspace(
+                "Test",
+                sourceRoot: tmpDir.join("Test"),
+                projects: [
+                    TestProject(
+                        "Project",
+                        groupTree: TestGroup(
+                            "Sources",
+                            children: [
+                                TestFile("Swift.swift"),
+                                TestFile("ObjC.m"),
+                                TestFile("Project.xcconfig"),
+                            ]),
+                        buildConfigurations: [TestBuildConfiguration(
+                            "Debug",
+                            baseConfig: "Project.xcconfig",
+                            buildSettings: [
+                                "PRODUCT_NAME": "$(TARGET_NAME)",
+                                "CLANG_ENABLE_MODULES": "YES",
+                                "CLANG_ENABLE_EXPLICIT_MODULES": "YES",
+                                "SWIFT_ENABLE_EXPLICIT_MODULES": "YES",
+                                "SWIFT_UPCOMING_FEATURE_INTERNAL_IMPORTS_BY_DEFAULT": "YES",
+                                "SWIFT_VERSION": swiftVersion,
+                                "DEFINES_MODULE": "YES",
+                                "DSTROOT": tmpDir.join("dstroot").str,
+                                "VALIDATE_MODULE_DEPENDENCIES": "YES_ERROR",
+                                "VALIDATE_UNUSED_MODULE_DEPENDENCIES": "YES",
+                                "SDKROOT": "$(HOST_PLATFORM)",
+                                "SUPPORTED_PLATFORMS": "$(HOST_PLATFORM)",
+
+                                // Temporarily override to use the latest toolchain in CI because we depend on swift and swift-driver changes which aren't in the baseline tools yet
+                                "TOOLCHAINS": "swift",
+                                // We still want to use the default clang since that is used to gate the test
+                                "CC": defaultClangPath.str,
+                            ])],
+                        targets: [
+                            TestStandardTarget(
+                                "TargetA",
+                                type: .framework,
+                                buildPhases: [
+                                    TestSourcesBuildPhase(["Swift.swift", "ObjC.m"]),
+                                ]),
+                        ]),
+                ])
+
+            let tester = try await BuildOperationTester(getCore(), testWorkspace, simulated: false)
+
+            let swiftSourcePath = testWorkspace.sourceRoot.join("Project/Swift.swift")
+            try await tester.fs.writeFileContents(swiftSourcePath) { stream in
+                stream <<<
+            """
+            import Foundation
+            """
+            }
+
+            let objcSourcePath = testWorkspace.sourceRoot.join("Project/ObjC.m")
+            try await tester.fs.writeFileContents(objcSourcePath) { stream in
+                stream <<<
+            """
+            #include <CoreFoundation/CoreFoundation.h>
+
+            void objcFunction(void) { }
+            """
+            }
+
+            let projectXCConfigPath = testWorkspace.sourceRoot.join("Project/Project.xcconfig")
+            try await tester.fs.writeFileContents(projectXCConfigPath) { stream in
+                stream <<<
+            """
+            MODULE_DEPENDENCIES[target=TargetA] = CoreFoundation Foundation AppKit
+            """
+            }
+
+            let target = try #require(tester.workspace.projects.only?.targets.first { $0.name == "TargetA" })
+            let parameters = BuildParameters(configuration: "Debug")
+            let buildRequest = BuildRequest(parameters: parameters, buildTargets: [BuildRequest.BuildTargetInfo(parameters: parameters, target: target)], continueBuildingAfterErrors: false, useParallelTargets: true, useImplicitDependencies: true, useDryRun: false)
+
+            try await tester.checkBuild(runDestination: .host, buildRequest: buildRequest, persistent: true) { results in
+                guard !results.checkWarning(.prefix("The current toolchain does not support VALIDATE_MODULE_DEPENDENCIES"), failIfNotFound: false) else { return }
+
+                results.checkWarning(.contains("Unused entries in MODULE_DEPENDENCIES: AppKit"))
+            }
+        }
+    }
 }
