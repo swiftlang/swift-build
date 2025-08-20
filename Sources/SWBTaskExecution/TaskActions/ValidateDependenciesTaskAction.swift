@@ -79,7 +79,7 @@ public final class ValidateDependenciesTaskAction: TaskAction {
                     let updatedSwiftMissingDeps: [(ModuleDependency, importLocations: [Diagnostic.Location])] = swiftMissingDeps.map {
                         if let clangMissingDep = clangMissingDepsByName[$0.0.name] {
                             return (
-                                ModuleDependency(name: $0.0.name, accessLevel: max($0.0.accessLevel, clangMissingDep.0.accessLevel)),
+                                ModuleDependency(name: $0.0.name, accessLevel: max($0.0.accessLevel, clangMissingDep.0.accessLevel), optional: $0.0.optional),
                                 $0.importLocations + clangMissingDep.importLocations
                             )
                         } else {
