@@ -16,6 +16,7 @@ import SWBMacro
 public struct ModuleDependency: Hashable, Sendable, SerializableCodable {
     public let name: String
     public let accessLevel: AccessLevel
+    public let optional: Bool
 
     public enum AccessLevel: String, Hashable, Sendable, CaseIterable, Codable, Serializable, Comparable {
         case Private = "private"
@@ -43,29 +44,25 @@ public struct ModuleDependency: Hashable, Sendable, SerializableCodable {
         }
     }
 
-    public init(name: String, accessLevel: AccessLevel) {
+    public init(name: String, accessLevel: AccessLevel, optional: Bool) {
         self.name = name
         self.accessLevel = accessLevel
+        self.optional = optional
     }
 
     public init(entry: String) throws {
-        var it = entry.split(separator: " ").makeIterator()
-        switch (it.next(), it.next(), it.next()) {
-        case (let .some(name), nil, nil):
-            self.name = String(name)
-            self.accessLevel = .Private
-
-        case (let .some(accessLevel), let .some(name), nil):
-            self.name = String(name)
-            self.accessLevel = try AccessLevel(String(accessLevel))
-
-        default:
-            throw StubError.error("expected 1 or 2 space-separated components in: \(entry)")
+        let re = #/((?<accessLevel>private|package|public)\s+)?(?<name>\w+)(?<optional>\?)?/#
+        guard let match = entry.wholeMatch(of: re) else {
+            throw StubError.error("Invalid module dependency format: \(entry), expected [private|package|public] <name>[?]")
         }
+
+        self.name = String(match.output.name)
+        self.accessLevel = try match.output.accessLevel.map { try AccessLevel(String($0)) } ?? .Private
+        self.optional = match.output.optional != nil
     }
 
     public var asBuildSettingEntry: String {
-        "\(accessLevel == .Private ? "" : "\(accessLevel.rawValue) ")\(name)"
+        "\(accessLevel == .Private ? "" : "\(accessLevel.rawValue) ")\(name)\(optional ? "?" : "")"
     }
 
     public var asBuildSettingEntryQuotedIfNeeded: String {
@@ -121,7 +118,7 @@ public struct ModuleDependenciesContext: Sendable, SerializableCodable {
 
     public func computeUnusedDependencies(usedModuleNames: Set<String>) -> [ModuleDependency] {
         guard validateUnused != .no else { return [] }
-        return moduleDependencies.filter { !usedModuleNames.contains($0.name) }
+        return moduleDependencies.filter { !$0.optional && !usedModuleNames.contains($0.name) }
     }
 
     /// Make diagnostics for missing module dependencies.
