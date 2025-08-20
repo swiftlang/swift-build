@@ -763,7 +763,7 @@ fileprivate struct DependencyValidationTests: CoreBasedTests {
             try await tester.fs.writeFileContents(projectXCConfigPath) { stream in
                 stream <<<
             """
-            MODULE_DEPENDENCIES[target=TargetA] = CoreFoundation Foundation AppKit
+            MODULE_DEPENDENCIES[target=TargetA] = CoreFoundation Foundation AppKit UIKit?
             """
             }
 
@@ -774,7 +774,8 @@ fileprivate struct DependencyValidationTests: CoreBasedTests {
             try await tester.checkBuild(runDestination: .host, buildRequest: buildRequest, persistent: true) { results in
                 guard !results.checkWarning(.prefix("The current toolchain does not support VALIDATE_MODULE_DEPENDENCIES"), failIfNotFound: false) else { return }
 
-                results.checkWarning(.contains("Unused entries in MODULE_DEPENDENCIES: AppKit"))
+                // This diagnostic should only report AppKit because UIKit is marked optional.
+                results.checkWarning(.equal("Unused entries in MODULE_DEPENDENCIES: AppKit (for task: [\"ValidateDependencies\"])"))
             }
         }
     }

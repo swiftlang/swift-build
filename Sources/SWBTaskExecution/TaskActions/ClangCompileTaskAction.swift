@@ -375,7 +375,7 @@ public final class ClangCompileTaskAction: TaskAction, BuildValueValidatingTaskA
                 includeFiles.append(file)
             }
         }
-        let moduleDependencies = moduleNames.map { ModuleDependency(name: $0, accessLevel: .Private) }
+        let moduleDependencies = moduleNames.map { ModuleDependency(name: $0, accessLevel: .Private, optional: false) }
         let moduleImports = moduleDependencies.map { DependencyValidationInfo.Import(dependency: $0, importLocations: []) }
         return (moduleImports, includeFiles)
     }
