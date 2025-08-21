@@ -5794,7 +5794,7 @@ That command depends on command in Target 'agg2' (project \'aProject\'): script 
 
     @Test(.requireSDKs(.macOS))
     func incrementalMetalLinkWithCodeSign() async throws {
-        let core = try await getCore()
+        let core = try await Self.makeCore(configurationDelegate: TestingCoreConfigurationDelegate(loadMetalToolchain: true))
         try await withTemporaryDirectory { tmpDirPath async throws -> Void in
             let testWorkspace = try await TestWorkspace(
                 "Test",

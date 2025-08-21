@@ -325,7 +325,7 @@ fileprivate struct BuildCommandTests: CoreBasedTests {
 
     @Test(.requireSDKs(.macOS), .requireXcode16())
     func singleFileCompileMetal() async throws {
-        let core = try await getCore()
+        let core = try await Self.makeCore(configurationDelegate: TestingCoreConfigurationDelegate(loadMetalToolchain: true))
         try await withTemporaryDirectory { tmpDirPath async throws -> Void in
             let testWorkspace = try await TestWorkspace(
                 "Test",
