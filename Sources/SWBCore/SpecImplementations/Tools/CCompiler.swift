@@ -870,16 +870,8 @@ public class ClangCompilerSpec : CompilerSpec, SpecIdentifierType, GCCCompatible
 
         let buildSettingEnabled = cbc.scope.evaluate(BuiltinMacros.CLANG_ENABLE_COMPILE_CACHE)
 
-        // If a blocklist is provided in the toolchain, use it to determine the default for the current project
-        guard let blocklist = clangInfo?.clangCachingBlocklist else {
-            return buildSettingEnabled
-        }
-
-        // If this project is on the blocklist, override the blocklist default enable for it
-        if blocklist.isProjectListed(cbc.scope) {
-            return false
-        }
-        return buildSettingEnabled
+        // If this project is on the blocklist, override the blocklist default enable for it.
+        return clangInfo?.isCachingBlocked(cbc.scope) == true ? false : buildSettingEnabled
     }
 
     private func createExplicitModulesActionAndPayload(_ cbc: CommandBuildContext, _ delegate: any TaskGenerationDelegate, _ compilerLauncher: Path?, _ input: FileToBuild, _ language: GCCCompatibleLanguageDialect?, commandLine: [String], scanningOutputPath: Path, isForPCHTask: Bool, clangInfo: DiscoveredClangToolSpecInfo?) -> (action: (any PlannedTaskAction)?, usesExecutionInputs: Bool, payload: ClangExplicitModulesPayload?, signatureData: String?) {

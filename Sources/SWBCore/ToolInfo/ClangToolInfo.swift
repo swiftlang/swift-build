@@ -10,8 +10,28 @@
 //
 //===----------------------------------------------------------------------===//
 
+public import SWBMacro
 public import SWBUtil
 import Foundation
+
+public struct ClangBlocklists : Sendable {
+
+    public struct CachingBlocklistInfo : ProjectFailuresBlockList, Codable, Sendable {
+        /// A blocklist of project names that do not support the `CLANG_ENABLE_COMPILE_CACHE` build setting.
+        let KnownFailures: [String]
+
+        enum CodingKeys: String, CodingKey {
+            case KnownFailures
+        }
+    }
+
+    var caching: CachingBlocklistInfo? = nil
+
+    func isBlocked<BlockListT: ProjectFailuresBlockList>(_ scope: MacroEvaluationScope, info: BlockListT?) -> Bool {
+        guard let blocklistInfo = info else { return false }
+        return blocklistInfo.isProjectListed(scope)
+    }
+}
 
 public struct DiscoveredClangToolSpecInfo: DiscoveredCommandLineToolSpecInfo {
     public let toolPath: Path
@@ -21,8 +41,8 @@ public struct DiscoveredClangToolSpecInfo: DiscoveredCommandLineToolSpecInfo {
 
     public var toolVersion: Version? { return self.clangVersion }
 
-    /// `compilerClientsConfig` Clang caching blocklist
-    public let clangCachingBlocklist: ClangCachingBlockListInfo?
+    /// `compilerClientsConfig` blocklists for Clang
+    public let blocklists: ClangBlocklists
 
     public enum FeatureFlag: String, CaseIterable, Sendable {
         case allowPcmWithCompilerErrors = "allow-pcm-with-compiler-errors"
@@ -66,14 +86,10 @@ public struct DiscoveredClangToolSpecInfo: DiscoveredCommandLineToolSpecInfo {
     public func deploymentTargetEnvironmentVariableNames() -> Set<String> {
         Set(toolFeatures.value(.deploymentTargetEnvironmentVariables)?.stringArrayValue ?? [])
     }
-}
 
-public struct ClangCachingBlockListInfo : ProjectFailuresBlockList, Codable, Sendable {
-    let KnownFailures: [String]
-
-    enum CodingKeys: String, CodingKey {
-        case KnownFailures
-    }
+    public func isCachingBlocked(_ scope: MacroEvaluationScope) -> Bool {
+        return blocklists.isBlocked(scope, info: blocklists.caching)
+     }
 }
 
 private let clangVersionRe = RegEx(patternLiteral: #""(?<llvm>[0-9]+(?:\.[0-9]+){0,}) \(clang-(?<clang>[0-9]+(?:\.[0-9]+){0,})\)(?: ((\[.+\])|(\(.+\)))+)?""#)
@@ -91,7 +107,7 @@ public func discoveredClangToolInfo(
 ) async throws -> DiscoveredClangToolSpecInfo {
     // Check that we call a clang variant, 'clang', 'clang++' etc. Note that a test sets `CC` to `/usr/bin/yes` so avoid calling that here.
     guard toolPath.basename.starts(with: "clang") else {
-        return DiscoveredClangToolSpecInfo(toolPath: toolPath, clangVersion: nil, llvmVersion: nil, isAppleClang: false, clangCachingBlocklist: nil, toolFeatures: .none)
+        return DiscoveredClangToolSpecInfo(toolPath: toolPath, clangVersion: nil, llvmVersion: nil, isAppleClang: false, blocklists: ClangBlocklists(), toolFeatures: .none)
     }
 
     // Construct the command line to invoke.
@@ -169,13 +185,15 @@ public func discoveredClangToolInfo(
                 delegate: delegate
             )
         }
+        var blocklists = ClangBlocklists()
+        blocklists.caching = getBlocklist(type: ClangBlocklists.CachingBlocklistInfo.self, toolchainFilename: "clang-caching.json", delegate: delegate)
 
         return DiscoveredClangToolSpecInfo(
             toolPath: toolPath,
             clangVersion: clangVersion,
             llvmVersion: llvmVersion,
             isAppleClang: isAppleClang,
-            clangCachingBlocklist: getBlocklist(type: ClangCachingBlockListInfo.self, toolchainFilename: "clang-caching.json", delegate: delegate),
+            blocklists: blocklists,
             toolFeatures: getFeatures(at: toolPath)
         )
     })
