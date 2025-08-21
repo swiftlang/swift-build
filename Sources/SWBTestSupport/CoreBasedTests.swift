@@ -23,10 +23,11 @@ package protocol CoreBasedTests {
 }
 
 extension CoreBasedTests {
-    package static func makeCore(skipLoadingPluginsNamed: Set<String> = [], registerExtraPlugins: @PluginExtensionSystemActor (PluginManager) -> Void = { _ in }, simulatedInferiorProductsPath: Path? = nil, environment: [String: String] = [:], _ delegate: TestingCoreDelegate? = nil, sourceLocation: SourceLocation = #_sourceLocation) async throws -> Core {
+    /// This will create a customized `Core` object using the specified parameters, providing a test with detailed control over the contents of the `Core` it uses.
+    package static func makeCore(skipLoadingPluginsNamed: Set<String> = [], registerExtraPlugins: @PluginExtensionSystemActor (PluginManager) -> Void = { _ in }, simulatedInferiorProductsPath: Path? = nil, environment: [String: String] = [:], _ delegate: TestingCoreDelegate? = nil, configurationDelegate: TestingCoreConfigurationDelegate? = nil, sourceLocation: SourceLocation = #_sourceLocation) async throws -> Core {
         let core: Result<Core, any Error>
         do {
-            let theCore = try await Core.createInitializedTestingCore(skipLoadingPluginsNamed: skipLoadingPluginsNamed, registerExtraPlugins: registerExtraPlugins, simulatedInferiorProductsPath: simulatedInferiorProductsPath, environment: environment, delegate: delegate)
+            let theCore = try await Core.createInitializedTestingCore(skipLoadingPluginsNamed: skipLoadingPluginsNamed, registerExtraPlugins: registerExtraPlugins, simulatedInferiorProductsPath: simulatedInferiorProductsPath, environment: environment, delegate: delegate, configurationDelegate: configurationDelegate)
             core = .success(theCore)
         } catch {
             core = .failure(error)
@@ -48,6 +49,7 @@ extension CoreBasedTests {
         return try Self._getCore(core: core, sourceLocation: sourceLocation)
     }
 
+    /// This private method caches the `Core` object created in `GetCore(sourceLocation:)`, and returns the same object if queried again.
     private static func _getCore(core: Result<Core, any Error>, sourceLocation: SourceLocation = #_sourceLocation) throws -> Core {
         do {
             return try core.get()
