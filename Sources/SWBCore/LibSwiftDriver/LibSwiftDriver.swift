@@ -891,5 +891,6 @@ extension ModuleDependency {
     init(_ importInfo: ImportInfo) {
         self.name = importInfo.importIdentifier
         self.accessLevel = .init(importInfo.accessLevel)
+        self.optional = false
     }
 }
