@@ -11,3 +11,6 @@ xcode_trim_whitespace_on_empty_lines = true
 
 [*.{yml,yaml}]
 indent_size = 2
+
+[CMakeLists.txt]
+indent_size = 2
