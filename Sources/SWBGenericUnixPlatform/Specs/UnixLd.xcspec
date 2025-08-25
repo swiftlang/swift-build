@@ -53,7 +53,7 @@
             {
                 Name = CLANG_SDKROOT_LINKER_INPUT;
                 Type = Path;
-                DefaultValue = "$(SDKROOT)";
+                DefaultValue = "$(SYSROOT:default=$(SDKROOT))";
                 Condition = "$(LINKER_DRIVER) == clang";
                 CommandLineFlag = "--sysroot";
                 IsInputDependency = Yes;
@@ -61,7 +61,7 @@
             {
                 Name = SWIFTC_SDKROOT_LINKER_INPUT;
                 Type = Path;
-                DefaultValue = "$(SDKROOT)";
+                DefaultValue = "$(SYSROOT:default=$(SDKROOT))";
                 Condition = "$(LINKER_DRIVER) == swiftc";
                 CommandLineFlag = "-sysroot";
                 IsInputDependency = Yes;
