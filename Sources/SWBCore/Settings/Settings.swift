@@ -356,14 +356,10 @@ fileprivate struct PreOverridesSettings {
                 }
             }
 
-            @preconcurrency @PluginExtensionSystemActor func searchPaths() -> [Path] {
-                core.pluginManager.extensions(of: SpecificationsExtensionPoint.self).flatMap { ext in
-                    ext.specificationSearchPaths(resourceSearchPaths: core.resourceSearchPaths).compactMap { try? $0.filePath }
-                }.sorted()
-            }
-
             // Add rules from the Resources directories of the loaded plugins. We sort the paths to ensure deterministic loading.
-            for searchPath in searchPaths() {
+            for searchPath in core.pluginManager.extensions(of: SpecificationsExtensionPoint.self).flatMap({ ext in
+                ext.specificationSearchPaths(resourceSearchPaths: core.resourceSearchPaths).compactMap { try? $0.filePath }
+            }).sorted() {
                 findAndLoadBuildRules(resourcesPath: searchPath)
             }
 
@@ -759,11 +755,8 @@ public final class Settings: PlatformBuildContext, Sendable {
     public let headerDependencies: [HeaderDependency]
 
     public static func supportsMacCatalyst(scope: MacroEvaluationScope, core: Core) -> Bool {
-        @preconcurrency @PluginExtensionSystemActor func sdkVariantInfoExtensions() -> [any SDKVariantInfoExtensionPoint.ExtensionProtocol] {
-            core.pluginManager.extensions(of: SDKVariantInfoExtensionPoint.self)
-        }
         var supportsMacCatalystMacros: Set<String> = []
-        for sdkVariantInfoExtension in sdkVariantInfoExtensions() {
+        for sdkVariantInfoExtension in core.pluginManager.extensions(of: SDKVariantInfoExtensionPoint.self) {
             supportsMacCatalystMacros.formUnion(sdkVariantInfoExtension.supportsMacCatalystMacroNames)
         }
 
@@ -1003,14 +996,10 @@ extension WorkspaceContext {
                 }
             }
 
-            @preconcurrency @PluginExtensionSystemActor func searchPaths() -> [Path] {
-                core.pluginManager.extensions(of: SpecificationsExtensionPoint.self).flatMap { ext in
-                    ext.specificationSearchPaths(resourceSearchPaths: core.resourceSearchPaths).compactMap { try? $0.filePath }
-                }.sorted()
-            }
-
             // Add the search paths from each loaded plugin.
-            paths.append(contentsOf: searchPaths())
+            paths.append(contentsOf: core.pluginManager.extensions(of: SpecificationsExtensionPoint.self).flatMap { ext in
+                ext.specificationSearchPaths(resourceSearchPaths: core.resourceSearchPaths).compactMap { try? $0.filePath }
+            }.sorted())
 
             // Add the binary paths for each toolchain.
             for toolchain in toolchains {
@@ -1508,10 +1497,7 @@ private class SettingsBuilder {
 
             addSDKOverridingSettings(sdk, boundProperties.sdkVariant)
 
-            @preconcurrency @PluginExtensionSystemActor func settingsExtensions() -> [any SettingsBuilderExtensionPoint.ExtensionProtocol] {
-                core.pluginManager.extensions(of: SettingsBuilderExtensionPoint.self)
-            }
-            for settingsExtension in settingsExtensions() {
+            for settingsExtension in core.pluginManager.extensions(of: SettingsBuilderExtensionPoint.self) {
                 do {
                     let overridingSettings = try settingsExtension.addSDKOverridingSettings(sdk, boundProperties.sdkVariant, boundProperties.sparseSDKs, specLookupContext: specLookupContext)
                     pushTable(.exported) {
@@ -2036,11 +2022,7 @@ private class SettingsBuilder {
             errors.append("Unable to determine host platform: \(error)")
         }
 
-        @preconcurrency @PluginExtensionSystemActor func settingsExtensions() -> [any SettingsBuilderExtensionPoint.ExtensionProtocol] {
-            core.pluginManager.extensions(of: SettingsBuilderExtensionPoint.self)
-        }
-
-        for settingsExtension in settingsExtensions() {
+        for settingsExtension in core.pluginManager.extensions(of: SettingsBuilderExtensionPoint.self) {
             let baseEnvironment = workspaceContext.userInfo?.buildSystemEnvironment ?? [:]
 
             do {
@@ -2633,10 +2615,7 @@ private class SettingsBuilder {
             }
         }
 
-        @preconcurrency @PluginExtensionSystemActor func settingsExtensions() -> [any SettingsBuilderExtensionPoint.ExtensionProtocol] {
-            core.pluginManager.extensions(of: SettingsBuilderExtensionPoint.self)
-        }
-        for settingsExtension in settingsExtensions() {
+        for settingsExtension in core.pluginManager.extensions(of: SettingsBuilderExtensionPoint.self) {
             do {
                 let additionalSettings = try settingsExtension.addSDKSettings(sdk, variant, sparseSDKs)
                 sdkTable.pushContentsOf(createTableFromUserSettings(additionalSettings))
@@ -2657,9 +2636,7 @@ private class SettingsBuilder {
                 table.push(BuiltinMacros.STRIP_BITCODE_FROM_COPIED_FILES, literal: true)
             }
 
-            @preconcurrency @PluginExtensionSystemActor func settingsExtensions() -> [any SettingsBuilderExtensionPoint.ExtensionProtocol] {
-                core.pluginManager.extensions(of: SettingsBuilderExtensionPoint.self)
-            }
+            let settingsExtensions = core.pluginManager.extensions(of: SettingsBuilderExtensionPoint.self)
 
             func shouldPopulateValidArchs(platform: Platform, sdk: SDK?) -> Bool {
                 // For now, we only do this for some platforms to avoid behavior changes.
@@ -2672,7 +2649,7 @@ private class SettingsBuilder {
                     "xros":
                     return false
                 default:
-                    for settingsExtension in settingsExtensions() {
+                    for settingsExtension in settingsExtensions {
                         if settingsExtension.shouldSkipPopulatingValidArchs(platform: platform, sdk: sdk) {
                             return false
                         }
@@ -2686,7 +2663,7 @@ private class SettingsBuilder {
                 table.push(BuiltinMacros.VALID_ARCHS, literal: archs)
             }
 
-            for settingsExtension in settingsExtensions() {
+            for settingsExtension in settingsExtensions {
                 table.pushContentsOf(createTableFromUserSettings(settingsExtension.addPlatformSDKSettings(platform, sdk, sdkVariant)))
             }
         }
@@ -2706,11 +2683,8 @@ private class SettingsBuilder {
         }
 
         let scope = createScope(sdkToUse: sdk)
-        @preconcurrency @PluginExtensionSystemActor func sdkVariantInfoExtensions() -> [any SDKVariantInfoExtensionPoint.ExtensionProtocol] {
-            core.pluginManager.extensions(of: SDKVariantInfoExtensionPoint.self)
-        }
         var macCatalystDeriveBundleIDMacros: Set<String> = []
-        for sdkVariantInfoExtension in sdkVariantInfoExtensions() {
+        for sdkVariantInfoExtension in core.pluginManager.extensions(of: SDKVariantInfoExtensionPoint.self) {
             macCatalystDeriveBundleIDMacros.formUnion(sdkVariantInfoExtension.macCatalystDeriveBundleIDMacroNames)
         }
         let wantsDerivedMacCatalystBundleId = macCatalystDeriveBundleIDMacros.contains { scope.evaluate(scope.namespace.parseString("$(\($0)")).boolValue }
@@ -2865,11 +2839,8 @@ private class SettingsBuilder {
 
     func validateSDK(_ sdk: SDK, sdkVariant: SDKVariant?, scope: MacroEvaluationScope) {
         if sdkVariant?.isMacCatalyst ?? false {
-            @preconcurrency @PluginExtensionSystemActor func sdkVariantInfoExtensions() -> [any SDKVariantInfoExtensionPoint.ExtensionProtocol] {
-                core.pluginManager.extensions(of: SDKVariantInfoExtensionPoint.self)
-            }
             var disallowedMacCatalystMacros: Set<String> = []
-            for sdkVariantInfoExtension in sdkVariantInfoExtensions() {
+            for sdkVariantInfoExtension in core.pluginManager.extensions(of: SDKVariantInfoExtensionPoint.self) {
                 disallowedMacCatalystMacros.formUnion(sdkVariantInfoExtension.disallowedMacCatalystMacroNames)
             }
 
@@ -3003,11 +2974,7 @@ private class SettingsBuilder {
 
             push(productType.buildSettings, .exportedForNative)
 
-            @preconcurrency @PluginExtensionSystemActor func settingsExtensions() -> [any SettingsBuilderExtensionPoint.ExtensionProtocol] {
-                core.pluginManager.extensions(of: SettingsBuilderExtensionPoint.self)
-            }
-
-            for settingsExtension in settingsExtensions() {
+            for settingsExtension in core.pluginManager.extensions(of: SettingsBuilderExtensionPoint.self) {
                 push(createTableFromUserSettings(settingsExtension.addProductTypeDefaults(productType: productType)), .exportedForNative)
             }
 
@@ -3089,7 +3056,7 @@ private class SettingsBuilder {
         if Settings.targetPlatformSpecializationEnabled(scope: scope) {
             // The SDK might not be known yet during the push of the target settings (especially true for top-level targets), but the usage of a suffixed SDK might be known from the macro scope. This is a side-effect of the multiple calls to `addTargetSettings()` we make during settings construction...
             // The `SPECIALIZATION_SDK_OPTIONS` needs to be set here, primarily so that top-level targets are handled correctly when they are specialized. Otherwise, the original intent of the SDK choice can be lost due to how the `SDKROOT` is imposed.
-            if let suffix = sdk?.canonicalNameSuffix?.nilIfEmpty ?? (try? SDK.parseSDKName(scope.evaluate(BuiltinMacros.SDKROOT).str, pluginManager: core.pluginManager).suffix) {
+            if let suffix = sdk?.canonicalNameSuffix?.nilIfEmpty ?? (try? SDK.parseSDKName(scope.evaluate(BuiltinMacros.SDKROOT).str, registry: core.sdkRegistry).suffix) {
                 table.push(BuiltinMacros.SPECIALIZATION_SDK_OPTIONS, literal: [suffix])
             }
         }
@@ -3117,12 +3084,7 @@ private class SettingsBuilder {
         push(createTableFromUserSettings(parameters.commandLineOverrides), .exported)
 
         // Add in command line build settings from extensions
-
-        @preconcurrency @PluginExtensionSystemActor func settingsExtensions() -> [any SettingsBuilderExtensionPoint.ExtensionProtocol] {
-            core.pluginManager.extensions(of: SettingsBuilderExtensionPoint.self)
-        }
-
-        for settingsExtension in settingsExtensions() {
+        for settingsExtension in core.pluginManager.extensions(of: SettingsBuilderExtensionPoint.self) {
             // FIXME: We should do something better here if the environment cannot be retrieved
             let baseEnvironment = workspaceContext.userInfo?.buildSystemEnvironment ?? [:]
 
@@ -3349,11 +3311,7 @@ private class SettingsBuilder {
                     return false
                 }
 
-                @preconcurrency @PluginExtensionSystemActor func settingsExtensions() -> [any SettingsBuilderExtensionPoint.ExtensionProtocol] {
-                    core.pluginManager.extensions(of: SettingsBuilderExtensionPoint.self)
-                }
-
-                for settingsExtension in settingsExtensions() {
+                for settingsExtension in core.pluginManager.extensions(of: SettingsBuilderExtensionPoint.self) {
                     if settingsExtension.shouldDisableXOJITPreviews(platformName: platformName, sdk: sdk) {
                         return false
                     }
@@ -4298,10 +4256,7 @@ private class SettingsBuilder {
     private func getTargetTestingSwiftPluginFlags(_ scope: MacroEvaluationScope) -> [String] {
         // First, query settings extensions to see if they provide their own Swift testing flags.
         var flags: [String] = []
-        @preconcurrency @PluginExtensionSystemActor func settingsExtensions() -> [any SettingsBuilderExtensionPoint.ExtensionProtocol] {
-            core.pluginManager.extensions(of: SettingsBuilderExtensionPoint.self)
-        }
-        for settingsExtension in settingsExtensions() {
+        for settingsExtension in core.pluginManager.extensions(of: SettingsBuilderExtensionPoint.self) {
             flags.append(contentsOf: settingsExtension.getTargetTestingSwiftPluginFlags(scope, toolchainRegistry: core.toolchainRegistry, sdkRegistry: core.sdkRegistry, activeRunDestination: parameters.activeRunDestination, project: project))
         }
         guard flags.isEmpty else {
@@ -4484,10 +4439,7 @@ private class SettingsBuilder {
             warnings.append(contentsOf: overrides.warnings)
             errors.append(contentsOf: overrides.errors)
 
-            @preconcurrency @PluginExtensionSystemActor func settingsExtensions() -> [any SettingsBuilderExtensionPoint.ExtensionProtocol] {
-                core.pluginManager.extensions(of: SettingsBuilderExtensionPoint.self)
-            }
-            for settingsExtension in settingsExtensions() {
+            for settingsExtension in core.pluginManager.extensions(of: SettingsBuilderExtensionPoint.self) {
                 let overrides = settingsExtension.overridingBuildSettings(createScope(sdkToUse: baseSDK), platform: specLookupContext.platform, productType: productType)
                 pushTable(.exported) {
                     $0.pushContentsOf(createTableFromUserSettings(overrides))

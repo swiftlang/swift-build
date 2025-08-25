@@ -16,7 +16,7 @@ import Foundation
 import SWBTaskConstruction
 import SWBTaskExecution
 
-@PluginExtensionSystemActor public func initializePlugin(_ manager: PluginManager) {
+@PluginExtensionSystemActor public func initializePlugin(_ manager: MutablePluginManager) {
     manager.register(UniversalPlatformSpecsExtension(), type: SpecificationsExtensionPoint.self)
     manager.register(UniversalPlatformTaskProducerExtension(), type: TaskProducerExtensionPoint.self)
     manager.register(UniversalPlatformTaskActionExtension(), type: TaskActionExtensionPoint.self)

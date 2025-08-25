@@ -1446,3 +1446,10 @@ extension FileDescriptor {
         return result
     }
 }
+
+extension FileManager {
+    fileprivate func attributesOfItem(atPath path: String) throws -> [FileAttributeKey: any Sendable] {
+        let attributes: [FileAttributeKey: Any] = try attributesOfItem(atPath: path)
+        return (attributes as NSDictionary) as! [FileAttributeKey: any Sendable]
+    }
+}

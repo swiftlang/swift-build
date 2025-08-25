@@ -40,9 +40,9 @@ public final class Core: Sendable {
     /// Get a configured instance of the core.
     ///
     /// - returns: An initialized Core instance on which all discovery and loading will have been completed. If there are errors during that process, they will be logged to `stderr` and no instance will be returned. Otherwise, the initialized object is returned.
-    public static func getInitializedCore(_ delegate: any CoreDelegate, pluginManager: PluginManager, developerPath: DeveloperPath? = nil, resourceSearchPaths: [Path] = [], inferiorProductsPath: Path? = nil, extraPluginRegistration: @PluginExtensionSystemActor (_ pluginPaths: [Path]) -> Void = { _ in }, additionalContentPaths: [Path] = [], environment: [String:String] = [:], buildServiceModTime: Date, connectionMode: ServiceHostConnectionMode) async -> Core? {
+    public static func getInitializedCore(_ delegate: any CoreDelegate, pluginManager: MutablePluginManager, developerPath: DeveloperPath? = nil, resourceSearchPaths: [Path] = [], inferiorProductsPath: Path? = nil, extraPluginRegistration: @PluginExtensionSystemActor (_ pluginManager: MutablePluginManager, _ pluginPaths: [Path]) -> Void = { _, _ in }, additionalContentPaths: [Path] = [], environment: [String:String] = [:], buildServiceModTime: Date, connectionMode: ServiceHostConnectionMode) async -> Core? {
         // Enable macro expression interning during loading.
-        return await MacroNamespace.withExpressionInterningEnabled {
+        return await MacroNamespace.withExpressionInterningEnabled { () -> Core? in
             let hostOperatingSystem: OperatingSystem
             do {
                 hostOperatingSystem = try ProcessInfo.processInfo.hostOperatingSystem()
@@ -56,7 +56,7 @@ public final class Core: Sendable {
             // Load specs from service plugins if requested since we don't have a Service in certain tests
             // Here we don't have access to `core.pluginPaths` like we do in the call below,
             // but it doesn't matter because it will return an empty array when USE_STATIC_PLUGIN_INITIALIZATION is defined.
-            await extraPluginRegistration([])
+            await extraPluginRegistration(pluginManager, [])
             #endif
 
             let resolvedDeveloperPath: DeveloperPath
@@ -83,20 +83,20 @@ public final class Core: Sendable {
 
             let core: Core
             do {
-                core = try await Core(delegate: delegate, hostOperatingSystem: hostOperatingSystem, pluginManager: pluginManager, developerPath: resolvedDeveloperPath, resourceSearchPaths: resourceSearchPaths, inferiorProductsPath: inferiorProductsPath, additionalContentPaths: additionalContentPaths, environment: environment, buildServiceModTime: buildServiceModTime, connectionMode: connectionMode)
+                core = try await Core(delegate: delegate, hostOperatingSystem: hostOperatingSystem, pluginManager: pluginManager.finalize(), developerPath: resolvedDeveloperPath, resourceSearchPaths: resourceSearchPaths, inferiorProductsPath: inferiorProductsPath, additionalContentPaths: additionalContentPaths, environment: environment, buildServiceModTime: buildServiceModTime, connectionMode: connectionMode)
             } catch {
                 delegate.error("\(error)")
                 return nil
             }
 
             if UserDefaults.enablePluginManagerLogging {
-                let plugins = await core.pluginManager.pluginsByIdentifier
+                let plugins = core.pluginManager.pluginsByIdentifier
                 delegate.emit(Diagnostic(behavior: .note, location: .unknown, data: DiagnosticData("Loaded \(plugins.count) plugins"), childDiagnostics: plugins.sorted(byKey: <).map { (identifier, plugin) in
                     Diagnostic(behavior: .note, location: .path(plugin.path), data: DiagnosticData("Loaded plugin: \(identifier) from \(plugin.path.str)"))
                 }))
             }
 
-            for diagnostic in await core.pluginManager.loadingDiagnostics {
+            for diagnostic in core.pluginManager.loadingDiagnostics {
                 // Only emit "severe" diagnostics (warning, error) from the plugin manager if the logging dwrite isn't set.
                 if UserDefaults.enablePluginManagerLogging || [.error, .warning].contains(diagnostic.behavior) {
                     delegate.emit(diagnostic)
@@ -106,7 +106,7 @@ public final class Core: Sendable {
             #if !USE_STATIC_PLUGIN_INITIALIZATION
             // In a package context, plugins are statically linked into the build system.
             // Load specs from service plugins if requested since we don't have a Service in certain tests
-            await extraPluginRegistration(core.pluginPaths)
+            await extraPluginRegistration(core.pluginManager, core.pluginPaths)
             #endif
 
             await core.initializeSpecRegistry()
@@ -167,7 +167,7 @@ public final class Core: Sendable {
     /// The host operating system.
     public let hostOperatingSystem: OperatingSystem
 
-    public let pluginManager: PluginManager
+    public let pluginManager: any PluginManager
 
     public enum DeveloperPath: Sendable, Hashable {
         // A path to an Xcode install's "/Contents/Developer" directory
@@ -220,7 +220,7 @@ public final class Core: Sendable {
 
     public let connectionMode: ServiceHostConnectionMode
 
-    @_spi(Testing) public init(delegate: any CoreDelegate, hostOperatingSystem: OperatingSystem, pluginManager: PluginManager, developerPath: DeveloperPath, resourceSearchPaths: [Path], inferiorProductsPath: Path?, additionalContentPaths: [Path], environment: [String:String], buildServiceModTime: Date, connectionMode: ServiceHostConnectionMode) async throws {
+    @_spi(Testing) public init(delegate: any CoreDelegate, hostOperatingSystem: OperatingSystem, pluginManager: any PluginManager, developerPath: DeveloperPath, resourceSearchPaths: [Path], inferiorProductsPath: Path?, additionalContentPaths: [Path], environment: [String:String], buildServiceModTime: Date, connectionMode: ServiceHostConnectionMode) async throws {
         self.delegate = delegate
         self.hostOperatingSystem = hostOperatingSystem
         self.pluginManager = pluginManager
@@ -739,7 +739,7 @@ struct CoreRegistryDelegate : PlatformRegistryDelegate, SDKRegistryDelegate, Spe
         return specRegistry.internalMacroNamespace
     }
 
-    var pluginManager: PluginManager {
+    var pluginManager: any PluginManager {
         core.pluginManager
     }
 

@@ -20,7 +20,7 @@ public import SWBMacro
     /// The namespace to parse macros into.
     var namespace: MacroNamespace { get }
 
-    var pluginManager: PluginManager { get }
+    var pluginManager: any PluginManager { get }
 
     var platformRegistry: PlatformRegistry? { get }
 }
@@ -32,23 +32,20 @@ public final class SDK: Sendable {
         public let suffix: String?
     }
 
-    private static func supportedSDKCanonicalNameSuffixes(pluginManager: PluginManager) -> Set<String> {
-        @preconcurrency @PluginExtensionSystemActor func extensions() -> [any SDKRegistryExtensionPoint.ExtensionProtocol] {
-            pluginManager.extensions(of: SDKRegistryExtensionPoint.self)
-        }
+    private static func supportedSDKCanonicalNameSuffixes(registry: SDKRegistry) -> Set<String> {
         var suffixes: Set<String> = []
-        for `extension` in extensions() {
+        for `extension` in registry.extensions {
             suffixes.formUnion(`extension`.supportedSDKCanonicalNameSuffixes)
         }
         return suffixes
     }
 
     /// Returns the component pieces of a given `canonicalName` for an SDK. Returns `nil` if the string is does not match the canonical name format.
-    @_spi(Testing) public static func parseSDKName(_ sdkCanonicalName: String, pluginManager: PluginManager) throws -> CanonicalNameComponents {
+    @_spi(Testing) public static func parseSDKName(_ sdkCanonicalName: String, registry: SDKRegistry) throws -> CanonicalNameComponents {
         // Remove the suffix, if there is one.
         var baseAndVersion = sdkCanonicalName
         var suffix: String? = nil
-        for supportedSuffix in Self.supportedSDKCanonicalNameSuffixes(pluginManager: pluginManager).sorted() {
+        for supportedSuffix in Self.supportedSDKCanonicalNameSuffixes(registry: registry).sorted() {
             // Some SDKs use the dot for suffixes and some do not, so both are supported.
             if sdkCanonicalName.hasSuffix(".\(supportedSuffix)") {
                 baseAndVersion = sdkCanonicalName.withoutSuffix(".\(supportedSuffix)")
@@ -591,9 +588,11 @@ public final class SDKRegistry: SDKRegistryLookup, CustomStringConvertible, Send
 
     private func parseSDKName(_ canonicalName: String) throws -> SDK.CanonicalNameComponents {
         try parsedSDKNames.getOrInsert(canonicalName) {
-            Result { try SDK.parseSDKName(canonicalName, pluginManager: delegate.pluginManager) }
+            Result { try SDK.parseSDKName(canonicalName, registry: self) }
         }.get()
     }
+
+    public let extensions: [any SDKRegistryExtension]
 
     /// The boot system SDK.
     //
@@ -606,6 +605,8 @@ public final class SDKRegistry: SDKRegistryLookup, CustomStringConvertible, Send
         self.delegate = delegate
         self.type = type
         self.hostOperatingSystem = hostOperatingSystem
+
+        extensions = delegate.pluginManager.extensions(of: SDKRegistryExtensionPoint.self)
 
         for (path, platform) in searchPaths {
             registerSDKsInDirectory(path, platform)
@@ -989,10 +990,6 @@ public final class SDKRegistry: SDKRegistryLookup, CustomStringConvertible, Send
             return nil
         }
 
-        @preconcurrency @PluginExtensionSystemActor func extensions() -> [any SDKRegistryExtensionPoint.ExtensionProtocol] {
-            delegate.pluginManager.extensions(of: SDKRegistryExtensionPoint.self)
-        }
-
         // Construct the SDK and add it to the registry.
         let sdk = SDK(canonicalName, canonicalNameComponents: try? parseSDKName(canonicalName), aliases, cohortPlatforms, displayName, path, version, productBuildVersion, defaultSettings, overrideSettings, variants, defaultDeploymentTarget, defaultVariant, (headerSearchPaths, frameworkSearchPaths, librarySearchPaths), directoryMacros.elements, isBaseSDK, fallbackSettingConditionValues, toolchains, versionMap, maximumDeploymentTarget)
         if let duplicate = sdksByCanonicalName[canonicalName] {
@@ -1237,11 +1234,8 @@ public final class SDKRegistry: SDKRegistryLookup, CustomStringConvertible, Send
     }
 
     func supportedSDKCanonicalNameSuffixes() -> Set<String> {
-        @preconcurrency @PluginExtensionSystemActor func extensions() -> [any SDKRegistryExtensionPoint.ExtensionProtocol] {
-            delegate.pluginManager.extensions(of: SDKRegistryExtensionPoint.self)
-        }
         var suffixes: Set<String> = []
-        for `extension` in extensions() {
+        for `extension` in extensions {
             suffixes.formUnion(`extension`.supportedSDKCanonicalNameSuffixes)
         }
         return suffixes

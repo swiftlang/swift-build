@@ -41,13 +41,13 @@ extension Core {
             developerPath = .swiftToolchain(.root, xcodeDeveloperPath: nil)
         }
         let delegate = TestingCoreDelegate()
-        return await (try Core(delegate: delegate, hostOperatingSystem: hostOperatingSystem, pluginManager: PluginManager(skipLoadingPluginIdentifiers: []), developerPath: developerPath, resourceSearchPaths: [], inferiorProductsPath: nil, additionalContentPaths: [], environment: [:], buildServiceModTime: Date(), connectionMode: .inProcess), delegate.diagnostics)
+        return await (try Core(delegate: delegate, hostOperatingSystem: hostOperatingSystem, pluginManager: MutablePluginManager(skipLoadingPluginIdentifiers: []).finalize(), developerPath: developerPath, resourceSearchPaths: [], inferiorProductsPath: nil, additionalContentPaths: [], environment: [:], buildServiceModTime: Date(), connectionMode: .inProcess), delegate.diagnostics)
     }
 
     /// Get an initialized Core suitable for testing.
     ///
     /// This function requires there to be no errors during loading the core.
-    package static func createInitializedTestingCore(skipLoadingPluginsNamed: Set<String>, registerExtraPlugins: @PluginExtensionSystemActor (PluginManager) -> Void, simulatedInferiorProductsPath: Path? = nil, environment: [String:String] = [:], delegate: TestingCoreDelegate? = nil, configurationDelegate: TestingCoreConfigurationDelegate? = nil) async throws -> Core {
+    package static func createInitializedTestingCore(skipLoadingPluginsNamed: Set<String>, registerExtraPlugins: @PluginExtensionSystemActor (MutablePluginManager) -> Void, simulatedInferiorProductsPath: Path? = nil, environment: [String:String] = [:], delegate: TestingCoreDelegate? = nil, configurationDelegate: TestingCoreConfigurationDelegate? = nil) async throws -> Core {
         // When this code is being loaded directly via unit tests, find the running Xcode path.
         //
         // This is a "well known" launch parameter set in Xcode's schemes.
@@ -115,9 +115,9 @@ extension Core {
             additionalContentPaths.append(simulatedInferiorProductsPath)
         }
 
-        let pluginManager = await PluginManager(skipLoadingPluginIdentifiers: skipLoadingPluginsNamed)
+        let pluginManager = await MutablePluginManager(skipLoadingPluginIdentifiers: skipLoadingPluginsNamed)
 
-        @PluginExtensionSystemActor func extraPluginRegistration(pluginPaths: [Path]) {
+        @PluginExtensionSystemActor func extraPluginRegistration(pluginManager: MutablePluginManager, pluginPaths: [Path]) {
             pluginManager.registerExtensionPoint(SpecificationsExtensionPoint())
             pluginManager.registerExtensionPoint(SettingsBuilderExtensionPoint())
             pluginManager.registerExtensionPoint(SDKRegistryExtensionPoint())

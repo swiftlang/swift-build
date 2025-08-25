@@ -96,10 +96,7 @@ struct SpecializationParameters: Hashable, CustomStringConvertible {
             BuiltinMacros.TOOLCHAINS.name,
             BuiltinMacros.SWIFT_ENABLE_COMPILE_CACHE.name,
         ]
-        @preconcurrency @PluginExtensionSystemActor func sdkVariantInfoExtensions() -> [any SDKVariantInfoExtensionPoint.ExtensionProtocol] {
-            core.pluginManager.extensions(of: SDKVariantInfoExtensionPoint.self)
-        }
-        for sdkVariantInfoExtension in sdkVariantInfoExtensions() {
+        for sdkVariantInfoExtension in core.pluginManager.extensions(of: SDKVariantInfoExtensionPoint.self) {
             macros.formUnion(sdkVariantInfoExtension.supportsMacCatalystMacroNames)
         }
         return macros

@@ -11,15 +11,16 @@
 //===----------------------------------------------------------------------===//
 
 import SWBLibc
+import Synchronization
 
 /// A threadsafe mapping of hashable keys to values.  Unlike a Dictionary, which has independent lookup and insertion operations, a registry has an atomic lookup-or-insert operation that takes a constructor block, which is called only if the key isn't already in the registry.  The block is guaranteed to be called only once, even if multiple threads lookup-or-insert the same key at the same time (this allows it to have side effects without needing additional checking).  Unlike a Cache, a Registry never discards entries based on memory pressure.  Unlike a LazyCache, the value creation block is provided for each call and not just once per instance.
 // FIXME: We should consider whether we should combine Cache, LazyCache, and Registry, possibly with per-instance options for things like whether background deletion is allowed, whether a value creator block is guaranteed to run only once, etc.  At the moment, the various clients in Swift Build depend on the semantics of the various utility types they use.
-public final class Registry<K: Hashable, V>: KeyValueStorage {
+public final class Registry<K: Hashable & Sendable, V: Sendable>: KeyValueStorage {
     public typealias Key = K
     public typealias Value = V
 
     /// Underlying dictionary, which is accessed only while holding the lock.
-    private let dict = LockedValue<Dictionary<K, V>>([:])
+    private let dict = SWBMutex<Dictionary<K, V>>([:])
 
     /// Public initializer of a new, empty registry.
     public init() {
