@@ -111,7 +111,7 @@ fileprivate struct SwiftCompilationCachingTests: CoreBasedTests {
                     numCompile += tasks.count
                 }
 
-                results.checkNote("0 hits / 4 cacheable tasks (0%)")
+                results.checkNote("0 hits / \(numCompile) cacheable tasks (0%)")
 
                 results.checkNoTask()
             }
@@ -119,7 +119,7 @@ fileprivate struct SwiftCompilationCachingTests: CoreBasedTests {
 
             // touch a file, clean build folder, and rebuild.
             try await tester.fs.updateTimestamp(testWorkspace.sourceRoot.join("aProject/App.swift"))
-            try await tester.checkBuild(runDestination: .macOS, buildCommand: .cleanBuildFolder(style: .regular), body: { _ in })
+            try await tester.checkBuild(runDestination: .anyiOSDevice, buildCommand: .cleanBuildFolder(style: .regular), body: { _ in })
 
             tester.userInfo = rawUserInfo.withAdditionalEnvironment(environment: metricsEnv("two"))
             try await tester.checkBuild(runDestination: .anyiOSDevice, persistent: true) { results in
@@ -127,13 +127,13 @@ fileprivate struct SwiftCompilationCachingTests: CoreBasedTests {
                     results.checkKeyQueryCacheHit(task)
                 }
 
-                results.checkNote("4 hits / 4 cacheable tasks (100%)")
+                results.checkNote("\(numCompile) hits / \(numCompile) cacheable tasks (100%)")
             }
             #expect(try readMetrics("two").contains("\"swiftCacheHits\":\(numCompile),\"swiftCacheMisses\":0"))
         }
     }
 
-    @Test(.requireSDKs(.iOS))
+    @Test(.requireSDKs(.macOS))
     func swiftCachingSwiftPM() async throws {
         try await withTemporaryDirectory { tmpDirPath async throws -> Void in
             let commonBuildSettings = try await [
