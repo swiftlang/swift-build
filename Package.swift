@@ -209,7 +209,7 @@ let package = Package(
                 .product(name: "SystemPackage", package: "swift-system", condition: .when(platforms: [.linux, .openbsd, .android, .windows, .custom("freebsd")])),
             ],
             exclude: ["CMakeLists.txt"],
-            swiftSettings: swiftSettings(languageMode: .v5)),
+            swiftSettings: swiftSettings(languageMode: .v6)),
         .target(
             name: "SWBCAS",
             dependencies: ["SWBUtil", "SWBCSupport"],

@@ -18,7 +18,7 @@ import SWBMacro
 
 /// Delegate protocol used to report diagnostics.
 @_spi(Testing) public protocol ToolchainRegistryDelegate: DiagnosticProducingDelegate {
-    var pluginManager: PluginManager { get }
+    var pluginManager: any PluginManager { get }
     var platformRegistry: PlatformRegistry? { get }
 }
 
@@ -105,7 +105,7 @@ public final class Toolchain: Hashable, Sendable {
         self.testingLibraryPlatformNames = testingLibraryPlatformNames
     }
 
-    convenience init(path: Path, operatingSystem: OperatingSystem, fs: any FSProxy, pluginManager: PluginManager, platformRegistry: PlatformRegistry?) async throws {
+    convenience init(path: Path, operatingSystem: OperatingSystem, fs: any FSProxy, pluginManager: any PluginManager, platformRegistry: PlatformRegistry?) async throws {
         let data: PropertyListItem
 
         do {

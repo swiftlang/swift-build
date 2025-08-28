@@ -152,7 +152,7 @@ extension Process {
         }
     }
 
-    private static func _getOutput<T, U>(url: URL, arguments: [String], currentDirectoryURL: URL?, environment: Environment?, interruptible: Bool, setup: (Process) -> T, collect: (T) async throws -> U) async throws -> (exitStatus: Processes.ExitStatus, output: U) {
+    private static func _getOutput<T, U>(url: URL, arguments: [String], currentDirectoryURL: URL?, environment: Environment?, interruptible: Bool, setup: (Process) -> T, collect: @Sendable (T) async throws -> U) async throws -> (exitStatus: Processes.ExitStatus, output: U) {
         let executableFilePath = try url.standardizedFileURL.filePath
 
         let process = Process()

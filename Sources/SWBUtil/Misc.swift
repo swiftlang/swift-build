@@ -84,11 +84,11 @@ public struct FILETextOutputStream: TextOutputStream {
     }
 
     public static var stdout: Self {
-        .init(SWBLibc.stdout)
+        .init(SWBLibc.swb_stdout())
     }
 
     public static var stderr: Self {
-        .init(SWBLibc.stderr)
+        .init(SWBLibc.swb_stderr())
     }
 }
 

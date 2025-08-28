@@ -1005,9 +1005,9 @@ import SWBMacro
 
             final class TestDataDelegate : SDKRegistryDelegate {
                 let namespace: MacroNamespace
-                let pluginManager: PluginManager
+                let pluginManager: any PluginManager
                 private let _diagnosticsEngine = DiagnosticsEngine()
-                init(_ namespace: MacroNamespace, pluginManager: PluginManager) {
+                init(_ namespace: MacroNamespace, pluginManager: any PluginManager) {
                     self.namespace = namespace
                     self.pluginManager = pluginManager
                 }
@@ -2450,9 +2450,9 @@ import SWBMacro
             }
             final class TestDataDelegate : SDKRegistryDelegate {
                 let namespace: MacroNamespace
-                let pluginManager: PluginManager
+                let pluginManager: any PluginManager
                 private let _diagnosticsEngine = DiagnosticsEngine()
-                init(_ namespace: MacroNamespace, pluginManager: PluginManager) {
+                init(_ namespace: MacroNamespace, pluginManager: any PluginManager) {
                     self.namespace = namespace
                     self.pluginManager = pluginManager
                 }

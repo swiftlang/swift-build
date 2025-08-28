@@ -67,7 +67,7 @@ import SWBMacro
 
         init(namespace: MacroNamespace? = nil) async {
             self.internalMacroNamespace = namespace ?? MacroNamespace(parent: BuiltinMacros.namespace, debugDescription: "spec loading tests")
-            specRegistry = await SpecRegistry(PluginManager(skipLoadingPluginIdentifiers: []), MockSpecRegistryDelegate(_diagnosticsEngine), [])
+            specRegistry = await SpecRegistry(MutablePluginManager(skipLoadingPluginIdentifiers: []).finalize(), MockSpecRegistryDelegate(_diagnosticsEngine), [])
         }
     }
 

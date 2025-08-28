@@ -18,3 +18,16 @@ int swb_clibc_anchor(void);
 int swb_clibc_anchor(void) {
     return 0;
 }
+
+#include <stdio.h>
+
+extern FILE * const swb_stdout();
+extern FILE * const swb_stderr();
+
+FILE * const swb_stdout() {
+    return stdout;
+}
+
+FILE * const swb_stderr() {
+    return stderr;
+}

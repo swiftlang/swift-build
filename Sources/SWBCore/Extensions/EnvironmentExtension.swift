@@ -22,7 +22,7 @@ public struct EnvironmentExtensionPoint: ExtensionPoint {
 
     // MARK: - actual extension point
 
-    public static func additionalEnvironmentVariables(pluginManager: PluginManager, context: any EnvironmentExtensionAdditionalEnvironmentVariablesContext) async throws -> [String: String] {
+    public static func additionalEnvironmentVariables(pluginManager: any PluginManager, context: any EnvironmentExtensionAdditionalEnvironmentVariablesContext) async throws -> [String: String] {
         var env: [String: String] = [:]
         for ext in pluginManager.extensions(of: Self.self) {
             try await env.merge(ext.additionalEnvironmentVariables(context: context), uniquingKeysWith: { _, new in new })
