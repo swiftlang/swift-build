@@ -318,6 +318,19 @@ public final class ClangCompileTaskAction: TaskAction, BuildValueValidatingTaskA
                         outputDelegate.emitOutput("Failed frontend command:\n")
                         outputDelegate.emitOutput(ByteString(encodingAsUTF8: commandString) + "\n")
                     }
+
+                    if case .some(.failed) = lastResult, case .some(.exit(.uncaughtSignal, _)) = outputDelegate.result {
+                        do {
+                            if let reproducerMessage = try clangModuleDependencyGraph.generateReproducer(
+                                    forFailedDependency: dependencyInfo,
+                                    libclangPath: explicitModulesPayload.libclangPath,
+                                    casOptions: explicitModulesPayload.casOptions) {
+                                outputDelegate.emitOutput(ByteString(encodingAsUTF8: reproducerMessage) + "\n")
+                            }
+                        } catch {
+                            outputDelegate.error(error.localizedDescription)
+                        }
+                    }
                     return lastResult ?? .failed
                 }
             }
