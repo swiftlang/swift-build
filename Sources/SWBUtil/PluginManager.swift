@@ -221,3 +221,13 @@ private final class ImmutablePluginManager: Sendable, PluginManager {
         }
     }
 }
+
+public typealias PluginInitializationFunction = @Sendable @PluginExtensionSystemActor (_ manager: MutablePluginManager) -> ()
+
+public var useStaticPluginInitialization: Bool {
+    #if USE_STATIC_PLUGIN_INITIALIZATION
+    true
+    #else
+    false
+    #endif
+}

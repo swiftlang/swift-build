@@ -140,29 +140,29 @@ extension Core {
                 pluginManager.load(at: path)
             }
 
+            let staticPluginInitializers: [String: PluginInitializationFunction]
+
+            // This MUST be a compile-time check because the module dependencies on the plugins are conditional.
+            // Minimize the amount of code that is conditionally compiled to avoid breaking the build during refactoring.
             #if USE_STATIC_PLUGIN_INITIALIZATION
-            if !skipLoadingPluginsNamed.contains("com.apple.dt.SWBAndroidPlatformPlugin") {
-                SWBAndroidPlatform.initializePlugin(pluginManager)
-            }
-            if !skipLoadingPluginsNamed.contains("com.apple.dt.SWBApplePlatformPlugin") {
-                SWBApplePlatform.initializePlugin(pluginManager)
-            }
-            if !skipLoadingPluginsNamed.contains("com.apple.dt.SWBGenericUnixPlatformPlugin") {
-                SWBGenericUnixPlatform.initializePlugin(pluginManager)
-            }
-            if !skipLoadingPluginsNamed.contains("com.apple.dt.SWBQNXPlatformPlugin") {
-                SWBQNXPlatform.initializePlugin(pluginManager)
-            }
-            if !skipLoadingPluginsNamed.contains("com.apple.dt.SWBUniversalPlatformPlugin") {
-                SWBUniversalPlatform.initializePlugin(pluginManager)
-            }
-            if !skipLoadingPluginsNamed.contains("com.apple.dt.SWBWebAssemblyPlatformPlugin") {
-                SWBWebAssemblyPlatform.initializePlugin(pluginManager)
-            }
-            if !skipLoadingPluginsNamed.contains("com.apple.dt.SWBWindowsPlatformPlugin") {
-                SWBWindowsPlatform.initializePlugin(pluginManager)
-            }
+            staticPluginInitializers = [
+                "Android": SWBAndroidPlatform.initializePlugin,
+                "Apple": SWBApplePlatform.initializePlugin,
+                "GenericUnix": SWBGenericUnixPlatform.initializePlugin,
+                "QNX": SWBQNXPlatform.initializePlugin,
+                "Universal": SWBUniversalPlatform.initializePlugin,
+                "WebAssembly": SWBWebAssemblyPlatform.initializePlugin,
+                "Windows": SWBWindowsPlatform.initializePlugin,
+            ]
+            #else
+            staticPluginInitializers = [:]
             #endif
+
+            if useStaticPluginInitialization {
+                for (infix, initializer) in staticPluginInitializers where !skipLoadingPluginsNamed.contains("com.apple.dt.SWB\(infix)PlatformPlugin") {
+                    initializer(pluginManager)
+                }
+            }
 
             registerExtraPlugins(pluginManager)
         }

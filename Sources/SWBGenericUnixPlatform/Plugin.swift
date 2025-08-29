@@ -14,7 +14,7 @@ public import SWBUtil
 import SWBCore
 import Foundation
 
-@PluginExtensionSystemActor public func initializePlugin(_ manager: MutablePluginManager) {
+public let initializePlugin: PluginInitializationFunction = { manager in
     let plugin = GenericUnixPlugin()
     manager.register(GenericUnixDeveloperDirectoryExtension(), type: DeveloperDirectoryExtensionPoint.self)
     manager.register(GenericUnixPlatformSpecsExtension(), type: SpecificationsExtensionPoint.self)

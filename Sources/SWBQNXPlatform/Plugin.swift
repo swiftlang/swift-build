@@ -15,7 +15,7 @@ import SWBCore
 import SWBMacro
 import Foundation
 
-@PluginExtensionSystemActor public func initializePlugin(_ manager: MutablePluginManager) {
+public let initializePlugin: PluginInitializationFunction = { manager in
     let plugin = QNXPlugin()
     manager.register(QNXPlatformSpecsExtension(), type: SpecificationsExtensionPoint.self)
     manager.register(QNXEnvironmentExtension(plugin: plugin), type: EnvironmentExtensionPoint.self)
