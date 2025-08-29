@@ -51,13 +51,13 @@ public final class Core: Sendable {
                 return nil
             }
 
-            #if USE_STATIC_PLUGIN_INITIALIZATION
-            // In a package context, plugins are statically linked into the build system.
-            // Load specs from service plugins if requested since we don't have a Service in certain tests
-            // Here we don't have access to `core.pluginPaths` like we do in the call below,
-            // but it doesn't matter because it will return an empty array when USE_STATIC_PLUGIN_INITIALIZATION is defined.
-            await extraPluginRegistration(pluginManager, [])
-            #endif
+            if useStaticPluginInitialization {
+                // In a package context, plugins are statically linked into the build system.
+                // Load specs from service plugins if requested since we don't have a Service in certain tests
+                // Here we don't have access to `core.pluginPaths` like we do in the call below,
+                // but it doesn't matter because `core.pluginPaths` will return an empty array when USE_STATIC_PLUGIN_INITIALIZATION is defined.
+                await extraPluginRegistration(pluginManager, [])
+            }
 
             let resolvedDeveloperPath: DeveloperPath
             do {
@@ -81,6 +81,12 @@ public final class Core: Sendable {
                 return nil
             }
 
+            if !useStaticPluginInitialization {
+                // In a package context, plugins are statically linked into the build system.
+                // Load specs from service plugins if requested since we don't have a Service in certain tests.
+                await extraPluginRegistration(pluginManager, Self.pluginPaths(inferiorProductsPath: inferiorProductsPath, developerPath: resolvedDeveloperPath))
+            }
+
             let core: Core
             do {
                 core = try await Core(delegate: delegate, hostOperatingSystem: hostOperatingSystem, pluginManager: pluginManager.finalize(), developerPath: resolvedDeveloperPath, resourceSearchPaths: resourceSearchPaths, inferiorProductsPath: inferiorProductsPath, additionalContentPaths: additionalContentPaths, environment: environment, buildServiceModTime: buildServiceModTime, connectionMode: connectionMode)
@@ -102,12 +108,6 @@ public final class Core: Sendable {
                     delegate.emit(diagnostic)
                 }
             }
-
-            #if !USE_STATIC_PLUGIN_INITIALIZATION
-            // In a package context, plugins are statically linked into the build system.
-            // Load specs from service plugins if requested since we don't have a Service in certain tests
-            await extraPluginRegistration(core.pluginManager, core.pluginPaths)
-            #endif
 
             await core.initializeSpecRegistry()
 
@@ -313,11 +313,11 @@ public final class Core: Sendable {
     }()
 
     /// The list of plugin search paths.
-    @_spi(Testing) public lazy var pluginPaths: [Path] = {
-        #if USE_STATIC_PLUGIN_INITIALIZATION
-        // In a package context, plugins are statically linked into the build system.
-        return []
-        #else
+    private static func pluginPaths(inferiorProductsPath: Path?, developerPath: DeveloperPath) -> [Path] {
+        if useStaticPluginInitialization {
+            // In a package context, plugins are statically linked into the build system.
+            return []
+        }
 
         var result = [Path]()
 
@@ -325,7 +325,7 @@ public final class Core: Sendable {
         //
         // FIXME: This is error prone, as it won't validate that any of these are installed in the expected location.
         // FIXME: If we remove, move or rename something in the built Xcode, then this will still find the old item in the installed Xcode.
-        if let inferiorProductsPath = self.inferiorProductsPath {
+        if let inferiorProductsPath {
             result.append(inferiorProductsPath)
         }
 
@@ -359,8 +359,7 @@ public final class Core: Sendable {
         }
 
         return result.map { $0.normalize() }
-        #endif
-    }()
+    }
 
     /// The list of SDK search paths.
     @_spi(Testing) public lazy var sdkPaths: [(Path, Platform?)] = {
