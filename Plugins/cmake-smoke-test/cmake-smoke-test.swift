@@ -37,11 +37,11 @@ struct CMakeSmokeTest: CommandPlugin {
         let extraCMakeArgs = args.extractOption(named: "extra-cmake-arg")
         Diagnostics.progress("Extra cmake args: \(extraCMakeArgs.joined(separator: " "))")
 
-        let moduleCachePath = context.pluginWorkDirectoryURL.appending(component: "module-cache").path()
+        let moduleCachePath = try context.pluginWorkDirectoryURL.appending(component: "module-cache").filePath
 
         let swiftBuildURL = context.package.directoryURL
         let swiftBuildBuildURL = context.pluginWorkDirectoryURL.appending(component: "swift-build")
-        Diagnostics.progress("swift-build: \(swiftBuildURL.path())")
+        try Diagnostics.progress("swift-build: \(swiftBuildURL.filePath)")
 
         let swiftToolsSupportCoreURL = try findDependency("swift-tools-support-core", pluginContext: context)
         let swiftToolsSupportCoreBuildURL = context.pluginWorkDirectoryURL.appending(component: "swift-tools-support-core")
@@ -70,12 +70,12 @@ struct CMakeSmokeTest: CommandPlugin {
             sharedSwiftFlags += ["-sdk", sysrootPath]
         }
 
-        let cMakeProjectArgs = [
-            "-DArgumentParser_DIR=\(swiftArgumentParserBuildURL.appending(components: "cmake", "modules").path())",
-            "-DLLBuild_DIR=\(llbuildBuildURL.appending(components: "cmake", "modules").path())",
-            "-DTSC_DIR=\(swiftToolsSupportCoreBuildURL.appending(components: "cmake", "modules").path())",
-            "-DSwiftDriver_DIR=\(swiftDriverBuildURL.appending(components: "cmake", "modules").path())",
-            "-DSwiftSystem_DIR=\(swiftSystemBuildURL.appending(components: "cmake", "modules").path())"
+        let cMakeProjectArgs = try [
+            "-DArgumentParser_DIR=\(swiftArgumentParserBuildURL.appending(components: "cmake", "modules").filePath)",
+            "-DLLBuild_DIR=\(llbuildBuildURL.appending(components: "cmake", "modules").filePath)",
+            "-DTSC_DIR=\(swiftToolsSupportCoreBuildURL.appending(components: "cmake", "modules").filePath)",
+            "-DSwiftDriver_DIR=\(swiftDriverBuildURL.appending(components: "cmake", "modules").filePath)",
+            "-DSwiftSystem_DIR=\(swiftSystemBuildURL.appending(components: "cmake", "modules").filePath)"
         ]
 
         let sharedCMakeArgs = [
@@ -86,34 +86,34 @@ struct CMakeSmokeTest: CommandPlugin {
         ] + cMakeProjectArgs + extraCMakeArgs
 
         Diagnostics.progress("Building swift-tools-support-core")
-        try await Process.checkNonZeroExit(url: cmakeURL, arguments: sharedCMakeArgs + [swiftToolsSupportCoreURL.path()], workingDirectory: swiftToolsSupportCoreBuildURL)
+        try await Process.checkNonZeroExit(url: cmakeURL, arguments: sharedCMakeArgs + [swiftToolsSupportCoreURL.filePath], workingDirectory: swiftToolsSupportCoreBuildURL)
         try await Process.checkNonZeroExit(url: ninjaURL, arguments: [], workingDirectory: swiftToolsSupportCoreBuildURL)
         Diagnostics.progress("Built swift-tools-support-core")
 
         if hostOS != .macOS {
             Diagnostics.progress("Building swift-system")
-            try await Process.checkNonZeroExit(url: cmakeURL, arguments: sharedCMakeArgs + [swiftSystemURL.path()], workingDirectory: swiftSystemBuildURL)
+            try await Process.checkNonZeroExit(url: cmakeURL, arguments: sharedCMakeArgs + [swiftSystemURL.filePath], workingDirectory: swiftSystemBuildURL)
             try await Process.checkNonZeroExit(url: ninjaURL, arguments: [], workingDirectory: swiftSystemBuildURL)
             Diagnostics.progress("Built swift-system")
         }
 
         Diagnostics.progress("Building llbuild")
-        try await Process.checkNonZeroExit(url: cmakeURL, arguments: sharedCMakeArgs + ["-DLLBUILD_SUPPORT_BINDINGS:=Swift", llbuildURL.path()], workingDirectory: llbuildBuildURL)
+        try await Process.checkNonZeroExit(url: cmakeURL, arguments: sharedCMakeArgs + ["-DLLBUILD_SUPPORT_BINDINGS:=Swift", llbuildURL.filePath], workingDirectory: llbuildBuildURL)
         try await Process.checkNonZeroExit(url: ninjaURL, arguments: [], workingDirectory: llbuildBuildURL)
         Diagnostics.progress("Built llbuild")
 
         Diagnostics.progress("Building swift-argument-parser")
-        try await Process.checkNonZeroExit(url: cmakeURL, arguments: sharedCMakeArgs + ["-DBUILD_TESTING=NO", "-DBUILD_EXAMPLES=NO", swiftArgumentParserURL.path()], workingDirectory: swiftArgumentParserBuildURL)
+        try await Process.checkNonZeroExit(url: cmakeURL, arguments: sharedCMakeArgs + ["-DBUILD_TESTING=NO", "-DBUILD_EXAMPLES=NO", swiftArgumentParserURL.filePath], workingDirectory: swiftArgumentParserBuildURL)
         try await Process.checkNonZeroExit(url: ninjaURL, arguments: [], workingDirectory: swiftArgumentParserBuildURL)
         Diagnostics.progress("Built swift-argument-parser")
 
         Diagnostics.progress("Building swift-driver")
-        try await Process.checkNonZeroExit(url: cmakeURL, arguments: sharedCMakeArgs + [swiftDriverURL.path()], workingDirectory: swiftDriverBuildURL)
+        try await Process.checkNonZeroExit(url: cmakeURL, arguments: sharedCMakeArgs + [swiftDriverURL.filePath], workingDirectory: swiftDriverBuildURL)
         try await Process.checkNonZeroExit(url: ninjaURL, arguments: [], workingDirectory: swiftDriverBuildURL)
         Diagnostics.progress("Built swift-driver")
 
         Diagnostics.progress("Building swift-build in \(swiftBuildBuildURL)")
-        try await Process.checkNonZeroExit(url: cmakeURL, arguments: sharedCMakeArgs + [swiftBuildURL.path()], workingDirectory: swiftBuildBuildURL)
+        try await Process.checkNonZeroExit(url: cmakeURL, arguments: sharedCMakeArgs + [swiftBuildURL.filePath], workingDirectory: swiftBuildBuildURL)
         try await Process.checkNonZeroExit(url: ninjaURL, arguments: [], workingDirectory: swiftBuildBuildURL)
         Diagnostics.progress("Built swift-build")
     }
@@ -135,9 +135,10 @@ struct CMakeSmokeTest: CommandPlugin {
             throw Errors.missingRepository(name)
         }
         let dependencyURL = dependency.directoryURL
-        Diagnostics.progress("\(name): \(dependencyURL.path())")
-        guard FileManager.default.fileExists(atPath: dependencyURL.path()) else {
-            throw Errors.missingRepository(dependencyURL.path())
+        let dependencyFilePath = try dependencyURL.filePath
+        Diagnostics.progress("\(name): \(dependencyFilePath)")
+        guard FileManager.default.fileExists(atPath: dependencyFilePath) else {
+            throw Errors.missingRepository(dependencyFilePath)
         }
         return dependencyURL
     }
@@ -169,6 +170,19 @@ enum OS {
     }
 }
 
+extension URL {
+    var filePath: String {
+        get throws {
+            try withUnsafeFileSystemRepresentation { path in
+                guard let path else {
+                    throw Errors.miscError("cannot get file path for URL: \(self)")
+                }
+                return String(cString: path)
+            }
+        }
+    }
+}
+
 extension Process {
     func run() async throws {
         try await withCheckedThrowingContinuation { continuation in
@@ -186,8 +200,8 @@ extension Process {
     }
 
     static func checkNonZeroExit(url: URL, arguments: [String], workingDirectory: URL, environment: [String: String]? = nil) async throws {
-        Diagnostics.progress("\(url.path()) \(arguments.joined(separator: " "))")
-        #if USE_PROCESS_SPAWNING_WORKAROUND
+        try Diagnostics.progress("\(url.filePath) \(arguments.joined(separator: " "))")
+        #if USE_PROCESS_SPAWNING_WORKAROUND && !os(Windows)
         Diagnostics.progress("Using process spawning workaround")
         // Linux workaround for https://github.com/swiftlang/swift-corelibs-foundation/issues/4772
         // Foundation.Process on Linux seems to inherit the Process.run()-calling thread's signal mask, creating processes that even have SIGTERM blocked
@@ -197,7 +211,7 @@ extension Process {
         var attrs: posix_spawnattr_t = posix_spawnattr_t()
         defer { posix_spawnattr_destroy(&attrs) }
         posix_spawn_file_actions_init(&fileActions)
-        posix_spawn_file_actions_addchdir_np(&fileActions, workingDirectory.path())
+        try posix_spawn_file_actions_addchdir_np(&fileActions, workingDirectory.filePath)
 
         posix_spawnattr_init(&attrs)
         posix_spawnattr_setpgroup(&attrs, 0)
@@ -216,9 +230,9 @@ extension Process {
         posix_spawnattr_setsigdefault(&attrs, &mostSignals)
         posix_spawnattr_setflags(&attrs, numericCast(POSIX_SPAWN_SETPGROUP | POSIX_SPAWN_SETSIGDEF | POSIX_SPAWN_SETSIGMASK))
         var pid: pid_t = -1
-        try withArrayOfCStrings([url.path()] + arguments) { arguments in
+        try withArrayOfCStrings([url.filePath] + arguments) { arguments in
             try withArrayOfCStrings((environment ?? [:]).map { key, value in "\(key)=\(value)" }) { environment in
-                let spawnResult = posix_spawn(&pid, url.path(), /*file_actions=*/&fileActions, /*attrp=*/&attrs, arguments, nil);
+                let spawnResult = try posix_spawn(&pid, url.filePath, /*file_actions=*/&fileActions, /*attrp=*/&attrs, arguments, nil);
                 var exitCode: Int32 = -1
                 var result = wait4(pid, &exitCode, 0, nil);
                 while (result == -1 && errno == EINTR) {
@@ -246,6 +260,7 @@ extension Process {
     }
 }
 
+#if USE_PROCESS_SPAWNING_WORKAROUND && !os(Windows)
 func scan<S: Sequence, U>(_ seq: S, _ initial: U, _ combine: (U, S.Element) -> U) -> [U] {
   var result: [U] = []
   result.reserveCapacity(seq.underestimatedCount)
@@ -283,3 +298,4 @@ func withArrayOfCStrings<T>(
     }
   }
 }
+#endif
