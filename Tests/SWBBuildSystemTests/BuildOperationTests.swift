@@ -2474,7 +2474,7 @@ That command depends on command in Target 'agg2' (project \'aProject\'): script 
     }
 
     /// Check non-UTF8 encoded shell scripts don't cause any unexpected issues.
-    @Test(.requireSDKs(.host), .skipHostOS(.windows), .requireSystemPackages(apt: "xxd", yum: "vim-common"))
+    @Test(.requireSDKs(.host), .skipHostOS(.windows), .requireSystemPackages(apt: "xxd", yum: "vim-common", freebsd: "xxd", openbsd: "vim"))
     func nonUTF8ShellScript() async throws {
         try await withTemporaryDirectory { tmpDir in
             let testWorkspace = TestWorkspace(
