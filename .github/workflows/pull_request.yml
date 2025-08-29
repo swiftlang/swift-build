@@ -29,7 +29,10 @@ jobs:
       linux_pre_build_command: SKIP_ANDROID=1 INSTALL_CMAKE=1 ./.github/scripts/linux_pre_build.sh
       linux_build_command: 'swift package -Xbuild-tools-swiftc -DUSE_PROCESS_SPAWNING_WORKAROUND cmake-smoke-test --disable-sandbox --cmake-path `which cmake` --ninja-path `which ninja` --extra-cmake-arg -DCMAKE_C_COMPILER=`which clang` --extra-cmake-arg -DCMAKE_CXX_COMPILER=`which clang++` --extra-cmake-arg -DCMAKE_Swift_COMPILER=`which swiftc`'
       linux_swift_versions: '["nightly-main"]'
-      windows_swift_versions: '[]'
+      windows_pre_build_command: 'Invoke-Program .\.github\scripts\windows_pre_build.ps1 -SkipAndroid -InstallCMake'
+      windows_swift_versions: '["nightly-main"]'
+      windows_build_command: 'Invoke-Program swift package cmake-smoke-test --disable-sandbox --cmake-path (Get-Command cmake).Path --ninja-path (Get-Command ninja).Path --extra-cmake-arg "-DCMAKE_C_COMPILER=$((Get-Command clang).Path)" --extra-cmake-arg "-DCMAKE_CXX_COMPILER=$((Get-Command clang).Path)" --extra-cmake-arg "-DCMAKE_Swift_COMPILER=$((Get-Command swiftc).Path)" --extra-cmake-arg "-DCMAKE_STATIC_LIBRARY_PREFIX_Swift=lib" --extra-cmake-arg "-DCMAKE_MSVC_RUNTIME_LIBRARY=MultiThreadedDLL"'
+
   soundness:
     name: Soundness
     uses: swiftlang/github-workflows/.github/workflows/soundness.yml@main
