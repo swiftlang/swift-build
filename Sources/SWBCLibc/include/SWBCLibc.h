@@ -10,11 +10,6 @@
 //
 //===----------------------------------------------------------------------===//
 
-#include <stdio.h>
-
-extern FILE * const swb_stdout();
-extern FILE * const swb_stderr();
-
 #if defined(__linux__) && !defined(__ANDROID__)
 #include <fcntl.h>
 #include <fnmatch.h>
