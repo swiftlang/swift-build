@@ -49,12 +49,6 @@ struct SwiftTargetInfo: Decodable {
     let target: TargetInfo
 }
 
-extension SwiftTargetInfo.TargetInfo {
-    var tripleVersion: String? {
-        triple != unversionedTriple && triple.system.hasPrefix(unversionedTriple.system) ? String(triple.system.dropFirst(unversionedTriple.system.count)).nilIfEmpty : nil
-    }
-}
-
 struct GenericUnixDeveloperDirectoryExtension: DeveloperDirectoryExtension {
     func fallbackDeveloperDirectory(hostOperatingSystem: OperatingSystem) async throws -> Core.DeveloperPath? {
         if hostOperatingSystem == .windows || hostOperatingSystem == .macOS {
@@ -82,13 +76,12 @@ struct GenericUnixPlatformSpecsExtension: SpecificationsExtension {
 
 struct GenericUnixPlatformInfoExtension: PlatformInfoExtension {
     func additionalPlatforms(context: any PlatformInfoExtensionAdditionalPlatformsContext) throws -> [(path: Path, data: [String: PropertyListItem])] {
-        let operatingSystem = context.hostOperatingSystem
-        guard operatingSystem.createFallbackSystemToolchain else {
-            return []
-        }
-
-        return try [
-            (.root, [
+        return try OperatingSystem.createFallbackSystemToolchains.compactMap { operatingSystem in
+            // Only create platforms if the host OS allows a fallback toolchain, or we're cross compiling.
+            guard operatingSystem.createFallbackSystemToolchain || operatingSystem != context.hostOperatingSystem else {
+                return nil
+            }
+            return try (.root, [
                 "Type": .plString("Platform"),
                 "Name": .plString(operatingSystem.xcodePlatformName),
                 "Identifier": .plString(operatingSystem.xcodePlatformName),
@@ -97,7 +90,7 @@ struct GenericUnixPlatformInfoExtension: PlatformInfoExtension {
                 "FamilyIdentifier": .plString(operatingSystem.xcodePlatformName),
                 "IsDeploymentPlatform": .plString("YES"),
             ])
-        ]
+        }
     }
 }
 
@@ -105,70 +98,148 @@ struct GenericUnixSDKRegistryExtension: SDKRegistryExtension {
     let plugin: GenericUnixPlugin
 
     func additionalSDKs(context: any SDKRegistryExtensionAdditionalSDKsContext) async throws -> [(path: Path, platform: SWBCore.Platform?, data: [String: PropertyListItem])] {
-        let operatingSystem = context.hostOperatingSystem
-        guard operatingSystem.createFallbackSystemToolchain, let platform = try context.platformRegistry.lookup(name: operatingSystem.xcodePlatformName), let swift = plugin.swiftExecutablePath(fs: context.fs) else {
-            return []
-        }
-
-        let defaultProperties: [String: PropertyListItem]
-        switch operatingSystem {
-        case .linux, .freebsd:
-            defaultProperties = [
-                // Workaround to avoid `-dependency_info`.
-                "LD_DEPENDENCY_INFO_FILE": .plString(""),
-
-                "GENERATE_TEXT_BASED_STUBS": "NO",
-                "GENERATE_INTERMEDIATE_TEXT_BASED_STUBS": "NO",
-
-                "CHOWN": "/usr/bin/chown",
-                "AR": "llvm-ar",
-            ]
-        default:
-            defaultProperties = [:]
-        }
-
-        let tripleEnvironment: String
-        switch operatingSystem {
-        case .linux:
-            tripleEnvironment = "gnu"
-        default:
-            tripleEnvironment = ""
-        }
-
-        let swiftTargetInfo = try await plugin.swiftTargetInfo(swiftExecutablePath: swift)
-
-        let deploymentTargetSettings: [String: PropertyListItem]
-        if operatingSystem == .freebsd {
-            guard let tripleVersion = swiftTargetInfo.target.tripleVersion else {
-                throw StubError.error("Unknown FreeBSD triple version")
+        return try await OperatingSystem.createFallbackSystemToolchains.asyncMap { operatingSystem in
+            // Only create SDKs if the host OS allows a fallback toolchain, or we're cross compiling.
+            guard operatingSystem.createFallbackSystemToolchain || operatingSystem != context.hostOperatingSystem else {
+                return nil
             }
-            deploymentTargetSettings = [
-                "DeploymentTargetSettingName": .plString("FREEBSD_DEPLOYMENT_TARGET"),
-                "DefaultDeploymentTarget": .plString(tripleVersion),
-                "MinimumDeploymentTarget": .plString(tripleVersion),
-                "MaximumDeploymentTarget": .plString(tripleVersion),
-            ]
-        } else {
-            deploymentTargetSettings = [:]
-        }
 
-        return try [(.root, platform, [
-            "Type": .plString("SDK"),
-            "Version": .plString(Version(ProcessInfo.processInfo.operatingSystemVersion).zeroTrimmed.description),
-            "CanonicalName": .plString(operatingSystem.xcodePlatformName),
-            "IsBaseSDK": .plBool(true),
-            "DefaultProperties": .plDict([
-                "PLATFORM_NAME": .plString(operatingSystem.xcodePlatformName),
-            ].merging(defaultProperties, uniquingKeysWith: { _, new in new })),
-            "SupportedTargets": .plDict([
-                operatingSystem.xcodePlatformName: .plDict([
-                    "Archs": .plArray([.plString(Architecture.hostStringValue ?? "unknown")]),
-                    "LLVMTargetTripleEnvironment": .plString(tripleEnvironment),
-                    "LLVMTargetTripleSys": .plString(operatingSystem.xcodePlatformName),
-                    "LLVMTargetTripleVendor": .plString("unknown"),
-                ].merging(deploymentTargetSettings, uniquingKeysWith: { _, new in new }))
-            ]),
-        ])]
+            // Don't create any SDKs for the platform if the platform itself isn't registered.
+            guard let platform = try context.platformRegistry.lookup(name: operatingSystem.xcodePlatformName) else {
+                return nil
+            }
+
+            var defaultProperties: [String: PropertyListItem]
+            switch operatingSystem {
+            case .linux, .freebsd:
+                defaultProperties = [
+                    // Workaround to avoid `-dependency_info`.
+                    "LD_DEPENDENCY_INFO_FILE": .plString(""),
+
+                    "GENERATE_TEXT_BASED_STUBS": "NO",
+                    "GENERATE_INTERMEDIATE_TEXT_BASED_STUBS": "NO",
+
+                    "CHOWN": "/usr/bin/chown",
+                    "AR": "llvm-ar",
+                ]
+            default:
+                defaultProperties = [:]
+            }
+
+            if operatingSystem == .freebsd || operatingSystem != context.hostOperatingSystem {
+                // FreeBSD is always LLVM-based, and if we're cross-compiling, use lld
+                defaultProperties["ALTERNATE_LINKER"] = "lld"
+            }
+
+            let tripleEnvironment: String
+            switch operatingSystem {
+            case .linux:
+                tripleEnvironment = "gnu"
+            default:
+                tripleEnvironment = ""
+            }
+
+            let swiftSDK: SwiftSDK?
+            let sysroot: Path
+            let architectures: [String]
+            let tripleVersion: String?
+            let customProperties: [String: PropertyListItem]
+            if operatingSystem == context.hostOperatingSystem {
+                swiftSDK = nil
+                sysroot = .root
+                architectures = [Architecture.hostStringValue ?? "unknown"]
+                tripleVersion = nil
+                customProperties = [:]
+            } else {
+                do {
+                    let swiftSDKs = try SwiftSDK.findSDKs(
+                        targetTriples: nil,
+                        fs: context.fs,
+                        hostOperatingSystem: context.hostOperatingSystem
+                    ).filter { sdk in
+                        try sdk.targetTriples.keys.map {
+                            try LLVMTriple($0)
+                        }.contains {
+                            switch operatingSystem {
+                            case .linux:
+                                $0.system == "linux" && $0.environment?.hasPrefix("gnu") == true
+                            case .freebsd:
+                                $0.system == "freebsd"
+                            case .openbsd:
+                                $0.system == "openbsd"
+                            default:
+                                throw StubError.error("Unhandled operating system: \(operatingSystem)")
+                            }
+                        }
+                    }
+                    // FIXME: Do something better than just skipping the platform if more than one SDK matches
+                    swiftSDK = swiftSDKs.only
+                    guard let swiftSDK else {
+                        return nil
+                    }
+                    sysroot = swiftSDK.path
+                    architectures = try swiftSDK.targetTriples.keys.map { try LLVMTriple($0).arch }.sorted()
+                    tripleVersion = try Set(swiftSDK.targetTriples.keys.compactMap { try LLVMTriple($0).systemVersion }).only?.description
+                    customProperties = try Dictionary(uniqueKeysWithValues: swiftSDK.targetTriples.map { targetTriple in
+                        try ("__SYSROOT_\(LLVMTriple(targetTriple.key).arch)", .plString(swiftSDK.path.join(targetTriple.value.sdkRootPath).str))
+                    }).merging([
+                        "SYSROOT": "$(__SYSROOT_$(CURRENT_ARCH))",
+
+                        // ld.lld: error: -r and --export-dynamic (-rdynamic) may not be used together
+                        "LD_EXPORT_GLOBAL_SYMBOLS": "YES",
+                    ], uniquingKeysWith: { _, new in new })
+                } catch {
+                    // FIXME: Handle errors?
+                    return nil
+                }
+            }
+
+            let deploymentTargetSettings: [String: PropertyListItem]
+            if operatingSystem == .freebsd {
+                let realTripleVersion: String
+                if context.hostOperatingSystem == operatingSystem {
+                    guard let swift = plugin.swiftExecutablePath(fs: context.fs) else {
+                        throw StubError.error("Cannot locate swift executable path for determining the FreeBSD triple version")
+                    }
+                    let swiftTargetInfo = try await plugin.swiftTargetInfo(swiftExecutablePath: swift)
+                    guard let foundTripleVersion = try swiftTargetInfo.target.triple.version?.description else {
+                        throw StubError.error("Unknown FreeBSD triple version")
+                    }
+                    realTripleVersion = foundTripleVersion
+                } else if let tripleVersion {
+                    realTripleVersion = tripleVersion
+                } else {
+                    return nil // couldn't compute triple version for FreeBSD
+                }
+                deploymentTargetSettings = [
+                    "DeploymentTargetSettingName": .plString("FREEBSD_DEPLOYMENT_TARGET"),
+                    "DefaultDeploymentTarget": .plString(realTripleVersion),
+                    "MinimumDeploymentTarget": .plString(realTripleVersion),
+                    "MaximumDeploymentTarget": .plString(realTripleVersion),
+                ]
+            } else {
+                deploymentTargetSettings = [:]
+            }
+
+            return try (sysroot, platform, [
+                "Type": .plString("SDK"),
+                "Version": .plString(Version(ProcessInfo.processInfo.operatingSystemVersion).zeroTrimmed.description),
+                "CanonicalName": .plString(operatingSystem.xcodePlatformName),
+                "IsBaseSDK": .plBool(true),
+                "DefaultProperties": .plDict([
+                    "PLATFORM_NAME": .plString(operatingSystem.xcodePlatformName),
+                ].merging(defaultProperties, uniquingKeysWith: { _, new in new })),
+                "CustomProperties": .plDict(customProperties),
+                "SupportedTargets": .plDict([
+                    operatingSystem.xcodePlatformName: .plDict([
+                        "Archs": .plArray(architectures.map { .plString($0) }),
+                        "LLVMTargetTripleEnvironment": .plString(tripleEnvironment),
+                        "LLVMTargetTripleSys": .plString(operatingSystem.xcodePlatformName),
+                        "LLVMTargetTripleVendor": .plString("unknown"),
+                    ].merging(deploymentTargetSettings, uniquingKeysWith: { _, new in new }))
+                ]),
+            ])
+        }.compactMap { $0 }
     }
 }
 
@@ -218,8 +289,12 @@ struct GenericUnixToolchainRegistryExtension: ToolchainRegistryExtension {
 }
 
 extension OperatingSystem {
+    static var createFallbackSystemToolchains: [OperatingSystem] {
+        [.linux, .freebsd, .openbsd]
+    }
+
     /// Whether the Core is allowed to create a fallback toolchain, SDK, and platform for this operating system in cases where no others have been provided.
-    var createFallbackSystemToolchain: Bool {
-        return self == .linux || self == .freebsd || self == .openbsd
+    fileprivate var createFallbackSystemToolchain: Bool {
+        return Self.createFallbackSystemToolchains.contains(self)
     }
 }
