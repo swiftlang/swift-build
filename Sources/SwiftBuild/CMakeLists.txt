@@ -31,6 +31,7 @@ add_library(SwiftBuild
   ProjectModel/TargetDependency.swift
   ProjectModel/Targets.swift
   SWBBuildAction.swift
+  SWBBuildDescriptionID.swift
   SWBBuildOperation.swift
   SWBBuildOperationBacktraceFrame.swift
   SWBBuildParameters.swift
@@ -41,6 +42,9 @@ add_library(SwiftBuild
   SWBBuildServiceSession.swift
   SWBChannel.swift
   SWBClientExchangeSupport.swift
+  SWBConfiguredTargetGUID.swift
+  SWBConfiguredTargetInfo.swift
+  SWBConfiguredTargetSourceFilesInfo.swift
   SWBDocumentationSupport.swift
   SWBIndexingSupport.swift
   SWBLocalizationSupport.swift
@@ -49,6 +53,7 @@ add_library(SwiftBuild
   SWBProductPlannerSupport.swift
   SWBPropertyList.swift
   SWBProvisioningTaskInputs.swift
+  SWBSourceLanguage.swift
   SWBSystemInfo.swift
   SWBTargetGUID.swift
   SWBTerminal.swift

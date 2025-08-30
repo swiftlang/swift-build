@@ -93,7 +93,7 @@ public struct ClangPrefixInfo: Serializable, Hashable, Encodable, Sendable {
 }
 
 /// The minimal data we need to serialize to reconstruct `ClangSourceFileIndexingInfo` from `generateIndexingInfo`
-fileprivate struct ClangIndexingPayload: Serializable, Encodable, Sendable {
+public struct ClangIndexingPayload: Serializable, Encodable, Sendable {
     let sourceFileIndex: Int
     let outputFileIndex: Int
     let sourceLanguageIndex: Int
@@ -101,7 +101,7 @@ fileprivate struct ClangIndexingPayload: Serializable, Encodable, Sendable {
     let assetSymbolIndexPath: Path
     let workingDir: Path
     let prefixInfo: ClangPrefixInfo?
-    let toolchains: [String]
+    public let toolchains: [String]
     let responseFileAttachmentPaths: [Path: Path]
 
     init(sourceFileIndex: Int,
@@ -128,7 +128,7 @@ fileprivate struct ClangIndexingPayload: Serializable, Encodable, Sendable {
         return Path(task.commandLine[self.sourceFileIndex].asString)
     }
 
-    func serialize<T: Serializer>(to serializer: T) {
+    public func serialize<T: Serializer>(to serializer: T) {
         serializer.serializeAggregate(9) {
             serializer.serialize(sourceFileIndex)
             serializer.serialize(outputFileIndex)
@@ -142,7 +142,7 @@ fileprivate struct ClangIndexingPayload: Serializable, Encodable, Sendable {
         }
     }
 
-    init(from deserializer: any Deserializer) throws {
+    public init(from deserializer: any Deserializer) throws {
         try deserializer.beginAggregate(9)
         self.sourceFileIndex = try deserializer.deserialize()
         self.outputFileIndex = try deserializer.deserialize()
@@ -165,6 +165,19 @@ public struct ClangSourceFileIndexingInfo: SourceFileIndexingInfo {
     let assetSymbolIndexPath: Path
     let prefixInfo: ClangPrefixInfo?
     let toolchains: [String]
+    public var compilerArguments: [String]? {
+        var result = commandLine.map { $0.asString }
+        // commandLine does not contain the `-index-unit-output-path` but we want to return it from the
+        // `IndexBuildSettingsRequest`, so add it.
+        if !result.contains(where: { $0 == "-o" || $0 == "-index-unit-output-path" }), let indexOutputFile {
+            result += ["-index-unit-output-path", indexOutputFile]
+        }
+        return result
+    }
+    public var indexOutputFile: String? { outputFile.str }
+    public var language: IndexingInfoLanguage? {
+        return IndexingInfoLanguage(compilerArgumentLanguage: sourceLanguage)
+    }
 
     init(outputFile: Path, sourceLanguage: ByteString, commandLine: [ByteString], builtProductsDir: Path, assetSymbolIndexPath: Path, prefixInfo: ClangPrefixInfo?, toolchains: [String]) {
         self.outputFile = outputFile
@@ -280,6 +293,7 @@ public struct ClangSourceFileIndexingInfo: SourceFileIndexingInfo {
 extension OutputPathIndexingInfo {
     fileprivate init(task: any ExecutableTask, payload: ClangIndexingPayload) {
         self.outputFile = Path(task.commandLine[payload.outputFileIndex].asString)
+        self.language = IndexingInfoLanguage(compilerArgumentLanguage: task.commandLine[payload.sourceLanguageIndex].asByteString)
     }
 }
 
@@ -422,7 +436,7 @@ public struct ClangTaskPayload: ClangModuleVerifierPayloadType, DependencyInfoEd
     public let serializedDiagnosticsPath: Path?
 
     /// Additional information used to answer indexing queries.  Not all clang tasks will need to provide indexing info (for example, precompilation tasks don't).
-    fileprivate let indexingPayload: ClangIndexingPayload?
+    public let indexingPayload: ClangIndexingPayload?
 
     /// Additional information used by explicit modules support.
     public let explicitModulesPayload: ClangExplicitModulesPayload?
@@ -2119,4 +2133,16 @@ public final class ClangModuleVerifierSpec: ClangCompilerSpec, SpecImplementatio
 
 private func ==(lhs: ClangCompilerSpec.DataCache.ConstantFlagsKey, rhs: ClangCompilerSpec.DataCache.ConstantFlagsKey) -> Bool {
     return ObjectIdentifier(lhs.scope) == ObjectIdentifier(rhs.scope) && lhs.inputFileType == rhs.inputFileType
+}
+
+private extension IndexingInfoLanguage {
+    init?(compilerArgumentLanguage: ByteString) {
+        switch compilerArgumentLanguage {
+        case "c": self = .c
+        case "c++": self = .cpp
+        case "objective-c": self = .objectiveC
+        case "objective-c++": self = .objectiveCpp
+        default: return nil
+        }
+    }
 }

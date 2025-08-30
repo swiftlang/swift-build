@@ -86,7 +86,7 @@ public enum BuildAction: String, Serializable, Codable, CaseIterable, Comparable
 }
 
 /// Opaque token used to uniquely identify a build description.
-public struct BuildDescriptionID: Hashable, Sendable {
+public struct BuildDescriptionID: Hashable, Sendable, SerializableCodable {
     public let rawValue: String
 
     public init(_ value: String) {

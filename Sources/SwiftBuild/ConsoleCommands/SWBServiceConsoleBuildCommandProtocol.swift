@@ -925,6 +925,17 @@ public struct AbsolutePath: Hashable, Equatable, Sendable {
         self.pathString = path
     }
 
+    init(_ path: Path) {
+        self.pathString = path.str
+    }
+
+    init?(_ path: Path?) {
+        guard let path else {
+            return nil
+        }
+        self.init(path)
+    }
+
     public static let root = try! AbsolutePath(validating: Path.root.str)
 }
 

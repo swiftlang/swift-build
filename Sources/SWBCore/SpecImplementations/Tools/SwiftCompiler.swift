@@ -95,7 +95,18 @@ public struct SwiftSourceFileIndexingInfo: SourceFileIndexingInfo {
     let builtProductsDir: Path
     let assetSymbolIndexPath: Path
     let toolchains: [String]
-    let outputFile: Path
+    public let outputFile: Path
+    public var compilerArguments: [String]? {
+        var result = commandLine.map { $0.asString }
+        // commandLine does not contain the `-index-unit-output-path` but we want to return it from the
+        // `IndexBuildSettingsRequest`, so add it.
+        if !result.contains(where: { $0 == "-o" || $0 == "-index-unit-output-path" }), let indexOutputFile {
+            result += ["-index-unit-output-path", indexOutputFile]
+        }
+        return result
+     }
+    public var indexOutputFile: String? { outputFile.str }
+    public var language: IndexingInfoLanguage? { .swift }
 
     public init(task: any ExecutableTask, payload: SwiftIndexingPayload, outputFile: Path, enableIndexBuildArena: Bool, integratedDriver: Bool) {
         self.commandLine = Self.indexingCommandLine(commandLine: task.commandLine.map(\.asByteString), payload: payload, enableIndexBuildArena: enableIndexBuildArena, integratedDriver: integratedDriver)
@@ -3267,7 +3278,7 @@ public final class SwiftCompilerSpec : CompilerSpec, SpecIdentifierType, SwiftDi
                                                                    objectFileDir: payload.indexingPayload.objectFileDir, fileExtension: ".o")
             let indexingInfo: any SourceFileIndexingInfo
             if input.outputPathOnly {
-                indexingInfo = OutputPathIndexingInfo(outputFile: outputFile)
+                indexingInfo = OutputPathIndexingInfo(outputFile: outputFile, language: .swift)
             } else {
                 indexingInfo = SwiftSourceFileIndexingInfo(task: task, payload: payload.indexingPayload, outputFile: outputFile, enableIndexBuildArena: input.enableIndexBuildArena, integratedDriver: payload.driverPayload != nil)
             }

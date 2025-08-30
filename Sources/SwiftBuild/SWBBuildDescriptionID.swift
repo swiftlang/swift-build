@@ -12,14 +12,21 @@
 
 import SWBProtocol
 
-public struct SWBTargetGUID: RawRepresentable, Hashable, Sendable {
-    public var rawValue: String
+/// Opaque token used to uniquely identify a build description.
+public struct SWBBuildDescriptionID: Hashable, Sendable {
+    public let rawValue: String
 
-    public init(rawValue: String) {
-        self.rawValue = rawValue
+    public init(_ value: String) {
+        self.rawValue = value
     }
 
-    init(_ guid: TargetGUID) {
-        self.init(rawValue: guid.rawValue)
+    init(_ buildDescriptionID: BuildDescriptionID) {
+        self.rawValue = buildDescriptionID.rawValue
+    }
+}
+
+extension BuildDescriptionID {
+    init(_ buildDescriptionID: SWBBuildDescriptionID) {
+        self.init(buildDescriptionID.rawValue)
     }
 }
