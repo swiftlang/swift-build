@@ -12,8 +12,8 @@
 
 import Foundation
 
-import SWBProtocol
-import SWBUtil
+public import SWBProtocol
+public import SWBUtil
 
 public enum SwiftBuildServicePIFObjectType: Sendable {
     case workspace
@@ -387,6 +387,36 @@ public final class SWBBuildServiceSession: Sendable {
         }
         return result
     }
+
+    public func configuredTargets(buildDescription: BuildDescriptionID, buildRequest: SWBBuildRequest) async throws -> [BuildDescriptionConfiguredTargetsResponse.ConfiguredTargetInfo] {
+        let response = try await service.send(request: BuildDescriptionConfiguredTargetsRequest(sessionHandle: uid, buildDescriptionID: buildDescription, request: buildRequest.messagePayloadRepresentation))
+        return response.configuredTargets
+    }
+
+    public func sources(of configuredTargets: [ConfiguredTargetGUID], buildDescription: BuildDescriptionID, buildRequest: SWBBuildRequest) async throws -> [BuildDescriptionConfiguredTargetSourcesResponse.ConfiguredTargetSourceFilesInfo] {
+        let response = try await service.send(
+            request: BuildDescriptionConfiguredTargetSourcesRequest(
+                sessionHandle: uid,
+                buildDescriptionID: buildDescription,
+                request: buildRequest.messagePayloadRepresentation,
+                configuredTargets: configuredTargets
+            )
+        )
+        return response.targetSourceFileInfos
+     }
+
+     public func indexCompilerArguments(of file: Path, in configuredTarget: ConfiguredTargetGUID, buildDescription: BuildDescriptionID, buildRequest: SWBBuildRequest) async throws -> [String] {
+        let buildSettings = try await service.send(
+            request: IndexBuildSettingsRequest(
+                sessionHandle: uid,
+                buildDescriptionID: buildDescription,
+                request: buildRequest.messagePayloadRepresentation,
+                configuredTarget: configuredTarget,
+                file: file
+            )
+        )
+        return buildSettings.compilerArguments
+     }
 
 
     // MARK: Macro evaluation

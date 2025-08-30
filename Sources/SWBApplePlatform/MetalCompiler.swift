@@ -20,6 +20,9 @@ struct MetalSourceFileIndexingInfo: SourceFileIndexingInfo {
     let commandLine: [ByteString]
     let builtProductsDir: Path
     let toolchains: [String]
+    var compilerArguments: [String]? { commandLine.map { $0.asString } }
+    var indexOutputFile: String? { outputFile.str }
+    public var language: IndexingInfoLanguage? { .metal }
 
     init(outputFile: Path, commandLine: [ByteString], builtProductsDir: Path, toolchains: [String]) {
         self.outputFile = outputFile
@@ -49,7 +52,7 @@ struct MetalSourceFileIndexingInfo: SourceFileIndexingInfo {
 
 extension OutputPathIndexingInfo {
     fileprivate init(task: any ExecutableTask, payload: MetalIndexingPayload) {
-        self.init(outputFile: Path(task.commandLine[payload.outputFileIndex].asString))
+        self.init(outputFile: Path(task.commandLine[payload.outputFileIndex].asString), language: .metal)
     }
 }
 
