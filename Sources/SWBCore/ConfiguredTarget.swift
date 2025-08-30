@@ -82,7 +82,7 @@ public final class ConfiguredTarget: Hashable, CustomStringConvertible, Serializ
     public struct GUID: Hashable, Sendable, Comparable, CustomStringConvertible {
         public let stringValue: String
 
-        fileprivate init(id: String) {
+        public init(id: String) {
             self.stringValue = id
         }
 

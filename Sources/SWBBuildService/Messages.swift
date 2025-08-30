@@ -1614,6 +1614,10 @@ package struct ServiceMessageHandlers: ServiceExtension {
         service.registerMessageHandler(ComputeDependencyGraphMsg.self)
         service.registerMessageHandler(DumpBuildDependencyInfoMsg.self)
         
+        service.registerMessageHandler(BuildDescriptionConfiguredTargetsMsg.self)
+        service.registerMessageHandler(BuildDescriptionConfiguredTargetSourcesMsg.self)
+        service.registerMessageHandler(IndexBuildSettingsMsg.self)
+
         service.registerMessageHandler(MacroEvaluationMsg.self)
         service.registerMessageHandler(AllExportedMacrosAndValuesMsg.self)
         service.registerMessageHandler(BuildSettingsEditorInfoMsg.self)

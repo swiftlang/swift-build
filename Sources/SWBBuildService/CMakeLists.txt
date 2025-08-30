@@ -10,6 +10,7 @@ See http://swift.org/CONTRIBUTORS.txt for Swift project authors
 
 add_library(SWBBuildService
   BuildDependencyInfo.swift
+  BuildDescriptionMessages.swift
   BuildOperationMessages.swift
   BuildService.swift
   BuildServiceEntryPoint.swift
