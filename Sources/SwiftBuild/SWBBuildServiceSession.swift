@@ -611,6 +611,19 @@ public final class SWBBuildServiceSession: Sendable {
         try await service.send(request: DeveloperPathRequest(sessionHandle: uid)).value
     }
 
+    public func preferredRunDestination(forPlatform platformName: String) async throws -> SWBRunDestinationInfo {
+        let runDestination = try await service.send(request: GetPlatformPreferredRunDestinationRequest(sessionHandle: uid, platform: platformName)).info
+        return SWBRunDestinationInfo(
+            platform: runDestination.platform,
+            sdk: runDestination.sdk,
+            sdkVariant: runDestination.sdkVariant,
+            targetArchitecture: runDestination.targetArchitecture,
+            supportedArchitectures: runDestination.supportedArchitectures.elements,
+            disableOnlyActiveArch: runDestination.disableOnlyActiveArch,
+            hostTargetedPlatform: runDestination.hostTargetedPlatform
+        )
+    }
+
     /// Set the session system information.
     public func setSystemInfo(_ systemInfo: SWBSystemInfo) async throws {
         _ = try await service.send(request: SetSessionSystemInfoRequest(sessionHandle: uid, operatingSystemVersion: Version(systemInfo.operatingSystemVersion), productBuildVersion: systemInfo.productBuildVersion, nativeArchitecture: systemInfo.nativeArchitecture))
