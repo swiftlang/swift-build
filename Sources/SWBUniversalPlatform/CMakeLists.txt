@@ -9,6 +9,7 @@ See http://swift.org/CONTRIBUTORS.txt for Swift project authors
 ]]
 
 add_library(SWBUniversalPlatform
+  BareMetal.swift
   CopyPlistFile.swift
   CopyStringsFile.swift
   CppTool.swift
