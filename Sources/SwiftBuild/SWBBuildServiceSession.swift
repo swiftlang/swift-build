@@ -12,7 +12,7 @@
 
 import Foundation
 
-import SWBProtocol
+public import SWBProtocol
 import SWBUtil
 
 public enum SwiftBuildServicePIFObjectType: Sendable {
@@ -580,6 +580,10 @@ public final class SWBBuildServiceSession: Sendable {
     /// Get the `DEVELOPER_DIR` path.
     public func developerPath() async throws -> String {
         try await service.send(request: DeveloperPathRequest(sessionHandle: uid)).value
+    }
+
+    public func preferredRunDestination(forPlatform platformName: String) async throws -> RunDestinationInfo? {
+        return try await service.send(request: GetPlatformPreferredRunDestinationRequest(sessionHandle: uid, platform: platformName)).info
     }
 
     /// Set the session system information.
