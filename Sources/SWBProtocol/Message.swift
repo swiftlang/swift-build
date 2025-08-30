@@ -1222,6 +1222,14 @@ public struct IPCMessage: Serializable, Sendable {
     /// Reverse name mapping.
     static let messageNameToID: [String: any Message.Type] = {
         var result = [String: any Message.Type]()
+        #if DEBUG
+        var seenMessageNames: Set<String> = []
+        for messageType in messageTypes {
+            if !seenMessageNames.insert(messageType.name).inserted {
+                assertionFailure("Multiple message types registered for same name: \(messageType.name)")
+            }
+        }
+        #endif
         for type in IPCMessage.messageTypes {
             result[type.name] = type
         }
