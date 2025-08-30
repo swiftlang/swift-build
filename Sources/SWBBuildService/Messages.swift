@@ -1528,6 +1528,25 @@ private struct ClearAllCaches: MessageHandler {
     }
 }
 
+private struct GetPlatformPreferredRunDestinationMsg: MessageHandler {
+    struct PlatformNotFoundError: Error, CustomStringConvertible {
+        let platform: String
+        var description: String { "Unknown platform '\(platform)'" }
+    }
+
+    func handle(request: Request, message: GetPlatformPreferredRunDestinationRequest) async throws -> GetPlatformPreferredRunDestinationResponse {
+        let session = try request.session(for: message)
+        guard let platform = session.core.platformRegistry.lookup(name: message.platform) else {
+            throw PlatformNotFoundError(platform: message.platform)
+        }
+        // All relevant platforms define a preferredArch, so the undefined_arch fallback case should never happen
+        // in practice, and indicates a serious issue occurred during plugin loading.
+        let targetArchitecture = platform.preferredArch ?? "undefined_arch"
+        let runDestination = RunDestinationInfo(platform: platform.name, sdk: platform.name, sdkVariant: nil, targetArchitecture: targetArchitecture, supportedArchitectures: [targetArchitecture], disableOnlyActiveArch: false, hostTargetedPlatform: nil)
+        return GetPlatformPreferredRunDestinationResponse(info: runDestination)
+    }
+}
+
 // MARK: ServiceExtension Support
 
 public struct ServiceSessionMessageHandlers: ServiceExtension {
@@ -1593,6 +1612,7 @@ package struct ServiceMessageHandlers: ServiceExtension {
         service.registerMessageHandler(GetStatisticsDumpMsg.self)
         service.registerMessageHandler(GetBuildSettingsDescriptionDumpMsg.self)
         service.registerMessageHandler(ExecuteCommandLineToolMsg.self)
+        service.registerMessageHandler(GetPlatformPreferredRunDestinationMsg.self)
 
         service.registerMessageHandler(CreateXCFrameworkHandler.self)
 

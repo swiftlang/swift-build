@@ -65,7 +65,7 @@ public struct PingRequest: RequestMessage, Equatable {
 
 public struct SetConfigItemRequest: RequestMessage, Equatable {
     public typealias ResponseMessage = VoidResponse
-    
+
     public static let name = "SET_CONFIG_ITEM"
 
     public let key: String
@@ -283,6 +283,33 @@ public struct GetBuildSettingsDescriptionRequest: SessionMessage, RequestMessage
         serializer.beginAggregate(2)
         serializer.serialize(self.sessionHandle)
         serializer.serialize(self.commandLine)
+    }
+}
+
+/// Get the preferred run destination for a given platform
+public struct GetPlatformPreferredRunDestinationRequest: SessionMessage, RequestMessage, Equatable, SerializableCodable {
+    public typealias ResponseMessage = GetPlatformPreferredRunDestinationResponse
+
+    public static let name = "GET_PLATFORM_PREFERRED_RUN_DESTINATION_REQUEST"
+
+    public let sessionHandle: String
+
+    /// The name of the platform to get the run destination for, eg. `macosx`, `iphoneos`, `iphonesimulator`
+    public let platform: String
+
+    public init(sessionHandle: String, platform: String) {
+        self.sessionHandle = sessionHandle
+        self.platform = platform
+    }
+}
+
+public struct GetPlatformPreferredRunDestinationResponse: Message, Equatable, SerializableCodable {
+    public static let name = "GET_PLATFORM_PREFERRED_RUN_DESTINATION_RESPONSE"
+
+    public let info: RunDestinationInfo
+
+    public init(info: RunDestinationInfo) {
+        self.info = info
     }
 }
 
@@ -1170,6 +1197,9 @@ public struct IPCMessage: Serializable, Sendable {
         GetToolchainsRequest.self,
         GetBuildSettingsDescriptionRequest.self,
         ExecuteCommandLineToolRequest.self,
+
+        GetPlatformPreferredRunDestinationRequest.self,
+        GetPlatformPreferredRunDestinationResponse.self,
 
         CreateSessionRequest.self,
         CreateSessionResponse.self,
