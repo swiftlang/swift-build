@@ -104,6 +104,7 @@ package struct MockCommandProducer: CommandProducer, Sendable {
         self.mkdirSpec = try getSpec("com.apple.tools.mkdir") as MkdirToolSpec
         self.swiftCompilerSpec = try getSpec() as SwiftCompilerSpec
         self.processSDKImportsSpec = try getSpec(ProcessSDKImportsSpec.identifier) as ProcessSDKImportsSpec
+        self.validateDependenciesSpec = try getSpec(ValidateDependenciesSpec.identifier) as ValidateDependenciesSpec
     }
 
     package let specDataCaches = Registry<Spec, any SpecDataCache>()
@@ -140,6 +141,7 @@ package struct MockCommandProducer: CommandProducer, Sendable {
     package let mkdirSpec: MkdirToolSpec
     package let swiftCompilerSpec: SwiftCompilerSpec
     package let processSDKImportsSpec: ProcessSDKImportsSpec
+    package let validateDependenciesSpec: ValidateDependenciesSpec
 
     package var defaultWorkingDirectory: Path {
         return Path("/tmp")
@@ -229,10 +231,6 @@ package struct MockCommandProducer: CommandProducer, Sendable {
         false
     }
 
-    package var supportsCompilationCaching: Bool {
-        false
-    }
-
     package var systemInfo: SystemInfo? {
         return nil
     }
@@ -241,5 +239,13 @@ package struct MockCommandProducer: CommandProducer, Sendable {
     }
     package func lookupPlatformInfo(platform: BuildVersion.Platform) -> (any PlatformInfoProvider)? {
         core.lookupPlatformInfo(platform: platform)
+    }
+
+    package var moduleDependenciesContext: SWBCore.ModuleDependenciesContext? {
+        nil
+    }
+
+    package var headerDependenciesContext: SWBCore.HeaderDependenciesContext? {
+        nil
     }
 }

@@ -23,7 +23,7 @@ public final class CodesignToolSpec : CommandLineToolSpec, SpecIdentifierType, @
             codesign = Path("/usr/bin/codesign")
         }
         if !codesign.isAbsolute {
-            codesign = resolveExecutablePath(cbc, codesign)
+            codesign = resolveExecutablePath(cbc.producer, codesign)
         }
         return codesign.str
     }
@@ -191,10 +191,8 @@ public final class CodesignToolSpec : CommandLineToolSpec, SpecIdentifierType, @
             commandLine.append(contentsOf: ["--launch-constraint-responsible", responsibleProcessLaunchConstraint.str])
         }
 
-        if cbc.producer.systemInfo?.operatingSystemVersion >= Version(14) {
-            if let libraryLoadConstraint = cbc.producer.signingSettings?.libraryConstraint {
-                commandLine.append(contentsOf: ["--library-constraint", libraryLoadConstraint.str])
-            }
+        if let libraryLoadConstraint = cbc.producer.signingSettings?.libraryConstraint {
+            commandLine.append(contentsOf: ["--library-constraint", libraryLoadConstraint.str])
         }
 
         // Add the path to the file to sign.

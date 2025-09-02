@@ -249,58 +249,25 @@ package final class SourcesTaskProducer: FilesBasedBuildPhaseTaskProducerBase, F
         super.init(context, buildPhase: sourcesBuildPhase, phaseStartNodes: phaseStartNodes, phaseEndNode: phaseEndNode, phaseEndTask: phaseEndTask)
     }
 
-    override func additionalBuildFiles(_ scope: MacroEvaluationScope) -> [BuildFile] {
-        var additionalBuildFiles = [BuildFile]()
-
-        // Both Asset Catalogs and String Catalogs need moved to the Sources phase to enable codegen.
-        // This isn't great but can be removed once we eliminate build phases.
+    override func additionalBuildFiles(_ scope: MacroEvaluationScope) async -> [BuildFile] {
+        // Some files might generate sources (e.g. generating symbols) and thus need to be in the Sources phase.
 
         let standardTarget = targetContext.configuredTarget?.target as? StandardTarget
-        let sourceFiles = standardTarget?.sourcesBuildPhase?.buildFiles.count ?? 0
+        let sourceFiles = standardTarget?.sourcesBuildPhase?.buildFiles ?? []
+        let resourceFiles = standardTarget?.resourcesBuildPhase?.buildFiles ?? []
 
-        if scope.evaluate(BuiltinMacros.ASSETCATALOG_COMPILER_GENERATE_ASSET_SYMBOLS) && (sourceFiles > 0) {
-            // Add xcassets to Compile Sources phase to enable codegen.
-            let catalogs = standardTarget?.resourcesBuildPhase?.buildFiles.filter { buildFile in
-                isAssetCatalog(scope: scope, buildFile: buildFile, context: targetContext, includeGenerated: true)
-            } ?? []
-            additionalBuildFiles.append(contentsOf: catalogs)
+        guard !sourceFiles.isEmpty && !resourceFiles.isEmpty else {
+            return []
         }
 
-        if scope.evaluate(BuiltinMacros.STRING_CATALOG_GENERATE_SYMBOLS) && (sourceFiles > 0) {
-            let allResources = standardTarget?.resourcesBuildPhase?.buildFiles ?? []
-            var stringCatalogs = [BuildFile]()
-            var stringTableNames = Set<String>()
-            var extraFiles = [BuildFile]()
-
-            // Add xcstrings to Compile Sources phase to enable codegen.
-            for buildFile in allResources {
-                if let fileRef = try? targetContext.resolveBuildFileReference(buildFile), fileRef.fileType.conformsTo(identifier: "text.json.xcstrings") {
-                    stringTableNames.insert(fileRef.absolutePath.basenameWithoutSuffix)
-                    stringCatalogs.append(buildFile)
-                }
-            }
-
-            // The xcstrings file grouping strategy also subsumes same-named .strings and .stringsdict files.
-            let stringsFileTypes = ["text.plist.strings", "text.plist.stringsdict"].map { context.lookupFileType(identifier: $0)! }
-            for buildFile in allResources {
-                if let fileRef = try? targetContext.resolveBuildFileReference(buildFile),
-                   fileRef.fileType.conformsToAny(stringsFileTypes),
-                   stringTableNames.contains(fileRef.absolutePath.basenameWithoutSuffix) {
-                    extraFiles.append(buildFile)
-                }
-            }
-
-            additionalBuildFiles.append(contentsOf: stringCatalogs + extraFiles)
-        }
-
-        return additionalBuildFiles
+        return await sourceGenerationInputFiles(from: resourceFiles, scope: scope)
     }
 
     override func additionalFilesToBuild(_ scope: MacroEvaluationScope) -> [FileToBuild] {
         var additionalFilesToBuild: [FileToBuild] = []
         let sourceFiles = (self.targetContext.configuredTarget?.target as? StandardTarget)?.sourcesBuildPhase?.buildFiles.count ?? 0
-        if scope.evaluate(BuiltinMacros.ASSETCATALOG_COMPILER_GENERATE_ASSET_SYMBOLS) && sourceFiles > 0 && scope.evaluate(BuiltinMacros.APP_PLAYGROUND_GENERATE_ASSET_CATALOG) {
-            // Add the generated xcassets if we're generating asset symbols since we'll be handling the other xcassets here as well.
+        if sourceFiles > 0 && scope.evaluate(BuiltinMacros.APP_PLAYGROUND_GENERATE_ASSET_CATALOG) {
+            // Add the generated xcassets since we'll be handling the other xcassets here as well.
             let assetCatalogToBeGenerated = scope.evaluate(BuiltinMacros.APP_PLAYGROUND_GENERATED_ASSET_CATALOG_FILE)
             additionalFilesToBuild.append(
                 FileToBuild(absolutePath: assetCatalogToBeGenerated, inferringTypeUsing: context)
@@ -349,11 +316,14 @@ package final class SourcesTaskProducer: FilesBasedBuildPhaseTaskProducerBase, F
     /// Returns `true` if the target which defines the settings in the given `scope` should generate a dSYM file.
     /// - remark: This method allows this task producer to ask this question about other targets by passing a `scope` for the target in question.
     private func shouldGenerateDSYM(_ scope: MacroEvaluationScope) -> Bool {
+        guard scope.evaluate(BuiltinMacros.PLATFORM_USES_DSYMS) else {
+            return false
+        }
         let dSYMForDebugInfo = scope.evaluate(BuiltinMacros.GCC_GENERATE_DEBUGGING_SYMBOLS) && scope.evaluate(BuiltinMacros.DEBUG_INFORMATION_FORMAT) == "dwarf-with-dsym"
         // When emitting remarks, for now, a dSYM is required (<rdar://problem/45458590>)
         let dSYMForRemarks = scope.evaluate(BuiltinMacros.CLANG_GENERATE_OPTIMIZATION_REMARKS)
         let dSYM = dSYMForDebugInfo || dSYMForRemarks
-        return dSYM && scope.evaluate(BuiltinMacros.MACH_O_TYPE) != "staticlib" && scope.evaluate(BuiltinMacros.MACH_O_TYPE) != "mh_object"
+        return dSYM && !["staticlib", "mh_object", "objectlib"].contains(scope.evaluate(BuiltinMacros.MACH_O_TYPE))
     }
 
     /// Computes and returns a list of libraries to include when linking.
@@ -684,6 +654,15 @@ package final class SourcesTaskProducer: FilesBasedBuildPhaseTaskProducerBase, F
                     xcframeworkSourcePath: xcframeworkPath,
                     privacyFile: nil
                 )
+            } else if fileType.conformsTo(identifier: "compiled.object-library") {
+                return LinkerSpec.LibrarySpecifier(
+                    kind: .objectLibrary,
+                    path: absolutePath,
+                    mode: .normal,
+                    useSearchPaths: false,
+                    swiftModulePaths: swiftModulePaths,
+                    swiftModuleAdditionalLinkerArgResponseFilePaths: swiftModuleAdditionalLinkerArgResponseFilePaths,
+                )
             } else {
                 // FIXME: Error handling.
                 return nil
@@ -755,6 +734,7 @@ package final class SourcesTaskProducer: FilesBasedBuildPhaseTaskProducerBase, F
         }
 
         var tasks: [any PlannedTask] = []
+        var dependencyDataFiles: [PlannedPathNode] = []
 
         // Generate any auxiliary files whose content is not per-arch or per-variant.
         // For the index build arena it is important to avoid adding this because it forces creation of the Swift module due to the generated ObjC header being an input dependency. This is unnecessary work since we don't need to generate the Swift module of the target to be able to successfully create a compiler AST for the Swift files of the target.
@@ -900,6 +880,8 @@ package final class SourcesTaskProducer: FilesBasedBuildPhaseTaskProducerBase, F
                         case "swiftmodule":
                             dsymutilInputNodes.append(object)
                             break
+                        case "dependencies":
+                            dependencyDataFiles.append(MakePlannedPathNode(object.path))
                         default:
                             break
                         }
@@ -1591,6 +1573,22 @@ package final class SourcesTaskProducer: FilesBasedBuildPhaseTaskProducerBase, F
             tasks = tasks.filter { $0.inputs.contains(where: { $0.path.isValidLocalizedContent(scope) || $0.path.fileExtension == "xcstrings" }) }
         }
 
+        // Create a task to validate dependencies if that feature is enabled.
+        let validateModuleDeps = (context.moduleDependenciesContext?.validate ?? .no) != .no
+        let validateHeaderDeps = (context.headerDependenciesContext?.validate ?? .no) != .no
+        if validateModuleDeps || validateHeaderDeps {
+            var validateDepsTasks = [any PlannedTask]()
+            await appendGeneratedTasks(&validateDepsTasks, usePhasedOrdering: true) { delegate in
+                await context.validateDependenciesSpec.createTasks(
+                    CommandBuildContext(producer: context, scope: scope, inputs: []),
+                    delegate,
+                    dependencyInfos: dependencyDataFiles,
+                    payload: .init(moduleDependenciesContext: context.moduleDependenciesContext, headerDependenciesContext: context.headerDependenciesContext)
+                )
+            }
+            tasks.append(contentsOf: validateDepsTasks)
+        }
+
         return tasks
     }
 
@@ -1620,21 +1618,33 @@ package final class SourcesTaskProducer: FilesBasedBuildPhaseTaskProducerBase, F
 
     /// Compute the linker to use in the given scope.
     private func getLinkerToUse(_ scope: MacroEvaluationScope) -> LinkerSpec {
-        let isStaticLib = scope.evaluate(BuiltinMacros.MACH_O_TYPE) == "staticlib"
+        let identifier: String
+        switch scope.evaluate(BuiltinMacros.MACH_O_TYPE) {
+        case "objectlib":
+            identifier = ObjectLibraryAssemblerSpec.identifier
+        case "staticlib":
+            let override = scope.evaluate(BuiltinMacros.LIBRARIAN)
+            if !override.isEmpty {
+                let spec = context.getSpec(override)
+                if let linker = spec as? LinkerSpec {
+                    return linker
+                }
 
-        // Return the custom linker, if specified.
-        var identifier = scope.evaluate(isStaticLib ? BuiltinMacros.LIBRARIAN : BuiltinMacros.LINKER)
-        if !identifier.isEmpty {
-            let spec = context.getSpec(identifier)
-            if let linker = spec as? LinkerSpec {
-                return linker
+                // FIXME: Emit a warning here.
             }
+            identifier = LibtoolLinkerSpec.identifier
+        default:
+            let override = scope.evaluate(BuiltinMacros.LINKER)
+            if !override.isEmpty {
+                let spec = context.getSpec(override)
+                if let linker = spec as? LinkerSpec {
+                    return linker
+                }
 
-            // FIXME: Emit a warning here.
+                // FIXME: Emit a warning here.
+            }
+            identifier = LdLinkerSpec.identifier
         }
-
-        // Return the default linker.
-        identifier = isStaticLib ? LibtoolLinkerSpec.identifier : LdLinkerSpec.identifier
         return context.getSpec(identifier) as! LinkerSpec
     }
 

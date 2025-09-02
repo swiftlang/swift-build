@@ -855,6 +855,16 @@
     },
     {
         Type = FileType;
+        Identifier = compiled.object-library;
+        Class = PBXMachOFileType;
+        BasedOn = compiled.mach-o;
+        Name = "Object Library";
+        Extensions = (o);
+        AppliesToBuildRules = yes;
+        UTI = "org.swift.object-library";
+    },
+    {
+        Type = FileType;
         Identifier = compiled.mach-o.executable;
         Class = PBXMachOFileType;
         BasedOn = compiled.mach-o;

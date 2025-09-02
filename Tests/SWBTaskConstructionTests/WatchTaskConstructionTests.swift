@@ -172,7 +172,7 @@ fileprivate struct WatchTaskConstructionTests: CoreBasedTests {
                                                 "SKIP_INSTALL": "YES",
                                                 "SWIFT_VERSION": swiftVersion,
                                                 "TARGETED_DEVICE_FAMILY": "4",
-                                                "WATCHOS_DEPLOYMENT_TARGET": "4.0",
+                                                "WATCHOS_DEPLOYMENT_TARGET": "5.0",
                                                ]),
                     ],
                     buildPhases: [
@@ -311,12 +311,13 @@ fileprivate struct WatchTaskConstructionTests: CoreBasedTests {
                 results.checkTask(.matchTarget(target), .matchRuleType("Ld")) { task in
                     let expectedCommandLine: [String] = [
                         ["clang"],
-                        ["-target", "arm64_32-apple-watchos4.0"],
+                        ["-target", "arm64_32-apple-watchos5.0"],
                         ["-isysroot", core.loadSDK(.watchOS).path.str, "-Xlinker", "-rpath", "-Xlinker", "@executable_path/Frameworks", "-Xlinker", "-rpath", "-Xlinker", "@executable_path/../../Frameworks"],
                         ["-fapplication-extension", "\(SRCROOT)/build/Debug-watchos/Watchable WatchKit Extension (old).appex/Watchable WatchKit Extension (old)"]
                     ].reduce([], +)
                     task.checkCommandLineContains(expectedCommandLine)
                     task.checkCommandLineContainsUninterrupted(["-e", "_WKExtensionMain"])
+                    // This option gets added if the deployment target is 5.3 or older and the architecture is armv7k or arm64_32.  This is managed through build setting interpolation logic in the com.apple.product-type.watchkit2-extension product type.
                     task.checkCommandLineContainsUninterrupted(["-lWKExtensionMainLegacy"])
                     task.checkCommandLineContainsUninterrupted(["-framework", "WatchKit"])
                 }

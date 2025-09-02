@@ -49,33 +49,6 @@ public struct DispatchFD {
         rawValue = fileHandle.fileDescriptor
         #endif
     }
-
-    internal func _duplicate() throws -> DispatchFD {
-        #if os(Windows)
-        return self
-        #else
-        return try DispatchFD(fileDescriptor: FileDescriptor(rawValue: rawValue).duplicate())
-        #endif
-    }
-
-    internal func _close() throws {
-        #if !os(Windows)
-        try FileDescriptor(rawValue: rawValue).close()
-        #endif
-    }
-
-    // Only exists to help debug a rare concurrency issue where the file descriptor goes invalid
-    internal func _filePath() throws -> String {
-        #if canImport(Darwin)
-        var buffer = [CChar](repeating: 0, count: Int(MAXPATHLEN))
-        if fcntl(rawValue, F_GETPATH, &buffer) == -1 {
-            throw POSIXError(errno, "fcntl", String(rawValue), "F_GETPATH")
-        }
-        return String(cString: buffer)
-        #else
-        return String()
-        #endif
-    }
 }
 
 // @unchecked: rdar://130051790 (DispatchData should be Sendable)

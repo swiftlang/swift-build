@@ -29,10 +29,10 @@ import SWBMacro
 
         let specRegistry: SpecRegistry
         let _diagnosticsEngine = DiagnosticsEngine()
-        let pluginManager: PluginManager
+        let pluginManager: any PluginManager
 
-        init(pluginManager: PluginManager) async {
-            self.specRegistry = await SpecRegistry(PluginManager(skipLoadingPluginIdentifiers: []), MockSpecRegistryDelegate(_diagnosticsEngine), [])
+        init(pluginManager: any PluginManager) async {
+            self.specRegistry = await SpecRegistry(MutablePluginManager(skipLoadingPluginIdentifiers: []).finalize(), MockSpecRegistryDelegate(_diagnosticsEngine), [])
             self.pluginManager = pluginManager
         }
 
@@ -69,7 +69,7 @@ import SWBMacro
                 }
             }
 
-            let delegate = await TestDataDelegate(pluginManager: PluginManager(skipLoadingPluginIdentifiers: []))
+            let delegate = await TestDataDelegate(pluginManager: MutablePluginManager(skipLoadingPluginIdentifiers: []).finalize())
             let registry = await PlatformRegistry(delegate: delegate, searchPaths: [tmpDirPath], hostOperatingSystem: try ProcessInfo.processInfo.hostOperatingSystem(), fs: localFS)
             try await perform(registry, delegate)
         }

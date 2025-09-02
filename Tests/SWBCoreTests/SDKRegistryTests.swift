@@ -22,10 +22,10 @@ import SWBMacro
     /// Delegate for testing loading SDKs in a registry.
     final class TestDataDelegate : SDKRegistryDelegate {
         let namespace = MacroNamespace()
-        let pluginManager: PluginManager
+        let pluginManager: any PluginManager
         private let _diagnosticsEngine = DiagnosticsEngine()
 
-        init(pluginManager: PluginManager) {
+        init(pluginManager: any PluginManager) {
             self.pluginManager = pluginManager
         }
 
@@ -81,7 +81,7 @@ import SWBMacro
             let components: SDK.CanonicalNameComponents?
             let errorString: String?
             do {
-                components = try SDK.parseSDKName(sdkName, pluginManager: try await getCore().pluginManager)
+                components = try SDK.parseSDKName(sdkName, registry: try await getCore().sdkRegistry)
                 errorString = nil
             }
             catch {
@@ -728,9 +728,9 @@ import SWBMacro
             let registry: SDKRegistry = try await {
                 final class TestDataDelegate : SDKRegistryDelegate {
                     let namespace = MacroNamespace()
-                    let pluginManager: PluginManager
+                    let pluginManager: any PluginManager
 
-                    init(pluginManager: PluginManager) {
+                    init(pluginManager: any PluginManager) {
                         self.pluginManager = pluginManager
                     }
 

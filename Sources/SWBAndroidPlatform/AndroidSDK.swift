@@ -57,10 +57,6 @@ public import Foundation
 
             let metaPath = ndkPath.path.join("meta")
 
-            guard #available(macOS 14, *) else {
-                throw StubError.error("Unsupported macOS version")
-            }
-
             if version < Self.minimumNDKVersion {
                 throw Error.unsupportedVersion(path: ndkPath, minimumVersion: Self.minimumNDKVersion)
             }

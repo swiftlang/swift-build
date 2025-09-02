@@ -46,12 +46,12 @@ import SWBUtil
             }
 
             // Ensure spec types are loaded.
-            let pluginManager = await PluginManager(skipLoadingPluginIdentifiers: [])
+            let pluginManager = await MutablePluginManager(skipLoadingPluginIdentifiers: [])
             await pluginManager.registerExtensionPoint(SpecificationsExtensionPoint())
             await pluginManager.register(BuiltinSpecsExtension(), type: SpecificationsExtensionPoint.self)
 
             let delegate = TestDataDelegate()
-            let registry = await SpecRegistry(pluginManager, delegate, [(tmpDirPath, "")], loadBuiltinImplementations: false)
+            let registry = await SpecRegistry(pluginManager.finalize(), delegate, [(tmpDirPath, "")], loadBuiltinImplementations: false)
 
             try await perform(registry, delegate)
         }

@@ -29,7 +29,6 @@ fileprivate struct CustomTaskBuildOperationTests: CoreBasedTests {
         try await withTemporaryDirectory { tmpDir in
             let destination: RunDestinationInfo = .host
             let core = try await getCore()
-            let toolchain = try #require(core.toolchainRegistry.defaultToolchain)
             let environment = destination.hostRuntimeEnvironment(core)
 
             let testProject = TestProject(

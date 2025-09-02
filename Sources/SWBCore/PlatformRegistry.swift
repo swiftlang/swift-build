@@ -19,7 +19,7 @@ public import SWBMacro
 
 /// Delegate protocol used to access external information (such as specifications) and to report diagnostics.
 @_spi(Testing) public protocol PlatformRegistryDelegate: DiagnosticProducingDelegate, SpecRegistryProvider {
-    var pluginManager: PluginManager { get }
+    var pluginManager: any PluginManager { get }
 
     var developerPath: Core.DeveloperPath { get }
 }
@@ -359,7 +359,7 @@ public final class PlatformRegistry {
             await registerPlatformsInDirectory(path, fs)
         }
 
-        @preconcurrency @PluginExtensionSystemActor func platformInfoExtensions() async -> [any PlatformInfoExtensionPoint.ExtensionProtocol] {
+        @PluginExtensionSystemActor func platformInfoExtensions() async -> [any PlatformInfoExtensionPoint.ExtensionProtocol] {
             return delegate.pluginManager.extensions(of: PlatformInfoExtensionPoint.self)
         }
 
@@ -562,7 +562,7 @@ public final class PlatformRegistry {
             return values.only
         }()
 
-        @preconcurrency @PluginExtensionSystemActor func platformInfoExtensions() -> [any PlatformInfoExtensionPoint.ExtensionProtocol] {
+        @PluginExtensionSystemActor func platformInfoExtensions() -> [any PlatformInfoExtensionPoint.ExtensionProtocol] {
             delegate.pluginManager.extensions(of: PlatformInfoExtensionPoint.self)
         }
 

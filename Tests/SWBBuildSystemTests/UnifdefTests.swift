@@ -16,6 +16,7 @@ import SWBBuildSystem
 import SWBCore
 import SWBUtil
 import SWBTestSupport
+import SwiftBuildTestSupport
 
 @Suite(.requireXcode16())
 fileprivate struct UnifdefTests: CoreBasedTests {

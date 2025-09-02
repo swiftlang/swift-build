@@ -1087,20 +1087,11 @@ fileprivate struct CodeSignTaskConstructionTests: CoreBasedTests {
         let testWorkspace = TestWorkspace("aWorkspace", projects: [testProject])
         let tester = try await TaskConstructionTester(getCore(), testWorkspace)
 
-        // Check --library-constraint is passed when the build setting is configured on macOS 14
-        await tester.checkBuild(BuildParameters(action: .install, configuration: "Release", overrides: ["LIBRARY_LOAD_CONSTRAINT": "/tmp/LibraryLoadConstraint.plist"]), runDestination: .macOS, systemInfo: SystemInfo(operatingSystemVersion: Version(14), productBuildVersion: "99A98", nativeArchitecture: "arm64")) { results in
+        // Check --library-constraint is passed
+        await tester.checkBuild(BuildParameters(action: .install, configuration: "Release", overrides: ["LIBRARY_LOAD_CONSTRAINT": "/tmp/LibraryLoadConstraint.plist"]), runDestination: .macOS) { results in
             results.checkTarget("Tool") { target in
                 results.checkTask(.matchTarget(target), .matchRuleType("CodeSign")) { task in
                     task.checkCommandLineMatches(["/usr/bin/codesign", "--force", "--sign", "-", "--entitlements", .suffix("Tool.xcent"), "--generate-entitlement-der", "--library-constraint", .suffix("LibraryLoadConstraint.plist"), "/tmp/aProject.dst/usr/local/bin/Tool"])
-                }
-            }
-        }
-
-        // Check --library-constraint is *not* passed when the build setting is configured on macOS 13
-        await tester.checkBuild(BuildParameters(action: .install, configuration: "Release", overrides: ["LIBRARY_LOAD_CONSTRAINT": "/tmp/LibraryLoadConstraint.plist"]), runDestination: .macOS, systemInfo: SystemInfo(operatingSystemVersion: Version(13), productBuildVersion: "99A98", nativeArchitecture: "arm64")) { results in
-            results.checkTarget("Tool") { target in
-                results.checkTask(.matchTarget(target), .matchRuleType("CodeSign")) { task in
-                    task.checkCommandLineMatches(["/usr/bin/codesign", "--force", "--sign", "-", "--entitlements", .suffix("Tool.xcent"), "--generate-entitlement-der", "/tmp/aProject.dst/usr/local/bin/Tool"])
                 }
             }
         }

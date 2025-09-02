@@ -1394,7 +1394,7 @@ extension BuildDescription {
 package final class TaskActionRegistry: Sendable {
     private let implementations: [SerializableTypeCode: any PolymorphicSerializable.Type]
 
-    @PluginExtensionSystemActor @_spi(Testing) public init(pluginManager: PluginManager) throws {
+    @PluginExtensionSystemActor @_spi(Testing) public init(pluginManager: any PluginManager) throws {
         implementations = try TaskActionExtensionPoint.taskActionImplementations(pluginManager: pluginManager)
     }
 

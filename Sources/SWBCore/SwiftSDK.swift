@@ -85,11 +85,11 @@ public struct SwiftSDK: Sendable {
     }
 
     /// Find Swift SDKs installed by SwiftPM.
-    public static func findSDKs(targetTriples: [String], fs: any FSProxy, hostOperatingSystem: OperatingSystem) throws -> [SwiftSDK] {
+    public static func findSDKs(targetTriples: [String]?, fs: any FSProxy, hostOperatingSystem: OperatingSystem) throws -> [SwiftSDK] {
         return try findSDKs(swiftSDKsDirectory: defaultSwiftSDKsDirectory(hostOperatingSystem: hostOperatingSystem), targetTriples: targetTriples, fs: fs)
     }
 
-    private static func findSDKs(swiftSDKsDirectory: Path, targetTriples: [String], fs: any FSProxy) throws -> [SwiftSDK] {
+    private static func findSDKs(swiftSDKsDirectory: Path, targetTriples: [String]?, fs: any FSProxy) throws -> [SwiftSDK] {
         var sdks: [SwiftSDK] = []
         // Find .artifactbundle in the SDK directory (e.g. ~/Library/org.swift.swiftpm/swift-sdks)
         for artifactBundle in try fs.listdir(swiftSDKsDirectory) {
@@ -118,7 +118,7 @@ public struct SwiftSDK: Sendable {
     }
 
     /// Find Swift SDKs in an artifact bundle supporting one of the given targets.
-    private static func findSDKs(artifactBundle: Path, targetTriples: [String], fs: any FSProxy) throws -> [SwiftSDK] {
+    private static func findSDKs(artifactBundle: Path, targetTriples: [String]?, fs: any FSProxy) throws -> [SwiftSDK] {
         // Load info.json from the artifact bundle
         let infoPath = artifactBundle.join("info.json")
         guard try fs.isFile(infoPath) else { return [] }
@@ -145,7 +145,9 @@ public struct SwiftSDK: Sendable {
 
                 guard let sdk = try SwiftSDK(identifier: identifier, version: artifact.version, path: sdkPath, fs: fs) else { continue }
                 // Filter out SDKs that don't support any of the target triples.
-                guard targetTriples.contains(where: { sdk.targetTriples[$0] != nil }) else { continue }
+                if let targetTriples {
+                    guard targetTriples.contains(where: { sdk.targetTriples[$0] != nil }) else { continue }
+                }
                 sdks.append(sdk)
             }
         }

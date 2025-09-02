@@ -11,11 +11,7 @@
 //===----------------------------------------------------------------------===//
 
 public import SWBUtil
-#if os(Windows)
-private import SWBLibc
-#else
 public import SWBLibc
-#endif
 
 // Re-export all APIs from llbuild bindings.
 @_exported public import llbuild
@@ -25,7 +21,34 @@ public import SWBLibc
 #endif
 
 // Filesystem adaptors for SWBLLBuild.FileSystem.
-extension SWBUtil.FileInfo: SWBLLBuild.FileInfo {}
+extension SWBUtil.FileInfo: SWBLLBuild.FileInfo {
+
+    public init(_ statBuf: stat) {
+        // This should be remove from llbuild FileInfo protocol as it just not needed, would also be nice to remove the stat requirement too.
+        preconditionFailure()
+    }
+    
+    public var statBuf: stat {
+        var statBuf: stat = stat()
+
+        statBuf.st_dev = numericCast(self.deviceID)
+        statBuf.st_ino = numericCast(self.iNode)
+        statBuf.st_mode = numericCast(self.permissions)
+        statBuf.st_size = numericCast(self.size)
+        #if canImport(Darwin)
+        statBuf.st_mtimespec.tv_sec = numericCast(self.modificationTimestamp)
+        statBuf.st_mtimespec.tv_nsec = self.modificationNanoseconds
+        #elseif os(Windows)
+        statBuf.st_mtime = self.modificationTimestamp
+        #elseif canImport(Glibc) || canImport(Musl) || canImport(Android)
+        statBuf.st_mtim.tv_sec = numericCast(self.modificationTimestamp)
+        statBuf.st_mtim.tv_nsec = self.modificationNanoseconds
+        #else
+        #error("Not implemented for this platform")
+        #endif
+        return statBuf
+    }
+}
 
 public final class FileSystemImpl: FileSystem {
 

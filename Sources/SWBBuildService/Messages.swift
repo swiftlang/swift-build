@@ -99,12 +99,10 @@ private struct MacCatalystUnavailableFrameworkNamesHandler: MessageHandler {
     }
 }
 
+// TODO: Delete once all clients are no longer calling the public APIs which invoke this message
 private struct AppleSystemFrameworkNamesHandler: MessageHandler {
     func handle(request: Request, message: AppleSystemFrameworkNamesRequest) async throws -> StringListResponse {
-        guard let buildService = request.service as? BuildService else {
-            throw StubError.error("service object is not of type BuildService")
-        }
-        return try await StringListResponse([])
+        return StringListResponse([])
     }
 }
 
@@ -1616,6 +1614,10 @@ package struct ServiceMessageHandlers: ServiceExtension {
         service.registerMessageHandler(ComputeDependencyGraphMsg.self)
         service.registerMessageHandler(DumpBuildDependencyInfoMsg.self)
         
+        service.registerMessageHandler(BuildDescriptionConfiguredTargetsMsg.self)
+        service.registerMessageHandler(BuildDescriptionConfiguredTargetSourcesMsg.self)
+        service.registerMessageHandler(IndexBuildSettingsMsg.self)
+
         service.registerMessageHandler(MacroEvaluationMsg.self)
         service.registerMessageHandler(AllExportedMacrosAndValuesMsg.self)
         service.registerMessageHandler(BuildSettingsEditorInfoMsg.self)

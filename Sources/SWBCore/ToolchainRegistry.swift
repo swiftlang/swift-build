@@ -18,7 +18,7 @@ import SWBMacro
 
 /// Delegate protocol used to report diagnostics.
 @_spi(Testing) public protocol ToolchainRegistryDelegate: DiagnosticProducingDelegate {
-    var pluginManager: PluginManager { get }
+    var pluginManager: any PluginManager { get }
     var platformRegistry: PlatformRegistry? { get }
 }
 
@@ -105,7 +105,7 @@ public final class Toolchain: Hashable, Sendable {
         self.testingLibraryPlatformNames = testingLibraryPlatformNames
     }
 
-    convenience init(path: Path, operatingSystem: OperatingSystem, fs: any FSProxy, pluginManager: PluginManager, platformRegistry: PlatformRegistry?) async throws {
+    convenience init(path: Path, operatingSystem: OperatingSystem, fs: any FSProxy, pluginManager: any PluginManager, platformRegistry: PlatformRegistry?) async throws {
         let data: PropertyListItem
 
         do {
@@ -286,7 +286,7 @@ public final class Toolchain: Hashable, Sendable {
             path.join("usr").join("bin"),
         ]
 
-        for platformExtension in await pluginManager.extensions(of: PlatformInfoExtensionPoint.self) {
+        for platformExtension in pluginManager.extensions(of: PlatformInfoExtensionPoint.self) {
             executableSearchPaths.append(contentsOf: platformExtension.additionalToolchainExecutableSearchPaths(toolchainIdentifier: identifier, toolchainPath: path))
         }
 
@@ -450,7 +450,7 @@ public final class ToolchainRegistry: @unchecked Sendable {
             var fs: any FSProxy
         }
 
-        for toolchainExtension in await delegate.pluginManager.extensions(of: ToolchainRegistryExtensionPoint.self) {
+        for toolchainExtension in delegate.pluginManager.extensions(of: ToolchainRegistryExtensionPoint.self) {
             do {
                 for toolchain in try await toolchainExtension.additionalToolchains(context: Context(hostOperatingSystem: hostOperatingSystem, toolchainRegistry: self, fs: fs)) {
                     try register(toolchain)

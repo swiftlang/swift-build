@@ -39,7 +39,7 @@ fileprivate struct AndroidBuildOperationTests: CoreBasedTests {
                         "CODE_SIGNING_ALLOWED": "NO",
                         "DEFINES_MODULE": "YES",
                         "PRODUCT_NAME": "$(TARGET_NAME)",
-                        "SDKROOT": "android",
+                        "SDKROOT": "android.ndk",
                         "SUPPORTED_PLATFORMS": "android",
                         "ANDROID_DEPLOYMENT_TARGET": "22.0",
                         "ANDROID_DEPLOYMENT_TARGET[arch=riscv64]": "35.0",
@@ -95,7 +95,7 @@ fileprivate struct AndroidBuildOperationTests: CoreBasedTests {
                     ),
                 ])
             let core = try await getCore()
-            let androidExtension = try await #require(core.pluginManager.extensions(of: SDKRegistryExtensionPoint.self).compactMap { $0 as? AndroidSDKRegistryExtension }.only)
+            let androidExtension = try #require(core.pluginManager.extensions(of: SDKRegistryExtensionPoint.self).compactMap { $0 as? AndroidSDKRegistryExtension }.only)
             let (_, androidNdk) = try #require(await androidExtension.plugin.effectiveInstallation(host: core.hostOperatingSystem))
             if androidNdk.version < Version(27) && arch == "riscv64" {
                 return // riscv64 support was introduced in NDK r27

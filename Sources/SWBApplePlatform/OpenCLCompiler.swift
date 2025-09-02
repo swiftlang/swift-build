@@ -69,7 +69,7 @@ final class OpenCLCompilerSpec : CompilerSpec, SpecIdentifierType, GCCCompatible
 
             let executionDescription = "Create \(arch) bitcode for \(filePath.basename)"
 
-            var commandLine = [resolveExecutablePath(cbc, Path(openclc)).str]
+            var commandLine = [await resolveExecutablePath(cbc, Path(openclc), delegate: delegate).str]
             commandLine += ["-x", "cl", compilerVersionFlag]
             optimizationLevelFlag.map{ commandLine.append($0) }
             commandLine += preprocessorDefinitionsFlags
@@ -101,7 +101,7 @@ final class OpenCLCompilerSpec : CompilerSpec, SpecIdentifierType, GCCCompatible
 
             let ruleInfo = ["Compile", filePath.str]
 
-            var commandLine = [resolveExecutablePath(cbc, Path(openclc)).str]
+            var commandLine = [await resolveExecutablePath(cbc, Path(openclc), delegate: delegate).str]
             commandLine += ["-x", "cl", compilerVersionFlag]
             if scope.evaluate(BuiltinMacros.OPENCL_MAD_ENABLE) {
                 commandLine.append("-cl-mad-enable")

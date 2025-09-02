@@ -189,6 +189,8 @@ public protocol CommandProducer: PlatformBuildContext, SpecLookupContext, Refere
 
     var processSDKImportsSpec: ProcessSDKImportsSpec { get }
 
+    var validateDependenciesSpec: ValidateDependenciesSpec { get }
+
     /// The default working directory to use for a task, if it doesn't have a stronger preference.
     var defaultWorkingDirectory: Path { get }
 
@@ -264,13 +266,14 @@ public protocol CommandProducer: PlatformBuildContext, SpecLookupContext, Refere
 
     var targetShouldBuildModuleForInstallAPI: Bool { get }
 
-    var supportsCompilationCaching: Bool { get }
-
     func lookupLibclang(path: Path) -> (libclang: Libclang?, version: Version?)
 
     var userPreferences: UserPreferences { get }
 
     var hostOperatingSystem: OperatingSystem { get }
+
+    var moduleDependenciesContext: ModuleDependenciesContext? { get }
+    var headerDependenciesContext: HeaderDependenciesContext? { get }
 }
 
 extension CommandProducer {
@@ -1017,18 +1020,46 @@ extension DependencyDataStyle: Serializable {
 public protocol TaskPayload: Serializable, Sendable {
 }
 
+public enum IndexingInfoLanguage {
+    case c
+    case cpp
+    case metal
+    case objectiveC
+    case objectiveCpp
+    case swift
+}
+
 /// Defines the indexing information to be sent back to the client for a particular source file.
 ///
 /// This protocol includes `PropertyListItemConvertible` to describe how the info is packaged up to send back to the client.  Someday we hope to transition this to sending the info in a strongly typed format.
 public protocol SourceFileIndexingInfo: PropertyListItemConvertible {
+    /// The compiler arguments that should be used to index this source file.
+    ///
+    /// `nil` if this indexing info does not supply compiler arguments to index a source file.
+    var compilerArguments: [String]? { get }
+
+    /// The output path that is used for indexing, ie. the value of the `-index-unit-output-path` or `-o` option in
+    /// the source file's build settings.
+    ///
+    /// This is a `String` and not a `Path` because th index output path may be a fake path that is relative to the
+    /// build directory and has no relation to actual files on disks.
+    ///
+    /// `nil` if this indexing info does not produce an output file.
+    var indexOutputFile: String? { get }
+
+    var language: IndexingInfoLanguage? { get }
 }
 
 /// The `SourceFileIndexingInfo` info returned when only output paths are requested.
 public struct OutputPathIndexingInfo: SourceFileIndexingInfo {
     public let outputFile: Path
+    public var compilerArguments: [String]? { nil }
+    public var indexOutputFile: String? { outputFile.str }
+    public let language: IndexingInfoLanguage?
 
-    public init(outputFile: Path) {
+    public init(outputFile: Path, language: IndexingInfoLanguage?) {
         self.outputFile = outputFile
+        self.language = language
     }
 
     /// The indexing info is packaged and sent to the client in a property list format.

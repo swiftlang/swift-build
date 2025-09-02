@@ -17,7 +17,7 @@ import SWBProtocol
 import Foundation
 import SWBTaskConstruction
 
-@PluginExtensionSystemActor public func initializePlugin(_ manager: PluginManager) {
+public let initializePlugin: PluginInitializationFunction = { manager in
     manager.register(AppleDeveloperDirectoryExtension(), type: DeveloperDirectoryExtensionPoint.self)
     manager.register(ApplePlatformSpecsExtension(), type: SpecificationsExtensionPoint.self)
     manager.register(ActoolInputFileGroupingStrategyExtension(), type: InputFileGroupingStrategyExtensionPoint.self)

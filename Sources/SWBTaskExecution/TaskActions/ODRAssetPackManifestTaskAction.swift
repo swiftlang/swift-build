@@ -108,7 +108,7 @@ fileprivate extension FSProxy {
 
         try traverse(path) { subPath -> Void in
             let info = try getLinkFileInfo(subPath)
-            uncompressedSize += Int(info.statBuf.st_size)
+            uncompressedSize += Int(info.size)
             newestModTime = max(newestModTime, info.modificationDate)
         }
 

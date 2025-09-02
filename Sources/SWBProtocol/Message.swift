@@ -1218,12 +1218,15 @@ public struct IPCMessage: Serializable, Sendable {
       + localizationMessageTypes
       + dependencyClosureMessageTypes
       + dependencyGraphMessageTypes
+      + buildDescriptionMessages
 
     /// Reverse name mapping.
     static let messageNameToID: [String: any Message.Type] = {
         var result = [String: any Message.Type]()
         for type in IPCMessage.messageTypes {
-            result[type.name] = type
+            if let oldValue = result.updateValue(type, forKey: type.name) {
+                fatalError("Multiple message types registered for same name: \(type.name): \(type) vs \(oldValue)")
+            }
         }
         return result
     }()

@@ -17,7 +17,7 @@ import SWBUtil
 import Testing
 import SwiftBuildTestSupport
 
-@Suite(.skipHostOS(.windows), .skipInGitHubActions("failing in the GitHub actions runner environment"))
+@Suite(.skipHostOS(.windows))
 fileprivate struct BuildCommandTests {
     private let commandSequenceCodec: any CommandSequenceEncodable = LLVMStyleCommandCodec()
 

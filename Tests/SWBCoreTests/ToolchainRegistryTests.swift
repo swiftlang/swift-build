@@ -50,7 +50,7 @@ import SWBServiceCore
             class TestDataDelegate : ToolchainRegistryDelegate {
                 private let _diagnosticsEngine = DiagnosticsEngine()
 
-                init(pluginManager: PluginManager) {
+                init(pluginManager: any PluginManager) {
                     self.pluginManager = pluginManager
                 }
 
@@ -66,14 +66,14 @@ import SWBServiceCore
                     return _diagnosticsEngine.diagnostics.pathMessageTuples(.error)
                 }
 
-                var pluginManager: PluginManager
+                var pluginManager: any PluginManager
 
                 var platformRegistry: PlatformRegistry? {
                     nil
                 }
             }
 
-            let pluginManager = await PluginManager(skipLoadingPluginIdentifiers: [])
+            let pluginManager = await MutablePluginManager(skipLoadingPluginIdentifiers: [])
             await pluginManager.registerExtensionPoint(DeveloperDirectoryExtensionPoint())
             await pluginManager.registerExtensionPoint(SpecificationsExtensionPoint())
             await pluginManager.registerExtensionPoint(ToolchainRegistryExtensionPoint())

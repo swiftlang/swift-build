@@ -726,12 +726,14 @@ public final class BuiltinMacros {
     public static let GENERATE_RESOURCE_ACCESSORS = BuiltinMacros.declareBooleanMacro("GENERATE_RESOURCE_ACCESSORS")
     public static let GENERATE_TEST_ENTRY_POINT = BuiltinMacros.declareBooleanMacro("GENERATE_TEST_ENTRY_POINT")
     public static let GENERATED_TEST_ENTRY_POINT_PATH = BuiltinMacros.declarePathMacro("GENERATED_TEST_ENTRY_POINT_PATH")
+    public static let GENERATED_TEST_ENTRY_POINT_INCLUDE_DISCOVERED_TESTS = BuiltinMacros.declareBooleanMacro("GENERATED_TEST_ENTRY_POINT_INCLUDE_DISCOVERED_TESTS")
     public static let GENERATE_TEXT_BASED_STUBS = BuiltinMacros.declareBooleanMacro("GENERATE_TEXT_BASED_STUBS")
     public static let GENERATE_INTERMEDIATE_TEXT_BASED_STUBS = BuiltinMacros.declareBooleanMacro("GENERATE_INTERMEDIATE_TEXT_BASED_STUBS")
     public static let GLOBAL_API_NOTES_PATH = BuiltinMacros.declareStringMacro("GLOBAL_API_NOTES_PATH")
     public static let GLOBAL_CFLAGS = BuiltinMacros.declareStringListMacro("GLOBAL_CFLAGS")
     public static let HEADERMAP_INCLUDES_FRAMEWORK_ENTRIES_FOR_TARGETS_NOT_BEING_BUILT = BuiltinMacros.declareBooleanMacro("HEADERMAP_INCLUDES_FRAMEWORK_ENTRIES_FOR_TARGETS_NOT_BEING_BUILT")
     public static let HEADERMAP_USES_VFS = BuiltinMacros.declareBooleanMacro("HEADERMAP_USES_VFS")
+    public static let HEADER_DEPENDENCIES = BuiltinMacros.declareStringListMacro("HEADER_DEPENDENCIES")
     public static let HEADER_OUTPUT_DIR = BuiltinMacros.declareStringMacro("HEADER_OUTPUT_DIR")
     public static let HEADER_SEARCH_PATHS = BuiltinMacros.declarePathListMacro("HEADER_SEARCH_PATHS")
     public static let IBC_REGIONS_AND_STRINGS_FILES = BuiltinMacros.declareStringListMacro("IBC_REGIONS_AND_STRINGS_FILES")
@@ -754,6 +756,7 @@ public final class BuiltinMacros {
     public static let INDEX_PREPARED_TARGET_MARKER_PATH = BuiltinMacros.declareStringMacro("INDEX_PREPARED_TARGET_MARKER_PATH")
     public static let INDEX_REGULAR_BUILD_PRODUCTS_DIR = BuiltinMacros.declareStringMacro("INDEX_REGULAR_BUILD_PRODUCTS_DIR")
     public static let INDEX_REGULAR_BUILD_INTERMEDIATES_DIR = BuiltinMacros.declareStringMacro("INDEX_REGULAR_BUILD_INTERMEDIATES_DIR")
+    public static let INDEX_STORE_LIBRARY_PATH = BuiltinMacros.declarePathMacro("INDEX_STORE_LIBRARY_PATH")
     public static let INFOPLIST_ENFORCE_MINIMUM_OS = BuiltinMacros.declareBooleanMacro("INFOPLIST_ENFORCE_MINIMUM_OS")
     public static let INFOPLIST_EXPAND_BUILD_SETTINGS = BuiltinMacros.declareBooleanMacro("INFOPLIST_EXPAND_BUILD_SETTINGS")
     public static let INFOPLIST_FILE = BuiltinMacros.declarePathMacro("INFOPLIST_FILE")
@@ -870,6 +873,7 @@ public final class BuiltinMacros {
     public static let MODULEMAP_PATH = BuiltinMacros.declareStringMacro("MODULEMAP_PATH")
     public static let MODULEMAP_PRIVATE_FILE = BuiltinMacros.declareStringMacro("MODULEMAP_PRIVATE_FILE")
     public static let MODULES_FOLDER_PATH = BuiltinMacros.declarePathMacro("MODULES_FOLDER_PATH")
+    public static let MODULE_DEPENDENCIES = BuiltinMacros.declareStringListMacro("MODULE_DEPENDENCIES")
     public static let MODULE_VERIFIER_KIND = BuiltinMacros.declareEnumMacro("MODULE_VERIFIER_KIND") as EnumMacroDeclaration<ModuleVerifierKind>
     public static let MODULE_VERIFIER_LSV = BuiltinMacros.declareBooleanMacro("MODULE_VERIFIER_LSV")
     public static let MODULE_VERIFIER_SUPPORTED_LANGUAGES = BuiltinMacros.declareStringListMacro("MODULE_VERIFIER_SUPPORTED_LANGUAGES")
@@ -976,6 +980,7 @@ public final class BuiltinMacros {
     public static let REZ_PREFIX_FILE = BuiltinMacros.declarePathMacro("REZ_PREFIX_FILE")
     public static let REZ_SEARCH_PATHS = BuiltinMacros.declarePathListMacro("REZ_SEARCH_PATHS")
     public static let RUN_CLANG_STATIC_ANALYZER = BuiltinMacros.declareBooleanMacro("RUN_CLANG_STATIC_ANALYZER")
+    public static let SWIFT_API_DIGESTER_MODE = BuiltinMacros.declareEnumMacro("SWIFT_API_DIGESTER_MODE") as EnumMacroDeclaration<SwiftAPIDigesterMode>
     public static let RUN_SWIFT_ABI_CHECKER_TOOL = BuiltinMacros.declareBooleanMacro("RUN_SWIFT_ABI_CHECKER_TOOL")
     public static let RUN_SWIFT_ABI_CHECKER_TOOL_DRIVER = BuiltinMacros.declareBooleanMacro("RUN_SWIFT_ABI_CHECKER_TOOL_DRIVER")
     public static let RUN_SWIFT_ABI_GENERATION_TOOL = BuiltinMacros.declareBooleanMacro("RUN_SWIFT_ABI_GENERATION_TOOL")
@@ -995,7 +1000,10 @@ public final class BuiltinMacros {
     public static let SWIFT_AUTOLINK_EXTRACT_OUTPUT_PATH = BuiltinMacros.declarePathMacro("SWIFT_AUTOLINK_EXTRACT_OUTPUT_PATH")
     public static let PLATFORM_REQUIRES_SWIFT_AUTOLINK_EXTRACT = BuiltinMacros.declareBooleanMacro("PLATFORM_REQUIRES_SWIFT_AUTOLINK_EXTRACT")
     public static let PLATFORM_REQUIRES_SWIFT_MODULEWRAP = BuiltinMacros.declareBooleanMacro("PLATFORM_REQUIRES_SWIFT_MODULEWRAP")
+    public static let RPATH_ORIGIN = BuiltinMacros.declareStringMacro("RPATH_ORIGIN")
+    public static let PLATFORM_USES_DSYMS = BuiltinMacros.declareBooleanMacro("PLATFORM_USES_DSYMS")
     public static let SWIFT_ABI_CHECKER_BASELINE_DIR = BuiltinMacros.declareStringMacro("SWIFT_ABI_CHECKER_BASELINE_DIR")
+    public static let SWIFT_ABI_CHECKER_DOWNGRADE_ERRORS = BuiltinMacros.declareBooleanMacro("SWIFT_ABI_CHECKER_DOWNGRADE_ERRORS")
     public static let SWIFT_ABI_CHECKER_EXCEPTIONS_FILE = BuiltinMacros.declareStringMacro("SWIFT_ABI_CHECKER_EXCEPTIONS_FILE")
     public static let SWIFT_ABI_GENERATION_TOOL_OUTPUT_DIR = BuiltinMacros.declareStringMacro("SWIFT_ABI_GENERATION_TOOL_OUTPUT_DIR")
     public static let SWIFT_ACCESS_NOTES_PATH = BuiltinMacros.declareStringMacro("SWIFT_ACCESS_NOTES_PATH")
@@ -1138,8 +1146,11 @@ public final class BuiltinMacros {
     public static let VALIDATE_PLIST_FILES_WHILE_COPYING = BuiltinMacros.declareBooleanMacro("VALIDATE_PLIST_FILES_WHILE_COPYING")
     public static let VALIDATE_PRODUCT = BuiltinMacros.declareBooleanMacro("VALIDATE_PRODUCT")
     public static let VALIDATE_DEPENDENCIES = BuiltinMacros.declareEnumMacro("VALIDATE_DEPENDENCIES") as EnumMacroDeclaration<BooleanWarningLevel>
+    public static let VALIDATE_DEPENDENCIES_DOWNGRADE_ERRORS = BuiltinMacros.declareBooleanMacro("VALIDATE_DEPENDENCIES_DOWNGRADE_ERRORS")
     public static let VALIDATE_DEVELOPMENT_ASSET_PATHS = BuiltinMacros.declareEnumMacro("VALIDATE_DEVELOPMENT_ASSET_PATHS") as EnumMacroDeclaration<BooleanWarningLevel>
+    public static let VALIDATE_HEADER_DEPENDENCIES = BuiltinMacros.declareEnumMacro("VALIDATE_HEADER_DEPENDENCIES") as EnumMacroDeclaration<BooleanWarningLevel>
     public static let VALIDATE_MODULE_DEPENDENCIES = BuiltinMacros.declareEnumMacro("VALIDATE_MODULE_DEPENDENCIES") as EnumMacroDeclaration<BooleanWarningLevel>
+    public static let VALIDATE_UNUSED_MODULE_DEPENDENCIES = BuiltinMacros.declareEnumMacro("VALIDATE_UNUSED_MODULE_DEPENDENCIES") as EnumMacroDeclaration<BooleanWarningLevel>
     public static let VECTOR_SUFFIX = BuiltinMacros.declareStringMacro("VECTOR_SUFFIX")
     public static let VERBOSE_PBXCP = BuiltinMacros.declareBooleanMacro("VERBOSE_PBXCP")
     public static let VERSIONING_STUB = BuiltinMacros.declareStringMacro("VERSIONING_STUB")
@@ -1784,6 +1795,7 @@ public final class BuiltinMacros {
         GENERATE_RESOURCE_ACCESSORS,
         GENERATE_TEST_ENTRY_POINT,
         GENERATED_TEST_ENTRY_POINT_PATH,
+        GENERATED_TEST_ENTRY_POINT_INCLUDE_DISCOVERED_TESTS,
         GENERATE_TEXT_BASED_STUBS,
         GENERATE_INTERMEDIATE_TEXT_BASED_STUBS,
         GID,
@@ -1792,6 +1804,7 @@ public final class BuiltinMacros {
         GROUP,
         HEADERMAP_INCLUDES_FRAMEWORK_ENTRIES_FOR_TARGETS_NOT_BEING_BUILT,
         HEADERMAP_USES_VFS,
+        HEADER_DEPENDENCIES,
         HEADER_SEARCH_PATHS,
         HEADER_OUTPUT_DIR,
         HOME,
@@ -1817,6 +1830,7 @@ public final class BuiltinMacros {
         INDEX_PREPARED_TARGET_MARKER_PATH,
         INDEX_REGULAR_BUILD_PRODUCTS_DIR,
         INDEX_REGULAR_BUILD_INTERMEDIATES_DIR,
+        INDEX_STORE_LIBRARY_PATH,
         INDEX_ENABLE_DATA_STORE,
         INDEX_PRECOMPS_DIR,
         INFOPLIST_ENFORCE_MINIMUM_OS,
@@ -1968,6 +1982,7 @@ public final class BuiltinMacros {
         MODULEMAP_PRIVATE_FILE,
         MODULES_FOLDER_PATH,
         MODULE_CACHE_DIR,
+        MODULE_DEPENDENCIES,
         MODULE_NAME,
         MODULE_START,
         MODULE_STOP,
@@ -2123,6 +2138,7 @@ public final class BuiltinMacros {
         SKIP_BUILDING_DOCUMENTATION,
         RUN_SYMBOL_GRAPH_EXTRACT,
         SYSTEM_EXTENSIONS_FOLDER_PATH,
+        SWIFT_API_DIGESTER_MODE,
         RUN_SWIFT_ABI_CHECKER_TOOL,
         RUN_SWIFT_ABI_CHECKER_TOOL_DRIVER,
         RUN_SWIFT_ABI_GENERATION_TOOL,
@@ -2179,7 +2195,10 @@ public final class BuiltinMacros {
         SWIFT_AUTOLINK_EXTRACT_OUTPUT_PATH,
         PLATFORM_REQUIRES_SWIFT_AUTOLINK_EXTRACT,
         PLATFORM_REQUIRES_SWIFT_MODULEWRAP,
+        RPATH_ORIGIN,
+        PLATFORM_USES_DSYMS,
         SWIFT_ABI_CHECKER_BASELINE_DIR,
+        SWIFT_ABI_CHECKER_DOWNGRADE_ERRORS,
         SWIFT_ABI_CHECKER_EXCEPTIONS_FILE,
         SWIFT_ABI_GENERATION_TOOL_OUTPUT_DIR,
         SWIFT_ACCESS_NOTES_PATH,
@@ -2360,8 +2379,11 @@ public final class BuiltinMacros {
         VALIDATE_CAS_EXEC,
         VALIDATE_PRODUCT,
         VALIDATE_DEPENDENCIES,
+        VALIDATE_DEPENDENCIES_DOWNGRADE_ERRORS,
         VALIDATE_DEVELOPMENT_ASSET_PATHS,
+        VALIDATE_HEADER_DEPENDENCIES,
         VALIDATE_MODULE_DEPENDENCIES,
+        VALIDATE_UNUSED_MODULE_DEPENDENCIES,
         VALID_ARCHS,
         VECTOR_SUFFIX,
         VERBOSE_PBXCP,
@@ -2651,7 +2673,7 @@ public extension BuiltinMacros {
 }
 
 /// Enumeration macro type for tri-state booleans, typically used for warnings which can be set to "No", "Yes", or "Yes (Error)".
-public enum BooleanWarningLevel: String, Equatable, Hashable, Serializable, EnumerationMacroType, Encodable {
+public enum BooleanWarningLevel: String, Equatable, Hashable, Serializable, EnumerationMacroType, Codable {
     public static let defaultValue = BooleanWarningLevel.no
 
     case yesError = "YES_ERROR"
@@ -2666,6 +2688,13 @@ public enum SwiftEnableExplicitModulesSetting: String, Equatable, Hashable, Enum
     case notset = "NOT_SET"
     case enabled = "YES"
     case disabled = "NO"
+}
+
+public enum SwiftAPIDigesterMode: String, Equatable, Hashable, EnumerationMacroType {
+    public static let defaultValue: SwiftAPIDigesterMode = .abi
+
+    case abi = "abi"
+    case api = "api"
 }
 
 public enum SwiftDependencyRegistrationMode: String, Equatable, Hashable, EnumerationMacroType {
@@ -2713,7 +2742,9 @@ public enum LinkerDriverChoice: String, Equatable, Hashable, EnumerationMacroTyp
     public static let defaultValue: LinkerDriverChoice = .clang
 
     case clang
+    case qcc
     case swiftc
+    case auto
 }
 
 /// Enumeration macro type for the value of the `INFOPLIST_KEY_LSApplicationCategoryType` build setting.

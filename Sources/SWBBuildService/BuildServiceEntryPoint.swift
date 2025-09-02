@@ -97,7 +97,7 @@ extension BuildService {
     fileprivate static func run(inputFD: FileDescriptor, outputFD: FileDescriptor, connectionMode: ServiceHostConnectionMode, pluginsDirectory: URL?, arguments: [String], pluginLoadingFinished: () throws -> Void) async throws {
         let pluginManager = try await { @PluginExtensionSystemActor () async throws in
             // Create the plugin manager and load plugins.
-            let pluginManager = PluginManager(skipLoadingPluginIdentifiers: [])
+            let pluginManager = MutablePluginManager(skipLoadingPluginIdentifiers: [])
 
             // Register plugin extension points.
             pluginManager.registerExtensionPoint(ServiceExtensionPoint())
@@ -127,27 +127,39 @@ extension BuildService {
 
             pluginManager.register(BuiltinTaskActionsExtension(), type: TaskActionExtensionPoint.self)
 
+            let staticPluginInitializers: [PluginInitializationFunction]
+
+            // This MUST be a compile-time check because the module dependencies on the plugins are conditional.
+            // Minimize the amount of code that is conditionally compiled to avoid breaking the build during refactoring.
             #if USE_STATIC_PLUGIN_INITIALIZATION
-            // Statically initialize the plugins.
-            SWBAndroidPlatform.initializePlugin(pluginManager)
-            SWBApplePlatform.initializePlugin(pluginManager)
-            SWBGenericUnixPlatform.initializePlugin(pluginManager)
-            SWBQNXPlatform.initializePlugin(pluginManager)
-            SWBUniversalPlatform.initializePlugin(pluginManager)
-            SWBWebAssemblyPlatform.initializePlugin(pluginManager)
-            SWBWindowsPlatform.initializePlugin(pluginManager)
+            staticPluginInitializers = [
+                SWBAndroidPlatform.initializePlugin,
+                SWBApplePlatform.initializePlugin,
+                SWBGenericUnixPlatform.initializePlugin,
+                SWBQNXPlatform.initializePlugin,
+                SWBUniversalPlatform.initializePlugin,
+                SWBWebAssemblyPlatform.initializePlugin,
+                SWBWindowsPlatform.initializePlugin,
+            ]
             #else
-            // Otherwise, load the normal plugins.
-            if let pluginsDirectory {
-                let pluginsPath = try pluginsDirectory.filePath
-                pluginManager.load(at: pluginsPath)
-                for subpath in (try? localFS.listdir(pluginsPath).sorted().map({ pluginsPath.join($0) })) ?? [] {
-                    if localFS.isDirectory(subpath) {
-                        pluginManager.load(at: subpath)
+            staticPluginInitializers = []
+            #endif
+
+            if useStaticPluginInitialization {
+                // Statically initialize the plugins.
+                staticPluginInitializers.forEach { $0(pluginManager) }
+            } else {
+                // Otherwise, load the normal plugins.
+                if let pluginsDirectory {
+                    let pluginsPath = try pluginsDirectory.filePath
+                    pluginManager.load(at: pluginsPath)
+                    for subpath in (try? localFS.listdir(pluginsPath).sorted().map({ pluginsPath.join($0) })) ?? [] {
+                        if localFS.isDirectory(subpath) {
+                            pluginManager.load(at: subpath)
+                        }
                     }
                 }
             }
-            #endif
 
             return pluginManager
         }()

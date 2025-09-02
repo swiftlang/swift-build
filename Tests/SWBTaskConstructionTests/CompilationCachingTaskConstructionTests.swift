@@ -17,7 +17,7 @@ import SWBCore
 
 @Suite
 fileprivate struct CompilationCachingTaskConstructionTests: CoreBasedTests {
-    @Test(.requireSDKs(.macOS, comment: "Caching requires explicit modules, which requires libclang and is only available on macOS"), .requireCompilationCaching)
+    @Test(.requireSDKs(.macOS, comment: "Caching requires explicit modules, which requires libclang and is only available on macOS"))
     func settingRemoteCacheSupportedLanguages() async throws {
         let testProject = try await TestProject(
             "aProject",

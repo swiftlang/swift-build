@@ -397,6 +397,12 @@ Generally you should not specify an order file in Debug or Development configura
 "[OTHER_LDFLAGS]-name" = "Other Linker Flags";
 "[OTHER_LDFLAGS]-description" = "Options defined in this setting are passed to invocations of the linker.";
 
+"[MODULE_DEPENDENCIES]-name" = "Module Dependencies";
+"[MODULE_DEPENDENCIES]-description" = "Other modules this target depends on.";
+
+"[HEADER_DEPENDENCIES]-name" = "Header Dependencies";
+"[HEADER_DEPENDENCIES]-description" = "Header files this target depends on.";
+
 "[OTHER_LIBTOOLFLAGS]-name" = "Other Librarian Flags";
 "[OTHER_LIBTOOLFLAGS]-description" = "Options defined in this setting are passed to all invocations of the archive librarian, which is used to generate static libraries.";
 

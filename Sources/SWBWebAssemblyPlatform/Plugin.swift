@@ -15,7 +15,7 @@ import SWBCore
 import SWBMacro
 import Foundation
 
-@PluginExtensionSystemActor public func initializePlugin(_ manager: PluginManager) {
+public let initializePlugin: PluginInitializationFunction = { manager in
     manager.register(WebAssemblyPlatformSpecsExtension(), type: SpecificationsExtensionPoint.self)
     manager.register(WebAssemblyPlatformExtension(), type: PlatformInfoExtensionPoint.self)
     manager.register(WebAssemblySDKRegistryExtension(), type: SDKRegistryExtensionPoint.self)

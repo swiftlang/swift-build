@@ -126,7 +126,7 @@ public struct BuildOperationTargetInfo: SerializableCodable, Equatable, Sendable
     }
 }
 
-public enum BuildOperationTaskSignature: RawRepresentable, Sendable, Hashable, Codable, CustomDebugStringConvertible {
+public enum BuildOperationTaskSignature: RawRepresentable, Sendable, Comparable, Hashable, Codable, CustomDebugStringConvertible {
     case taskIdentifier(ByteString)
     case activitySignature(ByteString)
     case subtaskSignature(ByteString)
@@ -153,6 +153,10 @@ public enum BuildOperationTaskSignature: RawRepresentable, Sendable, Hashable, C
         case .subtaskSignature(let signature):
             return ByteString([2]) + signature
         }
+    }
+
+    public static func < (lhs: BuildOperationTaskSignature, rhs: BuildOperationTaskSignature) -> Bool {
+        lhs.rawValue.lexicographicallyPrecedes(rhs.rawValue)
     }
 
     public init(from decoder: any Decoder) throws {
@@ -1020,7 +1024,7 @@ public struct BuildOperationDiagnosticEmitted: Message, Equatable, SerializableC
     }
 }
 
-public struct BuildOperationBacktraceFrameEmitted: Message, Equatable, SerializableCodable {
+public struct BuildOperationBacktraceFrameEmitted: Message, Equatable, Hashable, SerializableCodable {
     public static let name = "BUILD_BACKTRACE_FRAME_EMITTED"
 
     public enum Identifier: Hashable, Equatable, Comparable, SerializableCodable, Sendable {

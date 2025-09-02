@@ -14,7 +14,7 @@ package struct TimeoutError: Error {
     package var description: String?
 }
 
-package func withTimeout<T: Sendable>(
+@discardableResult package func withTimeout<T: Sendable>(
     timeout: Duration,
     description: String? = nil,
     block: sending () async throws -> T

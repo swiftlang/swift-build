@@ -10,3 +10,23 @@
 //
 //===----------------------------------------------------------------------===//
 
+import SWBProtocol
+
+/// Opaque token used to uniquely identify a build description.
+public struct SWBBuildDescriptionID: Hashable, Sendable {
+    public let rawValue: String
+
+    public init(_ value: String) {
+        self.rawValue = value
+    }
+
+    init(_ buildDescriptionID: BuildDescriptionID) {
+        self.rawValue = buildDescriptionID.rawValue
+    }
+}
+
+extension BuildDescriptionID {
+    init(_ buildDescriptionID: SWBBuildDescriptionID) {
+        self.init(buildDescriptionID.rawValue)
+    }
+}

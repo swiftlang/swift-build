@@ -20,6 +20,7 @@ import SWBUtil
 
 import SWBTaskExecution
 import SWBProtocol
+import SwiftBuildTestSupport
 
 @Suite
 fileprivate struct StaleFileRemovalTests: CoreBasedTests {

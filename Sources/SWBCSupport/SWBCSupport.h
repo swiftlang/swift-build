@@ -21,6 +21,7 @@
 
 #include "CLibclang.h"
 #include "CLibRemarksHelper.h"
+#include "IndexStore.h"
 #include "PluginAPI.h"
 #include "PluginAPI_functions.h"
 #include "PluginAPI_types.h"

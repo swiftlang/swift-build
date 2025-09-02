@@ -49,7 +49,7 @@ public final class XCStringsCompilerSpec: GenericCompilerSpec, SpecIdentifierTyp
         }
 
         if shouldGenerateSymbols(cbc) {
-            constructSymbolGenerationTask(cbc, delegate)
+            await constructSymbolGenerationTask(cbc, delegate)
         }
 
         if shouldCompileCatalog(cbc) {
@@ -138,10 +138,10 @@ public final class XCStringsCompilerSpec: GenericCompilerSpec, SpecIdentifierTyp
     }
 
     /// Generates a task for generating code symbols for strings.
-    private func constructSymbolGenerationTask(_ cbc: CommandBuildContext, _ delegate: any TaskGenerationDelegate) {
+    private func constructSymbolGenerationTask(_ cbc: CommandBuildContext, _ delegate: any TaskGenerationDelegate) async {
         // The template spec file contains fields suitable for the compilation step.
         // But here we construct a custom command line for symbol generation.
-        let execPath = resolveExecutablePath(cbc, Path("xcstringstool"))
+        let execPath = await resolveExecutablePath(cbc, Path("xcstringstool"), delegate: delegate)
         var commandLine = [execPath.str, "generate-symbols"]
 
         // For now shouldGenerateSymbols only returns true if there are Swift sources.

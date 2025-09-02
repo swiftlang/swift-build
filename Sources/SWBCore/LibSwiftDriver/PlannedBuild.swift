@@ -25,7 +25,7 @@ private extension Path {
     init(_ virtualPath: TypedVirtualPath) throws {
         switch virtualPath.file {
         case let .absolute(absPath): self = Path(absPath.pathString)
-        case .standardInput, .standardOutput, .fileList, .relative, .temporary, .temporaryWithKnownContents:
+        case .standardInput, .standardOutput, .fileList, .relative, .temporary, .temporaryWithKnownContents, .buildArtifactWithKnownContents:
             fallthrough
         @unknown default:
             throw StubError.error("Cannot build Path from \(virtualPath); unimplemented path type.")
@@ -526,6 +526,16 @@ extension LibSwiftDriver {
                     try iterator(plannedJob)
                     self.jobExecutionDelegate?.jobSkipped(job: driverJob)
                 }
+            }
+        }
+
+        public func getCrashReproducerCommand(for job: PlannedSwiftDriverJob, output dir: Path) async throws -> [String]? {
+            try await dispatchQueue.sync {
+                let driverJob = try self.driverJob(for: job)
+                guard let reproJob = self.jobExecutionDelegate?.getReproducerJob(job: driverJob, output: try VirtualPath(path: dir.str)) else {
+                  return nil
+                }
+                return try self.argsResolver.resolveArgumentList(for: reproJob, useResponseFiles: .heuristic)
             }
         }
 
