@@ -116,6 +116,8 @@ private final class EnumBuildOptionType : BuildOptionType {
             return try namespace.declareEnumMacro(name) as EnumMacroDeclaration<LinkerDriverChoice>
         case "SWIFT_API_DIGESTER_MODE":
             return try namespace.declareEnumMacro(name) as EnumMacroDeclaration<SwiftAPIDigesterMode>
+        case "LINKER_FILE_LIST_FORMAT":
+            return try namespace.declareEnumMacro(name) as EnumMacroDeclaration<LinkerFileListFormat>
         default:
             return try namespace.declareStringMacro(name)
         }

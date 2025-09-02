@@ -180,6 +180,16 @@
                 Name = "SWIFTC__INPUT_FILE_LIST_PATH__";
                 Type = Path;
                 Condition = "NO";
+            },
+            {
+                Name = "LINKER_FILE_LIST_FORMAT";
+                Type = Enumeration;
+                Values = (
+                    unescapedNewlineSeparated,
+                    unixShellQuotedNewlineSeparated,
+                    windowsShellQuotedNewlineSeparated,
+                );
+                DefaultValue = unixShellQuotedNewlineSeparated;
             }
         );
     },

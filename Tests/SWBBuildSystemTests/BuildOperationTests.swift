@@ -382,6 +382,124 @@ fileprivate struct BuildOperationTests: CoreBasedTests {
         }
     }
 
+    @Test(.requireSDKs(.host))
+    func commandLineTool_whitespaceEscaping() async throws {
+        try await withTemporaryDirectory { (tmpDir: Path) in
+            let tmpDir = tmpDir.join("has whitespace")
+            let testProject = try await TestProject(
+                "TestProject",
+                sourceRoot: tmpDir,
+                groupTree: TestGroup(
+                    "SomeFiles",
+                    children: [
+                        TestFile("main.swift"),
+                        TestFile("dynamic.swift"),
+                        TestFile("static.swift"),
+                    ]),
+                buildConfigurations: [
+                    TestBuildConfiguration("Debug", buildSettings: [
+                        "ARCHS": "$(ARCHS_STANDARD)",
+                        "CODE_SIGNING_ALLOWED": ProcessInfo.processInfo.hostOperatingSystem() == .macOS ? "YES" : "NO",
+                        "CODE_SIGN_IDENTITY": "-",
+                        "CODE_SIGN_ENTITLEMENTS": "Entitlements.plist",
+                        "DEFINES_MODULE": "YES",
+                        "PRODUCT_NAME": "$(TARGET_NAME)",
+                        "SDKROOT": "$(HOST_PLATFORM)",
+                        "SUPPORTED_PLATFORMS": "$(HOST_PLATFORM)",
+                        "SWIFT_VERSION": swiftVersion,
+                        "GCC_GENERATE_DEBUGGING_SYMBOLS": "YES",
+                    ])
+                ],
+                targets: [
+                    TestStandardTarget(
+                        "tool",
+                        type: .commandLineTool,
+                        buildConfigurations: [
+                            TestBuildConfiguration("Debug", buildSettings: [
+                                "LD_RUNPATH_SEARCH_PATHS": "@loader_path/",
+                            ])
+                        ],
+                        buildPhases: [
+                            TestSourcesBuildPhase(["main.swift"]),
+                            TestFrameworksBuildPhase([
+                                TestBuildFile(.target("dynamiclib")),
+                                TestBuildFile(.target("staticlib")),
+                            ])
+                        ],
+                        dependencies: [
+                            "dynamiclib",
+                            "staticlib",
+                        ]
+                    ),
+                    TestStandardTarget(
+                        "dynamiclib",
+                        type: .dynamicLibrary,
+                        buildConfigurations: [
+                            TestBuildConfiguration("Debug", buildSettings: [
+                                "DYLIB_INSTALL_NAME_BASE": "$ORIGIN",
+                                "DYLIB_INSTALL_NAME_BASE[sdk=macosx*]": "@rpath",
+
+                                // FIXME: Find a way to make these default
+                                "EXECUTABLE_PREFIX": "lib",
+                                "EXECUTABLE_PREFIX[sdk=windows*]": "",
+                            ])
+                        ],
+                        buildPhases: [
+                            TestSourcesBuildPhase(["dynamic.swift"]),
+                        ]
+                    ),
+                    TestStandardTarget(
+                        "staticlib",
+                        type: .staticLibrary,
+                        buildConfigurations: [
+                            TestBuildConfiguration("Debug", buildSettings: [
+                                // FIXME: Find a way to make these default
+                                "EXECUTABLE_PREFIX": "lib",
+                                "EXECUTABLE_PREFIX[sdk=windows*]": "",
+                            ])
+                        ],
+                        buildPhases: [
+                            TestSourcesBuildPhase(["static.swift"]),
+                        ]
+                    ),
+                ])
+            let core = try await getCore()
+            let tester = try await BuildOperationTester(core, testProject, simulated: false)
+
+            let projectDir = tester.workspace.projects[0].sourceRoot
+
+            try await tester.fs.writeFileContents(projectDir.join("main.swift")) { stream in
+                stream <<< "import dynamiclib\n"
+                stream <<< "import staticlib\n"
+                stream <<< "dynamicLib()\n"
+                stream <<< "dynamicLib()\n"
+                stream <<< "staticLib()\n"
+                stream <<< "print(\"Hello world\")\n"
+            }
+
+            try await tester.fs.writeFileContents(projectDir.join("dynamic.swift")) { stream in
+                stream <<< "public func dynamicLib() { }"
+            }
+
+            try await tester.fs.writeFileContents(projectDir.join("static.swift")) { stream in
+                stream <<< "public func staticLib() { }"
+            }
+
+            try await tester.fs.writePlist(projectDir.join("Entitlements.plist"), .plDict([:]))
+
+            let provisioningInputs = [
+                "dynamiclib": ProvisioningTaskInputs(identityHash: "-", signedEntitlements: .plDict([:]), simulatedEntitlements: .plDict([:])),
+                "staticlib": ProvisioningTaskInputs(identityHash: "-", signedEntitlements: .plDict([:]), simulatedEntitlements: .plDict([:])),
+                "tool": ProvisioningTaskInputs(identityHash: "-", signedEntitlements: .plDict([:]), simulatedEntitlements: .plDict([:]))
+            ]
+
+            let destination: RunDestinationInfo = .host
+            try await tester.checkBuild(runDestination: destination, persistent: true, signableTargets: Set(provisioningInputs.keys), signableTargetInputs: provisioningInputs) { results in
+                results.checkNoErrors()
+            }
+        }
+    }
+
     @Test(.requireSDKs(.macOS))
     func unitTestWithGeneratedEntryPointViaMacOSOverride() async throws {
         try await withTemporaryDirectory(removeTreeOnDeinit: false) { (tmpDir: Path) in

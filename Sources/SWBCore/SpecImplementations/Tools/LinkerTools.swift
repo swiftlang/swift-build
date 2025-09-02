@@ -382,13 +382,8 @@ public final class LdLinkerSpec : GenericLinkerSpec, SpecIdentifierType, @unchec
         // Define the linker file list.
         let fileListPath = cbc.scope.evaluate(BuiltinMacros.__INPUT_FILE_LIST_PATH__, lookup: linkerDriverLookup)
         if !fileListPath.isEmpty {
-            let contents = OutputByteStream()
-            for input in cbc.inputs {
-                // ld64 reads lines from the file using fgets, without doing any other processing.
-                contents <<< input.absolutePath.strWithPosixSlashes <<< "\n"
-            }
             let fileListPath = fileListPath
-            cbc.producer.writeFileSpec.constructFileTasks(CommandBuildContext(producer: cbc.producer, scope: cbc.scope, inputs: [], output: fileListPath), delegate, contents: contents.bytes, permissions: nil, preparesForIndexing: false, additionalTaskOrderingOptions: [.immediate, .ignorePhaseOrdering])
+            cbc.producer.writeFileSpec.constructFileTasks(CommandBuildContext(producer: cbc.producer, scope: cbc.scope, inputs: [], output: fileListPath), delegate, contents: inputFileListContents(cbc), permissions: nil, preparesForIndexing: false, additionalTaskOrderingOptions: [.immediate, .ignorePhaseOrdering])
             inputPaths.append(fileListPath)
         }
 
@@ -1600,8 +1595,7 @@ public final class LibtoolLinkerSpec : GenericLinkerSpec, SpecIdentifierType, @u
             // Define the linker file list.
             let fileListPath = cbc.scope.evaluate(BuiltinMacros.__INPUT_FILE_LIST_PATH__)
             if !fileListPath.isEmpty {
-                let contents = cbc.inputs.map({ return $0.absolutePath.strWithPosixSlashes + "\n" }).joined(separator: "")
-                cbc.producer.writeFileSpec.constructFileTasks(CommandBuildContext(producer: cbc.producer, scope: cbc.scope, inputs: [], output: fileListPath), delegate, contents: ByteString(encodingAsUTF8: contents), permissions: nil, preparesForIndexing: false, additionalTaskOrderingOptions: [.immediate, .ignorePhaseOrdering])
+                cbc.producer.writeFileSpec.constructFileTasks(CommandBuildContext(producer: cbc.producer, scope: cbc.scope, inputs: [], output: fileListPath), delegate, contents: inputFileListContents(cbc), permissions: nil, preparesForIndexing: false, additionalTaskOrderingOptions: [.immediate, .ignorePhaseOrdering])
                 inputPaths.append(fileListPath)
             }
         } else {
