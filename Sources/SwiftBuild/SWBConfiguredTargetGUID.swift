@@ -12,14 +12,20 @@
 
 import SWBProtocol
 
-public struct SWBTargetGUID: RawRepresentable, Hashable, Sendable {
+public struct SWBConfiguredTargetGUID: RawRepresentable, Hashable, Sendable {
     public var rawValue: String
 
     public init(rawValue: String) {
         self.rawValue = rawValue
     }
 
-    init(_ guid: TargetGUID) {
+    init(_ guid: ConfiguredTargetGUID) {
         self.init(rawValue: guid.rawValue)
+    }
+}
+
+extension ConfiguredTargetGUID {
+    init(_ guid: SWBConfiguredTargetGUID) {
+        self.init(guid.rawValue)
     }
 }

@@ -48,6 +48,10 @@ fileprivate struct CoreMLTaskPayload: TaskPayload, Encodable {
 
 /// The indexing info for a CoreML file.  This will be sent to the client in a property list format described below.
 fileprivate enum CoreMLIndexingInfo: Serializable, SourceFileIndexingInfo, Encodable {
+    public var compilerArguments: [String]? { nil }
+    public var indexOutputFile: String? { nil }
+    public var language: IndexingInfoLanguage? { nil }
+
     /// Setting up the code generation task did not generate an error.  It might have been disabled, which is treated as success.
     case success(generatedFilePaths: [Path]?, languageToGenerate: String, notice: String?)
     /// Setting up the code generation task failed, and we use the index to propagate an error back to Xcode.
