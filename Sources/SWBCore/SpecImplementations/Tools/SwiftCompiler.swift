@@ -1628,7 +1628,7 @@ public final class SwiftCompilerSpec : CompilerSpec, SpecIdentifierType, SwiftDi
             // If there is only a single input, ensure we pass -parse-as-library as appropriate.
             if cbc.inputs.count == 1 {
                 let filename = cbc.inputs[0].absolutePath.basename
-                if filename != SwiftCompilerSpec.mainFileName && !cbc.scope.evaluate(BuiltinMacros.SWIFT_LIBRARIES_ONLY) {
+                if filename != SwiftCompilerSpec.mainFileName && !cbc.scope.evaluate(BuiltinMacros.SWIFT_LIBRARIES_ONLY) && !cbc.scope.evaluate(BuiltinMacros.SWIFT_DISABLE_PARSE_AS_LIBRARY) {
                     // Add -parse-as-library if the only input's file name isn't main.swift and if we didn't already add it due to SWIFT_LIBRARIES_ONLY.
                     args.append("-parse-as-library")
                 }
