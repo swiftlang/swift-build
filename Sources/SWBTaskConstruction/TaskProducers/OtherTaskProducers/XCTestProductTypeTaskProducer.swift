@@ -270,7 +270,7 @@ final class XCTestProductPostprocessingTaskProducer: PhasedTaskProducer, TaskPro
                 Self.swiftTestingFrameworkPath(scope, context.platform, context.workspaceContext.fs)
             ]
 
-            for platformExtension in await context.workspaceContext.core.pluginManager.extensions(of: PlatformInfoExtensionPoint.self) {
+            for platformExtension in context.workspaceContext.core.pluginManager.extensions(of: PlatformInfoExtensionPoint.self) {
                 frameworkPaths.append(contentsOf: platformExtension.additionalTestLibraryPaths(scope: scope, platform: context.platform, fs: context.workspaceContext.fs))
             }
 
@@ -471,7 +471,7 @@ final class XCTestHostTaskProducer: PhasedTaskProducer, TaskProducer {
                 XCTestProductPostprocessingTaskProducer.swiftTestingFrameworkPath(scope, context.platform, context.workspaceContext.fs)
             ]
 
-            for platformExtension in await context.workspaceContext.core.pluginManager.extensions(of: PlatformInfoExtensionPoint.self) {
+            for platformExtension in context.workspaceContext.core.pluginManager.extensions(of: PlatformInfoExtensionPoint.self) {
                 srcPaths.append(contentsOf: platformExtension.additionalTestLibraryPaths(scope: scope, platform: context.platform, fs: context.workspaceContext.fs))
             }
 
