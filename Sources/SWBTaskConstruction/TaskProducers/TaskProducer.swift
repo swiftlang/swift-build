@@ -867,7 +867,7 @@ public class TaskProducerContext: StaleFileRemovalContext, BuildFileResolution
     }
 
     /// Report a note from task construction.
-    func note(_ message: String, location: Diagnostic.Location = .unknown, component: Component = .default) {
+    public func note(_ message: String, location: Diagnostic.Location = .unknown, component: Component = .default) {
         if let configuredTarget {
             delegate.note(.overrideTarget(configuredTarget), message, location: location, component: component)
         } else {
@@ -876,7 +876,7 @@ public class TaskProducerContext: StaleFileRemovalContext, BuildFileResolution
     }
 
     /// Report a warning from task construction.
-    func warning(_ message: String, location: Diagnostic.Location = .unknown, component: Component = .default) {
+    public func warning(_ message: String, location: Diagnostic.Location = .unknown, component: Component = .default) {
         if let configuredTarget {
             delegate.warning(.overrideTarget(configuredTarget), message, location: location, component: component)
         } else {
@@ -894,7 +894,7 @@ public class TaskProducerContext: StaleFileRemovalContext, BuildFileResolution
     }
 
     /// Report a remark from task construction.
-    func remark(_ message: String, location: Diagnostic.Location = .unknown, component: Component = .default) {
+    public func remark(_ message: String, location: Diagnostic.Location = .unknown, component: Component = .default) {
         if let configuredTarget {
             delegate.remark(.overrideTarget(configuredTarget), message, location: location, component: component)
         } else {
