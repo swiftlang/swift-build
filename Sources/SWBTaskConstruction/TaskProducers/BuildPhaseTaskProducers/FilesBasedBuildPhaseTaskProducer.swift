@@ -614,7 +614,7 @@ package class FilesBasedBuildPhaseTaskProducerBase: PhasedTaskProducer {
         // Reorder resolvedBuildFiles so that file types which compile to Swift appear first in the list and so are processed first.
         // This is needed because generated sources aren't added to the the main source code list.
         // rdar://102834701 (File grouping for 'collection groups' is sensitive to ordering of build phase members)
-        let compileToSwiftFileTypes = await context.workspaceContext.core.pluginManager.fileTypesProducingGeneratedSources()
+        let compileToSwiftFileTypes = context.workspaceContext.core.pluginManager.fileTypesProducingGeneratedSources()
         var compileToSwiftFiles = [ResolvedBuildFile]()
         var otherBuildFiles = [ResolvedBuildFile]()
         for resolvedBuildFile in resolvedBuildFiles {
@@ -792,7 +792,7 @@ package class FilesBasedBuildPhaseTaskProducerBase: PhasedTaskProducer {
             return []
         }
 
-        let fileIdentifiersGeneratingSources = await context.workspaceContext.core.pluginManager.fileTypesProducingGeneratedSources()
+        let fileIdentifiersGeneratingSources = context.workspaceContext.core.pluginManager.fileTypesProducingGeneratedSources()
         guard !fileIdentifiersGeneratingSources.isEmpty else {
             return []
         }
