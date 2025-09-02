@@ -101,7 +101,7 @@ public final class BuildRequestContext: Sendable {
             [Path("\(name).framework/\(name)"), Path("/\(name).framework/Versions/A/\(name)")]
         })
 
-        for platformExtension in await workspaceContext.core.pluginManager.extensions(of: PlatformInfoExtensionPoint.self) {
+        for platformExtension in workspaceContext.core.pluginManager.extensions(of: PlatformInfoExtensionPoint.self) {
             suffixes.append(contentsOf: platformExtension.additionalKnownTestLibraryPathSuffixes())
         }
         return suffixes
