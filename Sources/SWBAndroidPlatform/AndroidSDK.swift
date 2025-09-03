@@ -266,16 +266,16 @@ public import Foundation
     }
 }
 
-fileprivate extension AndroidSDK.NDK {
+extension AndroidSDK.NDK {
     /// The location of the Android NDK based on the `ANDROID_NDK_ROOT` environment variable (falling back to the deprecated but well known `ANDROID_NDK_HOME`).
     /// - seealso: [Configuring NDK Path](https://github.com/android/ndk-samples/wiki/Configure-NDK-Path#terminologies)
-    static var environmentOverrideLocation: AbsolutePath? {
+    internal static var environmentOverrideLocation: AbsolutePath? {
         (getEnvironmentVariable("ANDROID_NDK_ROOT") ?? getEnvironmentVariable("ANDROID_NDK_HOME"))?.nilIfEmpty.map { AbsolutePath($0) } ?? nil
     }
 
     /// Location of the Android NDK installed by the `google-android-ndk-*-installer` family of packages available in Debian 13 "Trixie" and Ubuntu 24.04 "Noble".
     /// These packages are available in non-free / multiverse and multiple versions can be installed simultaneously.
-    static var defaultDebianLocation: AbsolutePath? {
+    fileprivate static var defaultDebianLocation: AbsolutePath? {
         AbsolutePath("/usr/lib/android-ndk")
     }
 }

@@ -13,7 +13,7 @@
 import Foundation
 @_spi(Testing) import SWBAndroidPlatform
 import SWBTestSupport
-import SWBUtil
+@_spi(Testing) import SWBUtil
 import Testing
 
 @Suite
@@ -415,7 +415,11 @@ fileprivate struct AndroidSDKTests {
             return ndkVersionPath
         }
         let host = try ProcessInfo.processInfo.hostOperatingSystem()
-        try await block(host, fs, sdkPath, ndkVersionPaths.map { try AbsolutePath(validating: $0) })
+
+        // Clear the environment to avoid influence from Android SDK/NDK environment overrides
+        try await withEnvironment([:], clean: true) {
+            try await block(host, fs, sdkPath, ndkVersionPaths.map { try AbsolutePath(validating: $0) })
+        }
     }
 
     private func withNDKVersion(fs: PseudoFS = PseudoFS(), sdkPath: AbsolutePath = .root, version: Version, _ block: (OperatingSystem, any FSProxy, AbsolutePath, AbsolutePath) async throws -> ()) async throws {
