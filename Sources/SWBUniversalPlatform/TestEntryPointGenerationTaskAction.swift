@@ -173,7 +173,7 @@ class TestEntryPointGenerationTaskAction: TaskAction {
         return """
         if testingLibrary == "xctest" {
             #if !os(Windows) && \(enableExperimentalTestOutput)
-            _ = Self.testOutputPath().map { SwiftPMXCTestObserver(testOutputPath: testOutputPath) }
+            _ = Self.testOutputPath().map { __SwiftPMXCTestObserver(testOutputPath: testOutputPath) }
             #endif
             #if os(WASI)
             await XCTMain(__allDiscoveredTests()) as Never
@@ -190,7 +190,7 @@ class TestEntryPointGenerationTaskAction: TaskAction {
         public import Foundation
         public import XCTest
         
-        public final class SwiftPMXCTestObserver: NSObject {
+        public final class __SwiftPMXCTestObserver: NSObject {
             let testOutputPath: String
         
             public init(testOutputPath: String) {
@@ -200,9 +200,9 @@ class TestEntryPointGenerationTaskAction: TaskAction {
             }
         }
         
-        extension SwiftPMXCTestObserver: XCTestObservation {
+        extension __SwiftPMXCTestObserver: XCTestObservation {
             private func write(record: any Encodable) {
-                let lock = FileLock(at: URL(fileURLWithPath: self.testOutputPath + ".lock"))
+                let lock = __SwiftPMFileLock(at: URL(fileURLWithPath: self.testOutputPath + ".lock"))
                 _ = try? lock.withLock {
                     self._write(record: record)
                 }
@@ -221,70 +221,70 @@ class TestEntryPointGenerationTaskAction: TaskAction {
                 }
             }
         
-            public func testBundleWillStart(_ testBundle: Bundle) {
-                let record = TestBundleEventRecord(bundle: .init(testBundle), event: .start)
-                write(record: TestEventRecord(bundleEvent: record))
+            public func __SwiftPMTestBundleWillStart(_ __SwiftPMTestBundle: Bundle) {
+                let record = __SwiftPMTestBundleEventRecord(bundle: .init(__SwiftPMTestBundle), event: .start)
+                write(record: __SwiftPMTestEventRecord(bundleEvent: record))
             }
         
             public func testSuiteWillStart(_ testSuite: XCTestSuite) {
-                let record = TestSuiteEventRecord(suite: .init(testSuite), event: .start)
-                write(record: TestEventRecord(suiteEvent: record))
+                let record = __SwiftPMTestSuiteEventRecord(suite: .init(testSuite), event: .start)
+                write(record: __SwiftPMTestEventRecord(suiteEvent: record))
             }
         
             public func testCaseWillStart(_ testCase: XCTestCase) {
-                let record = TestCaseEventRecord(testCase: .init(testCase), event: .start)
-                write(record: TestEventRecord(caseEvent: record))
+                let record = __SwiftPMTestCaseEventRecord(testCase: .init(testCase), event: .start)
+                write(record: __SwiftPMTestEventRecord(caseEvent: record))
             }
         
             #if canImport(Darwin)
             public func testCase(_ testCase: XCTestCase, didRecord issue: XCTIssue) {
-                let record = TestCaseFailureRecord(testCase: .init(testCase), issue: .init(issue), failureKind: .unexpected)
-                write(record: TestEventRecord(caseFailure: record))
+                let record = __SwiftPMTestCaseFailureRecord(testCase: .init(testCase), issue: .init(issue), failureKind: .unexpected)
+                write(record: __SwiftPMTestEventRecord(caseFailure: record))
             }
         
             public func testCase(_ testCase: XCTestCase, didRecord expectedFailure: XCTExpectedFailure) {
-                let record = TestCaseFailureRecord(testCase: .init(testCase), issue: .init(expectedFailure.issue), failureKind: .expected(failureReason: expectedFailure.failureReason))
-                write(record: TestEventRecord(caseFailure: record))
+                let record = __SwiftPMTestCaseFailureRecord(testCase: .init(testCase), issue: .init(expectedFailure.issue), failureKind: .expected(failureReason: expectedFailure.failureReason))
+                write(record: __SwiftPMTestEventRecord(caseFailure: record))
             }
             #else
             public func testCase(_ testCase: XCTestCase, didFailWithDescription description: String, inFile filePath: String?, atLine lineNumber: Int) {
-                let issue = TestIssue(description: description, inFile: filePath, atLine: lineNumber)
-                let record = TestCaseFailureRecord(testCase: .init(testCase), issue: issue, failureKind: .unexpected)
-                write(record: TestEventRecord(caseFailure: record))
+                let issue = __SwiftPMTestIssue(description: description, inFile: filePath, atLine: lineNumber)
+                let record = __SwiftPMTestCaseFailureRecord(testCase: .init(testCase), issue: issue, failureKind: .unexpected)
+                write(record: __SwiftPMTestEventRecord(caseFailure: record))
             }
             #endif
         
             public func testCaseDidFinish(_ testCase: XCTestCase) {
-                let record = TestCaseEventRecord(testCase: .init(testCase), event: .finish)
-                write(record: TestEventRecord(caseEvent: record))
+                let record = __SwiftPMTestCaseEventRecord(testCase: .init(testCase), event: .finish)
+                write(record: __SwiftPMTestEventRecord(caseEvent: record))
             }
         
             #if canImport(Darwin)
             public func testSuite(_ testSuite: XCTestSuite, didRecord issue: XCTIssue) {
-                let record = TestSuiteFailureRecord(suite: .init(testSuite), issue: .init(issue), failureKind: .unexpected)
-                write(record: TestEventRecord(suiteFailure: record))
+                let record = __SwiftPMTestSuiteFailureRecord(suite: .init(testSuite), issue: .init(issue), failureKind: .unexpected)
+                write(record: __SwiftPMTestEventRecord(suiteFailure: record))
             }
         
             public func testSuite(_ testSuite: XCTestSuite, didRecord expectedFailure: XCTExpectedFailure) {
-                let record = TestSuiteFailureRecord(suite: .init(testSuite), issue: .init(expectedFailure.issue), failureKind: .expected(failureReason: expectedFailure.failureReason))
-                write(record: TestEventRecord(suiteFailure: record))
+                let record = __SwiftPMTestSuiteFailureRecord(suite: .init(testSuite), issue: .init(expectedFailure.issue), failureKind: .expected(failureReason: expectedFailure.failureReason))
+                write(record: __SwiftPMTestEventRecord(suiteFailure: record))
             }
             #else
             public func testSuite(_ testSuite: XCTestSuite, didFailWithDescription description: String, inFile filePath: String?, atLine lineNumber: Int) {
-                let issue = TestIssue(description: description, inFile: filePath, atLine: lineNumber)
-                let record = TestSuiteFailureRecord(suite: .init(testSuite), issue: issue, failureKind: .unexpected)
-                write(record: TestEventRecord(suiteFailure: record))
+                let issue = __SwiftPMTestIssue(description: description, inFile: filePath, atLine: lineNumber)
+                let record = __SwiftPMTestSuiteFailureRecord(suite: .init(testSuite), issue: issue, failureKind: .unexpected)
+                write(record: __SwiftPMTestEventRecord(suiteFailure: record))
             }
             #endif
         
             public func testSuiteDidFinish(_ testSuite: XCTestSuite) {
-                let record = TestSuiteEventRecord(suite: .init(testSuite), event: .finish)
-                write(record: TestEventRecord(suiteEvent: record))
+                let record = __SwiftPMTestSuiteEventRecord(suite: .init(testSuite), event: .finish)
+                write(record: __SwiftPMTestEventRecord(suiteEvent: record))
             }
         
-            public func testBundleDidFinish(_ testBundle: Bundle) {
-                let record = TestBundleEventRecord(bundle: .init(testBundle), event: .finish)
-                write(record: TestEventRecord(bundleEvent: record))
+            public func __SwiftPMTestBundleDidFinish(_ __SwiftPMTestBundle: Bundle) {
+                let record = __SwiftPMTestBundleEventRecord(bundle: .init(__SwiftPMTestBundle), event: .finish)
+                write(record: __SwiftPMTestEventRecord(bundleEvent: record))
             }
         }
         
@@ -307,7 +307,7 @@ class TestEntryPointGenerationTaskAction: TaskAction {
         
         import Foundation
         
-        public final class FileLock {
+        public final class __SwiftPMFileLock {
           #if os(Windows)
             private var handle: HANDLE?
           #else
@@ -409,20 +409,20 @@ class TestEntryPointGenerationTaskAction: TaskAction {
         
         // FIXME: Copied from `XCTEvents.swift`, would be nice if we had a better way
         
-        struct TestEventRecord: Codable {
-            let caseFailure: TestCaseFailureRecord?
-            let suiteFailure: TestSuiteFailureRecord?
+        struct __SwiftPMTestEventRecord: Codable {
+            let caseFailure: __SwiftPMTestCaseFailureRecord?
+            let suiteFailure: __SwiftPMTestSuiteFailureRecord?
         
-            let bundleEvent: TestBundleEventRecord?
-            let suiteEvent: TestSuiteEventRecord?
-            let caseEvent: TestCaseEventRecord?
+            let bundleEvent: __SwiftPMTestBundleEventRecord?
+            let suiteEvent: __SwiftPMTestSuiteEventRecord?
+            let caseEvent: __SwiftPMTestCaseEventRecord?
         
             init(
-                caseFailure: TestCaseFailureRecord? = nil,
-                suiteFailure: TestSuiteFailureRecord? = nil,
-                bundleEvent: TestBundleEventRecord? = nil,
-                suiteEvent: TestSuiteEventRecord? = nil,
-                caseEvent: TestCaseEventRecord? = nil
+                caseFailure: __SwiftPMTestCaseFailureRecord? = nil,
+                suiteFailure: __SwiftPMTestSuiteFailureRecord? = nil,
+                bundleEvent: __SwiftPMTestBundleEventRecord? = nil,
+                suiteEvent: __SwiftPMTestSuiteEventRecord? = nil,
+                caseEvent: __SwiftPMTestCaseEventRecord? = nil
             ) {
                 self.caseFailure = caseFailure
                 self.suiteFailure = suiteFailure
@@ -434,66 +434,66 @@ class TestEntryPointGenerationTaskAction: TaskAction {
         
         // MARK: - Records
         
-        struct TestAttachment: Codable {
+        struct __SwiftPMTestAttachment: Codable {
             let name: String?
             // TODO: Handle `userInfo: [AnyHashable : Any]?`
             let uniformTypeIdentifier: String
             let payload: Data?
         }
         
-        struct TestBundleEventRecord: Codable {
-            let bundle: TestBundle
-            let event: TestEvent
+        struct __SwiftPMTestBundleEventRecord: Codable {
+            let bundle: __SwiftPMTestBundle
+            let event: __SwiftPMTestEvent
         }
         
-        struct TestCaseEventRecord: Codable {
-            let testCase: TestCase
-            let event: TestEvent
+        struct __SwiftPMTestCaseEventRecord: Codable {
+            let testCase: __SwiftPMTestCase
+            let event: __SwiftPMTestEvent
         }
         
-        struct TestCaseFailureRecord: Codable, CustomStringConvertible {
-            let testCase: TestCase
-            let issue: TestIssue
-            let failureKind: TestFailureKind
+        struct __SwiftPMTestCaseFailureRecord: Codable, CustomStringConvertible {
+            let testCase: __SwiftPMTestCase
+            let issue: __SwiftPMTestIssue
+            let failureKind: __SwiftPMTestFailureKind
         
             var description: String {
                 return "\\(issue.sourceCodeContext.description)\\(testCase) \\(issue.compactDescription)"
             }
         }
         
-        struct TestSuiteEventRecord: Codable {
-            let suite: TestSuiteRecord
-            let event: TestEvent
+        struct __SwiftPMTestSuiteEventRecord: Codable {
+            let suite: __SwiftPMTestSuiteRecord
+            let event: __SwiftPMTestEvent
         }
         
-        struct TestSuiteFailureRecord: Codable {
-            let suite: TestSuiteRecord
-            let issue: TestIssue
-            let failureKind: TestFailureKind
+        struct __SwiftPMTestSuiteFailureRecord: Codable {
+            let suite: __SwiftPMTestSuiteRecord
+            let issue: __SwiftPMTestIssue
+            let failureKind: __SwiftPMTestFailureKind
         }
         
         // MARK: Primitives
         
-        struct TestBundle: Codable {
+        struct __SwiftPMTestBundle: Codable {
             let bundleIdentifier: String?
             let bundlePath: String
         }
         
-        struct TestCase: Codable {
+        struct __SwiftPMTestCase: Codable {
             let name: String
         }
         
-        struct TestErrorInfo: Codable {
+        struct __SwiftPMTestErrorInfo: Codable {
             let description: String
             let type: String
         }
         
-        enum TestEvent: Codable {
+        enum __SwiftPMTestEvent: Codable {
             case start
             case finish
         }
         
-        enum TestFailureKind: Codable, Equatable {
+        enum __SwiftPMTestFailureKind: Codable, Equatable {
             case unexpected
             case expected(failureReason: String?)
         
@@ -505,16 +505,16 @@ class TestEntryPointGenerationTaskAction: TaskAction {
             }
         }
         
-        struct TestIssue: Codable {
-            let type: TestIssueType
+        struct __SwiftPMTestIssue: Codable {
+            let type: __SwiftPMTestIssueType
             let compactDescription: String
             let detailedDescription: String?
-            let associatedError: TestErrorInfo?
-            let sourceCodeContext: TestSourceCodeContext
-            let attachments: [TestAttachment]
+            let associatedError: __SwiftPMTestErrorInfo?
+            let sourceCodeContext: __SwiftPMTestSourceCodeContext
+            let attachments: [__SwiftPMTestAttachment]
         }
         
-        enum TestIssueType: Codable {
+        enum __SwiftPMTestIssueType: Codable {
             case assertionFailure
             case performanceRegression
             case system
@@ -524,7 +524,7 @@ class TestEntryPointGenerationTaskAction: TaskAction {
             case unknown
         }
         
-        struct TestLocation: Codable, CustomStringConvertible {
+        struct __SwiftPMTestLocation: Codable, CustomStringConvertible {
             let file: String
             let line: Int
         
@@ -533,36 +533,36 @@ class TestEntryPointGenerationTaskAction: TaskAction {
             }
         }
         
-        struct TestSourceCodeContext: Codable, CustomStringConvertible {
-            let callStack: [TestSourceCodeFrame]
-            let location: TestLocation?
+        struct __SwiftPMTestSourceCodeContext: Codable, CustomStringConvertible {
+            let callStack: [__SwiftPMTestSourceCodeFrame]
+            let location: __SwiftPMTestLocation?
         
             var description: String {
                 return location?.description ?? ""
             }
         }
         
-        struct TestSourceCodeFrame: Codable {
+        struct __SwiftPMTestSourceCodeFrame: Codable {
             let address: UInt64
-            let symbolInfo: TestSourceCodeSymbolInfo?
-            let symbolicationError: TestErrorInfo?
+            let symbolInfo: __SwiftPMTestSourceCodeSymbolInfo?
+            let symbolicationError: __SwiftPMTestErrorInfo?
         }
         
-        struct TestSourceCodeSymbolInfo: Codable {
+        struct __SwiftPMTestSourceCodeSymbolInfo: Codable {
             let imageName: String
             let symbolName: String
-            let location: TestLocation?
+            let location: __SwiftPMTestLocation?
         }
         
-        struct TestSuiteRecord: Codable {
+        struct __SwiftPMTestSuiteRecord: Codable {
             let name: String
         }
         
         // MARK: XCTest compatibility
         
-        extension TestIssue {
+        extension __SwiftPMTestIssue {
             init(description: String, inFile filePath: String?, atLine lineNumber: Int) {
-                let location: TestLocation?
+                let location: __SwiftPMTestLocation?
                 if let filePath = filePath {
                     location = .init(file: filePath, line: lineNumber)
                 } else {
@@ -575,7 +575,7 @@ class TestEntryPointGenerationTaskAction: TaskAction {
         public import XCTest
         
         #if canImport(Darwin) // XCTAttachment is unavailable in swift-corelibs-xctest.
-        extension TestAttachment {
+        extension __SwiftPMTestAttachment {
             init(_ attachment: XCTAttachment) {
                 self.init(
                     name: attachment.name,
@@ -586,7 +586,7 @@ class TestEntryPointGenerationTaskAction: TaskAction {
         }
         #endif
         
-        extension TestBundle {
+        extension __SwiftPMTestBundle {
             init(_ testBundle: Bundle) {
                 self.init(
                     bundleIdentifier: testBundle.bundleIdentifier,
@@ -595,20 +595,20 @@ class TestEntryPointGenerationTaskAction: TaskAction {
             }
         }
         
-        extension TestCase {
+        extension __SwiftPMTestCase {
             init(_ testCase: XCTestCase) {
                 self.init(name: testCase.name)
             }
         }
         
-        extension TestErrorInfo {
+        extension __SwiftPMTestErrorInfo {
             init(_ error: any Swift.Error) {
                 self.init(description: "\\(error)", type: "\\(Swift.type(of: error))")
             }
         }
         
         #if canImport(Darwin) // XCTIssue is unavailable in swift-corelibs-xctest.
-        extension TestIssue {
+        extension __SwiftPMTestIssue {
             init(_ issue: XCTIssue) {
                 self.init(
                     type: .init(issue.type),
@@ -621,7 +621,7 @@ class TestEntryPointGenerationTaskAction: TaskAction {
             }
         }
         
-        extension TestIssueType {
+        extension __SwiftPMTestIssueType {
             init(_ type: XCTIssue.IssueType) {
                 switch type {
                 case .assertionFailure: self = .assertionFailure
@@ -637,7 +637,7 @@ class TestEntryPointGenerationTaskAction: TaskAction {
         #endif
         
         #if canImport(Darwin) // XCTSourceCodeLocation/XCTSourceCodeContext/XCTSourceCodeFrame/XCTSourceCodeSymbolInfo is unavailable in swift-corelibs-xctest.
-        extension TestLocation {
+        extension __SwiftPMTestLocation {
             init(_ location: XCTSourceCodeLocation) {
                 self.init(
                     file: location.fileURL.absoluteString,
@@ -646,7 +646,7 @@ class TestEntryPointGenerationTaskAction: TaskAction {
             }
         }
         
-        extension TestSourceCodeContext {
+        extension __SwiftPMTestSourceCodeContext {
             init(_ context: XCTSourceCodeContext) {
                 self.init(
                     callStack: context.callStack.map { .init($0) },
@@ -655,7 +655,7 @@ class TestEntryPointGenerationTaskAction: TaskAction {
             }
         }
         
-        extension TestSourceCodeFrame {
+        extension __SwiftPMTestSourceCodeFrame {
             init(_ frame: XCTSourceCodeFrame) {
                 self.init(
                     address: frame.address,
@@ -665,7 +665,7 @@ class TestEntryPointGenerationTaskAction: TaskAction {
             }
         }
         
-        extension TestSourceCodeSymbolInfo {
+        extension __SwiftPMTestSourceCodeSymbolInfo {
             init(_ symbolInfo: XCTSourceCodeSymbolInfo) {
                 self.init(
                     imageName: symbolInfo.imageName,
@@ -676,7 +676,7 @@ class TestEntryPointGenerationTaskAction: TaskAction {
         }
         #endif
         
-        extension TestSuiteRecord {
+        extension __SwiftPMTestSuiteRecord {
             init(_ testSuite: XCTestSuite) {
                 self.init(name: testSuite.name)
             }
