@@ -30,6 +30,12 @@ import Foundation
 
     /// Whether we failed to read the file at all. If this is `true`, the macro table is guaranteed to be empty.
     @_spi(Testing) public let isFileReadFailure: Bool
+
+    /// The final line number after parsing completes.
+    let finalLineNumber: Int
+
+    /// The final column number after parsing completes.
+    let finalColumnNumber: Int
 }
 
 @_spi(Testing) public enum MacroConfigLoadContext: Sendable {
@@ -54,7 +60,7 @@ final class MacroConfigFileLoader: Sendable {
         guard let data = try? fs.read(path) else {
             let table = MacroValueAssignmentTable(namespace: namespace)
             let dependencyPaths = [path]
-            return MacroConfigInfo(table: table, diagnostics: [], dependencyPaths: dependencyPaths, signature: filesSignature(dependencyPaths), isFileReadFailure: true)
+            return MacroConfigInfo(table: table, diagnostics: [], dependencyPaths: dependencyPaths, signature: filesSignature(dependencyPaths), isFileReadFailure: true, finalLineNumber: 1, finalColumnNumber: 1)
         }
 
         return loadSettingsFromConfig(data: data, path: path, namespace: namespace, searchPaths: searchPaths, filesSignature: filesSignature)
@@ -287,7 +293,7 @@ final class MacroConfigFileLoader: Sendable {
         let delegate = SettingsConfigFileParserDelegate(fs: fs, basePath: path?.dirname, searchPaths: searchPaths, table: tableRef, diagnostics: diagnostics, nestedConfigurations: nestedConfigs, ancestorIncludes: ancestorIncludes, developerPath: core.developerPath)
         let parser = MacroConfigFileParser(byteString: data, path: path ?? Path("no path to xcconfig file provided"), delegate: delegate)
         parser.parse()
-        return MacroConfigInfo(table: tableRef.table, diagnostics: diagnostics.diagnostics, dependencyPaths: nestedConfigs.paths, signature: filesSignature(nestedConfigs.paths), isFileReadFailure: false)
+        return MacroConfigInfo(table: tableRef.table, diagnostics: diagnostics.diagnostics, dependencyPaths: nestedConfigs.paths, signature: filesSignature(nestedConfigs.paths), isFileReadFailure: false, finalLineNumber: parser.finalLineNumber, finalColumnNumber: parser.finalColumnNumber)
     }
 }
 

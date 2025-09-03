@@ -824,6 +824,45 @@ fileprivate let testFileData = [
                                   expectedIncludeDirectivesCount: 1
         )
     }
+    
+    @Test
+    func finalLineAndColumnTracking() {
+        // Test empty string
+        TestMacroConfigFileParser("",
+                                  expectedAssignments: [],
+                                  expectedDiagnostics: [],
+                                  expectedIncludeDirectivesCount: 0,
+                                  expectedEndLine: 1,
+                                  expectedEndColumn: 1
+        )
+        
+        // Test single line assignment
+        TestMacroConfigFileParser("A = B",
+                                  expectedAssignments: [(macro: "A", conditions: [], value: "B")],
+                                  expectedDiagnostics: [],
+                                  expectedIncludeDirectivesCount: 0,
+                                  expectedEndLine: 1,
+                                  expectedEndColumn: 6
+        )
+        
+        // Test multiple lines with empty line at end
+        TestMacroConfigFileParser("A = B\n\n",
+                                  expectedAssignments: [(macro: "A", conditions: [], value: "B")],
+                                  expectedDiagnostics: [],
+                                  expectedIncludeDirectivesCount: 0,
+                                  expectedEndLine: 3,
+                                  expectedEndColumn: 1
+        )
+        
+        // Test with comment-only line at end
+        TestMacroConfigFileParser("A = B\n// This is a comment",
+                                  expectedAssignments: [(macro: "A", conditions: [], value: "B")],
+                                  expectedDiagnostics: [],
+                                  expectedIncludeDirectivesCount: 0,
+                                  expectedEndLine: 2,
+                                  expectedEndColumn: 21
+        )
+    }
 }
 
 // We used typealiased tuples for simplicity and readability.
@@ -832,7 +871,7 @@ typealias AssignmentInfo = (macro: String, conditions: [ConditionInfo], value: S
 typealias DiagnosticInfo = (level: MacroConfigFileDiagnostic.Level, kind: MacroConfigFileDiagnostic.Kind, line: Int)
 typealias LocationInfo = (macro: String, path: Path, startLine: Int, endLine: Int, startColumn: Int, endColumn: Int)
 
-private func TestMacroConfigFileParser(_ string: String, expectedAssignments: [AssignmentInfo], expectedDiagnostics: [DiagnosticInfo], expectedLocations: [LocationInfo]? = nil, expectedIncludeDirectivesCount: Int, sourceLocation: SourceLocation = #_sourceLocation) {
+private func TestMacroConfigFileParser(_ string: String, expectedAssignments: [AssignmentInfo], expectedDiagnostics: [DiagnosticInfo], expectedLocations: [LocationInfo]? = nil, expectedIncludeDirectivesCount: Int, expectedEndLine: Int? = nil, expectedEndColumn: Int? = nil, sourceLocation: SourceLocation = #_sourceLocation) {
 
     /// We use a custom delegate to test that we’re getting the expected results, which for the sake of convenience are just kept in (name, conds:[(cond-param, cond-value)], value) tuples, i.e. conditions is an array of two-element tuples.
     class ConfigFileParserTestDelegate : MacroConfigFileParserDelegate {
@@ -873,6 +912,14 @@ private func TestMacroConfigFileParser(_ string: String, expectedAssignments: [A
     // Create a parser, and do the parse.
     let parser = MacroConfigFileParser(byteString: ByteString(encodingAsUTF8: string), path: Path("TestMacroConfigFileParser().xcconfig"), delegate: delegate)
     parser.parse()
+    
+    // Check the final line and column numbers if expected values are provided.
+    if let expectedEndLine {
+        #expect(parser.finalLineNumber == expectedEndLine, "expected final line number \(expectedEndLine), but instead got \(parser.finalLineNumber)", sourceLocation: sourceLocation)
+    }
+    if let expectedEndColumn {
+        #expect(parser.finalColumnNumber == expectedEndColumn, "expected final column number \(expectedEndColumn), but instead got \(parser.finalColumnNumber)", sourceLocation: sourceLocation)
+    }
 
     // Check the assignments that the delegate saw against the expected ones.
     #expect(delegate.assignments == expectedAssignments, "expected assignments \(expectedAssignments), but instead got \(delegate.assignments)", sourceLocation: sourceLocation)

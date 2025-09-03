@@ -42,6 +42,15 @@ public final class MacroConfigFileParser {
     /// Current line number.  Starts at one.
     var currLine: Int
 
+    /// The final line number after parsing completes.
+    public private(set) var finalLineNumber: Int = 1
+
+    /// The final column number after parsing completes.
+    public private(set) var finalColumnNumber: Int = 1
+
+    /// Index of the start of the current line in the byte array.
+    private var currentLineStartIdx: Int = 0
+
 
     /// Initializes the macro expression parser with the given string and delegate.  How the string is parsed depends on the particular parse method that’s invoked, such as `parseAsString()` or `parseAsStringList()`, and not on the configuration of the parser.
     public init(byteString: ByteString, path: Path, delegate: (any MacroConfigFileParserDelegate)?) {
@@ -54,6 +63,9 @@ public final class MacroConfigFileParser {
 
     /// Returns the current line number of the parser.  This is commonly used from the custom implementations of the parser delegate function callbacks.  Line numbers are one-based, and refer only to the source text of the parser itself (not taking into account any source text included using #include directives).
     public var lineNumber: Int { return currLine }
+
+    /// Returns the current column number of the parser. Column numbers are one-based.
+    public var columnNumber: Int { return currIdx - currentLineStartIdx + 1 }
 
     /*
 
@@ -131,6 +143,7 @@ public final class MacroConfigFileParser {
         }
         advance(advancement)
         currLine += 1
+        currentLineStartIdx = currIdx
     }
 
 
@@ -461,6 +474,10 @@ public final class MacroConfigFileParser {
 
         // At this point, we expect to have seen all of the input string.
         assert(isAtEndOfStream)
+
+        // Set the final line and column numbers
+        finalLineNumber = currLine
+        finalColumnNumber = columnNumber
     }
 
 
