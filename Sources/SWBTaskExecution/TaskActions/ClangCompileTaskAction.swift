@@ -337,28 +337,12 @@ public final class ClangCompileTaskAction: TaskAction, BuildValueValidatingTaskA
 
             if lastResult == .succeeded {
                 // Verify the dependencies from the trace data.
-                let payload: DependencyValidationInfo.Payload
-                if let traceFilePath {
-                    let fs = executionDelegate.fs
-                    let traceData = try JSONDecoder().decode(Array<TraceData>.self, from: Data(fs.read(traceFilePath)))
-
-                    var allFiles = Set<Path>()
-                    traceData.forEach { allFiles.formUnion(Set($0.includes)) }
-                    let (imports, includes) = separateImportsFromIncludes(allFiles)
-                    payload = .clangDependencies(imports: imports, includes: includes)
-                } else {
-                    payload = .unsupported
-                }
-
-                if let dependencyValidationOutputPath {
-                    let validationInfo = DependencyValidationInfo(payload: payload)
-                    _ = try executionDelegate.fs.writeIfChanged(
-                        dependencyValidationOutputPath,
-                        contents: ByteString(
-                            JSONEncoder(outputFormatting: .sortedKeys).encode(validationInfo)
-                        )
-                    )
-                }
+                try Self.handleDependencyValidation(
+                    traceFilePath: traceFilePath,
+                    dependencyValidationOutputPath: dependencyValidationOutputPath,
+                    fileSystem: executionDelegate.fs,
+                    isModular: true
+                )
             }
 
             return lastResult ?? .failed
@@ -368,30 +352,7 @@ public final class ClangCompileTaskAction: TaskAction, BuildValueValidatingTaskA
         }
     }
 
-    // Clang's dependency tracing does not currently clearly distinguish modular imports from non-modular includes.
-    // Until that gets fixed, just guess that if the file is contained in a framework, it comes from a module with
-    // the same name. That is obviously not going to be reliable but it unblocks us from continuing experiments with
-    // dependency specifications.
-    private func separateImportsFromIncludes(_ files: Set<Path>) -> ([DependencyValidationInfo.Import], [Path]) {
-        func findFrameworkName(_ file: Path) -> String? {
-            if file.fileExtension == "framework" {
-                return file.basenameWithoutSuffix
-            }
-            return file.dirname.isEmpty || file.dirname.isRoot ? nil : findFrameworkName(file.dirname)
-        }
-        var moduleNames: [String] = []
-        var includeFiles: [Path] = []
-        for file in files {
-            if let frameworkName = findFrameworkName(file) {
-                moduleNames.append(frameworkName)
-            } else {
-                includeFiles.append(file)
-            }
-        }
-        let moduleDependencies = moduleNames.map { ModuleDependency(name: $0, accessLevel: .Private, optional: false) }
-        let moduleImports = moduleDependencies.map { DependencyValidationInfo.Import(dependency: $0, importLocations: []) }
-        return (moduleImports, includeFiles)
-    }
+
 
     /// Intended to be called during task dependency setup.
     /// If remote caching is enabled along with integrated cache queries, it will request
@@ -512,6 +473,66 @@ public final class ClangCompileTaskAction: TaskAction, BuildValueValidatingTaskA
             activityReporter: dynamicExecutionDelegate
         )
     }
+
+    /// Handles dependency validation by reading trace data and writing out DependencyValidationInfo.
+    /// This is shared between modular and non-modular compilation tasks.
+    fileprivate static func handleDependencyValidation(
+        traceFilePath: Path?,
+        dependencyValidationOutputPath: Path?,
+        fileSystem: any FSProxy,
+        isModular: Bool
+    ) throws {
+        let payload: DependencyValidationInfo.Payload
+        if let traceFilePath {
+            let traceData = try JSONDecoder().decode(Array<TraceData>.self, from: Data(fileSystem.read(traceFilePath)))
+            var allFiles = Set<Path>()
+            traceData.forEach { allFiles.formUnion(Set($0.includes)) }
+            
+            if isModular {
+                let (imports, includes) = separateImportsFromIncludes(allFiles)
+                payload = .clangDependencies(imports: imports, includes: includes)
+            } else {
+                payload = .clangDependencies(imports: [], includes: Array(allFiles))
+            }
+        } else {
+            payload = .unsupported
+        }
+
+        if let dependencyValidationOutputPath {
+            let validationInfo = DependencyValidationInfo(payload: payload)
+            _ = try fileSystem.writeIfChanged(
+                dependencyValidationOutputPath,
+                contents: ByteString(
+                    JSONEncoder(outputFormatting: .sortedKeys).encode(validationInfo)
+                )
+            )
+        }
+    }
+
+    // Clang's dependency tracing does not currently clearly distinguish modular imports from non-modular includes.
+    // Until that gets fixed, just guess that if the file is contained in a framework, it comes from a module with
+    // the same name. That is obviously not going to be reliable but it unblocks us from continuing experiments with
+    // dependency specifications.
+    private static func separateImportsFromIncludes(_ files: Set<Path>) -> ([DependencyValidationInfo.Import], [Path]) {
+        func findFrameworkName(_ file: Path) -> String? {
+            if file.fileExtension == "framework" {
+                return file.basenameWithoutSuffix
+            }
+            return file.dirname.isEmpty || file.dirname.isRoot ? nil : findFrameworkName(file.dirname)
+        }
+        var moduleNames: [String] = []
+        var includeFiles: [Path] = []
+        for file in files {
+            if let frameworkName = findFrameworkName(file) {
+                moduleNames.append(frameworkName)
+            } else {
+                includeFiles.append(file)
+            }
+        }
+        let moduleDependencies = moduleNames.map { ModuleDependency(name: $0, accessLevel: .Private, optional: false) }
+        let moduleImports = moduleDependencies.map { DependencyValidationInfo.Import(dependency: $0, importLocations: []) }
+        return (moduleImports, includeFiles)
+    }
 }
 
 public final class ClangNonModularCompileTaskAction: TaskAction {
@@ -560,27 +581,12 @@ public final class ClangNonModularCompileTaskAction: TaskAction {
             let execResult = processDelegate.commandResult ?? .failed
 
             if execResult == .succeeded {
-                let payload: DependencyValidationInfo.Payload
-                if let traceFilePath {
-                    let fs = executionDelegate.fs
-                    let traceData = try JSONDecoder().decode(Array<TraceData>.self, from: fs.readMemoryMapped(traceFilePath))
-
-                    var allFiles = Set<Path>()
-                    traceData.forEach { allFiles.formUnion(Set($0.includes)) }
-                    payload = .clangDependencies(imports: [], includes: Array(allFiles))
-                } else {
-                    payload = .unsupported
-                }
-
-                if let dependencyValidationOutputPath {
-                    let validationInfo = DependencyValidationInfo(payload: payload)
-                    _ = try executionDelegate.fs.writeIfChanged(
-                        dependencyValidationOutputPath,
-                        contents: ByteString(
-                            JSONEncoder(outputFormatting: .sortedKeys).encode(validationInfo)
-                        )
-                    )
-                }
+                try ClangCompileTaskAction.handleDependencyValidation(
+                    traceFilePath: traceFilePath,
+                    dependencyValidationOutputPath: dependencyValidationOutputPath,
+                    fileSystem: executionDelegate.fs,
+                    isModular: false
+                )
             }
 
             return execResult
