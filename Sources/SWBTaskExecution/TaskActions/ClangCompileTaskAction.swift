@@ -484,7 +484,16 @@ public final class ClangCompileTaskAction: TaskAction, BuildValueValidatingTaskA
     ) throws {
         let payload: DependencyValidationInfo.Payload
         if let traceFilePath {
-            let traceData = try JSONDecoder().decode(Array<TraceData>.self, from: Data(fileSystem.read(traceFilePath)))
+            let traceFileContent = try fileSystem.read(traceFilePath)
+
+            let traceData: Array<TraceData>
+            // clang will emit an empty file instead of an empty array when there's nothing to trace
+            if traceFileContent.isEmpty {
+                traceData = []
+            } else {
+                traceData = try JSONDecoder().decode(Array<TraceData>.self, from: Data(traceFileContent))
+            }
+            
             var allFiles = Set<Path>()
             traceData.forEach { allFiles.formUnion(Set($0.includes)) }
             
