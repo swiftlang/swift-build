@@ -1497,9 +1497,10 @@ private class SettingsBuilder {
 
             addSDKOverridingSettings(sdk, boundProperties.sdkVariant)
 
+            let environment = workspaceContext.userInfo?.buildSystemEnvironment ?? [:]
             for settingsExtension in core.pluginManager.extensions(of: SettingsBuilderExtensionPoint.self) {
                 do {
-                    let overridingSettings = try settingsExtension.addSDKOverridingSettings(sdk, boundProperties.sdkVariant, boundProperties.sparseSDKs, specLookupContext: specLookupContext)
+                    let overridingSettings = try settingsExtension.addSDKOverridingSettings(sdk, boundProperties.sdkVariant, boundProperties.sparseSDKs, specLookupContext: specLookupContext, environment: environment)
                     pushTable(.exported) {
                         $0.pushContentsOf(createTableFromUserSettings(overridingSettings))
                     }
