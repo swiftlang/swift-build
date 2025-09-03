@@ -36,12 +36,17 @@ class TestEntryPointTaskProducer: PhasedTaskProducer, TaskProducer {
                     guard settings.productType?.conformsTo(identifier: "com.apple.product-type.bundle.unit-test") == true else {
                         continue
                     }
+                    guard settings.globalScope.evaluate(BuiltinMacros.SWIFT_ENABLE_TESTABILITY) || settings.globalScope.evaluate(BuiltinMacros.OTHER_SWIFT_FLAGS).contains("-enable-testing") else {
+                        context.warning("Skipping XCTest discovery for '\(directDependency.target.name)' because it was not built for testing")
+                        continue
+                    }
                     guard settings.globalScope.evaluate(BuiltinMacros.SWIFT_INDEX_STORE_ENABLE) else {
-                        context.error("Cannot perform test discovery for '\(directDependency.target.name)' because index while building is disabled")
+                        context.warning("Skipping XCTest discovery for '\(directDependency.target.name)' because indexing was disabled")
                         continue
                     }
                     let path = settings.globalScope.evaluate(BuiltinMacros.SWIFT_INDEX_STORE_PATH)
                     guard !path.isEmpty else {
+                        context.warning("Skipping XCTest discovery for '\(directDependency.target.name)' because the index store path could not be determined")
                         continue
                     }
                     indexStoreDirectories.append(path)
