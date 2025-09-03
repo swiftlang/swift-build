@@ -460,8 +460,8 @@ import SWBServiceCore
         }
         let toolchainPaths = try #require(core?.toolchainPaths)
         for expectedPathString in expectedPathStrings {
-            #expect(toolchainPaths.contains(where: { paths in
-                paths.0 == Path(expectedPathString) && paths.strict == false
+            #expect(toolchainPaths.contains(where: { searchPath in
+                searchPath.path == Path(expectedPathString) && searchPath.strict == false
             }), "Unable to find \(expectedPathString)")
         }
 

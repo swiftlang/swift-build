@@ -1308,10 +1308,10 @@ extension TaskOutputParserDelegate {
     func readSerializedDiagnostics(at path: Path, workingDirectory: Path, workspaceContext: WorkspaceContext) -> [Diagnostic] {
         do {
             // Using the default toolchain's libclang regardless of context should be sufficient, since we assume serialized diagnostics to be a stable format.
-            let toolchain = workspaceContext.core.toolchainRegistry.defaultToolchain
-            guard let libclangPath = toolchain?.librarySearchPaths.findLibrary(operatingSystem: workspaceContext.core.hostOperatingSystem, basename: "clang") ?? toolchain?.fallbackLibrarySearchPaths.findLibrary(operatingSystem: workspaceContext.core.hostOperatingSystem, basename: "clang") else {
-                throw StubError.error("unable to find libclang")
+            guard let toolchain = workspaceContext.core.toolchainRegistry.defaultToolchain else {
+                throw StubError.error("unable to find libclang (no default toolchain)")
             }
+            let libclangPath = try toolchain.lookup(subject: .library(basename: "clang"), operatingSystem: workspaceContext.core.hostOperatingSystem)
             guard let libclang = workspaceContext.core.lookupLibclang(path: libclangPath).libclang else {
                 throw StubError.error("unable to open libclang: '\(libclangPath.str)'")
             }

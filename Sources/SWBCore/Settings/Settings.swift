@@ -48,7 +48,7 @@ fileprivate struct PreOverridesSettings {
         if let toolchain = core.toolchainRegistry.lookup("default") {
             self.defaultToolchain = toolchain
         } else {
-            core.delegate.error("missing required default toolchain")
+            core.delegate.error("missing required default toolchain (\(core.toolchainRegistry.toolchains.count) loaded toolchain(s): \(core.toolchainRegistry.toolchains.map { $0.identifier }.joined(separator: " "))")
             self.defaultToolchain = nil
         }
 

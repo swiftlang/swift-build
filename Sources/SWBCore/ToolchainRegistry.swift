@@ -105,7 +105,7 @@ public final class Toolchain: Hashable, Sendable {
         self.testingLibraryPlatformNames = testingLibraryPlatformNames
     }
 
-    convenience init(path: Path, operatingSystem: OperatingSystem, fs: any FSProxy, pluginManager: any PluginManager, platformRegistry: PlatformRegistry?) async throws {
+    convenience init(path: Path, operatingSystem: OperatingSystem, aliases additionalAliases: Set<String>, fs: any FSProxy, pluginManager: any PluginManager, platformRegistry: PlatformRegistry?) async throws {
         let data: PropertyListItem
 
         do {
@@ -215,6 +215,8 @@ public final class Toolchain: Hashable, Sendable {
             // No aliases specified in the plist, so we derive them from the identifier.
             aliases = Toolchain.deriveAliases(path: path, identifier: identifier)
         }
+
+        aliases.formUnion(additionalAliases)
 
         // Framework Search Paths
         var frameworkSearchPaths = Array<String>()
@@ -412,8 +414,32 @@ extension Array where Element == Toolchain {
     }
 }
 
+extension Toolchain {
+    public func lookup(subject: StackedSearchPathLookupSubject, operatingSystem: OperatingSystem) throws(StackedSearchPathLookupError) -> Path {
+        let searchPathsList = [librarySearchPaths, fallbackLibrarySearchPaths]
+        for searchPaths in searchPathsList {
+            if let library = searchPaths.lookup(subject: subject, operatingSystem: operatingSystem) {
+                return library
+            }
+        }
+        throw .unableToFind(subject: subject, operatingSystem: operatingSystem, searchPaths: searchPathsList)
+    }
+}
+
 /// The ToolchainRegistry manages the set of registered toolchains.
 public final class ToolchainRegistry: @unchecked Sendable {
+    @_spi(Testing) public struct SearchPath: Sendable {
+        public var path: Path
+        public var strict: Bool
+        public var aliases: Set<String> = []
+
+        public init(path: Path, strict: Bool, aliases: Set<String> = []) {
+            self.path = path
+            self.strict = strict
+            self.aliases = aliases
+        }
+    }
+
     let fs: any FSProxy
     let hostOperatingSystem: OperatingSystem
 
@@ -427,17 +453,19 @@ public final class ToolchainRegistry: @unchecked Sendable {
 
     public static let appleToolchainIdentifierPrefix: String = "com.apple.dt.toolchain."
 
-    @_spi(Testing) public init(delegate: any ToolchainRegistryDelegate, searchPaths: [(Path, strict: Bool)], fs: any FSProxy, hostOperatingSystem: OperatingSystem) async {
+    @_spi(Testing) public init(delegate: any ToolchainRegistryDelegate, searchPaths: [SearchPath], fs: any FSProxy, hostOperatingSystem: OperatingSystem) async {
         self.fs = fs
         self.hostOperatingSystem = hostOperatingSystem
 
-        for (path, strict) in searchPaths {
+        for searchPath in searchPaths {
+            let path = searchPath.path
+            let strict = searchPath.strict
             if !strict && !fs.exists(path) {
                 continue
             }
 
             do {
-                try await registerToolchainsInDirectory(path, strict: strict, operatingSystem: hostOperatingSystem, delegate: delegate)
+                try await registerToolchainsInDirectory(path, strict: strict, aliases: searchPath.aliases, operatingSystem: hostOperatingSystem, delegate: delegate)
             }
             catch let err {
                 delegate.issue(strict: strict, path, "failed to load toolchains in \(path.str): \(err)")
@@ -462,7 +490,7 @@ public final class ToolchainRegistry: @unchecked Sendable {
     }
 
     /// Register all the toolchains in the given directory.
-    private func registerToolchainsInDirectory(_ path: Path, strict: Bool, operatingSystem: OperatingSystem, delegate: any ToolchainRegistryDelegate) async throws {
+    private func registerToolchainsInDirectory(_ path: Path, strict: Bool, aliases: Set<String>, operatingSystem: OperatingSystem, delegate: any ToolchainRegistryDelegate) async throws {
         let toolchainPaths: [Path] = try fs.listdir(path)
             .sorted()
             .map { path.join($0) }
@@ -475,7 +503,7 @@ public final class ToolchainRegistry: @unchecked Sendable {
             guard toolchainPath.basenameWithoutSuffix != "swift-latest" else { continue }
 
             do {
-                let toolchain = try await Toolchain(path: toolchainPath, operatingSystem: operatingSystem, fs: fs, pluginManager: delegate.pluginManager, platformRegistry: delegate.platformRegistry)
+                let toolchain = try await Toolchain(path: toolchainPath, operatingSystem: operatingSystem, aliases: aliases, fs: fs, pluginManager: delegate.pluginManager, platformRegistry: delegate.platformRegistry)
                 try register(toolchain)
             } catch let err {
                 delegate.issue(strict: strict, toolchainPath, "failed to load toolchain: \(err)")
@@ -505,24 +533,15 @@ public final class ToolchainRegistry: @unchecked Sendable {
     /// Look up the toolchain with the given identifier.
     public func lookup(_ identifier: String) -> Toolchain? {
         let lowercasedIdentifier = identifier.lowercased()
-        if hostOperatingSystem == .macOS {
-            if ["default", "xcode"].contains(lowercasedIdentifier) {
-                return toolchainsByIdentifier[ToolchainRegistry.defaultToolchainIdentifier] ?? toolchainsByAlias[lowercasedIdentifier]
-            } else {
-                return toolchainsByIdentifier[identifier] ?? toolchainsByAlias[lowercasedIdentifier]
-            }
+        if ["default", "xcode"].contains(lowercasedIdentifier) {
+            return toolchainsByIdentifier[ToolchainRegistry.defaultToolchainIdentifier] ?? toolchainsByAlias[lowercasedIdentifier]
         } else {
-            // On non-Darwin, assume if there is only one registered toolchain, it is the default.
-            if ["default", "xcode"].contains(lowercasedIdentifier) || identifier == ToolchainRegistry.defaultToolchainIdentifier {
-                return toolchainsByIdentifier[ToolchainRegistry.defaultToolchainIdentifier] ?? toolchainsByAlias[lowercasedIdentifier] ?? toolchainsByIdentifier.values.only
-            } else {
-                return toolchainsByIdentifier[identifier] ?? toolchainsByAlias[lowercasedIdentifier]
-            }
+            return toolchainsByIdentifier[identifier] ?? toolchainsByAlias[lowercasedIdentifier]
         }
     }
 
     public var defaultToolchain: Toolchain? {
-        return self.lookup(ToolchainRegistry.defaultToolchainIdentifier)
+        return self.lookup("default")
     }
 
     public var toolchains: Set<Toolchain> {

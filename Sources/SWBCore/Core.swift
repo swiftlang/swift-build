@@ -269,35 +269,35 @@ public final class Core: Sendable {
         self.stopAfterOpeningLibClang = UserDefaults.stopAfterOpeningLibClang
 
         self.toolchainPaths = {
-            var toolchainPaths = [(Path, strict: Bool)]()
+            var toolchainPaths = [ToolchainRegistry.SearchPath]()
 
             switch developerPath {
             case .xcode(let path):
-                toolchainPaths.append((path.join("Toolchains"), strict: path.str.hasSuffix(".app/Contents/Developer")))
+                toolchainPaths.append(.init(path: path.join("Toolchains"), strict: path.str.hasSuffix(".app/Contents/Developer")))
             case .swiftToolchain(let path, xcodeDeveloperPath: let xcodeDeveloperPath):
                 if hostOperatingSystem == .windows {
-                    toolchainPaths.append((path.join("Toolchains"), strict: true))
+                    toolchainPaths.append(.init(path: path.join("Toolchains"), strict: true, aliases: ["default"]))
                 } else {
-                    toolchainPaths.append((path, strict: true))
+                    toolchainPaths.append(.init(path: path, strict: true))
                 }
                 if let xcodeDeveloperPath {
-                    toolchainPaths.append((xcodeDeveloperPath.join("Toolchains"), strict: xcodeDeveloperPath.str.hasSuffix(".app/Contents/Developer")))
+                    toolchainPaths.append(.init(path: xcodeDeveloperPath.join("Toolchains"), strict: xcodeDeveloperPath.str.hasSuffix(".app/Contents/Developer")))
                 }
             }
 
             // FIXME: We should support building the toolchain locally (for `inferiorProductsPath`).
 
-            toolchainPaths.append((Path("/Library/Developer/Toolchains"), strict: false))
+            toolchainPaths.append(.init(path: Path("/Library/Developer/Toolchains"), strict: false))
 
             if let homeString = getEnvironmentVariable("HOME")?.nilIfEmpty {
                 let userToolchainsPath = Path(homeString).join("Library/Developer/Toolchains")
-                toolchainPaths.append((userToolchainsPath, strict: false))
+                toolchainPaths.append(.init(path: userToolchainsPath, strict: false))
             }
 
             if let externalToolchainDirs = getEnvironmentVariable("EXTERNAL_TOOLCHAINS_DIR") ?? environment["EXTERNAL_TOOLCHAINS_DIR"] {
                 let envPaths = externalToolchainDirs.split(separator: Path.pathEnvironmentSeparator)
                 for envPath in envPaths {
-                    toolchainPaths.append((Path(envPath), strict: false))
+                    toolchainPaths.append(.init(path: Path(envPath), strict: false))
                 }
             }
 
@@ -367,7 +367,7 @@ public final class Core: Sendable {
     }()
 
     /// The list of toolchain search paths.
-    @_spi(Testing) public var toolchainPaths: [(Path, strict: Bool)]
+    @_spi(Testing) public var toolchainPaths: [ToolchainRegistry.SearchPath]
 
     /// The platform registry.
     let _platformRegistry: UnsafeDelayedInitializationSendableWrapper<PlatformRegistry> = .init()

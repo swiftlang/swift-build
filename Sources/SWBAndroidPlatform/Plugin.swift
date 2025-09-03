@@ -26,6 +26,7 @@ public let initializePlugin: PluginInitializationFunction = { manager in
 
 @_spi(Testing) public final class AndroidPlugin: Sendable {
     private let androidSDKInstallations = AsyncCache<OperatingSystem, [AndroidSDK]>()
+    private let androidOverrideNDKInstallation = AsyncCache<OperatingSystem, AndroidSDK.NDK?>()
 
     func cachedAndroidSDKInstallations(host: OperatingSystem) async throws -> [AndroidSDK] {
         try await androidSDKInstallations.value(forKey: host) {
@@ -34,8 +35,22 @@ public let initializePlugin: PluginInitializationFunction = { manager in
         }
     }
 
-    @_spi(Testing) public func effectiveInstallation(host: OperatingSystem) async throws -> (sdk: AndroidSDK, ndk: AndroidSDK.NDK)? {
+    func cachedAndroidOverrideNDKInstallation(host: OperatingSystem) async throws -> AndroidSDK.NDK? {
+        try await androidOverrideNDKInstallation.value(forKey: host) {
+            if let overridePath = AndroidSDK.NDK.environmentOverrideLocation {
+                return try AndroidSDK.NDK(host: host, path: overridePath, fs: localFS)
+            }
+            return nil
+        }
+    }
+
+    @_spi(Testing) public func effectiveInstallation(host: OperatingSystem) async throws -> (sdk: AndroidSDK?, ndk: AndroidSDK.NDK)? {
         guard let androidSdk = try? await cachedAndroidSDKInstallations(host: host).first else {
+            // No SDK, but we might still have a standalone NDK from the env var override
+            if let overrideNDK = try? await cachedAndroidOverrideNDKInstallation(host: host) {
+                return (nil, overrideNDK)
+            }
+
             return nil
         }
 
@@ -63,9 +78,9 @@ struct AndroidEnvironmentExtension: EnvironmentExtension {
     func additionalEnvironmentVariables(context: any EnvironmentExtensionAdditionalEnvironmentVariablesContext) async throws -> [String: String] {
         switch context.hostOperatingSystem {
         case .windows, .macOS, .linux:
-            if let latest = try? await plugin.cachedAndroidSDKInstallations(host: context.hostOperatingSystem).first {
-                let sdkPath = latest.path.path.str
-                let ndkPath = latest.preferredNDK?.path.path.str
+            if let (sdk, ndk) = try? await plugin.effectiveInstallation(host: context.hostOperatingSystem) {
+                let sdkPath = sdk?.path.path.str
+                let ndkPath = ndk.path.path.str
                 return [
                     "ANDROID_HOME": sdkPath,
                     "ANDROID_SDK_ROOT": sdkPath,
@@ -220,7 +235,7 @@ struct AndroidToolchainRegistryExtension: ToolchainRegistryExtension {
     let plugin: AndroidPlugin
 
     func additionalToolchains(context: any ToolchainRegistryExtensionAdditionalToolchainsContext) async throws -> [Toolchain] {
-        guard let toolchainPath = try? await plugin.cachedAndroidSDKInstallations(host: context.hostOperatingSystem).first?.preferredNDK?.toolchainPath else {
+        guard let toolchainPath = try? await plugin.effectiveInstallation(host: context.hostOperatingSystem)?.ndk.toolchainPath else {
             return []
         }
 

@@ -30,7 +30,7 @@ if ($InstallCMake) {
 }
 
 if (-not $SkipAndroid) {
-    choco install android-ndk
+    choco install -y android-ndk
 
     Import-Module $env:ChocolateyInstall\helpers\chocolateyProfile.psm1
     refreshenv

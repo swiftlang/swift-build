@@ -107,7 +107,7 @@ import SWBServiceCore
                 return
             }
             let delegate = TestDataDelegate(pluginManager: core.pluginManager)
-            let registry = await ToolchainRegistry(delegate: delegate, searchPaths: [(tmpDirPath, strict: strict)], fs: fs, hostOperatingSystem: core.hostOperatingSystem)
+            let registry = await ToolchainRegistry(delegate: delegate, searchPaths: [.init(path: tmpDirPath, strict: strict)], fs: fs, hostOperatingSystem: core.hostOperatingSystem)
             try perform(registry, delegate.warnings, delegate.errors)
         }
     }
