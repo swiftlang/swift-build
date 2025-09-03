@@ -37,7 +37,7 @@ public protocol SettingsBuilderExtension {
     func addSDKSettings(_ sdk: SDK, _ variant: SDKVariant?, _ sparseSDKs: [SDK]) throws -> [String : String]
 
     /// Provides a table of overriding SDK settings
-    func addSDKOverridingSettings(_ sdk: SDK, _ variant: SDKVariant?, _ sparseSDKs: [SDK], specLookupContext: any SpecLookupContext) throws -> [String: String]
+    func addSDKOverridingSettings(_ sdk: SDK, _ variant: SDKVariant?, _ sparseSDKs: [SDK], specLookupContext: any SpecLookupContext, environment: [String: String]) throws -> [String: String]
 
     /// Provides a table of default platform SDK settings
     func addPlatformSDKSettings(_ platform: Platform?, _ sdk: SDK, _ sdkVariant: SDKVariant?) -> [String: String]
