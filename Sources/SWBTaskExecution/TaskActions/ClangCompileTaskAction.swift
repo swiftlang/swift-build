@@ -491,7 +491,11 @@ public final class ClangCompileTaskAction: TaskAction, BuildValueValidatingTaskA
             if traceFileContent.isEmpty {
                 traceData = []
             } else {
-                traceData = try JSONDecoder().decode(Array<TraceData>.self, from: Data(traceFileContent))
+                do {
+                    traceData = try JSONDecoder().decode(Array<TraceData>.self, from: Data(traceFileContent))
+                } catch {
+                    throw StubError.error("Failed to decode json trace at \(traceFilePath.str): \(error)")
+                }
             }
             
             var allFiles = Set<Path>()
