@@ -1555,6 +1555,7 @@ internal final class OperationSystemAdaptor: SWBLLBuild.BuildSystemDelegate, Act
     func waitForCompletion(buildSucceeded: Bool) async {
         let completionToken = await dynamicOperationContext.waitForCompletion()
         cleanupCompilationCache()
+        cleanupGlobalModuleCache()
 
         await queue.sync {
             self.isCompleted = true
@@ -1596,6 +1597,33 @@ internal final class OperationSystemAdaptor: SWBLLBuild.BuildSystemDelegate, Act
             } catch {
                 // Log error but do not fail the build.
                 emit(diagnostic: Diagnostic.init(behavior: .warning, location: .unknown, data: DiagnosticData("Error cleaning up \(cachePath): \(error.localizedDescription)")), for: activity, signature: signature)
+            }
+            return .succeeded
+        }
+    }
+
+    func cleanupGlobalModuleCache() {
+        let settings = operation.requestContext.getCachedSettings(operation.request.parameters)
+        if settings.globalScope.evaluate(BuiltinMacros.KEEP_GLOBAL_MODULE_CACHE_DIRECTORY) {
+            return // Keep the cache directory.
+        }
+
+        let cachePath = settings.globalScope.evaluate(BuiltinMacros.MODULE_CACHE_DIR)
+        guard !cachePath.isEmpty, operation.fs.exists(cachePath) else {
+            return
+        }
+
+        let signatureCtx = InsecureHashContext()
+        signatureCtx.add(string: "CleanupGlobalModuleCache")
+        signatureCtx.add(string: cachePath.str)
+        let signature = signatureCtx.signature
+
+        withActivity(ruleInfo: "CleanupGlobalModuleCache \(cachePath.str)", executionDescription: "Cleanup global module cache at \(cachePath)", signature: signature, target: nil, parentActivity: nil) { activity in
+            do {
+                try operation.fs.removeDirectory(cachePath)
+            } catch {
+                // Log error but do not fail the build.
+                emit(diagnostic: Diagnostic.init(behavior: .warning, location: .unknown, data: DiagnosticData("Failed to remove \(cachePath): \(error.localizedDescription)")), for: activity, signature: signature)
             }
             return .succeeded
         }

@@ -547,6 +547,7 @@ public final class BuiltinMacros {
     public static let COMPILATION_CACHE_ENABLE_PLUGIN = BuiltinMacros.declareBooleanMacro("COMPILATION_CACHE_ENABLE_PLUGIN")
     public static let COMPILATION_CACHE_ENABLE_STRICT_CAS_ERRORS = BuiltinMacros.declareBooleanMacro("COMPILATION_CACHE_ENABLE_STRICT_CAS_ERRORS")
     public static let COMPILATION_CACHE_KEEP_CAS_DIRECTORY = BuiltinMacros.declareBooleanMacro("COMPILATION_CACHE_KEEP_CAS_DIRECTORY")
+    public static let KEEP_GLOBAL_MODULE_CACHE_DIRECTORY = BuiltinMacros.declareBooleanMacro("SCANNING_PCM_KEEP_CACHE_DIRECTORY")
     public static let COMPILATION_CACHE_CAS_PATH = BuiltinMacros.declareStringMacro("COMPILATION_CACHE_CAS_PATH")
     public static let COMPILATION_CACHE_LIMIT_PERCENT = BuiltinMacros.declareStringMacro("COMPILATION_CACHE_LIMIT_PERCENT")
     public static let COMPILATION_CACHE_LIMIT_SIZE = BuiltinMacros.declareStringMacro("COMPILATION_CACHE_LIMIT_SIZE")
@@ -1551,6 +1552,7 @@ public final class BuiltinMacros {
         COMPILATION_CACHE_ENABLE_PLUGIN,
         COMPILATION_CACHE_ENABLE_STRICT_CAS_ERRORS,
         COMPILATION_CACHE_KEEP_CAS_DIRECTORY,
+        KEEP_GLOBAL_MODULE_CACHE_DIRECTORY,
         COMPILATION_CACHE_LIMIT_PERCENT,
         COMPILATION_CACHE_LIMIT_SIZE,
         COMPILATION_CACHE_CAS_PATH,
