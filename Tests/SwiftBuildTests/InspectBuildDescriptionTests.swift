@@ -22,7 +22,7 @@ import SWBCore
 // These tests use the old model, ie. the index build arena is disabled.
 @Suite(.requireHostOS(.macOS))
 fileprivate struct InspectBuildDescriptionTests {
-    @Test
+    @Test(.requireSDKs(.macOS))
     func configuredTargets() async throws {
         try await withTemporaryDirectory { (temporaryDirectory: NamedTemporaryDirectory) in
             try await withAsyncDeferrable { deferrable in
@@ -74,7 +74,7 @@ fileprivate struct InspectBuildDescriptionTests {
         }
     }
 
-    @Test
+    @Test(.requireSDKs(.macOS))
     func configuredTargetSources() async throws {
         try await withTemporaryDirectory { (temporaryDirectory: NamedTemporaryDirectory) in
             try await withAsyncDeferrable { deferrable in
@@ -152,7 +152,7 @@ fileprivate struct InspectBuildDescriptionTests {
         }
     }
 
-    @Test
+    @Test(.requireSDKs(.macOS))
     func indexCompilerArguments() async throws {
         try await withTemporaryDirectory { (temporaryDirectory: NamedTemporaryDirectory) in
             try await withAsyncDeferrable { deferrable in
