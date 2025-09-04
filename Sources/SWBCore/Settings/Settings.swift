@@ -1976,6 +1976,11 @@ private class SettingsBuilder {
         exportedMacroNames.formUnion(info.exportedMacros)
         errors.append(contentsOf:info.errors)
 
+        // Default to preserving the module cache directory.
+        pushTable(.exported) {
+            $0.push(BuiltinMacros.KEEP_GLOBAL_MODULE_CACHE_DIRECTORY, literal: true)
+        }
+
         if self.parameters.action == .indexBuild {
             pushTable(.exported) {
                 $0.push(BuiltinMacros.INDEX_ENABLE_BUILD_ARENA, literal: true)
