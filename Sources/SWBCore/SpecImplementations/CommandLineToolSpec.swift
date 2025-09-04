@@ -1463,7 +1463,7 @@ open class GenericOutputParser : TaskOutputParser {
     public let toolBasenames: Set<String>
 
     /// Buffered output that has not yet been parsed (parsing is line-by-line, so we buffer incomplete lines until we receive more output).
-    private var unparsedBytes: ArraySlice<UInt8> = []
+    internal var unparsedBytes: ArraySlice<UInt8> = []
 
     /// The Diagnostic that is being constructed, possibly across multiple lines of input.
     private var inProgressDiagnostic: Diagnostic?
