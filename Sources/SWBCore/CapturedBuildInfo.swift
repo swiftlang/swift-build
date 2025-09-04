@@ -97,16 +97,16 @@ public struct CapturedBuildInfo: PropertyListItemConvertible, Sendable {
             let settings = settingsPerTarget[configuredTarget]
             let targetConstructionComponents = settings?.constructionComponents
             let projectXcconfigSettings: CapturedBuildSettingsTableInfo = {
-                let settings = targetConstructionComponents?.projectXcconfigSettings?.capturedRepresentation ?? [:]
-                return CapturedBuildSettingsTableInfo(name: CapturedBuildSettingsTableInfo.Name.projectXcconfig, path: targetConstructionComponents?.projectXcconfigPath, settings: settings)
+                let settings = targetConstructionComponents?.projectXcconfig?.settings.capturedRepresentation ?? [:]
+                return CapturedBuildSettingsTableInfo(name: CapturedBuildSettingsTableInfo.Name.projectXcconfig, path: targetConstructionComponents?.projectXcconfig?.path, settings: settings)
             }()
             let projectSettings: CapturedBuildSettingsTableInfo = {
                 let settings = targetConstructionComponents?.projectSettings?.capturedRepresentation ?? [:]
                 return CapturedBuildSettingsTableInfo(name: CapturedBuildSettingsTableInfo.Name.project, path: nil, settings: settings)
             }()
             let targetXcconfigSettings: CapturedBuildSettingsTableInfo = {
-                let settings = targetConstructionComponents?.targetXcconfigSettings?.capturedRepresentation ?? [:]
-                return CapturedBuildSettingsTableInfo(name: CapturedBuildSettingsTableInfo.Name.targetXcconfig, path: targetConstructionComponents?.targetXcconfigPath, settings: settings)
+                let settings = targetConstructionComponents?.targetXcconfig?.settings.capturedRepresentation ?? [:]
+                return CapturedBuildSettingsTableInfo(name: CapturedBuildSettingsTableInfo.Name.targetXcconfig, path: targetConstructionComponents?.targetXcconfig?.path, settings: settings)
             }()
             let targetSettings: CapturedBuildSettingsTableInfo = {
                 let settings = targetConstructionComponents?.targetSettings?.capturedRepresentation ?? [:]
