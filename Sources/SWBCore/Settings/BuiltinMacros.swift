@@ -1046,6 +1046,7 @@ public final class BuiltinMacros {
     public static let SWIFT_INDEX_STORE_PATH = BuiltinMacros.declarePathMacro("SWIFT_INDEX_STORE_PATH")
     public static let SWIFT_INSTALL_OBJC_HEADER = BuiltinMacros.declareBooleanMacro("SWIFT_INSTALL_OBJC_HEADER")
     public static let SWIFT_INSTALLAPI_LAZY_TYPECHECK = BuiltinMacros.declareBooleanMacro("SWIFT_INSTALLAPI_LAZY_TYPECHECK")
+    public static let SWIFT_DISABLE_PARSE_AS_LIBRARY = BuiltinMacros.declareBooleanMacro("SWIFT_DISABLE_PARSE_AS_LIBRARY")
     public static let SWIFT_LIBRARIES_ONLY = BuiltinMacros.declareBooleanMacro("SWIFT_LIBRARIES_ONLY")
     public static let SWIFT_LIBRARY_LEVEL = BuiltinMacros.declareStringMacro("SWIFT_LIBRARY_LEVEL")
     public static let SWIFT_LIBRARY_PATH = BuiltinMacros.declarePathMacro("SWIFT_LIBRARY_PATH")
@@ -2223,6 +2224,7 @@ public final class BuiltinMacros {
         _SWIFT_EXPLICIT_MODULES_ALLOW_CXX_INTEROP,
         _SWIFT_EXPLICIT_MODULES_ALLOW_BEFORE_SWIFT_5,
         _EXPERIMENTAL_SWIFT_EXPLICIT_MODULES,
+        SWIFT_DISABLE_PARSE_AS_LIBRARY,
         SWIFT_ENABLE_BARE_SLASH_REGEX,
         SWIFT_ENABLE_EMIT_CONST_VALUES,
         SWIFT_ENABLE_OPAQUE_TYPE_ERASURE,

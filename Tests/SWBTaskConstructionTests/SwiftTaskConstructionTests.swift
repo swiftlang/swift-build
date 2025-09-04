@@ -4260,6 +4260,64 @@ fileprivate struct SwiftTaskConstructionTests: CoreBasedTests {
         }
     }
 
+    @Test(.requireSDKs(.host))
+    func swiftDisableParseAsLibrarySettings() async throws {
+        let targetName = "targetName"
+        try await withTemporaryDirectory { tmpDir in
+            let testProject = try await TestProject(
+                "ProjectName",
+                sourceRoot: tmpDir.join("srcroot"),
+                groupTree: TestGroup(
+                    "SomeFiles",
+                    children: [
+                        TestFile("File1.swift"),
+                    ]),
+                targets: [
+                    TestStandardTarget(
+                        targetName,
+                        type: .framework,
+                        buildConfigurations: [
+                            TestBuildConfiguration("Debug", buildSettings: [
+                                "PRODUCT_NAME": "$(TARGET_NAME)",
+                                "SWIFT_EXEC": swiftCompilerPath.str,
+                                "CODE_SIGN_IDENTITY": "",
+                                "SWIFT_VERSION": swiftVersion,
+                            ]),
+                        ],
+                        buildPhases: [
+                            TestSourcesBuildPhase([
+                                TestBuildFile("File1.swift"),
+                            ]),
+                        ])
+                ])
+
+            let tester = try await TaskConstructionTester(getCore(), testProject)
+            await tester.checkBuild(
+                BuildParameters(configuration: "Debug", overrides: ["SWIFT_DISABLE_PARSE_AS_LIBRARY": "YES"]),
+                runDestination: .host,
+            ) { results in
+                results.checkTarget(targetName) { target in
+                    results.checkTask(.matchTarget(target), .matchRuleType("SwiftDriver Compilation")) { task in
+                        task.checkCommandLineDoesNotContain("-parse-as-library")
+                    }
+                }
+            }
+
+            await tester.checkBuild(
+                BuildParameters(configuration: "Debug", overrides: ["SWIFT_DISABLE_PARSE_AS_LIBRARY": "NO"]),
+                runDestination: .host,
+            ) { results in
+                results.checkTarget(targetName) { target in
+                    results.checkTask(.matchTarget(target), .matchRuleType("SwiftDriver Compilation")) { task in
+                        task.checkCommandLineContains(["-parse-as-library"])
+                    }
+                }
+            }
+
+
+        }
+    }
+
     @Test(.requireSDKs(.macOS))
     func layoutStringValueWitnesses() async throws {
         try await withTemporaryDirectory { tmpDir in
