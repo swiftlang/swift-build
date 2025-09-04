@@ -786,19 +786,16 @@ public final class Settings: PlatformBuildContext, Sendable {
     ///
     /// - remark: The overhead of this object should be very small, because the majority of the actual data are the linked lists of macro definitions, which are shared with the main table in the `Settings` object.
     public struct ConstructionComponents: Sendable {
-        // These properties are the individual tables (and info about them) of specific levels which contributed to the Settings.
+        struct XcconfigInfo: Sendable {
+            var path: Path
+            var settings: MacroValueAssignmentTable
+            var finalLineNumber: Int
+            var finalColumnNumber: Int
+        }
 
-        /// The path to the project-level xcconfig file.
-        let projectXcconfigPath: Path?
-        /// The project-level xcconfig settings table.
-        let projectXcconfigSettings: MacroValueAssignmentTable?
-        /// The project-level settings table.
+        let projectXcconfig: XcconfigInfo?
         let projectSettings: MacroValueAssignmentTable?
-        /// The path to the target-level xcconfig file.
-        let targetXcconfigPath: Path?
-        /// The target-level xcconfig settings table.
-        let targetXcconfigSettings: MacroValueAssignmentTable?
-        /// The target-level settings table.
+        let targetXcconfig: XcconfigInfo?
         let targetSettings: MacroValueAssignmentTable?
 
         // These properties are the actual tables of settings up to a certain point, which are used to compute the resolved values of settings at that level in the build settings editor (e.g., in the Levels view).
@@ -966,9 +963,9 @@ public final class Settings: PlatformBuildContext, Sendable {
         return BuildSettingsEditorInfoPayload(
             // Assigned values
             targetSettingAssignments: assignedValues(for: constructionComponents.targetSettings),
-            targetXcconfigSettingAssignments: assignedValues(for: constructionComponents.targetXcconfigSettings),
+            targetXcconfigSettingAssignments: assignedValues(for: constructionComponents.targetXcconfig?.settings),
             projectSettingAssignments: assignedValues(for: constructionComponents.projectSettings),
-            projectXcconfigSettingAssignments: assignedValues(for: constructionComponents.projectXcconfigSettings),
+            projectXcconfigSettingAssignments: assignedValues(for: constructionComponents.projectXcconfig?.settings),
 
             // Resolved values
             targetResolvedSettingsValues: resolvedValues(for: constructionComponents.upToTargetSettings),
@@ -1322,18 +1319,16 @@ private class SettingsBuilder {
         return core.coreSettings
     }
 
-    private var projectXcconfigPath: Path? = nil
-    private var projectXcconfigSettings: MacroValueAssignmentTable? = nil
+    private var projectXcconfig: Settings.ConstructionComponents.XcconfigInfo? = nil
     private var projectSettings: MacroValueAssignmentTable? = nil
-    private var targetXcconfigPath: Path? = nil
-    private var targetXcconfigSettings: MacroValueAssignmentTable? = nil
+    private var targetXcconfig: Settings.ConstructionComponents.XcconfigInfo? = nil
     private var targetSettings: MacroValueAssignmentTable? = nil
     /// Convenient array for iterating over all defined settings tables in the project for this target, from lowest to highest.
     private var allProjectSettingsLevels: [(table: MacroValueAssignmentTable?, path: Path?, level: String)] {
         return [
-            (projectXcconfigSettings, projectXcconfigPath, "project-xcconfig"),
+            (projectXcconfig?.settings, projectXcconfig?.path, "project-xcconfig"),
             (projectSettings, nil, "project"),
-            (targetXcconfigSettings, targetXcconfigPath, "target-xcconfig"),
+            (targetXcconfig?.settings, targetXcconfig?.path, "target-xcconfig"),
             (targetSettings, nil, "target"),
         ]
     }
@@ -1347,11 +1342,9 @@ private class SettingsBuilder {
     /// The project model components which were used to construct the settings made by this builder.
     var constructionComponents: Settings.ConstructionComponents {
         return Settings.ConstructionComponents(
-            projectXcconfigPath: self.projectXcconfigPath,
-        	projectXcconfigSettings: self.projectXcconfigSettings,
+            projectXcconfig: self.projectXcconfig,
             projectSettings: self.projectSettings,
-            targetXcconfigPath: self.targetXcconfigPath,
-            targetXcconfigSettings: self.targetXcconfigSettings,
+            targetXcconfig: self.targetXcconfig,
             targetSettings: self.targetSettings,
             upToDefaultsSettings: self.upToDefaultsSettings,
             upToProjectXcconfigSettings: upToProjectXcconfigSettings,
@@ -2807,8 +2800,7 @@ private class SettingsBuilder {
             }
 
             // Save the settings table as part of the construction components.
-            self.projectXcconfigPath = path
-            self.projectXcconfigSettings = info.table
+            self.projectXcconfig = .init(path: path, settings: info.table, finalLineNumber: info.finalLineNumber, finalColumnNumber: info.finalColumnNumber)
 
             // Also save the table we've constructed so far.
             self.upToProjectXcconfigSettings = MacroValueAssignmentTable(copying: _table)
@@ -3015,8 +3007,7 @@ private class SettingsBuilder {
             }
 
             // Save the settings table as part of the construction components.
-            self.targetXcconfigPath = path
-            self.targetXcconfigSettings = info.table
+            self.targetXcconfig = .init(path: path, settings: info.table, finalLineNumber: info.finalLineNumber, finalColumnNumber: info.finalColumnNumber)
 
             // Save the table we've constructed so far.
             self.upToTargetXcconfigSettings = MacroValueAssignmentTable(copying: _table)
