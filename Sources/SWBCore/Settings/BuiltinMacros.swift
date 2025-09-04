@@ -1181,6 +1181,7 @@ public final class BuiltinMacros {
     public static let _WRAPPER_PARENT_PATH = BuiltinMacros.declareStringMacro("_WRAPPER_PARENT_PATH")
     public static let _WRAPPER_RESOURCES_DIR = BuiltinMacros.declareStringMacro("_WRAPPER_RESOURCES_DIR")
     public static let __INPUT_FILE_LIST_PATH__ = BuiltinMacros.declarePathMacro("__INPUT_FILE_LIST_PATH__")
+    public static let LINKER_FILE_LIST_FORMAT = BuiltinMacros.declareEnumMacro("LINKER_FILE_LIST_FORMAT") as EnumMacroDeclaration<LinkerFileListFormat>
     public static let SWIFT_RESPONSE_FILE_PATH = BuiltinMacros.declarePathMacro("SWIFT_RESPONSE_FILE_PATH")
     public static let __ARCHS__ = BuiltinMacros.declareStringListMacro("__ARCHS__")
 
@@ -2425,6 +2426,7 @@ public final class BuiltinMacros {
         _WRAPPER_PARENT_PATH,
         _WRAPPER_RESOURCES_DIR,
         __INPUT_FILE_LIST_PATH__,
+        LINKER_FILE_LIST_FORMAT,
         __ARCHS__,
         __SWIFT_MODULE_ONLY_ARCHS__,
         arch,
@@ -2868,6 +2870,14 @@ public enum StripStyle: String, Equatable, Hashable, EnumerationMacroType {
     case all
     case nonGlobal = "non-global"
     case debugging
+}
+
+public enum LinkerFileListFormat: String, Equatable, Hashable, EnumerationMacroType {
+    public static let defaultValue = Self.unescapedNewlineSeparated
+
+    case unescapedNewlineSeparated
+    case unixShellQuotedNewlineSeparated
+    case windowsShellQuotedNewlineSeparated
 }
 
 public enum MergedBinaryType: String, Equatable, Hashable, EnumerationMacroType {
