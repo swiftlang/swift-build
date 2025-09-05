@@ -104,7 +104,7 @@ extension StackedSearchPathLookupError: CustomStringConvertible {
         switch self {
         case let .unableToFind(subject, operatingSystem, searchPaths):
             let candidates = searchPaths.flatMap { $0.paths.map { $0.join(subject.fileName(operatingSystem: operatingSystem)).str }}
-            return "unable to find \(subject.fileName(operatingSystem: operatingSystem)) among search paths: \(candidates.joined(separator: ", "))"
+            return "unable to find \(subject.fileName(operatingSystem: operatingSystem).str) among search paths: \(candidates.joined(separator: ", "))"
         }
     }
 }
