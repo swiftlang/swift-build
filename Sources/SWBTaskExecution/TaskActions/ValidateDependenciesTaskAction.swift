@@ -36,7 +36,7 @@ public final class ValidateDependenciesTaskAction: TaskAction {
         }
 
         do {
-            var allClangIncludes = Set<Path>()
+            var allClangIncludes = Set<DependencyValidationInfo.Include>()
             var allClangImports = Set<DependencyValidationInfo.Import>()
             var allSwiftImports = Set<DependencyValidationInfo.Import>()
             var unsupported = false
@@ -100,7 +100,7 @@ public final class ValidateDependenciesTaskAction: TaskAction {
                 if unsupported {
                     diagnostics.append(contentsOf: headerContext.makeDiagnostics(includes: nil))
                 } else {
-                    diagnostics.append(contentsOf: headerContext.makeDiagnostics(includes: Array(allClangIncludes)))
+                    diagnostics.append(contentsOf: headerContext.makeDiagnostics(includes: allClangIncludes.map { $0.path }))
                 }
             }
 
