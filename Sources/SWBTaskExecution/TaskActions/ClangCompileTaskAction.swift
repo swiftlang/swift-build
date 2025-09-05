@@ -634,8 +634,8 @@ public final class ClangNonModularCompileTaskAction: TaskAction {
 }
 
 fileprivate func parseTraceData(_ data: Data) throws -> TraceData? {
-    if let jsonObject = try JSONSerialization.jsonObject(with: data) as? [String: Any],
-       let version = jsonObject["version"] as? String {
+    let jsonObject = try PropertyList.fromJSONData(data)
+    if let version = jsonObject.dictValue?["version"]?.stringValue {
         if version == "2.0.0" {
             return .V2(try JSONDecoder().decode(TraceData.TraceFileV2.self, from: data))
         }
@@ -648,12 +648,12 @@ fileprivate func parseTraceData(_ data: Data) throws -> TraceData? {
 }
 
 fileprivate func parseTraceSourceLocation(_ locationStr: String) -> SWBUtil.Diagnostic.Location {
-    guard let match = locationStr.wholeMatch(of: #/(.+):(\d+):(\d+)/#) else {
+    guard let match = locationStr.wholeMatch(of: #/(?<filename>.+):(?<line>\d+):(?<column>\d+)/#) else {
         return .unknown
     }
-    let filename = Path(match.1)
-    let line = Int(match.2)
-    let column = Int(match.3)
+    let filename = Path(match.filename)
+    let line = Int(match.line)
+    let column = Int(match.column)
     if let line {
         return .path(filename, fileLocation: .textual(line: line, column: column))
     }
