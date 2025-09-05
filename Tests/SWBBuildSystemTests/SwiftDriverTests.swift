@@ -4944,6 +4944,45 @@ fileprivate struct SwiftDriverTests: CoreBasedTests {
                 }
             }
 
+            //Reinit the core to invalidate all caching
+            tester = try await BuildOperationTester(getCore(), testWorkspace, simulated: false)
+            // Test with a setting which has a MIGRATE mode
+            do {
+                try await tester.fs.writeFileContents(blockListFilePath) { file in
+                    file <<<
+                            """
+                            {
+                                "features": {
+                                    "MemberImportVisibility": {
+                                        "level": "warn",
+                                         "buildSettings": ["SWIFT_UPCOMING_FEATURE_MEMBER_IMPORT_VISIBILITY"],
+                                        "learnMoreURL": "https://www.swift.org/swift-evolution/",
+                                        "moduleExceptions": []
+                                    }
+                                }
+                            }
+                            """
+                }
+
+                do {
+                    let params = BuildParameters(configuration: "Debug")
+                    try await tester.checkBuild(runDestination: .macOS, buildRequest: parameterizedBuildRequest(params)) { results in
+                        results.checkWarning(.contains("Enabling the Swift language feature 'MemberImportVisibility' will become a requirement in the future; set 'SWIFT_UPCOMING_FEATURE_MEMBER_IMPORT_VISIBILITY = YES'"))
+                        results.checkNoDiagnostics()
+                    }
+                    try await tester.checkBuild(runDestination: .macOS, buildRequest: cleanRequest) { results in results.checkNoErrors() }
+                }
+
+                do {
+                    let params = BuildParameters(configuration: "Debug",
+                                                 commandLineOverrides: ["SWIFT_UPCOMING_FEATURE_MEMBER_IMPORT_VISIBILITY": "YES"])
+                    try await tester.checkBuild(runDestination: .macOS, buildRequest: parameterizedBuildRequest(params)) { results in
+                        results.checkNoDiagnostics()
+                    }
+                    try await tester.checkBuild(runDestination: .macOS, buildRequest: cleanRequest) { results in results.checkNoErrors() }
+                }
+            }
+
             // Test with module exceptions specified in the block list.
             //Reinit the core to invalidate all caching
             tester = try await BuildOperationTester(getCore(), testWorkspace, simulated: false)

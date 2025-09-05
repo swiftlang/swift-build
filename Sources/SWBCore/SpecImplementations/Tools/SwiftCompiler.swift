@@ -1495,8 +1495,11 @@ public final class SwiftCompilerSpec : CompilerSpec, SpecIdentifierType, SwiftDi
             let matchingBuildSetting = feature.buildSettings?.first(where: {
                 if let macro = try? cbc.scope.namespace.declareBooleanMacro($0) {
                     return cbc.scope.evaluate(macro)
+                } else if let macro = try? cbc.scope.namespace.declareStringMacro($0) {
+                    return cbc.scope.evaluate(macro) == "YES"
+                } else {
+                    return false
                 }
-                return false
             })
             if matchingBuildSetting != nil {
                 continue
