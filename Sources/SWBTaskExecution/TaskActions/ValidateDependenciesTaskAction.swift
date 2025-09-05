@@ -45,7 +45,7 @@ public final class ValidateDependenciesTaskAction: TaskAction {
         }
 
         do {
-            var allClangIncludes = Set<Path>()
+            var allClangIncludes = Set<DependencyValidationInfo.Include>()
             var allClangImports = Set<DependencyValidationInfo.Import>()
             var allSwiftImports = Set<DependencyValidationInfo.Import>()
             var unsupported = false
@@ -116,7 +116,7 @@ public final class ValidateDependenciesTaskAction: TaskAction {
                 if unsupported {
                     diagnostics.append(contentsOf: [headerContext.makeUnsupportedToolchainDiagnostic()])
                 } else {
-                    let (missingDeps, unusedDeps) = headerContext.computeMissingAndUnusedDependencies(includes: Array(allClangIncludes))
+                    let (missingDeps, unusedDeps) = headerContext.computeMissingAndUnusedDependencies(includes: allClangIncludes.map { $0.path })
                     outputDelegate.incrementCounter(.headerDependenciesMissing, by: missingDeps.count)
                     outputDelegate.incrementCounter(.headerDependenciesUnused, by: unusedDeps.count)
 

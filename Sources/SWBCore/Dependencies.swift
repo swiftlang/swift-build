@@ -438,8 +438,18 @@ public struct DependencyValidationInfo: Hashable, Sendable, Codable {
         }
     }
 
+    public struct Include: Hashable, Sendable, Codable {
+        public let path: Path
+        public let includeLocations: [Diagnostic.Location]
+
+        public init(path: Path, includeLocations: [Diagnostic.Location]) {
+            self.path = path
+            self.includeLocations = includeLocations
+        }
+    }
+
     public enum Payload: Hashable, Sendable, Codable {
-        case clangDependencies(imports: [Import], includes: [Path])
+        case clangDependencies(imports: [Import], includes: [Include])
         case swiftDependencies(imports: [Import])
         case unsupported
     }
