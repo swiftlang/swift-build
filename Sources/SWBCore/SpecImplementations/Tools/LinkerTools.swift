@@ -176,6 +176,60 @@ public struct DiscoveredLdLinkerToolSpecInfo: DiscoveredCommandLineToolSpecInfo 
     /// Maximum number of undefined symbols to emit.  Might be configurable in the future.
     let undefinedSymbolCountLimit = 100
 
+    override public func write(bytes: ByteString) {
+
+        // Split the buffer into slices separated by newlines.  The last slice represents the partial last line (there always is one, even if it's empty).
+        var lines = bytes.split(separator: UInt8(ascii: "\n"), maxSplits: .max, omittingEmptySubsequences: false)
+
+        // Any unparsed bytes belong to the first line. We don't want to run `split` over these because it can lead to accidentally quadratic behavior if write is called many times per line.
+        lines[0] = unparsedBytes + lines[0]
+        
+        let linesToParse = lines.dropLast()
+
+        if let target = self.task.forTarget?.target {
+            // Linker errors and warnings take more effort to get actionable information out of build logs than those for source files. This is because the linker does not have the path to the project or target name so they are not included in the message.
+            //
+            // Prepend the path to the project and target name to any error or warning lines.
+            // Example input:
+            // ld: warning: linking with (/System/Library/Frameworks/CoreAudio.framework/Versions/A/CoreAudio) but not using any symbols from it
+            // Example output:
+            // /Path/To/ProjectFolder/ProjectName.xcodeproj: TargetName: ld: warning: linking with (/System/Library/Frameworks/CoreAudio.framework/Versions/A/CoreAudio) but not using any symbols from it
+
+            let workspace = self.workspaceContext.workspace
+            let projectPath = workspace.project(for: target).xcodeprojPath
+            let targetName = target.name
+
+            let processedLines: [ByteString] = linesToParse.map { lineBytes in
+                let lineString = String(decoding: lineBytes, as: Unicode.UTF8.self)
+                if lineString.contains(": error:")
+                    || lineString.contains(": warning:") {
+                    
+                    let issueString = "\(projectPath.str): \(targetName): \(lineString)"
+                    return ByteString(encodingAsUTF8: issueString)
+                }
+                return ByteString(lineBytes)
+            }
+            
+            // Forward the bytes
+            let processedBytes = ByteString(processedLines.joined(separator: ByteString("\n")))
+            delegate.emitOutput(processedBytes)
+        }
+        else {
+            // Forward the bytes
+            let processedBytes = ByteString(linesToParse.joined(separator: ByteString("\n")))
+            delegate.emitOutput(processedBytes)
+        }
+        
+        // Parse any complete lines of output.
+        for line in linesToParse {
+            parseLine(line)
+        }
+        
+        // Track the last, incomplete line to as the unparsed bytes.
+        unparsedBytes = lines.last ?? []
+    }
+
+    @discardableResult
     override func parseLine<S: Collection>(_ lineBytes: S) -> Bool where S.Element == UInt8 {
 
         // Create a string that we can examine.  Use the non-failable constructor, so that we are robust against potentially invalid UTF-8.
@@ -190,11 +244,14 @@ public struct DiscoveredLdLinkerToolSpecInfo: DiscoveredCommandLineToolSpecInfo 
             }
             else if let match = LdLinkerOutputParser.problemMessageRegEx.firstMatch(in: lineString), match[3].hasPrefix("symbol(s) not found") {
                 // It's time to emit all the symbols.  We emit each as a separate message.
+                let projectLocation = Workspace.projectLocation(for: self.task.forTarget?.target,
+                                                                workspace: self.workspaceContext.workspace)
+
                 for symbol in undefinedSymbols.prefix(undefinedSymbolCountLimit) {
-                    delegate.diagnosticsEngine.emit(Diagnostic(behavior: .error, location: .unknown, data: DiagnosticData("Undefined symbol: \(symbol)"), appendToOutputStream: false))
+                    delegate.diagnosticsEngine.emit(Diagnostic(behavior: .error, location: projectLocation, data: DiagnosticData("Undefined symbol: \(symbol)"), appendToOutputStream: false))
                 }
                 if undefinedSymbols.count > undefinedSymbolCountLimit {
-                    delegate.diagnosticsEngine.emit(Diagnostic(behavior: .note, location: .unknown, data: DiagnosticData("(\(undefinedSymbols.count - undefinedSymbolCountLimit) additional undefined symbols are shown in the transcript"), appendToOutputStream: false))
+                    delegate.diagnosticsEngine.emit(Diagnostic(behavior: .note, location: projectLocation, data: DiagnosticData("(\(undefinedSymbols.count - undefinedSymbolCountLimit) additional undefined symbols are shown in the transcript"), appendToOutputStream: false))
                 }
                 collectingUndefinedSymbols = false
                 undefinedSymbols = []
@@ -213,7 +270,9 @@ public struct DiscoveredLdLinkerToolSpecInfo: DiscoveredCommandLineToolSpecInfo 
             let severity = match[2].isEmpty ? "error" : match[2]
             let behavior = Diagnostic.Behavior(name: severity) ?? .note
             let message = match[3].prefix(1).localizedCapitalized + match[3].dropFirst()
-            let diagnostic = Diagnostic(behavior: behavior, location: .unknown, data: DiagnosticData(message), appendToOutputStream: false)
+            let projectLocation = Workspace.projectLocation(for: self.task.forTarget?.target,
+                                                            workspace: self.workspaceContext.workspace)
+            let diagnostic = Diagnostic(behavior: behavior, location: projectLocation, data: DiagnosticData(message), appendToOutputStream: false)
             delegate.diagnosticsEngine.emit(diagnostic)
         }
         return true
@@ -724,7 +783,9 @@ public final class LdLinkerSpec : GenericLinkerSpec, SpecIdentifierType, @unchec
         enumerateLinkerCommandLine(arguments: commandLine, handleWl: cbc.scope.evaluate(BuiltinMacros._DISCOVER_COMMAND_LINE_LINKER_INPUTS_INCLUDE_WL)) { arg, value in
             func emitDependencyDiagnostic(type: String, node: PlannedPathNode) {
                 if delegate.userPreferences.enableDebugActivityLogs {
-                    delegate.note("Added \(type) dependency '\(node.path.str)' from command line argument \(arg)", location: .unknown)
+                    let projectLocation = cbc.producer.projectLocation
+                    
+                    delegate.note("Added \(type) dependency '\(node.path.str)' from command line argument \(arg)", location: projectLocation)
                 }
             }
 

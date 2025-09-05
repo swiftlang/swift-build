@@ -262,6 +262,14 @@ public final class Workspace: ProjectModelItem, PIFObject, ReferenceLookupContex
         return project
     }
 
+    public static func projectLocation(for target: Target?, workspace: Workspace?) -> Diagnostic.Location {
+        if let target, let workspace {
+            let path = workspace.project(for: target).xcodeprojPath
+            return Diagnostic.Location.path(path, fileLocation: nil)
+        }
+        return .unknown
+    }
+
     /// Find the projects with the given name.
     public func projects(named name: String) -> [Project] {
         return projectsByName[name] ?? []
