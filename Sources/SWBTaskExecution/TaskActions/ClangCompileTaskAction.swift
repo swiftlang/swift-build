@@ -559,15 +559,16 @@ public final class ClangCompileTaskAction: TaskAction, BuildValueValidatingTaskA
             }
             return file.dirname.isEmpty || file.dirname.isRoot ? nil : findFrameworkName(file.dirname)
         }
-        var moduleImports: [DependencyValidationInfo.Import] = []
+        var moduleImportsByName = [String: Set<SWBUtil.Diagnostic.Location>]()
         var headerIncludes: [DependencyValidationInfo.Include] = []
         for (file, includeLocations) in files {
             if let frameworkName = findFrameworkName(file) {
-                moduleImports.append(DependencyValidationInfo.Import(dependency: ModuleDependency(name: frameworkName, accessLevel: .Private, optional: false), importLocations: Array(includeLocations)))
+                moduleImportsByName[frameworkName, default: []].formUnion(includeLocations)
             } else {
                 headerIncludes.append(DependencyValidationInfo.Include(path: file, includeLocations: Array(includeLocations)))
             }
         }
+        let moduleImports = moduleImportsByName.map { name, locations in DependencyValidationInfo.Import(dependency: ModuleDependency(name: name, accessLevel: .Private, optional: false), importLocations: Array(locations)) }
         return (moduleImports, headerIncludes)
     }
 }
