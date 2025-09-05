@@ -302,6 +302,13 @@ private struct SetSessionUserPreferencesMsg: MessageHandler {
     }
 }
 
+private struct RegisterToolchainHandler: MessageHandler {
+    func handle(request: Request, message: RegisterToolchainRequest) async throws -> StringResponse {
+        let session = try request.session(for: message)
+        return StringResponse(try await session.core.registerToolchain(at: message.path))
+    }
+}
+
 /// Start a PIF transfer from the client.
 ///
 /// This will establish a workspace context in the relevant session by exchanging a PIF from the client to the service incrementally, only transferring subobjects as necessary.
@@ -1542,6 +1549,7 @@ public struct ServiceSessionMessageHandlers: ServiceExtension {
         service.registerMessageHandler(SetSessionSystemInfoMsg.self)
         service.registerMessageHandler(SetSessionUserInfoMsg.self)
         service.registerMessageHandler(SetSessionUserPreferencesMsg.self)
+        service.registerMessageHandler(RegisterToolchainHandler.self)
         service.registerMessageHandler(DeveloperPathHandler.self)
     }
 }

@@ -629,6 +629,10 @@ public final class SWBBuildServiceSession: Sendable {
     public func setUserPreferences(enableDebugActivityLogs: Bool, enableBuildDebugging: Bool, enableBuildSystemCaching: Bool, activityTextShorteningLevel: Int, usePerConfigurationBuildLocations: Bool?, allowsExternalToolExecution: Bool) async throws {
         _ = try await service.send(request: SetSessionUserPreferencesRequest(sessionHandle: self.uid, enableDebugActivityLogs: enableDebugActivityLogs, enableBuildDebugging: enableBuildDebugging, enableBuildSystemCaching: enableBuildSystemCaching, activityTextShorteningLevel: ActivityTextShorteningLevel(rawValue: activityTextShorteningLevel) ?? .default, usePerConfigurationBuildLocations: usePerConfigurationBuildLocations, allowsExternalToolExecution: allowsExternalToolExecution))
     }
+
+    public func registerToolchain(at path: String) async throws -> String {
+        return try await service.send(request: RegisterToolchainRequest(sessionHandle: self.uid, path: Path(path))).value
+    }
 }
 
 extension SWBBuildServiceSession {

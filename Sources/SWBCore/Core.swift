@@ -533,6 +533,10 @@ public final class Core: Sendable {
         specRegistry.freeze()
     }
 
+    public func registerToolchain(at toolchainPath: Path) async throws -> String {
+        return try await toolchainRegistry.registerToolchain(at: toolchainPath, operatingSystem: hostOperatingSystem, delegate: registryDelegate, diagnoseAlreadyRegisteredToolchain: false, aliases: [])
+    }
+
     /// Dump information on the registered platforms.
     public func getPlatformsDump() -> String {
         var result = ""
@@ -615,7 +619,7 @@ public final class Core: Sendable {
     /// Dump information on the registered toolchains.
     public func getToolchainsDump() async -> String {
         var result = ""
-        for (_,toolchain) in toolchainRegistry.toolchainsByIdentifier.sorted(byKey: <) {
+        for toolchain in toolchainRegistry.toolchains.sorted(by: \.identifier) {
             result += "\(toolchain)\n"
         }
         return result
