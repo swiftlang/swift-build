@@ -492,7 +492,9 @@ public final class ClangCompileTaskAction: TaskAction, BuildValueValidatingTaskA
             }
 
             switch traceData {
-            case let .V1(traceDataV1):
+            case .empty:
+                payload = .clangDependencies(imports: [], includes: [])
+            case let .v1(traceDataV1):
                 // mapping each header path to the set of locations that include it
                 var allFiles = [Path: Set<SWBUtil.Diagnostic.Location>]();
 
@@ -510,7 +512,7 @@ public final class ClangCompileTaskAction: TaskAction, BuildValueValidatingTaskA
                     outputDelegate.incrementTaskCounter(.headerDependenciesScanned, by: includes.count)
                     payload = .clangDependencies(imports: [], includes: includes)
                 }
-            case let .V2(traceDataV2):
+            case let .v2(traceDataV2):
                 var allIncludes = [Path: Set<SWBUtil.Diagnostic.Location>]();
                 var allImports = [String: Set<SWBUtil.Diagnostic.Location>]();
 
@@ -634,16 +636,21 @@ public final class ClangNonModularCompileTaskAction: TaskAction {
 }
 
 fileprivate func parseTraceData(_ data: Data) throws -> TraceData? {
+    // clang will emit an empty file instead of an empty array when there's nothing to trace
+    if data.isEmpty {
+        return .empty
+    }
+
     let jsonObject = try PropertyList.fromJSONData(data)
     if let version = jsonObject.dictValue?["version"]?.stringValue {
         if version == "2.0.0" {
-            return .V2(try JSONDecoder().decode(TraceData.TraceFileV2.self, from: data))
+            return .v2(try JSONDecoder().decode(TraceData.TraceFileV2.self, from: data))
         }
         return nil
     } else {
         // The initial unversioned format (v1) of the trace file generated from clang
         // is a JSON array so deserializing it as a dictionary will fail.
-        return .V1(try JSONDecoder().decode(TraceData.TraceFileV1.self, from: data))
+        return .v1(try JSONDecoder().decode(TraceData.TraceFileV1.self, from: data))
     }
 }
 
@@ -692,6 +699,7 @@ fileprivate enum TraceData: Decodable {
         let dependencies: [TraceDataObjectV2]
     }
 
-    case V1(TraceFileV1)
-    case V2(TraceFileV2)
+    case empty
+    case v1(TraceFileV1)
+    case v2(TraceFileV2)
 }
