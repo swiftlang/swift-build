@@ -11,7 +11,7 @@
 //===----------------------------------------------------------------------===//
 
 public import SWBUtil
-
+import Synchronization
 import struct Foundation.CharacterSet
 import Foundation
 import SWBMacro
@@ -428,6 +428,15 @@ extension Toolchain {
 
 /// The ToolchainRegistry manages the set of registered toolchains.
 public final class ToolchainRegistry: @unchecked Sendable {
+    enum Error: Swift.Error, CustomStringConvertible {
+        case toolchainAlreadyRegistered(String, Path)
+
+        var description: String {
+            switch self {
+            case .toolchainAlreadyRegistered(let identifier, let path): "toolchain '\(identifier)' already registered from \(path.str)"
+            }
+        }
+    }
     @_spi(Testing) public struct SearchPath: Sendable {
         public var path: Path
         public var strict: Bool
@@ -443,11 +452,14 @@ public final class ToolchainRegistry: @unchecked Sendable {
     let fs: any FSProxy
     let hostOperatingSystem: OperatingSystem
 
-    /// The map of toolchains by identifier.
-    @_spi(Testing) public private(set) var toolchainsByIdentifier = Dictionary<String, Toolchain>()
+    struct State {
+        /// The map of toolchains by identifier.
+        @_spi(Testing) public fileprivate(set) var toolchainsByIdentifier = Dictionary<String, Toolchain>()
 
-    /// Lower-cased alias -> toolchain (alias lookup is case-insensitive)
-    @_spi(Testing) public private(set) var toolchainsByAlias = Dictionary<String, Toolchain>()
+        /// Lower-cased alias -> toolchain (alias lookup is case-insensitive)
+        @_spi(Testing) public fileprivate(set) var toolchainsByAlias = Dictionary<String, Toolchain>()
+    }
+    private let state: SWBMutex<State> = .init(State())
 
     public static let defaultToolchainIdentifier: String = "com.apple.dt.toolchain.XcodeDefault"
 
@@ -503,40 +515,53 @@ public final class ToolchainRegistry: @unchecked Sendable {
             guard toolchainPath.basenameWithoutSuffix != "swift-latest" else { continue }
 
             do {
-                let toolchain = try await Toolchain(path: toolchainPath, operatingSystem: operatingSystem, aliases: aliases, fs: fs, pluginManager: delegate.pluginManager, platformRegistry: delegate.platformRegistry)
-                try register(toolchain)
+                _ = try await registerToolchain(at: toolchainPath, operatingSystem: operatingSystem, delegate: delegate, diagnoseAlreadyRegisteredToolchain: true, aliases: aliases)
             } catch let err {
                 delegate.issue(strict: strict, toolchainPath, "failed to load toolchain: \(err)")
             }
         }
     }
 
-    private func register(_ toolchain: Toolchain) throws {
-        if let duplicateToolchain = toolchainsByIdentifier[toolchain.identifier] {
-            throw StubError.error("toolchain '\(toolchain.identifier)' already registered from \(duplicateToolchain.path.str)")
+    func registerToolchain(at toolchainPath: Path, operatingSystem: OperatingSystem, delegate: any ToolchainRegistryDelegate, diagnoseAlreadyRegisteredToolchain: Bool, aliases: Set<String>) async throws -> String {
+        do {
+            let toolchain = try await Toolchain(path: toolchainPath, operatingSystem: operatingSystem, aliases: aliases, fs: fs, pluginManager: delegate.pluginManager, platformRegistry: delegate.platformRegistry)
+            try register(toolchain)
+            return toolchain.identifier
+        } catch Error.toolchainAlreadyRegistered(let identifier, _) where !diagnoseAlreadyRegisteredToolchain {
+            return identifier
         }
-        toolchainsByIdentifier[toolchain.identifier] = toolchain
+    }
 
-        for alias in toolchain.aliases {
-            guard !alias.isEmpty else { continue }
-            assert(alias.lowercased() == alias)
-
-            // When two toolchains have conflicting aliases, the highest-versioned toolchain wins (regardless of identifier)
-            if let existingToolchain = toolchainsByAlias[alias], existingToolchain.version >= toolchain.version {
-                continue
+    private func register(_ toolchain: Toolchain) throws {
+        try state.withLock { state in
+            if let duplicateToolchain = state.toolchainsByIdentifier[toolchain.identifier] {
+                throw Error.toolchainAlreadyRegistered(toolchain.identifier, duplicateToolchain.path)
             }
+            state.toolchainsByIdentifier[toolchain.identifier] = toolchain
 
-            toolchainsByAlias[alias] = toolchain
+            for alias in toolchain.aliases {
+                guard !alias.isEmpty else { continue }
+                assert(alias.lowercased() == alias)
+
+                // When two toolchains have conflicting aliases, the highest-versioned toolchain wins (regardless of identifier)
+                if let existingToolchain = state.toolchainsByAlias[alias], existingToolchain.version >= toolchain.version {
+                    continue
+                }
+
+                state.toolchainsByAlias[alias] = toolchain
+            }
         }
     }
 
     /// Look up the toolchain with the given identifier.
     public func lookup(_ identifier: String) -> Toolchain? {
-        let lowercasedIdentifier = identifier.lowercased()
-        if ["default", "xcode"].contains(lowercasedIdentifier) {
-            return toolchainsByIdentifier[ToolchainRegistry.defaultToolchainIdentifier] ?? toolchainsByAlias[lowercasedIdentifier]
-        } else {
-            return toolchainsByIdentifier[identifier] ?? toolchainsByAlias[lowercasedIdentifier]
+        state.withLock { state in
+            let lowercasedIdentifier = identifier.lowercased()
+            if ["default", "xcode"].contains(lowercasedIdentifier) {
+                return state.toolchainsByIdentifier[ToolchainRegistry.defaultToolchainIdentifier] ?? state.toolchainsByAlias[lowercasedIdentifier]
+            } else {
+                return state.toolchainsByIdentifier[identifier] ?? state.toolchainsByAlias[lowercasedIdentifier]
+            }
         }
     }
 
@@ -545,6 +570,8 @@ public final class ToolchainRegistry: @unchecked Sendable {
     }
 
     public var toolchains: Set<Toolchain> {
-        return Set(self.toolchainsByIdentifier.values)
+        state.withLock { state in
+            return Set(state.toolchainsByIdentifier.values)
+        }
     }
 }

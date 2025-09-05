@@ -356,6 +356,20 @@ public struct MacCatalystUnavailableFrameworkNamesRequest: RequestMessage, Equat
     }
 }
 
+public struct RegisterToolchainRequest: SessionMessage, RequestMessage, Equatable, SerializableCodable {
+    public typealias ResponseMessage = StringResponse
+
+    public static let name = "REGISTER_TOOLCHAIN_REQUEST"
+
+    public let sessionHandle: String
+    public let path: Path
+
+    public init(sessionHandle: String, path: Path) {
+        self.sessionHandle = sessionHandle
+        self.path = path
+    }
+}
+
 public struct AppleSystemFrameworkNamesRequest: RequestMessage, Equatable, PendingSerializableCodable {
     public typealias ResponseMessage = StringListResponse
 
@@ -1168,6 +1182,7 @@ public struct IPCMessage: Serializable, Sendable {
         GetSpecsRequest.self,
         GetStatisticsRequest.self,
         GetToolchainsRequest.self,
+        RegisterToolchainRequest.self,
         GetBuildSettingsDescriptionRequest.self,
         ExecuteCommandLineToolRequest.self,
 

@@ -124,7 +124,7 @@ import SWBServiceCore
             ("swift.xctoolchain", ["CFBundleIdentifier": "org.swift.3020161115a", "Aliases": ["swift"]]),
             ("swift-latest.xctoolchain", ["CFBundleIdentifier": "org.swift.latest"]),
         ]) { registry, warnings, errors in
-            #expect(registry.toolchainsByIdentifier.keys.sorted(by: <) == [ToolchainRegistry.defaultToolchainIdentifier, "d", "org.swift.3020161115a"])
+            #expect(registry.toolchains.map(\.identifier).sorted(by: <) == [ToolchainRegistry.defaultToolchainIdentifier, "d", "org.swift.3020161115a"])
 
             if strict {
                 #expect(warnings.isEmpty)
@@ -175,7 +175,7 @@ import SWBServiceCore
             ("swift-older.xctoolchain", ["CFBundleIdentifier": "org.swift.3020161114a", "Version": "3.0.220161211141", "Aliases": ["swift"]]),
         ], infoPlistName: "Info.plist") { registry, _, errors in
 
-            #expect(Set(registry.toolchainsByIdentifier.keys) == Set(["org.swift.3020161114a", "org.swift.3020161115a"] + additionalToolchains))
+            #expect(Set(registry.toolchains.map(\.identifier)) == Set(["org.swift.3020161114a", "org.swift.3020161115a"] + additionalToolchains))
             #expect(errors.count == 0, "\(errors)")
             #expect(registry.lookup("org.swift.3020161115a")?.identifier == "org.swift.3020161115a")
             #expect(registry.lookup("org.swift.3020161114a")?.identifier == "org.swift.3020161114a")
