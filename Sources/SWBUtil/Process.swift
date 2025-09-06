@@ -26,8 +26,8 @@ extension ProcessInfo {
 #endif
 
 #if (!canImport(Foundation.NSTask) || targetEnvironment(macCatalyst)) && canImport(Darwin)
-public final class Process {
-    public enum TerminationReason: Int {
+public final class Process: @unchecked Sendable {
+    public enum TerminationReason: Int, Sendable {
         case exit = 1
         case uncaughtSignal = 2
     }

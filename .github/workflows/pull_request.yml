@@ -17,6 +17,11 @@ jobs:
       linux_pre_build_command: ./.github/scripts/linux_pre_build.sh
       linux_build_command: 'swift test --no-parallel'
       linux_swift_versions: '["nightly-main", "nightly-6.2"]'
+      enable_macos_checks: true
+      macos_xcode_versions: '["16.3"]'
+      macos_build_command:
+        swift test --no-parallel
+        xcodebuild -workspace . -scheme SwiftBuild-Package -destination generic/platform=iOS
       windows_pre_build_command: 'Invoke-Program .\.github\scripts\windows_pre_build.ps1'
       windows_swift_versions: '["nightly-main"]'
       windows_build_command: 'Invoke-Program swift test --no-parallel'
