@@ -58,7 +58,10 @@ struct CMakeSmokeTest: CommandPlugin {
         let swiftDriverURL = try findDependency("swift-driver", pluginContext: context)
         let swiftDriverBuildURL = context.pluginWorkDirectoryURL.appending(component: "swift-driver")
 
-        for url in [swiftToolsSupportCoreBuildURL, swiftSystemBuildURL, llbuildBuildURL, swiftArgumentParserBuildURL, swiftDriverBuildURL, swiftBuildBuildURL] {
+        let swiftToolsProtocolsURL = try findDependency("swift-tools-protocols", pluginContext: context)
+        let swiftToolsProtocolsBuildURL = context.pluginWorkDirectoryURL.appending(component: "swift-tools-protocols")
+
+        for url in [swiftToolsSupportCoreBuildURL, swiftSystemBuildURL, llbuildBuildURL, swiftArgumentParserBuildURL, swiftDriverBuildURL, swiftToolsProtocolsBuildURL, swiftBuildBuildURL] {
             try FileManager.default.createDirectory(at: url, withIntermediateDirectories: true)
         }
 
@@ -75,7 +78,8 @@ struct CMakeSmokeTest: CommandPlugin {
             "-DLLBuild_DIR=\(llbuildBuildURL.appending(components: "cmake", "modules").filePath)",
             "-DTSC_DIR=\(swiftToolsSupportCoreBuildURL.appending(components: "cmake", "modules").filePath)",
             "-DSwiftDriver_DIR=\(swiftDriverBuildURL.appending(components: "cmake", "modules").filePath)",
-            "-DSwiftSystem_DIR=\(swiftSystemBuildURL.appending(components: "cmake", "modules").filePath)"
+            "-DSwiftSystem_DIR=\(swiftSystemBuildURL.appending(components: "cmake", "modules").filePath)",
+            "-DSwiftToolsProtocols_DIR=\(swiftToolsProtocolsBuildURL.appending(components: "cmake", "modules").filePath)"
         ]
 
         let sharedCMakeArgs = [
@@ -111,6 +115,11 @@ struct CMakeSmokeTest: CommandPlugin {
         try await Process.checkNonZeroExit(url: cmakeURL, arguments: sharedCMakeArgs + [swiftDriverURL.filePath], workingDirectory: swiftDriverBuildURL)
         try await Process.checkNonZeroExit(url: ninjaURL, arguments: [], workingDirectory: swiftDriverBuildURL)
         Diagnostics.progress("Built swift-driver")
+
+        Diagnostics.progress("Building swift-tools-protocols")
+        try await Process.checkNonZeroExit(url: cmakeURL, arguments: sharedCMakeArgs + [swiftToolsProtocolsURL.filePath], workingDirectory: swiftToolsProtocolsBuildURL)
+        try await Process.checkNonZeroExit(url: ninjaURL, arguments: [], workingDirectory: swiftToolsProtocolsBuildURL)
+        Diagnostics.progress("Built swift-tools-protocols")
 
         Diagnostics.progress("Building swift-build in \(swiftBuildBuildURL)")
         try await Process.checkNonZeroExit(url: cmakeURL, arguments: sharedCMakeArgs + [swiftBuildURL.filePath], workingDirectory: swiftBuildBuildURL)
