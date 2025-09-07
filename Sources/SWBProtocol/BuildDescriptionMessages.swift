@@ -14,11 +14,13 @@ public import SWBUtil
 
 // MARK: Support types
 
-public struct ConfiguredTargetGUID: Hashable, Sendable, Codable {
-    public var rawValue: String
+public struct ConfiguredTargetIdentifier: Hashable, Sendable, Codable {
+    public var rawGUID: String
+    public var targetGUID: TargetGUID
 
-    public init(_ rawValue: String) {
-        self.rawValue = rawValue
+    public init(rawGUID: String, targetGUID: TargetGUID) {
+        self.rawGUID = rawGUID
+        self.targetGUID = targetGUID
     }
 }
 
@@ -61,25 +63,21 @@ public struct BuildDescriptionConfiguredTargetsResponse: Message, SerializableCo
 
     public struct ConfiguredTargetInfo: SerializableCodable, Equatable, Sendable {
         /// The GUID of this configured target
-        public let guid: ConfiguredTargetGUID
-
-        /// The GUID of the target from which this configured target was created
-        public let target: TargetGUID
+        public let identifier: ConfiguredTargetIdentifier
 
         /// A name of the target that may be displayed to the user
         public let name: String
 
         /// The configured targets that this target depends on
-        public let dependencies: Set<ConfiguredTargetGUID>
+        public let dependencies: Set<ConfiguredTargetIdentifier>
 
         /// The path of the toolchain that should be used to build this target.
         ///
         /// `nil` if the toolchain for this target could not be determined due to an error.
         public let toolchain: Path?
 
-        public init(guid: ConfiguredTargetGUID, target: TargetGUID, name: String, dependencies: Set<ConfiguredTargetGUID>, toolchain: Path?) {
-            self.guid = guid
-            self.target = target
+        public init(identifier: ConfiguredTargetIdentifier, name: String, dependencies: Set<ConfiguredTargetIdentifier>, toolchain: Path?) {
+            self.identifier = identifier
             self.name = name
             self.dependencies = dependencies
             self.toolchain = toolchain
@@ -108,9 +106,9 @@ public struct BuildDescriptionConfiguredTargetSourcesRequest: SessionMessage, Re
     public let request: BuildRequestMessagePayload
 
     /// The configured targets for which to load source file information
-    public let configuredTargets: [ConfiguredTargetGUID]
+    public let configuredTargets: [ConfiguredTargetIdentifier]
 
-    public init(sessionHandle: String, buildDescriptionID: BuildDescriptionID, request: BuildRequestMessagePayload, configuredTargets: [ConfiguredTargetGUID]) {
+    public init(sessionHandle: String, buildDescriptionID: BuildDescriptionID, request: BuildRequestMessagePayload, configuredTargets: [ConfiguredTargetIdentifier]) {
         self.sessionHandle = sessionHandle
         self.buildDescriptionID = buildDescriptionID
         self.request = request
@@ -148,12 +146,12 @@ public struct BuildDescriptionConfiguredTargetSourcesResponse: Message, Serializ
 
     public struct ConfiguredTargetSourceFilesInfo: SerializableCodable, Equatable, Sendable {
         /// The configured target to which this info belongs
-        public let configuredTarget: ConfiguredTargetGUID
+        public let configuredTarget: ConfiguredTargetIdentifier
 
         /// Information about the source files in this source file
         public let sourceFiles: [SourceFileInfo]
 
-        public init(configuredTarget: ConfiguredTargetGUID, sourceFiles: [SourceFileInfo]) {
+        public init(configuredTarget: ConfiguredTargetIdentifier, sourceFiles: [SourceFileInfo]) {
             self.configuredTarget = configuredTarget
             self.sourceFiles = sourceFiles
         }
@@ -182,7 +180,7 @@ public struct IndexBuildSettingsRequest: SessionMessage, RequestMessage, Seriali
     public let request: BuildRequestMessagePayload
 
     /// The configured target in whose context the build settings of the source file should be loaded
-    public let configuredTarget: ConfiguredTargetGUID
+    public let configuredTarget: ConfiguredTargetIdentifier
 
     /// The path of the source file for which the build settings should be loaded
     public let file: Path
@@ -191,7 +189,7 @@ public struct IndexBuildSettingsRequest: SessionMessage, RequestMessage, Seriali
         sessionHandle: String,
         buildDescriptionID: BuildDescriptionID,
         request: BuildRequestMessagePayload,
-        configuredTarget: ConfiguredTargetGUID,
+        configuredTarget: ConfiguredTargetIdentifier,
         file: Path
     ) {
         self.sessionHandle = sessionHandle

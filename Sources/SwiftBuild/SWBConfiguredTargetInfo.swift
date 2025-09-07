@@ -14,25 +14,21 @@ import SWBProtocol
 
 public struct SWBConfiguredTargetInfo {
     /// The GUID of this configured target
-    public let guid: SWBConfiguredTargetGUID
-
-    /// The GUID of the target from which this configured target was created
-    public let target: SWBTargetGUID
+    public let identifier: SWBConfiguredTargetIdentifier
 
     /// A name of the target that may be displayed to the user
     public let name: String
 
     /// The configured targets that this target depends on
-    public let dependencies: Set<SWBConfiguredTargetGUID>
+    public let dependencies: Set<SWBConfiguredTargetIdentifier>
 
     /// The path of the toolchain that should be used to build this target.
     ///
     /// `nil` if the toolchain for this target could not be determined due to an error.
     public let toolchain: AbsolutePath?
 
-    public init(guid: SWBConfiguredTargetGUID, target: SWBTargetGUID, name: String, dependencies: Set<SWBConfiguredTargetGUID>, toolchain: AbsolutePath?) {
-        self.guid = guid
-        self.target = target
+    public init(identifier: SWBConfiguredTargetIdentifier, name: String, dependencies: Set<SWBConfiguredTargetIdentifier>, toolchain: AbsolutePath?) {
+        self.identifier = identifier
         self.name = name
         self.dependencies = dependencies
         self.toolchain = toolchain
@@ -40,10 +36,9 @@ public struct SWBConfiguredTargetInfo {
 
     init(_ configuredTargetInfo: BuildDescriptionConfiguredTargetsResponse.ConfiguredTargetInfo) {
         self.init(
-            guid: SWBConfiguredTargetGUID(configuredTargetInfo.guid),
-            target: SWBTargetGUID(configuredTargetInfo.target),
+            identifier: SWBConfiguredTargetIdentifier(configuredTargetIdentifier: configuredTargetInfo.identifier),
             name: configuredTargetInfo.name,
-            dependencies: Set(configuredTargetInfo.dependencies.map { SWBConfiguredTargetGUID($0) }),
+            dependencies: Set(configuredTargetInfo.dependencies.map { SWBConfiguredTargetIdentifier(configuredTargetIdentifier: $0) }),
             toolchain: AbsolutePath(configuredTargetInfo.toolchain)
         )
     }

@@ -84,6 +84,7 @@ let package = Package(
         .library(name: "SWBUtil", targets: ["SWBUtil"]),
         .library(name: "SWBProjectModel", targets: ["SWBProjectModel"]),
         .library(name: "SWBBuildService", targets: ["SWBBuildService"]),
+        .library(name: "SWBBuildServerProtocol", targets: ["SWBBuildServerProtocol"]),
     ],
     targets: [
         // Executables
@@ -106,7 +107,7 @@ let package = Package(
         // Libraries
         .target(
             name: "SwiftBuild",
-            dependencies: ["SWBCSupport", "SWBCore", "SWBProtocol", "SWBUtil", "SWBProjectModel"],
+            dependencies: ["SWBCSupport", "SWBCore", "SWBProtocol", "SWBUtil", "SWBProjectModel", "SWBBuildServerProtocol"],
             exclude: ["CMakeLists.txt"],
             swiftSettings: swiftSettings(languageMode: .v5)),
         .target(
@@ -213,6 +214,11 @@ let package = Package(
         .target(
             name: "SWBCAS",
             dependencies: ["SWBUtil", "SWBCSupport"],
+            exclude: ["CMakeLists.txt"],
+            swiftSettings: swiftSettings(languageMode: .v6)),
+        .target(
+            name: "SWBBuildServerProtocol",
+            dependencies: ["SWBUtil"],
             exclude: ["CMakeLists.txt"],
             swiftSettings: swiftSettings(languageMode: .v6)),
 

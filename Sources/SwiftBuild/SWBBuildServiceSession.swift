@@ -393,25 +393,25 @@ public final class SWBBuildServiceSession: Sendable {
         return response.configuredTargets.map { SWBConfiguredTargetInfo($0) }
     }
 
-    public func sources(of configuredTargets: [SWBConfiguredTargetGUID], buildDescription: SWBBuildDescriptionID, buildRequest: SWBBuildRequest) async throws -> [SWBConfiguredTargetSourceFilesInfo] {
+    public func sources(of configuredTargets: [SWBConfiguredTargetIdentifier], buildDescription: SWBBuildDescriptionID, buildRequest: SWBBuildRequest) async throws -> [SWBConfiguredTargetSourceFilesInfo] {
         let response = try await service.send(
             request: BuildDescriptionConfiguredTargetSourcesRequest(
                 sessionHandle: uid,
                 buildDescriptionID: BuildDescriptionID(buildDescription),
                 request: buildRequest.messagePayloadRepresentation,
-                configuredTargets: configuredTargets.map { ConfiguredTargetGUID($0) }
+                configuredTargets: configuredTargets.map { ConfiguredTargetIdentifier($0) }
             )
         )
         return response.targetSourceFileInfos.map { SWBConfiguredTargetSourceFilesInfo($0) }
     }
 
-    public func indexCompilerArguments(of file: AbsolutePath, in configuredTarget: SWBConfiguredTargetGUID, buildDescription: SWBBuildDescriptionID, buildRequest: SWBBuildRequest) async throws -> [String] {
+    public func indexCompilerArguments(of file: AbsolutePath, in configuredTarget: SWBConfiguredTargetIdentifier, buildDescription: SWBBuildDescriptionID, buildRequest: SWBBuildRequest) async throws -> [String] {
         let buildSettings = try await service.send(
             request: IndexBuildSettingsRequest(
                 sessionHandle: uid,
                 buildDescriptionID: BuildDescriptionID(buildDescription),
                 request: buildRequest.messagePayloadRepresentation,
-                configuredTarget: ConfiguredTargetGUID(configuredTarget),
+                configuredTarget: ConfiguredTargetIdentifier(configuredTarget),
                 file: Path(file.pathString)
             )
         )

@@ -45,18 +45,18 @@ public struct SWBConfiguredTargetSourceFilesInfo: Equatable, Sendable {
     }
 
     /// The configured target to which this info belongs
-    public let configuredTarget: SWBConfiguredTargetGUID
+    public let configuredTarget: SWBConfiguredTargetIdentifier
 
     /// Information about the source files in this source file
     public let sourceFiles: [SourceFileInfo]
 
-    public init(configuredTarget: SWBConfiguredTargetGUID, sourceFiles: [SWBConfiguredTargetSourceFilesInfo.SourceFileInfo]) {
+    public init(configuredTarget: SWBConfiguredTargetIdentifier, sourceFiles: [SWBConfiguredTargetSourceFilesInfo.SourceFileInfo]) {
         self.configuredTarget = configuredTarget
         self.sourceFiles = sourceFiles
     }
 
     init(_ sourceFilesInfo: BuildDescriptionConfiguredTargetSourcesResponse.ConfiguredTargetSourceFilesInfo) {
-        self.configuredTarget = SWBConfiguredTargetGUID(sourceFilesInfo.configuredTarget)
+        self.configuredTarget = SWBConfiguredTargetIdentifier(configuredTargetIdentifier: sourceFilesInfo.configuredTarget)
         self.sourceFiles = sourceFilesInfo.sourceFiles.map { SourceFileInfo($0) }
     }
 }

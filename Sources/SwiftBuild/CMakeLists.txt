@@ -36,13 +36,14 @@ add_library(SwiftBuild
   SWBBuildOperationBacktraceFrame.swift
   SWBBuildParameters.swift
   SWBBuildRequest.swift
+  SWBBuildServer.swift
   SWBBuildService.swift
   SWBBuildServiceConnection.swift
   SWBBuildServiceConsole.swift
   SWBBuildServiceSession.swift
   SWBChannel.swift
   SWBClientExchangeSupport.swift
-  SWBConfiguredTargetGUID.swift
+  SWBConfiguredTargetIdentifier.swift
   SWBConfiguredTargetInfo.swift
   SWBConfiguredTargetSourceFilesInfo.swift
   SWBDocumentationSupport.swift
@@ -66,6 +67,7 @@ add_library(SwiftBuild
 set_target_properties(SwiftBuild PROPERTIES
   Swift_LANGUAGE_VERSION 5)
 target_link_libraries(SwiftBuild PUBLIC
+  SWBBuildServerProtocol
   SWBCSupport
   SWBCore
   SWBProtocol

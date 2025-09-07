@@ -68,7 +68,7 @@ fileprivate struct InspectBuildDescriptionTests {
                 #expect(frameworkTargetInfo.dependencies == [])
                 #expect(frameworkTargetInfo.toolchain != nil)
                 let appTargetInfo = try #require(targetInfos.filter { $0.name == "MyApp" }.only)
-                #expect(appTargetInfo.dependencies == [frameworkTargetInfo.guid])
+                #expect(appTargetInfo.dependencies == [frameworkTargetInfo.identifier])
                 #expect(appTargetInfo.toolchain != nil)
             }
         }
@@ -122,8 +122,8 @@ fileprivate struct InspectBuildDescriptionTests {
                 let appTargetInfo = try #require(targetInfos.filter { $0.name == "MyApp" }.only)
                 let otherAppTargetInfo = try #require(targetInfos.filter { $0.name == "MyOtherApp" }.only)
 
-                let appSources = try #require(await testSession.session.sources(of: [appTargetInfo.guid], buildDescription: buildDescriptionID, buildRequest: request).only)
-                #expect(appSources.configuredTarget == appTargetInfo.guid)
+                let appSources = try #require(await testSession.session.sources(of: [appTargetInfo.identifier], buildDescription: buildDescriptionID, buildRequest: request).only)
+                #expect(appSources.configuredTarget == appTargetInfo.identifier)
                 print(appSources.sourceFiles)
                 let myAppFile = try #require(appSources.sourceFiles.only)
                 #expect(myAppFile.path.pathString.hasSuffix("MyApp.swift"))
@@ -131,11 +131,11 @@ fileprivate struct InspectBuildDescriptionTests {
                 #expect(myAppFile.indexOutputPath != nil)
 
                 let combinedSources = try await testSession.session.sources(
-                    of: [appTargetInfo.guid, otherAppTargetInfo.guid],
+                    of: [appTargetInfo.identifier, otherAppTargetInfo.identifier],
                     buildDescription: buildDescriptionID,
                     buildRequest: request
                 )
-                #expect(Set(combinedSources.map(\.configuredTarget)) == [appTargetInfo.guid, otherAppTargetInfo.guid])
+                #expect(Set(combinedSources.map(\.configuredTarget)) == [appTargetInfo.identifier, otherAppTargetInfo.identifier])
                 #expect(Set(combinedSources.flatMap(\.sourceFiles).map { URL(filePath: $0.path.pathString).lastPathComponent }) == ["MyApp.swift", "MyOtherApp.swift"])
 
                 let emptyTargetListInfos = try await testSession.session.sources(of: [], buildDescription: buildDescriptionID, buildRequest: request)
@@ -143,7 +143,7 @@ fileprivate struct InspectBuildDescriptionTests {
 
                 await #expect(throws: (any Error).self) {
                     try await testSession.session.sources(
-                        of: [SWBConfiguredTargetGUID(rawValue: "does-not-exist")],
+                        of: [SWBConfiguredTargetIdentifier(rawGUID: "does-not-exist", targetGUID: .init(rawValue: "does-not-exist"))],
                         buildDescription: buildDescriptionID,
                         buildRequest: request
                     )
@@ -201,13 +201,13 @@ fileprivate struct InspectBuildDescriptionTests {
                 let targetInfos = try await testSession.session.configuredTargets(buildDescription: buildDescriptionID, buildRequest: request)
                 let appTargetInfo = try #require(targetInfos.filter { $0.name == "MyApp" }.only)
                 let otherAppTargetInfo = try #require(targetInfos.filter { $0.name == "MyOtherApp" }.only)
-                let appSources = try #require(await testSession.session.sources(of: [appTargetInfo.guid], buildDescription: buildDescriptionID, buildRequest: request).only)
+                let appSources = try #require(await testSession.session.sources(of: [appTargetInfo.identifier], buildDescription: buildDescriptionID, buildRequest: request).only)
                 let myAppFile = try #require(Set(appSources.sourceFiles.map(\.path)).filter { $0.pathString.hasSuffix("MyApp.swift") }.only)
 
-                let appIndexSettings = try await testSession.session.indexCompilerArguments(of: myAppFile, in: appTargetInfo.guid, buildDescription: buildDescriptionID, buildRequest: request)
+                let appIndexSettings = try await testSession.session.indexCompilerArguments(of: myAppFile, in: appTargetInfo.identifier, buildDescription: buildDescriptionID, buildRequest: request)
                 #expect(appIndexSettings.contains("-DMY_APP"))
                 #expect(!appIndexSettings.contains("-DMY_OTHER_APP"))
-                let otherAppIndexSettings = try await testSession.session.indexCompilerArguments(of: myAppFile, in: otherAppTargetInfo.guid, buildDescription: buildDescriptionID, buildRequest: request)
+                let otherAppIndexSettings = try await testSession.session.indexCompilerArguments(of: myAppFile, in: otherAppTargetInfo.identifier, buildDescription: buildDescriptionID, buildRequest: request)
                 #expect(otherAppIndexSettings.contains("-DMY_OTHER_APP"))
             }
         }
