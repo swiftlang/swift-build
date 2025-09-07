@@ -106,7 +106,17 @@ let package = Package(
         // Libraries
         .target(
             name: "SwiftBuild",
-            dependencies: ["SWBCSupport", "SWBCore", "SWBProtocol", "SWBUtil", "SWBProjectModel"],
+            dependencies: [
+                "SWBCSupport",
+                "SWBCore",
+                "SWBProtocol",
+                "SWBUtil",
+                "SWBProjectModel",
+                .product(name: "BuildServerProtocol", package: "swift-tools-protocols"),
+                .product(name: "LanguageServerProtocol", package: "swift-tools-protocols"),
+                .product(name: "LanguageServerProtocolTransport", package: "swift-tools-protocols")
+
+            ],
             exclude: ["CMakeLists.txt"],
             swiftSettings: swiftSettings(languageMode: .v5)),
         .target(
@@ -465,6 +475,7 @@ if useLocalDependencies {
         .package(path: "../swift-driver"),
         .package(path: "../swift-system"),
         .package(path: "../swift-argument-parser"),
+        .package(path: "../swift-tools-protocols"),
     ]
     if !useLLBuildFramework {
         package.dependencies +=  [.package(path: "../llbuild"),]
@@ -474,6 +485,7 @@ if useLocalDependencies {
         .package(url: "https://github.com/swiftlang/swift-driver.git", branch: "main"),
         .package(url: "https://github.com/apple/swift-system.git", .upToNextMajor(from: "1.5.0")),
         .package(url: "https://github.com/apple/swift-argument-parser.git", from: "1.0.3"),
+        .package(url: "https://github.com/swiftlang/swift-tools-protocols.git", .upToNextMinor(from: "0.0.9")),
     ]
     if !useLLBuildFramework {
         package.dependencies += [.package(url: "https://github.com/swiftlang/swift-llbuild.git", branch: "main"),]

@@ -36,6 +36,7 @@ add_library(SwiftBuild
   SWBBuildOperationBacktraceFrame.swift
   SWBBuildParameters.swift
   SWBBuildRequest.swift
+  SWBBuildServer.swift
   SWBBuildService.swift
   SWBBuildServiceConnection.swift
   SWBBuildServiceConsole.swift
@@ -70,7 +71,12 @@ target_link_libraries(SwiftBuild PUBLIC
   SWBCore
   SWBProtocol
   SWBUtil
-  SWBProjectModel)
+  SWBProjectModel
+  SwiftToolsProtocols::SKLogging
+  SwiftToolsProtocols::ToolsProtocolsSwiftExtensions
+  SwiftToolsProtocols::BuildServerProtocol
+  SwiftToolsProtocols::LanguageServerProtocol
+  SwiftToolsProtocols::LanguageServerProtocolTransport)
 
 set_target_properties(SwiftBuild PROPERTIES
   INTERFACE_INCLUDE_DIRECTORIES ${CMAKE_Swift_MODULE_DIRECTORY})
