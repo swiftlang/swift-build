@@ -251,6 +251,8 @@ public protocol CommandProducer: PlatformBuildContext, SpecLookupContext, Refere
     /// - Returns: Information on the headers referenced by the project that the given target is a part of.
     func projectHeaderInfo(for target: Target) async -> ProjectHeaderInfo?
 
+    var projectLocation: Diagnostic.Location { get }
+
     /// Whether or not an SDK stat cache should be used for the build of this target.
     func shouldUseSDKStatCache() async -> Bool
 
