@@ -1355,6 +1355,10 @@ extension TaskProducerContext: CommandProducer {
         return await workspaceContext.headerIndex.projectHeaderInfo[workspaceContext.workspace.project(for: target)]
     }
 
+    public var projectLocation: Diagnostic.Location {
+        return Workspace.projectLocation(for: self.configuredTarget?.target, workspace: self.workspaceContext.workspace)
+    }
+
     public var canConstructAppIntentsMetadataTask: Bool {
         let scope = settings.globalScope
         let buildComponents = scope.evaluate(BuiltinMacros.BUILD_COMPONENTS)

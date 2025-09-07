@@ -203,6 +203,10 @@ package struct MockCommandProducer: CommandProducer, Sendable {
         return nil
     }
 
+    public var projectLocation: Diagnostic.Location {
+        return .unknown
+    }
+
     package func discoveredCommandLineToolSpecInfo(_ delegate: any SWBCore.CoreClientTargetDiagnosticProducingDelegate, _ toolName: String, _ path: Path, _ process: @Sendable (Data) async throws -> any SWBCore.DiscoveredCommandLineToolSpecInfo) async throws -> any SWBCore.DiscoveredCommandLineToolSpecInfo {
         try await discoveredCommandLineToolSpecInfoCache.run(delegate, toolName, path, process)
     }

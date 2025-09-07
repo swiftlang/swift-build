@@ -25,8 +25,9 @@ fileprivate struct LinkerTests: CoreBasedTests {
     func linkerDriverDiagnosticsParsing() async throws {
 
         try await withTemporaryDirectory { tmpDir in
+            let projectName = "TestProject"
             let testProject = try await TestProject(
-                "TestProject",
+                projectName,
                 sourceRoot: tmpDir,
                 groupTree: TestGroup(
                     "SomeFiles",
@@ -61,7 +62,7 @@ fileprivate struct LinkerTests: CoreBasedTests {
             }
 
             try await tester.checkBuild(runDestination: .macOS) { results in
-                results.checkError(.prefix("Unknown argument: '-not-a-real-flag'"))
+                results.checkError(.prefix("\(tmpDir.str)/\(projectName).xcodeproj: Unknown argument: '-not-a-real-flag'"))
                 results.checkError(.prefix("Command Ld failed."))
             }
         }
