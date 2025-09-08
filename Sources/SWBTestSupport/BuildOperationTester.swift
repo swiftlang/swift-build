@@ -1783,20 +1783,8 @@ private final class BuildOperationTesterDelegate: BuildOperationDelegate {
     }
 
     private class TesterTaskOutputDelegate: TaskOutputDelegate {
-        func incrementClangCacheHit() {
-            self.counters[.clangCacheHits, default: 0] += 1
-        }
-
-        func incrementClangCacheMiss() {
-            self.counters[.clangCacheMisses, default: 0] += 1
-        }
-
-        func incrementSwiftCacheHit() {
-            self.counters[.swiftCacheHits, default: 0] += 1
-        }
-
-        func incrementSwiftCacheMiss() {
-            self.counters[.swiftCacheMisses, default: 0] += 1
+        func incrementCounter(_ counter: BuildOperationMetrics.Counter) {
+            self.counters[counter, default: 0] += 1
         }
 
         func incrementTaskCounter(_ counter: BuildOperationMetrics.TaskCounter) {

@@ -608,14 +608,7 @@ public protocol TaskOutputDelegate: DiagnosticProducingDelegate
     /// Report a task which was previously batched as up-to-date.
     func previouslyBatchedSubtaskUpToDate(signature: ByteString, target: ConfiguredTarget)
 
-    func incrementClangCacheHit()
-
-    func incrementClangCacheMiss()
-
-    func incrementSwiftCacheHit()
-
-    func incrementSwiftCacheMiss()
-
+    func incrementCounter(_ counter: BuildOperationMetrics.Counter)
     func incrementTaskCounter(_ counter: BuildOperationMetrics.TaskCounter)
 
     var counters: [BuildOperationMetrics.Counter: Int] { get }

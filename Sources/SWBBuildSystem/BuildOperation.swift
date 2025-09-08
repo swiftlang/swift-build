@@ -806,7 +806,7 @@ package final class BuildOperation: BuildSystemOperation {
         }
 
         // `buildComplete()` should not run within `queue`, otherwise there can be a deadlock during cancelling.
-        return delegate.buildComplete(self, status: effectiveStatus, delegate: buildOutputDelegate, metrics: .init(counters: aggregatedCounters))
+        return delegate.buildComplete(self, status: effectiveStatus, delegate: buildOutputDelegate, metrics: .init(counters: aggregatedCounters, taskCounters: aggregatedTaskCounters))
     }
 
     func prepareForBuilding() async -> ([String], [String])? {
