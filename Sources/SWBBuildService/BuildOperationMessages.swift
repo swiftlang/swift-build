@@ -705,20 +705,8 @@ private final class TaskOutputHandler: TaskOutputDelegate {
         }
     }
 
-    func incrementClangCacheHit() {
-        self.counters[.clangCacheHits, default: 0] += 1
-    }
-
-    func incrementClangCacheMiss() {
-        self.counters[.clangCacheMisses, default: 0] += 1
-    }
-
-    func incrementSwiftCacheHit() {
-        self.counters[.swiftCacheHits, default: 0] += 1
-    }
-
-    func incrementSwiftCacheMiss() {
-        self.counters[.swiftCacheMisses, default: 0] += 1
+    func incrementCounter(_ counter: BuildOperationMetrics.Counter) {
+        self.counters[counter, default: 0] += 1
     }
 
     func incrementTaskCounter(_ counter: BuildOperationMetrics.TaskCounter) {
@@ -944,10 +932,7 @@ private final class DiscardingTaskOutputHandler: TaskOutputDelegate {
     func subtaskUpToDate(_ subtask: any ExecutableTask) {}
     func previouslyBatchedSubtaskUpToDate(signature: ByteString, target: ConfiguredTarget) {}
     func updateResult(_ result: TaskResult) {}
-    func incrementClangCacheHit() {}
-    func incrementClangCacheMiss() {}
-    func incrementSwiftCacheHit() {}
-    func incrementSwiftCacheMiss() {}
+    func incrementCounter(_ counter: BuildOperationMetrics.Counter) {}
     func incrementTaskCounter(_ counter: BuildOperationMetrics.TaskCounter) {}
 }
 

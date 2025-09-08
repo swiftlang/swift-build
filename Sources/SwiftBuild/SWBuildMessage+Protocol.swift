@@ -48,10 +48,7 @@ extension SwiftBuildMessage {
     init(_ message: BuildOperationEnded) {
         let metrics: BuildOperationMetrics?
         if let messageMetrics = message.metrics, !messageMetrics.counters.isEmpty {
-            metrics = .init(clangCacheHits: messageMetrics.counters[.clangCacheHits] ?? 0,
-                            clangCacheMisses: messageMetrics.counters[.clangCacheMisses] ?? 0,
-                            swiftCacheHits: messageMetrics.counters[.swiftCacheHits] ?? 0,
-                            swiftCacheMisses: messageMetrics.counters[.swiftCacheMisses] ?? 0)
+            metrics = .init(counters: messageMetrics.counters, taskCounters: messageMetrics.taskCounters)
         } else {
             metrics = nil
         }

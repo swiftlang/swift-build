@@ -472,15 +472,7 @@ public final class EmbedSwiftStdLibTaskAction: TaskAction {
             logV(args.joined(separator: " "))
 
             final class CapturingOutputDelegate: TaskOutputDelegate {
-                func incrementClangCacheHit() {
-                    // TBD
-                }
-
-                func incrementClangCacheMiss() {
-                    // TBD
-                }
-                func incrementSwiftCacheHit() {}
-                func incrementSwiftCacheMiss() {}
+                func incrementCounter(_ counter: BuildOperationMetrics.Counter) {}
                 func incrementTaskCounter(_ counter: BuildOperationMetrics.TaskCounter) {}
 
                 var counters: [BuildOperationMetrics.Counter : Int] = [:]

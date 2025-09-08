@@ -500,8 +500,12 @@ public struct BuildOperationMetrics: Equatable, Codable, Sendable {
 
     public let counters: [Counter: Int]
 
-    public init(counters: [Counter : Int]) {
+    /// The key is the first component of task rule info, a.k.a. the rule info type
+    public let taskCounters: [String: [TaskCounter: Int]]
+
+    public init(counters: [Counter : Int], taskCounters: [String: [TaskCounter: Int]]) {
         self.counters = counters
+        self.taskCounters = taskCounters
     }
 }
 

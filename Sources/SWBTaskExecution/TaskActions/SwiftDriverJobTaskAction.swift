@@ -670,11 +670,11 @@ public final class SwiftDriverJobTaskAction: TaskAction, BuildValueValidatingTas
             outputDelegate.note("replay cache \(result ? "hit" : "miss")")
         }
         if result {
-            outputDelegate.incrementSwiftCacheHit()
+            outputDelegate.incrementCounter(.swiftCacheHits)
             outputDelegate.incrementTaskCounter(.cacheHits)
             outputDelegate.emitOutput("Cache hit\n")
         } else {
-            outputDelegate.incrementSwiftCacheMiss()
+            outputDelegate.incrementCounter(.swiftCacheMisses)
             outputDelegate.incrementTaskCounter(.cacheMisses)
             outputDelegate.emitOutput("Cache miss\n")
         }

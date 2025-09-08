@@ -414,7 +414,7 @@ public final class ClangCompileTaskAction: TaskAction, BuildValueValidatingTaskA
             if enableDiagnosticRemarks {
                 outputDelegate.note("cache miss: \(cacheKey)")
             }
-            outputDelegate.incrementClangCacheMiss()
+            outputDelegate.incrementCounter(.clangCacheMisses)
             outputDelegate.incrementTaskCounter(.cacheMisses)
             outputDelegate.emitOutput("Cache miss\n")
             return false
@@ -427,7 +427,7 @@ public final class ClangCompileTaskAction: TaskAction, BuildValueValidatingTaskA
                     outputDelegate.note("missing CAS output \(output.name): \(output.casID)")
                     outputDelegate.note("cache miss: \(cacheKey)")
                 }
-                outputDelegate.incrementClangCacheMiss()
+                outputDelegate.incrementCounter(.clangCacheMisses)
                 outputDelegate.incrementTaskCounter(.cacheMisses)
                 outputDelegate.emitOutput("Cache miss\n")
                 return false
@@ -440,7 +440,7 @@ public final class ClangCompileTaskAction: TaskAction, BuildValueValidatingTaskA
                 outputDelegate.note("using CAS output \(output.name): \(output.casID)")
             }
         }
-        outputDelegate.incrementClangCacheHit()
+        outputDelegate.incrementCounter(.clangCacheHits)
         outputDelegate.incrementTaskCounter(.cacheHits)
         outputDelegate.emitOutput("Cache hit\n")
         outputDelegate.emitOutput(ByteString(encodingAsUTF8: diagnosticText))
