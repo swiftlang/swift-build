@@ -302,6 +302,14 @@ private struct SetSessionUserPreferencesMsg: MessageHandler {
     }
 }
 
+private struct LookupToolchainMsg: MessageHandler {
+    func handle(request: Request, message: LookupToolchainRequest) throws -> LookupToolchainResponse {
+        let session = try request.session(for: message)
+        let toolchain = try session.core.toolchainRegistry.lookup(path: message.path)
+        return LookupToolchainResponse(toolchainIdentifier: toolchain?.identifier)
+    }
+}
+
 /// Start a PIF transfer from the client.
 ///
 /// This will establish a workspace context in the relevant session by exchanging a PIF from the client to the service incrementally, only transferring subobjects as necessary.
@@ -1543,6 +1551,7 @@ public struct ServiceSessionMessageHandlers: ServiceExtension {
         service.registerMessageHandler(SetSessionUserInfoMsg.self)
         service.registerMessageHandler(SetSessionUserPreferencesMsg.self)
         service.registerMessageHandler(DeveloperPathHandler.self)
+        service.registerMessageHandler(LookupToolchainMsg.self)
     }
 }
 
