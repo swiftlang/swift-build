@@ -27,6 +27,17 @@ public struct ClangBlocklists : Sendable {
 
     var caching: CachingBlocklistInfo? = nil
 
+    public struct BuiltinModuleVerifierInfo : ProjectFailuresBlockList, Codable, Sendable {
+        /// A blocklist of project names that do not support the `MODULE_VERIFIER_KIND=builtin` build setting.
+        let KnownFailures: [String]
+        enum CodingKeys: String, CodingKey {
+            case KnownFailures
+        }
+    }
+
+    var builtinModuleVerify: BuiltinModuleVerifierInfo? = nil
+
+    /// Helper method for determining if a given functionality is blocklisted for the active scope.
     func isBlocked<BlockListT: ProjectFailuresBlockList>(_ scope: MacroEvaluationScope, info: BlockListT?) -> Bool {
         guard let blocklistInfo = info else { return false }
         return blocklistInfo.isProjectListed(scope)
@@ -90,6 +101,10 @@ public struct DiscoveredClangToolSpecInfo: DiscoveredCommandLineToolSpecInfo {
     public func isCachingBlocked(_ scope: MacroEvaluationScope) -> Bool {
         return blocklists.isBlocked(scope, info: blocklists.caching)
      }
+
+    public func isBuiltinModuleVerifyBlocked(_ scope: MacroEvaluationScope) -> Bool {
+        return blocklists.isBlocked(scope, info: blocklists.builtinModuleVerify)
+    }
 }
 
 private let clangVersionRe = RegEx(patternLiteral: #""(?<llvm>[0-9]+(?:\.[0-9]+){0,}) \(clang-(?<clang>[0-9]+(?:\.[0-9]+){0,})\)(?: ((\[.+\])|(\(.+\)))+)?""#)
@@ -187,6 +202,8 @@ public func discoveredClangToolInfo(
         }
         var blocklists = ClangBlocklists()
         blocklists.caching = getBlocklist(type: ClangBlocklists.CachingBlocklistInfo.self, toolchainFilename: "clang-caching.json", delegate: delegate)
+        blocklists.builtinModuleVerify = getBlocklist(type: ClangBlocklists.BuiltinModuleVerifierInfo.self, toolchainFilename: "clang-builtin-module-verify.json", delegate: delegate)
+
 
         return DiscoveredClangToolSpecInfo(
             toolPath: toolPath,

@@ -149,6 +149,11 @@ final class ModuleVerifierTaskProducer: PhasedTaskProducer, TaskProducer {
                     fallbackToExternal = true
                     return
                 }
+                // Fallback to external verifier if current scope is blocklisted.
+                if clangInfo?.isBuiltinModuleVerifyBlocked(scope) == true {
+                    fallbackToExternal = true
+                    return
+                }
             } catch {
                 delegate.error(error)
                 return
