@@ -77,9 +77,19 @@ final public class DocumentationCompilerSpec: GenericCompilerSpec, SpecIdentifie
     ) -> [String] {
         var additionalFlags = [String]()
 
+        // Check if pretty print is requested
+        if cbc.scope.evaluate(BuiltinMacros.DOCC_PRETTY_PRINT) && swiftCompilerInfo.toolFeatures.has(.emitExtensionBlockSymbols) {
+            additionalFlags.append("-symbol-graph-pretty-print")
+        }
+
         // Check if extension symbol documentation is requested
         if cbc.scope.evaluate(BuiltinMacros.DOCC_EXTRACT_EXTENSION_SYMBOLS) && swiftCompilerInfo.toolFeatures.has(.emitExtensionBlockSymbols) {
             additionalFlags.append("-emit-extension-block-symbols")
+        }
+
+        // Check if synthesized members should be skipped
+        if cbc.scope.evaluate(BuiltinMacros.DOCC_SKIP_SYNTHESIZED_MEMBERS) && swiftCompilerInfo.toolFeatures.has(.emitExtensionBlockSymbols) {
+            additionalFlags.append("-symbol-graph-skip-synthesized-members")
         }
 
         switch DocumentationType(from: cbc) {
