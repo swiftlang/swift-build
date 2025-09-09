@@ -161,6 +161,20 @@
                 DefaultValue = NO;
             },
 
+            // If the Swift compiler / Swift symbol graph extractor should pretty print the symbol graph.
+            {
+                Name = DOCC_PRETTY_PRINT;
+                Type = bool;
+                DefaultValue = NO;
+            },
+
+            // If the Swift compiler / Swift symbol graph extractor should skip synthesized members.
+            {
+                Name = DOCC_SKIP_SYNTHESIZED_MEMBERS;
+                Type = bool;
+                DefaultValue = NO;
+            },
+
             {
                 Name = DOCC_EXTRACT_SWIFT_INFO_FOR_OBJC_SYMBOLS;
                 Type = bool;
