@@ -540,6 +540,16 @@ public final class ToolchainRegistry: @unchecked Sendable {
         }
     }
 
+    public func lookup(path: Path) throws -> Toolchain? {
+        let path = try self.fs.realpath(path)
+        for toolchain in toolchains {
+            if try self.fs.realpath(toolchain.path) == path {
+                return toolchain
+            }
+        }
+        return nil
+    }
+
     public var defaultToolchain: Toolchain? {
         return self.lookup("default")
     }
