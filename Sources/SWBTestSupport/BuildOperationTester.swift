@@ -1783,12 +1783,12 @@ private final class BuildOperationTesterDelegate: BuildOperationDelegate {
     }
 
     private class TesterTaskOutputDelegate: TaskOutputDelegate {
-        func incrementCounter(_ counter: BuildOperationMetrics.Counter) {
-            self.counters[counter, default: 0] += 1
+        func incrementCounter(_ counter: BuildOperationMetrics.Counter, by amount: Int) {
+            self.counters[counter, default: 0] += amount
         }
 
-        func incrementTaskCounter(_ counter: BuildOperationMetrics.TaskCounter) {
-            self.taskCounters[counter, default: 0] += 1
+        func incrementTaskCounter(_ counter: BuildOperationMetrics.TaskCounter, by amount: Int) {
+            self.taskCounters[counter, default: 0] += amount
         }
 
         var counters: [BuildOperationMetrics.Counter : Int] = [.clangCacheHits: 0, .clangCacheMisses: 0, .swiftCacheHits: 0, .swiftCacheMisses: 0]

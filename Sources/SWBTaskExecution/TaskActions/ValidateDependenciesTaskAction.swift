@@ -13,6 +13,7 @@
 import Foundation
 public import SWBCore
 import SWBUtil
+internal import SWBProtocol
 
 public final class ValidateDependenciesTaskAction: TaskAction {
     public override class var toolIdentifier: String {
@@ -33,6 +34,14 @@ public final class ValidateDependenciesTaskAction: TaskAction {
                 outputDelegate.emitError("empty task payload")
             }
             return .failed
+        }
+
+        if let ctx = payload.moduleDependenciesContext {
+            outputDelegate.incrementCounter(.moduleDependenciesDeclared, by: ctx.declared.count)
+        }
+
+        if let ctx = payload.headerDependenciesContext {
+            outputDelegate.incrementCounter(.moduleDependenciesDeclared, by: ctx.declared.count)
         }
 
         do {
@@ -91,16 +100,30 @@ public final class ValidateDependenciesTaskAction: TaskAction {
                     let swiftImports = Set(allSwiftImports.map { $0.dependency.name })
                     let uniqueClangMissingDeps = clangMissingDeps.filter { !swiftImports.contains($0.0.name) }
 
-                    let unusedDeps = moduleContext.computeUnusedDependencies(usedModuleNames: Set(allClangImports.map { $0.dependency.name } + allSwiftImports.map { $0.dependency.name }))
+                    let missingDeps = uniqueClangMissingDeps + updatedSwiftMissingDeps
+                    outputDelegate.incrementCounter(.moduleDependenciesMissing, by: missingDeps.count)
 
-                    diagnostics.append(contentsOf: moduleContext.makeDiagnostics(missingDependencies: uniqueClangMissingDeps + updatedSwiftMissingDeps, unusedDependencies: unusedDeps))
+                    let unusedDeps = moduleContext.computeUnusedDependencies(usedModuleNames: Set(allClangImports.map { $0.dependency.name } + allSwiftImports.map { $0.dependency.name }))
+                    outputDelegate.incrementCounter(.moduleDependenciesUnused, by: unusedDeps.count)
+
+                    let diags = moduleContext.makeDiagnostics(missingDependencies: missingDeps, unusedDependencies: unusedDeps)
+                    outputDelegate.incrementCounter(.moduleDependenciesWarningsEmitted, by: diags.lazy.filter { $0.behavior == .warning }.count)
+                    outputDelegate.incrementCounter(.moduleDependenciesErrorsEmitted, by: diags.lazy.filter { $0.behavior == .error }.count)
+                    diagnostics.append(contentsOf: diags)
                 }
             }
             if let headerContext = payload.headerDependenciesContext {
                 if unsupported {
-                    diagnostics.append(contentsOf: headerContext.makeDiagnostics(includes: nil))
+                    diagnostics.append(contentsOf: [headerContext.makeUnsupportedToolchainDiagnostic()])
                 } else {
-                    diagnostics.append(contentsOf: headerContext.makeDiagnostics(includes: Array(allClangIncludes)))
+                    let (missingDeps, unusedDeps) = headerContext.computeMissingAndUnusedDependencies(includes: Array(allClangIncludes))
+                    outputDelegate.incrementCounter(.headerDependenciesMissing, by: missingDeps.count)
+                    outputDelegate.incrementCounter(.headerDependenciesUnused, by: unusedDeps.count)
+
+                    let diags = headerContext.makeDiagnostics(missingDependencies: missingDeps, unusedDependencies: unusedDeps)
+                    outputDelegate.incrementCounter(.headerDependenciesWarningsEmitted, by: diags.lazy.filter { $0.behavior == .warning }.count)
+                    outputDelegate.incrementCounter(.headerDependenciesErrorsEmitted, by: diags.lazy.filter { $0.behavior == .error }.count)
+                    diagnostics.append(contentsOf: diags)
                 }
             }
 

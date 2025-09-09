@@ -71,15 +71,15 @@ final class MockTaskOutputDelegate: TaskOutputDelegate {
 
     private let _diagnosticsEngine = DiagnosticsEngine()
 
-    func incrementCounter(_ counter: BuildOperationMetrics.Counter) {
+    func incrementCounter(_ counter: BuildOperationMetrics.Counter, by amount: Int) {
         state.state.withLock { state in
-            state.counters[counter, default: 0] += 1
+            state.counters[counter, default: 0] += amount
         }
     }
 
-    func incrementTaskCounter(_ counter: BuildOperationMetrics.TaskCounter) {
+    func incrementTaskCounter(_ counter: BuildOperationMetrics.TaskCounter, by amount: Int) {
         state.state.withLock { state in
-            state.taskCounters[counter, default: 0] += 1
+            state.taskCounters[counter, default: 0] += amount
         }
     }
 

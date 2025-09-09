@@ -608,8 +608,8 @@ public protocol TaskOutputDelegate: DiagnosticProducingDelegate
     /// Report a task which was previously batched as up-to-date.
     func previouslyBatchedSubtaskUpToDate(signature: ByteString, target: ConfiguredTarget)
 
-    func incrementCounter(_ counter: BuildOperationMetrics.Counter)
-    func incrementTaskCounter(_ counter: BuildOperationMetrics.TaskCounter)
+    func incrementCounter(_ counter: BuildOperationMetrics.Counter, by amount: Int)
+    func incrementTaskCounter(_ counter: BuildOperationMetrics.TaskCounter, by amount: Int)
 
     var counters: [BuildOperationMetrics.Counter: Int] { get }
     var taskCounters: [BuildOperationMetrics.TaskCounter: Int] { get }
@@ -633,6 +633,16 @@ package extension TaskOutputDelegate
     /// Emit a note.
     func emitNote(_ message: String) {
         note(message)
+    }
+
+    /// Convenience method for incrementing a counter by 1.
+    func incrementCounter(_ counter: BuildOperationMetrics.Counter) {
+        incrementCounter(counter, by: 1)
+    }
+
+    /// Convenience method for incrementing a task counter by 1.
+    func incrementTaskCounter(_ counter: BuildOperationMetrics.TaskCounter) {
+        incrementTaskCounter(counter, by: 1)
     }
 }
 

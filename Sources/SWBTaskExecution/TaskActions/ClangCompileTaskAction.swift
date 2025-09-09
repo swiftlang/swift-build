@@ -341,7 +341,8 @@ public final class ClangCompileTaskAction: TaskAction, BuildValueValidatingTaskA
                     traceFilePath: traceFilePath,
                     dependencyValidationOutputPath: dependencyValidationOutputPath,
                     fileSystem: executionDelegate.fs,
-                    isModular: true
+                    isModular: true,
+                    outputDelegate: outputDelegate
                 )
             }
 
@@ -480,7 +481,8 @@ public final class ClangCompileTaskAction: TaskAction, BuildValueValidatingTaskA
         traceFilePath: Path?,
         dependencyValidationOutputPath: Path?,
         fileSystem: any FSProxy,
-        isModular: Bool
+        isModular: Bool,
+        outputDelegate: any TaskOutputDelegate
     ) throws {
         let payload: DependencyValidationInfo.Payload
         if let traceFilePath {
@@ -500,14 +502,24 @@ public final class ClangCompileTaskAction: TaskAction, BuildValueValidatingTaskA
             
             var allFiles = Set<Path>()
             traceData.forEach { allFiles.formUnion(Set($0.includes)) }
-            
+
+            outputDelegate.incrementTaskCounter(.headerDependenciesValidatedTasks)
+
             if isModular {
                 let (imports, includes) = separateImportsFromIncludes(allFiles)
+                outputDelegate.incrementTaskCounter(.moduleDependenciesValidatedTasks)
+                outputDelegate.incrementTaskCounter(.moduleDependenciesScanned, by: imports.count)
+                outputDelegate.incrementTaskCounter(.headerDependenciesScanned, by: includes.count)
                 payload = .clangDependencies(imports: imports, includes: includes)
             } else {
+                outputDelegate.incrementTaskCounter(.headerDependenciesScanned, by: allFiles.count)
                 payload = .clangDependencies(imports: [], includes: Array(allFiles))
             }
         } else {
+            outputDelegate.incrementTaskCounter(.headerDependenciesNotValidatedTasks)
+            if isModular {
+                outputDelegate.incrementTaskCounter(.moduleDependenciesNotValidatedTasks)
+            }
             payload = .unsupported
         }
 
@@ -598,7 +610,8 @@ public final class ClangNonModularCompileTaskAction: TaskAction {
                     traceFilePath: traceFilePath,
                     dependencyValidationOutputPath: dependencyValidationOutputPath,
                     fileSystem: executionDelegate.fs,
-                    isModular: false
+                    isModular: false,
+                    outputDelegate: outputDelegate
                 )
             }
 
