@@ -486,16 +486,66 @@ public struct TargetDependencyRelationship: Serializable, Codable, Equatable, Se
 }
 
 public struct BuildOperationMetrics: Equatable, Codable, Sendable {
+    /// These metrics are aggregated across an entire build operation
     public enum Counter: String, Equatable, Codable, Sendable {
         case clangCacheHits
         case clangCacheMisses
         case swiftCacheHits
         case swiftCacheMisses
+
+        /// How many dependencies did users declare?
+        case moduleDependenciesDeclared
+
+        /// How many dependencies were found to be missing?
+        case moduleDependenciesMissing
+
+        /// How many dependencies were found to be unused?
+        case moduleDependenciesUnused
+
+        /// How many dependencies warnings were emitted?
+        case moduleDependenciesWarningsEmitted
+
+        /// How many dependencies errors were emitted?
+        case moduleDependenciesErrorsEmitted
+
+        /// How many dependencies did users declare?
+        case headerDependenciesDeclared
+
+        /// How many dependencies were found to be missing?
+        case headerDependenciesMissing
+
+        /// How many dependencies were found to be unused?
+        case headerDependenciesUnused
+
+        /// How many dependencies warnings were emitted?
+        case headerDependenciesWarningsEmitted
+
+        /// How many dependencies errors were emitted?
+        case headerDependenciesErrorsEmitted
     }
 
+    /// These metrics are aggregated by task rule info type
     public enum TaskCounter: String, Equatable, Codable, Sendable {
         case cacheHits
         case cacheMisses
+
+        /// Number of tasks which could and did validate module dependencies
+        case moduleDependenciesValidatedTasks
+
+        /// Number of tasks which could but did not validate module dependencies. Together with `moduleDependenciesValidated`, this can be used to track progress towards complete validation.
+        case moduleDependenciesNotValidatedTasks
+
+        /// Number of unique dependencies scanned / discovered / found by an executing task
+        case moduleDependenciesScanned
+
+        /// Number of tasks which could and did validate header dependencies
+        case headerDependenciesValidatedTasks
+
+        /// Number of tasks which could but did not validate header dependencies. Together with `headerDependenciesValidated`, this can be used to track progress towards complete validation.
+        case headerDependenciesNotValidatedTasks
+
+        /// Number of unique dependencies scanned / discovered / found by an executing task
+        case headerDependenciesScanned
     }
 
     public let counters: [Counter: Int]
