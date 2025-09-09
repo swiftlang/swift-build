@@ -660,6 +660,77 @@ fileprivate struct ModuleVerifierTaskConstructionTests: CoreBasedTests {
     }
 
     @Test(.requireSDKs(.macOS))
+    func builtinModuleVerifyList() async throws {
+        try await withTemporaryDirectory { tmpDirPath in
+            let blockListFilePath = tmpDirPath.join("clang-builtin-module-verify.json")
+            let targetName = "Orange"
+            let testProject =
+            TestProject(
+                "aProject",
+                sourceRoot: tmpDirPath.join("Test"),
+                groupTree: TestGroup(
+                    "Group",
+                    path: "Sources",
+                    children: [
+                        TestFile("Orange.h"),
+                        TestFile("Orange.defs"),
+                        TestFile("main.m"),
+                    ]),
+                targets: [
+                    TestStandardTarget(
+                        targetName,
+                        type: .framework,
+                        buildConfigurations: [
+                            TestBuildConfiguration("Debug", buildSettings: [
+                                "ARCHS": "arm64",
+                                "DEFINES_MODULE": "YES",
+                                "ENABLE_MODULE_VERIFIER": "YES",
+                                "MODULE_VERIFIER_KIND": "builtin",
+                                "GENERATE_INFOPLIST_FILE": "YES",
+                                "MODULE_VERIFIER_SUPPORTED_LANGUAGE_STANDARDS": "gnu11",
+                                "MODULE_VERIFIER_SUPPORTED_LANGUAGES": "objective-c",
+                                "MODULE_VERIFIER_VERBOSE": "YES",
+                                "PRODUCT_NAME": "$(TARGET_NAME)",
+                                "BLOCKLISTS_PATH": tmpDirPath.str,
+                            ]),
+                        ],
+                        buildPhases: [
+                            TestHeadersBuildPhase([
+                                TestBuildFile("Orange.h", headerVisibility: .public)
+                            ]),
+                            TestSourcesBuildPhase([
+                                "main.m",
+                            ]),
+                    ]),
+                ])
+
+                let core = try await getCore()
+                let tester = try await BuildOperationTester(core, testProject, simulated: false)
+                let SRCROOT = tester.workspace.projects[0].sourceRoot
+                for inputFile in ["Sources/Orange.h", "Sources/Orange.defs", "Sources/main.m"] {
+                    try await tester.fs.writeFileContents(SRCROOT.join(inputFile)) { stream in
+                        stream <<< ""
+                    }
+                }
+                try await tester.fs.writeFileContents(blockListFilePath) { file in
+                    file <<<
+                        """
+                        { "KnownFailures": ["aProject"]}
+                        """
+                }
+                /// Verify that while the project has enabled `MODULE_VERIFIER_KIND=builtin` the external module verifier is invoked because the project is on the blocklist.
+                try await tester.checkBuild(runDestination: .macOS) { results in
+                results.checkNoDiagnostics()
+                results.checkTask(.matchRuleType("VerifyModule")) { task in
+                        task.checkRuleInfo(["VerifyModule", "\(SRCROOT.str)/build/Debug/Orange.framework"])
+                        task.checkCommandLineMatches([.suffix("modules-verifier"), "\(SRCROOT.str)/build/Debug/Orange.framework", .anySequence, "--clang", .suffix("clang"), .anySequence])
+                }
+                results.checkNoErrors()
+            }
+        }
+    }
+
+    @Test(.requireSDKs(.macOS))
     func externalModuleVerifier() async throws {
         let archs = ["arm64", "x86_64"]
         let targetName = "Orange"
