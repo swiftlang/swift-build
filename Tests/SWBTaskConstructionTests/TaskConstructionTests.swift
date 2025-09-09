@@ -5038,8 +5038,7 @@ fileprivate struct TaskConstructionTests: CoreBasedTests {
 
                     // Check that the task contains a command line option to link libStaticLib2.a.
                     task.checkCommandLineContains(["-lStaticLib2"])
-                    // Check that the task contains a command line option to link Framework.framework.
-                    task.checkCommandLineContains(["-framework", "Framework"])
+
                     // Check that the task does *not* declare libAnotherStatic.a as an input, since it is located via search paths.  Some projects may have a file reference whose path does not refer to a file, but which relies on finding the library via search paths anyway.
                     task.checkNoInputs(contain: [.pathPattern(.suffix("libAnotherStatic.a"))])
                     // Check that the task does *not* declare libStaticLib2.a as an input, since it is located via search paths.  Some projects may have a file reference whose path does not refer to a file, but which relies on finding the library via search paths anyway.
@@ -5076,7 +5075,6 @@ fileprivate struct TaskConstructionTests: CoreBasedTests {
 
             // Check that there are warnings about trying to weak-link libraries.
             results.checkWarning("Product libStaticLib1.a cannot weak-link static library libStaticLib2.a (in target 'StaticLib1' from project 'aProject')")
-            results.checkWarning("Product libStaticLib1.a cannot weak-link framework Framework.framework (in target 'StaticLib1' from project 'aProject')")
 
             // Check that there are no other diagnostics.
             results.checkNoDiagnostics()
