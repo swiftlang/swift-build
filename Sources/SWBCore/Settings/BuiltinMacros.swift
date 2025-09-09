@@ -1151,6 +1151,7 @@ public final class BuiltinMacros {
     public static let VALIDATE_DEPENDENCIES_DOWNGRADE_ERRORS = BuiltinMacros.declareBooleanMacro("VALIDATE_DEPENDENCIES_DOWNGRADE_ERRORS")
     public static let VALIDATE_DEVELOPMENT_ASSET_PATHS = BuiltinMacros.declareEnumMacro("VALIDATE_DEVELOPMENT_ASSET_PATHS") as EnumMacroDeclaration<BooleanWarningLevel>
     public static let VALIDATE_HEADER_DEPENDENCIES = BuiltinMacros.declareEnumMacro("VALIDATE_HEADER_DEPENDENCIES") as EnumMacroDeclaration<BooleanWarningLevel>
+    public static let VALIDATE_UNUSED_HEADER_DEPENDENCIES = BuiltinMacros.declareEnumMacro("VALIDATE_UNUSED_HEADER_DEPENDENCIES") as EnumMacroDeclaration<BooleanWarningLevel>
     public static let VALIDATE_MODULE_DEPENDENCIES = BuiltinMacros.declareEnumMacro("VALIDATE_MODULE_DEPENDENCIES") as EnumMacroDeclaration<BooleanWarningLevel>
     public static let VALIDATE_UNUSED_MODULE_DEPENDENCIES = BuiltinMacros.declareEnumMacro("VALIDATE_UNUSED_MODULE_DEPENDENCIES") as EnumMacroDeclaration<BooleanWarningLevel>
     public static let VECTOR_SUFFIX = BuiltinMacros.declareStringMacro("VECTOR_SUFFIX")
@@ -2388,6 +2389,7 @@ public final class BuiltinMacros {
         VALIDATE_DEVELOPMENT_ASSET_PATHS,
         VALIDATE_HEADER_DEPENDENCIES,
         VALIDATE_MODULE_DEPENDENCIES,
+        VALIDATE_UNUSED_HEADER_DEPENDENCIES,
         VALIDATE_UNUSED_MODULE_DEPENDENCIES,
         VALID_ARCHS,
         VECTOR_SUFFIX,

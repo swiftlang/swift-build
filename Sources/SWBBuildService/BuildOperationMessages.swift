@@ -705,12 +705,12 @@ private final class TaskOutputHandler: TaskOutputDelegate {
         }
     }
 
-    func incrementCounter(_ counter: BuildOperationMetrics.Counter) {
-        self.counters[counter, default: 0] += 1
+    func incrementCounter(_ counter: BuildOperationMetrics.Counter, by amount: Int) {
+        self.counters[counter, default: 0] += amount
     }
 
-    func incrementTaskCounter(_ counter: BuildOperationMetrics.TaskCounter) {
-        self.taskCounters[counter, default: 0] += 1
+    func incrementTaskCounter(_ counter: BuildOperationMetrics.TaskCounter, by amount: Int) {
+        self.taskCounters[counter, default: 0] += amount
     }
 
     var diagnosticsEngine: DiagnosticProducingDelegateProtocolPrivate<DiagnosticsEngine> {
@@ -932,8 +932,8 @@ private final class DiscardingTaskOutputHandler: TaskOutputDelegate {
     func subtaskUpToDate(_ subtask: any ExecutableTask) {}
     func previouslyBatchedSubtaskUpToDate(signature: ByteString, target: ConfiguredTarget) {}
     func updateResult(_ result: TaskResult) {}
-    func incrementCounter(_ counter: BuildOperationMetrics.Counter) {}
-    func incrementTaskCounter(_ counter: BuildOperationMetrics.TaskCounter) {}
+    func incrementCounter(_ counter: BuildOperationMetrics.Counter, by amount: Int) {}
+    func incrementTaskCounter(_ counter: BuildOperationMetrics.TaskCounter, by amount: Int) {}
 }
 
 /// The build output delegate, which sends data back immediately.

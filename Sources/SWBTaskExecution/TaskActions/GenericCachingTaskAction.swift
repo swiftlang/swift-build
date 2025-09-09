@@ -404,12 +404,12 @@ fileprivate final class CapturingTaskOutputDelegate: TaskOutputDelegate {
         underlyingTaskOutputDelegate.previouslyBatchedSubtaskUpToDate(signature: signature, target: target)
     }
 
-    func incrementCounter(_ counter: BuildOperationMetrics.Counter) {
-        underlyingTaskOutputDelegate.incrementCounter(counter)
+    func incrementCounter(_ counter: BuildOperationMetrics.Counter, by amount: Int) {
+        underlyingTaskOutputDelegate.incrementCounter(counter, by: amount)
     }
 
-    func incrementTaskCounter(_ counter: BuildOperationMetrics.TaskCounter) {
-        underlyingTaskOutputDelegate.incrementTaskCounter(counter)
+    func incrementTaskCounter(_ counter: BuildOperationMetrics.TaskCounter, by amount: Int) {
+        underlyingTaskOutputDelegate.incrementTaskCounter(counter, by: amount)
     }
 
     var counters: [BuildOperationMetrics.Counter : Int] {

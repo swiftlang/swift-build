@@ -472,8 +472,8 @@ public final class EmbedSwiftStdLibTaskAction: TaskAction {
             logV(args.joined(separator: " "))
 
             final class CapturingOutputDelegate: TaskOutputDelegate {
-                func incrementCounter(_ counter: BuildOperationMetrics.Counter) {}
-                func incrementTaskCounter(_ counter: BuildOperationMetrics.TaskCounter) {}
+                func incrementCounter(_ counter: BuildOperationMetrics.Counter, by amount: Int) {}
+                func incrementTaskCounter(_ counter: BuildOperationMetrics.TaskCounter, by amount: Int) {}
 
                 var counters: [BuildOperationMetrics.Counter : Int] = [:]
                 var taskCounters: [BuildOperationMetrics.TaskCounter : Int] = [:]

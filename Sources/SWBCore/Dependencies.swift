@@ -74,13 +74,13 @@ public struct ModuleDependency: Hashable, Sendable, SerializableCodable {
 public struct ModuleDependenciesContext: Sendable, SerializableCodable {
     public var validate: BooleanWarningLevel
     public var validateUnused: BooleanWarningLevel
-    var moduleDependencies: [ModuleDependency]
+    public var declared: [ModuleDependency]
     var fixItContext: FixItContext?
 
-    init(validate: BooleanWarningLevel, validateUnused: BooleanWarningLevel, moduleDependencies: [ModuleDependency], fixItContext: FixItContext? = nil) {
+    init(validate: BooleanWarningLevel, validateUnused: BooleanWarningLevel, declared: [ModuleDependency], fixItContext: FixItContext? = nil) {
         self.validate = validate
         self.validateUnused = validateUnused
-        self.moduleDependencies = moduleDependencies
+        self.declared = declared
         self.fixItContext = fixItContext
     }
 
@@ -90,7 +90,7 @@ public struct ModuleDependenciesContext: Sendable, SerializableCodable {
         guard validate != .no || validateUnused != .no else { return nil }
         let downgrade = settings.globalScope.evaluate(BuiltinMacros.VALIDATE_DEPENDENCIES_DOWNGRADE_ERRORS)
         let fixItContext = validate != .no ? ModuleDependenciesContext.FixItContext(settings: settings) : nil
-        self.init(validate: downgrade ? .yes : validate, validateUnused: validateUnused, moduleDependencies: settings.moduleDependencies, fixItContext: fixItContext)
+        self.init(validate: downgrade ? .yes : validate, validateUnused: validateUnused, declared: settings.moduleDependencies, fixItContext: fixItContext)
     }
 
     public func makeUnsupportedToolchainDiagnostic() -> Diagnostic {
@@ -111,14 +111,14 @@ public struct ModuleDependenciesContext: Sendable, SerializableCodable {
             if fromSwift && $0.importLocations.isEmpty { return false }
 
             // TODO: if the difference is just the access modifier, we emit a new entry, but ultimately our fixit should update the existing entry or emit an error about a conflict
-            if moduleDependencies.contains($0.0) { return false }
+            if declared.contains($0.0) { return false }
             return true
         }
     }
 
     public func computeUnusedDependencies(usedModuleNames: Set<String>) -> [ModuleDependency] {
         guard validateUnused != .no else { return [] }
-        return moduleDependencies.filter { !$0.optional && !usedModuleNames.contains($0.name) }
+        return declared.filter { !$0.optional && !usedModuleNames.contains($0.name) }
     }
 
     /// Make diagnostics for missing module dependencies.
@@ -231,6 +231,7 @@ public struct ModuleDependenciesContext: Sendable, SerializableCodable {
 public struct HeaderDependency: Hashable, Sendable, SerializableCodable {
     public let name: String
     public let accessLevel: AccessLevel
+    public let optional: Bool
 
     public enum AccessLevel: String, Hashable, Sendable, CaseIterable, Codable, Serializable {
         case Private = "private"
@@ -245,29 +246,25 @@ public struct HeaderDependency: Hashable, Sendable, SerializableCodable {
         }
     }
 
-    public init(name: String, accessLevel: AccessLevel) {
+    public init(name: String, accessLevel: AccessLevel, optional: Bool) {
         self.name = name
         self.accessLevel = accessLevel
+        self.optional = optional
     }
 
     public init(entry: String) throws {
-        var it = entry.split(separator: " ").makeIterator()
-        switch (it.next(), it.next(), it.next()) {
-        case (let .some(name), nil, nil):
-            self.name = String(name)
-            self.accessLevel = .Private
-
-        case (let .some(accessLevel), let .some(name), nil):
-            self.name = String(name)
-            self.accessLevel = try AccessLevel(String(accessLevel))
-
-        default:
-            throw StubError.error("expected 1 or 2 space-separated components in: \(entry)")
+        let re = #/((?<accessLevel>private|package|public)\s+)?(?<name>.+)(?<optional>\?)?/#
+        guard let match = entry.wholeMatch(of: re) else {
+            throw StubError.error("Invalid header dependency format: \(entry), expected [private|package|public] <name>[?]")
         }
+
+        self.name = String(match.output.name)
+        self.accessLevel = try match.output.accessLevel.map { try AccessLevel(String($0)) } ?? .Private
+        self.optional = match.output.optional != nil
     }
 
     public var asBuildSettingEntry: String {
-        "\(accessLevel == .Private ? "" : "\(accessLevel.rawValue) ")\(name)"
+        "\(accessLevel == .Private ? "" : "\(accessLevel.rawValue) ")\(name)\(optional ? "?" : "")"
     }
 
     public var asBuildSettingEntryQuotedIfNeeded: String {
@@ -278,63 +275,104 @@ public struct HeaderDependency: Hashable, Sendable, SerializableCodable {
 
 public struct HeaderDependenciesContext: Sendable, SerializableCodable {
     public var validate: BooleanWarningLevel
-    var headerDependencies: [HeaderDependency]
+    public var validateUnused: BooleanWarningLevel
+    public var declared: [HeaderDependency]
     var fixItContext: FixItContext?
 
-    init(validate: BooleanWarningLevel, headerDependencies: [HeaderDependency], fixItContext: FixItContext? = nil) {
+    init(validate: BooleanWarningLevel, validateUnused: BooleanWarningLevel, declared: [HeaderDependency], fixItContext: FixItContext? = nil) {
         self.validate = validate
-        self.headerDependencies = headerDependencies
+        self.validateUnused = validateUnused
+        self.declared = declared
         self.fixItContext = fixItContext
     }
 
     public init?(settings: Settings) {
         let validate = settings.globalScope.evaluate(BuiltinMacros.VALIDATE_HEADER_DEPENDENCIES)
-        guard validate != .no else { return nil }
+        let validateUnused = settings.globalScope.evaluate(BuiltinMacros.VALIDATE_UNUSED_HEADER_DEPENDENCIES)
+        guard validate != .no || validateUnused != .no else { return nil }
         let downgrade = settings.globalScope.evaluate(BuiltinMacros.VALIDATE_DEPENDENCIES_DOWNGRADE_ERRORS)
         let fixItContext = HeaderDependenciesContext.FixItContext(settings: settings)
-        self.init(validate: downgrade ? .yes : validate, headerDependencies: settings.headerDependencies, fixItContext: fixItContext)
+        self.init(validate: downgrade ? .yes : validate, validateUnused: validateUnused, declared: settings.headerDependencies, fixItContext: fixItContext)
+    }
+
+    public func makeUnsupportedToolchainDiagnostic() -> Diagnostic {
+        Diagnostic(
+            behavior: .warning,
+            location: .unknown,
+            data: DiagnosticData("The current toolchain does not support \(BuiltinMacros.VALIDATE_HEADER_DEPENDENCIES.name)"))
+    }
+
+    /// Compute missing module dependencies.
+    public func computeMissingAndUnusedDependencies(includes: [Path]) -> (missing: [HeaderDependency], unused: [HeaderDependency]) {
+        let declaredNames = Set(declared.map { $0.name })
+
+        let missing: [HeaderDependency]
+        if validate != .no {
+            missing = includes.filter { file in
+                return !declaredNames.contains(where: { file.ends(with: $0) })
+            }.map {
+                // TODO: What if the basename doesn't uniquely identify the header?
+                HeaderDependency(name: $0.basename, accessLevel: .Private, optional: false)
+            }
+        }
+        else {
+            missing = []
+        }
+
+        let unused: [HeaderDependency]
+        if validateUnused != .no {
+            unused = declared.filter { !$0.optional && !declaredNames.contains($0.name) }
+        }
+        else {
+            unused = []
+        }
+
+        return (missing, unused)
     }
 
     /// Make diagnostics for missing header dependencies.
     ///
     /// The compiler tracing information does not provide the include locations or whether they are public imports
     /// (which depends on whether the import is in an installed header file).
-    /// If `includes` is nil, the current toolchain does support the feature to trace imports.
-    public func makeDiagnostics(includes: [Path]?) -> [Diagnostic] {
-        guard validate != .no else { return [] }
-        guard let includes else {
-            return [Diagnostic(
-                behavior: .warning,
+    public func makeDiagnostics(missingDependencies: [HeaderDependency], unusedDependencies: [HeaderDependency]) -> [Diagnostic] {
+        let missingDiagnostics: [Diagnostic]
+        if !missingDependencies.isEmpty {
+            let behavior: Diagnostic.Behavior = validate == .yesError ? .error : .warning
+
+            let fixIt = fixItContext?.makeFixIt(newHeaders: missingDependencies)
+            let fixIts = fixIt.map { [$0] } ?? []
+
+            let message = "Missing entries in \(BuiltinMacros.HEADER_DEPENDENCIES.name): \(missingDependencies.map { $0.asBuildSettingEntryQuotedIfNeeded }.sorted().joined(separator: " "))"
+
+            let location: Diagnostic.Location = fixIt.map {
+                Diagnostic.Location.path($0.sourceRange.path, line: $0.sourceRange.endLine, column: $0.sourceRange.endColumn)
+            } ?? Diagnostic.Location.buildSetting(BuiltinMacros.HEADER_DEPENDENCIES)
+
+            missingDiagnostics = [Diagnostic(
+                behavior: behavior,
+                location: location,
+                data: DiagnosticData(message),
+                fixIts: fixIts)]
+        }
+        else {
+            missingDiagnostics = []
+        }
+
+        let unusedDiagnostics: [Diagnostic]
+        if !unusedDependencies.isEmpty {
+            let message = "Unused entries in \(BuiltinMacros.HEADER_DEPENDENCIES.name): \(unusedDependencies.map { $0.name }.sorted().joined(separator: " "))"
+            // TODO location & fixit
+            unusedDiagnostics = [Diagnostic(
+                behavior: validateUnused == .yesError ? .error : .warning,
                 location: .unknown,
-                data: DiagnosticData("The current toolchain does not support \(BuiltinMacros.VALIDATE_HEADER_DEPENDENCIES.name)"))]
+                data: DiagnosticData(message),
+                fixIts: [])]
+        }
+        else {
+            unusedDiagnostics = []
         }
 
-        let headerDependencyNames = headerDependencies.map { $0.name }
-        let missingDeps = includes.filter { file in
-            return !headerDependencyNames.contains(where: { file.ends(with: $0) })
-        }.map {
-            // TODO: What if the basename doesn't uniquely identify the header?
-            HeaderDependency(name: $0.basename, accessLevel: .Private)
-        }
-
-        guard !missingDeps.isEmpty else { return [] }
-
-        let behavior: Diagnostic.Behavior = validate == .yesError ? .error : .warning
-
-        let fixIt = fixItContext?.makeFixIt(newHeaders: missingDeps)
-        let fixIts = fixIt.map { [$0] } ?? []
-
-        let message = "Missing entries in \(BuiltinMacros.HEADER_DEPENDENCIES.name): \(missingDeps.map { $0.asBuildSettingEntryQuotedIfNeeded }.sorted().joined(separator: " "))"
-
-        let location: Diagnostic.Location = fixIt.map {
-            Diagnostic.Location.path($0.sourceRange.path, line: $0.sourceRange.endLine, column: $0.sourceRange.endColumn)
-        } ?? Diagnostic.Location.buildSetting(BuiltinMacros.HEADER_DEPENDENCIES)
-
-        return [Diagnostic(
-            behavior: behavior,
-            location: location,
-            data: DiagnosticData(message),
-            fixIts: fixIts)]
+        return missingDiagnostics + unusedDiagnostics
     }
 
     struct FixItContext: Sendable, SerializableCodable {
