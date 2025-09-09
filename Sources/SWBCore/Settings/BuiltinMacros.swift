@@ -1165,6 +1165,7 @@ public final class BuiltinMacros {
     public static let VERSION_INFO_STRING = BuiltinMacros.declareStringMacro("VERSION_INFO_STRING")
     public static let VERSION_INFO_SUFFIX = BuiltinMacros.declareStringMacro("VERSION_INFO_SUFFIX")
     public static let ValidateForStore = BuiltinMacros.declareBooleanMacro("ValidateForStore")
+    public static let VERIFY_CLANG_SCANNER_NEGATIVE_STAT_CACHE = BuiltinMacros.declareBooleanMacro("VERIFY_CLANG_SCANNER_NEGATIVE_STAT_CACHE")
     public static let WARNING_CFLAGS = BuiltinMacros.declareStringListMacro("WARNING_CFLAGS")
     public static let WARNING_LDFLAGS = BuiltinMacros.declareStringListMacro("WARNING_LDFLAGS")
     public static let WATCHKIT_2_SUPPORT_FOLDER_PATH = BuiltinMacros.declareStringMacro("WATCHKIT_2_SUPPORT_FOLDER_PATH")
@@ -2402,6 +2403,7 @@ public final class BuiltinMacros {
         VERSION_INFO_STRING,
         VERSION_INFO_SUFFIX,
         ValidateForStore,
+        VERIFY_CLANG_SCANNER_NEGATIVE_STAT_CACHE,
         WARNING_CFLAGS,
         WARNING_LDFLAGS,
         WATCHKIT_2_SUPPORT_FOLDER_PATH,
