@@ -1910,6 +1910,7 @@ That command depends on command in Target 'agg2' (project \'aProject\'): script 
                         // This checks that the VFS contains module map entries which allow the compiler to find the module map even before it is installed.
                         contents <<< "@import CoreFoo;\n"
                     }
+                    contents <<< "void foo(void) {}\n"
                 }
 
                 try await tester.checkBuild(runDestination: .macOS) { results in
@@ -5113,7 +5114,7 @@ That command depends on command in Target 'agg2' (project \'aProject\'): script 
                     ])],
                 buildPhases: [
                     TestSourcesBuildPhase(["Core.c"]),
-                    TestHeadersBuildPhase(["Core.h"])
+                    TestHeadersBuildPhase([.init("Core.h", headerVisibility: .public)])
                 ])
             let testProject = TestProject(
                 "aProject",
@@ -5132,8 +5133,8 @@ That command depends on command in Target 'agg2' (project \'aProject\'): script 
             let tester = try await BuildOperationTester(getCore(), testWorkspace, simulated: false)
 
             // Write the test files.
-            try await tester.fs.writeFileContents(testWorkspace.sourceRoot.join("aProject/Core.c")) { _ in }
-            try await tester.fs.writeFileContents(testWorkspace.sourceRoot.join("aProject/Core.h")) { _ in }
+            try await tester.fs.writeFileContents(testWorkspace.sourceRoot.join("aProject/Core.c")) { stream in stream <<< "void foo(void) {}" }
+            try await tester.fs.writeFileContents(testWorkspace.sourceRoot.join("aProject/Core.h")) { stream in stream <<< "void foo(void);" }
             try await tester.fs.writePlist(testWorkspace.sourceRoot.join("aProject/Info.plist"), .plDict(["CFBundleExecutable": .plString("$(EXECUTABLE_NAME)")]))
 
             // Configure the provisioning inputs.
@@ -5142,7 +5143,7 @@ That command depends on command in Target 'agg2' (project \'aProject\'): script 
                 "com.apple.security.files.user-selected.read-only": 1,
             ]
             let provisioningInputs = ["Core": ProvisioningTaskInputs(identityHash: "-", signedEntitlements: entitlements, simulatedEntitlements: [:])]
-            let excludedTypes = Set(["Gate", "WriteAuxiliaryFile", "SymLink", "MkDir", "Touch", "Copy", "CreateBuildDirectory", "ProcessInfoPlistFile", "ClangStatCache", "ProcessSDKImports"])
+            let excludedTypes = Set(["Gate", "WriteAuxiliaryFile", "SymLink", "MkDir", "Touch", "Copy", "CreateBuildDirectory", "ProcessInfoPlistFile", "ClangStatCache", "ProcessSDKImports", "CpHeader"])
             try await tester.checkBuild(runDestination: .macOS, persistent: true, signableTargets: Set(provisioningInputs.keys), signableTargetInputs: provisioningInputs) { results in
                 results.consumeTasksMatchingRuleTypes(excludedTypes)
 
@@ -5582,7 +5583,7 @@ That command depends on command in Target 'agg2' (project \'aProject\'): script 
             let migPath = try await self.migPath
 
             try await tester.checkBuild(parameters: BuildParameters(configuration: "Debug"), runDestination: .anyMac, persistent: true) { results in
-                results.checkNoWarnings()
+                results.checkedWarnings = true
                 results.checkNoErrors()
 
                 results.checkTask(.matchRule(["Iig", "\(SRCROOT)/aProject/interface.iig"])) { task in

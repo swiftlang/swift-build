@@ -51,11 +51,11 @@ fileprivate struct BuildCommandTests: CoreBasedTests {
 
             // Create the input files.
             let cFile = testWorkspace.sourceRoot.join("aProject/CFile.c")
-            try await tester.fs.writeFileContents(cFile) { stream in }
+            try await tester.fs.writeFileContents(cFile) { stream in stream <<< "void foo(void) {}" }
             let swiftFile = testWorkspace.sourceRoot.join("aProject/SwiftFile.swift")
-            try await tester.fs.writeFileContents(swiftFile) { stream in }
+            try await tester.fs.writeFileContents(swiftFile) { stream in stream <<< "public func bar() {}" }
             let objcFile = testWorkspace.sourceRoot.join("aProject/ObjCFile.m")
-            try await tester.fs.writeFileContents(objcFile) { stream in }
+            try await tester.fs.writeFileContents(objcFile) { stream in stream <<< "void baz(void) {}" }
 
             // Create a build request context to compute the output paths - can't use one from the tester because it's an _output_ of checkBuild.
             let buildRequestContext = BuildRequestContext(workspaceContext: tester.workspaceContext)
@@ -296,7 +296,7 @@ fileprivate struct BuildCommandTests: CoreBasedTests {
 
                 // Create the input files.
                 let cFile = testWorkspace.sourceRoot.join("aProject/CFile.c")
-                try await tester.fs.writeFileContents(cFile) { stream in }
+                try await tester.fs.writeFileContents(cFile) { stream in stream <<< "void foo(void) {}" }
 
                 let runDestination = RunDestinationInfo.host
                 let parameters = BuildParameters(configuration: "Debug", activeRunDestination: runDestination)
