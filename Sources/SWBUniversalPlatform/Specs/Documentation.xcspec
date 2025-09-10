@@ -175,6 +175,22 @@
                 DefaultValue = NO;
             },
 
+            // The minimum access level for API for the symbol graph extractor to generate
+            {
+                Name = DOCC_MINIMUM_ACCESS_LEVEL;
+                Type = Enumeration;
+                Values = (
+                    none,
+                    private,
+                    fileprivate,
+                    internal,
+                    package,
+                    public,
+                    open,
+                );
+                DefaultValue = none;
+            },
+
             {
                 Name = DOCC_EXTRACT_SWIFT_INFO_FOR_OBJC_SYMBOLS;
                 Type = bool;

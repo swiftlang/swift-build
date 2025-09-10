@@ -1099,6 +1099,7 @@ public final class BuiltinMacros {
     public static let DOCC_ARCHIVE_PATH = BuiltinMacros.declareStringMacro("DOCC_ARCHIVE_PATH")
     public static let DOCC_PRETTY_PRINT = BuiltinMacros.declareBooleanMacro("DOCC_PRETTY_PRINT")
     public static let DOCC_EXTRACT_SPI_DOCUMENTATION = BuiltinMacros.declareBooleanMacro("DOCC_EXTRACT_SPI_DOCUMENTATION")
+    public static let DOCC_MINIMUM_ACCESS_LEVEL = BuiltinMacros.declareEnumMacro("DOCC_MINIMUM_ACCESS_LEVEL") as EnumMacroDeclaration<DoccMinimumAccessLevel>
     public static let DOCC_SKIP_SYNTHESIZED_MEMBERS = BuiltinMacros.declareBooleanMacro("DOCC_SKIP_SYNTHESIZED_MEMBERS")
     public static let DOCC_EXTRACT_EXTENSION_SYMBOLS = BuiltinMacros.declareBooleanMacro("DOCC_EXTRACT_EXTENSION_SYMBOLS")
     public static let DOCC_EXTRACT_SWIFT_INFO_FOR_OBJC_SYMBOLS = BuiltinMacros.declareBooleanMacro("DOCC_EXTRACT_SWIFT_INFO_FOR_OBJC_SYMBOLS")
@@ -1650,6 +1651,7 @@ public final class BuiltinMacros {
         DOCC_ARCHIVE_PATH,
         DOCC_PRETTY_PRINT,
         DOCC_SKIP_SYNTHESIZED_MEMBERS,
+        DOCC_MINIMUM_ACCESS_LEVEL,
         DOCC_EXTRACT_SPI_DOCUMENTATION,
         DOCC_EXTRACT_EXTENSION_SYMBOLS,
         DOCC_EXTRACT_SWIFT_INFO_FOR_OBJC_SYMBOLS,
@@ -2755,6 +2757,18 @@ public enum LinkerDriverChoice: String, Equatable, Hashable, EnumerationMacroTyp
     case qcc
     case swiftc
     case auto
+}
+
+public enum DoccMinimumAccessLevel: String, Equatable, Hashable, EnumerationMacroType {
+    public static let defaultValue = DoccMinimumAccessLevel.none
+
+    case none = ""
+    case `private` = "private"
+    case `fileprivate` = "fileprivate"
+    case `internal` = "internal"
+    case `package` = "package"
+    case `public` = "public"
+    case `open` = "open"
 }
 
 /// Enumeration macro type for the value of the `INFOPLIST_KEY_LSApplicationCategoryType` build setting.
