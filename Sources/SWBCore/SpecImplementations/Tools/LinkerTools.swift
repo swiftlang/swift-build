@@ -1696,28 +1696,7 @@ public final class LibtoolLinkerSpec : GenericLinkerSpec, SpecIdentifierType, @u
                 inputPaths.append(specifier.path)
                 return ["@\(specifier.path.join("args.resp").str)"]
 
-            case .framework:
-                // A static library can build against a framework, since the library in the framework could be a static library, which is valid, and we can't tell here whether it is or not.  So we leave it to libtool to do the right thing here.
-                // Also, we wouldn't want to emit an error here even if we could determine that it contained a dylib, since the target might be only using the framework to find headers.
-
-                // If directed to link it weakly, we emit a warning, since libtool can't perform weak linking (since it's not really linking).  Then we pass it normally.
-                // We silently ignore other non-normal modes, since they are only set programmatically and there's nothing the user can do about them.
-                if specifier.mode == .weak {
-                    delegate.warning("Product \(cbc.output.basename) cannot weak-link \(specifier.kind) \(basename)")
-                }
-
-                let frameworkName = Path(basename).withoutSuffix
-                if specifier.useSearchPaths {
-                    return ["-framework", frameworkName]
-                } else {
-                    // If we aren't using search paths, we point to the library inside the framework.
-                    //
-                    // FIXME: This is probably a mis-feature, I doubt it is a good idea to bypass the linker's notion of frameworkness.
-                    let frameworkLibraryPath = specifier.path.join(frameworkName)
-                    return [frameworkLibraryPath.str]
-                }
-
-            case .dynamic, .textBased:
+            case .dynamic, .textBased, .framework:
                 // A static library can't build against a dynamic library, or against a .tbd file, so we don't add any arguments here.  But the inclusion of such a file in the Link Binaries build phase might be used to find implicit dependencies.
                 // We don't have a concrete example of this, and we used to emit an error here, but we removed it in <rdar://problem/34314195>.
                 return []

@@ -1520,7 +1520,6 @@ import SWBMacro
             "-lfoo1", "-lfoo2", Path.root.join("usr/lib/libfoo3.a").str, Path.root.join("usr/lib/libfoo4.a").str,
             // dylibs are not passed
             // tbd files are not passed
-            "-framework", "Foo1", "-framework", "Foo2", Path.root.join("tmp/Foo3.framework/Foo3").str, Path.root.join("tmp/Foo4.framework/Foo4").str,
             "-o", Path.root.join("tmp/obj/normal/x86_64/output").str])
         // FIXME: The input here should really be the link file list.
         task.checkInputs([

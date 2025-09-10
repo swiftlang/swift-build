@@ -136,8 +136,6 @@ fileprivate struct SignatureCollectionTaskConstructionTests: CoreBasedTests {
 
             // Check that there are warnings about trying to weak-link libraries.
             results.checkWarning("Product libStaticLib1.a cannot weak-link static library libStaticLib2.a (in target 'StaticLib1' from project 'aProject')")
-            results.checkWarning("Product libStaticLib1.a cannot weak-link framework Framework.framework (in target 'StaticLib1' from project 'aProject')")
-            results.checkWarning("Product libStaticLib2.a cannot weak-link framework Framework.framework (in target 'StaticLib2' from project 'aProject')")
 
             // Check that there are no other diagnostics.
             results.checkNoDiagnostics()
@@ -168,8 +166,6 @@ fileprivate struct SignatureCollectionTaskConstructionTests: CoreBasedTests {
 
             // Check that there are warnings about trying to weak-link libraries.
             results.checkWarning("Product libStaticLib1.a cannot weak-link static library libStaticLib2.a (in target 'StaticLib1' from project 'aProject')")
-            results.checkWarning("Product libStaticLib1.a cannot weak-link framework Framework.framework (in target 'StaticLib1' from project 'aProject')")
-            results.checkWarning("Product libStaticLib2.a cannot weak-link framework Framework.framework (in target 'StaticLib2' from project 'aProject')")
 
             // Check that there are no other diagnostics.
             results.checkNoDiagnostics()
