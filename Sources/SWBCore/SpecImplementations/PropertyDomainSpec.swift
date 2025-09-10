@@ -118,6 +118,8 @@ private final class EnumBuildOptionType : BuildOptionType {
             return try namespace.declareEnumMacro(name) as EnumMacroDeclaration<SwiftAPIDigesterMode>
         case "LINKER_FILE_LIST_FORMAT":
             return try namespace.declareEnumMacro(name) as EnumMacroDeclaration<LinkerFileListFormat>
+        case "DOCC_MINIMUM_ACCESS_LEVEL":
+            return try namespace.declareEnumMacro(name) as EnumMacroDeclaration<DoccMinimumAccessLevel>
         default:
             return try namespace.declareStringMacro(name)
         }
