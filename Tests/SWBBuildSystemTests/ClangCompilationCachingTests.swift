@@ -72,6 +72,7 @@ fileprivate struct ClangCompilationCachingTests: CoreBasedTests {
 
             try await tester.checkBuild(runDestination: .macOS, persistent: true) { results in
                 results.checkNoTask(.matchRuleType("ScanDependencies"))
+                results.checkedWarnings = true
             }
         }
     }
@@ -146,6 +147,7 @@ fileprivate struct ClangCompilationCachingTests: CoreBasedTests {
             try await tester.fs.writeFileContents(testWorkspace.sourceRoot.join("aProject/t.cpp")) { stream in
                 stream <<<
                 """
+                void foo(void) {}
                 """
             }
 
@@ -353,7 +355,7 @@ fileprivate struct ClangCompilationCachingTests: CoreBasedTests {
             do {
                 let tester = try await BuildOperationTester(getCore(), testWorkspace, simulated: false)
                 try await tester.fs.writeFileContents(testWorkspace.sourceRoot.join("aProject/file.c")) { stream in
-                    stream <<< ""
+                    stream <<< "void foo(void) {}"
                 }
 
                 let arena = ArenaInfo.buildArena(derivedDataRoot: derivedDataPath)
@@ -370,7 +372,7 @@ fileprivate struct ClangCompilationCachingTests: CoreBasedTests {
             do {
                 let tester = try await BuildOperationTester(getCore(), testWorkspace, simulated: false)
                 try await tester.fs.writeFileContents(testWorkspace.sourceRoot.join("aProject/file.c")) { stream in
-                    stream <<< ""
+                    stream <<< "void foo(void) {}"
                 }
 
                 try await tester.checkBuild(runDestination: .macOS) { results in
@@ -440,7 +442,7 @@ fileprivate struct ClangCompilationCachingTests: CoreBasedTests {
             do {
                 let tester = try await BuildOperationTester(getCore(), testWorkspace, simulated: false)
                 try await tester.fs.writeFileContents(testWorkspace.sourceRoot.join("aProject/file.c")) { stream in
-                    stream <<< ""
+                    stream <<< "void foo(void) {}"
                 }
 
                 let arena = ArenaInfo.buildArena(derivedDataRoot: derivedDataPath)
@@ -459,7 +461,7 @@ fileprivate struct ClangCompilationCachingTests: CoreBasedTests {
             do {
                 let tester = try await BuildOperationTester(getCore(), testWorkspace, simulated: false)
                 try await tester.fs.writeFileContents(testWorkspace.sourceRoot.join("aProject/file.c")) { stream in
-                    stream <<< ""
+                    stream <<< "void foo(void) {}"
                 }
 
                 try await tester.checkBuild(runDestination: .macOS) { results in
@@ -541,7 +543,7 @@ fileprivate struct ClangCompilationCachingTests: CoreBasedTests {
             do {
                 let tester = try await BuildOperationTester(getCore(), testWorkspace, simulated: false)
                 try await tester.fs.writeFileContents(testWorkspace.sourceRoot.join("aProject/file.c")) { stream in
-                    stream <<< ""
+                    stream <<< "void foo(void) {}"
                 }
 
                 let arena = ArenaInfo.buildArena(derivedDataRoot: derivedDataPath)
@@ -562,7 +564,7 @@ fileprivate struct ClangCompilationCachingTests: CoreBasedTests {
             do {
                 let tester = try await BuildOperationTester(getCore(), testWorkspace, simulated: false)
                 try await tester.fs.writeFileContents(testWorkspace.sourceRoot.join("aProject/file.c")) { stream in
-                    stream <<< ""
+                    stream <<< "void foo(void) {}"
                 }
 
                 try await tester.checkBuild(runDestination: .macOS) { results in
@@ -618,7 +620,7 @@ fileprivate struct ClangCompilationCachingTests: CoreBasedTests {
             do {
                 let tester = try await BuildOperationTester(getCore(), testWorkspace, simulated: false)
                 try await tester.fs.writeFileContents(testWorkspace.sourceRoot.join("aProject/file.c")) { stream in
-                    stream <<< ""
+                    stream <<< "void foo(void) {}"
                 }
 
                 try await tester.fs.writeFileContents(blockListFilePath) { file in
@@ -644,7 +646,7 @@ fileprivate struct ClangCompilationCachingTests: CoreBasedTests {
             do {
                 let tester = try await BuildOperationTester(getCore(), testWorkspace, simulated: false)
                 try await tester.fs.writeFileContents(testWorkspace.sourceRoot.join("aProject/file.c")) { stream in
-                    stream <<< ""
+                    stream <<< "void foo(void) {}"
                 }
 
                 try await tester.fs.writeFileContents(blockListFilePath) { file in
@@ -1550,6 +1552,7 @@ fileprivate struct ClangCompilationCachingTests: CoreBasedTests {
                     stream <<<
                     """
                     #include "other.h"
+                    void foo(void) {}
                     """
                 }
                 try await tester.fs.writeFileContents(moduleDir.join("other.h")) { stream in
@@ -1762,7 +1765,7 @@ fileprivate struct ClangCompilationCachingTests: CoreBasedTests {
                 """
             }
             try await tester.fs.writeFileContents(testWorkspace.sourceRoot.join("aProject/generated1.c.fake-customrule")) { stream in
-                stream <<< ""
+                stream <<< "void foo(void) {}"
             }
 
             try await tester.checkBuild(runDestination: .macOS) { results in
@@ -1813,6 +1816,7 @@ fileprivate struct ClangCompilationCachingTests: CoreBasedTests {
             try await tester.fs.writeFileContents(testWorkspace.sourceRoot.join("aProject/t.c")) { stream in
                 stream <<<
                 """
+                void foo(void) {}
                 """
             }
 

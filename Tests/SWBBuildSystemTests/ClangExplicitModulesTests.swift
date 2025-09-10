@@ -1224,6 +1224,7 @@ fileprivate struct ClangExplicitModulesTests: CoreBasedTests {
                 stream <<<
                 """
                 #include "mod.h"
+                void foo(void) {}
                 """
             }
 
@@ -1231,6 +1232,7 @@ fileprivate struct ClangExplicitModulesTests: CoreBasedTests {
                 stream <<<
                 """
                 #include "mod.h"
+                void bar(void) {}
                 """
             }
 
@@ -1345,6 +1347,7 @@ fileprivate struct ClangExplicitModulesTests: CoreBasedTests {
                 stream <<<
             """
             #include "mod.h"
+            void foo(void) {}
             """
             }
 
@@ -1352,6 +1355,7 @@ fileprivate struct ClangExplicitModulesTests: CoreBasedTests {
                 stream <<<
             """
             #include "mod.h"
+            void bar(void) {}
             """
             }
 
