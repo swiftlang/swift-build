@@ -105,17 +105,17 @@ final public class DocumentationCompilerSpec: GenericCompilerSpec, SpecIdentifie
                 return additionalFlags
             }
         case .private:
-            return additionalFlags.appending(contentsOf: ["symbol-graph-minimum-access-level", "private"])
+            return additionalFlags.appending(contentsOf: ["-symbol-graph-minimum-access-level", "private"])
         case .fileprivate:
-            return additionalFlags.appending(contentsOf: ["symbol-graph-minimum-access-level", "fileprivate"])
+            return additionalFlags.appending(contentsOf: ["-symbol-graph-minimum-access-level", "fileprivate"])
         case .internal:
-            return additionalFlags.appending(contentsOf: ["symbol-graph-minimum-access-level", "internal"])
+            return additionalFlags.appending(contentsOf: ["-symbol-graph-minimum-access-level", "internal"])
         case .package:
-            return additionalFlags.appending(contentsOf: ["symbol-graph-minimum-access-level", "package"])
+            return additionalFlags.appending(contentsOf: ["-symbol-graph-minimum-access-level", "package"])
         case .public:
-            return additionalFlags.appending(contentsOf: ["symbol-graph-minimum-access-level", "public"])
+            return additionalFlags.appending(contentsOf: ["-symbol-graph-minimum-access-level", "public"])
         case .open:
-            return additionalFlags.appending(contentsOf: ["symbol-graph-minimum-access-level", "open"])
+            return additionalFlags.appending(contentsOf: ["-symbol-graph-minimum-access-level", "open"])
         }
     }
 
