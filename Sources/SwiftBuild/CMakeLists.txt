@@ -42,7 +42,7 @@ add_library(SwiftBuild
   SWBBuildServiceSession.swift
   SWBChannel.swift
   SWBClientExchangeSupport.swift
-  SWBConfiguredTargetGUID.swift
+  SWBConfiguredTargetIdentifier.swift
   SWBConfiguredTargetInfo.swift
   SWBConfiguredTargetSourceFilesInfo.swift
   SWBDocumentationSupport.swift

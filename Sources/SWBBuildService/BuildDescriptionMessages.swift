@@ -95,6 +95,11 @@ struct BuildDescriptionConfiguredTargetsMsg: MessageHandler {
     func handle(request: Request, message: BuildDescriptionConfiguredTargetsRequest) async throws -> BuildDescriptionConfiguredTargetsResponse {
         let buildDescription = try await request.buildDescription(for: message)
 
+        var configuredTargetIdentifiersByGUID: [String: ConfiguredTargetIdentifier] = [:]
+        for configuredTarget in buildDescription.allConfiguredTargets {
+            configuredTargetIdentifiersByGUID[configuredTarget.guid.stringValue] = ConfiguredTargetIdentifier(rawGUID: configuredTarget.guid.stringValue, targetGUID: TargetGUID(rawValue: configuredTarget.target.guid))
+        }
+
         let dependencyRelationships = Dictionary(
             buildDescription.targetDependencies.map { (ConfiguredTarget.GUID(id: $0.target.guid), [$0]) },
             uniquingKeysWith: { $0 + $1 }
@@ -116,10 +121,9 @@ struct BuildDescriptionConfiguredTargetsMsg: MessageHandler {
 
             let dependencyRelationships = dependencyRelationships[configuredTarget.guid]
             return BuildDescriptionConfiguredTargetsResponse.ConfiguredTargetInfo(
-                guid: ConfiguredTargetGUID(configuredTarget.guid.stringValue),
-                target: TargetGUID(rawValue: configuredTarget.target.guid),
+                identifier: ConfiguredTargetIdentifier(rawGUID: configuredTarget.guid.stringValue, targetGUID: TargetGUID(rawValue: configuredTarget.target.guid)),
                 name: configuredTarget.target.name,
-                dependencies: Set(dependencyRelationships?.flatMap(\.targetDependencies).map { ConfiguredTargetGUID($0.guid) } ?? []),
+                dependencies: Set(dependencyRelationships?.flatMap(\.targetDependencies).compactMap { configuredTargetIdentifiersByGUID[$0.guid] } ?? []),
                 toolchain: toolchain
             )
         }
@@ -143,7 +147,7 @@ fileprivate extension SourceLanguage {
 
 struct BuildDescriptionConfiguredTargetSourcesMsg: MessageHandler {
     private struct UnknownConfiguredTargetIDError: Error, CustomStringConvertible {
-        let configuredTarget: ConfiguredTargetGUID
+        let configuredTarget: ConfiguredTargetIdentifier
         var description: String { "Unknown configured target: \(configuredTarget)" }
     }
 
@@ -161,9 +165,9 @@ struct BuildDescriptionConfiguredTargetSourcesMsg: MessageHandler {
         }
 
         let indexingInfoInput = TaskGenerateIndexingInfoInput(requestedSourceFile: nil, outputPathOnly: true, enableIndexBuildArena: false)
-        let sourcesItems = try message.configuredTargets.map { configuredTargetGuid in
-            guard let target = configuredTargetsByID[ConfiguredTarget.GUID(id: configuredTargetGuid.rawValue)] else {
-                throw UnknownConfiguredTargetIDError(configuredTarget: configuredTargetGuid)
+        let sourcesItems = try message.configuredTargets.map { configuredTargetIdentifier in
+            guard let target = configuredTargetsByID[ConfiguredTarget.GUID(id: configuredTargetIdentifier.rawGUID)] else {
+                throw UnknownConfiguredTargetIDError(configuredTarget: configuredTargetIdentifier)
             }
             let sourceFiles = buildDescription.taskStore.tasksForTarget(target).flatMap { task in
                 task.generateIndexingInfo(input: indexingInfoInput).compactMap { (entry) -> SourceFileInfo? in
@@ -174,7 +178,7 @@ struct BuildDescriptionConfiguredTargetSourcesMsg: MessageHandler {
                     )
                 }
             }
-            return ConfiguredTargetSourceFilesInfo(configuredTarget: configuredTargetGuid, sourceFiles: sourceFiles)
+            return ConfiguredTargetSourceFilesInfo(configuredTarget: configuredTargetIdentifier, sourceFiles: sourceFiles)
         }
         return BuildDescriptionConfiguredTargetSourcesResponse(targetSourceFileInfos: sourcesItems)
     }
@@ -190,7 +194,7 @@ struct IndexBuildSettingsMsg: MessageHandler {
     func handle(request: Request, message: IndexBuildSettingsRequest) async throws -> IndexBuildSettingsResponse {
         let (buildRequest, buildDescription) = try await request.buildRequestAndDescription(for: message)
 
-        let configuredTarget = buildDescription.allConfiguredTargets.filter { $0.guid.stringValue == message.configuredTarget.rawValue }.only
+        let configuredTarget = buildDescription.allConfiguredTargets.filter { $0.guid.stringValue == message.configuredTarget.rawGUID }.only
 
         let indexingInfoInput = TaskGenerateIndexingInfoInput(
             requestedSourceFile: message.file,
