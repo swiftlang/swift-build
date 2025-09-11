@@ -114,7 +114,7 @@ import SWBMacro
         }
 
         if skipInheritedDocs {
-            mockTable.push(BuiltinMacrod.DOCC_SKIP_INHERITED_DOCS, literal: true)
+            mockTable.push(BuiltinMacros.DOCC_SKIP_INHERITED_DOCS, literal: true)
         }
 
         let mockScope = MacroEvaluationScope(table: mockTable)
