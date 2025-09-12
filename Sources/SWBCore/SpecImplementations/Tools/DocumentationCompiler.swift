@@ -92,6 +92,11 @@ final public class DocumentationCompilerSpec: GenericCompilerSpec, SpecIdentifie
             additionalFlags.append("-symbol-graph-skip-synthesized-members")
         }
 
+        // Check if inherited docs should be skipped
+        if cbc.scope.evaluate(BuiltinMacros.DOCC_SKIP_INHERITED_DOCS) {
+            additionalFlags.append("-symbol-graph-skip-inherited-docs")
+        }
+
         switch cbc.scope.evaluate(BuiltinMacros.DOCC_MINIMUM_ACCESS_LEVEL) {
         case .none:
             switch DocumentationType(from: cbc) {

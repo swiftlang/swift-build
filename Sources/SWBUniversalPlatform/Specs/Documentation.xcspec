@@ -168,6 +168,13 @@
                 DefaultValue = NO;
             },
 
+            // If the swift compiler / Swift symbol graph extractor should skip inherited docs
+            {
+                Name = DOCC_SKIP_INHERITED_DOCS;
+                Type = bool;
+                DefaultValue = NO;
+            },
+
             // If the Swift compiler / Swift symbol graph extractor should skip synthesized members.
             {
                 Name = DOCC_SKIP_SYNTHESIZED_MEMBERS;

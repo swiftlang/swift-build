@@ -81,9 +81,15 @@ import SWBMacro
             swiftCompilerInfo: try mockSwiftCompilerSpec(swiftVersion: "5.6", swiftTag: "swiftlang-5.6.0.0")
         )
         #expect(skipSynthesizedMembers == ["-symbol-graph-skip-synthesized-members"])
+
+        let skipInheritedDocs = await DocumentationCompilerSpec.additionalSymbolGraphGenerationArgs(
+            try mockApplicationBuildContext(application: false, skipInheritedDocs: true),
+            swiftCompilerInfo: try mockSwiftCompilerSpec(swiftVersion: "5.6", swiftTag: "swiftlang-5.6.0.0")
+        )
+        #expect(skipInheritedDocs == ["-symbol-graph-skip-inherited-docs"])
     }
 
-    private func mockApplicationBuildContext(application: Bool, minimumAccessLevel: DoccMinimumAccessLevel = .none, prettyPrint: Bool = false, skipSynthesizedMembers: Bool = false) async throws -> CommandBuildContext {
+    private func mockApplicationBuildContext(application: Bool, minimumAccessLevel: DoccMinimumAccessLevel = .none, prettyPrint: Bool = false, skipSynthesizedMembers: Bool = false, skipInheritedDocs: Bool = false) async throws -> CommandBuildContext {
         let core = try await getCore()
 
         let producer = try MockCommandProducer(
@@ -105,6 +111,10 @@ import SWBMacro
 
         if skipSynthesizedMembers {
             mockTable.push(BuiltinMacros.DOCC_SKIP_SYNTHESIZED_MEMBERS, literal: skipSynthesizedMembers)
+        }
+
+        if skipInheritedDocs {
+            mockTable.push(BuiltinMacros.DOCC_SKIP_INHERITED_DOCS, literal: true)
         }
 
         let mockScope = MacroEvaluationScope(table: mockTable)
