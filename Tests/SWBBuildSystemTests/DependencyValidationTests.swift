@@ -542,7 +542,7 @@ fileprivate struct DependencyValidationTests: CoreBasedTests {
 
             // Expect complaint about undeclared dependency
             try await tester.checkBuild(parameters: BuildParameters(configuration: "Debug"), runDestination: .host, persistent: true) { results in
-                results.checkError(.contains("Missing entries in MODULE_DEPENDENCIES: Foundation (for task"))
+                results.checkError(.contains("Missing entry in MODULE_DEPENDENCIES: Foundation (for task"))
             }
 
             // Declaring dependencies resolves the problem
