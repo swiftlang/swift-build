@@ -213,6 +213,24 @@ public struct IndexBuildSettingsResponse: Message, SerializableCodable, Equatabl
     }
 }
 
+public struct ReleaseBuildDescriptionRequest: SessionMessage, RequestMessage, SerializableCodable, Equatable {
+    public typealias ResponseMessage = VoidResponse
+
+    public static let name = "RELEASE_BUILD_DESCRIPTION"
+
+    public var sessionHandle: String
+
+    public let buildDescriptionID: BuildDescriptionID
+
+    public init(
+        sessionHandle: String,
+        buildDescriptionID: BuildDescriptionID
+    ) {
+        self.sessionHandle = sessionHandle
+        self.buildDescriptionID = buildDescriptionID
+    }
+}
+
 // MARK: Registering messages
 
 let buildDescriptionMessages: [any Message.Type] = [
@@ -222,4 +240,5 @@ let buildDescriptionMessages: [any Message.Type] = [
     BuildDescriptionConfiguredTargetSourcesResponse.self,
     IndexBuildSettingsRequest.self,
     IndexBuildSettingsResponse.self,
+    ReleaseBuildDescriptionRequest.self,
 ]

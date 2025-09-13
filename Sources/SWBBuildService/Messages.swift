@@ -585,7 +585,7 @@ fileprivate enum ResultOrErrorMessage<T> {
 fileprivate func getIndexBuildDescriptionFromID(buildDescriptionID: BuildDescriptionID, request: Request, session: Session, buildRequest: BuildRequest, buildRequestContext: BuildRequestContext, workspaceContext: WorkspaceContext, constructionDelegate: any BuildDescriptionConstructionDelegate) async -> ResultOrErrorMessage<BuildDescription> {
     let clientDelegate = ClientExchangeDelegate(request: request, session: session)
     do {
-        let descRequest = BuildDescriptionManager.BuildDescriptionRequest.cachedOnly(buildDescriptionID, request: buildRequest, buildRequestContext: buildRequestContext, workspaceContext: workspaceContext)
+        let descRequest = BuildDescriptionManager.BuildDescriptionRequest.cachedOnly(buildDescriptionID, request: buildRequest, buildRequestContext: buildRequestContext, workspaceContext: workspaceContext, retain: false)
         guard let retrievedBuildDescription = try await session.buildDescriptionManager.getNewOrCachedBuildDescription(descRequest, clientDelegate: clientDelegate, constructionDelegate: constructionDelegate) else {
             // If we don't receive a build description it means we were cancelled.
             return .failed(VoidResponse())
@@ -727,7 +727,7 @@ extension MessageHandler {
                     let clientDelegate = ClientExchangeDelegate(request: request, session: session)
                     let buildDescription: BuildDescription
                     do {
-                        if let retrievedBuildDescription = try await session.buildDescriptionManager.getBuildDescription(planRequest, clientDelegate: clientDelegate, constructionDelegate: operation) {
+                        if let retrievedBuildDescription = try await session.buildDescriptionManager.getBuildDescription(planRequest, retained: false, clientDelegate: clientDelegate, constructionDelegate: operation) {
                             buildDescription = retrievedBuildDescription
                         } else {
                             // If we don't receive a build description it means we were cancelled.
@@ -1626,6 +1626,7 @@ package struct ServiceMessageHandlers: ServiceExtension {
         service.registerMessageHandler(BuildDescriptionConfiguredTargetsMsg.self)
         service.registerMessageHandler(BuildDescriptionConfiguredTargetSourcesMsg.self)
         service.registerMessageHandler(IndexBuildSettingsMsg.self)
+        service.registerMessageHandler(ReleaseBuildDescriptionMsg.self)
 
         service.registerMessageHandler(MacroEvaluationMsg.self)
         service.registerMessageHandler(AllExportedMacrosAndValuesMsg.self)

@@ -818,7 +818,7 @@ private extension BuildDescription {
 
 private extension BuildDescriptionManager {
     func getNewOrCachedBuildDescription(_ request: BuildPlanRequest, bypassActualTasks: Bool = false, clientDelegate: any TaskPlanningClientDelegate) async throws -> BuildDescriptionRetrievalInfo? {
-        let descRequest = BuildDescriptionRequest.newOrCached(request, bypassActualTasks: bypassActualTasks, useSynchronousBuildDescriptionSerialization: true)
+        let descRequest = BuildDescriptionRequest.newOrCached(request, bypassActualTasks: bypassActualTasks, useSynchronousBuildDescriptionSerialization: true, retain: false)
         return try await getNewOrCachedBuildDescription(descRequest, clientDelegate: clientDelegate, constructionDelegate: MockTestBuildDescriptionConstructionDelegate())
     }
 }

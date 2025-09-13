@@ -178,21 +178,31 @@ public final class SWBBuildServiceSession: Sendable {
     /// - note: This method does not _start_ the build operation, which must subsequently be done by calling ``SWBBuildOperation/start()`` on the received build operation object.
     @_disfavoredOverload
     public func createBuildOperation(request: SWBBuildRequest, delegate: any SWBPlanningOperationDelegate) async throws -> SWBBuildOperation {
-        try await createBuildOperation(request: request, delegate: delegate, onlyCreateBuildDescription: false)
+        try await createBuildOperation(request: request, delegate: delegate, onlyCreateBuildDescription: false, retainBuildDescription: false)
     }
 
     @_disfavoredOverload
     public func createBuildOperationForBuildDescriptionOnly(request: SWBBuildRequest, delegate: any SWBPlanningOperationDelegate) async throws -> SWBBuildOperation {
-        try await createBuildOperation(request: request, delegate: delegate, onlyCreateBuildDescription: true)
+        try await createBuildOperation(request: request, delegate: delegate, onlyCreateBuildDescription: true, retainBuildDescription: false)
+    }
+
+    @_disfavoredOverload
+    public func createBuildOperationForBuildDescriptionOnly(request: SWBBuildRequest, delegate: any SWBPlanningOperationDelegate, retainBuildDescription: Bool) async throws -> SWBBuildOperation {
+        try await createBuildOperation(request: request, delegate: delegate, onlyCreateBuildDescription: true, retainBuildDescription: retainBuildDescription)
     }
 
     internal func trackBuildOperation(_ operation: SWBBuildOperation) async {
         await sessionResourceTracker.enqueue(operation)
     }
 
-    private func createBuildOperation(request: SWBBuildRequest, delegate: any SWBPlanningOperationDelegate, onlyCreateBuildDescription: Bool) async throws -> SWBBuildOperation {
+    private func createBuildOperation(request: SWBBuildRequest, delegate: any SWBPlanningOperationDelegate, onlyCreateBuildDescription: Bool, retainBuildDescription: Bool) async throws -> SWBBuildOperation {
         // Allocate a new SWBBuildOperation object that we can return to the client to use for observing and controlling the build.  As we start getting replies from Swift Build, we will keep it informed, and it will in turn tell all of its observers what’s going on.
-        return try await SWBBuildOperation(session: self, delegate: delegate, request: request, onlyCreateBuildDescription: onlyCreateBuildDescription)
+        return try await SWBBuildOperation(session: self, delegate: delegate, request: request, onlyCreateBuildDescription: onlyCreateBuildDescription, retainBuildDescription: retainBuildDescription)
+    }
+
+    /// Releases a build description. The session is allowed to keep build descriptions no longer retained by the client in caches, but will never evict one which is currently retained.
+    public func releaseBuildDescription(id: SWBBuildDescriptionID) async {
+        _ = await service.send(ReleaseBuildDescriptionRequest(sessionHandle: self.uid, buildDescriptionID: BuildDescriptionID(id)))
     }
 
     public func generateIndexingFileSettings(for request: SWBBuildRequest, targetID: String, filePath: String?, outputPathOnly: Bool, delegate: any SWBIndexingDelegate) async throws -> SWBIndexingFileSettings {

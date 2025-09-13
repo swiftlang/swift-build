@@ -263,19 +263,24 @@ public struct CreateBuildRequest: SessionChannelBuildMessage, RequestMessage, Se
     /// If true, the build operation will be completed after the build description is created and reported.
     public let onlyCreateBuildDescription: Bool
 
+    /// If true, the build description for this build wil be kept alive in memory, even if it would otherwise be evicted from caches.
+    public let retainBuildDescription: Bool?
+
+    @available(*, deprecated, renamed: "init(sessionHandle:responseChannel:request:onlyCreateBuildDescription:retainBuildDescription:)")
     public init(sessionHandle: String, responseChannel: UInt64, request: BuildRequestMessagePayload, onlyCreateBuildDescription: Bool) {
         self.sessionHandle = sessionHandle
         self.responseChannel = responseChannel
         self.request = request
         self.onlyCreateBuildDescription = onlyCreateBuildDescription
+        self.retainBuildDescription = nil
     }
 
-    public init(fromLegacy deserializer: any Deserializer) throws {
-        try deserializer.beginAggregate(4)
-        self.sessionHandle = try deserializer.deserialize()
-        self.responseChannel = try deserializer.deserialize()
-        self.request = try deserializer.deserialize()
-        self.onlyCreateBuildDescription = try deserializer.deserialize()
+    public init(sessionHandle: String, responseChannel: UInt64, request: BuildRequestMessagePayload, onlyCreateBuildDescription: Bool, retainBuildDescription: Bool) {
+        self.sessionHandle = sessionHandle
+        self.responseChannel = responseChannel
+        self.request = request
+        self.onlyCreateBuildDescription = onlyCreateBuildDescription
+        self.retainBuildDescription = retainBuildDescription
     }
 }
 
