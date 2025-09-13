@@ -560,6 +560,17 @@ package final class ClangModuleDependencyGraph {
         return clangWithScanner.casDBs
     }
 
+    package func diagnoseInvalidNegativeStatCacheEntries() -> [String] {
+        registryQueue.blocking_sync {
+            self.scannerRegistry.values.flatMap { libClangWithScanner in
+                guard libClangWithScanner.scanner.libclang.supportsNegativeStatCacheDiagnostics else {
+                    return Array<String>()
+                }
+                return libClangWithScanner.scanner.diagnoseInvalidNegativeStatCacheEntries()
+            }
+        }
+    }
+
     package func generateReproducer(forFailedDependency dependency: DependencyInfo,
                                     libclangPath: Path, casOptions: CASOptions?) throws -> String? {
         let clangWithScanner = try libclangWithScanner(
