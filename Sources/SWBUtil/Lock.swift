@@ -138,3 +138,23 @@ extension SWBMutex where Value: ~Copyable, Value == Void {
         try withLock { _ throws(E) -> sending Result in return try body() }
     }
 }
+
+extension SWBMutex where Value: BinaryInteger & Sendable {
+    public func fetchAndIncrement() -> Value {
+        withLock { value in
+            let retVal = value
+            value += 1
+            return retVal
+        }
+    }
+}
+
+extension SWBMutex {
+    public func takeValue<T>() -> Value where Value == Optional<T> {
+        withLock { value in
+            let retVal = value
+            value = nil
+            return retVal
+        }
+    }
+}
