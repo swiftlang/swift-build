@@ -22,22 +22,26 @@ public final class LinkerTaskAction: TaskAction {
     
     /// Whether response files should be expanded before invoking the linker.
     private let expandResponseFiles: Bool
-    
-    public init(expandResponseFiles: Bool) {
+    private let responseFileFormat: ResponseFileFormat
+
+    public init(expandResponseFiles: Bool, responseFileFormat: ResponseFileFormat) {
         self.expandResponseFiles = expandResponseFiles
+        self.responseFileFormat = responseFileFormat
         super.init()
     }
     
     public override func serialize<T: Serializer>(to serializer: T) {
-        serializer.beginAggregate(2)
+        serializer.beginAggregate(3)
         serializer.serialize(expandResponseFiles)
+        serializer.serialize(responseFileFormat)
         super.serialize(to: serializer)
         serializer.endAggregate()
     }
     
     public required init(from deserializer: any Deserializer) throws {
-        try deserializer.beginAggregate(2)
+        try deserializer.beginAggregate(3)
         self.expandResponseFiles = try deserializer.deserialize()
+        self.responseFileFormat = try deserializer.deserialize()
         try super.init(from: deserializer)
     }
     
@@ -55,7 +59,8 @@ public final class LinkerTaskAction: TaskAction {
                 commandLine = try ResponseFiles.expandResponseFiles(
                     commandLine,
                     fileSystem: executionDelegate.fs,
-                    relativeTo: task.workingDirectory
+                    relativeTo: task.workingDirectory,
+                    format: responseFileFormat
                 )
             } catch {
                 outputDelegate.emitError("Failed to expand response files: \(error.localizedDescription)")

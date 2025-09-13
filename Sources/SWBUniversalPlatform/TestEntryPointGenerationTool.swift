@@ -21,6 +21,10 @@ final class TestEntryPointGenerationToolSpec: GenericCommandLineToolSpec, SpecId
         var args = await super.commandLineFromTemplate(cbc, delegate, optionContext: optionContext, specialArgs: specialArgs, lookup: lookup)
         if cbc.scope.evaluate(BuiltinMacros.GENERATED_TEST_ENTRY_POINT_INCLUDE_DISCOVERED_TESTS) {
             args.append("--discover-tests")
+            
+            let format = cbc.scope.evaluate(BuiltinMacros.LINKER_FILE_LIST_FORMAT)
+            args.append(contentsOf: ["--linker-file-list-format", .literal(.init(encodingAsUTF8: format.rawValue))])
+            
             for toolchainLibrarySearchPath in cbc.producer.toolchains.map({ $0.librarySearchPaths }) {
                 if let path = toolchainLibrarySearchPath.findLibrary(operatingSystem: cbc.producer.hostOperatingSystem, basename: "IndexStore") {
                     args.append(contentsOf: ["--index-store-library-path", .path(path)])

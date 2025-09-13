@@ -28,8 +28,7 @@ class TestEntryPointGenerationTaskAction: TaskAction {
             if options.discoverTests {
                 var objects: [Path] = []
                 for linkerFilelist in options.linkerFilelist {
-                    let filelistContents = String(String(decoding: try executionDelegate.fs.read(linkerFilelist), as: UTF8.self))
-                    let entries = filelistContents.split(separator: "\n", omittingEmptySubsequences: true).map { Path($0) }.map {
+                    let entries = try ResponseFiles.expandResponseFiles(["@\(linkerFilelist.str)"], fileSystem: executionDelegate.fs, relativeTo: linkerFilelist.dirname, format: options.linkerFileListFormat).map { Path($0) }.map {
                         for indexUnitBasePath in options.indexUnitBasePath {
                             if let remappedPath = generateIndexOutputPath(from: $0, basePath: indexUnitBasePath) {
                                 return remappedPath
@@ -129,6 +128,7 @@ class TestEntryPointGenerationTaskAction: TaskAction {
         @Option() var linkerFilelist: [Path] = []
         @Option var indexStore: [Path] = []
         @Option var indexUnitBasePath: [Path] = []
+        @Option var linkerFileListFormat: ResponseFileFormat = ResponseFileFormat.defaultValue
         @Flag var enableExperimentalTestOutput: Bool = false
         @Flag var discoverTests: Bool = false
     }

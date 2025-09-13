@@ -22,6 +22,7 @@ public final class ObjectLibraryAssemblerTaskAction: TaskAction {
     private struct Options: ParsableArguments {
         @Argument var inputs: [Path]
         @Option var output: Path
+        @Option var linkerResponseFileFormat: ResponseFileFormat
     }
 
     override public func performTaskAction(
@@ -39,7 +40,7 @@ public final class ObjectLibraryAssemblerTaskAction: TaskAction {
                 try executionDelegate.fs.copy(input, to: options.output.join(input.basename))
             }
             let args = options.inputs.map { $0.strWithPosixSlashes }
-            try executionDelegate.fs.write(options.output.join("args.resp"), contents: ByteString(encodingAsUTF8: ResponseFiles.responseFileContents(args: args)))
+            try executionDelegate.fs.write(options.output.join("args.resp"), contents: ByteString(encodingAsUTF8: ResponseFiles.responseFileContents(args: args, format: options.linkerResponseFileFormat)))
             return .succeeded
         } catch {
             outputDelegate.emitError("\(error)")

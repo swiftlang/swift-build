@@ -139,20 +139,7 @@ open class LinkerSpec : CommandLineToolSpec, @unchecked Sendable {
     }
 
     public func inputFileListContents(_ cbc: CommandBuildContext) -> ByteString {
-        let contents = OutputByteStream()
-        for input in cbc.inputs {
-            switch cbc.scope.evaluate(BuiltinMacros.LINKER_FILE_LIST_FORMAT) {
-            case .unescapedNewlineSeparated:
-                contents <<< input.absolutePath.strWithPosixSlashes <<< "\n"
-            case .unixShellQuotedNewlineSeparated:
-                let escaper = UNIXShellCommandCodec(encodingStrategy: .singleQuotes, encodingBehavior: .argumentsOnly)
-                contents <<< escaper.encode([input.absolutePath.strWithPosixSlashes]) <<< "\n"
-            case .windowsShellQuotedNewlineSeparated:
-                let escaper = WindowsProcessArgumentsCodec()
-                contents <<< escaper.encode([input.absolutePath.strWithPosixSlashes]) <<< "\n"
-            }
-        }
-        return contents.bytes
+        return ByteString(encodingAsUTF8: ResponseFiles.responseFileContents(args: cbc.inputs.map { $0.absolutePath.strWithPosixSlashes }, format: cbc.scope.evaluate(BuiltinMacros.LINKER_FILE_LIST_FORMAT)))
     }
 
     open override func constructTasks(_ cbc: CommandBuildContext, _ delegate: any TaskGenerationDelegate) async {

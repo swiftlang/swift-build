@@ -1428,7 +1428,8 @@ public final class LdLinkerSpec : GenericLinkerSpec, SpecIdentifierType, @unchec
 
     override public func createTaskAction(_ cbc: CommandBuildContext, _ delegate: any TaskGenerationDelegate) -> (any PlannedTaskAction)? {
         let useResponseFile = cbc.scope.evaluate(BuiltinMacros.CLANG_USE_RESPONSE_FILE)
-        return delegate.taskActionCreationDelegate.createLinkerTaskAction(expandResponseFiles: !useResponseFile)
+        let responseFileFormat = cbc.scope.evaluate(BuiltinMacros.LINKER_RESPONSE_FILE_FORMAT)
+        return delegate.taskActionCreationDelegate.createLinkerTaskAction(expandResponseFiles: !useResponseFile, responseFileFormat: responseFileFormat)
     }
 
     override public func discoveredCommandLineToolSpecInfo(_ producer: any CommandProducer, _ scope: MacroEvaluationScope, _ delegate: any CoreClientTargetDiagnosticProducingDelegate) async -> (any DiscoveredCommandLineToolSpecInfo)? {
@@ -1645,7 +1646,8 @@ public final class LibtoolLinkerSpec : GenericLinkerSpec, SpecIdentifierType, @u
 
     override public func createTaskAction(_ cbc: CommandBuildContext, _ delegate: any TaskGenerationDelegate) -> (any PlannedTaskAction)? {
         let useResponseFile = cbc.scope.evaluate(BuiltinMacros.LIBTOOL_USE_RESPONSE_FILE)
-        return delegate.taskActionCreationDelegate.createLinkerTaskAction(expandResponseFiles: !useResponseFile)
+        let responseFileFormat = cbc.scope.evaluate(BuiltinMacros.LINKER_RESPONSE_FILE_FORMAT)
+        return delegate.taskActionCreationDelegate.createLinkerTaskAction(expandResponseFiles: !useResponseFile, responseFileFormat: responseFileFormat)
     }
 
     override public func constructLinkerTasks(_ cbc: CommandBuildContext, _ delegate: any TaskGenerationDelegate, libraries: [LibrarySpecifier], usedTools: [CommandLineToolSpec: Set<FileTypeSpec>]) async {

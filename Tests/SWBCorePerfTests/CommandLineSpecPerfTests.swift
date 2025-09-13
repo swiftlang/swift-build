@@ -246,8 +246,8 @@ extension CapturingTaskGenerationDelegate: TaskActionCreationDelegate {
         return ObjectLibraryAssemblerTaskAction()
     }
 
-    func createLinkerTaskAction(expandResponseFiles: Bool) -> any PlannedTaskAction {
-        return LinkerTaskAction(expandResponseFiles: expandResponseFiles)
+    func createLinkerTaskAction(expandResponseFiles: Bool, responseFileFormat: ResponseFileFormat) -> any PlannedTaskAction {
+        return LinkerTaskAction(expandResponseFiles: expandResponseFiles, responseFileFormat: responseFileFormat)
     }
 }
 
