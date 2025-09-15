@@ -78,6 +78,7 @@ add_library(SWBUtil
   POSIX.swift
   Process+Async.swift
   Process.swift
+  ProcessController.swift
   ProcessInfo.swift
   Promise.swift
   PropertyList.swift
@@ -114,6 +115,7 @@ target_link_libraries(SWBUtil PUBLIC
   SWBCSupport
   SWBLibc
   ArgumentParser
+  SwiftSubprocess::Subprocess
   $<$<NOT:$<PLATFORM_ID:Darwin>>:SwiftSystem::SystemPackage>)
 
 set_target_properties(SWBUtil PROPERTIES
