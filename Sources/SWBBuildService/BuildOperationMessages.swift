@@ -165,7 +165,7 @@ final class ActiveBuild: ActiveBuildOperation {
     /// Whether this operation is intended only for creating and reporting the build description.
     let onlyCreatesBuildDescription: Bool
 
-    /// Whether this operation should retain the build description is uses.
+    /// Whether this operation should retain the build description it uses.
     let retainBuildDescription: Bool
 
     /// The current state of the build.
