@@ -52,6 +52,16 @@ public final class Registry<K: Hashable & Sendable, V: Sendable>: KeyValueStorag
         }
     }
 
+    public func update(_ key: K, update: (V) -> V?, default: () -> V?) {
+        dict.withLock {
+            if let value = $0[key] {
+                $0[key] = update(value)
+            } else if let value = `default`() {
+                $0[key] = update(value)
+            }
+        }
+    }
+
     public subscript(_ key: K) -> V? {
         get {
             return dict.withLock {

@@ -90,6 +90,9 @@ package final class BuildDescriptionManager: Sendable {
     /// The in-memory cache of build descriptions.
     private let inMemoryCachedBuildDescriptions: HeavyCache<BuildDescriptionSignature, BuildDescription>
 
+    /// Build descriptions explicitly retained by clients.
+    private let retainedBuildDescriptions: Registry<BuildDescriptionSignature, (BuildDescription, UInt)> = .init()
+
     /// The last build plan request. Used to generate a diff of the current plan for debugging purposes.
     private let lastBuildPlanRequest: SWBMutex<BuildPlanRequest?> = .init(nil)
 
@@ -254,35 +257,44 @@ package final class BuildDescriptionManager: Sendable {
     /// During normal operation (outside of tests), this should always be called on `queue`.
     package enum BuildDescriptionRequest {
         /// Retrieve or create a build description based on a build plan.
-        case newOrCached(BuildPlanRequest, bypassActualTasks: Bool, useSynchronousBuildDescriptionSerialization: Bool)
+        case newOrCached(BuildPlanRequest, bypassActualTasks: Bool, useSynchronousBuildDescriptionSerialization: Bool, retain: Bool)
         /// Retrieve an existing build description, build planning has been avoided. If the build description is not available then `getNewOrCachedBuildDescription` will fail.
-        case cachedOnly(BuildDescriptionID, request: BuildRequest, buildRequestContext: BuildRequestContext, workspaceContext: WorkspaceContext)
+        case cachedOnly(BuildDescriptionID, request: BuildRequest, buildRequestContext: BuildRequestContext, workspaceContext: WorkspaceContext, retain: Bool)
 
         var buildRequest: BuildRequest {
             switch self {
-            case .newOrCached(let planRequest, _, _): return planRequest.buildRequest
-            case .cachedOnly(_, let request, _, _): return request
+            case .newOrCached(let planRequest, _, _, _): return planRequest.buildRequest
+            case .cachedOnly(_, let request, _, _, _): return request
             }
         }
 
         var buildRequestContext: BuildRequestContext {
             switch self {
-            case .newOrCached(let planRequest, _, _): return planRequest.buildRequestContext
-            case .cachedOnly(_, _, let buildRequestContext, _): return buildRequestContext
+            case .newOrCached(let planRequest, _, _, _): return planRequest.buildRequestContext
+            case .cachedOnly(_, _, let buildRequestContext, _, _): return buildRequestContext
             }
         }
 
         var planRequest: BuildPlanRequest? {
             switch self {
-            case .newOrCached(let planRequest, _, _): return planRequest
+            case .newOrCached(let planRequest, _, _, _): return planRequest
             case .cachedOnly: return nil
             }
         }
 
         var workspaceContext: WorkspaceContext {
             switch self {
-            case .newOrCached(let planRequest, _, _): return planRequest.workspaceContext
-            case .cachedOnly(_, _, _, let workspaceContext): return workspaceContext
+            case .newOrCached(let planRequest, _, _, _): return planRequest.workspaceContext
+            case .cachedOnly(_, _, _, let workspaceContext, _): return workspaceContext
+            }
+        }
+
+        var retain: Bool {
+            switch self {
+            case .newOrCached(_, _, _, let retain):
+                retain
+            case .cachedOnly(_, _, _, _, let retain):
+                retain
             }
         }
 
@@ -305,8 +317,8 @@ package final class BuildDescriptionManager: Sendable {
 
         func signature(cacheDir: Path) throws -> BuildDescriptionSignature {
             switch self {
-            case .newOrCached(let planRequest, _, _): return try BuildDescriptionSignature.buildDescriptionSignature(planRequest, cacheDir: cacheDir)
-            case .cachedOnly(let buildDescriptionID, _, _, _):  return BuildDescriptionSignature.buildDescriptionSignature(buildDescriptionID)
+            case .newOrCached(let planRequest, _, _, _): return try BuildDescriptionSignature.buildDescriptionSignature(planRequest, cacheDir: cacheDir)
+            case .cachedOnly(let buildDescriptionID, _, _, _, _):  return BuildDescriptionSignature.buildDescriptionSignature(buildDescriptionID)
             }
         }
     }
@@ -317,6 +329,8 @@ package final class BuildDescriptionManager: Sendable {
             description = lastDescription
         } else if let inMemoryDescription = inMemoryCachedBuildDescriptions[signature] {
             description = inMemoryDescription
+        } else if let retainedDescription = retainedBuildDescriptions[signature] {
+            description = retainedDescription.0
         } else {
             description = nil
         }
@@ -397,16 +411,33 @@ package final class BuildDescriptionManager: Sendable {
             }
         }
 
+        if request.retain {
+            retainedBuildDescriptions.update(signature, update: { ($0.0, $0.1 + 1) }, default: { (buildDescription, 0) })
+        }
+
         return BuildDescriptionRetrievalInfo(buildDescription: buildDescription, source: source, inMemoryCacheSize: inMemoryCachedBuildDescriptions.count, onDiskCachePath: buildDescriptionPath)
     }
 
     /// Returns a build description for a particular workspace and request.
     ///
     /// - Returns: A build description, or nil if cancelled.
-    package func getBuildDescription(_ request: BuildPlanRequest, bypassActualTasks: Bool = false, useSynchronousBuildDescriptionSerialization: Bool = false, clientDelegate: any TaskPlanningClientDelegate, constructionDelegate: any BuildDescriptionConstructionDelegate) async throws -> BuildDescription? {
-        let descRequest = BuildDescriptionRequest.newOrCached(request, bypassActualTasks: bypassActualTasks, useSynchronousBuildDescriptionSerialization: useSynchronousBuildDescriptionSerialization)
+    package func getBuildDescription(_ request: BuildPlanRequest, bypassActualTasks: Bool = false, useSynchronousBuildDescriptionSerialization: Bool = false, retained: Bool, clientDelegate: any TaskPlanningClientDelegate, constructionDelegate: any BuildDescriptionConstructionDelegate) async throws -> BuildDescription? {
+        let descRequest = BuildDescriptionRequest.newOrCached(request, bypassActualTasks: bypassActualTasks, useSynchronousBuildDescriptionSerialization: useSynchronousBuildDescriptionSerialization, retain: retained)
         let retrievalInfo = try await getNewOrCachedBuildDescription(descRequest, clientDelegate: clientDelegate, constructionDelegate: constructionDelegate)
         return retrievalInfo?.buildDescription
+    }
+
+    package func releaseBuildDescription(id: BuildDescriptionID) {
+        self.retainedBuildDescriptions.update(BuildDescriptionSignature.buildDescriptionSignature(id), update: {
+            let newCount = $0.1 - 1
+            if newCount == 0 {
+                return nil
+            } else {
+                return ($0.0, newCount)
+            }
+        }, default: {
+            nil
+        })
     }
 
     /// Returns the path in which the`XCBuildData` directory will live. That location is uses to cache build descriptions for a particular workspace and request, the manifest, and the `build.db` database for llbuild.
@@ -514,7 +545,7 @@ package final class BuildDescriptionManager: Sendable {
         }
 
         // Unable to load from disk, create a new description
-        guard case let .newOrCached(request, bypassActualTasks, useSynchronousBuildDescriptionSerialization) = request else {
+        guard case let .newOrCached(request, bypassActualTasks, useSynchronousBuildDescriptionSerialization, _) = request else {
             preconditionFailure("entered build construction path but request was for existing cached description")
         }
 

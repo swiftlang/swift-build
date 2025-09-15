@@ -54,7 +54,8 @@ fileprivate extension Request {
                 message.buildDescriptionID,
                 request: buildRequest,
                 buildRequestContext: buildRequestContext,
-                workspaceContext: workspaceContext
+                workspaceContext: workspaceContext,
+                retain: false
             ), clientDelegate: clientDelegate, constructionDelegate: operation
         )?.buildDescription
 
@@ -218,5 +219,13 @@ struct IndexBuildSettingsMsg: MessageHandler {
             throw FailedToGetCompilerArgumentsError()
         }
         return IndexBuildSettingsResponse(compilerArguments: compilerArguments)
+    }
+}
+
+struct ReleaseBuildDescriptionMsg: MessageHandler {
+    func handle(request: Request, message: ReleaseBuildDescriptionRequest) async throws -> VoidResponse {
+        let session = try request.session(for: message)
+        session.buildDescriptionManager.releaseBuildDescription(id: message.buildDescriptionID)
+        return VoidResponse()
     }
 }
