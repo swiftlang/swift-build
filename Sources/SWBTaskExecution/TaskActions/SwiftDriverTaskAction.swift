@@ -141,7 +141,7 @@ final public class SwiftDriverTaskAction: TaskAction, BuildValueValidatingTaskAc
                         responseFileCommandLine.append(contentsOf: ["-Xlinker", "-add_ast_path", "-Xlinker", "\(swiftmodulePath)"])
                     }
                 }
-                let contents = ByteString(encodingAsUTF8: ResponseFiles.responseFileContents(args: responseFileCommandLine))
+                let contents = ByteString(encodingAsUTF8: ResponseFiles.responseFileContents(args: responseFileCommandLine, format: driverPayload.linkerResponseFileFormat))
                 try executionDelegate.fs.write(linkerResponseFilePath, contents: contents, atomically: true)
             }
 

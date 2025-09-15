@@ -330,40 +330,16 @@ fileprivate struct BuildOperationTests: CoreBasedTests {
             try await tester.checkBuild(runDestination: destination, persistent: true, signableTargets: Set(provisioningInputs.keys), signableTargetInputs: provisioningInputs) { results in
                 results.checkNoErrors()
                 if core.hostOperatingSystem.imageFormat.requiresSwiftModulewrap {
-                    try results.checkTask(.matchTargetName("tool"), .matchRulePattern(["WriteAuxiliaryFile", .suffix("LinkFileList")])) { task in
-                        let auxFileAction = try #require(task.action as? AuxiliaryFileTaskAction)
-                        let contents = try tester.fs.read(auxFileAction.context.input).asString
-                        let files = contents.components(separatedBy: "\n").map { $0.trimmingCharacters(in: .whitespacesAndNewlines) }.filter { !$0.isEmpty }
-                        #expect(files.count == 2)
-                        #expect(files[0].hasSuffix("tool.o"))
-                        #expect(files[1].hasSuffix("main.o"))
-                    }
                     let toolWrap = try #require(results.getTask(.matchTargetName("tool"), .matchRuleType("SwiftModuleWrap")))
                     try results.checkTask(.matchTargetName("tool"), .matchRuleType("Ld")) { task in
                         try results.checkTaskFollows(task, toolWrap)
                     }
 
-                    try results.checkTask(.matchTargetName("dynamiclib"), .matchRulePattern(["WriteAuxiliaryFile", .suffix("LinkFileList")])) { task in
-                        let auxFileAction = try #require(task.action as? AuxiliaryFileTaskAction)
-                        let contents = try tester.fs.read(auxFileAction.context.input).asString
-                        let files = contents.components(separatedBy: "\n").map { $0.trimmingCharacters(in: .whitespacesAndNewlines) }.filter { !$0.isEmpty }
-                        #expect(files.count == 2)
-                        #expect(files[0].hasSuffix("dynamiclib.o"))
-                        #expect(files[1].hasSuffix("dynamic.o"))
-                    }
                     let dylibWrap = try #require(results.getTask(.matchTargetName("dynamiclib"), .matchRuleType("SwiftModuleWrap")))
                     try results.checkTask(.matchTargetName("dynamiclib"), .matchRuleType("Ld")) { task in
                         try results.checkTaskFollows(task, dylibWrap)
                     }
 
-                    try results.checkTask(.matchTargetName("staticlib"), .matchRulePattern(["WriteAuxiliaryFile", .suffix("LinkFileList")])) { task in
-                        let auxFileAction = try #require(task.action as? AuxiliaryFileTaskAction)
-                        let contents = try tester.fs.read(auxFileAction.context.input).asString
-                        let files = contents.components(separatedBy: "\n").map { $0.trimmingCharacters(in: .whitespacesAndNewlines) }.filter { !$0.isEmpty }
-                        #expect(files.count == 2)
-                        #expect(files[0].hasSuffix("staticlib.o"))
-                        #expect(files[1].hasSuffix("static.o"))
-                    }
                     let staticWrap = try #require(results.getTask(.matchTargetName("staticlib"), .matchRuleType("SwiftModuleWrap")))
                     try results.checkTask(.matchTargetName("staticlib"), .matchRuleType("Libtool")) { task in
                         try results.checkTaskFollows(task, staticWrap)

@@ -117,7 +117,9 @@ private final class EnumBuildOptionType : BuildOptionType {
         case "SWIFT_API_DIGESTER_MODE":
             return try namespace.declareEnumMacro(name) as EnumMacroDeclaration<SwiftAPIDigesterMode>
         case "LINKER_FILE_LIST_FORMAT":
-            return try namespace.declareEnumMacro(name) as EnumMacroDeclaration<LinkerFileListFormat>
+            return try namespace.declareEnumMacro(name) as EnumMacroDeclaration<ResponseFileFormat>
+        case "LINKER_RESPONSE_FILE_FORMAT":
+            return try namespace.declareEnumMacro(name) as EnumMacroDeclaration<ResponseFileFormat>
         case "DOCC_MINIMUM_ACCESS_LEVEL":
             return try namespace.declareEnumMacro(name) as EnumMacroDeclaration<DoccMinimumAccessLevel>
         default:

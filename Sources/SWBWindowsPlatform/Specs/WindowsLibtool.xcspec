@@ -68,11 +68,23 @@
                 Type = Enumeration;
                 Values = (
                     unescapedNewlineSeparated,
+                    unixShellQuotedSpaceSeparated,
                     unixShellQuotedNewlineSeparated,
                     windowsShellQuotedNewlineSeparated,
                 );
                 DefaultValue = windowsShellQuotedNewlineSeparated;
             },
+            {
+                Name = "LINKER_RESPONSE_FILE_FORMAT";
+                Type = Enumeration;
+                Values = (
+                    unescapedNewlineSeparated,
+                    unixShellQuotedSpaceSeparated,
+                    unixShellQuotedNewlineSeparated,
+                    windowsShellQuotedNewlineSeparated,
+                );
+                DefaultValue = windowsShellQuotedNewlineSeparated;
+            }
         );
     },
 )

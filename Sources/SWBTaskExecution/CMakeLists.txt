@@ -28,6 +28,7 @@ add_library(SWBTaskExecution
   DynamicTaskSpecs/SwiftDriverJobDynamicTaskSpec.swift
   DynamicTaskSpecs/SwiftDriverPlanningDynamicTaskSpec.swift
   ProjectPlanner.swift
+  ResponseFileFormat+ExpressibleByArgument.swift
   Task.swift
   TaskActionExtensionPoint.swift
   TaskActions/AuxiliaryFileTaskAction.swift

@@ -56,6 +56,8 @@ fileprivate struct ObjectLibraryTaskConstructionTests: CoreBasedTests {
             results.checkTask(.matchRuleType("AssembleObjectLibrary")) { task in
                 task.checkCommandLineMatches([
                     "builtin-ObjectLibraryAssembler",
+                    "--linker-response-file-format",
+                    .any,
                     .suffix("a.o"),
                     .suffix("b.o"),
                     "--output",

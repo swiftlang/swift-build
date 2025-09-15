@@ -32,7 +32,11 @@
         );
         CommandOutputParser = "XCGenericCommandOutputParser";
         Options = (
-
+            {   Name = OBJECT_FILE_ASSEMBLER_LINKER_RESPONSE_FILE_FORMAT;
+                Type = String;
+                DefaultValue = "$(LINKER_RESPONSE_FILE_FORMAT)";
+                CommandLineFlag = "--linker-response-file-format";
+            },
         );
     }
 )
