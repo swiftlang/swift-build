@@ -164,6 +164,10 @@
             GCC_INLINES_ARE_PRIVATE_EXTERN = YES;
             KEEP_PRIVATE_EXTERNS = YES;
             DEAD_CODE_STRIPPING = NO;
+            // Disable code coverage linker flags since we're producing .o files.
+            // Otherwise, we will run into duplicated symbols when there are more than one targets that produce .o
+            // as their product.
+            CLANG_COVERAGE_MAPPING_LINKER_ARGS = NO;
         };
         PackageTypes = (
             com.apple.package-type.mach-o-objfile
