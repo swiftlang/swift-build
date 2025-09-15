@@ -47,8 +47,11 @@ extension SwiftBuildMessage {
 
     init(_ message: BuildOperationEnded) {
         let metrics: BuildOperationMetrics?
-        if let messageMetrics = message.metrics, !messageMetrics.counters.isEmpty {
-            metrics = .init(counters: messageMetrics.counters, taskCounters: messageMetrics.taskCounters)
+        if let messageMetrics = message.metrics, !messageMetrics.isEmpty {
+            metrics = .init(
+                counters: Dictionary(uniqueKeysWithValues: messageMetrics.counters.map { ($0.key.rawValue, $0.value) }),
+                taskCounters: messageMetrics.taskCounters.mapValues { Dictionary(uniqueKeysWithValues: $0.map { ($0.key.rawValue, $0.value) }) }
+            )
         } else {
             metrics = nil
         }

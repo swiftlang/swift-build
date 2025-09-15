@@ -14,7 +14,6 @@
 
 public import Foundation
 public import SWBProjectModel
-public import SWBProtocol
 
 import SWBUtil
 
@@ -169,10 +168,10 @@ public enum SwiftBuildMessage {
     }
 
     public struct BuildOperationMetrics {
-        let counters: [SWBProtocol.BuildOperationMetrics.Counter: Int]
+        public let counters: [String: Int]
 
         /// The key is the first component of task rule info, a.k.a. the rule info type
-        let taskCounters: [String: [SWBProtocol.BuildOperationMetrics.TaskCounter: Int]]
+        public let taskCounters: [String: [String: Int]]
     }
 
     public struct BuildCompletedInfo {
