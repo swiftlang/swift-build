@@ -107,6 +107,9 @@ CSUPPORT_EXPORT bool libclang_has_scanner(libclang_t lib);
 /// Whether libclang supports reporting structured scanning diagnostics.
 CSUPPORT_EXPORT bool libclang_has_structured_scanner_diagnostics(libclang_t lib);
 
+/// Whether libclang supports reporting negative stat caching diagnostics.
+CSUPPORT_EXPORT bool libclang_has_negative_stat_cache_diagnostics(libclang_t lib);
+
 /// Create a new scanner instance with optional CAS databases.
 CSUPPORT_EXPORT libclang_scanner_t libclang_scanner_create(libclang_t lib, libclang_casdatabases_t, libclang_casoptions_t);
 
@@ -183,6 +186,9 @@ CSUPPORT_EXPORT bool libclang_casdatabases_prune_ondisk_data(libclang_casdatabas
 typedef size_t (^module_lookup_output_t)(
     const char *module_name, const char *context_hash,
     clang_output_kind_t kind, char *output, size_t max_len);
+
+/// Reports invalid entries in the scanner's negative stat cache.
+CSUPPORT_EXPORT void libclang_scanner_diagnose_invalid_negative_stat_cache_entries(libclang_scanner_t scanner, void (^path_callback)(const char *));
 
 /// Scan the given Clang "cc1" invocation, looking for dependencies.
 ///

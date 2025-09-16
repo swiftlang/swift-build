@@ -1563,6 +1563,8 @@ internal final class OperationSystemAdaptor: SWBLLBuild.BuildSystemDelegate, Act
             // The build should be complete, validate the consistency of the target/task counts.
             self.validateTargetCompletion(buildSucceeded: buildSucceeded)
 
+            self.diagnoseInvalidNegativeStatCacheEntries(buildSucceeded: buildSucceeded)
+
             // If the build failed, make sure we flush any pending incremental build records.
             // Usually, driver instances are cleaned up and write out their incremental build records when a target finishes building. However, this won't necessarily be the case if the build fails. Ensure we write out any pending records before tearing down the graph so we don't use a stale record on a subsequent build.
             if !buildSucceeded {
@@ -1571,6 +1573,16 @@ internal final class OperationSystemAdaptor: SWBLLBuild.BuildSystemDelegate, Act
 
             // Reset the DynamicOperationContext to free cached info from the finished build.
             self.dynamicOperationContext.reset(completionToken: completionToken)
+        }
+    }
+
+    func diagnoseInvalidNegativeStatCacheEntries(buildSucceeded: Bool) {
+        let settings = operation.requestContext.getCachedSettings(operation.request.parameters)
+        guard settings.globalScope.evaluate(BuiltinMacros.VERIFY_CLANG_SCANNER_NEGATIVE_STAT_CACHE) || !buildSucceeded else {
+            return
+        }
+        for entry in dynamicOperationContext.clangModuleDependencyGraph.diagnoseInvalidNegativeStatCacheEntries() {
+            buildOutputDelegate.warning(Path(entry), "Clang reported an invalid negative stat cache entry for '\(entry)'; this may indicate a missing dependency which caused the file to be modified after being read by a dependent")
         }
     }
 

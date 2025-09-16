@@ -1259,6 +1259,11 @@ extern "C" {
          */
         CXDiagnosticSet (*clang_experimental_DepGraph_getDiagnostics)(CXDepGraph);
 
+        /**
+         * Checks negatively cached paths in the stat cache against the current state of the filesystem and returns a list of discrepancies.
+         */
+        CXCStringArray (*clang_experimental_DependencyScannerService_getInvalidNegStatCachedPaths)(CXDependencyScannerService);
+
         // MARK: Driver API
 
         /**
@@ -1337,6 +1342,7 @@ struct LibclangWrapper {
     bool hasDependencyScanner;
     bool hasStructuredScanningDiagnostics;
     bool hasCAS;
+    bool hasNegativeStatCacheDiagnostics;
 
     LibclangWrapper(std::string path)
         : path(path),
@@ -1348,7 +1354,7 @@ struct LibclangWrapper {
 #else
           handle(dlopen(path.c_str(), RTLD_LAZY | RTLD_LOCAL)),
 #endif
-          isLeaked(false), hasRequiredAPI(true), hasDependencyScanner(true), hasStructuredScanningDiagnostics(true), hasCAS(true) {
+          isLeaked(false), hasRequiredAPI(true), hasDependencyScanner(true), hasStructuredScanningDiagnostics(true), hasCAS(true), hasNegativeStatCacheDiagnostics(false) {
 #if defined(_WIN32)
         DWORD cchLength = MultiByteToWideChar(CP_UTF8, MB_ERR_INVALID_CHARS, path.c_str(), -1, nullptr, 0);
         std::unique_ptr<wchar_t[]> wszPath(new wchar_t[cchLength]);
@@ -1486,6 +1492,11 @@ struct LibclangWrapper {
             hasDependencyScanner = false;
             hasStructuredScanningDiagnostics = false;
             hasCAS = false;
+        }
+
+        LOOKUP_OPTIONAL(clang_experimental_DependencyScannerService_getInvalidNegStatCachedPaths);
+        if (fns.clang_experimental_DependencyScannerService_getInvalidNegStatCachedPaths) {
+            hasNegativeStatCacheDiagnostics = true;
         }
 
         LOOKUP_OPTIONAL(clang_Driver_getExternalActionsForCommand_v0);
@@ -1758,6 +1769,10 @@ extern "C" {
 
     bool libclang_has_structured_scanner_diagnostics(libclang_t lib) {
         return lib->wrapper->hasStructuredScanningDiagnostics;
+    }
+
+    bool libclang_has_negative_stat_cache_diagnostics(libclang_t lib) {
+        return lib->wrapper->hasNegativeStatCacheDiagnostics;
     }
 
     libclang_scanner_t libclang_scanner_create(libclang_t lib, libclang_casdatabases_t casdbs, libclang_casoptions_t casOpts) {
@@ -2041,6 +2056,17 @@ extern "C" {
         lib->fns.clang_disposeDiagnosticSet(diagnostics);
 
         return diagnostic_set;
+    }
+
+    void libclang_scanner_diagnose_invalid_negative_stat_cache_entries(libclang_scanner_t scanner, void (^path_callback)(const char *)) {
+        auto lib = scanner->scanner->lib;
+        if (!lib->fns.clang_experimental_DependencyScannerService_getInvalidNegStatCachedPaths) {
+            return;
+        }
+        LibclangFunctions::CXCStringArray paths = lib->fns.clang_experimental_DependencyScannerService_getInvalidNegStatCachedPaths(scanner->scanner->service);
+        for (size_t i = 0; i < paths.Count; ++i) {
+            path_callback(paths.Strings[i]);
+        }
     }
 
     bool libclang_scanner_scan_dependencies(
