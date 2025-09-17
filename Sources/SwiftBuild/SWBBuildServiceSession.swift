@@ -182,6 +182,11 @@ public final class SWBBuildServiceSession: Sendable {
     }
 
     @_disfavoredOverload
+    public func createBuildOperation(request: SWBBuildRequest, delegate: any SWBPlanningOperationDelegate, retainBuildDescription: Bool) async throws -> SWBBuildOperation {
+        try await createBuildOperation(request: request, delegate: delegate, onlyCreateBuildDescription: false, retainBuildDescription: retainBuildDescription)
+    }
+
+    @_disfavoredOverload
     public func createBuildOperationForBuildDescriptionOnly(request: SWBBuildRequest, delegate: any SWBPlanningOperationDelegate) async throws -> SWBBuildOperation {
         try await createBuildOperation(request: request, delegate: delegate, onlyCreateBuildDescription: true, retainBuildDescription: false)
     }

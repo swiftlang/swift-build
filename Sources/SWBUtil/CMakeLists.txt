@@ -12,6 +12,7 @@ add_library(SWBUtil
   Architecture.swift
   ArgumentSplitting.swift
   Array.swift
+  ArtifactInfo.swift
   AsyncCache.swift
   AsyncFlatteningSequence.swift
   AsyncIteratorProtocol.swift

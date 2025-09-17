@@ -76,11 +76,14 @@ public struct BuildDescriptionConfiguredTargetsResponse: Message, SerializableCo
         /// `nil` if the toolchain for this target could not be determined due to an error.
         public let toolchain: Path?
 
-        public init(identifier: ConfiguredTargetIdentifier, name: String, dependencies: Set<ConfiguredTargetIdentifier>, toolchain: Path?) {
+        public let artifactInfo: ArtifactInfo?
+
+        public init(identifier: ConfiguredTargetIdentifier, name: String, dependencies: Set<ConfiguredTargetIdentifier>, toolchain: Path?, artifactInfo: ArtifactInfo?) {
             self.identifier = identifier
             self.name = name
             self.dependencies = dependencies
             self.toolchain = toolchain
+            self.artifactInfo = artifactInfo
         }
     }
 

@@ -69,6 +69,11 @@ public class ProductTypeSpec : Spec, SpecType, @unchecked Sendable {
         return nil
     }
 
+    public func artifactInfo(in scope: MacroEvaluationScope) -> ArtifactInfo? {
+        // Customization point for subclasses
+        return nil
+    }
+
     /// Whether this product type supports having compiler sanitizer libraries embedded in it.
     public let canEmbedCompilerSanitizerLibraries: Bool
 
@@ -529,6 +534,11 @@ public class FrameworkProductTypeSpec : BundleProductTypeSpec, @unchecked Sendab
         return descriptors
     }
 
+    public override func artifactInfo(in scope: MacroEvaluationScope) -> ArtifactInfo? {
+        let path = scope.evaluate(BuiltinMacros.TARGET_BUILD_DIR).join(scope.evaluate(BuiltinMacros.FULL_PRODUCT_NAME))
+        return ArtifactInfo(kind: .framework, path: path)
+    }
+
 /*
     /// Build setting expressions to evaluate to determine how to create symbolic links for the product structure.
     static let productStructureSymlinkBuildSettings = [SymlinkDescriptor]([
@@ -815,6 +825,12 @@ public final class DynamicLibraryProductTypeSpec : LibraryProductTypeSpec, @unch
         }
         return ([], [])
     }
+
+    public override func artifactInfo(in scope: MacroEvaluationScope) -> ArtifactInfo? {
+        let path = scope.evaluate(BuiltinMacros.TARGET_BUILD_DIR).join(scope.evaluate(BuiltinMacros.FULL_PRODUCT_NAME))
+        return ArtifactInfo(kind: .dynamicLibrary, path: path)
+    }
+
 }
 
 public final class StaticLibraryProductTypeSpec : LibraryProductTypeSpec, @unchecked Sendable {
@@ -827,11 +843,21 @@ public final class StaticLibraryProductTypeSpec : LibraryProductTypeSpec, @unche
     public override var supportsDefinesModule: Bool {
         return true
     }
+
+    public override func artifactInfo(in scope: MacroEvaluationScope) -> ArtifactInfo? {
+        let path = scope.evaluate(BuiltinMacros.TARGET_BUILD_DIR).join(scope.evaluate(BuiltinMacros.FULL_PRODUCT_NAME))
+        return ArtifactInfo(kind: .staticLibrary, path: path)
+    }
 }
 
 public final class ToolProductTypeSpec : StandaloneExecutableProductTypeSpec, @unchecked Sendable {
     class public override var className: String {
         return "PBXToolProductType"
+    }
+
+    public override func artifactInfo(in scope: MacroEvaluationScope) -> ArtifactInfo? {
+        let path = scope.evaluate(BuiltinMacros.TARGET_BUILD_DIR).join(scope.evaluate(BuiltinMacros.FULL_PRODUCT_NAME))
+        return ArtifactInfo(kind: .executable, path: path)
     }
 }
 
