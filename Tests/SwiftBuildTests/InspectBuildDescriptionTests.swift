@@ -75,6 +75,100 @@ fileprivate struct InspectBuildDescriptionTests {
     }
 
     @Test(.requireSDKs(.macOS))
+    func artifacts() async throws {
+        try await withTemporaryDirectory { (temporaryDirectory: NamedTemporaryDirectory) in
+            try await withAsyncDeferrable { deferrable in
+                let tmpDir = temporaryDirectory.path
+                let testSession = try await TestSWBSession(temporaryDirectory: temporaryDirectory)
+                await deferrable.addBlock {
+                    await #expect(throws: Never.self) {
+                        try await testSession.close()
+                    }
+                }
+
+                let frameworkTarget = TestStandardTarget(
+                    "MyFramework",
+                    type: .framework,
+                    buildConfigurations: [
+                        .init("Debug", buildSettings: [
+                            "PRODUCT_NAME": "$(TARGET_NAME)"
+                        ])
+                    ],
+                    buildPhases: [TestSourcesBuildPhase([TestBuildFile("Foo.swift")])],
+                )
+
+                let staticLibraryTarget = TestStandardTarget(
+                    "MyStaticLibrary",
+                    type: .staticLibrary,
+                    buildConfigurations: [
+                        .init("Debug", buildSettings: [
+                            "PRODUCT_NAME": "$(TARGET_NAME)"
+                        ])
+                    ],
+                    buildPhases: [TestSourcesBuildPhase([TestBuildFile("Foo.swift")])],
+                )
+
+                let dynamicLibraryTarget = TestStandardTarget(
+                    "MyDynamicLibrary",
+                    type: .dynamicLibrary,
+                    buildConfigurations: [
+                        .init("Debug", buildSettings: [
+                            "PRODUCT_NAME": "$(TARGET_NAME)"
+                        ])
+                    ],
+                    buildPhases: [TestSourcesBuildPhase([TestBuildFile("Foo.swift")])],
+                )
+
+                let executableTarget = TestStandardTarget(
+                    "MyExecutable",
+                    type: .commandLineTool,
+                    buildConfigurations: [
+                        .init("Debug", buildSettings: [
+                            "PRODUCT_NAME": "$(TARGET_NAME)"
+                        ])
+                    ],
+                    buildPhases: [TestSourcesBuildPhase([TestBuildFile("Foo.swift")])],
+                )
+
+                let project = TestProject(
+                    "Test",
+                    groupTree: TestGroup("Test", children: [TestFile("Foo.swift")]),
+                    targets: [frameworkTarget, staticLibraryTarget, dynamicLibraryTarget, executableTarget]
+                )
+
+                try await testSession.sendPIF(TestWorkspace("Test", sourceRoot: tmpDir, projects: [project]))
+
+                let activeRunDestination = SWBRunDestinationInfo.macOS
+                let buildParameters = SWBBuildParameters(configuration: "Debug", activeRunDestination: activeRunDestination)
+                var request = SWBBuildRequest()
+                request.add(target: SWBConfiguredTarget(guid: frameworkTarget.guid, parameters: buildParameters))
+                request.add(target: SWBConfiguredTarget(guid: staticLibraryTarget.guid, parameters: buildParameters))
+                request.add(target: SWBConfiguredTarget(guid: dynamicLibraryTarget.guid, parameters: buildParameters))
+                request.add(target: SWBConfiguredTarget(guid: executableTarget.guid, parameters: buildParameters))
+
+                let buildDescriptionID = try await testSession.session.createBuildDescription(buildRequest: request)
+                let targetInfos = try await testSession.session.configuredTargets(buildDescription: buildDescriptionID, buildRequest: request)
+
+                let frameworkTargetInfo = try #require(targetInfos.filter { $0.name == "MyFramework" }.only)
+                #expect(frameworkTargetInfo.artifactInfo?.kind == .framework)
+                #expect(frameworkTargetInfo.artifactInfo?.path.hasSuffix("MyFramework.framework") == true)
+
+                let staticLibraryTargetInfo = try #require(targetInfos.filter { $0.name == "MyStaticLibrary" }.only)
+                #expect(staticLibraryTargetInfo.artifactInfo?.kind == .staticLibrary)
+                #expect(staticLibraryTargetInfo.artifactInfo?.path.hasSuffix("MyStaticLibrary.a") == true)
+
+                let dynamicLibraryTargetInfo = try #require(targetInfos.filter { $0.name == "MyDynamicLibrary" }.only)
+                #expect(dynamicLibraryTargetInfo.artifactInfo?.kind == .dynamicLibrary)
+                #expect(dynamicLibraryTargetInfo.artifactInfo?.path.hasSuffix("MyDynamicLibrary.dylib") == true)
+
+                let executableTargetInfo = try #require(targetInfos.filter { $0.name == "MyExecutable" }.only)
+                #expect(executableTargetInfo.artifactInfo?.kind == .executable)
+                #expect(executableTargetInfo.artifactInfo?.path.hasSuffix("MyExecutable") == true)
+            }
+        }
+    }
+
+    @Test(.requireSDKs(.macOS))
     func configuredTargetSources() async throws {
         try await withTemporaryDirectory { (temporaryDirectory: NamedTemporaryDirectory) in
             try await withAsyncDeferrable { deferrable in

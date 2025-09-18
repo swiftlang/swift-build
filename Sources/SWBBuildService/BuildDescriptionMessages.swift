@@ -125,7 +125,8 @@ struct BuildDescriptionConfiguredTargetsMsg: MessageHandler {
                 identifier: ConfiguredTargetIdentifier(rawGUID: configuredTarget.guid.stringValue, targetGUID: TargetGUID(rawValue: configuredTarget.target.guid)),
                 name: configuredTarget.target.name,
                 dependencies: Set(dependencyRelationships?.flatMap(\.targetDependencies).compactMap { configuredTargetIdentifiersByGUID[$0.guid] } ?? []),
-                toolchain: toolchain
+                toolchain: toolchain,
+                artifactInfo: buildDescription.artifactInfoPerTarget[configuredTarget]
             )
         }
         return BuildDescriptionConfiguredTargetsResponse(configuredTargets: targetInfos)
