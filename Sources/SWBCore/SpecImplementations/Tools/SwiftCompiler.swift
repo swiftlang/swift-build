@@ -1407,25 +1407,21 @@ public final class SwiftCompilerSpec : CompilerSpec, SpecIdentifierType, SwiftDi
         let buildSettingEnabled = scope.evaluate(BuiltinMacros.SWIFT_ENABLE_EXPLICIT_MODULES) == .enabled ||
                                   scope.evaluate(BuiltinMacros._EXPERIMENTAL_SWIFT_EXPLICIT_MODULES) == .enabled
 
+        // If this project is on the blocklist, override the blocklist default enable for it
+        if let explicitModuleBlocklist = await getExplicitModuleBlocklist(producer, scope, delegate), explicitModuleBlocklist.isProjectListed(scope) {
+            return false
+        }
+
         // rdar://122829880 (Turn off Swift explicit modules when c++ interop is enabled)
         guard scope.evaluate(BuiltinMacros.SWIFT_OBJC_INTEROP_MODE) != "objcxx" && !scope.evaluate(BuiltinMacros.OTHER_SWIFT_FLAGS).contains("-cxx-interoperability-mode=default") else {
-            return scope.evaluate(BuiltinMacros._SWIFT_EXPLICIT_MODULES_ALLOW_CXX_INTEROP)
+            return scope.evaluate(BuiltinMacros._SWIFT_EXPLICIT_MODULES_ALLOW_CXX_INTEROP) && buildSettingEnabled
         }
 
         // Disable explicit modules in the pre-Swift-5 language modes to avoid versioned API notes confusion.
         guard let swiftVersion = try? Version(scope.evaluate(BuiltinMacros.SWIFT_VERSION)), swiftVersion >= Version(5) else {
-            return scope.evaluate(BuiltinMacros._SWIFT_EXPLICIT_MODULES_ALLOW_BEFORE_SWIFT_5)
+            return scope.evaluate(BuiltinMacros._SWIFT_EXPLICIT_MODULES_ALLOW_BEFORE_SWIFT_5) && buildSettingEnabled
         }
 
-        // If a blocklist is provided in the toolchain, use it to determine the default for the current project
-        guard let explicitModuleBlocklist = await getExplicitModuleBlocklist(producer, scope, delegate) else {
-            return buildSettingEnabled
-        }
-
-        // If this project is on the blocklist, override the blocklist default enable for it
-        if explicitModuleBlocklist.isProjectListed(scope) {
-            return false
-        }
         return buildSettingEnabled
     }
 
