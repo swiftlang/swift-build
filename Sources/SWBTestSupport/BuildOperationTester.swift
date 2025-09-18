@@ -1650,6 +1650,7 @@ package final class BuildOperationTester {
     /// Construct 'prepare' index build operation, and test the result.
     package func checkIndexBuild<T>(
         prepareTargets: [String],
+        buildTargets: [any TestTarget]? = nil,
         workspaceOperation: Bool = true,
         runDestination: RunDestinationInfo? = nil,
         persistent: Bool = false,
@@ -1658,6 +1659,7 @@ package final class BuildOperationTester {
     ) async throws -> T {
         let buildRequest = try Self.buildRequestForIndexOperation(
             workspace: workspace,
+            buildTargets: buildTargets,
             prepareTargets: prepareTargets,
             workspaceOperation: workspaceOperation,
             runDestination: runDestination,
