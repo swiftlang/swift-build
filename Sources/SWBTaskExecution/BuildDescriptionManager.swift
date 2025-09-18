@@ -177,7 +177,9 @@ package final class BuildDescriptionManager: Sendable {
     /// - Returns: A build description, or nil if cancelled.
     // TODO: Optimizations are disabled to work around a compiler bug. Remove this attribute when the bug is fixed.
     // See https://github.com/swiftlang/llvm-project/issues/11377 for details.
+    #if os(Windows)
     @_optimize(none)
+    #endif
     package static func constructBuildDescription(_ plan: BuildPlan, planRequest: BuildPlanRequest, signature: BuildDescriptionSignature, inDirectory path: Path, fs: any FSProxy, bypassActualTasks: Bool = false, planningDiagnostics: [ConfiguredTarget?: [Diagnostic]], delegate: any BuildDescriptionConstructionDelegate) async throws -> BuildDescription? {
         BuildDescriptionManager.descriptionsComputed.increment()
 
