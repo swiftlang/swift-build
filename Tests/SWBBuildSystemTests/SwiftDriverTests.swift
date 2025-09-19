@@ -1441,6 +1441,7 @@ fileprivate struct SwiftDriverTests: CoreBasedTests {
                             children: [
                                 TestFile("file1.swift"),
                                 TestFile("file2.swift"),
+                                TestFile("file3.swift"),
                             ]),
                         buildConfigurations: [
                             TestBuildConfiguration(
@@ -1451,11 +1452,23 @@ fileprivate struct SwiftDriverTests: CoreBasedTests {
                                     "BUILD_VARIANTS": "normal",
                                     "SWIFT_USE_INTEGRATED_DRIVER": "YES",
                                     "SWIFT_ENABLE_EXPLICIT_MODULES": "YES",
+                                    "BUILD_LIBRARY_FOR_DISTRIBUTION": "YES",
                                     // Force use of a response file
-                                    "GCC_PREPROCESSOR_DEFINITIONS": Array(repeating: "ABCD=1", count: 10000).joined(separator: " ")
+                                    "GCC_PREPROCESSOR_DEFINITIONS": Array(repeating: "ABCD=1", count: 10000).joined(separator: " "),
+                                    "OTHER_SWIFT_FLAGS": "-Xfrontend -module-load-mode -Xfrontend only-interface"
                                 ])
                         ],
                         targets: [
+                            TestStandardTarget("TargetC",
+                                               type: .framework,
+                                               buildConfigurations: [
+                                                TestBuildConfiguration("Debug"),
+                                               ],
+                                               buildPhases: [
+                                                TestSourcesBuildPhase([
+                                                    "file3.swift",
+                                                ]),
+                                               ]),
                             TestStandardTarget("TargetA",
                                                type: .framework,
                                                buildConfigurations: [
@@ -1465,7 +1478,7 @@ fileprivate struct SwiftDriverTests: CoreBasedTests {
                                                 TestSourcesBuildPhase([
                                                     "file1.swift",
                                                 ]),
-                                               ], dependencies: ["TargetB"]),
+                                               ], dependencies: ["TargetB", "TargetC"]),
                             TestStandardTarget("TargetB",
                                                type: .framework,
                                                buildConfigurations: [
@@ -1475,12 +1488,11 @@ fileprivate struct SwiftDriverTests: CoreBasedTests {
                                                 TestSourcesBuildPhase([
                                                     "file2.swift"
                                                 ]),
-                                               ])
+                                               ], dependencies: ["TargetC"])
                         ])
                 ])
 
             let tester = try await BuildOperationTester(getCore(), testWorkspace, simulated: false)
-            tester.userInfo = tester.userInfo.withAdditionalEnvironment(environment: ["SWIFT_FORCE_MODULE_LOADING": "only-interface"])
             try tester.fs.createDirectory(moduleCacheDir)
             let parameters = BuildParameters(configuration: "Debug")
             let targetsToBuild = tester.workspace.projects.flatMap { project in project.targets.map({ BuildRequest.BuildTargetInfo(parameters: parameters, target: $0) }) }
@@ -1491,21 +1503,29 @@ fileprivate struct SwiftDriverTests: CoreBasedTests {
             try await tester.fs.writeFileContents(SRCROOTA.join("Sources/file1.swift")) { file in
                 file <<<
                         """
-                        import Foundation
+                        import TargetC
+                        func foo() { baz() }
                         """
             }
             try await tester.fs.writeFileContents(SRCROOTA.join("Sources/file2.swift")) { file in
                 file <<<
                         """
-                        import Foundation
+                        import TargetC
+                        func bar() { baz() }
+                        """
+            }
+            try await tester.fs.writeFileContents(SRCROOTA.join("Sources/file3.swift")) { file in
+                file <<<
+                        """
+                        public func baz() {}
                         """
             }
 
             try await tester.checkBuild(runDestination: .macOS, buildRequest: buildRequest, persistent: true) { results in
                 results.checkNoErrors()
-                results.checkTasks(.matchRulePattern(["SwiftExplicitDependencyCompileModuleFromInterface", "normal", .any, .contains("SwiftExplicitPrecompiledModules/Foundation-")])) { compileFoundationTasks in
-                    // We only expect to need one variant of Foundation
-                    #expect(compileFoundationTasks.count == 1)
+                results.checkTasks(.matchRulePattern(["SwiftExplicitDependencyCompileModuleFromInterface", .any, .contains("SwiftExplicitPrecompiledModules/TargetC-")])) { compileTasks in
+                    // We only expect to need one variant of TargetC
+                    #expect(compileTasks.count == 1)
                 }
             }
         }
