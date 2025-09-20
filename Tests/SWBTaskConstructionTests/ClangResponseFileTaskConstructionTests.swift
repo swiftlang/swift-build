@@ -62,11 +62,13 @@ fileprivate struct ClangResponseFileTaskConstructionTests: CoreBasedTests {
                     let responseFilePath = try #require(task.outputs.only)
 
                     // The command arguments in the response file vary vastly between different platforms, so just check for some basics present in the content.
-                    let contentAsString = contents.asString
-                    #expect(contentAsString.contains("-target "))
-                    #expect(contentAsString.contains("Test-generated-files.hmap"))
-                    #expect(contentAsString.contains("Test-own-target-headers.hmap"))
-                    #expect(contentAsString.contains("Test-all-target-headers.hmap"))
+                    if tester.core.hostOperatingSystem.defaultResponseFileFormat == .unixShellQuotedSpaceSeparated {
+                        let contentAsString = contents.asString
+                        #expect(contentAsString.contains("-target "))
+                        #expect(contentAsString.contains("Test-generated-files.hmap"))
+                        #expect(contentAsString.contains("Test-own-target-headers.hmap"))
+                        #expect(contentAsString.contains("Test-all-target-headers.hmap"))
+                    }
 
                     for name in ["a.c", "b.c", "c.c"] {
                         results.checkTask(.matchRuleType("CompileC"), .matchRuleItemPattern(.suffix(name))) { compileTask in
@@ -166,20 +168,22 @@ fileprivate struct ClangResponseFileTaskConstructionTests: CoreBasedTests {
             let tester = try TaskConstructionTester(core, testProject)
             await tester.checkBuild(runDestination: .host) { results in
                 results.checkWriteAuxiliaryFileTask(.matchRuleItemPattern(.suffix("-common-args.resp"))) { task, contents in
-                    let stringContents = contents.asString
-                    #expect(stringContents.contains("-target"))
-                    let blocksFlag = switch runDestination {
+                    if tester.core.hostOperatingSystem.defaultResponseFileFormat == .unixShellQuotedSpaceSeparated {
+                        let stringContents = contents.asString
+                        #expect(stringContents.contains("-target"))
+                        let blocksFlag = switch runDestination {
                         case .macOS:
                             "-fasm-blocks"
                         case .linux:
                             "-fblocks"
                         default:
                             " "
+                        }
+                        #expect(stringContents.contains(blocksFlag))
+                        #expect(!stringContents.contains("-MMD"))
+                        #expect(!stringContents.contains("-fcolor-diagnostics"))
+                        #expect(!stringContents.contains("-Wno-private-module"))
                     }
-                    #expect(stringContents.contains(blocksFlag))
-                    #expect(!stringContents.contains("-MMD"))
-                    #expect(!stringContents.contains("-fcolor-diagnostics"))
-                    #expect(!stringContents.contains("-Wno-private-module"))
                     for name in ["a", "b", "c"] {
                         results.checkTask(.matchRuleType("CompileC"), .matchRuleItemPattern(.suffix(name + ".c"))) { compileTask in
                             compileTask.checkCommandLineMatches(["-MMD", "-MT", "dependencies", "-MF", .suffix(name + ".d")])
@@ -349,8 +353,10 @@ fileprivate struct ClangResponseFileTaskConstructionTests: CoreBasedTests {
             let tester = try TaskConstructionTester(core, testProject)
             await tester.checkBuild(runDestination: .host) { results in
                 results.checkWriteAuxiliaryFileTask(.matchRuleItemPattern(.suffix("-common-args.resp"))) { task, contents in
-                    let stringContents = contents.asString
-                    #expect(stringContents.contains("-Xclang -Wno-shorten-64-to-32"))
+                    if tester.core.hostOperatingSystem.defaultResponseFileFormat == .unixShellQuotedSpaceSeparated {
+                        let stringContents = contents.asString
+                        #expect(stringContents.contains("-Xclang -Wno-shorten-64-to-32"))
+                    }
                     results.checkTask(.matchRuleType("CompileC"), .matchRuleItemPattern(.suffix("a.c"))) { compileTask in
                         compileTask.checkCommandLineDoesNotContain("-Xclang")
                     }

@@ -167,6 +167,15 @@ public enum OperatingSystem: Hashable, Sendable {
             return .elf
         }
     }
+
+    public var defaultResponseFileFormat: ResponseFileFormat {
+        switch self {
+        case .windows:
+            .windowsShellQuotedNewlineSeparated
+        case .macOS, .iOS, .tvOS, .watchOS, .visionOS, .linux, .freebsd, .openbsd, .android, .unknown:
+            .unixShellQuotedSpaceSeparated
+        }
+    }
 }
 
 public enum ImageFormat {

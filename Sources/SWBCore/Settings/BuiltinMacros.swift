@@ -1189,6 +1189,7 @@ public final class BuiltinMacros {
     public static let _WRAPPER_PARENT_PATH = BuiltinMacros.declareStringMacro("_WRAPPER_PARENT_PATH")
     public static let _WRAPPER_RESOURCES_DIR = BuiltinMacros.declareStringMacro("_WRAPPER_RESOURCES_DIR")
     public static let __INPUT_FILE_LIST_PATH__ = BuiltinMacros.declarePathMacro("__INPUT_FILE_LIST_PATH__")
+    public static let HOST_RESPONSE_FILE_FORMAT = BuiltinMacros.declareEnumMacro("HOST_RESPONSE_FILE_FORMAT") as EnumMacroDeclaration<ResponseFileFormat>
     public static let LINKER_FILE_LIST_FORMAT = BuiltinMacros.declareEnumMacro("LINKER_FILE_LIST_FORMAT") as EnumMacroDeclaration<ResponseFileFormat>
     public static let LINKER_RESPONSE_FILE_FORMAT = BuiltinMacros.declareEnumMacro("LINKER_RESPONSE_FILE_FORMAT") as EnumMacroDeclaration<ResponseFileFormat>
     public static let SWIFT_RESPONSE_FILE_PATH = BuiltinMacros.declarePathMacro("SWIFT_RESPONSE_FILE_PATH")
@@ -2443,6 +2444,7 @@ public final class BuiltinMacros {
         _WRAPPER_PARENT_PATH,
         _WRAPPER_RESOURCES_DIR,
         __INPUT_FILE_LIST_PATH__,
+        HOST_RESPONSE_FILE_FORMAT,
         LINKER_FILE_LIST_FORMAT,
         LINKER_RESPONSE_FILE_FORMAT,
         __ARCHS__,

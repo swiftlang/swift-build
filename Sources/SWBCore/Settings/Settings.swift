@@ -2350,6 +2350,8 @@ private class SettingsBuilder {
             platformTable.push(BuiltinMacros.NATIVE_ARCH, literal: Architecture.hostStringValue ?? fallbackArch)
         }
 
+        platformTable.push(BuiltinMacros.HOST_RESPONSE_FILE_FORMAT, literal: workspaceContext.core.hostOperatingSystem.defaultResponseFileFormat)
+
         // Add the platform deployment target defaults, for real platforms.
         //
         // FIXME: For legacy compatibility, we only do this when configuring settings for a target. This distinction most likely isn't important, and should just be eliminated.
