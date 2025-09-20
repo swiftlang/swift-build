@@ -2350,6 +2350,14 @@ private class SettingsBuilder {
             platformTable.push(BuiltinMacros.NATIVE_ARCH, literal: Architecture.hostStringValue ?? fallbackArch)
         }
 
+        let responseFileFormat: ResponseFileFormat = switch workspaceContext.core.hostOperatingSystem {
+        case .windows:
+            .windowsShellQuotedNewlineSeparated
+        case .macOS, .iOS, .tvOS, .watchOS, .visionOS, .linux, .freebsd, .openbsd, .android, .unknown:
+            .unixShellQuotedSpaceSeparated
+        }
+        platformTable.push(BuiltinMacros.HOST_RESPONSE_FILE_FORMAT, literal: responseFileFormat)
+
         // Add the platform deployment target defaults, for real platforms.
         //
         // FIXME: For legacy compatibility, we only do this when configuring settings for a target. This distinction most likely isn't important, and should just be eliminated.
