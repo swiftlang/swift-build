@@ -92,6 +92,11 @@ public struct ClangPrefixInfo: Serializable, Hashable, Encodable, Sendable {
     }
 }
 
+public struct ClangResponseFileInfo: SerializableCodable, Sendable {
+    var attachmentPath: Path
+    var format: ResponseFileFormat
+}
+
 /// The minimal data we need to serialize to reconstruct `ClangSourceFileIndexingInfo` from `generateIndexingInfo`
 public struct ClangIndexingPayload: Serializable, Encodable, Sendable {
     let sourceFileIndex: Int
@@ -102,7 +107,7 @@ public struct ClangIndexingPayload: Serializable, Encodable, Sendable {
     let workingDir: Path
     let prefixInfo: ClangPrefixInfo?
     public let toolchains: [String]
-    let responseFileAttachmentPaths: [Path: Path]
+    let responseFileAttachmentPaths: [Path: ClangResponseFileInfo]
 
     init(sourceFileIndex: Int,
          outputFileIndex: Int,
@@ -112,7 +117,7 @@ public struct ClangIndexingPayload: Serializable, Encodable, Sendable {
          workingDir: Path,
          prefixInfo: ClangPrefixInfo?,
          toolchains: [String],
-         responseFileAttachmentPaths: [Path: Path]) {
+         responseFileAttachmentPaths: [Path: ClangResponseFileInfo]) {
         self.sourceFileIndex = sourceFileIndex
         self.outputFileIndex = outputFileIndex
         self.sourceLanguageIndex = sourceLanguageIndex
@@ -202,7 +207,7 @@ public struct ClangSourceFileIndexingInfo: SourceFileIndexingInfo {
     static let skippedArgsWithoutValues = Set<ByteString>(["-M", "-MD", "-MMD", "-MG", "-MJ", "-MM", "-MP", "-MV", "-fmodules-validate-once-per-build-session"])
     static let skippedArgsWithValues = Set<ByteString>(["-MT", "-MF", "-MQ", "--serialize-diagnostics"])
 
-    public static func indexingCommandLine(from commandLine: [ByteString], workingDir: Path, prefixInfo: ClangPrefixInfo? = nil, addSupplementary: Bool = true, replaceCompile: Bool = true, responseFileMapping: [Path: Path]) -> [ByteString] {
+    public static func indexingCommandLine(from commandLine: [ByteString], workingDir: Path, prefixInfo: ClangPrefixInfo? = nil, addSupplementary: Bool = true, replaceCompile: Bool = true, responseFileMapping: [Path: ClangResponseFileInfo]) -> [ByteString] {
         var result = [ByteString]()
         var iterator = commandLine.makeIterator()
         let _ = iterator.next() // Skip compiler path
@@ -234,8 +239,8 @@ public struct ClangSourceFileIndexingInfo: SourceFileIndexingInfo {
             } else if arg.bytes.starts(with: ByteString(stringLiteral: "-fbuild-session-file=").bytes) {
                 // Skip
             } else if arg.starts(with: ByteString(unicodeScalarLiteral: "@")),
-                      let attachmentPath = responseFileMapping[Path(arg.asString.dropFirst())],
-                      let responseFileArgs = try? ResponseFiles.expandResponseFiles(["@\(attachmentPath.str)"], fileSystem: localFS, relativeTo: workingDir, format: .unixShellQuotedSpaceSeparated) {
+                      let attachment = responseFileMapping[Path(arg.asString.dropFirst())],
+                      let responseFileArgs = try? ResponseFiles.expandResponseFiles(["@\(attachment.attachmentPath.str)"], fileSystem: localFS, relativeTo: workingDir, format: attachment.format) {
                 result.append(contentsOf: responseFileArgs.map { ByteString(encodingAsUTF8: $0) })
             } else {
                 result.append(arg)
@@ -568,7 +573,7 @@ public class ClangCompilerSpec : CompilerSpec, SpecIdentifierType, GCCCompatible
             let inputs: [Path]
 
             /// Maps response files in `flags` to the corresponding recorded attachment in the build description.
-            let responseFileMapping: [Path: Path]
+            let responseFileMapping: [Path: ClangResponseFileInfo]
 
         }
 
@@ -719,9 +724,10 @@ public class ClangCompilerSpec : CompilerSpec, SpecIdentifierType, GCCCompatible
             ctx.add(string: self.identifier)
 
             let responseFilePath = scope.evaluate(BuiltinMacros.PER_ARCH_OBJECT_FILE_DIR).join("\(ctx.signature.asString)-common-args.resp")
-            let attachmentPath = producer.writeFileSpec.constructFileTasks(CommandBuildContext(producer: producer, scope: scope, inputs: [], output: responseFilePath), delegate, contents: ByteString(encodingAsUTF8: ResponseFiles.responseFileContents(args: responseFileCommandLine, format: .unixShellQuotedSpaceSeparated)), permissions: nil, logContents: true, preparesForIndexing: true, additionalTaskOrderingOptions: [.immediate, .ignorePhaseOrdering])
+            let responseFileFormat = scope.evaluate(BuiltinMacros.HOST_RESPONSE_FILE_FORMAT)
+            let attachmentPath = producer.writeFileSpec.constructFileTasks(CommandBuildContext(producer: producer, scope: scope, inputs: [], output: responseFilePath), delegate, contents: ByteString(encodingAsUTF8: ResponseFiles.responseFileContents(args: responseFileCommandLine, format: responseFileFormat)), permissions: nil, logContents: true, preparesForIndexing: true, additionalTaskOrderingOptions: [.immediate, .ignorePhaseOrdering])
 
-            return ConstantFlags(flags: regularCommandLine + ["@\(responseFilePath.str)"], headerSearchPaths: headerSearchPaths, inputs: [responseFilePath], responseFileMapping: [responseFilePath: attachmentPath])
+            return ConstantFlags(flags: regularCommandLine + ["@\(responseFilePath.str)"], headerSearchPaths: headerSearchPaths, inputs: [responseFilePath], responseFileMapping: [responseFilePath: .init(attachmentPath: attachmentPath, format: responseFileFormat)])
         } else {
             return ConstantFlags(flags: commandLine, headerSearchPaths: headerSearchPaths, inputs: [], responseFileMapping: [:])
         }
