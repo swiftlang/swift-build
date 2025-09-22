@@ -262,7 +262,10 @@ let package = Package(
         .target(
             name: "SWBWindowsPlatform",
             dependencies: ["SWBCore", "SWBMacro", "SWBUtil"],
-            exclude: ["CMakeLists.txt"],
+            exclude: [
+                "CMakeLists.txt",
+                "README.md",
+            ],
             resources: [.process("Specs")],
             swiftSettings: swiftSettings(languageMode: .v6)),
 
