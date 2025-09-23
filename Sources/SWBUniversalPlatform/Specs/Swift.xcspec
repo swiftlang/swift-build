@@ -225,8 +225,16 @@
                 Type = String;
                 DefaultValue = "";
                 Category = "General";
-                DisplayName = "Objective-C Bridging Header";
-                Description = "Path to the header defining the Objective-C interfaces to be exposed in Swift.";
+                DisplayName = "Bridging Header";
+                Description = "Path to the header defining the C interfaces to be exposed in Swift.";
+            },
+            {
+                Name = "SWIFT_BRIDGING_HEADER_IS_INTERNAL";
+                Type = Boolean;
+                DefaultValue = "NO";
+                Category = "General";
+                DisplayName = "Bridging Header is Internal to the Module";
+                Description = "When there is a bridging header, this setting indicates whether the contents of that bridging header should be imported as-if they came from an internal import. This is necessary when using bridging headers with Swift modules that are imported into other modules.";
             },
             {
                 Name = "SWIFT_OBJC_INTERFACE_HEADER_NAME";

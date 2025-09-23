@@ -1057,6 +1057,7 @@ public final class BuiltinMacros {
     public static let SWIFT_WARNINGS_AS_WARNINGS_GROUPS = BuiltinMacros.declareStringListMacro("SWIFT_WARNINGS_AS_WARNINGS_GROUPS")
     public static let SWIFT_WARNINGS_AS_ERRORS_GROUPS = BuiltinMacros.declareStringListMacro("SWIFT_WARNINGS_AS_ERRORS_GROUPS")
     public static let SWIFT_OBJC_BRIDGING_HEADER = BuiltinMacros.declareStringMacro("SWIFT_OBJC_BRIDGING_HEADER")
+    public static let SWIFT_BRIDGING_HEADER_IS_INTERNAL = BuiltinMacros.declareBooleanMacro("SWIFT_BRIDGING_HEADER_IS_INTERNAL")
     public static let SWIFT_OBJC_INTERFACE_HEADER_NAME = BuiltinMacros.declareStringMacro("SWIFT_OBJC_INTERFACE_HEADER_NAME")
     public static let SWIFT_OBJC_INTERFACE_HEADER_DIR = BuiltinMacros.declareStringMacro("SWIFT_OBJC_INTERFACE_HEADER_DIR")
     public static let SWIFT_OBJC_INTEROP_MODE = BuiltinMacros.declareStringMacro("SWIFT_OBJC_INTEROP_MODE")
@@ -2271,6 +2272,7 @@ public final class BuiltinMacros {
         SWIFT_MODULE_ONLY_TVOS_DEPLOYMENT_TARGET,
         SWIFT_MODULE_ONLY_WATCHOS_DEPLOYMENT_TARGET,
         SWIFT_OBJC_BRIDGING_HEADER,
+        SWIFT_BRIDGING_HEADER_IS_INTERNAL,
         SWIFT_OBJC_INTERFACE_HEADER_NAME,
         SWIFT_OBJC_INTERFACE_HEADER_DIR,
         SWIFT_OBJC_INTEROP_MODE,
