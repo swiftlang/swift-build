@@ -2097,7 +2097,10 @@ public final class SwiftCompilerSpec : CompilerSpec, SpecIdentifierType, SwiftDi
             let objcBridgingHeaderPath = Path(cbc.scope.evaluate(BuiltinMacros.SWIFT_OBJC_BRIDGING_HEADER))
             if !objcBridgingHeaderPath.isEmpty {
                 let objcBridgingHeaderNode = delegate.createNode(objcBridgingHeaderPath)
-                args += ["-import-objc-header", objcBridgingHeaderNode.path.normalize().str]
+                let flag = cbc.scope.evaluate(BuiltinMacros.SWIFT_BRIDGING_HEADER_IS_INTERNAL)
+                    ? "-internal-import-bridging-header"
+                    : "-import-objc-header"
+                args += [flag, objcBridgingHeaderNode.path.normalize().str]
                 extraInputPaths.append(objcBridgingHeaderPath)
                 let precompsPath = cbc.scope.evaluate(BuiltinMacros.SHARED_PRECOMPS_DIR)
                 if !precompsPath.isEmpty,
@@ -3476,6 +3479,8 @@ public final class SwiftCompilerSpec : CompilerSpec, SpecIdentifierType, SwiftDi
             for arg in [
                 // We want the objc header in XOJIT mode so ignore in dynamic replacement mode
                 "-import-objc-header",
+
+                "-internal-import-bridging-header",
 
                 // Old setting only stripped in dynamic replacement mode for backward compatibility
                 "-clang-build-session-file",

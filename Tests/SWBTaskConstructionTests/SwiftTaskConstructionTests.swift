@@ -1748,8 +1748,9 @@ fileprivate struct SwiftTaskConstructionTests: CoreBasedTests {
     }
 
     /// Check handling of Swift bridging header.
-    @Test(.requireSDKs(.macOS))
-    func swiftBridgingHeader() async throws {
+    @Test(.requireSDKs(.macOS), arguments: [false, true])
+    func swiftBridgingHeader(isInternal: Bool) async throws {
+        let bridgingHeaderIsInternal = isInternal ? "YES" : "NO"
         let testProject = try await TestProject(
             "aProject",
             groupTree: TestGroup(
@@ -1773,6 +1774,7 @@ fileprivate struct SwiftTaskConstructionTests: CoreBasedTests {
                                                buildSettings: [
                                                 "SDKROOT": "macosx",
                                                 "SWIFT_OBJC_BRIDGING_HEADER": "swift-bridge-header.h",
+                                                "SWIFT_BRIDGING_HEADER_IS_INTERNAL": bridgingHeaderIsInternal,
                                                 "SWIFT_VERSION": swiftVersion,
                                                ]),
                     ],
@@ -1797,8 +1799,9 @@ fileprivate struct SwiftTaskConstructionTests: CoreBasedTests {
                 results.checkTask(.matchTarget(target), .matchRuleType("SwiftDriver Compilation")) { task in
                     task.checkRuleInfo(["SwiftDriver Compilation", "FooApp", "normal", "x86_64", "com.apple.xcode.tools.swift.compiler"])
 
+                    let expectedFlag = isInternal ? "-internal-import-bridging-header" : "-import-objc-header"
                     task.checkCommandLineContains([
-                        "-import-objc-header", bridgeHeader.str])
+                        expectedFlag, bridgeHeader.str])
                     task.checkInputs(contain: [.path(bridgeHeader.str)])
                 }
             }
