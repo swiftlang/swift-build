@@ -330,4 +330,62 @@ fileprivate struct ClangTests: CoreBasedTests {
             }
         }
     }
+
+
+    @Test(.requireSDKs(.host))
+    func indexOptions() async throws {
+        try await withTemporaryDirectory { tmpDir in
+            let testProject = TestProject(
+                "ProjectName",
+                sourceRoot: tmpDir,
+                groupTree: TestGroup(
+                    "SomeFiles",
+                    children: [
+                        TestFile("File1.c")
+                    ]),
+                targets: [
+                    TestStandardTarget(
+                        "Test",
+                        type: .dynamicLibrary,
+                        buildConfigurations: [
+                            TestBuildConfiguration(
+                                "Debug",
+                                buildSettings: [
+                                    "COMPILER_INDEX_STORE_ENABLE": "YES",
+                                    "INDEX_DATA_STORE_DIR": tmpDir.join("index").str,
+                                    "INDEX_STORE_COMPRESS": "YES",
+                                    "INDEX_STORE_ONLY_PROJECT_FILES": "YES",
+                                    "CLANG_INDEX_STORE_IGNORE_MACROS": "YES",
+                                ]
+                            ),
+                        ],
+                        buildPhases: [
+                            TestSourcesBuildPhase(["File1.c"]),
+                        ]
+                    )
+                ])
+
+            let core = try await getCore()
+            let tester = try TaskConstructionTester(core, testProject)
+            await tester.checkBuild(BuildParameters(configuration: "Debug", commandLineOverrides: ["INDEX_ENABLE_DATA_STORE": "YES"]), runDestination: .host) { results in
+                results.checkTask(.matchRuleType("CompileC")) { compileTask in
+                    compileTask.checkCommandLineContains(["-index-store-path"])
+                    compileTask.checkCommandLineContains(["-index-store-compress"])
+                    compileTask.checkCommandLineContains(["-index-ignore-system-symbols"])
+                    compileTask.checkCommandLineContains(["-index-ignore-pcms"])
+                    compileTask.checkCommandLineContains(["-index-ignore-macros"])
+                }
+            }
+            // Check that we don't emit any index-related options when INDEX_ENABLE_DATA_STORE is not enabled
+            await tester.checkBuild(BuildParameters(configuration: "Debug", commandLineOverrides: [:]), runDestination: .host) { results in
+                results.checkTask(.matchRuleType("CompileC")) { compileTask in
+                    compileTask.checkCommandLineDoesNotContain("-index-store-path")
+                    compileTask.checkCommandLineDoesNotContain("-index-store-compress")
+                    compileTask.checkCommandLineDoesNotContain("-index-ignore-system-symbols")
+                    compileTask.checkCommandLineDoesNotContain("-index-ignore-pcms")
+                    compileTask.checkCommandLineDoesNotContain("-index-ignore-macros")
+                }
+            }
+        }
+    }
 }

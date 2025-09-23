@@ -3506,6 +3506,20 @@ For more information on mergeable libraries, see [Configuring your project to us
                 Description = "Control whether the compiler should emit index data while building.";
             },
             {
+                Name = "INDEX_STORE_ONLY_PROJECT_FILES";
+                Type = Boolean;
+                DefaultValue = NO;
+                DisplayName = "Index only project files";
+                Description = "Only index the source files that are being compiled within this project. Do not emit data into the index store for system modules.";
+            },
+            {
+                Name = "INDEX_STORE_COMPRESS";
+                Type = Boolean;
+                DefaultValue = NO;
+                DisplayName = "Compress Index Store";
+                Description = "Compress the index store, reducing its size on disk.";
+            },
+            {
                 Name = TOOLCHAINS;
                 Type = StringList;
                 DefaultValue = "";
