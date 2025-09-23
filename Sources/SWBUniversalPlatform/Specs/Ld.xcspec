@@ -461,7 +461,7 @@
                 DefaultValue = NO;
                 Condition = "$(MACH_O_TYPE) != mh_object";
                 CommandLineArgs = {
-                    YES = ("-dead_strip");
+                    YES = ("-Xlinker", "-dead_strip");
                     NO = ();
                 };
             },
