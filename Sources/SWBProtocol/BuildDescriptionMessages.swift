@@ -168,6 +168,41 @@ public struct BuildDescriptionConfiguredTargetSourcesResponse: Message, Serializ
     }
 }
 
+/// Select a configured target for each provided target GUID in the pre-generated build description to be used by the index.
+public struct BuildDescriptionSelectConfiguredTargetsForIndexRequest: SessionMessage, RequestMessage, SerializableCodable, Equatable {
+    public typealias ResponseMessage = BuildDescriptionSelectConfiguredTargetsForIndexResponse
+
+    public static let name = "BUILD_DESCRIPTION_SELECT_CONFIGURED_TARGETS_FOR_INDEX_REQUEST"
+
+    public let sessionHandle: String
+
+    /// The ID of the build description from which to load the configured targets
+    public let buildDescriptionID: BuildDescriptionID
+
+    /// The build request that was used to generate the build description with the given ID.
+    public let request: BuildRequestMessagePayload
+
+    /// The targets for which to select configured targets.
+    public let targets: [TargetGUID]
+
+    public init(sessionHandle: String, buildDescriptionID: BuildDescriptionID, request: BuildRequestMessagePayload, targets: [TargetGUID]) {
+        self.sessionHandle = sessionHandle
+        self.buildDescriptionID = buildDescriptionID
+        self.request = request
+        self.targets = targets
+    }
+}
+
+public struct BuildDescriptionSelectConfiguredTargetsForIndexResponse: Message, SerializableCodable, Equatable {
+    public static let name = "BUILD_DESCRIPTION_SELECT_CONFIGURED_TARGETS_FOR_INDEX_RESPONSE"
+
+    public let configuredTargets: [ConfiguredTargetIdentifier]
+
+    public init(configuredTargets: [ConfiguredTargetIdentifier]) {
+        self.configuredTargets = configuredTargets
+    }
+}
+
 /// Load the build settings that should be used to index a source file in a given configured target
 public struct IndexBuildSettingsRequest: SessionMessage, RequestMessage, SerializableCodable, Equatable {
     public typealias ResponseMessage = IndexBuildSettingsResponse
@@ -241,6 +276,8 @@ let buildDescriptionMessages: [any Message.Type] = [
     BuildDescriptionConfiguredTargetsResponse.self,
     BuildDescriptionConfiguredTargetSourcesRequest.self,
     BuildDescriptionConfiguredTargetSourcesResponse.self,
+    BuildDescriptionSelectConfiguredTargetsForIndexRequest.self,
+    BuildDescriptionSelectConfiguredTargetsForIndexResponse.self,
     IndexBuildSettingsRequest.self,
     IndexBuildSettingsResponse.self,
     ReleaseBuildDescriptionRequest.self,

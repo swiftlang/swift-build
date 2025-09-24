@@ -1624,6 +1624,7 @@ package struct ServiceMessageHandlers: ServiceExtension {
         service.registerMessageHandler(DumpBuildDependencyInfoMsg.self)
         
         service.registerMessageHandler(BuildDescriptionConfiguredTargetsMsg.self)
+        service.registerMessageHandler(BuildDescriptionSelectConfiguredTargetsForIndexMsg.self)
         service.registerMessageHandler(BuildDescriptionConfiguredTargetSourcesMsg.self)
         service.registerMessageHandler(IndexBuildSettingsMsg.self)
         service.registerMessageHandler(ReleaseBuildDescriptionMsg.self)
