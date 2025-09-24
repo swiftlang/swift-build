@@ -1692,6 +1692,60 @@ fileprivate struct SwiftTaskConstructionTests: CoreBasedTests {
         }
     }
 
+    @Test(.requireSDKs(.macOS))
+    func enableVersionIndependentAPINotes() async throws {
+        let testProject = try await TestProject(
+            "aProject",
+            groupTree: TestGroup(
+                "SomeFiles", path: "Sources",
+                children: [
+                    TestFile("main.swift"),
+                ]),
+            buildConfigurations: [
+                TestBuildConfiguration(
+                    "Debug",
+                    buildSettings: [
+                        "PRODUCT_NAME": "$(TARGET_NAME)",
+                        "SWIFT_ENABLE_EXPLICIT_MODULES": "YES",
+                        "SWIFT_VERSION": "4.2"
+                    ]),
+            ],
+            targets: [
+                TestStandardTarget(
+                    "Exec", type: .commandLineTool,
+                    buildConfigurations: [
+                        TestBuildConfiguration("Debug",
+                                               buildSettings: [
+                                                "SWIFT_EXEC": swiftCompilerPath.str,
+                                               ]),
+                    ],
+                    buildPhases: [
+                        TestSourcesBuildPhase([
+                            "main.swift",
+                        ]),
+                    ])
+            ])
+        let tester = try await TaskConstructionTester(getCore(), testProject)
+
+        await tester.checkBuild(BuildParameters(configuration: "Debug", overrides: ["SWIFT_ENABLE_VERSION_INDEPENDENT_APINOTES": "YES"]), runDestination: .macOS) { results in
+            results.checkTarget("Exec") { target in
+                results.checkTask(.matchTarget(target), .matchRuleType("SwiftDriver Compilation")) { task in
+                    task.checkCommandLineContains(["-Xfrontend", "-version-independent-apinotes"])
+                }
+            }
+            results.checkNoDiagnostics()
+        }
+
+        await tester.checkBuild(BuildParameters(configuration: "Debug", overrides: ["SWIFT_ENABLE_VERSION_INDEPENDENT_APINOTES": "NO"]), runDestination: .macOS) { results in
+            results.checkTarget("Exec") { target in
+                results.checkTask(.matchTarget(target), .matchRuleType("SwiftDriver Compilation")) { task in
+                    task.checkCommandLineDoesNotContain("-version-independent-apinotes")
+                }
+            }
+            results.checkNoDiagnostics()
+        }
+    }
+
     /// Check control of whether Swift module is copied for other targets to use.
     @Test(.requireSDKs(.macOS))
     func swiftModuleNotCopiedWhenAskedNotTo() async throws {
