@@ -142,6 +142,7 @@ public final class BuiltinMacros {
     public static let HOST_TARGETED_PLATFORM_NAME = BuiltinMacros.declareStringMacro("HOST_TARGETED_PLATFORM_NAME")
     public static let SUPPORTS_MACCATALYST = BuiltinMacros.declareBooleanMacro("SUPPORTS_MACCATALYST")
     public static let SUPPORTS_ON_DEMAND_RESOURCES = BuiltinMacros.declareBooleanMacro("SUPPORTS_ON_DEMAND_RESOURCES")
+    public static let __ORIGINAL_SDK_DEFINED_LLVM_TARGET_TRIPLE_SYS = BuiltinMacros.declareStringMacro("__ORIGINAL_SDK_DEFINED_LLVM_TARGET_TRIPLE_SYS")
     public static let SWIFT_PLATFORM_TARGET_PREFIX = BuiltinMacros.declareStringMacro("SWIFT_PLATFORM_TARGET_PREFIX")
     public static let TVOS_DEPLOYMENT_TARGET = BuiltinMacros.declareStringMacro("TVOS_DEPLOYMENT_TARGET")
     public static let VALID_ARCHS = BuiltinMacros.declareStringListMacro("VALID_ARCHS")
@@ -2279,6 +2280,7 @@ public final class BuiltinMacros {
         SWIFT_SYSTEM_INCLUDE_PATHS,
         PACKAGE_RESOURCE_BUNDLE_NAME,
         PACKAGE_RESOURCE_TARGET_KIND,
+        __ORIGINAL_SDK_DEFINED_LLVM_TARGET_TRIPLE_SYS,
         SWIFT_PLATFORM_TARGET_PREFIX,
         USE_SWIFT_RESPONSE_FILE, // remove in rdar://53000820
         SWIFT_INSTALL_MODULE,
