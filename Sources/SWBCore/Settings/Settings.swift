@@ -2524,6 +2524,7 @@ private class SettingsBuilder {
             }
 
             if let llvmTargetTripleSys = variant.llvmTargetTripleSys {
+                sdkTable.push(BuiltinMacros.__ORIGINAL_SDK_DEFINED_LLVM_TARGET_TRIPLE_SYS, literal: llvmTargetTripleSys)
                 sdkTable.push(BuiltinMacros.SWIFT_PLATFORM_TARGET_PREFIX, literal: llvmTargetTripleSys)
             }
 
@@ -4101,7 +4102,10 @@ private class SettingsBuilder {
         // setting will primarily be used to support building Swift modules for deprecated (or at least unsupported)
         // architectures.
         let originalModuleOnlyArchs = scope.evaluate(BuiltinMacros.SWIFT_MODULE_ONLY_ARCHS)
-        let moduleOnlyArchs = onlyActiveArchApplied ? [] : originalModuleOnlyArchs
+        // Detect discouraged overrides of SWIFT_PLATFORM_TARGET_PREFIX and use this as a signal to suppress
+        // module only architectures
+        let tripleOverridesApplied = scope.evaluate(BuiltinMacros.SWIFT_PLATFORM_TARGET_PREFIX) != scope.evaluate(BuiltinMacros.__ORIGINAL_SDK_DEFINED_LLVM_TARGET_TRIPLE_SYS)
+        let moduleOnlyArchs = (onlyActiveArchApplied || tripleOverridesApplied) ? [] : originalModuleOnlyArchs
             .filter { validArchs.contains($0) }
             .filter { !excludedArchs.contains($0) }
             .filter { !effectiveArchs.contains($0) }
