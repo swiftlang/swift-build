@@ -1319,6 +1319,33 @@
                     NO = ();
                 };
             },
+            {
+                Name = "SWIFT_INDEX_STORE_ONLY_PROJECT_FILES";
+                Type = Boolean;
+                DefaultValue = "$(INDEX_STORE_ONLY_PROJECT_FILES)";
+                Condition = "$(SWIFT_INDEX_STORE_ENABLE)";
+                CommandLineArgs = {
+                    YES = (
+                        // Assume that clang modules are getting indexed by a clang file within them. While this is technically not correct, since you could have a clang module that only consists of header files and is only included from Swift, such scenarios are rare.
+                        "-index-ignore-clang-modules",
+                        "-index-ignore-system-modules",
+                    );
+                    NO = ();
+                };
+            },
+            {
+                Name = "SWIFT_INDEX_STORE_COMPRESS";
+                Type = Boolean;
+                DefaultValue = "$(INDEX_STORE_COMPRESS)";
+                Condition = "$(SWIFT_INDEX_STORE_ENABLE)";
+                CommandLineArgs = {
+                    YES = (
+                        "-Xfrontend",
+                        "-index-store-compress",
+                    );
+                    NO = ();
+                };
+            },
 
             // Swift caching options.
             {
