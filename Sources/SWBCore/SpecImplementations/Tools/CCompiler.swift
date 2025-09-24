@@ -235,7 +235,7 @@ public struct ClangSourceFileIndexingInfo: SourceFileIndexingInfo {
                 // Skip
             } else if arg.starts(with: ByteString(unicodeScalarLiteral: "@")),
                       let attachmentPath = responseFileMapping[Path(arg.asString.dropFirst())],
-                      let responseFileArgs = try? ResponseFiles.expandResponseFiles(["@\(attachmentPath.str)"], fileSystem: localFS, relativeTo: workingDir, format: .unixShellQuotedSpaceSeparated) {
+                      let responseFileArgs = try? ResponseFiles.expandResponseFiles(["@\(attachmentPath.str)"], fileSystem: localFS, relativeTo: workingDir, format: .llvmStyleEscaping) {
                 result.append(contentsOf: responseFileArgs.map { ByteString(encodingAsUTF8: $0) })
             } else {
                 result.append(arg)
@@ -719,7 +719,7 @@ public class ClangCompilerSpec : CompilerSpec, SpecIdentifierType, GCCCompatible
             ctx.add(string: self.identifier)
 
             let responseFilePath = scope.evaluate(BuiltinMacros.PER_ARCH_OBJECT_FILE_DIR).join("\(ctx.signature.asString)-common-args.resp")
-            let attachmentPath = producer.writeFileSpec.constructFileTasks(CommandBuildContext(producer: producer, scope: scope, inputs: [], output: responseFilePath), delegate, contents: ByteString(encodingAsUTF8: ResponseFiles.responseFileContents(args: responseFileCommandLine, format: .unixShellQuotedSpaceSeparated)), permissions: nil, logContents: true, preparesForIndexing: true, additionalTaskOrderingOptions: [.immediate, .ignorePhaseOrdering])
+            let attachmentPath = producer.writeFileSpec.constructFileTasks(CommandBuildContext(producer: producer, scope: scope, inputs: [], output: responseFilePath), delegate, contents: ByteString(encodingAsUTF8: ResponseFiles.responseFileContents(args: responseFileCommandLine, format: .llvmStyleEscaping)), permissions: nil, logContents: true, preparesForIndexing: true, additionalTaskOrderingOptions: [.immediate, .ignorePhaseOrdering])
 
             return ConstantFlags(flags: regularCommandLine + ["@\(responseFilePath.str)"], headerSearchPaths: headerSearchPaths, inputs: [responseFilePath], responseFileMapping: [responseFilePath: attachmentPath])
         } else {

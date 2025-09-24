@@ -15,6 +15,7 @@ public enum ResponseFileFormat: String, Equatable, Hashable, CaseIterable, Senda
     case unixShellQuotedNewlineSeparated
     case unixShellQuotedSpaceSeparated
     case windowsShellQuotedNewlineSeparated
+    case llvmStyleEscaping
 }
 
 public enum ResponseFiles: Sendable {
@@ -30,6 +31,8 @@ public enum ResponseFiles: Sendable {
         case .windowsShellQuotedNewlineSeparated:
             let escaper = WindowsProcessArgumentsCodec()
             return args.map { escaper.encode([$0]) + "\r\n" }.joined()
+        case .llvmStyleEscaping:
+            return LLVMStyleCommandCodec().encode(args)
         }
     }
 
@@ -73,6 +76,8 @@ public enum ResponseFiles: Sendable {
         case .windowsShellQuotedNewlineSeparated:
             return content.split { $0 == "\n" || $0 == "\r\n" }
                 .map { tokenizeWindowsShellQuotedResponseFileArg($0) }
+        case .llvmStyleEscaping:
+            return (try? LLVMStyleCommandCodec().decode(content)) ?? []
         }
     }
 
