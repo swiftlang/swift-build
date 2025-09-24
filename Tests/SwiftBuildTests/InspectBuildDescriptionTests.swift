@@ -306,6 +306,89 @@ fileprivate struct InspectBuildDescriptionTests {
             }
         }
     }
+
+    @Test(.requireSDKs(.macOS))
+    func selectConfiguredTargets() async throws {
+        try await withTemporaryDirectory { (temporaryDirectory: NamedTemporaryDirectory) in
+            try await withAsyncDeferrable { deferrable in
+                let tmpDir = temporaryDirectory.path
+                let testSession = try await TestSWBSession(temporaryDirectory: temporaryDirectory)
+                await deferrable.addBlock {
+                    await #expect(throws: Never.self) {
+                        try await testSession.close()
+                    }
+                }
+
+                let macOSAppTarget = TestStandardTarget(
+                    "MyApp1",
+                    type: .application,
+                    buildConfigurations: [TestBuildConfiguration("Debug", buildSettings: ["SDKROOT": "macosx", "SUPPORTED_PLATFORMS": "macosx"])],
+                    buildPhases: [TestSourcesBuildPhase([TestBuildFile("MyApp1.swift")])]
+                )
+
+                let iOSAppTarget = TestStandardTarget(
+                    "MyApp2",
+                    type: .application,
+                    buildConfigurations: [TestBuildConfiguration("Debug", buildSettings: ["SDKROOT": "iphoneos", "SUPPORTED_PLATFORMS": "macosx iphoneos"])],
+                    buildPhases: [TestSourcesBuildPhase([TestBuildFile("MyApp2.swift")])],
+                    dependencies: [TestTargetDependency("MyFramework")]
+                )
+
+                let project = TestProject(
+                    "Test",
+                    groupTree: TestGroup("Test", children: [TestFile("MyFramework.swift"), TestFile("MyApp1.swift"), TestFile("MyApp2.swift")]),
+                    targets: [macOSAppTarget, iOSAppTarget]
+
+                )
+
+                let workspace = TestWorkspace("MyWorkspace", projects: [project])
+
+                try await testSession.sendPIF(TestWorkspace("Test", sourceRoot: tmpDir, projects: [project]))
+
+                let buildDescriptionID = try await createIndexBuildDescription(workspace, session: testSession)
+
+                func configuredTarget(for target: TestStandardTarget, using runDestination: SWBRunDestinationInfo? = nil) async throws -> SWBConfiguredTargetIdentifier {
+                    let result = try await configuredTargets(for: [target], using: runDestination)
+                    return try #require(result.only)
+                }
+
+                func configuredTargets(for targets: [TestStandardTarget], using runDestination: SWBRunDestinationInfo? = nil) async throws -> [SWBConfiguredTargetIdentifier] {
+                    var request = SWBBuildRequest()
+                    request.parameters.activeRunDestination = runDestination
+                    request.enableIndexBuildArena = true
+
+                    return try await testSession.session.selectConfiguredTargetsForIndex(targets: targets.map { SWBTargetGUID(rawValue: $0.guid) }, buildDescription: .init(buildDescriptionID), buildRequest: request)
+                }
+
+                let macOSAppForMacOSRef = try await configuredTarget(for: macOSAppTarget, using: .macOS)
+                #expect(macOSAppForMacOSRef.rawGUID.contains("macosx"))
+
+                let macOSAppForiOSRef = try await configuredTarget(for: macOSAppTarget, using: .iOS)
+                #expect(macOSAppForiOSRef.rawGUID.contains("macosx"))
+
+                let iOSAppRefNoDestination = try await configuredTarget(for: iOSAppTarget)
+                #expect(iOSAppRefNoDestination.rawGUID.contains("macosx"))
+
+                let iOSAppForMacOSRef = try await configuredTarget(for: iOSAppTarget, using: .macOS)
+                #expect(iOSAppForMacOSRef.rawGUID.contains("macosx"))
+
+                let iOSAppForiOSRef = try await configuredTarget(for: iOSAppTarget, using: .iOS)
+                #expect(iOSAppForiOSRef.rawGUID.contains("iphoneos"))
+
+                let iOSAppForUnsupportedRef = try await configuredTarget(for: iOSAppTarget, using: .watchOS)
+                #expect(iOSAppForUnsupportedRef.rawGUID.contains("macosx"))
+
+                let multiple = try await configuredTargets(for: [macOSAppTarget, iOSAppTarget], using: .macOS)
+                #expect(multiple.count == 2)
+                do {
+                    let macOSAppGUID = try #require(multiple.first?.targetGUID.rawValue)
+                    let iOSAppGUID = try #require(multiple.last?.targetGUID.rawValue)
+                    #expect(macOSAppGUID == macOSAppTarget.guid)
+                    #expect(iOSAppGUID == iOSAppTarget.guid)
+                }
+            }
+        }
+    }
 }
 
 fileprivate extension SWBBuildServiceSession {

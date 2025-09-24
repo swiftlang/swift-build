@@ -30,6 +30,7 @@ private protocol BuildDescriptionMessage: SessionMessage {
 }
 
 extension BuildDescriptionConfiguredTargetsRequest: BuildDescriptionMessage {}
+extension BuildDescriptionSelectConfiguredTargetsForIndexRequest: BuildDescriptionMessage {}
 extension BuildDescriptionConfiguredTargetSourcesRequest: BuildDescriptionMessage {}
 extension IndexBuildSettingsRequest: BuildDescriptionMessage {}
 
@@ -144,6 +145,50 @@ fileprivate extension SourceLanguage {
         case .objectiveCpp: self = .objectiveCpp
         case .swift: self = .swift
         }
+    }
+}
+
+struct BuildDescriptionSelectConfiguredTargetsForIndexMsg: MessageHandler {
+    private struct FailedToFindTargetForGUID: Error {
+        var guid: String
+    }
+
+    private struct FailedToSelectConfiguredTarget: Error {
+        var guid: String
+    }
+
+    func handle(request: Request, message: BuildDescriptionSelectConfiguredTargetsForIndexRequest) async throws -> BuildDescriptionSelectConfiguredTargetsForIndexResponse {
+        let buildDescription = try await request.buildDescription(for: message)
+
+        let session = try request.session(for: message)
+        guard let workspaceContext = session.workspaceContext else { throw MsgParserError.missingWorkspaceContext }
+        let buildRequest = try BuildRequest(from: message.request, workspace: workspaceContext.workspace)
+        let buildRequestContext = BuildRequestContext(workspaceContext: workspaceContext)
+
+        let uniqueTargets = OrderedSet(message.targets.map(\.rawValue))
+
+        let targets: Dictionary<String, ConfiguredTarget?> = Dictionary(buildDescription.allConfiguredTargets.lazy.filter { uniqueTargets.contains($0.target.guid) }.map {
+            ($0.target.guid, $0)
+        }, uniquingKeysWith: {
+            buildRequestContext.selectConfiguredTargetForIndex($0, $1, hasEnabledIndexBuildArena: buildRequest.enableIndexBuildArena, runDestination: message.request.parameters.activeRunDestination)
+        })
+
+        let configuredTargets = try uniqueTargets.map { target in
+            guard let configuredTarget = targets[target] else {
+                throw FailedToFindTargetForGUID(guid: target)
+            }
+
+            guard let configuredTarget else {
+                throw FailedToSelectConfiguredTarget(guid: target)
+            }
+
+            return ConfiguredTargetIdentifier(
+                rawGUID: configuredTarget.guid.stringValue,
+                targetGUID: TargetGUID(rawValue: configuredTarget.target.guid)
+            )
+        }
+
+        return BuildDescriptionSelectConfiguredTargetsForIndexResponse(configuredTargets: configuredTargets)
     }
 }
 

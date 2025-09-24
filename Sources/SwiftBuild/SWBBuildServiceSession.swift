@@ -433,6 +433,24 @@ public final class SWBBuildServiceSession: Sendable {
         return buildSettings.compilerArguments
     }
 
+    public func selectConfiguredTargetsForIndex(targets: [SWBTargetGUID], buildDescription: SWBBuildDescriptionID, buildRequest: SWBBuildRequest) async throws -> [SWBConfiguredTargetIdentifier] {
+        let response = try await service.send(
+            request: BuildDescriptionSelectConfiguredTargetsForIndexRequest(
+                sessionHandle: uid,
+                buildDescriptionID: BuildDescriptionID(buildDescription),
+                request: buildRequest.messagePayloadRepresentation,
+                targets: targets.map { TargetGUID(rawValue: $0.rawValue) }
+            )
+         )
+
+        return response.configuredTargets.map {
+            SWBConfiguredTargetIdentifier(
+                rawGUID: $0.rawGUID,
+                targetGUID: .init($0.targetGUID)
+            )
+        }
+    }
+
     // MARK: Macro evaluation
 
 
