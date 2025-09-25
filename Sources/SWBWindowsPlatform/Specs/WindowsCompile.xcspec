@@ -37,6 +37,16 @@
         SupportsMacOSXMinVersionFlag = No;
         SupportsIsysroot = No;
         Options = (
+            {
+                Name = "ENABLE_BLOCKS";
+                Type = Boolean;
+                DefaultValue = YES;
+                CommandLineArgs = {
+                    YES = ("-fblocks");
+                    NO = ();
+                };
+                Category = CodeGeneration;
+            },
         );
     },
     {
