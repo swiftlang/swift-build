@@ -3116,6 +3116,46 @@
                     NO = ();
                 };
             },
+            {
+                Name = "CLANG_INDEX_STORE_ONLY_PROJECT_FILES";
+                Type = Boolean;
+                DefaultValue = "$(INDEX_STORE_ONLY_PROJECT_FILES)";
+                Condition = "$(CLANG_INDEX_STORE_ENABLE)";
+                CommandLineArgs = {
+                    YES = (
+                        "-index-ignore-system-symbols",
+                        // If the PCM covers files generated within the project, we should have indexed them in the task that compiles them, otherwise it's a system module that we don't want to index.
+                        "-index-ignore-pcms",
+                    );
+                    NO = ();
+                };
+            },
+            {
+                Name = "CLANG_INDEX_STORE_COMPRESS";
+                Type = Boolean;
+                DefaultValue = "$(INDEX_STORE_COMPRESS)";
+                Condition = "$(CLANG_INDEX_STORE_ENABLE)";
+                CommandLineArgs = {
+                    YES = (
+                        "-index-store-compress",
+                    );
+                    NO = ();
+                };
+            },
+            {
+                Name = "CLANG_INDEX_STORE_IGNORE_MACROS";
+                Type = Boolean;
+                DefaultValue = NO;
+                Condition = "$(CLANG_INDEX_STORE_ENABLE)";
+                DisplayName = "Do not index C macros";
+                Description = "Do not emit entries for C macros into the Index Store.";
+                CommandLineArgs = {
+                    YES = (
+                        "-index-ignore-macros",
+                    );
+                    NO = ();
+                };
+            },
 
             {
                 Name = "CLANG_ENABLE_COMPILE_CACHE";

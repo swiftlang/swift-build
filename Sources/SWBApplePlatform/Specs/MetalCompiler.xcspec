@@ -236,6 +236,20 @@
                 };
             },
             {
+                Name = "METAL_INDEX_STORE_ONLY_PROJECT_FILES";
+                Type = Boolean;
+                DefaultValue = "$(INDEX_STORE_ONLY_PROJECT_FILES)";
+                Condition = "$(MTL_ENABLE_INDEX_STORE)";
+                CommandLineArgs = {
+                    YES = (
+                        // See corresponding definition in Clang.xcspec
+                        "-index-ignore-system-symbols",
+                        "-index-ignore-pcms",
+                    );
+                    NO = ();
+                };
+            },
+            {
                 Name = "MTL_LANGUAGE_REVISION";
                 Type = Enumeration;
                 DefaultValue = UseDeploymentTarget;

@@ -4507,6 +4507,62 @@ fileprivate struct SwiftTaskConstructionTests: CoreBasedTests {
             }
         }
     }
+
+    @Test(.requireSDKs(.host))
+    func indexOptions() async throws {
+        try await withTemporaryDirectory { tmpDir in
+            let testProject = try await TestProject(
+                "ProjectName",
+                sourceRoot: tmpDir,
+                groupTree: TestGroup(
+                    "SomeFiles",
+                    children: [
+                        TestFile("File1.swift")
+                    ]),
+                targets: [
+                    TestStandardTarget(
+                        "Test",
+                        type: .dynamicLibrary,
+                        buildConfigurations: [
+                            TestBuildConfiguration(
+                                "Debug",
+                                buildSettings: [
+                                    "SWIFT_EXEC": swiftCompilerPath.str,
+                                    "SWIFT_VERSION": swiftVersion,
+                                    "COMPILER_INDEX_STORE_ENABLE": "YES",
+                                    "INDEX_DATA_STORE_DIR": tmpDir.join("index").str,
+                                    "INDEX_STORE_COMPRESS": "YES",
+                                    "INDEX_STORE_ONLY_PROJECT_FILES": "YES"
+                                ]
+                            ),
+                        ],
+                        buildPhases: [
+                            TestSourcesBuildPhase(["File1.swift"]),
+                        ]
+                    )
+                ])
+
+            let core = try await getCore()
+            let tester = try TaskConstructionTester(core, testProject)
+            await tester.checkBuild(BuildParameters(configuration: "Debug", commandLineOverrides: ["INDEX_ENABLE_DATA_STORE": "YES"]), runDestination: .host) { results in
+                results.checkTask(.matchRuleType("SwiftDriver Compilation")) { compileTask in
+                    compileTask.checkCommandLineContains(["-index-store-path"])
+                    compileTask.checkCommandLineContains(["-Xfrontend", "-index-store-compress"])
+                    compileTask.checkCommandLineContains(["-index-ignore-clang-modules"])
+                    compileTask.checkCommandLineContains(["-index-ignore-system-modules"])
+                }
+            }
+            // Check that we don't emit any index-related options when INDEX_ENABLE_DATA_STORE is not enabled
+            await tester.checkBuild(BuildParameters(configuration: "Debug", commandLineOverrides: [:]), runDestination: .host) { results in
+                results.checkTask(.matchRuleType("SwiftDriver Compilation")) { compileTask in
+                    compileTask.checkCommandLineDoesNotContain("-index-store-path")
+                    compileTask.checkCommandLineDoesNotContain("-index-store-compress")
+                    compileTask.checkCommandLineDoesNotContain("-index-ignore-clang-modules")
+                    compileTask.checkCommandLineDoesNotContain("-index-ignore-system-modules")
+                }
+            }
+        }
+    }
 }
 
 private func XCTAssertEqual(_ lhs: EnvironmentBindings, _ rhs: [String: String], file: StaticString = #filePath, line: UInt = #line) {
