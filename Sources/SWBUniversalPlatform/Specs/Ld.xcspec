@@ -444,9 +444,24 @@
                 Name = "LINK_WITH_STANDARD_LIBRARIES";
                 Type = Boolean;
                 DefaultValue = YES;
+            },
+            {
+                Name = "CLANG_LINK_WITH_STANDARD_LIBRARIES";
+                Type = Boolean;
+                DefaultValue = "$(LINK_WITH_STANDARD_LIBRARIES)";
                 CommandLineArgs = {
                     NO = ("-nostdlib");
                 };
+                Condition = "$(LINKER_DRIVER) == clang";
+            },
+            {
+                Name = "SWIFTC_LINK_WITH_STANDARD_LIBRARIES";
+                Type = Boolean;
+                DefaultValue = "$(LINK_WITH_STANDARD_LIBRARIES)";
+                CommandLineArgs = {
+                    NO = ("-Xclang-linker", "-nostdlib");
+                };
+                Condition = "$(LINKER_DRIVER) == swiftc";
             },
             {
                 Name = "KEEP_PRIVATE_EXTERNS";
