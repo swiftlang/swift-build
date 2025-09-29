@@ -362,6 +362,11 @@ public final class LdLinkerSpec : GenericLinkerSpec, SpecIdentifierType, @unchec
         return runpathSearchPaths
     }
 
+    private static func swiftcSupportsLinkingMachOType(_ type: String) -> Bool {
+        // swiftc does not currently support linking relocatable objects.
+        return type != "mh_object"
+    }
+
     static func resolveLinkerDriver(_ cbc: CommandBuildContext, usedTools: [CommandLineToolSpec: Set<FileTypeSpec>]) -> LinkerDriverChoice {
         switch cbc.scope.evaluate(BuiltinMacros.LINKER_DRIVER) {
         case .clang:
@@ -371,7 +376,7 @@ public final class LdLinkerSpec : GenericLinkerSpec, SpecIdentifierType, @unchec
         case .swiftc:
             return .swiftc
         case .auto:
-            if Self.isUsingSwift(usedTools) {
+            if Self.isUsingSwift(usedTools) && Self.swiftcSupportsLinkingMachOType(cbc.scope.evaluate(BuiltinMacros.MACH_O_TYPE)) {
                 return .swiftc
             } else {
                 return .clang
