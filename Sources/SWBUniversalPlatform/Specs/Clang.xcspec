@@ -544,6 +544,44 @@
                 // Hidden.
             },
             {
+                Name = "CLANG_BOUNDS_SAFETY_BRINGUP_MISSING_CHECKS";
+                Type = Enumeration;
+                FileTypes = (
+                    "sourcecode.c.c",
+                );
+                Values = (
+                    "none",
+                    "default",
+                );
+                DefaultValue = "default";
+                CommandLineArgs = {
+                    "none" = ( "-fno-bounds-safety-bringup-missing-checks" );
+                    // Use the compiler default
+                    "default" = ();
+                    // E.g. `batch_0` or `all` or comma separated lists of checks to enable
+                    "<<otherwise>>" = ( "-fbounds-safety-bringup-missing-checks=$(value)" );
+                };
+
+                Condition = "$(CLANG_ENABLE_BOUNDS_ATTRIBUTES) || $(CLANG_ENABLE_BOUNDS_SAFETY)";
+                // Hidden
+            },
+            {
+              Name = "CLANG_BOUNDS_SAFETY_BRINGUP_MISSING_CHECKS_OPT_OUTS";
+              Type = String;
+              FileTypes = (
+                    "sourcecode.c.c",
+                );
+              DefaultValue = "";
+              CommandLineArgs = {
+                "" = ();
+                // Comma separated list of checks to disable
+                "<<otherwise>>" = ( "-fno-bounds-safety-bringup-missing-checks=$(value)" );
+              };
+              Condition = "$(CLANG_ENABLE_BOUNDS_ATTRIBUTES) || $(CLANG_ENABLE_BOUNDS_SAFETY)";
+              AppearsAfter = "CLANG_BOUNDS_SAFETY_BRINGUP_MISSING_CHECKS";
+              // Hidden
+            },
+            {
                 Name = "CLANG_ENABLE_APP_EXTENSION";
                 Type = Boolean;
                 DefaultValue = "$(APPLICATION_EXTENSION_API_ONLY)";
