@@ -544,6 +544,44 @@
                 // Hidden.
             },
             {
+                Name = "CLANG_BOUNDS_SAFETY_BRINGUP_MISSING_CHECKS";
+                Type = Enumeration;
+                FileTypes = (
+                    "sourcecode.c.c",
+                );
+                Values = (
+                    "none",
+                    "default",
+                );
+                DefaultValue = "default";
+                CommandLineArgs = {
+                    "none" = ( "-fno-bounds-safety-bringup-missing-checks" );
+                    // Use the compiler default
+                    "default" = ();
+                    // E.g. `batch_0` or `all` or comma separated lists of checks to enable
+                    "<<otherwise>>" = ( "-fbounds-safety-bringup-missing-checks=$(value)" );
+                };
+
+                Condition = "$(CLANG_ENABLE_BOUNDS_ATTRIBUTES) || $(CLANG_ENABLE_BOUNDS_SAFETY)";
+                // Hidden
+            },
+            {
+              Name = "CLANG_BOUNDS_SAFETY_BRINGUP_MISSING_CHECKS_OPT_OUTS";
+              Type = String;
+              FileTypes = (
+                    "sourcecode.c.c",
+                );
+              DefaultValue = "";
+              CommandLineArgs = {
+                "" = ();
+                // Comma separated list of checks to disable
+                "<<otherwise>>" = ( "-fno-bounds-safety-bringup-missing-checks=$(value)" );
+              };
+              Condition = "$(CLANG_ENABLE_BOUNDS_ATTRIBUTES) || $(CLANG_ENABLE_BOUNDS_SAFETY)";
+              AppearsAfter = "CLANG_BOUNDS_SAFETY_BRINGUP_MISSING_CHECKS";
+              // Hidden
+            },
+            {
                 Name = "CLANG_ENABLE_APP_EXTENSION";
                 Type = Boolean;
                 DefaultValue = "$(APPLICATION_EXTENSION_API_ONLY)";
@@ -3078,6 +3116,25 @@
                 };
                 Category = LanguageCXX;
             },
+            {
+                Name = "CLANG_OMIT_FRAME_POINTERS";
+                Type = Enumeration;
+                Values = (
+                    "compiler-default",
+                    YES,
+                    NO,
+                );
+                CommandLineArgs = {
+                    YES = (
+                        "-fomit-frame-pointer",
+                    );
+                    NO = (
+                        "-fno-omit-frame-pointer",
+                    );
+                    "<<otherwise>>" = ();
+                };
+                DefaultValue = "compiler-default";
+            },
             // Index-while-building options, not visible in build settings.
             {
                 Name = "CLANG_INDEX_STORE_PATH";
@@ -3093,6 +3150,46 @@
                     YES = (
                         "-index-store-path",
                         "$(CLANG_INDEX_STORE_PATH)",
+                    );
+                    NO = ();
+                };
+            },
+            {
+                Name = "CLANG_INDEX_STORE_ONLY_PROJECT_FILES";
+                Type = Boolean;
+                DefaultValue = "$(INDEX_STORE_ONLY_PROJECT_FILES)";
+                Condition = "$(CLANG_INDEX_STORE_ENABLE)";
+                CommandLineArgs = {
+                    YES = (
+                        "-index-ignore-system-symbols",
+                        // If the PCM covers files generated within the project, we should have indexed them in the task that compiles them, otherwise it's a system module that we don't want to index.
+                        "-index-ignore-pcms",
+                    );
+                    NO = ();
+                };
+            },
+            {
+                Name = "CLANG_INDEX_STORE_COMPRESS";
+                Type = Boolean;
+                DefaultValue = "$(INDEX_STORE_COMPRESS)";
+                Condition = "$(CLANG_INDEX_STORE_ENABLE)";
+                CommandLineArgs = {
+                    YES = (
+                        "-index-store-compress",
+                    );
+                    NO = ();
+                };
+            },
+            {
+                Name = "CLANG_INDEX_STORE_IGNORE_MACROS";
+                Type = Boolean;
+                DefaultValue = NO;
+                Condition = "$(CLANG_INDEX_STORE_ENABLE)";
+                DisplayName = "Do not index C macros";
+                Description = "Do not emit entries for C macros into the Index Store.";
+                CommandLineArgs = {
+                    YES = (
+                        "-index-ignore-macros",
                     );
                     NO = ();
                 };

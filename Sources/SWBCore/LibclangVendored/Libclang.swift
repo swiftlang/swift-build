@@ -91,6 +91,10 @@ public final class Libclang {
         libclang_has_structured_scanner_diagnostics(lib)
     }
 
+    public var supportsNegativeStatCacheDiagnostics: Bool {
+        libclang_has_negative_stat_cache_diagnostics(lib)
+    }
+
     public var supportsCASPruning: Bool {
         libclang_has_cas_pruning_feature(lib)
     }
@@ -101,6 +105,10 @@ public final class Libclang {
 
     public var supportsCurrentWorkingDirectoryOptimization: Bool {
         libclang_has_current_working_directory_optimization(lib)
+    }
+
+    public var supportsReproducerGeneration: Bool {
+        libclang_has_reproducer_feature(lib)
     }
 }
 
@@ -268,6 +276,33 @@ public final class DependencyScanner {
             }
         }
         return fileDeps
+    }
+
+    public func diagnoseInvalidNegativeStatCacheEntries() -> [String] {
+        var entries: [String] = []
+        libclang_scanner_diagnose_invalid_negative_stat_cache_entries(scanner, { cString in
+            guard let cString else {
+                return
+            }
+            entries.append(String(cString: cString))
+        })
+        return entries
+    }
+
+    public func generateReproducer(
+        commandLine: [String],
+        workingDirectory: String
+    ) throws -> String {
+        let args = CStringArray(commandLine)
+        var messageUnsafe: UnsafePointer<Int8>!
+        defer { messageUnsafe?.deallocate() }
+        // The count is `- 1` here, because CStringArray appends a trailing nullptr.
+        let success = libclang_scanner_generate_reproducer(scanner, CInt(args.cArray.count - 1), args.cArray, workingDirectory, &messageUnsafe);
+        let message = String(cString: messageUnsafe)
+        guard success else {
+            throw message.isEmpty ? Error.dependencyScanUnknownError : Error.dependencyScanErrorString(message)
+        }
+        return message
     }
 }
 

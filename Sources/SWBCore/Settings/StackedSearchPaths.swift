@@ -68,11 +68,43 @@ public final class StackedSearchPath: Sendable {
 }
 
 extension StackedSearchPath {
+    public func lookup(subject: StackedSearchPathLookupSubject, operatingSystem: OperatingSystem) -> Path? {
+        lookup(subject.fileName(operatingSystem: operatingSystem))
+    }
+
     public func findExecutable(operatingSystem: OperatingSystem, basename: String) -> Path? {
-        lookup(Path(operatingSystem.imageFormat.executableName(basename: basename)))
+        lookup(subject: .executable(basename: basename), operatingSystem: operatingSystem)
     }
 
     public func findLibrary(operatingSystem: OperatingSystem, basename: String) -> Path? {
-        lookup(Path("lib\(basename).\(operatingSystem.imageFormat.dynamicLibraryExtension)"))
+        lookup(subject: .library(basename: basename), operatingSystem: operatingSystem)
+    }
+}
+
+public enum StackedSearchPathLookupSubject {
+    case executable(basename: String)
+    case library(basename: String)
+
+    func fileName(operatingSystem: OperatingSystem) -> Path {
+        switch self {
+        case let .executable(basename):
+            Path(operatingSystem.imageFormat.executableName(basename: basename))
+        case let .library(basename):
+            Path("lib\(basename).\(operatingSystem.imageFormat.dynamicLibraryExtension)")
+        }
+    }
+}
+
+public enum StackedSearchPathLookupError: Error {
+    case unableToFind(subject: StackedSearchPathLookupSubject, operatingSystem: OperatingSystem, searchPaths: [StackedSearchPath])
+}
+
+extension StackedSearchPathLookupError: CustomStringConvertible {
+    public var description: String {
+        switch self {
+        case let .unableToFind(subject, operatingSystem, searchPaths):
+            let candidates = searchPaths.flatMap { $0.paths.map { $0.join(subject.fileName(operatingSystem: operatingSystem)).str }}
+            return "unable to find \(subject.fileName(operatingSystem: operatingSystem).str) among search paths: \(candidates.joined(separator: ", "))"
+        }
     }
 }

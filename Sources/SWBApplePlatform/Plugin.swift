@@ -17,7 +17,7 @@ import SWBProtocol
 import Foundation
 import SWBTaskConstruction
 
-@PluginExtensionSystemActor public func initializePlugin(_ manager: PluginManager) {
+public let initializePlugin: PluginInitializationFunction = { manager in
     manager.register(AppleDeveloperDirectoryExtension(), type: DeveloperDirectoryExtensionPoint.self)
     manager.register(ApplePlatformSpecsExtension(), type: SpecificationsExtensionPoint.self)
     manager.register(ActoolInputFileGroupingStrategyExtension(), type: InputFileGroupingStrategyExtensionPoint.self)
@@ -264,7 +264,7 @@ struct AppleSettingsBuilderExtension: SettingsBuilderExtension {
     }
     func addOverrides(fromEnvironment: [String : String], parameters: BuildParameters) throws -> [String : String] { [:] }
     func addProductTypeDefaults(productType: ProductTypeSpec) -> [String : String] { [:] }
-    func addSDKOverridingSettings(_ sdk: SDK, _ variant: SDKVariant?, _ sparseSDKs: [SDK], specLookupContext: any SWBCore.SpecLookupContext) throws -> [String : String] { [:] }
+    func addSDKOverridingSettings(_ sdk: SDK, _ variant: SDKVariant?, _ sparseSDKs: [SDK], specLookupContext: any SWBCore.SpecLookupContext, environment: [String: String]) throws -> [String : String] { [:] }
     func addPlatformSDKSettings(_ platform: SWBCore.Platform?, _ sdk: SDK, _ sdkVariant: SDKVariant?) -> [String : String] { [:] }
     func xcconfigOverrideData(fromParameters: BuildParameters) -> ByteString { ByteString() }
     func getTargetTestingSwiftPluginFlags(_ scope: MacroEvaluationScope, toolchainRegistry: ToolchainRegistry, sdkRegistry: SDKRegistry, activeRunDestination: RunDestinationInfo?, project: SWBCore.Project?) -> [String] { [] }

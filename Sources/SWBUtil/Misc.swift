@@ -65,36 +65,6 @@ public func parseUmbrellaHeaderName(_ string: String) -> String? {
     return Static.regex.matchGroups(in: string).first?[0]
 }
 
-#if os(Android)
-public typealias FILEPointer = OpaquePointer
-#else
-public typealias FILEPointer = UnsafeMutablePointer<FILE>
-#endif
-
-/// Adapts a FILE to a TextOutputStream. Does not own or automatically close the file.
-public struct FILETextOutputStream: TextOutputStream {
-    let stream: FILEPointer
-
-    public init(_ stream: FILEPointer) {
-        self.stream = stream
-    }
-
-    public func write(_ string: String) {
-        fputs(string, stream)
-    }
-
-    public static var stdout: Self {
-        .init(SWBLibc.stdout)
-    }
-
-    public static var stderr: Self {
-        .init(SWBLibc.stderr)
-    }
-}
-
-@available(*, unavailable)
-extension FILETextOutputStream: Sendable { }
-
 #if canImport(Darwin)
 public import func Foundation.autoreleasepool
 #endif

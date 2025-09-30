@@ -632,6 +632,31 @@ public struct SetSessionUserPreferencesRequest: SessionMessage, RequestMessage, 
     }
 }
 
+public struct LookupToolchainRequest: SessionMessage, RequestMessage, Equatable, SerializableCodable {
+    public typealias ResponseMessage = LookupToolchainResponse
+
+    public static let name = "LOOKUP_TOOLCHAIN"
+
+    public let sessionHandle: String
+
+    public let path: Path
+
+    public init(sessionHandle: String, path: Path) {
+        self.sessionHandle = sessionHandle
+        self.path = path
+    }
+}
+
+public struct LookupToolchainResponse: Message, Equatable, SerializableCodable {
+    public static let name = "LOOKUP_TOOLCHAIN_RESPONSE"
+
+    public let toolchainIdentifier: String?
+
+    public init(toolchainIdentifier: String?) {
+        self.toolchainIdentifier = toolchainIdentifier
+    }
+}
+
 public struct ListSessionsRequest: RequestMessage, Equatable {
     public typealias ResponseMessage = ListSessionsResponse
 
@@ -1176,6 +1201,8 @@ public struct IPCMessage: Serializable, Sendable {
         SetSessionSystemInfoRequest.self,
         SetSessionUserInfoRequest.self,
         SetSessionUserPreferencesRequest.self,
+        LookupToolchainRequest.self,
+        LookupToolchainResponse.self,
         ListSessionsRequest.self,
         ListSessionsResponse.self,
         WaitForQuiescenceRequest.self,
@@ -1218,12 +1245,15 @@ public struct IPCMessage: Serializable, Sendable {
       + localizationMessageTypes
       + dependencyClosureMessageTypes
       + dependencyGraphMessageTypes
+      + buildDescriptionMessages
 
     /// Reverse name mapping.
     static let messageNameToID: [String: any Message.Type] = {
         var result = [String: any Message.Type]()
         for type in IPCMessage.messageTypes {
-            result[type.name] = type
+            if let oldValue = result.updateValue(type, forKey: type.name) {
+                fatalError("Multiple message types registered for same name: \(type.name): \(type) vs \(oldValue)")
+            }
         }
         return result
     }()

@@ -28,6 +28,7 @@ add_library(SWBTaskExecution
   DynamicTaskSpecs/SwiftDriverJobDynamicTaskSpec.swift
   DynamicTaskSpecs/SwiftDriverPlanningDynamicTaskSpec.swift
   ProjectPlanner.swift
+  ResponseFileFormat+ExpressibleByArgument.swift
   Task.swift
   TaskActionExtensionPoint.swift
   TaskActions/AuxiliaryFileTaskAction.swift
@@ -50,8 +51,10 @@ add_library(SWBTaskExecution
   TaskActions/GenericCachingTaskAction.swift
   TaskActions/InfoPlistProcessorTaskAction.swift
   TaskActions/LinkAssetCatalogTaskAction.swift
+  TaskActions/LinkerTaskAction.swift
   TaskActions/LSRegisterURLTaskAction.swift
   TaskActions/MergeInfoPlistTaskAction.swift
+  TaskActions/ObjectLibraryAssemblerTaskAction.swift
   TaskActions/ODRAssetPackManifestTaskAction.swift
   TaskActions/PrecompileClangModuleTaskAction.swift
   TaskActions/ProcessProductEntitlementsTaskAction.swift
@@ -70,6 +73,7 @@ add_library(SWBTaskExecution
   TaskActions/SwiftDriverTaskAction.swift
   TaskActions/SwiftHeaderToolTaskAction.swift
   TaskActions/TaskAction.swift
+  TaskActions/ValidateDependenciesTaskAction.swift
   TaskActions/ValidateDevelopmentAssetsTaskAction.swift
   TaskActions/ValidateProductTaskAction.swift
   TaskResult.swift

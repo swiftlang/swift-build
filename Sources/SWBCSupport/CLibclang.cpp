@@ -859,6 +859,24 @@ extern "C" {
         typedef struct CXOpaqueDependencyScannerServiceOptions
             *CXDependencyScannerServiceOptions;
 
+        typedef struct CXOpaqueDependencyScannerReproducerOptions
+            *CXDependencyScannerReproducerOptions;
+
+        CXDependencyScannerReproducerOptions
+        (*clang_experimental_DependencyScannerReproducerOptions_create)(
+            int argc, const char *const *argv, const char *ModuleName, const char *WorkingDirectory,
+            const char *ReproducerLocation, bool UseUniqueReproducerName);
+
+        void (*clang_experimental_DependencyScannerReproducerOptions_dispose)(CXDependencyScannerReproducerOptions);
+
+        /**
+         * Generate a self-contained reproducer in a specified location to re-run the compilation.
+         */
+        enum CXErrorCode
+        (*clang_experimental_DependencyScanner_generateReproducer)(
+            CXDependencyScannerReproducerOptions options,
+            CXString *messageOut);
+
         /**
          * Creates a default set of service options.
          * Must be disposed with \c
@@ -1241,6 +1259,11 @@ extern "C" {
          */
         CXDiagnosticSet (*clang_experimental_DepGraph_getDiagnostics)(CXDepGraph);
 
+        /**
+         * Checks negatively cached paths in the stat cache against the current state of the filesystem and returns a list of discrepancies.
+         */
+        CXCStringArray (*clang_experimental_DependencyScannerService_getInvalidNegStatCachedPaths)(CXDependencyScannerService);
+
         // MARK: Driver API
 
         /**
@@ -1319,6 +1342,7 @@ struct LibclangWrapper {
     bool hasDependencyScanner;
     bool hasStructuredScanningDiagnostics;
     bool hasCAS;
+    bool hasNegativeStatCacheDiagnostics;
 
     LibclangWrapper(std::string path)
         : path(path),
@@ -1330,7 +1354,7 @@ struct LibclangWrapper {
 #else
           handle(dlopen(path.c_str(), RTLD_LAZY | RTLD_LOCAL)),
 #endif
-          isLeaked(false), hasRequiredAPI(true), hasDependencyScanner(true), hasStructuredScanningDiagnostics(true), hasCAS(true) {
+          isLeaked(false), hasRequiredAPI(true), hasDependencyScanner(true), hasStructuredScanningDiagnostics(true), hasCAS(true), hasNegativeStatCacheDiagnostics(false) {
 #if defined(_WIN32)
         DWORD cchLength = MultiByteToWideChar(CP_UTF8, MB_ERR_INVALID_CHARS, path.c_str(), -1, nullptr, 0);
         std::unique_ptr<wchar_t[]> wszPath(new wchar_t[cchLength]);
@@ -1423,6 +1447,9 @@ struct LibclangWrapper {
         LOOKUP_OPTIONAL(clang_experimental_cas_replayCompilation);
         LOOKUP_OPTIONAL(clang_experimental_cas_ReplayResult_dispose);
         LOOKUP_OPTIONAL(clang_experimental_cas_ReplayResult_getStderr);
+        LOOKUP_OPTIONAL(clang_experimental_DependencyScanner_generateReproducer);
+        LOOKUP_OPTIONAL(clang_experimental_DependencyScannerReproducerOptions_create);
+        LOOKUP_OPTIONAL(clang_experimental_DependencyScannerReproducerOptions_dispose);
         LOOKUP_OPTIONAL(clang_experimental_DependencyScannerServiceOptions_create);
         LOOKUP_OPTIONAL(clang_experimental_DependencyScannerServiceOptions_dispose);
         LOOKUP_OPTIONAL(clang_experimental_DependencyScannerServiceOptions_setDependencyMode);
@@ -1465,6 +1492,11 @@ struct LibclangWrapper {
             hasDependencyScanner = false;
             hasStructuredScanningDiagnostics = false;
             hasCAS = false;
+        }
+
+        LOOKUP_OPTIONAL(clang_experimental_DependencyScannerService_getInvalidNegStatCachedPaths);
+        if (fns.clang_experimental_DependencyScannerService_getInvalidNegStatCachedPaths) {
+            hasNegativeStatCacheDiagnostics = true;
         }
 
         LOOKUP_OPTIONAL(clang_Driver_getExternalActionsForCommand_v0);
@@ -1739,6 +1771,10 @@ extern "C" {
         return lib->wrapper->hasStructuredScanningDiagnostics;
     }
 
+    bool libclang_has_negative_stat_cache_diagnostics(libclang_t lib) {
+        return lib->wrapper->hasNegativeStatCacheDiagnostics;
+    }
+
     libclang_scanner_t libclang_scanner_create(libclang_t lib, libclang_casdatabases_t casdbs, libclang_casoptions_t casOpts) {
         return new libclang_scanner_t_{new LibclangScanner(
             lib->wrapper, LibclangFunctions::CXDependencyMode_Full,
@@ -1773,6 +1809,10 @@ extern "C" {
     bool libclang_has_current_working_directory_optimization(libclang_t lib) {
         return lib->wrapper->fns.clang_experimental_DepGraphModule_isCWDIgnored &&
                lib->wrapper->fns.clang_experimental_DependencyScannerServiceOptions_setCWDOptimization;
+    }
+
+    bool libclang_has_reproducer_feature(libclang_t lib) {
+        return lib->wrapper->fns.clang_experimental_DependencyScanner_generateReproducer;
     }
 
     libclang_casoptions_t libclang_casoptions_create(libclang_t lib) {
@@ -2018,6 +2058,17 @@ extern "C" {
         return diagnostic_set;
     }
 
+    void libclang_scanner_diagnose_invalid_negative_stat_cache_entries(libclang_scanner_t scanner, void (^path_callback)(const char *)) {
+        auto lib = scanner->scanner->lib;
+        if (!lib->fns.clang_experimental_DependencyScannerService_getInvalidNegStatCachedPaths) {
+            return;
+        }
+        LibclangFunctions::CXCStringArray paths = lib->fns.clang_experimental_DependencyScannerService_getInvalidNegStatCachedPaths(scanner->scanner->service);
+        for (size_t i = 0; i < paths.Count; ++i) {
+            path_callback(paths.Strings[i]);
+        }
+    }
+
     bool libclang_scanner_scan_dependencies(
         libclang_scanner_t scanner, int argc, char *const *argv, const char *workingDirectory,
         __attribute__((noescape)) module_lookup_output_t module_lookup_output,
@@ -2157,6 +2208,24 @@ extern "C" {
         scanner->scanner->releaseWorker(std::move(worker));
 
         return depGraph != nullptr;
+    }
+
+    bool libclang_scanner_generate_reproducer(libclang_scanner_t scanner,
+                                              int argc, char *const *argv,
+                                              const char *workingDirectory,
+                                              const char **message) {
+        auto lib = scanner->scanner->lib;
+        LibclangFunctions::CXString messageString;
+        auto reproducerOpts = lib->fns.clang_experimental_DependencyScannerReproducerOptions_create(
+            argc, argv, /*ModuleName=*/nullptr, workingDirectory, /*ReproducerLocation=*/nullptr, /*UseUniqueReproducerName=*/true);
+        auto result = lib->fns.clang_experimental_DependencyScanner_generateReproducer(
+            reproducerOpts, &messageString);
+        lib->fns.clang_experimental_DependencyScannerReproducerOptions_dispose(reproducerOpts);
+        if (message) {
+            *message = strdup_safe(lib->fns.clang_getCString(messageString));
+        }
+        lib->fns.clang_disposeString(messageString);
+        return result == LibclangFunctions::CXError_Success;
     }
 
     bool libclang_driver_get_actions(libclang_t wrapped_lib,

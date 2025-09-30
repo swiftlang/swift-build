@@ -19,8 +19,7 @@ import SWBTestSupport
 import SWBUtil
 
 @Suite(.skipHostOS(.windows, "Windows platform has no CAS support yet"),
-       .requireCompilationCaching, .requireDependencyScannerPlusCaching,
-       .flaky("A handful of Swift Build CAS tests fail when running the entire test suite"), .bug("rdar://146781403"))
+       .requireDependencyScannerPlusCaching, .skipInXcodeCloud("flaky tests"), .requireXcode26())
 fileprivate struct ClangCompilationCachingTests: CoreBasedTests {
     let canUseCASPlugin: Bool
     let canUseCASPruning: Bool
@@ -73,6 +72,7 @@ fileprivate struct ClangCompilationCachingTests: CoreBasedTests {
 
             try await tester.checkBuild(runDestination: .macOS, persistent: true) { results in
                 results.checkNoTask(.matchRuleType("ScanDependencies"))
+                results.checkedWarnings = true
             }
         }
     }
@@ -147,6 +147,7 @@ fileprivate struct ClangCompilationCachingTests: CoreBasedTests {
             try await tester.fs.writeFileContents(testWorkspace.sourceRoot.join("aProject/t.cpp")) { stream in
                 stream <<<
                 """
+                void foo(void) {}
                 """
             }
 
@@ -354,7 +355,7 @@ fileprivate struct ClangCompilationCachingTests: CoreBasedTests {
             do {
                 let tester = try await BuildOperationTester(getCore(), testWorkspace, simulated: false)
                 try await tester.fs.writeFileContents(testWorkspace.sourceRoot.join("aProject/file.c")) { stream in
-                    stream <<< ""
+                    stream <<< "void foo(void) {}"
                 }
 
                 let arena = ArenaInfo.buildArena(derivedDataRoot: derivedDataPath)
@@ -371,7 +372,7 @@ fileprivate struct ClangCompilationCachingTests: CoreBasedTests {
             do {
                 let tester = try await BuildOperationTester(getCore(), testWorkspace, simulated: false)
                 try await tester.fs.writeFileContents(testWorkspace.sourceRoot.join("aProject/file.c")) { stream in
-                    stream <<< ""
+                    stream <<< "void foo(void) {}"
                 }
 
                 try await tester.checkBuild(runDestination: .macOS) { results in
@@ -441,7 +442,7 @@ fileprivate struct ClangCompilationCachingTests: CoreBasedTests {
             do {
                 let tester = try await BuildOperationTester(getCore(), testWorkspace, simulated: false)
                 try await tester.fs.writeFileContents(testWorkspace.sourceRoot.join("aProject/file.c")) { stream in
-                    stream <<< ""
+                    stream <<< "void foo(void) {}"
                 }
 
                 let arena = ArenaInfo.buildArena(derivedDataRoot: derivedDataPath)
@@ -460,7 +461,7 @@ fileprivate struct ClangCompilationCachingTests: CoreBasedTests {
             do {
                 let tester = try await BuildOperationTester(getCore(), testWorkspace, simulated: false)
                 try await tester.fs.writeFileContents(testWorkspace.sourceRoot.join("aProject/file.c")) { stream in
-                    stream <<< ""
+                    stream <<< "void foo(void) {}"
                 }
 
                 try await tester.checkBuild(runDestination: .macOS) { results in
@@ -542,7 +543,7 @@ fileprivate struct ClangCompilationCachingTests: CoreBasedTests {
             do {
                 let tester = try await BuildOperationTester(getCore(), testWorkspace, simulated: false)
                 try await tester.fs.writeFileContents(testWorkspace.sourceRoot.join("aProject/file.c")) { stream in
-                    stream <<< ""
+                    stream <<< "void foo(void) {}"
                 }
 
                 let arena = ArenaInfo.buildArena(derivedDataRoot: derivedDataPath)
@@ -563,7 +564,7 @@ fileprivate struct ClangCompilationCachingTests: CoreBasedTests {
             do {
                 let tester = try await BuildOperationTester(getCore(), testWorkspace, simulated: false)
                 try await tester.fs.writeFileContents(testWorkspace.sourceRoot.join("aProject/file.c")) { stream in
-                    stream <<< ""
+                    stream <<< "void foo(void) {}"
                 }
 
                 try await tester.checkBuild(runDestination: .macOS) { results in
@@ -619,7 +620,7 @@ fileprivate struct ClangCompilationCachingTests: CoreBasedTests {
             do {
                 let tester = try await BuildOperationTester(getCore(), testWorkspace, simulated: false)
                 try await tester.fs.writeFileContents(testWorkspace.sourceRoot.join("aProject/file.c")) { stream in
-                    stream <<< ""
+                    stream <<< "void foo(void) {}"
                 }
 
                 try await tester.fs.writeFileContents(blockListFilePath) { file in
@@ -645,7 +646,7 @@ fileprivate struct ClangCompilationCachingTests: CoreBasedTests {
             do {
                 let tester = try await BuildOperationTester(getCore(), testWorkspace, simulated: false)
                 try await tester.fs.writeFileContents(testWorkspace.sourceRoot.join("aProject/file.c")) { stream in
-                    stream <<< ""
+                    stream <<< "void foo(void) {}"
                 }
 
                 try await tester.fs.writeFileContents(blockListFilePath) { file in
@@ -1551,6 +1552,7 @@ fileprivate struct ClangCompilationCachingTests: CoreBasedTests {
                     stream <<<
                     """
                     #include "other.h"
+                    void foo(void) {}
                     """
                 }
                 try await tester.fs.writeFileContents(moduleDir.join("other.h")) { stream in
@@ -1580,7 +1582,7 @@ fileprivate struct ClangCompilationCachingTests: CoreBasedTests {
             func checkModuleCommandLine(task: Task, results: BuildOperationTester.BuildResults, name: String) {
                 // The final command-line is only known to the dynamic task, but it's printed to output so we can check that.
                 results.checkTaskOutput(task) { output in
-                    XCTAssertMatch(output.stringValue, .contains(#"\#(name)\=/\^mod"#))
+                    XCTAssertMatch(output.stringValue, .or(.contains(#"\#(name)\=/\^mod"#), .contains(#"\#(name) /\^mod"#)))
                     checkCommandLineCommon(output: output)
                 }
             }
@@ -1763,7 +1765,7 @@ fileprivate struct ClangCompilationCachingTests: CoreBasedTests {
                 """
             }
             try await tester.fs.writeFileContents(testWorkspace.sourceRoot.join("aProject/generated1.c.fake-customrule")) { stream in
-                stream <<< ""
+                stream <<< "void foo(void) {}"
             }
 
             try await tester.checkBuild(runDestination: .macOS) { results in
@@ -1814,6 +1816,7 @@ fileprivate struct ClangCompilationCachingTests: CoreBasedTests {
             try await tester.fs.writeFileContents(testWorkspace.sourceRoot.join("aProject/t.c")) { stream in
                 stream <<<
                 """
+                void foo(void) {}
                 """
             }
 
@@ -1843,6 +1846,7 @@ fileprivate struct ClangCompilationCachingTests: CoreBasedTests {
                 "CLANG_ENABLE_COMPILE_CACHE": enableCaching ? "YES" : "NO",
                 "CLANG_ENABLE_MODULES": "NO",
                 "COMPILATION_CACHE_CAS_PATH": casPath.str,
+                "DSTROOT": tmpDirPath.join("dstroot").str,
             ]
             if usePlugin {
                 buildSettings["COMPILATION_CACHE_ENABLE_PLUGIN"] = "YES"
@@ -1967,7 +1971,11 @@ fileprivate struct ClangCompilationCachingTests: CoreBasedTests {
             // Ignore output for plugin CAS since it may not yet support validation.
             try await checkBuild("validated successfully\n")
             // Create an error and trigger revalidation by messing with the validation data.
-            try tester.fs.move(casPath.join("builtin/v1.1/v8.data"), to: casPath.join("builtin/v1.1/v8.data.moved"))
+            let dataDir = casPath.join("builtin").join("v1.1")
+            let dataFile = try #require(tester.fs.listdir(dataDir).first {
+                $0.hasSuffix(".data") && $0.hasPrefix("v")
+            })
+            try tester.fs.move(dataDir.join(dataFile), to: dataDir.join("moved"))
             try await tester.fs.writeFileContents(casPath.join("builtin/v1.validation")) { stream in
                 stream <<< "0"
             }

@@ -15,7 +15,7 @@ import SWBCore
 import SWBMacro
 import Foundation
 
-@PluginExtensionSystemActor public func initializePlugin(_ manager: PluginManager) {
+public let initializePlugin: PluginInitializationFunction = { manager in
     let plugin = QNXPlugin()
     manager.register(QNXPlatformSpecsExtension(), type: SpecificationsExtensionPoint.self)
     manager.register(QNXEnvironmentExtension(plugin: plugin), type: EnvironmentExtensionPoint.self)
@@ -101,6 +101,8 @@ struct QNXSDKRegistryExtension: SDKRegistryExtension {
 
             "ARCH_NAME_x86_64": .plString("x86_64"),
             "ARCH_NAME_aarch64": .plString("aarch64le"),
+
+            "LINKER_DRIVER": "qcc",
         ]
 
         return [(qnxSdk.sysroot, qnxPlatform, [

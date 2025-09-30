@@ -84,7 +84,12 @@ package final class BuildFilesProcessingContext: BuildFileFilteringContext {
     let belongsToPreferredArch: Bool
     let currentArchSpec: ArchitectureSpec?
 
-    package init(_ scope: MacroEvaluationScope, belongsToPreferredArch: Bool = true, currentArchSpec: ArchitectureSpec? = nil, resolveBuildRules: Bool = true, resourcesDir: Path? = nil, tmpResourcesDir: Path? = nil) {
+    /// If `true`, avoid emitting any diagnostics via the task producer context.
+    ///
+    /// This might be set in cases where `BuildFilesProcessingContext` is being used for ephemeral grouping operations outside of the main grouping routine.
+    private let repressDiagnostics: Bool
+
+    package init(_ scope: MacroEvaluationScope, belongsToPreferredArch: Bool = true, currentArchSpec: ArchitectureSpec? = nil, resolveBuildRules: Bool = true, resourcesDir: Path? = nil, tmpResourcesDir: Path? = nil, repressDiagnostics: Bool = false) {
         // Define the predicates for filtering source files.
         //
         // FIXME: Factor this out, and make this machinery efficient.
@@ -97,6 +102,7 @@ package final class BuildFilesProcessingContext: BuildFileFilteringContext {
         self.belongsToPreferredArch = belongsToPreferredArch
         self.currentArchSpec = currentArchSpec
         self.currentPlatformFilter = PlatformFilter(scope)
+        self.repressDiagnostics = repressDiagnostics
     }
 
     /// Adds the file to build to the appropriate group for the task producer being processed, including resolving a build rule action for that group if appropriate.
@@ -113,8 +119,10 @@ package final class BuildFilesProcessingContext: BuildFileFilteringContext {
         let buildRuleMatchResult = taskProducerContext.buildRuleSet.match(ftb, scope)
         let provisionalRuleAction = buildRuleMatchResult.action
 
-        for diagnostic in buildRuleMatchResult.diagnostics {
-            taskProducerContext.emit(diagnostic.behavior, diagnostic.message)
+        if !repressDiagnostics {
+            for diagnostic in buildRuleMatchResult.diagnostics {
+                taskProducerContext.emit(diagnostic.behavior, diagnostic.message)
+            }
         }
 
         // If this file is the output of some task, then we perform some checks to see whether we should process it.
@@ -125,8 +133,10 @@ package final class BuildFilesProcessingContext: BuildFileFilteringContext {
             if generatedByBuildRuleAction === provisionalRuleAction {
                 // If we should not add if we didn't find an appropriate build rule, then emit a warning and return.
                 guard addIfNoBuildRuleFound else {
-                    let currentArch = scope.evaluate(BuiltinMacros.CURRENT_ARCH)
-                    taskProducerContext.warning("no rule to process file '\(ftb.absolutePath.str)' of type '\(ftb.fileType.identifier)'" + (currentArch != "undefined_arch" ? " for architecture '\(scope.evaluate(BuiltinMacros.CURRENT_ARCH))'" : ""))
+                    if !repressDiagnostics {
+                        let currentArch = scope.evaluate(BuiltinMacros.CURRENT_ARCH)
+                        taskProducerContext.warning("no rule to process file '\(ftb.absolutePath.str)' of type '\(ftb.fileType.identifier)'" + (currentArch != "undefined_arch" ? " for architecture '\(scope.evaluate(BuiltinMacros.CURRENT_ARCH))'" : ""))
+                    }
                     return
                 }
                 // If we should always add, then do so as an ungrouped file.
@@ -183,7 +193,10 @@ package final class BuildFilesProcessingContext: BuildFileFilteringContext {
 
         // If we've already processed a group with this identifier, then emit an error to the user as this is likely a project configuration error. For example, if a project is generating code (e.g. from a build rule) and multiple versions of the same file are being generated, and thus being processed, this is potentially very bad, especially if those files don't contain the same output!
         guard !processedGroupIdents.contains(groupIdent) else {
-            return taskProducerContext.error("the file group with identifier '\(groupIdent)' has already been processed.")
+            if !repressDiagnostics {
+                taskProducerContext.error("the file group with identifier '\(groupIdent)' has already been processed.")
+            }
+            return
         }
 
         // Find or create the group for the identifier we got back.
@@ -214,30 +227,43 @@ package final class BuildFilesProcessingContext: BuildFileFilteringContext {
 
     /// Allow `collectionGroups` to subsume `singletonGroups`. The initial pass in groupAndAddTasksForFiles looks at one file at a time to assign rules and groups. Certain grouping strategies need to inspect multiple files to group them (e.g. sticker packs need to group an asset catalog and loose strings files matching the sticker pack - without grouping every other strings file as well). This function allows each collectionGroup to inspect
     fileprivate func mergeGroups(_ context: TaskProducerContext) {
-        // This assumes that groupAdditionalFiles() rarely chooses to group anything.
-
-        var allGroupedSingletonGroups = Set<FileToBuildGroup>()
-        for collectionGroup in collectionGroups {
-            if let rule = collectionGroup.assignedBuildRuleAction {
-                for grouper in rule.inputFileGroupingStrategies {
-                    let groupedSingletonGroups = grouper.groupAdditionalFiles(to: collectionGroup, from: self.singletonGroups, context: context)
-
-                    for group in groupedSingletonGroups {
-                        collectionGroup.files.append(contentsOf: group.files)
-
-                        if allGroupedSingletonGroups.contains(group) {
-                            context.error("Multiple rules merged: \(group.files[0].absolutePath)")
-                        }
-                    }
-
-                    allGroupedSingletonGroups.formUnion(groupedSingletonGroups)
-                }
-            }
-        }
+        let allGroupedSingletonGroups = subsumeAdditionalFilesIfDesired(from: self.singletonGroups, context)
 
         if !allGroupedSingletonGroups.isEmpty {
             self.singletonGroups = Queue(self.singletonGroups.filter { !allGroupedSingletonGroups.contains($0) })
         }
+    }
+
+    /// Allow `collectionGroups` to subsume `filesToSubsume` if desired.
+    ///
+    /// There is no guarantee that all or even any of the files in `filesToSubsume` will actually be subsumed.
+    ///
+    /// This method will never add additional groups. It can only add to existing ones.
+    ///
+    /// - returns: The files that were subsumed.
+    fileprivate func subsumeAdditionalFilesIfDesired(from filesToSubsume: some Sequence<FileToBuildGroup>, _ context: TaskProducerContext) -> Set<FileToBuildGroup> {
+        // This assumes that groupAdditionalFiles() rarely chooses to group anything.
+
+        var allSubsumedGroups = Set<FileToBuildGroup>()
+        for collectionGroup in collectionGroups {
+            if let rule = collectionGroup.assignedBuildRuleAction {
+                for grouper in rule.inputFileGroupingStrategies {
+                    let subsumedGroups = grouper.groupAdditionalFiles(to: collectionGroup, from: filesToSubsume, context: context)
+
+                    for group in subsumedGroups {
+                        collectionGroup.files.append(contentsOf: group.files)
+
+                        if !repressDiagnostics && allSubsumedGroups.contains(group) {
+                            context.error("Multiple rules merged: \(group.files[0].absolutePath)")
+                        }
+                    }
+
+                    allSubsumedGroups.formUnion(subsumedGroups)
+                }
+            }
+        }
+
+        return allSubsumedGroups
     }
 
     // Returns the next file group to process, or nil if all groups have been processed.
@@ -292,6 +318,19 @@ extension TaskProducerContext {
         }
 
         warning(message, location: diagnosticLocation)
+    }
+}
+
+extension PluginManager {
+    /// Returns identifiers of file types that can generate sources, and therefore need to be processed within the Sources build phase (at least if there are any existing source files).
+    ///
+    /// Asset Catalogs would be one example of this, so that they can generate symbols.
+    func fileTypesProducingGeneratedSources() -> [String] {
+        var compileToSwiftFileTypes : [String] = []
+        for groupingStragegyExtensions in extensions(of: InputFileGroupingStrategyExtensionPoint.self) {
+            compileToSwiftFileTypes.append(contentsOf: groupingStragegyExtensions.fileTypesCompilingToSwiftSources())
+        }
+        return compileToSwiftFileTypes
     }
 }
 
@@ -352,7 +391,12 @@ package class FilesBasedBuildPhaseTaskProducerBase: PhasedTaskProducer {
     }
 
     /// Allows subclasses to contribute additional build files.
-    func additionalBuildFiles(_ scope: MacroEvaluationScope) -> [SWBCore.BuildFile] {
+    func additionalBuildFiles(_ scope: MacroEvaluationScope) async -> [SWBCore.BuildFile] {
+        return []
+    }
+
+    /// Allows subclasses to specify build files that should be skipped by this task producer.
+    func buildFilesToSkip(_ scope: MacroEvaluationScope) async -> Set<Ref<SWBCore.BuildFile>> {
         return []
     }
 
@@ -375,14 +419,6 @@ package class FilesBasedBuildPhaseTaskProducerBase: PhasedTaskProducer {
         var resolvedBuildFiles: [ResolvedBuildFile] = []
 
         let buildPhaseFileWarningContext = BuildPhaseFileWarningContext(context, scope)
-
-        // Sadly we need to make various decisions based on codegen of Asset and String Catalogs.
-        // We can remove this when we get rid of build phases.
-        let sourceFileCount = (self.targetContext.configuredTarget?.target as? SWBCore.StandardTarget)?.sourcesBuildPhase?.buildFiles.count ?? 0
-        let stringsFileTypes = ["text.plist.strings", "text.plist.stringsdict"].map { context.lookupFileType(identifier: $0)! }
-        var xcstringsBases = Set<String>()
-        let shouldCodeGenAssets = scope.evaluate(BuiltinMacros.ASSETCATALOG_COMPILER_GENERATE_ASSET_SYMBOLS) && sourceFileCount > 0
-        let shouldCodeGenStrings = scope.evaluate(BuiltinMacros.STRING_CATALOG_GENERATE_SYMBOLS) && sourceFileCount > 0
 
         // Helper function for adding a resolved item.  The build file can be nil here if the client wants to add a file divorced from any build file (e.g., because the build file contains context which shouldn't be applied to this file).
         func addResolvedItem(buildFile: SWBCore.BuildFile?, path: Path, reference: SWBCore.Reference?, fileType: FileTypeSpec, shouldUsePrefixHeader: Bool = true) {
@@ -408,25 +444,15 @@ package class FilesBasedBuildPhaseTaskProducerBase: PhasedTaskProducer {
             addResolvedItem(buildFile: nil, path: path, reference: nil, fileType: fileType, shouldUsePrefixHeader: shouldUsePrefixHeader)
         }
 
-        for buildFile in buildPhase.buildFiles + additionalBuildFiles(scope) {
+        let buildFilesToSkip = await self.buildFilesToSkip(scope)
+        for buildFile in await buildPhase.buildFiles + additionalBuildFiles(scope) {
+            guard !buildFilesToSkip.contains(Ref(buildFile)) else {
+                continue
+            }
+
             // Resolve the reference.
             do {
                 let (reference, path, fileType) = try context.resolveBuildFileReference(buildFile)
-
-                if shouldCodeGenAssets {
-                    // Ignore xcassets in Resource Copy Phase since they're now added to the Compile Sources phase for codegen.
-                    if producer.buildPhase is SWBCore.ResourcesBuildPhase && fileType.conformsTo(identifier: "folder.abstractassetcatalog") {
-                        continue
-                    }
-                }
-                if shouldCodeGenStrings {
-                    // Ignore xcstrings in Resource Copy Phase since they're now added to the Compile Sources phase for codegen.
-                    if producer.buildPhase is SWBCore.ResourcesBuildPhase && fileType.conformsTo(identifier: "text.json.xcstrings") {
-                        // Keep the basename because later we need to ignore same-named .strings/dict files as well.
-                        xcstringsBases.insert(path.basenameWithoutSuffix)
-                        continue
-                    }
-                }
 
                 // Compilation of .rkassets depends on additional auxiliary inputs that are not
                 // accessible from a spec class. Instead, they are handled entirely by their own
@@ -585,14 +611,10 @@ package class FilesBasedBuildPhaseTaskProducerBase: PhasedTaskProducer {
             }
         }
 
-        var compileToSwiftFileTypes : [String] = []
-        for groupingStragegyExtensions in await context.workspaceContext.core.pluginManager.extensions(of: InputFileGroupingStrategyExtensionPoint.self) {
-            compileToSwiftFileTypes.append(contentsOf: groupingStragegyExtensions.fileTypesCompilingToSwiftSources())
-        }
-
         // Reorder resolvedBuildFiles so that file types which compile to Swift appear first in the list and so are processed first.
         // This is needed because generated sources aren't added to the the main source code list.
         // rdar://102834701 (File grouping for 'collection groups' is sensitive to ordering of build phase members)
+        let compileToSwiftFileTypes = context.workspaceContext.core.pluginManager.fileTypesProducingGeneratedSources()
         var compileToSwiftFiles = [ResolvedBuildFile]()
         var otherBuildFiles = [ResolvedBuildFile]()
         for resolvedBuildFile in resolvedBuildFiles {
@@ -642,14 +664,6 @@ package class FilesBasedBuildPhaseTaskProducerBase: PhasedTaskProducer {
                     location = nil
                 }
                 context.emitFileExclusionDiagnostic(exclusionReason, buildFilesContext, fileToBuild.absolutePath, buildFile?.platformFilters ?? [], location)
-                continue
-            }
-
-            // Ignore certain .strings/dict files in Resources phase when codegen for xcstrings is enabled.
-            if shouldCodeGenStrings &&
-                producer.buildPhase is SWBCore.ResourcesBuildPhase &&
-                fileType.conformsToAny(stringsFileTypes) &&
-                xcstringsBases.contains(path.basenameWithoutSuffix) {
                 continue
             }
 
@@ -768,6 +782,52 @@ package class FilesBasedBuildPhaseTaskProducerBase: PhasedTaskProducer {
                 addOutputFile(ftb, group, buildFilesContext, [], scope, rule, addIfNoBuildRuleFound: false)
             }
         }
+    }
+
+    /// Filters `buildFiles` down to only those files that are necessary inputs to source code generation.
+    ///
+    /// For example, this could include Asset Catalogs (and any of the files they subsume in their grouping strategy).
+    func sourceGenerationInputFiles(from buildFiles: [SWBCore.BuildFile], scope: MacroEvaluationScope) async -> [SWBCore.BuildFile] {
+        guard !buildFiles.isEmpty else {
+            return []
+        }
+
+        let fileIdentifiersGeneratingSources = context.workspaceContext.core.pluginManager.fileTypesProducingGeneratedSources()
+        guard !fileIdentifiersGeneratingSources.isEmpty else {
+            return []
+        }
+
+        var grouper: BuildFilesProcessingContext?
+        var ungroupedFiles = [FileToBuild]()
+        for buildFile in buildFiles {
+            guard let fileRef = try? targetContext.resolveBuildFileReference(buildFile) else {
+                continue
+            }
+
+            let ftb = FileToBuild(absolutePath: fileRef.absolutePath, fileType: fileRef.fileType, buildFile: buildFile, regionVariantName: fileRef.absolutePath.regionVariantName)
+
+            guard fileIdentifiersGeneratingSources.contains(where: { identifier in fileRef.fileType.conformsTo(identifier: identifier) }) else {
+                ungroupedFiles.append(ftb)
+                continue
+            }
+
+            if grouper == nil {
+                grouper = BuildFilesProcessingContext(scope, repressDiagnostics: true)
+            }
+
+            grouper?.addFile(ftb, context, scope)
+        }
+
+        guard let grouper else {
+            return []
+        }
+
+        let remainingFiles = ungroupedFiles.map { ftb in
+            FileToBuildGroup(ftb.absolutePath.str, files: [ftb], action: nil)
+        }
+        _ = grouper.subsumeAdditionalFilesIfDesired(from: remainingFiles, context)
+
+        return grouper.collectionGroups.flatMap(\.files).compactMap(\.buildFile)
     }
 
     /// This method is used by the `installLoc` build action to return the paths to localized content within a bundle.

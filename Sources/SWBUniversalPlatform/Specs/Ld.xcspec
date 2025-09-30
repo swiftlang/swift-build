@@ -27,6 +27,7 @@
         ProgressDescription = Linking;
         InputFileTypes = (
             "compiled.mach-o.objfile",
+            "compiled.object-library",
             "compiled.mach-o.dylib",
             "sourcecode.text-based-dylib-definition",
             "wrapper.framework",
@@ -175,7 +176,7 @@
             {
                 Name = "LD_OPTIMIZATION_LEVEL";
                 Type = String;
-                Condition = "$(LINKER_DRIVER) == clang";
+                Condition = "$(LINKER_DRIVER) == clang || $(LINKER_DRIVER) == qcc";
                 DefaultValue = "$(GCC_OPTIMIZATION_LEVEL)";
                 "CommandLinePrefixFlag" = "-O";
             },
@@ -443,9 +444,24 @@
                 Name = "LINK_WITH_STANDARD_LIBRARIES";
                 Type = Boolean;
                 DefaultValue = YES;
+            },
+            {
+                Name = "CLANG_LINK_WITH_STANDARD_LIBRARIES";
+                Type = Boolean;
+                DefaultValue = "$(LINK_WITH_STANDARD_LIBRARIES)";
                 CommandLineArgs = {
                     NO = ("-nostdlib");
                 };
+                Condition = "$(LINKER_DRIVER) == clang";
+            },
+            {
+                Name = "SWIFTC_LINK_WITH_STANDARD_LIBRARIES";
+                Type = Boolean;
+                DefaultValue = "$(LINK_WITH_STANDARD_LIBRARIES)";
+                CommandLineArgs = {
+                    NO = ("-Xclang-linker", "-nostdlib");
+                };
+                Condition = "$(LINKER_DRIVER) == swiftc";
             },
             {
                 Name = "KEEP_PRIVATE_EXTERNS";
@@ -459,7 +475,10 @@
                 Type = Boolean;
                 DefaultValue = NO;
                 Condition = "$(MACH_O_TYPE) != mh_object";
-                CommandLineFlag = "-dead_strip";
+                CommandLineArgs = {
+                    YES = ("-Xlinker", "-dead_strip");
+                    NO = ();
+                };
             },
             {
                 Name = "BUNDLE_LOADER";
@@ -803,6 +822,28 @@
                     );
                 };
             },
+            {
+                Name = "LINKER_FILE_LIST_FORMAT";
+                Type = Enumeration;
+                Values = (
+                    unescapedNewlineSeparated,
+                    unixShellQuotedSpaceSeparated,
+                    unixShellQuotedNewlineSeparated,
+                    windowsShellQuotedNewlineSeparated,
+                );
+                DefaultValue = unescapedNewlineSeparated;
+            },
+            {
+                Name = "LINKER_RESPONSE_FILE_FORMAT";
+                Type = Enumeration;
+                Values = (
+                    unescapedNewlineSeparated,
+                    unixShellQuotedSpaceSeparated,
+                    unixShellQuotedNewlineSeparated,
+                    windowsShellQuotedNewlineSeparated,
+                );
+                DefaultValue = unixShellQuotedSpaceSeparated;
+            }
         );
     }
 )

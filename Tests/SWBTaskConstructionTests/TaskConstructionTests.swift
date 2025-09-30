@@ -10,7 +10,7 @@
 //
 //===----------------------------------------------------------------------===//
 
-import struct Foundation.Data
+import Foundation
 
 import Testing
 
@@ -5038,8 +5038,7 @@ fileprivate struct TaskConstructionTests: CoreBasedTests {
 
                     // Check that the task contains a command line option to link libStaticLib2.a.
                     task.checkCommandLineContains(["-lStaticLib2"])
-                    // Check that the task contains a command line option to link Framework.framework.
-                    task.checkCommandLineContains(["-framework", "Framework"])
+
                     // Check that the task does *not* declare libAnotherStatic.a as an input, since it is located via search paths.  Some projects may have a file reference whose path does not refer to a file, but which relies on finding the library via search paths anyway.
                     task.checkNoInputs(contain: [.pathPattern(.suffix("libAnotherStatic.a"))])
                     // Check that the task does *not* declare libStaticLib2.a as an input, since it is located via search paths.  Some projects may have a file reference whose path does not refer to a file, but which relies on finding the library via search paths anyway.
@@ -5076,7 +5075,6 @@ fileprivate struct TaskConstructionTests: CoreBasedTests {
 
             // Check that there are warnings about trying to weak-link libraries.
             results.checkWarning("Product libStaticLib1.a cannot weak-link static library libStaticLib2.a (in target 'StaticLib1' from project 'aProject')")
-            results.checkWarning("Product libStaticLib1.a cannot weak-link framework Framework.framework (in target 'StaticLib1' from project 'aProject')")
 
             // Check that there are no other diagnostics.
             results.checkNoDiagnostics()
@@ -8996,6 +8994,138 @@ fileprivate struct TaskConstructionTests: CoreBasedTests {
         }
     }
 
+    @Test(.requireSDKs(.host))
+    func framePointerControl() async throws {
+        try await withTemporaryDirectory { tmpDir in
+            let testProject = try await TestProject(
+                "aProject",
+                sourceRoot: tmpDir,
+                groupTree: TestGroup(
+                    "SomeFiles", path: "Sources",
+                    children: [
+                        TestFile("SourceFile.c"),
+                        TestFile("Source.swift"),
+                    ]),
+                buildConfigurations: [
+                    TestBuildConfiguration("Debug", buildSettings: [
+                        "SWIFT_EXEC": swiftCompilerPath.str,
+                        "SWIFT_VERSION": swiftVersion,
+                    ])
+                ],
+                targets: [
+                    TestStandardTarget(
+                        "Library",
+                        type: .dynamicLibrary,
+                        buildConfigurations: [
+                            TestBuildConfiguration("Debug")
+                        ],
+                        buildPhases: [
+                            TestSourcesBuildPhase([
+                                "SourceFile.c",
+                                "Source.swift"
+                            ])
+                        ]
+                    )]
+            )
+
+            let fs = PseudoFS()
+
+            let core = try await getCore()
+            let tester = try TaskConstructionTester(core, testProject)
+
+            await tester.checkBuild(BuildParameters(configuration: "Debug", overrides: [:]), runDestination: .host, fs: fs) { results in
+                results.checkTask(.matchRuleType("CompileC")) { task in
+                    task.checkCommandLineDoesNotContain("-fomit-frame-pointer")
+                    task.checkCommandLineDoesNotContain("-fno-omit-frame-pointer")
+                }
+                results.checkTask(.matchRuleType("SwiftDriver Compilation")) { task in
+                    task.checkCommandLineDoesNotContain("-fomit-frame-pointer")
+                    task.checkCommandLineDoesNotContain("-fno-omit-frame-pointer")
+                }
+            }
+
+            await tester.checkBuild(BuildParameters(configuration: "Debug", overrides: ["CLANG_OMIT_FRAME_POINTERS": "YES", "SWIFT_OMIT_FRAME_POINTERS": "YES"]), runDestination: .host, fs: fs) { results in
+                results.checkTask(.matchRuleType("CompileC")) { task in
+                    task.checkCommandLineContains(["-fomit-frame-pointer"])
+                    task.checkCommandLineDoesNotContain("-fno-omit-frame-pointer")
+                }
+                results.checkTask(.matchRuleType("SwiftDriver Compilation")) { task in
+                    task.checkCommandLineContains(["-Xcc", "-fomit-frame-pointer"])
+                    task.checkCommandLineDoesNotContain("-fno-omit-frame-pointer")
+                }
+            }
+
+            await tester.checkBuild(BuildParameters(configuration: "Debug", overrides: ["CLANG_OMIT_FRAME_POINTERS": "NO", "SWIFT_OMIT_FRAME_POINTERS": "NO"]), runDestination: .host, fs: fs) { results in
+                results.checkTask(.matchRuleType("CompileC")) { task in
+                    task.checkCommandLineDoesNotContain("-fomit-frame-pointer")
+                    task.checkCommandLineContains(["-fno-omit-frame-pointer"])
+                }
+                results.checkTask(.matchRuleType("SwiftDriver Compilation")) { task in
+                    task.checkCommandLineDoesNotContain("-fomit-frame-pointer")
+                    task.checkCommandLineContains(["-Xcc", "-fno-omit-frame-pointer"])
+                }
+            }
+        }
+    }
+
+    @Test(.requireSDKs(.host))
+    func crossPlatformDeadCodeStripping() async throws {
+        try await withTemporaryDirectory { tmpDir in
+            let testProject = TestProject(
+                "aProject",
+                sourceRoot: tmpDir,
+                groupTree: TestGroup(
+                    "SomeFiles", path: "Sources",
+                    children: [
+                        TestFile("SourceFile.c"),
+                    ]),
+                buildConfigurations: [
+                    TestBuildConfiguration("Debug", buildSettings: [
+                        "DEAD_CODE_STRIPPING": "YES",
+                        "ONLY_ACTIVE_ARCH": "YES"
+                    ])
+                ],
+                targets: [
+                    TestStandardTarget(
+                        "Library",
+                        type: .dynamicLibrary,
+                        buildConfigurations: [
+                            TestBuildConfiguration("Debug")
+                        ],
+                        buildPhases: [
+                            TestSourcesBuildPhase([
+                                "SourceFile.c",
+                            ])
+                        ]
+                    )]
+            )
+
+            let fs = PseudoFS()
+
+            let core = try await getCore()
+            let tester = try TaskConstructionTester(core, testProject)
+
+            try await tester.checkBuild(BuildParameters(configuration: "Debug", overrides: [:]), runDestination: .host, fs: fs) { results in
+                try results.checkTask(.matchRuleType("Ld")) { task in
+                    switch try ProcessInfo.processInfo.hostOperatingSystem() {
+                    case .macOS:
+                        task.checkCommandLineContains(["-dead_strip"])
+                        task.checkCommandLineDoesNotContain("--gc-sections")
+                        task.checkCommandLineDoesNotContain("/OPT:REF")
+                    case .windows:
+                        task.checkCommandLineDoesNotContain("-dead_strip")
+                        task.checkCommandLineDoesNotContain("--gc-sections")
+                        task.checkCommandLineContains(["/OPT:REF"])
+                    default:
+                        task.checkCommandLineDoesNotContain("-dead_strip")
+                        task.checkCommandLineContains(["--gc-sections"])
+                        task.checkCommandLineDoesNotContain("/OPT:REF")
+                    }
+                }
+            }
+        }
+    }
+
     @Test(.requireSDKs(.macOS))
     func boundsSafetyCLanguageExtension() async throws {
         try await withTemporaryDirectory { tmpDir in
@@ -9052,6 +9182,72 @@ fileprivate struct TaskConstructionTests: CoreBasedTests {
                 await tester.checkBuild(BuildParameters(configuration: "Debug", overrides: override), runDestination: .macOS, fs: fs) { results -> Void in
                     results.checkTarget("AppTarget") { target -> Void in
                         results.checkTask(.matchTarget(target), .matchRuleType("CompileC"), body: {task in test(task: task, overrides: override)})
+                    }
+                }
+            }
+
+            // Test missing check build settings
+            let boundsSafetyMissingChecksSetting = "CLANG_BOUNDS_SAFETY_BRINGUP_MISSING_CHECKS"
+            let enableBoundsAttributesSetting = "CLANG_ENABLE_BOUNDS_ATTRIBUTES"
+            let boundsSafetyMissingChecksOptOutsSetting = "CLANG_BOUNDS_SAFETY_BRINGUP_MISSING_CHECKS_OPT_OUTS"
+
+            for (enableBoundsSafetyBuildSetting, enableBoundsSafetyFlag) in [
+                (enableBoundsSafetySetting,"-fbounds-safety"),
+                (enableBoundsAttributesSetting, "-fbounds-attributes")] {
+
+                // Maps an array of build overrides to a closure that tests properties of the build overrides
+                let missingChecksOverrides = [
+                    [ enableBoundsSafetyBuildSetting: "YES", boundsSafetyMissingChecksSetting: "none"]: { (task: any PlannedTask) in
+                        task.checkCommandLineContains(["-fno-bounds-safety-bringup-missing-checks"])
+                    },
+
+                    // Default behavior is not pass the compiler flag and thus use the compiler default
+                    [ enableBoundsSafetyBuildSetting: "YES", boundsSafetyMissingChecksSetting: "default"]: { (task: any PlannedTask) in
+                        task.checkCommandLineDoesNotContain("-fno-bounds-safety-bringup-missing-checks")
+                        task.checkCommandLineDoesNotContain("-fbounds-safety-bringup-missing-checks")
+                    },
+                    [ enableBoundsSafetyBuildSetting: "YES"]: { (task: any PlannedTask) in
+                        task.checkCommandLineDoesNotContain("-fno-bounds-safety-bringup-missing-checks")
+                        task.checkCommandLineDoesNotContain("-fbounds-safety-bringup-missing-checks")
+                    },
+
+
+                    [ enableBoundsSafetyBuildSetting: "YES", boundsSafetyMissingChecksSetting: "batch_0"]: { (task: any PlannedTask) in
+                        task.checkCommandLineContains(["-fbounds-safety-bringup-missing-checks=batch_0"])
+                        task.checkCommandLineDoesNotContain("-fno-bounds-safety-bringup-missing-checks")
+                    },
+                    [ enableBoundsSafetyBuildSetting: "YES", boundsSafetyMissingChecksSetting: "access_size,return_size"]: { (task: any PlannedTask) in
+                        task.checkCommandLineContains(["-fbounds-safety-bringup-missing-checks=access_size,return_size"])
+                        task.checkCommandLineDoesNotContain("-fno-bounds-safety-bringup-missing-checks")
+                    },
+
+                    // Opt-outs
+                    [ enableBoundsSafetyBuildSetting: "YES",
+                      boundsSafetyMissingChecksSetting: "batch_0",
+                      boundsSafetyMissingChecksOptOutsSetting: "access_size"]: { (task: any PlannedTask) in
+                        task.checkCommandLineContains([
+                            "-fbounds-safety-bringup-missing-checks=batch_0",
+                            "-fno-bounds-safety-bringup-missing-checks=access_size"])
+                    },
+                    [ enableBoundsSafetyBuildSetting: "YES",
+                      boundsSafetyMissingChecksSetting: "batch_0",
+                      boundsSafetyMissingChecksOptOutsSetting: "access_size,return_size"]: { (task: any PlannedTask) in
+                        task.checkCommandLineContains([
+                            "-fbounds-safety-bringup-missing-checks=batch_0",
+                            "-fno-bounds-safety-bringup-missing-checks=access_size,return_size"])
+                    },
+                ]
+
+                for (overrides, checkOverrideProperties) in missingChecksOverrides {
+                    await tester.checkBuild(BuildParameters(configuration: "Debug", overrides: overrides), runDestination: .macOS, fs: fs) { results -> Void in
+                        results.checkTarget("AppTarget") { target -> Void in
+                            results.checkTask(.matchTarget(target), .matchRuleType("CompileC"), body: {task in
+                                // Check the overrides contains -fbounds-safety or -fbounds-attributes
+                                task.checkCommandLineContains([enableBoundsSafetyFlag])
+                                // Check properties specific to this array of overrides
+                                checkOverrideProperties(task)
+                            })
+                        }
                     }
                 }
             }

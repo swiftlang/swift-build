@@ -41,13 +41,13 @@ extension Core {
             developerPath = .swiftToolchain(.root, xcodeDeveloperPath: nil)
         }
         let delegate = TestingCoreDelegate()
-        return await (try Core(delegate: delegate, hostOperatingSystem: hostOperatingSystem, pluginManager: PluginManager(skipLoadingPluginIdentifiers: []), developerPath: developerPath, resourceSearchPaths: [], inferiorProductsPath: nil, additionalContentPaths: [], environment: [:], buildServiceModTime: Date(), connectionMode: .inProcess), delegate.diagnostics)
+        return await (try Core(delegate: delegate, hostOperatingSystem: hostOperatingSystem, pluginManager: MutablePluginManager(skipLoadingPluginIdentifiers: []).finalize(), developerPath: developerPath, resourceSearchPaths: [], inferiorProductsPath: nil, additionalContentPaths: [], environment: [:], buildServiceModTime: Date(), connectionMode: .inProcess), delegate.diagnostics)
     }
 
     /// Get an initialized Core suitable for testing.
     ///
     /// This function requires there to be no errors during loading the core.
-    package static func createInitializedTestingCore(skipLoadingPluginsNamed: Set<String>, registerExtraPlugins: @PluginExtensionSystemActor (PluginManager) -> Void, simulatedInferiorProductsPath: Path? = nil, environment: [String:String] = [:], delegate: TestingCoreDelegate? = nil) async throws -> Core {
+    package static func createInitializedTestingCore(skipLoadingPluginsNamed: Set<String>, registerExtraPlugins: @PluginExtensionSystemActor (MutablePluginManager) -> Void, simulatedInferiorProductsPath: Path? = nil, environment: [String:String] = [:], delegate: TestingCoreDelegate? = nil, configurationDelegate: TestingCoreConfigurationDelegate? = nil) async throws -> Core {
         // When this code is being loaded directly via unit tests, find the running Xcode path.
         //
         // This is a "well known" launch parameter set in Xcode's schemes.
@@ -74,33 +74,35 @@ extension Core {
         //
         // If the given environment already contains `EXTERNAL_TOOLCHAINS_DIR` and `TOOLCHAINS`, we're assuming that we do not have to obtain any toolchain information.
         var environment = environment
-        if (try? ProcessInfo.processInfo.hostOperatingSystem()) == .macOS, !(environment.contains("EXTERNAL_TOOLCHAINS_DIR") && environment.contains("TOOLCHAINS")) {
-            let activeDeveloperPath: Path
-            if let developerPath {
-                activeDeveloperPath = developerPath.path
-            } else {
-                activeDeveloperPath = try await Xcode.getActiveDeveloperDirectoryPath()
-            }
-            let defaultToolchainPath = activeDeveloperPath.join("Toolchains/XcodeDefault.xctoolchain")
-
-            if !localFS.exists(defaultToolchainPath.join("usr/metal/current")) {
-                struct MetalToolchainInfo: Decodable {
-                    let buildVersion: String
-                    let status: String
-                    let toolchainIdentifier: String
-                    let toolchainSearchPath: String
+        if configurationDelegate?.loadMetalToolchain == true {
+            if (try? ProcessInfo.processInfo.hostOperatingSystem()) == .macOS, !(environment.contains("EXTERNAL_TOOLCHAINS_DIR") && environment.contains("TOOLCHAINS")) {
+                let activeDeveloperPath: Path
+                if let developerPath {
+                    activeDeveloperPath = developerPath.path
+                } else {
+                    activeDeveloperPath = try await Xcode.getActiveDeveloperDirectoryPath()
                 }
+                let defaultToolchainPath = activeDeveloperPath.join("Toolchains/XcodeDefault.xctoolchain")
 
-                let result = try await Process.getOutput(url: URL(fileURLWithPath: activeDeveloperPath.join("usr/bin/xcodebuild").str), arguments: ["-showComponent", "metalToolchain", "-json"], environment: ["DEVELOPER_DIR": activeDeveloperPath.str])
-                if result.exitStatus != .exit(0) {
-                    throw StubError.error("xcodebuild failed: \(String(data: result.stdout, encoding: .utf8) ?? "")\n\(String(data: result.stderr, encoding: .utf8) ?? "")")
+                if !localFS.exists(defaultToolchainPath.join("usr/metal/current")) {
+                    struct MetalToolchainInfo: Decodable {
+                        let buildVersion: String
+                        let status: String
+                        let toolchainIdentifier: String
+                        let toolchainSearchPath: String
+                    }
+
+                    let result = try await Process.getOutput(url: URL(fileURLWithPath: activeDeveloperPath.join("usr/bin/xcodebuild").str), arguments: ["-showComponent", "metalToolchain", "-json"], environment: ["DEVELOPER_DIR": activeDeveloperPath.str])
+                    if result.exitStatus != .exit(0) {
+                        throw StubError.error("xcodebuild failed: \(String(data: result.stdout, encoding: .utf8) ?? "")\n\(String(data: result.stderr, encoding: .utf8) ?? "")")
+                    }
+
+                    let metalToolchainInfo = try JSONDecoder().decode(MetalToolchainInfo.self, from: result.stdout)
+                    environment.addContents(of: [
+                        "TOOLCHAINS": "\(metalToolchainInfo.toolchainIdentifier) $(inherited)",
+                        "EXTERNAL_TOOLCHAINS_DIR": metalToolchainInfo.toolchainSearchPath,
+                    ])
                 }
-
-                let metalToolchainInfo = try JSONDecoder().decode(MetalToolchainInfo.self, from: result.stdout)
-                environment.addContents(of: [
-                    "TOOLCHAINS": "\(metalToolchainInfo.toolchainIdentifier) $(inherited)",
-                    "EXTERNAL_TOOLCHAINS_DIR": metalToolchainInfo.toolchainSearchPath,
-                ])
             }
         }
 
@@ -113,9 +115,9 @@ extension Core {
             additionalContentPaths.append(simulatedInferiorProductsPath)
         }
 
-        let pluginManager = await PluginManager(skipLoadingPluginIdentifiers: skipLoadingPluginsNamed)
+        let pluginManager = await MutablePluginManager(skipLoadingPluginIdentifiers: skipLoadingPluginsNamed)
 
-        @PluginExtensionSystemActor func extraPluginRegistration(pluginPaths: [Path]) {
+        @PluginExtensionSystemActor func extraPluginRegistration(pluginManager: MutablePluginManager, pluginPaths: [Path]) {
             pluginManager.registerExtensionPoint(SpecificationsExtensionPoint())
             pluginManager.registerExtensionPoint(SettingsBuilderExtensionPoint())
             pluginManager.registerExtensionPoint(SDKRegistryExtensionPoint())
@@ -138,29 +140,29 @@ extension Core {
                 pluginManager.load(at: path)
             }
 
+            let staticPluginInitializers: [String: PluginInitializationFunction]
+
+            // This MUST be a compile-time check because the module dependencies on the plugins are conditional.
+            // Minimize the amount of code that is conditionally compiled to avoid breaking the build during refactoring.
             #if USE_STATIC_PLUGIN_INITIALIZATION
-            if !skipLoadingPluginsNamed.contains("com.apple.dt.SWBAndroidPlatformPlugin") {
-                SWBAndroidPlatform.initializePlugin(pluginManager)
-            }
-            if !skipLoadingPluginsNamed.contains("com.apple.dt.SWBApplePlatformPlugin") {
-                SWBApplePlatform.initializePlugin(pluginManager)
-            }
-            if !skipLoadingPluginsNamed.contains("com.apple.dt.SWBGenericUnixPlatformPlugin") {
-                SWBGenericUnixPlatform.initializePlugin(pluginManager)
-            }
-            if !skipLoadingPluginsNamed.contains("com.apple.dt.SWBQNXPlatformPlugin") {
-                SWBQNXPlatform.initializePlugin(pluginManager)
-            }
-            if !skipLoadingPluginsNamed.contains("com.apple.dt.SWBUniversalPlatformPlugin") {
-                SWBUniversalPlatform.initializePlugin(pluginManager)
-            }
-            if !skipLoadingPluginsNamed.contains("com.apple.dt.SWBWebAssemblyPlatformPlugin") {
-                SWBWebAssemblyPlatform.initializePlugin(pluginManager)
-            }
-            if !skipLoadingPluginsNamed.contains("com.apple.dt.SWBWindowsPlatformPlugin") {
-                SWBWindowsPlatform.initializePlugin(pluginManager)
-            }
+            staticPluginInitializers = [
+                "Android": SWBAndroidPlatform.initializePlugin,
+                "Apple": SWBApplePlatform.initializePlugin,
+                "GenericUnix": SWBGenericUnixPlatform.initializePlugin,
+                "QNX": SWBQNXPlatform.initializePlugin,
+                "Universal": SWBUniversalPlatform.initializePlugin,
+                "WebAssembly": SWBWebAssemblyPlatform.initializePlugin,
+                "Windows": SWBWindowsPlatform.initializePlugin,
+            ]
+            #else
+            staticPluginInitializers = [:]
             #endif
+
+            if useStaticPluginInitialization {
+                for (infix, initializer) in staticPluginInitializers where !skipLoadingPluginsNamed.contains("com.apple.dt.SWB\(infix)PlatformPlugin") {
+                    initializer(pluginManager)
+                }
+            }
 
             registerExtraPlugins(pluginManager)
         }
@@ -244,5 +246,17 @@ package final class TestingCoreDelegate: CoreDelegate, Sendable {
 
     package var warnings: [(String, String)] {
         return _diagnosticsEngine.diagnostics.pathMessageTuples(.warning)
+    }
+}
+
+/// Individual classes may pass an instance of this protocol to `CoreBasedTests.makeCore()` to configure which special elements of the testing core they need.  `Core.createInitializedTestingCore()` (above) will configure the core based on what's passed here.
+///
+/// This allows tests which don't care about those elements to not fail because of errors trying to load them.
+package struct TestingCoreConfigurationDelegate: Sendable {
+    /// Only tests which are exercising Metal should need to load the Metal toolchain, so only those tests will fail if loading the toolchain fails.
+    package let loadMetalToolchain: Bool
+
+    package init(loadMetalToolchain: Bool = false) {
+        self.loadMetalToolchain = loadMetalToolchain
     }
 }

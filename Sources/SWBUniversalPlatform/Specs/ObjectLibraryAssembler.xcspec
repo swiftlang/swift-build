@@ -1,0 +1,42 @@
+//===----------------------------------------------------------------------===//
+//
+// This source file is part of the Swift open source project
+//
+// Copyright (c) 2025 Apple Inc. and the Swift project authors
+// Licensed under Apache License v2.0 with Runtime Library Exception
+//
+// See http://swift.org/LICENSE.txt for license information
+// See http://swift.org/CONTRIBUTORS.txt for the list of Swift project authors
+//
+//===----------------------------------------------------------------------===//
+
+(
+    {
+        Identifier = "org.swift.linkers.object-library-assembler";
+        Type = Linker;
+        Name = Ld;
+        Description = "Assembles an object library";
+        IsAbstract = Yes;
+        BinaryFormats = (
+            "mach-o",
+        );
+        CommandLine = "builtin-ObjectLibraryAssembler [options] [special-args] [inputs] --output $(OutputPath)";
+        RuleName = "AssembleObjectLibrary $(OutputPath) $(variant) $(arch)";
+        ExecDescription = "Assemble object library $(OutputFile:file)";
+        ProgressDescription = Linking;
+        InputFileTypes = (
+            "compiled.mach-o.objfile",
+        );
+        Outputs = (
+            "$(OutputPath)",
+        );
+        CommandOutputParser = "XCGenericCommandOutputParser";
+        Options = (
+            {   Name = OBJECT_FILE_ASSEMBLER_LINKER_RESPONSE_FILE_FORMAT;
+                Type = String;
+                DefaultValue = "$(LINKER_RESPONSE_FILE_FORMAT)";
+                CommandLineFlag = "--linker-response-file-format";
+            },
+        );
+    }
+)

@@ -99,12 +99,10 @@ private struct MacCatalystUnavailableFrameworkNamesHandler: MessageHandler {
     }
 }
 
+// TODO: Delete once all clients are no longer calling the public APIs which invoke this message
 private struct AppleSystemFrameworkNamesHandler: MessageHandler {
     func handle(request: Request, message: AppleSystemFrameworkNamesRequest) async throws -> StringListResponse {
-        guard let buildService = request.service as? BuildService else {
-            throw StubError.error("service object is not of type BuildService")
-        }
-        return try await StringListResponse([])
+        return StringListResponse([])
     }
 }
 
@@ -301,6 +299,14 @@ private struct SetSessionUserPreferencesMsg: MessageHandler {
         )
 
         return VoidResponse()
+    }
+}
+
+private struct LookupToolchainMsg: MessageHandler {
+    func handle(request: Request, message: LookupToolchainRequest) throws -> LookupToolchainResponse {
+        let session = try request.session(for: message)
+        let toolchain = try session.core.toolchainRegistry.lookup(path: message.path)
+        return LookupToolchainResponse(toolchainIdentifier: toolchain?.identifier)
     }
 }
 
@@ -579,7 +585,7 @@ fileprivate enum ResultOrErrorMessage<T> {
 fileprivate func getIndexBuildDescriptionFromID(buildDescriptionID: BuildDescriptionID, request: Request, session: Session, buildRequest: BuildRequest, buildRequestContext: BuildRequestContext, workspaceContext: WorkspaceContext, constructionDelegate: any BuildDescriptionConstructionDelegate) async -> ResultOrErrorMessage<BuildDescription> {
     let clientDelegate = ClientExchangeDelegate(request: request, session: session)
     do {
-        let descRequest = BuildDescriptionManager.BuildDescriptionRequest.cachedOnly(buildDescriptionID, request: buildRequest, buildRequestContext: buildRequestContext, workspaceContext: workspaceContext)
+        let descRequest = BuildDescriptionManager.BuildDescriptionRequest.cachedOnly(buildDescriptionID, request: buildRequest, buildRequestContext: buildRequestContext, workspaceContext: workspaceContext, retain: false)
         guard let retrievedBuildDescription = try await session.buildDescriptionManager.getNewOrCachedBuildDescription(descRequest, clientDelegate: clientDelegate, constructionDelegate: constructionDelegate) else {
             // If we don't receive a build description it means we were cancelled.
             return .failed(VoidResponse())
@@ -721,7 +727,7 @@ extension MessageHandler {
                     let clientDelegate = ClientExchangeDelegate(request: request, session: session)
                     let buildDescription: BuildDescription
                     do {
-                        if let retrievedBuildDescription = try await session.buildDescriptionManager.getBuildDescription(planRequest, clientDelegate: clientDelegate, constructionDelegate: operation) {
+                        if let retrievedBuildDescription = try await session.buildDescriptionManager.getBuildDescription(planRequest, retained: false, clientDelegate: clientDelegate, constructionDelegate: operation) {
                             buildDescription = retrievedBuildDescription
                         } else {
                             // If we don't receive a build description it means we were cancelled.
@@ -1545,6 +1551,7 @@ public struct ServiceSessionMessageHandlers: ServiceExtension {
         service.registerMessageHandler(SetSessionUserInfoMsg.self)
         service.registerMessageHandler(SetSessionUserPreferencesMsg.self)
         service.registerMessageHandler(DeveloperPathHandler.self)
+        service.registerMessageHandler(LookupToolchainMsg.self)
     }
 }
 
@@ -1616,6 +1623,12 @@ package struct ServiceMessageHandlers: ServiceExtension {
         service.registerMessageHandler(ComputeDependencyGraphMsg.self)
         service.registerMessageHandler(DumpBuildDependencyInfoMsg.self)
         
+        service.registerMessageHandler(BuildDescriptionConfiguredTargetsMsg.self)
+        service.registerMessageHandler(BuildDescriptionSelectConfiguredTargetsForIndexMsg.self)
+        service.registerMessageHandler(BuildDescriptionConfiguredTargetSourcesMsg.self)
+        service.registerMessageHandler(IndexBuildSettingsMsg.self)
+        service.registerMessageHandler(ReleaseBuildDescriptionMsg.self)
+
         service.registerMessageHandler(MacroEvaluationMsg.self)
         service.registerMessageHandler(AllExportedMacrosAndValuesMsg.self)
         service.registerMessageHandler(BuildSettingsEditorInfoMsg.self)

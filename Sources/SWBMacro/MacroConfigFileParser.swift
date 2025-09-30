@@ -42,6 +42,15 @@ public final class MacroConfigFileParser {
     /// Current line number.  Starts at one.
     var currLine: Int
 
+    /// The final line number after parsing completes.
+    public private(set) var finalLineNumber: Int = 1
+
+    /// The final column number after parsing completes.
+    public private(set) var finalColumnNumber: Int = 1
+
+    /// Index of the start of the current line in the byte array.
+    private var currentLineStartIdx: Int = 0
+
 
     /// Initializes the macro expression parser with the given string and delegate.  How the string is parsed depends on the particular parse method that’s invoked, such as `parseAsString()` or `parseAsStringList()`, and not on the configuration of the parser.
     public init(byteString: ByteString, path: Path, delegate: (any MacroConfigFileParserDelegate)?) {
@@ -54,6 +63,9 @@ public final class MacroConfigFileParser {
 
     /// Returns the current line number of the parser.  This is commonly used from the custom implementations of the parser delegate function callbacks.  Line numbers are one-based, and refer only to the source text of the parser itself (not taking into account any source text included using #include directives).
     public var lineNumber: Int { return currLine }
+
+    /// Returns the current column number of the parser. Column numbers are one-based.
+    public var columnNumber: Int { return currIdx - currentLineStartIdx + 1 }
 
     /*
 
@@ -131,6 +143,7 @@ public final class MacroConfigFileParser {
         }
         advance(advancement)
         currLine += 1
+        currentLineStartIdx = currIdx
     }
 
 
@@ -276,6 +289,7 @@ public final class MacroConfigFileParser {
     // MARK: Parsing of value assignment starts here.
     /// Parses a macro value assignment line of the form MACRONAME [ optional conditions ] ... = VALUE  ';'?
     private func parseMacroValueAssignment() {
+        let startOfLine = currIdx - 1
         // First skip over any whitespace and comments.
         skipWhitespaceAndComments()
 
@@ -361,6 +375,8 @@ public final class MacroConfigFileParser {
         // Skip over the equals sign.
         assert(currChar == /* '=' */ 61)
         advance()
+        let startLine = currLine
+        let startColumn = currIdx - startOfLine
 
         var chunks : [String] = []
         while let chunk = parseNonListAssignmentRHS() {
@@ -383,7 +399,7 @@ public final class MacroConfigFileParser {
         }
         // Finally, now that we have the name, conditions, and value, we tell the delegate about it.
         let value = chunks.joined(separator: " ")
-        delegate?.foundMacroValueAssignment(name, conditions: conditions, value: value, parser: self)
+        delegate?.foundMacroValueAssignment(name, conditions: conditions, value: value, path: path, startLine: startLine, endLine: currLine, startColumn: startColumn, endColumn: currIdx - startOfLine, parser: self)
     }
 
     public func parseNonListAssignmentRHS() -> String? {
@@ -458,6 +474,10 @@ public final class MacroConfigFileParser {
 
         // At this point, we expect to have seen all of the input string.
         assert(isAtEndOfStream)
+
+        // Set the final line and column numbers
+        finalLineNumber = currLine
+        finalColumnNumber = columnNumber
     }
 
 
@@ -518,7 +538,7 @@ public final class MacroConfigFileParser {
             }
             func endPreprocessorInclusion() {
             }
-            func foundMacroValueAssignment(_ macroName: String, conditions: [(param: String, pattern: String)], value: String, parser: MacroConfigFileParser) {
+            func foundMacroValueAssignment(_ macroName: String, conditions: [(param: String, pattern: String)], value: String, path: Path, startLine: Int, endLine: Int, startColumn: Int, endColumn: Int, parser: MacroConfigFileParser) {
                 self.macroName = macroName
                 self.conditions = conditions.isEmpty ? nil : conditions
             }
@@ -565,7 +585,7 @@ public protocol MacroConfigFileParserDelegate {
     func endPreprocessorInclusion()
 
     /// Invoked once for each macro value assignment.  The `macroName` is guaranteed to be non-empty, but `value` may be empty.  Any macro conditions are passed as tuples in the `conditions`; parameters are guaranteed to be non-empty strings, but patterns may be empty.
-    mutating func foundMacroValueAssignment(_ macroName: String, conditions: [(param: String, pattern: String)], value: String, parser: MacroConfigFileParser)
+    mutating func foundMacroValueAssignment(_ macroName: String, conditions: [(param: String, pattern: String)], value: String, path: Path, startLine: Int, endLine: Int, startColumn: Int, endColumn: Int, parser: MacroConfigFileParser)
 
     /// Invoked if an error, warning, or other diagnostic is detected.
     func handleDiagnostic(_ diagnostic: MacroConfigFileDiagnostic, parser: MacroConfigFileParser)

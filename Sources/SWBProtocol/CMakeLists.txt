@@ -11,6 +11,7 @@ See http://swift.org/CONTRIBUTORS.txt for Swift project authors
 add_library(SWBProtocol
   AsyncSequence.swift
   BuildAction.swift
+  BuildDescriptionMessages.swift
   BuildOperationMessages.swift
   BuildSettingsInfoMessageTypes.swift
   ClientExchangeMessages.swift

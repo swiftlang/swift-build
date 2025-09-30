@@ -62,7 +62,7 @@ public func withHeavyCacheGlobalState<T>(isolated: Bool = true, _ body: () throw
 /// A cache designed for holding few, relatively heavy-weight objects.
 ///
 /// This cache is specifically designed for holding a limited number of objects (usually less than 100) which are expensive enough to merit particular attention in terms of being purgeable under memory pressure, evictable in-mass, or cached with more complex parameters like time-to-live (TTL).
-public final class HeavyCache<Key: Hashable & Sendable, Value>: _HeavyCacheBase, KeyValueStorage, @unchecked Sendable {
+public final class HeavyCache<Key: Hashable & Sendable, Value: Sendable>: _HeavyCacheBase, KeyValueStorage, @unchecked Sendable {
     public typealias HeavyCacheClock = SuspendingClock
 
     /// Controls the non-deterministic eviction policy of the cache. Note that this is distinct from deterministic _pruning_ (due to TTL or size limits).
@@ -74,21 +74,32 @@ public final class HeavyCache<Key: Hashable & Sendable, Value>: _HeavyCacheBase,
         case `default`(totalCostLimit: Int?, willEvictCallback: (@Sendable (Value) -> Void)? = nil)
     }
 
-    fileprivate final class Entry {
+    fileprivate final class Entry: Sendable {
+        /// Empty helper type to prove exclusive access to `accessTime` without storing a mutex for each instance.
+        struct Witness: ~Copyable { }
+
         /// The actual value.
         let value: Value
 
         /// The last access timestamp.
-        var accessTime: HeavyCacheClock.Instant
+        private nonisolated(unsafe) var accessTime: HeavyCacheClock.Instant
 
         init(_ value: Value, _ accessTime: HeavyCacheClock.Instant) {
             self.value = value
             self.accessTime = accessTime
         }
+
+        func accessTime(_ Witness: borrowing Witness) -> HeavyCacheClock.Instant {
+            self.accessTime
+        }
+
+        func updateAccessTime(_ accessTime: HeavyCacheClock.Instant, _ Witness: borrowing Witness) {
+            self.accessTime = accessTime
+        }
     }
 
     /// The lock to protect shared instance state.
-    private let stateLock = SWBMutex(())
+    private let stateLock = SWBMutex(Entry.Witness())
 
     /// The underlying cache.
     private let _cache: any HeavyCacheImpl<Key, Entry>
@@ -132,7 +143,7 @@ public final class HeavyCache<Key: Hashable & Sendable, Value>: _HeavyCacheBase,
 
     deinit {
         _timer?.cancel()
-        stateLock.withLock {
+        stateLock.withLock { _ in
             for waiter in _expirationWaiters {
                 waiter.resume()
             }
@@ -146,12 +157,12 @@ public final class HeavyCache<Key: Hashable & Sendable, Value>: _HeavyCacheBase,
     ///
     /// Due to the implementation details, this may overestimate the number of active items, if some items have been recently evicted.
     public var count: Int {
-        return stateLock.withLock { _keys.count }
+        return stateLock.withLock { _ in _keys.count }
     }
 
     /// Clear all items in the cache.
     public func removeAll() {
-        stateLock.withLock {
+        stateLock.withLock { _ in
             _cache.removeAll()
             _keys.removeAll()
         }
@@ -161,13 +172,13 @@ public final class HeavyCache<Key: Hashable & Sendable, Value>: _HeavyCacheBase,
     ///
     /// This function is thread-safe, but may allow computing the value multiple times in case of a race.
     public func getOrInsert(_ key: Key, _ body: () throws -> Value) rethrows -> Value {
-        return try stateLock.withLock {
+        return try stateLock.withLock { witness in
             let entry = try _cache.getOrInsert(key) {
                 return Entry(try body(), currentTime())
             }
             _keys.insert(key)
-            entry.accessTime = currentTime()
-            _pruneCache()
+            entry.updateAccessTime(currentTime(), witness)
+            _pruneCache(witness)
             return entry.value
         }
     }
@@ -175,21 +186,21 @@ public final class HeavyCache<Key: Hashable & Sendable, Value>: _HeavyCacheBase,
     /// Subscript access to the cache.
     public subscript(_ key: Key) -> Value? {
         get {
-            return stateLock.withLock {
+            return stateLock.withLock { witness in
                 if let entry = _cache[key] {
-                    entry.accessTime = currentTime()
+                    entry.updateAccessTime(currentTime(), witness)
                     return entry.value
                 }
                 return nil
             }
         }
         set {
-            stateLock.withLock {
+            stateLock.withLock { witness in
                 if let newValue {
                     let entry = Entry(newValue, currentTime())
                     _cache[key] = entry
                     _keys.insert(key)
-                    _pruneCache()
+                    _pruneCache(witness)
                 } else {
                     _cache.remove(key)
                     _keys.remove(key)
@@ -206,7 +217,7 @@ public final class HeavyCache<Key: Hashable & Sendable, Value>: _HeavyCacheBase,
     /// Prune the cache following an insert.
     ///
     /// This method is expected to be called on `queue`.
-    private func _pruneCache() {
+    private func _pruneCache(_ witness: borrowing Entry.Witness) {
         // Enforce the cache maximum size.
         guard let max = maximumSize else { return }
 
@@ -223,7 +234,7 @@ public final class HeavyCache<Key: Hashable & Sendable, Value>: _HeavyCacheBase,
                     _cache.remove(key)
                     continue whileLoop
                 }
-                if oldest == nil || oldest!.entry.accessTime > entry.accessTime {
+                if oldest == nil || oldest!.entry.accessTime(witness) > entry.accessTime(witness) {
                     oldest = (key, entry)
                 }
             }
@@ -237,7 +248,7 @@ public final class HeavyCache<Key: Hashable & Sendable, Value>: _HeavyCacheBase,
     /// Prune the cache based on the TTL value.
     ///
     /// This method is expected to be called on `queue`.
-    private func _pruneForTTL() {
+    private func _pruneForTTL(_ witness: borrowing Entry.Witness) {
         guard let ttl = _timeToLive else { return }
 
         let time = currentTime()
@@ -247,7 +258,7 @@ public final class HeavyCache<Key: Hashable & Sendable, Value>: _HeavyCacheBase,
                 keysToRemove.append(key)
                 continue
             }
-            if time - entry.accessTime > ttl {
+            if time - entry.accessTime(witness) > ttl {
                 keysToRemove.append(key)
             }
         }
@@ -272,9 +283,9 @@ public final class HeavyCache<Key: Hashable & Sendable, Value>: _HeavyCacheBase,
             return _maximumSize
         }
         set {
-            stateLock.withLock {
+            stateLock.withLock { witness in
                 _maximumSize = newValue
-                _pruneCache()
+                _pruneCache(witness)
             }
         }
     }
@@ -287,7 +298,7 @@ public final class HeavyCache<Key: Hashable & Sendable, Value>: _HeavyCacheBase,
             return _timeToLive
         }
         set {
-            stateLock.withLock {
+            stateLock.withLock { _ in
                 _timeToLive = newValue
 
                 // Install the TTL timer.
@@ -298,8 +309,8 @@ public final class HeavyCache<Key: Hashable & Sendable, Value>: _HeavyCacheBase,
                         while !Task.isCancelled {
                             if let self = self {
                                 self.preventExpiration {
-                                    self.stateLock.withLock {
-                                        self._pruneForTTL()
+                                    self.stateLock.withLock { witness in
+                                        self._pruneForTTL(witness)
                                     }
                                 }
                             }
@@ -326,7 +337,7 @@ public final class HeavyCache<Key: Hashable & Sendable, Value>: _HeavyCacheBase,
 extension HeavyCache {
     /// Allows freezing the current time as seen by the object, for TTL pruning testing purposes.
     @_spi(Testing) @discardableResult public func setTime(instant: HeavyCacheClock.Instant?) -> HeavyCacheClock.Instant {
-        stateLock.withLock {
+        stateLock.withLock { _ in
             _currentTimeTestingOverride = instant
             return instant ?? .now
         }
@@ -335,7 +346,7 @@ extension HeavyCache {
     /// Waits until the next time pruning for TTL occurs.
     @_spi(Testing) public func waitForExpiration() async {
         await withCheckedContinuation { continuation in
-            stateLock.withLock {
+            stateLock.withLock { _ in
                 _expirationWaiters.append(continuation)
             }
         }

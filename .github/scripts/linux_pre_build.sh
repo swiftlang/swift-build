@@ -31,8 +31,8 @@ if command -v apt-get >/dev/null 2>&1 ; then # bookworm, noble, jammy
     # Android NDK
     dpkg_architecture="$(dpkg --print-architecture)"
     if [[ "$SKIP_ANDROID" != "1" ]] && [[ "$dpkg_architecture" == amd64 ]] ; then
-        eval "$(cat /etc/lsb-release)"
-        case "$DISTRIB_CODENAME" in
+        eval "$(cat /etc/os-release)"
+        case "$VERSION_CODENAME" in
             bookworm|jammy)
                 : # Not available
                 ;;
@@ -40,7 +40,7 @@ if command -v apt-get >/dev/null 2>&1 ; then # bookworm, noble, jammy
                 apt-get install -y google-android-ndk-r26c-installer
                 ;;
             *)
-                echo "Unknown distribution: $DISTRIB_CODENAME" >&2
+                echo "Unable to fetch Android NDK for unknown Linux distribution: $VERSION_CODENAME" >&2
                 exit 1
         esac
     else

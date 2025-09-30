@@ -242,7 +242,7 @@ import SWBMacro
         }
     }
 
-    @Test(.skipHostOS(.windows), .requireSystemPackages(apt: "libtool", yum: "libtool", freebsd: "libtool"))
+    @Test(.skipHostOS(.windows), .requireSystemPackages(apt: "libtool", yum: "libtool", freebsd: "libtool", openbsd: "libtool"))
     func discoveredLibtoolSpecInfo() async throws {
         try await withSpec(LibtoolLinkerSpec.self, .deferred) { (info: DiscoveredLibtoolLinkerToolSpecInfo) in
             #expect(info.toolPath.basename == "libtool")

@@ -24,7 +24,7 @@ public final class ResMergerLinkerSpec : GenericLinkerSpec, SpecIdentifierType, 
 
         let environment: EnvironmentBindings = environmentFromSpec(cbc, delegate)
         do {
-            var commandLine = [resolveExecutablePath(cbc, Path("ResMerger")).str]
+            var commandLine = [await resolveExecutablePath(cbc, Path("ResMerger"), delegate: delegate).str]
 
             commandLine += BuiltinMacros.ifSet(BuiltinMacros.MACOS_TYPE, in: cbc.scope) { ["-fileType", $0] }
             commandLine += BuiltinMacros.ifSet(BuiltinMacros.MACOS_CREATOR, in: cbc.scope) { ["-fileCreator", $0] }
@@ -64,7 +64,7 @@ public final class ResMergerLinkerSpec : GenericLinkerSpec, SpecIdentifierType, 
                 outputPath = outputPath.join(cbc.scope.evaluate(BuiltinMacros.PRODUCT_NAME) + ".rsrc")
             }
 
-            var commandLine = [resolveExecutablePath(cbc, Path("ResMerger")).str]
+            var commandLine = [await resolveExecutablePath(cbc, Path("ResMerger"), delegate: delegate).str]
             commandLine.append(tmpOutputPath.str)
 
             commandLine += BuiltinMacros.ifSet(BuiltinMacros.MACOS_TYPE, in: cbc.scope) { ["-fileType", $0] }

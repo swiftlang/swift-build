@@ -69,6 +69,11 @@ public class ProductTypeSpec : Spec, SpecType, @unchecked Sendable {
         return nil
     }
 
+    public func artifactInfo(in scope: MacroEvaluationScope) -> ArtifactInfo? {
+        // Customization point for subclasses
+        return nil
+    }
+
     /// Whether this product type supports having compiler sanitizer libraries embedded in it.
     public let canEmbedCompilerSanitizerLibraries: Bool
 
@@ -260,31 +265,39 @@ public class ProductTypeSpec : Spec, SpecType, @unchecked Sendable {
     }
 
     /// Computes and returns additional arguments to pass to the linker appropriate for the product type.  Also returns a list of additional paths to treat as inputs to the link command, if appropriate.
-    func computeAdditionalLinkerArgs(_ producer: any CommandProducer, scope: MacroEvaluationScope) -> (args: [String], inputs: [Path]) {
+    func computeAdditionalLinkerArgs(_ producer: any CommandProducer, scope: MacroEvaluationScope, lookup: @escaping ((MacroDeclaration) -> MacroStringExpression?)) -> (args: [String], inputs: [Path]) {
         return ([], [])
     }
 
-    fileprivate func computeDylibArgs(_ producer: any CommandProducer, _ scope: MacroEvaluationScope) -> [String] {
+    fileprivate func computeDylibArgs(_ producer: any CommandProducer, _ scope: MacroEvaluationScope, lookup: @escaping ((MacroDeclaration) -> MacroStringExpression?)) -> [String] {
         var args = [String]()
 
         if producer.isApplePlatform {
-            let compatibilityVersion = scope.evaluate(BuiltinMacros.DYLIB_COMPATIBILITY_VERSION)
+            let compatibilityVersion = scope.evaluate(BuiltinMacros.DYLIB_COMPATIBILITY_VERSION, lookup: lookup)
             if !compatibilityVersion.isEmpty {
-                switch scope.evaluate(BuiltinMacros.LINKER_DRIVER) {
+                switch scope.evaluate(BuiltinMacros.LINKER_DRIVER, lookup: lookup) {
                 case .clang:
                     args += ["-compatibility_version", compatibilityVersion]
                 case .swiftc:
                     args += ["-Xlinker", "-compatibility_version", "-Xlinker", compatibilityVersion]
+                case .qcc:
+                    break
+                case .auto:
+                    preconditionFailure("Expected LINKER_DRIVER to be bound to a concrete value")
                 }
             }
 
-            let currentVersion = scope.evaluate(BuiltinMacros.DYLIB_CURRENT_VERSION)
+            let currentVersion = scope.evaluate(BuiltinMacros.DYLIB_CURRENT_VERSION, lookup: lookup)
             if !currentVersion.isEmpty {
-                switch scope.evaluate(BuiltinMacros.LINKER_DRIVER) {
+                switch scope.evaluate(BuiltinMacros.LINKER_DRIVER, lookup: lookup) {
                 case .clang:
                     args += ["-current_version", currentVersion]
                 case .swiftc:
                     args += ["-Xlinker", "-current_version", "-Xlinker", currentVersion]
+                case .qcc:
+                    break
+                case .auto:
+                    preconditionFailure("Expected LINKER_DRIVER to be bound to a concrete value")
                 }
             }
         }
@@ -321,7 +334,7 @@ public class ProductTypeSpec : Spec, SpecType, @unchecked Sendable {
     }
 
     /// Returns whether the product type supports embedding Swift standard libraries inside it.
-    public var supportsEmbeddingSwiftStandardLibraries: Bool {
+    public func supportsEmbeddingSwiftStandardLibraries(producer: CommandProducer) -> Bool {
         // Most product types don't support having the Swift libraries embedded in them.
         return false
     }
@@ -381,7 +394,7 @@ public final class ApplicationProductTypeSpec : BundleProductTypeSpec, @unchecke
         return "PBXApplicationProductType"
     }
 
-    public override var supportsEmbeddingSwiftStandardLibraries: Bool {
+    public override func supportsEmbeddingSwiftStandardLibraries(producer: CommandProducer) -> Bool {
         return true
     }
 
@@ -521,6 +534,11 @@ public class FrameworkProductTypeSpec : BundleProductTypeSpec, @unchecked Sendab
         return descriptors
     }
 
+    public override func artifactInfo(in scope: MacroEvaluationScope) -> ArtifactInfo? {
+        let path = scope.evaluate(BuiltinMacros.TARGET_BUILD_DIR).join(scope.evaluate(BuiltinMacros.FULL_PRODUCT_NAME))
+        return ArtifactInfo(kind: .framework, path: path)
+    }
+
 /*
     /// Build setting expressions to evaluate to determine how to create symbolic links for the product structure.
     static let productStructureSymlinkBuildSettings = [SymlinkDescriptor]([
@@ -563,9 +581,9 @@ public class FrameworkProductTypeSpec : BundleProductTypeSpec, @unchecked Sendab
     ])
 */
 
-    override func computeAdditionalLinkerArgs(_ producer: any CommandProducer, scope: MacroEvaluationScope) -> (args: [String], inputs: [Path]) {
+    override func computeAdditionalLinkerArgs(_ producer: any CommandProducer, scope: MacroEvaluationScope, lookup: @escaping ((MacroDeclaration) -> MacroStringExpression?)) -> (args: [String], inputs: [Path]) {
         if scope.evaluate(BuiltinMacros.MACH_O_TYPE) != "staticlib" {
-            return (computeDylibArgs(producer, scope), [])
+            return (computeDylibArgs(producer, scope, lookup: lookup), [])
         }
         return ([], [])
     }
@@ -602,8 +620,8 @@ public final class XCTestBundleProductTypeSpec : BundleProductTypeSpec, @uncheck
         super.init(parser, basedOnSpec)
     }
 
-    public override var supportsEmbeddingSwiftStandardLibraries: Bool {
-        return true
+    public override func supportsEmbeddingSwiftStandardLibraries(producer: CommandProducer) -> Bool {
+        return producer.isApplePlatform
     }
 
     public class func usesXCTRunner(_ scope: MacroEvaluationScope) -> Bool {
@@ -649,7 +667,7 @@ public final class XCTestBundleProductTypeSpec : BundleProductTypeSpec, @uncheck
         var (tableOpt, warnings, errors) = super.overridingBuildSettings(scope, platform: platform)
         var table = tableOpt ?? MacroValueAssignmentTable(namespace: scope.namespace)
 
-        let isDeviceBuild = platform?.isDeploymentPlatform == true && platform?.identifier != "com.apple.platform.macosx"
+        let isDeviceBuild = platform?.isDeploymentPlatform == true && platform?.name != scope.evaluate(BuiltinMacros.HOST_PLATFORM)
         if isDeviceBuild {
             // For tests running on devices (not simulators) we always want to generate dSYMs so that symbolication can give file and line information about test failures.
             table.push(BuiltinMacros.DEBUG_INFORMATION_FORMAT, literal: "dwarf-with-dsym")
@@ -772,6 +790,10 @@ public class StandaloneExecutableProductTypeSpec : ProductTypeSpec, SpecClassTyp
     public class var className: String {
         return "XCStandaloneExecutableProductType"
     }
+
+    public override var supportsSwiftABIChecker: Bool {
+        true
+    }
 }
 
 public class LibraryProductTypeSpec: StandaloneExecutableProductTypeSpec, @unchecked Sendable {
@@ -797,12 +819,18 @@ public final class DynamicLibraryProductTypeSpec : LibraryProductTypeSpec, @unch
         return true
     }
 
-    override func computeAdditionalLinkerArgs(_ producer: any CommandProducer, scope: MacroEvaluationScope) -> (args: [String], inputs: [Path]) {
+    override func computeAdditionalLinkerArgs(_ producer: any CommandProducer, scope: MacroEvaluationScope, lookup: @escaping ((MacroDeclaration) -> MacroStringExpression?)) -> (args: [String], inputs: [Path]) {
         if scope.evaluate(BuiltinMacros.MACH_O_TYPE) != "staticlib" {
-            return (computeDylibArgs(producer, scope), [])
+            return (computeDylibArgs(producer, scope, lookup: lookup), [])
         }
         return ([], [])
     }
+
+    public override func artifactInfo(in scope: MacroEvaluationScope) -> ArtifactInfo? {
+        let path = scope.evaluate(BuiltinMacros.TARGET_BUILD_DIR).join(scope.evaluate(BuiltinMacros.FULL_PRODUCT_NAME))
+        return ArtifactInfo(kind: .dynamicLibrary, path: path)
+    }
+
 }
 
 public final class StaticLibraryProductTypeSpec : LibraryProductTypeSpec, @unchecked Sendable {
@@ -815,11 +843,21 @@ public final class StaticLibraryProductTypeSpec : LibraryProductTypeSpec, @unche
     public override var supportsDefinesModule: Bool {
         return true
     }
+
+    public override func artifactInfo(in scope: MacroEvaluationScope) -> ArtifactInfo? {
+        let path = scope.evaluate(BuiltinMacros.TARGET_BUILD_DIR).join(scope.evaluate(BuiltinMacros.FULL_PRODUCT_NAME))
+        return ArtifactInfo(kind: .staticLibrary, path: path)
+    }
 }
 
 public final class ToolProductTypeSpec : StandaloneExecutableProductTypeSpec, @unchecked Sendable {
     class public override var className: String {
         return "PBXToolProductType"
+    }
+
+    public override func artifactInfo(in scope: MacroEvaluationScope) -> ArtifactInfo? {
+        let path = scope.evaluate(BuiltinMacros.TARGET_BUILD_DIR).join(scope.evaluate(BuiltinMacros.FULL_PRODUCT_NAME))
+        return ArtifactInfo(kind: .executable, path: path)
     }
 }
 

@@ -369,7 +369,7 @@ public final class SpecRegistry: Sendable {
     /// - parameter delegate: The delegate used to report diagnostics about spec loading.
     /// - parameter searchPaths: The list of (path, defaultDomain) tuples to search for specs. The path may be either a directory (which will be scanned for specs), or the path directly to an ".xcspec" which will be registered. In both cases, the defaultDomain specifies which domain to register the found specs in if the spec itself does not specify the domain.
     /// - parameter domainIncludes: The mapping of which domains include other ones.
-    @_spi(Testing) public init(_ pluginManager: PluginManager, _ delegate: any SpecRegistryDelegate, _ searchPaths: [(Path, String)], _ domainInclusions: [String: [String]] = [:], _ domainRemaps: [String: [String]] = [:], loadBuiltinImplementations: Bool = true) async {
+    @_spi(Testing) public init(_ pluginManager: any PluginManager, _ delegate: any SpecRegistryDelegate, _ searchPaths: [(Path, String)], _ domainInclusions: [String: [String]] = [:], _ domainRemaps: [String: [String]] = [:], loadBuiltinImplementations: Bool = true) async {
         self.delegate = delegate
         self.domainInclusions = domainInclusions
         self.domainRemaps = domainRemaps

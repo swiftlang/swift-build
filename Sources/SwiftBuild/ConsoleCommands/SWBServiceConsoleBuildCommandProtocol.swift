@@ -168,10 +168,10 @@ public enum SwiftBuildMessage {
     }
 
     public struct BuildOperationMetrics {
-        let clangCacheHits: Int
-        let clangCacheMisses: Int
-        let swiftCacheHits: Int
-        let swiftCacheMisses: Int
+        public let counters: [String: Int]
+
+        /// The key is the first component of task rule info, a.k.a. the rule info type
+        public let taskCounters: [String: [String: Int]]
     }
 
     public struct BuildCompletedInfo {
@@ -923,6 +923,17 @@ public struct AbsolutePath: Hashable, Equatable, Sendable {
 
     public init(validating path: String) throws {
         self.pathString = path
+    }
+
+    init(_ path: Path) {
+        self.pathString = path.str
+    }
+
+    init?(_ path: Path?) {
+        guard let path else {
+            return nil
+        }
+        self.init(path)
     }
 
     public static let root = try! AbsolutePath(validating: Path.root.str)

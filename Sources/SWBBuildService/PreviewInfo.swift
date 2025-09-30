@@ -123,6 +123,7 @@ extension BuildDescriptionManager {
         do {
             if let retrievedBuildDescription = try await getBuildDescription(
                 planRequest,
+                retained: false,
                 clientDelegate: delegate.clientDelegate,
                 constructionDelegate: delegate
             ) {

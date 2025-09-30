@@ -63,7 +63,9 @@ typealias swb_build_service_connection_message_handler_t = @Sendable (UInt64, SW
 
     /// Absolute path to the dyld-loaded dylib binary that contains this class.
     fileprivate class var swiftbuildDylibPath: Path {
-        return Library.locate(SWBBuildServiceConnection.self)
+        get throws {
+            return try Library.locate(SWBBuildServiceConnection.self)
+        }
     }
 
     fileprivate enum State {
@@ -168,7 +170,7 @@ typealias swb_build_service_connection_message_handler_t = @Sendable (UInt64, SW
             // Compute the path to the clang ASan dylib to use when launching the ASan variant of SWBBuildService.
             // The linker adds a non-portable rpath to the directory containing the ASan dylib based on the path to the Xcode used to link the binary.  We look in Bundle.main.bundlePath (SwiftBuild_asan) for .../Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/lib/clang/<vers>/lib/darwin so we can relaunch with the ASan library in the default toolchain of the Xcode we're part of.
             // There are some examples of this rpath breaking which we've had to fix, e.g.: rdar://57759442&75222176
-            let asanDylib = SWBBuildServiceConnection.swiftbuildDylibPath.str.hasSuffix("_asan") ? SWBBuildServiceConnection.swiftbuildDylibPath.str : SWBBuildServiceConnection.swiftbuildDylibPath.str + "_asan"
+            let asanDylib = try SWBBuildServiceConnection.swiftbuildDylibPath.str.hasSuffix("_asan") ? SWBBuildServiceConnection.swiftbuildDylibPath.str : SWBBuildServiceConnection.swiftbuildDylibPath.str + "_asan"
             if !FileManager.default.isExecutableFile(atPath: asanDylib) {
                 // We always look for the _asan variant of the build service executable since only it will have the rpaths we need to subsequently look up. However, if it's missing we should then just fall back to the normal variant.
                 break asan
@@ -605,7 +607,7 @@ extension SWBBuildServiceVariant {
         case .default:
             // Check if the binary containing this class ends with _asan, in which case, we interpret this as a signal that we're running in asan mode, and that we should
             // load the service bundle in asan mode as well.
-            return SWBBuildServiceConnection.swiftbuildDylibPath.str.hasSuffix("_asan")
+            return (try? SWBBuildServiceConnection.swiftbuildDylibPath.str.hasSuffix("_asan")) ?? false
         case .normal:
             return false
         case .asan:
@@ -705,7 +707,7 @@ fileprivate final class InProcessStaticConnection: ConnectionTransport {
             buildServicePlugInsDirectory = URL(fileURLWithPath: path.dirname.str, isDirectory: true)
         } else {
             // If the build service executable is unbundled, then try to find the build service entry point in this executable.
-            let path = Library.locate(SWBBuildServiceConnection.self)
+            let path = try Library.locate(SWBBuildServiceConnection.self)
             // If the build service executable is unbundled, assume that any plugins that may exist are next to our executable.
             buildServicePlugInsDirectory = URL(fileURLWithPath: path.dirname.str, isDirectory: true)
         }
@@ -802,7 +804,7 @@ fileprivate final class InProcessConnection: ConnectionTransport {
             buildServicePlugInsDirectory = URL(fileURLWithPath: path.dirname.str, isDirectory: true)
         } else {
             // If the build service executable is unbundled, then try to find the build service entry point in this executable.
-            let path = Library.locate(SWBBuildServiceConnection.self)
+            let path = try Library.locate(SWBBuildServiceConnection.self)
             handle = try Library.open(path)
 
             // If the build service executable is unbundled, assume that any plugins that may exist are next to our executable.

@@ -204,6 +204,10 @@ extension CapturingTaskGenerationDelegate: TaskActionCreationDelegate {
         return ClangCompileTaskAction()
     }
 
+    package func createClangNonModularCompileTaskAction() -> any PlannedTaskAction {
+        return ClangNonModularCompileTaskAction()
+    }
+
     package func createClangScanTaskAction() -> any PlannedTaskAction {
         return ClangScanTaskAction()
     }
@@ -238,5 +242,17 @@ extension CapturingTaskGenerationDelegate: TaskActionCreationDelegate {
 
     package func createProcessSDKImportsTaskAction() -> any PlannedTaskAction {
         return ProcessSDKImportsTaskAction()
+    }
+
+    package func createValidateDependenciesTaskAction() -> any PlannedTaskAction {
+        return ValidateDependenciesTaskAction()
+    }
+    
+    package func createObjectLibraryAssemblerTaskAction() -> any PlannedTaskAction {
+        return ObjectLibraryAssemblerTaskAction()
+    }
+
+    package func createLinkerTaskAction(expandResponseFiles: Bool, responseFileFormat: ResponseFileFormat) -> any PlannedTaskAction {
+        return LinkerTaskAction(expandResponseFiles: expandResponseFiles, responseFileFormat: responseFileFormat)
     }
 }

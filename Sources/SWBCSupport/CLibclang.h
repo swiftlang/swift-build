@@ -107,6 +107,9 @@ CSUPPORT_EXPORT bool libclang_has_scanner(libclang_t lib);
 /// Whether libclang supports reporting structured scanning diagnostics.
 CSUPPORT_EXPORT bool libclang_has_structured_scanner_diagnostics(libclang_t lib);
 
+/// Whether libclang supports reporting negative stat caching diagnostics.
+CSUPPORT_EXPORT bool libclang_has_negative_stat_cache_diagnostics(libclang_t lib);
+
 /// Create a new scanner instance with optional CAS databases.
 CSUPPORT_EXPORT libclang_scanner_t libclang_scanner_create(libclang_t lib, libclang_casdatabases_t, libclang_casoptions_t);
 
@@ -127,6 +130,9 @@ CSUPPORT_EXPORT bool libclang_has_cas_up_to_date_checks_feature(libclang_t lib);
 
 /// Whether the libclang has current working directory optimization support.
 CSUPPORT_EXPORT bool libclang_has_current_working_directory_optimization(libclang_t lib);
+
+/// Whether the libclang has reproducer generation support.
+CSUPPORT_EXPORT bool libclang_has_reproducer_feature(libclang_t lib);
 
 /// Create the CAS options object.
 CSUPPORT_EXPORT libclang_casoptions_t libclang_casoptions_create(libclang_t lib);
@@ -181,6 +187,9 @@ typedef size_t (^module_lookup_output_t)(
     const char *module_name, const char *context_hash,
     clang_output_kind_t kind, char *output, size_t max_len);
 
+/// Reports invalid entries in the scanner's negative stat cache.
+CSUPPORT_EXPORT void libclang_scanner_diagnose_invalid_negative_stat_cache_entries(libclang_scanner_t scanner, void (^path_callback)(const char *));
+
 /// Scan the given Clang "cc1" invocation, looking for dependencies.
 ///
 /// NOTE: This function is thread-safe.
@@ -202,6 +211,18 @@ CSUPPORT_EXPORT bool libclang_scanner_scan_dependencies(
     void (^callback)(clang_file_dependencies_t),
     void (^diagnostics_callback)(const libclang_diagnostic_set_t),
     void (^error_callback)(const char *));
+
+/// Generate a way to re-run the compilation without all the source files and the build system.
+///
+/// \param scanner - The scanner to use.
+/// \param argc - The number of arguments.
+/// \param argv - The Clang driver command line (including a program name in argv[0]).
+/// \param workingDirectory - The working directory to use for evaluation.
+/// \param message[out] - The human-readable message describing the result of the operation.
+/// \returns True on success, false if something failed (see \p message for more details).
+CSUPPORT_EXPORT bool libclang_scanner_generate_reproducer(
+    libclang_scanner_t scanner, int argc, char *const *argv, const char *workingDirectory,
+    const char **message);
 
 /// Get the list of commands invoked by the given Clang driver command line.
 ///

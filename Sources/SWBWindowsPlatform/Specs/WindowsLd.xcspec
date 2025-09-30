@@ -103,6 +103,16 @@
                 Condition = "NO";
             },
             {
+                Name = "DEAD_CODE_STRIPPING";
+                Type = Boolean;
+                DefaultValue = NO;
+                Condition = "$(MACH_O_TYPE) != mh_object";
+                CommandLineArgs = {
+                    YES = ("-Xlinker", "/OPT:REF");
+                    NO = ();
+                };
+            },
+            {
                 // No such concept
                 Name = "LD_RUNPATH_SEARCH_PATHS";
                 //Note: Cannot be of type 'PathList' as value is used with relative '../' paths
@@ -185,6 +195,28 @@
                 Name = "SWIFTC__INPUT_FILE_LIST_PATH__";
                 Type = Path;
                 Condition = "NO";
+            },
+            {
+                Name = "LINKER_FILE_LIST_FORMAT";
+                Type = Enumeration;
+                Values = (
+                    unescapedNewlineSeparated,
+                    unixShellQuotedSpaceSeparated,
+                    unixShellQuotedNewlineSeparated,
+                    windowsShellQuotedNewlineSeparated,
+                );
+                DefaultValue = windowsShellQuotedNewlineSeparated;
+            },
+            {
+                Name = "LINKER_RESPONSE_FILE_FORMAT";
+                Type = Enumeration;
+                Values = (
+                    unescapedNewlineSeparated,
+                    unixShellQuotedSpaceSeparated,
+                    unixShellQuotedNewlineSeparated,
+                    windowsShellQuotedNewlineSeparated,
+                );
+                DefaultValue = windowsShellQuotedNewlineSeparated;
             },
             {
                 Name = "ALTERNATE_LINKER";

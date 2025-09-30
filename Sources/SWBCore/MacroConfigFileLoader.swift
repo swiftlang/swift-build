@@ -30,6 +30,12 @@ import Foundation
 
     /// Whether we failed to read the file at all. If this is `true`, the macro table is guaranteed to be empty.
     @_spi(Testing) public let isFileReadFailure: Bool
+
+    /// The final line number after parsing completes.
+    let finalLineNumber: Int
+
+    /// The final column number after parsing completes.
+    let finalColumnNumber: Int
 }
 
 @_spi(Testing) public enum MacroConfigLoadContext: Sendable {
@@ -54,7 +60,7 @@ final class MacroConfigFileLoader: Sendable {
         guard let data = try? fs.read(path) else {
             let table = MacroValueAssignmentTable(namespace: namespace)
             let dependencyPaths = [path]
-            return MacroConfigInfo(table: table, diagnostics: [], dependencyPaths: dependencyPaths, signature: filesSignature(dependencyPaths), isFileReadFailure: true)
+            return MacroConfigInfo(table: table, diagnostics: [], dependencyPaths: dependencyPaths, signature: filesSignature(dependencyPaths), isFileReadFailure: true, finalLineNumber: 1, finalColumnNumber: 1)
         }
 
         return loadSettingsFromConfig(data: data, path: path, namespace: namespace, searchPaths: searchPaths, filesSignature: filesSignature)
@@ -242,7 +248,7 @@ final class MacroConfigFileLoader: Sendable {
                 return MacroConfigFileParser(byteString: data, path: path, delegate: delegate)
             }
 
-            mutating func foundMacroValueAssignment(_ macroName: String, conditions: [(param: String, pattern: String)], value: String, parser: MacroConfigFileParser) {
+            mutating func foundMacroValueAssignment(_ macroName: String, conditions: [(param: String, pattern: String)], value: String, path: Path, startLine: Int, endLine: Int, startColumn: Int, endColumn: Int, parser: MacroConfigFileParser) {
                 // Look up the macro name, creating it as a user-defined macro if it isn’t already known.
                 let macro = table.namespace.lookupOrDeclareMacro(UserDefinedMacroDeclaration.self, macroName)
 
@@ -253,7 +259,8 @@ final class MacroConfigFileLoader: Sendable {
                 }
 
                 // Parse the value in a manner consistent with the macro definition.
-                table.push(macro, table.namespace.parseForMacro(macro, value: value), conditions: conditionSet)
+                let location = MacroValueAssignmentLocation(path: path, startLine: startLine, endLine: endLine, startColumn: startColumn, endColumn: endColumn)
+                table.push(macro, table.namespace.parseForMacro(macro, value: value), conditions: conditionSet, location: location)
             }
 
             func handleDiagnostic(_ diagnostic: MacroConfigFileDiagnostic, parser: MacroConfigFileParser) {
@@ -286,7 +293,7 @@ final class MacroConfigFileLoader: Sendable {
         let delegate = SettingsConfigFileParserDelegate(fs: fs, basePath: path?.dirname, searchPaths: searchPaths, table: tableRef, diagnostics: diagnostics, nestedConfigurations: nestedConfigs, ancestorIncludes: ancestorIncludes, developerPath: core.developerPath)
         let parser = MacroConfigFileParser(byteString: data, path: path ?? Path("no path to xcconfig file provided"), delegate: delegate)
         parser.parse()
-        return MacroConfigInfo(table: tableRef.table, diagnostics: diagnostics.diagnostics, dependencyPaths: nestedConfigs.paths, signature: filesSignature(nestedConfigs.paths), isFileReadFailure: false)
+        return MacroConfigInfo(table: tableRef.table, diagnostics: diagnostics.diagnostics, dependencyPaths: nestedConfigs.paths, signature: filesSignature(nestedConfigs.paths), isFileReadFailure: false, finalLineNumber: parser.finalLineNumber, finalColumnNumber: parser.finalColumnNumber)
     }
 }
 
@@ -301,8 +308,8 @@ fileprivate final class MacroValueAssignmentTableRef {
         table.namespace
     }
 
-    func push(_ macro: MacroDeclaration, _ value: MacroExpression, conditions: MacroConditionSet? = nil) {
-        table.push(macro, value, conditions: conditions)
+    func push(_ macro: MacroDeclaration, _ value: MacroExpression, conditions: MacroConditionSet? = nil, location: MacroValueAssignmentLocation? = nil) {
+        table.push(macro, value, conditions: conditions, location: location)
     }
 }
 

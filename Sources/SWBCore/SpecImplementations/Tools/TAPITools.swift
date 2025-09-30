@@ -33,7 +33,7 @@ public final class TAPIToolSpec : GenericCommandLineToolSpec, GCCCompatibleCompi
         return cbc.scope.tapiExecutablePath()
     }
 
-    public override func resolveExecutablePath(_ cbc: CommandBuildContext, _ path: Path) -> Path {
+    public override func resolveExecutablePath(_ cbc: CommandBuildContext, _ path: Path, delegate: any CoreClientTargetDiagnosticProducingDelegate) async -> Path {
         // Ignore "tapi" from the spec and go through TAPI_EXEC
         // FIXME: We should go through the normal spec mechanisms...
         return resolveExecutablePath(cbc.producer, Path(computeExecutablePath(cbc)))
@@ -104,7 +104,7 @@ public final class TAPIToolSpec : GenericCommandLineToolSpec, GCCCompatibleCompi
         let toolInfo = await discoveredCommandLineToolSpecInfo(cbc.producer, scope, delegate)
 
         // Compute the command line.
-        var commandLine: [String] = commandLineFromTemplate(cbc, delegate, optionContext: toolInfo, lookup: lookup).map(\.asString)
+        var commandLine: [String] = await commandLineFromTemplate(cbc, delegate, optionContext: toolInfo, lookup: lookup).map(\.asString)
 
         // Compute inputs.
         var inputs = cbc.inputs.map({ delegate.createNode($0.absolutePath) }) as [PlannedPathNode]

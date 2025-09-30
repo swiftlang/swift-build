@@ -627,7 +627,6 @@ fileprivate struct SwiftTaskConstructionTests: CoreBasedTests {
                 #expect(contents == (OutputByteStream()
                                      <<< "framework module CoreFoo {\n"
                                      <<< "  header \"CoreFoo-Swift.h\"\n"
-                                     <<< "  requires objc\n"
                                      <<< "}\n").bytes)
             }
         }
@@ -1107,7 +1106,6 @@ fileprivate struct SwiftTaskConstructionTests: CoreBasedTests {
                     stream <<< "\n"
                     stream <<< "module CoreFoo.Swift {\n"
                     stream <<< "  header \"CoreFoo-Swift.h\"\n"
-                    stream <<< "  requires objc\n"
                     stream <<< "}\n"
                     #expect(contents == stream.bytes)
 
@@ -1750,8 +1748,9 @@ fileprivate struct SwiftTaskConstructionTests: CoreBasedTests {
     }
 
     /// Check handling of Swift bridging header.
-    @Test(.requireSDKs(.macOS))
-    func swiftBridgingHeader() async throws {
+    @Test(.requireSDKs(.macOS), arguments: [false, true])
+    func swiftBridgingHeader(isInternal: Bool) async throws {
+        let bridgingHeaderIsInternal = isInternal ? "YES" : "NO"
         let testProject = try await TestProject(
             "aProject",
             groupTree: TestGroup(
@@ -1775,6 +1774,7 @@ fileprivate struct SwiftTaskConstructionTests: CoreBasedTests {
                                                buildSettings: [
                                                 "SDKROOT": "macosx",
                                                 "SWIFT_OBJC_BRIDGING_HEADER": "swift-bridge-header.h",
+                                                "SWIFT_BRIDGING_HEADER_IS_INTERNAL": bridgingHeaderIsInternal,
                                                 "SWIFT_VERSION": swiftVersion,
                                                ]),
                     ],
@@ -1799,8 +1799,9 @@ fileprivate struct SwiftTaskConstructionTests: CoreBasedTests {
                 results.checkTask(.matchTarget(target), .matchRuleType("SwiftDriver Compilation")) { task in
                     task.checkRuleInfo(["SwiftDriver Compilation", "FooApp", "normal", "x86_64", "com.apple.xcode.tools.swift.compiler"])
 
+                    let expectedFlag = isInternal ? "-internal-import-bridging-header" : "-import-objc-header"
                     task.checkCommandLineContains([
-                        "-import-objc-header", bridgeHeader.str])
+                        expectedFlag, bridgeHeader.str])
                     task.checkInputs(contain: [.path(bridgeHeader.str)])
                 }
             }
@@ -4262,6 +4263,64 @@ fileprivate struct SwiftTaskConstructionTests: CoreBasedTests {
         }
     }
 
+    @Test(.requireSDKs(.host))
+    func swiftDisableParseAsLibrarySettings() async throws {
+        let targetName = "targetName"
+        try await withTemporaryDirectory { tmpDir in
+            let testProject = try await TestProject(
+                "ProjectName",
+                sourceRoot: tmpDir.join("srcroot"),
+                groupTree: TestGroup(
+                    "SomeFiles",
+                    children: [
+                        TestFile("File1.swift"),
+                    ]),
+                targets: [
+                    TestStandardTarget(
+                        targetName,
+                        type: .framework,
+                        buildConfigurations: [
+                            TestBuildConfiguration("Debug", buildSettings: [
+                                "PRODUCT_NAME": "$(TARGET_NAME)",
+                                "SWIFT_EXEC": swiftCompilerPath.str,
+                                "CODE_SIGN_IDENTITY": "",
+                                "SWIFT_VERSION": swiftVersion,
+                            ]),
+                        ],
+                        buildPhases: [
+                            TestSourcesBuildPhase([
+                                TestBuildFile("File1.swift"),
+                            ]),
+                        ])
+                ])
+
+            let tester = try await TaskConstructionTester(getCore(), testProject)
+            await tester.checkBuild(
+                BuildParameters(configuration: "Debug", overrides: ["SWIFT_DISABLE_PARSE_AS_LIBRARY": "YES"]),
+                runDestination: .host,
+            ) { results in
+                results.checkTarget(targetName) { target in
+                    results.checkTask(.matchTarget(target), .matchRuleType("SwiftDriver Compilation")) { task in
+                        task.checkCommandLineDoesNotContain("-parse-as-library")
+                    }
+                }
+            }
+
+            await tester.checkBuild(
+                BuildParameters(configuration: "Debug", overrides: ["SWIFT_DISABLE_PARSE_AS_LIBRARY": "NO"]),
+                runDestination: .host,
+            ) { results in
+                results.checkTarget(targetName) { target in
+                    results.checkTask(.matchTarget(target), .matchRuleType("SwiftDriver Compilation")) { task in
+                        task.checkCommandLineContains(["-parse-as-library"])
+                    }
+                }
+            }
+
+
+        }
+    }
+
     @Test(.requireSDKs(.macOS))
     func layoutStringValueWitnesses() async throws {
         try await withTemporaryDirectory { tmpDir in
@@ -4444,6 +4503,62 @@ fileprivate struct SwiftTaskConstructionTests: CoreBasedTests {
                             "-Werror","PreconcurrencyImport"
                         ])
                     }
+                }
+            }
+        }
+    }
+
+    @Test(.requireSDKs(.host))
+    func indexOptions() async throws {
+        try await withTemporaryDirectory { tmpDir in
+            let testProject = try await TestProject(
+                "ProjectName",
+                sourceRoot: tmpDir,
+                groupTree: TestGroup(
+                    "SomeFiles",
+                    children: [
+                        TestFile("File1.swift")
+                    ]),
+                targets: [
+                    TestStandardTarget(
+                        "Test",
+                        type: .dynamicLibrary,
+                        buildConfigurations: [
+                            TestBuildConfiguration(
+                                "Debug",
+                                buildSettings: [
+                                    "SWIFT_EXEC": swiftCompilerPath.str,
+                                    "SWIFT_VERSION": swiftVersion,
+                                    "COMPILER_INDEX_STORE_ENABLE": "YES",
+                                    "INDEX_DATA_STORE_DIR": tmpDir.join("index").str,
+                                    "INDEX_STORE_COMPRESS": "YES",
+                                    "INDEX_STORE_ONLY_PROJECT_FILES": "YES"
+                                ]
+                            ),
+                        ],
+                        buildPhases: [
+                            TestSourcesBuildPhase(["File1.swift"]),
+                        ]
+                    )
+                ])
+
+            let core = try await getCore()
+            let tester = try TaskConstructionTester(core, testProject)
+            await tester.checkBuild(BuildParameters(configuration: "Debug", commandLineOverrides: ["INDEX_ENABLE_DATA_STORE": "YES"]), runDestination: .host) { results in
+                results.checkTask(.matchRuleType("SwiftDriver Compilation")) { compileTask in
+                    compileTask.checkCommandLineContains(["-index-store-path"])
+                    compileTask.checkCommandLineContains(["-Xfrontend", "-index-store-compress"])
+                    compileTask.checkCommandLineContains(["-index-ignore-clang-modules"])
+                    compileTask.checkCommandLineContains(["-index-ignore-system-modules"])
+                }
+            }
+            // Check that we don't emit any index-related options when INDEX_ENABLE_DATA_STORE is not enabled
+            await tester.checkBuild(BuildParameters(configuration: "Debug", commandLineOverrides: [:]), runDestination: .host) { results in
+                results.checkTask(.matchRuleType("SwiftDriver Compilation")) { compileTask in
+                    compileTask.checkCommandLineDoesNotContain("-index-store-path")
+                    compileTask.checkCommandLineDoesNotContain("-index-store-compress")
+                    compileTask.checkCommandLineDoesNotContain("-index-ignore-clang-modules")
+                    compileTask.checkCommandLineDoesNotContain("-index-ignore-system-modules")
                 }
             }
         }

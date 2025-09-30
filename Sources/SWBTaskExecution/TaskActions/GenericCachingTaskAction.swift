@@ -404,24 +404,12 @@ fileprivate final class CapturingTaskOutputDelegate: TaskOutputDelegate {
         underlyingTaskOutputDelegate.previouslyBatchedSubtaskUpToDate(signature: signature, target: target)
     }
 
-    func incrementClangCacheHit() {
-        underlyingTaskOutputDelegate.incrementClangCacheHit()
+    func incrementCounter(_ counter: BuildOperationMetrics.Counter, by amount: Int) {
+        underlyingTaskOutputDelegate.incrementCounter(counter, by: amount)
     }
 
-    func incrementClangCacheMiss() {
-        underlyingTaskOutputDelegate.incrementClangCacheMiss()
-    }
-
-    func incrementSwiftCacheHit() {
-        underlyingTaskOutputDelegate.incrementSwiftCacheHit()
-    }
-
-    func incrementSwiftCacheMiss() {
-        underlyingTaskOutputDelegate.incrementSwiftCacheMiss()
-    }
-
-    func incrementTaskCounter(_ counter: BuildOperationMetrics.TaskCounter) {
-        underlyingTaskOutputDelegate.incrementTaskCounter(counter)
+    func incrementTaskCounter(_ counter: BuildOperationMetrics.TaskCounter, by amount: Int) {
+        underlyingTaskOutputDelegate.incrementTaskCounter(counter, by: amount)
     }
 
     var counters: [BuildOperationMetrics.Counter : Int] {

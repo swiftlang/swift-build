@@ -48,7 +48,7 @@ fileprivate struct PreOverridesSettings {
         if let toolchain = core.toolchainRegistry.lookup("default") {
             self.defaultToolchain = toolchain
         } else {
-            core.delegate.error("missing required default toolchain")
+            core.delegate.error("missing required default toolchain (\(core.toolchainRegistry.toolchains.count) loaded toolchain(s): \(core.toolchainRegistry.toolchains.map { $0.identifier }.joined(separator: " "))")
             self.defaultToolchain = nil
         }
 
@@ -356,14 +356,10 @@ fileprivate struct PreOverridesSettings {
                 }
             }
 
-            @preconcurrency @PluginExtensionSystemActor func searchPaths() -> [Path] {
-                core.pluginManager.extensions(of: SpecificationsExtensionPoint.self).flatMap { ext in
-                    ext.specificationSearchPaths(resourceSearchPaths: core.resourceSearchPaths).compactMap { try? $0.filePath }
-                }.sorted()
-            }
-
             // Add rules from the Resources directories of the loaded plugins. We sort the paths to ensure deterministic loading.
-            for searchPath in searchPaths() {
+            for searchPath in core.pluginManager.extensions(of: SpecificationsExtensionPoint.self).flatMap({ ext in
+                ext.specificationSearchPaths(resourceSearchPaths: core.resourceSearchPaths).compactMap { try? $0.filePath }
+            }).sorted() {
                 findAndLoadBuildRules(resourcesPath: searchPath)
             }
 
@@ -755,27 +751,18 @@ public final class Settings: PlatformBuildContext, Sendable {
         targetBuildVersionPlatforms(in: globalScope)
     }
 
+    public let moduleDependencies: [ModuleDependency]
+    public let headerDependencies: [HeaderDependency]
+
     public static func supportsMacCatalyst(scope: MacroEvaluationScope, core: Core) -> Bool {
-        @preconcurrency @PluginExtensionSystemActor func sdkVariantInfoExtensions() -> [any SDKVariantInfoExtensionPoint.ExtensionProtocol] {
-            core.pluginManager.extensions(of: SDKVariantInfoExtensionPoint.self)
-        }
         var supportsMacCatalystMacros: Set<String> = []
-        for sdkVariantInfoExtension in sdkVariantInfoExtensions() {
+        for sdkVariantInfoExtension in core.pluginManager.extensions(of: SDKVariantInfoExtensionPoint.self) {
             supportsMacCatalystMacros.formUnion(sdkVariantInfoExtension.supportsMacCatalystMacroNames)
         }
 
         return supportsMacCatalystMacros.contains { scope.evaluate(scope.namespace.parseString("$(\($0)")).boolValue } ||
             // For index build ensure zippered frameworks can be configured separately for both macOS and macCatalyst.
             (scope.evaluate(BuiltinMacros.IS_ZIPPERED) && scope.evaluate(BuiltinMacros.INDEX_ENABLE_BUILD_ARENA))
-    }
-
-    public static func supportsCompilationCaching(_ core: Core) -> Bool {
-        @preconcurrency @PluginExtensionSystemActor func featureAvailabilityExtensions() -> [any FeatureAvailabilityExtensionPoint.ExtensionProtocol] {
-            core.pluginManager.extensions(of: FeatureAvailabilityExtensionPoint.self)
-        }
-        return featureAvailabilityExtensions().contains {
-            $0.supportsCompilationCaching
-        }
     }
 
     public var enableTargetPlatformSpecialization: Bool {
@@ -799,19 +786,16 @@ public final class Settings: PlatformBuildContext, Sendable {
     ///
     /// - remark: The overhead of this object should be very small, because the majority of the actual data are the linked lists of macro definitions, which are shared with the main table in the `Settings` object.
     public struct ConstructionComponents: Sendable {
-        // These properties are the individual tables (and info about them) of specific levels which contributed to the Settings.
+        struct XcconfigInfo: Sendable {
+            var path: Path
+            var settings: MacroValueAssignmentTable
+            var finalLineNumber: Int
+            var finalColumnNumber: Int
+        }
 
-        /// The path to the project-level xcconfig file.
-        let projectXcconfigPath: Path?
-        /// The project-level xcconfig settings table.
-        let projectXcconfigSettings: MacroValueAssignmentTable?
-        /// The project-level settings table.
+        let projectXcconfig: XcconfigInfo?
         let projectSettings: MacroValueAssignmentTable?
-        /// The path to the target-level xcconfig file.
-        let targetXcconfigPath: Path?
-        /// The target-level xcconfig settings table.
-        let targetXcconfigSettings: MacroValueAssignmentTable?
-        /// The target-level settings table.
+        let targetXcconfig: XcconfigInfo?
         let targetSettings: MacroValueAssignmentTable?
 
         // These properties are the actual tables of settings up to a certain point, which are used to compute the resolved values of settings at that level in the build settings editor (e.g., in the Levels view).
@@ -910,6 +894,8 @@ public final class Settings: PlatformBuildContext, Sendable {
         }
 
         self.supportedBuildVersionPlatforms = effectiveSupportedPlatforms(sdkRegistry: sdkRegistry)
+        self.moduleDependencies = builder.moduleDependencies
+        self.headerDependencies = builder.headerDependencies
 
         self.constructionComponents = builder.constructionComponents
     }
@@ -977,9 +963,9 @@ public final class Settings: PlatformBuildContext, Sendable {
         return BuildSettingsEditorInfoPayload(
             // Assigned values
             targetSettingAssignments: assignedValues(for: constructionComponents.targetSettings),
-            targetXcconfigSettingAssignments: assignedValues(for: constructionComponents.targetXcconfigSettings),
+            targetXcconfigSettingAssignments: assignedValues(for: constructionComponents.targetXcconfig?.settings),
             projectSettingAssignments: assignedValues(for: constructionComponents.projectSettings),
-            projectXcconfigSettingAssignments: assignedValues(for: constructionComponents.projectXcconfigSettings),
+            projectXcconfigSettingAssignments: assignedValues(for: constructionComponents.projectXcconfig?.settings),
 
             // Resolved values
             targetResolvedSettingsValues: resolvedValues(for: constructionComponents.upToTargetSettings),
@@ -1007,14 +993,10 @@ extension WorkspaceContext {
                 }
             }
 
-            @preconcurrency @PluginExtensionSystemActor func searchPaths() -> [Path] {
-                core.pluginManager.extensions(of: SpecificationsExtensionPoint.self).flatMap { ext in
-                    ext.specificationSearchPaths(resourceSearchPaths: core.resourceSearchPaths).compactMap { try? $0.filePath }
-                }.sorted()
-            }
-
             // Add the search paths from each loaded plugin.
-            paths.append(contentsOf: searchPaths())
+            paths.append(contentsOf: core.pluginManager.extensions(of: SpecificationsExtensionPoint.self).flatMap { ext in
+                ext.specificationSearchPaths(resourceSearchPaths: core.resourceSearchPaths).compactMap { try? $0.filePath }
+            }.sorted())
 
             // Add the binary paths for each toolchain.
             for toolchain in toolchains {
@@ -1295,6 +1277,9 @@ private class SettingsBuilder {
     /// The bound signing settings, once added in computeSigningSettings().
     var signingSettings: Settings.SigningSettings? = nil
 
+    var moduleDependencies: [ModuleDependency] = []
+    var headerDependencies: [HeaderDependency] = []
+
 
     // Mutable state of the builder as we're building up the settings table.
 
@@ -1334,18 +1319,16 @@ private class SettingsBuilder {
         return core.coreSettings
     }
 
-    private var projectXcconfigPath: Path? = nil
-    private var projectXcconfigSettings: MacroValueAssignmentTable? = nil
+    private var projectXcconfig: Settings.ConstructionComponents.XcconfigInfo? = nil
     private var projectSettings: MacroValueAssignmentTable? = nil
-    private var targetXcconfigPath: Path? = nil
-    private var targetXcconfigSettings: MacroValueAssignmentTable? = nil
+    private var targetXcconfig: Settings.ConstructionComponents.XcconfigInfo? = nil
     private var targetSettings: MacroValueAssignmentTable? = nil
     /// Convenient array for iterating over all defined settings tables in the project for this target, from lowest to highest.
     private var allProjectSettingsLevels: [(table: MacroValueAssignmentTable?, path: Path?, level: String)] {
         return [
-            (projectXcconfigSettings, projectXcconfigPath, "project-xcconfig"),
+            (projectXcconfig?.settings, projectXcconfig?.path, "project-xcconfig"),
             (projectSettings, nil, "project"),
-            (targetXcconfigSettings, targetXcconfigPath, "target-xcconfig"),
+            (targetXcconfig?.settings, targetXcconfig?.path, "target-xcconfig"),
             (targetSettings, nil, "target"),
         ]
     }
@@ -1359,11 +1342,9 @@ private class SettingsBuilder {
     /// The project model components which were used to construct the settings made by this builder.
     var constructionComponents: Settings.ConstructionComponents {
         return Settings.ConstructionComponents(
-            projectXcconfigPath: self.projectXcconfigPath,
-        	projectXcconfigSettings: self.projectXcconfigSettings,
+            projectXcconfig: self.projectXcconfig,
             projectSettings: self.projectSettings,
-            targetXcconfigPath: self.targetXcconfigPath,
-            targetXcconfigSettings: self.targetXcconfigSettings,
+            targetXcconfig: self.targetXcconfig,
             targetSettings: self.targetSettings,
             upToDefaultsSettings: self.upToDefaultsSettings,
             upToProjectXcconfigSettings: upToProjectXcconfigSettings,
@@ -1509,12 +1490,10 @@ private class SettingsBuilder {
 
             addSDKOverridingSettings(sdk, boundProperties.sdkVariant)
 
-            @preconcurrency @PluginExtensionSystemActor func settingsExtensions() -> [any SettingsBuilderExtensionPoint.ExtensionProtocol] {
-                core.pluginManager.extensions(of: SettingsBuilderExtensionPoint.self)
-            }
-            for settingsExtension in settingsExtensions() {
+            let environment = workspaceContext.userInfo?.buildSystemEnvironment ?? [:]
+            for settingsExtension in core.pluginManager.extensions(of: SettingsBuilderExtensionPoint.self) {
                 do {
-                    let overridingSettings = try settingsExtension.addSDKOverridingSettings(sdk, boundProperties.sdkVariant, boundProperties.sparseSDKs, specLookupContext: specLookupContext)
+                    let overridingSettings = try settingsExtension.addSDKOverridingSettings(sdk, boundProperties.sdkVariant, boundProperties.sparseSDKs, specLookupContext: specLookupContext, environment: environment)
                     pushTable(.exported) {
                         $0.pushContentsOf(createTableFromUserSettings(overridingSettings))
                     }
@@ -1624,9 +1603,22 @@ private class SettingsBuilder {
                 swiftVersion = ""
             }
 
-            pushTable(.none) {
+            pushTable(.exported) {
                 $0.push(BuiltinMacros.EFFECTIVE_SWIFT_VERSION, literal: swiftVersion)
             }
+        }
+
+        do {
+            self.moduleDependencies = try createScope(sdkToUse: boundProperties.sdk).evaluate(BuiltinMacros.MODULE_DEPENDENCIES).map { try ModuleDependency(entry: $0) }
+        }
+        catch {
+            errors.append("Failed to parse \(BuiltinMacros.MODULE_DEPENDENCIES.name): \(error)")
+        }
+        do {
+            self.headerDependencies = try createScope(sdkToUse: boundProperties.sdk).evaluate(BuiltinMacros.HEADER_DEPENDENCIES).map { try HeaderDependency(entry: $0) }
+        }
+        catch {
+            errors.append("Failed to parse \(BuiltinMacros.HEADER_DEPENDENCIES.name): \(error)")
         }
 
         // At this point settings construction is finished.
@@ -1984,6 +1976,11 @@ private class SettingsBuilder {
         exportedMacroNames.formUnion(info.exportedMacros)
         errors.append(contentsOf:info.errors)
 
+        // Default to preserving the module cache directory.
+        pushTable(.exported) {
+            $0.push(BuiltinMacros.KEEP_GLOBAL_MODULE_CACHE_DIRECTORY, literal: true)
+        }
+
         if self.parameters.action == .indexBuild {
             pushTable(.exported) {
                 $0.push(BuiltinMacros.INDEX_ENABLE_BUILD_ARENA, literal: true)
@@ -2024,11 +2021,7 @@ private class SettingsBuilder {
             errors.append("Unable to determine host platform: \(error)")
         }
 
-        @preconcurrency @PluginExtensionSystemActor func settingsExtensions() -> [any SettingsBuilderExtensionPoint.ExtensionProtocol] {
-            core.pluginManager.extensions(of: SettingsBuilderExtensionPoint.self)
-        }
-
-        for settingsExtension in settingsExtensions() {
+        for settingsExtension in core.pluginManager.extensions(of: SettingsBuilderExtensionPoint.self) {
             let baseEnvironment = workspaceContext.userInfo?.buildSystemEnvironment ?? [:]
 
             do {
@@ -2531,6 +2524,7 @@ private class SettingsBuilder {
             }
 
             if let llvmTargetTripleSys = variant.llvmTargetTripleSys {
+                sdkTable.push(BuiltinMacros.__ORIGINAL_SDK_DEFINED_LLVM_TARGET_TRIPLE_SYS, literal: llvmTargetTripleSys)
                 sdkTable.push(BuiltinMacros.SWIFT_PLATFORM_TARGET_PREFIX, literal: llvmTargetTripleSys)
             }
 
@@ -2573,6 +2567,10 @@ private class SettingsBuilder {
             sdkTable.push(BuiltinMacros.DYNAMIC_LIBRARY_EXTENSION, literal: imageFormat.dynamicLibraryExtension)
             sdkTable.push(BuiltinMacros.PLATFORM_REQUIRES_SWIFT_AUTOLINK_EXTRACT, literal: imageFormat.requiresSwiftAutolinkExtract)
             sdkTable.push(BuiltinMacros.PLATFORM_REQUIRES_SWIFT_MODULEWRAP, literal: imageFormat.requiresSwiftModulewrap)
+            if let origin = imageFormat.rpathOrigin {
+                sdkTable.push(BuiltinMacros.RPATH_ORIGIN, literal: origin)
+            }
+            sdkTable.push(BuiltinMacros.PLATFORM_USES_DSYMS, literal: imageFormat.usesDsyms)
         }
 
         // Add additional SDK default settings.
@@ -2617,10 +2615,7 @@ private class SettingsBuilder {
             }
         }
 
-        @preconcurrency @PluginExtensionSystemActor func settingsExtensions() -> [any SettingsBuilderExtensionPoint.ExtensionProtocol] {
-            core.pluginManager.extensions(of: SettingsBuilderExtensionPoint.self)
-        }
-        for settingsExtension in settingsExtensions() {
+        for settingsExtension in core.pluginManager.extensions(of: SettingsBuilderExtensionPoint.self) {
             do {
                 let additionalSettings = try settingsExtension.addSDKSettings(sdk, variant, sparseSDKs)
                 sdkTable.pushContentsOf(createTableFromUserSettings(additionalSettings))
@@ -2641,9 +2636,7 @@ private class SettingsBuilder {
                 table.push(BuiltinMacros.STRIP_BITCODE_FROM_COPIED_FILES, literal: true)
             }
 
-            @preconcurrency @PluginExtensionSystemActor func settingsExtensions() -> [any SettingsBuilderExtensionPoint.ExtensionProtocol] {
-                core.pluginManager.extensions(of: SettingsBuilderExtensionPoint.self)
-            }
+            let settingsExtensions = core.pluginManager.extensions(of: SettingsBuilderExtensionPoint.self)
 
             func shouldPopulateValidArchs(platform: Platform, sdk: SDK?) -> Bool {
                 // For now, we only do this for some platforms to avoid behavior changes.
@@ -2656,7 +2649,7 @@ private class SettingsBuilder {
                     "xros":
                     return false
                 default:
-                    for settingsExtension in settingsExtensions() {
+                    for settingsExtension in settingsExtensions {
                         if settingsExtension.shouldSkipPopulatingValidArchs(platform: platform, sdk: sdk) {
                             return false
                         }
@@ -2670,7 +2663,7 @@ private class SettingsBuilder {
                 table.push(BuiltinMacros.VALID_ARCHS, literal: archs)
             }
 
-            for settingsExtension in settingsExtensions() {
+            for settingsExtension in settingsExtensions {
                 table.pushContentsOf(createTableFromUserSettings(settingsExtension.addPlatformSDKSettings(platform, sdk, sdkVariant)))
             }
         }
@@ -2690,11 +2683,8 @@ private class SettingsBuilder {
         }
 
         let scope = createScope(sdkToUse: sdk)
-        @preconcurrency @PluginExtensionSystemActor func sdkVariantInfoExtensions() -> [any SDKVariantInfoExtensionPoint.ExtensionProtocol] {
-            core.pluginManager.extensions(of: SDKVariantInfoExtensionPoint.self)
-        }
         var macCatalystDeriveBundleIDMacros: Set<String> = []
-        for sdkVariantInfoExtension in sdkVariantInfoExtensions() {
+        for sdkVariantInfoExtension in core.pluginManager.extensions(of: SDKVariantInfoExtensionPoint.self) {
             macCatalystDeriveBundleIDMacros.formUnion(sdkVariantInfoExtension.macCatalystDeriveBundleIDMacroNames)
         }
         let wantsDerivedMacCatalystBundleId = macCatalystDeriveBundleIDMacros.contains { scope.evaluate(scope.namespace.parseString("$(\($0)")).boolValue }
@@ -2816,8 +2806,7 @@ private class SettingsBuilder {
             }
 
             // Save the settings table as part of the construction components.
-            self.projectXcconfigPath = path
-            self.projectXcconfigSettings = info.table
+            self.projectXcconfig = .init(path: path, settings: info.table, finalLineNumber: info.finalLineNumber, finalColumnNumber: info.finalColumnNumber)
 
             // Also save the table we've constructed so far.
             self.upToProjectXcconfigSettings = MacroValueAssignmentTable(copying: _table)
@@ -2849,11 +2838,8 @@ private class SettingsBuilder {
 
     func validateSDK(_ sdk: SDK, sdkVariant: SDKVariant?, scope: MacroEvaluationScope) {
         if sdkVariant?.isMacCatalyst ?? false {
-            @preconcurrency @PluginExtensionSystemActor func sdkVariantInfoExtensions() -> [any SDKVariantInfoExtensionPoint.ExtensionProtocol] {
-                core.pluginManager.extensions(of: SDKVariantInfoExtensionPoint.self)
-            }
             var disallowedMacCatalystMacros: Set<String> = []
-            for sdkVariantInfoExtension in sdkVariantInfoExtensions() {
+            for sdkVariantInfoExtension in core.pluginManager.extensions(of: SDKVariantInfoExtensionPoint.self) {
                 disallowedMacCatalystMacros.formUnion(sdkVariantInfoExtension.disallowedMacCatalystMacroNames)
             }
 
@@ -2987,11 +2973,7 @@ private class SettingsBuilder {
 
             push(productType.buildSettings, .exportedForNative)
 
-            @preconcurrency @PluginExtensionSystemActor func settingsExtensions() -> [any SettingsBuilderExtensionPoint.ExtensionProtocol] {
-                core.pluginManager.extensions(of: SettingsBuilderExtensionPoint.self)
-            }
-
-            for settingsExtension in settingsExtensions() {
+            for settingsExtension in core.pluginManager.extensions(of: SettingsBuilderExtensionPoint.self) {
                 push(createTableFromUserSettings(settingsExtension.addProductTypeDefaults(productType: productType)), .exportedForNative)
             }
 
@@ -3031,8 +3013,7 @@ private class SettingsBuilder {
             }
 
             // Save the settings table as part of the construction components.
-            self.targetXcconfigPath = path
-            self.targetXcconfigSettings = info.table
+            self.targetXcconfig = .init(path: path, settings: info.table, finalLineNumber: info.finalLineNumber, finalColumnNumber: info.finalColumnNumber)
 
             // Save the table we've constructed so far.
             self.upToTargetXcconfigSettings = MacroValueAssignmentTable(copying: _table)
@@ -3073,7 +3054,7 @@ private class SettingsBuilder {
         if Settings.targetPlatformSpecializationEnabled(scope: scope) {
             // The SDK might not be known yet during the push of the target settings (especially true for top-level targets), but the usage of a suffixed SDK might be known from the macro scope. This is a side-effect of the multiple calls to `addTargetSettings()` we make during settings construction...
             // The `SPECIALIZATION_SDK_OPTIONS` needs to be set here, primarily so that top-level targets are handled correctly when they are specialized. Otherwise, the original intent of the SDK choice can be lost due to how the `SDKROOT` is imposed.
-            if let suffix = sdk?.canonicalNameSuffix?.nilIfEmpty ?? (try? SDK.parseSDKName(scope.evaluate(BuiltinMacros.SDKROOT).str, pluginManager: core.pluginManager).suffix) {
+            if let suffix = sdk?.canonicalNameSuffix?.nilIfEmpty ?? (try? SDK.parseSDKName(scope.evaluate(BuiltinMacros.SDKROOT).str, registry: core.sdkRegistry).suffix) {
                 table.push(BuiltinMacros.SPECIALIZATION_SDK_OPTIONS, literal: [suffix])
             }
         }
@@ -3101,12 +3082,7 @@ private class SettingsBuilder {
         push(createTableFromUserSettings(parameters.commandLineOverrides), .exported)
 
         // Add in command line build settings from extensions
-
-        @preconcurrency @PluginExtensionSystemActor func settingsExtensions() -> [any SettingsBuilderExtensionPoint.ExtensionProtocol] {
-            core.pluginManager.extensions(of: SettingsBuilderExtensionPoint.self)
-        }
-
-        for settingsExtension in settingsExtensions() {
+        for settingsExtension in core.pluginManager.extensions(of: SettingsBuilderExtensionPoint.self) {
             // FIXME: We should do something better here if the environment cannot be retrieved
             let baseEnvironment = workspaceContext.userInfo?.buildSystemEnvironment ?? [:]
 
@@ -3333,11 +3309,7 @@ private class SettingsBuilder {
                     return false
                 }
 
-                @preconcurrency @PluginExtensionSystemActor func settingsExtensions() -> [any SettingsBuilderExtensionPoint.ExtensionProtocol] {
-                    core.pluginManager.extensions(of: SettingsBuilderExtensionPoint.self)
-                }
-
-                for settingsExtension in settingsExtensions() {
+                for settingsExtension in core.pluginManager.extensions(of: SettingsBuilderExtensionPoint.self) {
                     if settingsExtension.shouldDisableXOJITPreviews(platformName: platformName, sdk: sdk) {
                         return false
                     }
@@ -4130,7 +4102,10 @@ private class SettingsBuilder {
         // setting will primarily be used to support building Swift modules for deprecated (or at least unsupported)
         // architectures.
         let originalModuleOnlyArchs = scope.evaluate(BuiltinMacros.SWIFT_MODULE_ONLY_ARCHS)
-        let moduleOnlyArchs = onlyActiveArchApplied ? [] : originalModuleOnlyArchs
+        // Detect discouraged overrides of SWIFT_PLATFORM_TARGET_PREFIX and use this as a signal to suppress
+        // module only architectures
+        let tripleOverridesApplied = scope.evaluate(BuiltinMacros.SWIFT_PLATFORM_TARGET_PREFIX) != scope.evaluate(BuiltinMacros.__ORIGINAL_SDK_DEFINED_LLVM_TARGET_TRIPLE_SYS)
+        let moduleOnlyArchs = (onlyActiveArchApplied || tripleOverridesApplied) ? [] : originalModuleOnlyArchs
             .filter { validArchs.contains($0) }
             .filter { !excludedArchs.contains($0) }
             .filter { !effectiveArchs.contains($0) }
@@ -4282,10 +4257,7 @@ private class SettingsBuilder {
     private func getTargetTestingSwiftPluginFlags(_ scope: MacroEvaluationScope) -> [String] {
         // First, query settings extensions to see if they provide their own Swift testing flags.
         var flags: [String] = []
-        @preconcurrency @PluginExtensionSystemActor func settingsExtensions() -> [any SettingsBuilderExtensionPoint.ExtensionProtocol] {
-            core.pluginManager.extensions(of: SettingsBuilderExtensionPoint.self)
-        }
-        for settingsExtension in settingsExtensions() {
+        for settingsExtension in core.pluginManager.extensions(of: SettingsBuilderExtensionPoint.self) {
             flags.append(contentsOf: settingsExtension.getTargetTestingSwiftPluginFlags(scope, toolchainRegistry: core.toolchainRegistry, sdkRegistry: core.sdkRegistry, activeRunDestination: parameters.activeRunDestination, project: project))
         }
         guard flags.isEmpty else {
@@ -4468,10 +4440,7 @@ private class SettingsBuilder {
             warnings.append(contentsOf: overrides.warnings)
             errors.append(contentsOf: overrides.errors)
 
-            @preconcurrency @PluginExtensionSystemActor func settingsExtensions() -> [any SettingsBuilderExtensionPoint.ExtensionProtocol] {
-                core.pluginManager.extensions(of: SettingsBuilderExtensionPoint.self)
-            }
-            for settingsExtension in settingsExtensions() {
+            for settingsExtension in core.pluginManager.extensions(of: SettingsBuilderExtensionPoint.self) {
                 let overrides = settingsExtension.overridingBuildSettings(createScope(sdkToUse: baseSDK), platform: specLookupContext.platform, productType: productType)
                 pushTable(.exported) {
                     $0.pushContentsOf(createTableFromUserSettings(overrides))

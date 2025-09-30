@@ -114,15 +114,6 @@
                 IsInputDependency = Yes;
             },
             {
-                Name = LM_IGNORE_QUERY_GENERICS_ERRORS;
-                Type = Boolean;
-                DefaultValue = NO;
-                CommandLineArgs = {
-                    YES = ( "--ignore-query-generics-errors" );
-                    NO = ();
-                };
-            },
-            {
                 Name = LM_FORCE_LINK_GENERATION;
                 Type = Boolean;
                 DefaultValue = NO;

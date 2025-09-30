@@ -121,6 +121,9 @@ public class TaskProducerContext: StaleFileRemovalContext, BuildFileResolution
     /// Whether a task planned by this producer has requested frontend command line emission.
     var emitFrontendCommandLines: Bool
 
+    public let moduleDependenciesContext: ModuleDependenciesContext?
+    public let headerDependenciesContext: HeaderDependenciesContext?
+
     private struct State: Sendable {
         fileprivate var onDemandResourcesAssetPacks: [ODRTagSet: ODRAssetPackInfo] = [:]
         fileprivate var onDemandResourcesAssetPackSubPaths: [String: Set<String>] = [:]
@@ -280,6 +283,7 @@ public class TaskProducerContext: StaleFileRemovalContext, BuildFileResolution
     let validateProductSpec: ValidateProductToolSpec
     let processXCFrameworkLibrarySpec: ProcessXCFrameworkLibrarySpec
     public let processSDKImportsSpec: ProcessSDKImportsSpec
+    public let validateDependenciesSpec: ValidateDependenciesSpec
     public let writeFileSpec: WriteFileSpec
     private let _documentationCompilerSpec: Result<CommandLineToolSpec, any Error>
     var documentationCompilerSpec: CommandLineToolSpec? { return specForResult(_documentationCompilerSpec) }
@@ -402,6 +406,7 @@ public class TaskProducerContext: StaleFileRemovalContext, BuildFileResolution
         self.validateProductSpec = workspaceContext.core.specRegistry.getSpec("com.apple.build-tools.platform.validate", domain: domain) as! ValidateProductToolSpec
         self.processXCFrameworkLibrarySpec = workspaceContext.core.specRegistry.getSpec(ProcessXCFrameworkLibrarySpec.identifier, domain: domain) as! ProcessXCFrameworkLibrarySpec
         self.processSDKImportsSpec = workspaceContext.core.specRegistry.getSpec(ProcessSDKImportsSpec.identifier, domain: domain) as! ProcessSDKImportsSpec
+        self.validateDependenciesSpec = workspaceContext.core.specRegistry.getSpec(ValidateDependenciesSpec.identifier, domain: domain) as! ValidateDependenciesSpec
         self.writeFileSpec = workspaceContext.core.specRegistry.getSpec("com.apple.build-tools.write-file", domain: domain) as! WriteFileSpec
         self._documentationCompilerSpec = Result { try workspaceContext.core.specRegistry.getSpec("com.apple.compilers.documentation", domain: domain) as CommandLineToolSpec }
         self._tapiSymbolExtractorSpec = Result { try workspaceContext.core.specRegistry.getSpec("com.apple.compilers.documentation.objc-symbol-extract", domain: domain) as TAPISymbolExtractor }
@@ -433,6 +438,9 @@ public class TaskProducerContext: StaleFileRemovalContext, BuildFileResolution
         for note in settings.notes {
             delegate.note(context, note)
         }
+
+        self.moduleDependenciesContext = ModuleDependenciesContext(settings: settings)
+        self.headerDependenciesContext = HeaderDependenciesContext(settings: settings)
     }
 
     /// The set of all known deployment target macro names, even if the platforms that use those settings are not installed.
@@ -859,7 +867,7 @@ public class TaskProducerContext: StaleFileRemovalContext, BuildFileResolution
     }
 
     /// Report a note from task construction.
-    func note(_ message: String, location: Diagnostic.Location = .unknown, component: Component = .default) {
+    public func note(_ message: String, location: Diagnostic.Location = .unknown, component: Component = .default) {
         if let configuredTarget {
             delegate.note(.overrideTarget(configuredTarget), message, location: location, component: component)
         } else {
@@ -868,7 +876,7 @@ public class TaskProducerContext: StaleFileRemovalContext, BuildFileResolution
     }
 
     /// Report a warning from task construction.
-    func warning(_ message: String, location: Diagnostic.Location = .unknown, component: Component = .default) {
+    public func warning(_ message: String, location: Diagnostic.Location = .unknown, component: Component = .default) {
         if let configuredTarget {
             delegate.warning(.overrideTarget(configuredTarget), message, location: location, component: component)
         } else {
@@ -886,7 +894,7 @@ public class TaskProducerContext: StaleFileRemovalContext, BuildFileResolution
     }
 
     /// Report a remark from task construction.
-    func remark(_ message: String, location: Diagnostic.Location = .unknown, component: Component = .default) {
+    public func remark(_ message: String, location: Diagnostic.Location = .unknown, component: Component = .default) {
         if let configuredTarget {
             delegate.remark(.overrideTarget(configuredTarget), message, location: location, component: component)
         } else {
@@ -1347,6 +1355,10 @@ extension TaskProducerContext: CommandProducer {
         return await workspaceContext.headerIndex.projectHeaderInfo[workspaceContext.workspace.project(for: target)]
     }
 
+    public var projectLocation: Diagnostic.Location {
+        return Workspace.projectLocation(for: self.configuredTarget?.target, workspace: self.workspaceContext.workspace)
+    }
+
     public var canConstructAppIntentsMetadataTask: Bool {
         let scope = settings.globalScope
         let buildComponents = scope.evaluate(BuiltinMacros.BUILD_COMPONENTS)
@@ -1388,10 +1400,6 @@ extension TaskProducerContext: CommandProducer {
     public var targetShouldBuildModuleForInstallAPI: Bool {
         guard let configuredTarget else { return false }
         return globalProductPlan.targetsWhichShouldBuildModulesDuringInstallAPI?.contains(configuredTarget) ?? false
-    }
-
-    public var supportsCompilationCaching: Bool {
-        return Settings.supportsCompilationCaching(workspaceContext.core)
     }
 
     public var systemInfo: SystemInfo? {

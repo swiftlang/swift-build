@@ -33,9 +33,63 @@ import SWBMacro
             swiftCompilerInfo: try mockSwiftCompilerSpec(swiftVersion: "5.6", swiftTag: "swiftlang-5.6.0.0")
         )
         #expect(frameworkArgs == [])
+
+        let publicArgs = await DocumentationCompilerSpec.additionalSymbolGraphGenerationArgs(
+            try mockApplicationBuildContext(application: false, minimumAccessLevel: .public),
+            swiftCompilerInfo: try mockSwiftCompilerSpec(swiftVersion: "5.6", swiftTag: "swiftlang-5.6.0.0")
+        )
+        #expect(publicArgs == ["-symbol-graph-minimum-access-level", "public"])
+
+        let privateArgs = await DocumentationCompilerSpec.additionalSymbolGraphGenerationArgs(
+            try mockApplicationBuildContext(application: false, minimumAccessLevel: .private),
+            swiftCompilerInfo: try mockSwiftCompilerSpec(swiftVersion: "5.6", swiftTag: "swiftlang-5.6.0.0")
+        )
+        #expect(privateArgs == ["-symbol-graph-minimum-access-level", "private"])
+
+        let filePrivateArgs = await DocumentationCompilerSpec.additionalSymbolGraphGenerationArgs(
+            try mockApplicationBuildContext(application: false, minimumAccessLevel: .fileprivate),
+            swiftCompilerInfo: try mockSwiftCompilerSpec(swiftVersion: "5.6", swiftTag: "swiftlang-5.6.0.0")
+        )
+        #expect(filePrivateArgs == ["-symbol-graph-minimum-access-level", "fileprivate"])
+
+        let internalArgs = await DocumentationCompilerSpec.additionalSymbolGraphGenerationArgs(
+            try mockApplicationBuildContext(application: false, minimumAccessLevel: .internal),
+            swiftCompilerInfo: try mockSwiftCompilerSpec(swiftVersion: "5.6", swiftTag: "swiftlang-5.6.0.0")
+        )
+        #expect(internalArgs == ["-symbol-graph-minimum-access-level", "internal"])
+
+        let openArgs = await DocumentationCompilerSpec.additionalSymbolGraphGenerationArgs(
+            try mockApplicationBuildContext(application: false, minimumAccessLevel: .open),
+            swiftCompilerInfo: try mockSwiftCompilerSpec(swiftVersion: "5.6", swiftTag: "swiftlang-5.6.0.0")
+        )
+        #expect(openArgs == ["-symbol-graph-minimum-access-level", "open"])
+
+        let packageArgs = await DocumentationCompilerSpec.additionalSymbolGraphGenerationArgs(
+            try mockApplicationBuildContext(application: false, minimumAccessLevel: .package),
+            swiftCompilerInfo: try mockSwiftCompilerSpec(swiftVersion: "5.6", swiftTag: "swiftlang-5.6.0.0")
+        )
+        #expect(packageArgs == ["-symbol-graph-minimum-access-level", "package"])
+
+        let prettyPrintArgs = await DocumentationCompilerSpec.additionalSymbolGraphGenerationArgs(
+            try mockApplicationBuildContext(application: false, prettyPrint: true),
+            swiftCompilerInfo: try mockSwiftCompilerSpec(swiftVersion: "5.6", swiftTag: "swiftlang-5.6.0.0")
+        )
+        #expect(prettyPrintArgs == ["-symbol-graph-pretty-print"])
+
+        let skipSynthesizedMembers = await DocumentationCompilerSpec.additionalSymbolGraphGenerationArgs(
+            try mockApplicationBuildContext(application: false, skipSynthesizedMembers: true),
+            swiftCompilerInfo: try mockSwiftCompilerSpec(swiftVersion: "5.6", swiftTag: "swiftlang-5.6.0.0")
+        )
+        #expect(skipSynthesizedMembers == ["-symbol-graph-skip-synthesized-members"])
+
+        let skipInheritedDocs = await DocumentationCompilerSpec.additionalSymbolGraphGenerationArgs(
+            try mockApplicationBuildContext(application: false, skipInheritedDocs: true),
+            swiftCompilerInfo: try mockSwiftCompilerSpec(swiftVersion: "5.6", swiftTag: "swiftlang-5.6.0.0")
+        )
+        #expect(skipInheritedDocs == ["-symbol-graph-skip-inherited-docs"])
     }
 
-    private func mockApplicationBuildContext(application: Bool) async throws -> CommandBuildContext {
+    private func mockApplicationBuildContext(application: Bool, minimumAccessLevel: DoccMinimumAccessLevel = .none, prettyPrint: Bool = false, skipSynthesizedMembers: Bool = false, skipInheritedDocs: Bool = false) async throws -> CommandBuildContext {
         let core = try await getCore()
 
         let producer = try MockCommandProducer(
@@ -47,6 +101,20 @@ import SWBMacro
         var mockTable = MacroValueAssignmentTable(namespace: core.specRegistry.internalMacroNamespace)
         if application {
             mockTable.push(BuiltinMacros.MACH_O_TYPE, literal: "mh_execute")
+        }
+
+        mockTable.push(BuiltinMacros.DOCC_MINIMUM_ACCESS_LEVEL, literal: minimumAccessLevel)
+
+        if prettyPrint {
+            mockTable.push(BuiltinMacros.DOCC_PRETTY_PRINT, literal: true)
+        }
+
+        if skipSynthesizedMembers {
+            mockTable.push(BuiltinMacros.DOCC_SKIP_SYNTHESIZED_MEMBERS, literal: skipSynthesizedMembers)
+        }
+
+        if skipInheritedDocs {
+            mockTable.push(BuiltinMacros.DOCC_SKIP_INHERITED_DOCS, literal: true)
         }
 
         let mockScope = MacroEvaluationScope(table: mockTable)

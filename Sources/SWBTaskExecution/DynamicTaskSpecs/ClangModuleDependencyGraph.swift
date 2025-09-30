@@ -109,6 +109,8 @@ package final class ClangModuleDependencyGraph {
         /// for example, when using `-save-temps`.
         package let commands: [CompileCommand]
 
+        package let scanningCommandLine: [String]
+
         package let transitiveIncludeTreeIDs: OrderedSet<String>
         package let transitiveCompileCommandCacheKeys: OrderedSet<String>
 
@@ -121,6 +123,7 @@ package final class ClangModuleDependencyGraph {
             moduleDependencies: OrderedSet<Path>,
             workingDirectory: Path,
             commands: [CompileCommand],
+            scanningCommandLine: [String],
             transitiveIncludeTreeIDs: OrderedSet<String>,
             transitiveCompileCommandCacheKeys: OrderedSet<String>,
             usesSerializedDiagnostics: Bool
@@ -131,6 +134,7 @@ package final class ClangModuleDependencyGraph {
             self.modules = moduleDependencies
             self.workingDirectory = workingDirectory
             self.commands = commands
+            self.scanningCommandLine = scanningCommandLine
             self.transitiveIncludeTreeIDs = transitiveIncludeTreeIDs
             self.transitiveCompileCommandCacheKeys = transitiveCompileCommandCacheKeys
             self.usesSerializedDiagnostics = usesSerializedDiagnostics
@@ -143,6 +147,7 @@ package final class ClangModuleDependencyGraph {
             moduleDependencies: OrderedSet<Path>,
             workingDirectory: Path,
             command: CompileCommand,
+            scanningCommandLine: [String],
             transitiveIncludeTreeIDs: OrderedSet<String>,
             transitiveCompileCommandCacheKeys: OrderedSet<String>,
             usesSerializedDiagnostics: Bool
@@ -153,19 +158,21 @@ package final class ClangModuleDependencyGraph {
             self.modules = moduleDependencies
             self.workingDirectory = workingDirectory
             self.commands = [command]
+            self.scanningCommandLine = scanningCommandLine
             self.transitiveIncludeTreeIDs = transitiveIncludeTreeIDs
             self.transitiveCompileCommandCacheKeys = transitiveCompileCommandCacheKeys
             self.usesSerializedDiagnostics = usesSerializedDiagnostics
         }
 
         package func serialize<T>(to serializer: T) where T : Serializer {
-            serializer.serializeAggregate(9) {
+            serializer.serializeAggregate(10) {
                 serializer.serialize(kind)
                 serializer.serialize(files)
                 serializer.serialize(includeTreeID)
                 serializer.serialize(modules)
                 serializer.serialize(workingDirectory)
                 serializer.serialize(commands)
+                serializer.serialize(scanningCommandLine)
                 serializer.serialize(transitiveIncludeTreeIDs)
                 serializer.serialize(transitiveCompileCommandCacheKeys)
                 serializer.serialize(usesSerializedDiagnostics)
@@ -173,13 +180,14 @@ package final class ClangModuleDependencyGraph {
         }
 
         package init(from deserializer: any Deserializer) throws {
-            try deserializer.beginAggregate(9)
+            try deserializer.beginAggregate(10)
             self.kind = try deserializer.deserialize()
             self.files = try deserializer.deserialize()
             self.includeTreeID = try deserializer.deserialize()
             self.modules = try deserializer.deserialize()
             self.workingDirectory = try deserializer.deserialize()
             self.commands = try deserializer.deserialize()
+            self.scanningCommandLine = try deserializer.deserialize()
             self.transitiveIncludeTreeIDs = try deserializer.deserialize()
             self.transitiveCompileCommandCacheKeys = try deserializer.deserialize()
             self.usesSerializedDiagnostics = try deserializer.deserialize()
@@ -334,12 +342,13 @@ package final class ClangModuleDependencyGraph {
         var moduleTransitiveCacheKeys: [String: OrderedSet<String>] = [:]
 
         let fileDeps: DependencyScanner.FileDependencies
+        let scanningCommandLine = [compiler] + originalFileArgs
         let modulesCallbackErrors = LockedValue<[any Error]>([])
         let dependencyPaths = LockedValue<Set<Path>>([])
         let requiredTargetDependencies = LockedValue<Set<ScanResult.RequiredDependency>>([])
         do {
             fileDeps = try clangWithScanner.scanner.scanDependencies(
-                commandLine: [compiler] + originalFileArgs,
+                commandLine: scanningCommandLine,
                 workingDirectory: workingDirectory.str,
                 lookupOutput: { name, contextHash, kind in
                     let moduleOutputPath = outputPathForModule(name, contextHash)
@@ -432,6 +441,7 @@ package final class ClangModuleDependencyGraph {
                                     // Cached builds do not rely on the process working directory, and different scanner working directories should not inhibit task deduplication. The same is true if the scanner reports the working directory can be ignored.
                                     workingDirectory: module.cache_key != nil || module.is_cwd_ignored ? Path.root : workingDirectory,
                                     command: DependencyInfo.CompileCommand(cacheKey: module.cache_key, arguments: commandLine),
+                                    scanningCommandLine: scanningCommandLine,
                                     transitiveIncludeTreeIDs: transitiveIncludeTreeIDs,
                                     transitiveCompileCommandCacheKeys: transitiveCommandCacheKeys,
                                     usesSerializedDiagnostics: usesSerializedDiagnostics)
@@ -513,6 +523,7 @@ package final class ClangModuleDependencyGraph {
             // Cached builds do not rely on the process working directory, and different scanner working directories should not inhibit task deduplication
             workingDirectory: fileDeps.commands.allSatisfy { $0.cache_key != nil } ? Path.root : workingDirectory,
             commands: commands,
+            scanningCommandLine: scanningCommandLine,
             transitiveIncludeTreeIDs: transitiveIncludeTreeIDs,
             transitiveCompileCommandCacheKeys: transitiveCommandCacheKeys,
             usesSerializedDiagnostics: usesSerializedDiagnostics)
@@ -547,6 +558,32 @@ package final class ClangModuleDependencyGraph {
             core: core
         )
         return clangWithScanner.casDBs
+    }
+
+    package func diagnoseInvalidNegativeStatCacheEntries() -> [String] {
+        registryQueue.blocking_sync {
+            self.scannerRegistry.values.flatMap { libClangWithScanner in
+                guard libClangWithScanner.scanner.libclang.supportsNegativeStatCacheDiagnostics else {
+                    return Array<String>()
+                }
+                return libClangWithScanner.scanner.diagnoseInvalidNegativeStatCacheEntries()
+            }
+        }
+    }
+
+    package func generateReproducer(forFailedDependency dependency: DependencyInfo,
+                                    libclangPath: Path, casOptions: CASOptions?) throws -> String? {
+        let clangWithScanner = try libclangWithScanner(
+            forPath: libclangPath,
+            casOptions: casOptions,
+            cacheFallbackIfNotAvailable: false,
+            core: core
+        )
+        guard clangWithScanner.libclang.supportsReproducerGeneration else {
+            return nil
+        }
+        return try clangWithScanner.scanner.generateReproducer(
+            commandLine: dependency.scanningCommandLine, workingDirectory: dependency.workingDirectory.str)
     }
 
     package var isEmpty: Bool {

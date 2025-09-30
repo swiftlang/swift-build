@@ -569,10 +569,11 @@ private class SerializedDiagnosticsTool {
             return false
         }
 
-        let toolchain = core.toolchainRegistry.defaultToolchain
-        guard let libclangPath = toolchain?.librarySearchPaths.findLibrary(operatingSystem: core.hostOperatingSystem, basename: "clang") ?? toolchain?.fallbackLibrarySearchPaths.findLibrary(operatingSystem: core.hostOperatingSystem, basename: "clang") else {
-            throw StubError.error("unable to find libclang")
+        guard let toolchain = core.toolchainRegistry.defaultToolchain else {
+            throw StubError.error("unable to find libclang (no default toolchain)")
         }
+
+        let libclangPath = try toolchain.lookup(subject: .library(basename: "clang"), operatingSystem: core.hostOperatingSystem)
 
         guard let libclang = Libclang(path: libclangPath.str) else {
             emitError("unable to open libclang: \(libclangPath)")

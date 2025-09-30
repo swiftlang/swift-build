@@ -175,6 +175,10 @@ extension Trait where Self == Testing.ConditionTrait {
         return .skipIfEnvironmentVariableSet(key: "GITHUB_ACTIONS")
     }
 
+    package static func skipInXcodeCloud(_ comment: Comment? = nil) -> Self {
+        return .skipIfEnvironmentVariableSet(key: "CI_XCODE_CLOUD")
+    }
+
     package static func requireClangFeatures(_ requiredFeatures: DiscoveredClangToolSpecInfo.FeatureFlag...) -> Self {
         enabled("Clang compiler does not support features: \(requiredFeatures)") {
             let features = try await ConditionTraitContext.shared.clangFeatures
@@ -202,12 +206,21 @@ extension Trait where Self == Testing.ConditionTrait {
         }
     }
 
-    package static func requireSystemPackages(apt: String..., yum: String..., freebsd: String..., sourceLocation: SourceLocation = #_sourceLocation) -> Self {
+    package static func requireSystemPackages(apt: String..., yum: String..., freebsd: String..., openbsd: String..., sourceLocation: SourceLocation = #_sourceLocation) -> Self {
         enabled("required system packages are not installed") {
+            func installCommand(packageManagerPath: Path, packageNames: String) -> String {
+                switch packageManagerPath.basenameWithoutSuffix {
+                case "pkg_info":
+                    return "pkg_add \(packageNames)" // OpenBSD
+                default:
+                    return "\(packageManagerPath.basenameWithoutSuffix) install \(packageNames)"
+                }
+            }
+
             func checkInstalled(hostOS: OperatingSystem, packageManagerPath: Path, args: [String], packages: [String], regex: Regex<(Substring, name: Substring)>) async throws -> Bool {
                 if try ProcessInfo.processInfo.hostOperatingSystem() == hostOS && localFS.exists(packageManagerPath) {
                     var installedPackages: Set<String> = []
-                    for line in try await runProcess([packageManagerPath.str] + args + packages).split(separator: "\n") {
+                    for line in try await runProcess([packageManagerPath.str] + args + (packageManagerPath.basenameWithoutSuffix == "pkg_info" ? [] : packages)).split(separator: "\n") {
                         if let packageName = try regex.firstMatch(in: line)?.output.name {
                             installedPackages.insert(String(packageName))
                         }
@@ -215,7 +228,7 @@ extension Trait where Self == Testing.ConditionTrait {
 
                     let uninstalledPackages = Set(packages).subtracting(installedPackages)
                     if !uninstalledPackages.isEmpty {
-                        Issue.record("system packages are missing. Install via `\(packageManagerPath.basenameWithoutSuffix) install \(uninstalledPackages.sorted().joined(separator: " "))`", sourceLocation: sourceLocation)
+                        Issue.record("system packages are missing. Install via `\(installCommand(packageManagerPath: packageManagerPath, packageNames: uninstalledPackages.sorted().joined(separator: " ")))`", sourceLocation: sourceLocation)
                         return false
                     }
                 }
@@ -230,7 +243,9 @@ extension Trait where Self == Testing.ConditionTrait {
 
             let freebsd = try await checkInstalled(hostOS: .freebsd, packageManagerPath: Path("/usr/sbin/pkg"), args: ["info"], packages: freebsd, regex: #/^Name(?:[ ]+): (?<name>.+)$/#)
 
-            return apt && yum && freebsd
+            let openbsd = try await checkInstalled(hostOS: .openbsd, packageManagerPath: Path("/usr/sbin/pkg_info"), args: ["-A"], packages: openbsd, regex: #/^(?<name>.+)-.*/#)
+
+            return apt && yum && freebsd && openbsd
         }
     }
 
@@ -295,7 +310,10 @@ extension Trait where Self == Testing.ConditionTrait {
     /// Constructs a condition trait that causes a test to be disabled if not running against a version of Xcode within the given range.
     package static func requireXcodeBuildVersions<R: RangeExpression>(in range: @Sendable @autoclosure @escaping () throws -> R, sourceLocation: SourceLocation = #_sourceLocation) -> Self where R.Bound == ProductBuildVersion {
         enabled("Xcode version is not suitable", sourceLocation: sourceLocation, {
-            return try await range().contains(InstalledXcode.currentlySelected().productBuildVersion())
+            guard let installedVersion =  try? await InstalledXcode.currentlySelected().productBuildVersion() else {
+                return true
+            }
+            return try range().contains(installedVersion)
         })
     }
 
@@ -371,12 +389,6 @@ extension Trait where Self == Testing.ConditionTrait {
         }
     }
 
-    package static var requireCompilationCaching: Self {
-        enabled("compilation caching is not supported") {
-            try await ConditionTraitContext.shared.supportsCompilationCaching
-        }
-    }
-
     package static var requireDependencyScannerPlusCaching: Self {
         disabled {
             let libclang = try #require(try await ConditionTraitContext.shared.libclang)
@@ -401,7 +413,7 @@ extension Trait where Self == Testing.ConditionTrait {
 
     package static var requireCASValidation: Self {
         enabled {
-            guard try await ConditionTraitContext.shared.supportsCompilationCaching, UserDefaults.enableCASValidation else {
+            guard UserDefaults.enableCASValidation else {
                 return false
             }
             guard let path = try? await ConditionTraitContext.shared.llvmCasToolPath else {

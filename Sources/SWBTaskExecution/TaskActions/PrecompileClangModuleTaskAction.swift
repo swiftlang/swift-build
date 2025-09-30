@@ -215,16 +215,30 @@ final public class PrecompileClangModuleTaskAction: TaskAction, BuildValueValida
                         enableStrictCASErrors: key.casOptions!.enableStrictCASErrors
                     )
                 }
-            } else if result == .failed && !executionDelegate.userPreferences.enableDebugActivityLogs && !executionDelegate.emitFrontendCommandLines {
-                let commandString = UNIXShellCommandCodec(
-                    encodingStrategy: .backslashes,
-                    encodingBehavior: .fullCommandLine
-                ).encode(commandLine)
+            } else if result == .failed {
+                if !executionDelegate.userPreferences.enableDebugActivityLogs && !executionDelegate.emitFrontendCommandLines {
+                    let commandString = UNIXShellCommandCodec(
+                        encodingStrategy: .backslashes,
+                        encodingBehavior: .fullCommandLine
+                    ).encode(commandLine)
 
-                // <rdar://59354519> We need to find a way to use the generic infrastructure for displaying the command line in
-                // the build log.
-                outputDelegate.emitOutput("Failed frontend command:\n")
-                outputDelegate.emitOutput(ByteString(encodingAsUTF8: commandString) + "\n")
+                    // <rdar://59354519> We need to find a way to use the generic infrastructure for displaying the command line in
+                    // the build log.
+                    outputDelegate.emitOutput("Failed frontend command:\n")
+                    outputDelegate.emitOutput(ByteString(encodingAsUTF8: commandString) + "\n")
+                }
+                if case .some(.exit(.uncaughtSignal, _)) = outputDelegate.result {
+                    do {
+                        if let reproducerMessage = try clangModuleDependencyGraph.generateReproducer(
+                                forFailedDependency: dependencyInfo,
+                                libclangPath: key.libclangPath,
+                                casOptions: key.casOptions) {
+                            outputDelegate.emitOutput(ByteString(encodingAsUTF8: reproducerMessage) + "\n")
+                        }
+                    } catch {
+                        outputDelegate.error(error.localizedDescription)
+                    }
+                }
             }
             return result
         } catch {

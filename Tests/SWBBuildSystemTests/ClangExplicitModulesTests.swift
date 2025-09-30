@@ -17,6 +17,7 @@ import Testing
 import SWBCore
 import SWBTaskExecution
 import SWBTestSupport
+import SwiftBuildTestSupport
 import SWBUtil
 import SWBProtocol
 
@@ -1223,6 +1224,7 @@ fileprivate struct ClangExplicitModulesTests: CoreBasedTests {
                 stream <<<
                 """
                 #include "mod.h"
+                void foo(void) {}
                 """
             }
 
@@ -1230,6 +1232,7 @@ fileprivate struct ClangExplicitModulesTests: CoreBasedTests {
                 stream <<<
                 """
                 #include "mod.h"
+                void bar(void) {}
                 """
             }
 
@@ -1344,6 +1347,7 @@ fileprivate struct ClangExplicitModulesTests: CoreBasedTests {
                 stream <<<
             """
             #include "mod.h"
+            void foo(void) {}
             """
             }
 
@@ -1351,6 +1355,7 @@ fileprivate struct ClangExplicitModulesTests: CoreBasedTests {
                 stream <<<
             """
             #include "mod.h"
+            void bar(void) {}
             """
             }
 

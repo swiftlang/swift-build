@@ -21,7 +21,7 @@ public final class ValidateEmbeddedBinaryToolSpec: GenericCommandLineToolSpec, S
         let outputPath = input.absolutePath
 
         var commandLine = await commandLineFromTemplate(cbc, delegate, optionContext: discoveredCommandLineToolSpecInfo(cbc.producer, cbc.scope, delegate), lookup: lookup).map(\.asString)
-        commandLine[0] = resolveExecutablePath(cbc, Path("embeddedBinaryValidationUtility")).str
+        commandLine[0] = resolveExecutablePath(cbc.producer, Path("embeddedBinaryValidationUtility")).str
 
         let inputs: [any PlannedNode] = [delegate.createNode(input.absolutePath)] + cbc.commandOrderingInputs
         let outputs: [any PlannedNode] = [delegate.createNode(outputPath)] + (cbc.commandOrderingOutputs.isEmpty ? [delegate.createVirtualNode("ValidateEmbeddedBinary \(outputPath.str)")] : cbc.commandOrderingOutputs)

@@ -420,6 +420,7 @@ public final class SwiftDriverJobTaskAction: TaskAction, BuildValueValidatingTas
                 private var pid = llbuild_pid_t.invalid
 
                 var executionError: String?
+                var wasSignaled: Bool = false
                 private var processStarted = false
                 private var _commandResult: CommandResult?
                 var commandResult: CommandResult? {
@@ -469,6 +470,15 @@ public final class SwiftDriverJobTaskAction: TaskAction, BuildValueValidatingTas
                 }
 
                 func processFinished(result: CommandExtendedResult) {
+                    if wasSignaled {
+                        // If the process was already signaled, this might be in a reproducer creation. No need to update finish status.
+                        return
+                    }
+                    guard let status = Processes.ExitStatus.init(rawValue: result.exitStatus) else {
+                        // nil means the job is stopped or continued. It should not call finished.
+                        return
+                    }
+                    wasSignaled = status.wasSignaled
                     // This may be updated by commandStarted in the case of certain failures,
                     // so only update the exit status in output delegate if it is nil.
                     if outputDelegate.result == nil {
@@ -476,7 +486,7 @@ public final class SwiftDriverJobTaskAction: TaskAction, BuildValueValidatingTas
                     }
                     self._commandResult = result.result
                     do {
-                        try plannedBuild?.jobFinished(job: driverJob, arguments: arguments, pid: pid.pid, environment: environment, exitStatus: .exit(result.exitStatus), output: output)
+                        try plannedBuild?.jobFinished(job: driverJob, arguments: arguments, pid: pid.pid, environment: environment, exitStatus: status, output: output)
                     } catch {
                         executionError = error.localizedDescription
                     }
@@ -521,6 +531,21 @@ public final class SwiftDriverJobTaskAction: TaskAction, BuildValueValidatingTas
             }
 
             try await spawn(commandLine: options.commandLine, environment: environment, workingDirectory: task.workingDirectory, dynamicExecutionDelegate: dynamicExecutionDelegate, clientDelegate: clientDelegate, processDelegate: delegate)
+
+            // Generate crash reproducoer.
+            if delegate.wasSignaled {
+                // The output directory for crash reproducer is:
+                // * Specified by environment
+                // * Primary output path directory
+                // * Temp directory
+                let reproDir = environment["SWIFT_CRASH_DIAGNOSTICS_DIR"].map(Path.init) ?? driverJob.driverJob.outputs.first?.dirname
+                try await withTemporaryDirectory(dir: reproDir, prefix: "swift-crash-reproducer", removeTreeOnDeinit: false) { dir in
+                    if let reproCommand = try await plannedBuild?.getCrashReproducerCommand(for: driverJob, output: dir) {
+                        try await spawn(commandLine: reproCommand, environment: environment, workingDirectory: task.workingDirectory, dynamicExecutionDelegate: dynamicExecutionDelegate, clientDelegate: clientDelegate, processDelegate: delegate)
+                        outputDelegate.note("Crash reproducer created in \(dir.str)")
+                    }
+                }
+            }
 
             if let error = delegate.executionError {
                 outputDelegate.error(error)
@@ -645,11 +670,11 @@ public final class SwiftDriverJobTaskAction: TaskAction, BuildValueValidatingTas
             outputDelegate.note("replay cache \(result ? "hit" : "miss")")
         }
         if result {
-            outputDelegate.incrementSwiftCacheHit()
+            outputDelegate.incrementCounter(.swiftCacheHits)
             outputDelegate.incrementTaskCounter(.cacheHits)
             outputDelegate.emitOutput("Cache hit\n")
         } else {
-            outputDelegate.incrementSwiftCacheMiss()
+            outputDelegate.incrementCounter(.swiftCacheMisses)
             outputDelegate.incrementTaskCounter(.cacheMisses)
             outputDelegate.emitOutput("Cache miss\n")
         }

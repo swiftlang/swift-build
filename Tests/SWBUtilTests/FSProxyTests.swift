@@ -36,7 +36,7 @@ import SWBTestSupport
 
     // MARK: LocalFS Tests
 
-    @Test(.skipHostOS(.windows)) // FIXME: error handling is different on Windows
+    @Test
     func localCreateDirectory() throws {
         try withTemporaryDirectory { (tmpDir: Path) in
             // Create a directory inside the tmpDir.
@@ -111,7 +111,11 @@ import SWBTestSupport
                 }
                 catch {
                     didThrow = true
+                    #if os(Windows)
                     #expect(error.localizedDescription == "File exists but is not a directory: \(filePath.str)")
+                    #else
+                    #expect(error.localizedDescription == "File exists but is not a directory: \(dirPath.str)")
+                    #endif
                 }
                 #expect(didThrow)
             }
@@ -179,7 +183,11 @@ import SWBTestSupport
                 }
                 catch {
                     didThrow = true
-                    #expect(error.localizedDescription == "File exists but is not a directory: \(symlinkPath.str)")
+                    #if os(Windows)
+                    #expect(error.localizedDescription == "File is a symbolic link which references a path which is not a directory: \(symlinkPath.str)")
+                    #else
+                    #expect(error.localizedDescription == "File exists but is not a directory: \(dirPath.str)")
+                    #endif
                 }
                 #expect(didThrow)
             }
@@ -200,7 +208,7 @@ import SWBTestSupport
                 #expect {
                     try localFS.createDirectory(filePath, recursive: true)
                 } throws: { error in
-                    error.localizedDescription == "Cannot recursively create directory at non-absolute path: foo/bar/baz"
+                    error.localizedDescription == "Cannot recursively create directory at non-absolute path: \(filePath.str)"
                 }
             }
         }
@@ -342,11 +350,21 @@ import SWBTestSupport
             // Test setting file permissions.
             let execPath = tmpDir.join("script.sh")
             try localFS.write(execPath, contents: [])
+            #expect(try localFS.getFilePermissions(execPath) == 0o644)
+            #expect(try localFS.getFileInfo(execPath).permissions == 0o644)
             #expect(try !localFS.isExecutable(execPath))
-
             try localFS.setFilePermissions(execPath, permissions: 0o755)
             #expect(try localFS.getFilePermissions(execPath) == 0o755)
+            #expect(try localFS.getFileInfo(execPath).permissions == 0o755)
             #expect(try localFS.isExecutable(execPath))
+
+            let linkPath = tmpDir.join("script")
+            try localFS.symlink(linkPath, target: Path("script.sh"))
+            #expect(try localFS.getFilePermissions(linkPath) == 0o755)
+            #expect(try localFS.getFileInfo(linkPath).permissions == 0o755)
+            try localFS.setFilePermissions(linkPath, permissions: 0o644)
+            #expect(try localFS.getFilePermissions(linkPath) == 0o644)
+            #expect(try localFS.getFileInfo(linkPath).permissions == 0o644)
         }
     }
 
@@ -390,7 +408,7 @@ import SWBTestSupport
             #expect(!fileInfo.isSymlink)
 
             let linkFileInfo = try localFS.getLinkFileInfo(file)
-            #expect(fileInfo.statBuf.st_ino == linkFileInfo.statBuf.st_ino)
+            #expect(fileInfo.iNode == linkFileInfo.iNode)
             #expect(!linkFileInfo.isSymlink)
 
             // Test absolute and relative targets
@@ -406,7 +424,7 @@ import SWBTestSupport
                 #expect(try localFS.read(sym) == data)
 
                 let symFileInfo = try localFS.getFileInfo(sym)
-                #expect(symFileInfo.statBuf.st_ino == fileInfo.statBuf.st_ino)
+                #expect(symFileInfo.iNode == fileInfo.iNode)
                 #expect(!symFileInfo.isSymlink)
 
                 let symLinkFileInfo = try localFS.getLinkFileInfo(sym)
@@ -448,11 +466,7 @@ import SWBTestSupport
             let fileAtts = try FileManager.default.attributesOfItem(atPath: filePath.str)
             let fileMgrModDate = try #require(fileAtts[FileAttributeKey.modificationDate] as? Date)
 
-            // not working on Windows for some reason
-            let hostOS = try ProcessInfo.processInfo.hostOperatingSystem()
-            withKnownIssue {
-                #expect(fsModDate == fileMgrModDate)
-            } when: { hostOS == .windows }
+            #expect(fsModDate == fileMgrModDate)
         }
     }
 
@@ -798,16 +812,28 @@ import SWBTestSupport
 
         // Test default permissions.
         #expect(try fs.getFilePermissions(.root) == 0o755)
+        #expect(try fs.getFileInfo(.root).permissions == 0o755)
         let filePath = Path.root.join("file.txt")
         try fs.write(filePath, contents: [])
         #expect(try fs.getFilePermissions(filePath) == 0o644)
+        #expect(try fs.getFileInfo(filePath).permissions == 0o644)
 
         // Test setting file permissions.
         let execPath = Path.root.join("script.sh")
         try fs.write(execPath, contents: [])
         #expect(try fs.getFilePermissions(execPath) == 0o644)
+        #expect(try fs.getFileInfo(execPath).permissions == 0o644)
         try fs.setFilePermissions(execPath, permissions: 0o755)
         #expect(try fs.getFilePermissions(execPath) == 0o755)
+        #expect(try fs.getFileInfo(execPath).permissions == 0o755)
+
+        let linkPath = Path.root.join("script")
+        try fs.symlink(linkPath, target: Path("script.sh"))
+        #expect(try fs.getFilePermissions(linkPath) == 0o755)
+        #expect(try fs.getFileInfo(linkPath).permissions == 0o755)
+        try fs.setFilePermissions(linkPath, permissions: 0o644)
+        #expect(try fs.getFilePermissions(linkPath) == 0o644)
+        #expect(try fs.getFileInfo(linkPath).permissions == 0o644)
     }
 
     @Test
@@ -849,18 +875,20 @@ import SWBTestSupport
         // Check that file stat information differs.
         #expect(try fs.getFileInfo(Path.root.join("subdir/a.txt")) != fs.getFileInfo(Path.root.join("subdir/b.txt")))
 
-#if !os(Windows)
         // Check that we can get stat info on the directory.
         let s = try fs.getFileInfo(Path.root.join("subdir"))
-        #expect(s.statBuf.st_mode & S_IFDIR == S_IFDIR)
-        #expect(s.statBuf.st_size == 2)
+        #expect(s.isDirectory)
+        #expect(s.size == 2)
 
         // Check that the stat info changes if we mutate the directory.
         try fs.remove(Path.root.join("subdir/b.txt"))
         try fs.write(Path.root.join("subdir/c.txt"), contents: "c")
         let s2 = try fs.getFileInfo(Path.root.join("subdir"))
         #expect(s != s2)
-#endif
+
+        let f = try fs.getFileInfo(Path.root.join("subdir"))
+        let f2 = try fs.getFileInfo(Path.root.join("subdir"))
+        #expect(f == f2)
     }
 
     @Test
@@ -1141,10 +1169,13 @@ import SWBTestSupport
     }
 
     func _testCopyTree(_ fs: any FSProxy, basePath: Path) throws {
-        func compareFileInfo(_ lhs: FileInfo, _ rhs: FileInfo, sourceLocation: SourceLocation = #_sourceLocation) {
+        func compareFileInfo(_ lhsPath: Path, _ rhsPAth: Path, sourceLocation: SourceLocation = #_sourceLocation) throws {
+            let lhs = try fs.getFileInfo(lhsPath)
+            let rhs = try fs.getFileInfo(rhsPAth)
+
+            #expect(FileManager.default.isExecutableFile(atPath: lhsPath.str) == FileManager.default.isExecutableFile(atPath: rhsPAth.str), sourceLocation: sourceLocation)
             #expect(lhs.group == rhs.group, sourceLocation: sourceLocation)
             #expect(lhs.isDirectory == rhs.isDirectory, sourceLocation: sourceLocation)
-            #expect(lhs.isExecutable == rhs.isExecutable, sourceLocation: sourceLocation)
             #expect(lhs.isSymlink == rhs.isSymlink, sourceLocation: sourceLocation)
             if fs is PseudoFS {
                 // There is no guarantee that the implementation of copy() will preserve the modification timestamp on either files and/or directories, on any real filesystem, so only make this assertion for the pseudo filesystem which we wholly control.
@@ -1188,11 +1219,11 @@ import SWBTestSupport
             #expect(try fs.getFilePermissions(subdirDst.join("dir0/file0")) == file0Perms)
             #expect(try fs.getFilePermissions(subdirDst.join("dir0/dir0_0/file1")) == file1Perms)
         }
-        compareFileInfo(try fs.getFileInfo(subdirDst.join("dir0")), try fs.getFileInfo(subdir.join("dir0")))
-        compareFileInfo(try fs.getFileInfo(subdirDst.join("dir0/file0")), try fs.getFileInfo(subdir.join("dir0/file0")))
-        compareFileInfo(try fs.getFileInfo(subdirDst.join("dir0/dir0_0/file1")), try fs.getFileInfo(subdir.join("dir0/dir0_0/file1")))
-        compareFileInfo(try fs.getFileInfo(subdirDst.join("dir0/dir0_0")), try fs.getFileInfo(subdir.join("dir0/dir0_0")))
-        compareFileInfo(try fs.getFileInfo(subdirDst.join("dir1")), try fs.getFileInfo(subdir.join("dir1")))
+        try compareFileInfo(subdirDst.join("dir0"), subdir.join("dir0"))
+        try compareFileInfo(subdirDst.join("dir0/file0"), subdir.join("dir0/file0"))
+        try compareFileInfo(subdirDst.join("dir0/dir0_0/file1"), subdir.join("dir0/dir0_0/file1"))
+        try compareFileInfo(subdirDst.join("dir0/dir0_0"), subdir.join("dir0/dir0_0"))
+        try compareFileInfo(subdirDst.join("dir1"), subdir.join("dir1"))
 
         // Test the file contents.
         #expect(try ByteString(data0) == fs.read(subdirDst.join("dir0/file0")))
@@ -1212,9 +1243,9 @@ import SWBTestSupport
             let sig0a_orig = fs.filesSignature([file0])
 
             // Validate that the inode/device info is only 0 when the info should be ignored.
-            let inode = try fs.getFileInfo(file0).statBuf.st_ino
+            let inode = try fs.getFileInfo(file0).iNode
             #expect((inode == 0) == shouldIgnoreDeviceInodeChanges)
-            let device = try fs.getFileInfo(file0).statBuf.st_dev
+            let device = try fs.getFileInfo(file0).deviceID
             #expect((device == 0) == shouldIgnoreDeviceInodeChanges)
 
             // Copy the file and copy it back, keeping the attributes of the file intact. NOTE!! Do not change this from copy/remove to move as that will **not** necessarily change the st_ino value. By copying the file, we can guarantee that a new file inode must be created.
@@ -1255,9 +1286,9 @@ import SWBTestSupport
 
             // Validate that the inode/device info is only 0 when the info should be ignored.
             for file in [dir0, dir1, file0] {
-                let inode = try fs.getFileInfo(file).statBuf.st_ino
+                let inode = try fs.getFileInfo(file).iNode
                 #expect((inode == 0) == shouldIgnoreDeviceInodeChanges)
-                let device = try fs.getFileInfo(file).statBuf.st_dev
+                let device = try fs.getFileInfo(file).deviceID
                 #expect((device == 0) == shouldIgnoreDeviceInodeChanges)
             }
 

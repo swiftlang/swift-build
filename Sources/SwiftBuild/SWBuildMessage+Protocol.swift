@@ -47,11 +47,11 @@ extension SwiftBuildMessage {
 
     init(_ message: BuildOperationEnded) {
         let metrics: BuildOperationMetrics?
-        if let messageMetrics = message.metrics, !messageMetrics.counters.isEmpty {
-            metrics = .init(clangCacheHits: messageMetrics.counters[.clangCacheHits] ?? 0,
-                            clangCacheMisses: messageMetrics.counters[.clangCacheMisses] ?? 0,
-                            swiftCacheHits: messageMetrics.counters[.swiftCacheHits] ?? 0,
-                            swiftCacheMisses: messageMetrics.counters[.swiftCacheMisses] ?? 0)
+        if let messageMetrics = message.metrics, !messageMetrics.isEmpty {
+            metrics = .init(
+                counters: Dictionary(uniqueKeysWithValues: messageMetrics.counters.map { ($0.key.rawValue, $0.value) }),
+                taskCounters: messageMetrics.taskCounters.mapValues { Dictionary(uniqueKeysWithValues: $0.map { ($0.key.rawValue, $0.value) }) }
+            )
         } else {
             metrics = nil
         }

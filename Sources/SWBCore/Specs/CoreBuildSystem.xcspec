@@ -304,6 +304,7 @@
                     "mh_bundle",
                     staticlib,
                     "mh_object",
+                    "objectlib",
                 );
                 DefaultValue = "";
             },
@@ -1351,6 +1352,9 @@ When `GENERATE_INFOPLIST_FILE` is enabled, sets the value of the [CFBundleIdenti
                     {
                         Value = "mh_object";
                     },
+                    {
+                        Value = "objectlib";
+                    },
                 );
                 DefaultValue = "";
                 ConditionFlavors = (
@@ -1591,6 +1595,26 @@ When `GENERATE_INFOPLIST_FILE` is enabled, sets the value of the [CFBundleIdenti
                 Name = "OTHER_LDFLAGS";
                 Type = StringList;
                 Category = "Linking - General";
+                DefaultValue = "";
+                ConditionFlavors = (
+                    arch,
+                    sdk,
+                );
+            },
+            {
+                Name = "MODULE_DEPENDENCIES";
+                Type = StringList;
+                Category = BuildOptions;
+                DefaultValue = "";
+                ConditionFlavors = (
+                    arch,
+                    sdk,
+                );
+            },
+            {
+                Name = "HEADER_DEPENDENCIES";
+                Type = StringList;
+                Category = BuildOptions;
                 DefaultValue = "";
                 ConditionFlavors = (
                     arch,
@@ -3480,6 +3504,20 @@ For more information on mergeable libraries, see [Configuring your project to us
                 Category = BuildOptions;
                 DisplayName = "Enable Index-While-Building Functionality";
                 Description = "Control whether the compiler should emit index data while building.";
+            },
+            {
+                Name = "INDEX_STORE_ONLY_PROJECT_FILES";
+                Type = Boolean;
+                DefaultValue = NO;
+                DisplayName = "Index only project files";
+                Description = "Only index the source files that are being compiled within this project. Do not emit data into the index store for system modules.";
+            },
+            {
+                Name = "INDEX_STORE_COMPRESS";
+                Type = Boolean;
+                DefaultValue = NO;
+                DisplayName = "Compress Index Store";
+                Description = "Compress the index store, reducing its size on disk.";
             },
             {
                 Name = TOOLCHAINS;

@@ -11,6 +11,7 @@
 //===----------------------------------------------------------------------===//
 
 import Testing
+import Foundation
 
 import SWBCore
 import SWBTestSupport
@@ -21,7 +22,7 @@ import SWBUtil
 @Suite
 fileprivate struct DebugInformationTests: CoreBasedTests {
     /// Test the different DWARF version formats we support.
-    @Test(.requireSDKs(.macOS))
+    @Test(.requireSDKs(.host), .skipHostOS(.windows))
     func debugInformationVersion() async throws {
         let testProject = try await TestProject(
             "aProject",
@@ -55,7 +56,7 @@ fileprivate struct DebugInformationTests: CoreBasedTests {
         let tester = try await TaskConstructionTester(getCore(), testProject)
 
         // Test the default version.
-        await tester.checkBuild(BuildParameters(configuration: "Config"), runDestination: .macOS) { results in
+        await tester.checkBuild(BuildParameters(configuration: "Config"), runDestination: .host) { results in
             // Check clang.
             results.checkTask(.matchRuleType("CompileC")) { task in
                 task.checkCommandLineContains(["-g"])
@@ -75,7 +76,7 @@ fileprivate struct DebugInformationTests: CoreBasedTests {
         }
 
         // Test explicitly setting to DWARF 4.
-        await tester.checkBuild(BuildParameters(configuration: "Config", overrides: ["DEBUG_INFORMATION_VERSION" : "dwarf4"]), runDestination: .macOS) { results in
+        await tester.checkBuild(BuildParameters(configuration: "Config", overrides: ["DEBUG_INFORMATION_VERSION" : "dwarf4"]), runDestination: .host) { results in
             // Check clang.
             results.checkTask(.matchRuleType("CompileC")) { task in
                 task.checkCommandLineContains(["-g", "-gdwarf-4"])
@@ -93,7 +94,7 @@ fileprivate struct DebugInformationTests: CoreBasedTests {
         }
 
         // Test explicitly setting to DWARF 5.
-        await tester.checkBuild(BuildParameters(configuration: "Config", overrides: ["DEBUG_INFORMATION_VERSION" : "dwarf5"]), runDestination: .macOS) { results in
+        await tester.checkBuild(BuildParameters(configuration: "Config", overrides: ["DEBUG_INFORMATION_VERSION" : "dwarf5"]), runDestination: .host) { results in
             // Check clang.
             results.checkTask(.matchRuleType("CompileC")) { task in
                 task.checkCommandLineContains(["-g", "-gdwarf-5"])
@@ -111,7 +112,7 @@ fileprivate struct DebugInformationTests: CoreBasedTests {
         }
 
         // Test disabling debug information.
-        await tester.checkBuild(BuildParameters(configuration: "Config", overrides: ["DEBUG_INFORMATION_FORMAT" : "", "DEBUG_INFORMATION_VERSION" : "dwarf5"]), runDestination: .macOS) { results in
+        await tester.checkBuild(BuildParameters(configuration: "Config", overrides: ["DEBUG_INFORMATION_FORMAT" : "", "DEBUG_INFORMATION_VERSION" : "dwarf5"]), runDestination: .host) { results in
             // Check clang.
             results.checkTask(.matchRuleType("CompileC")) { task in
                 task.checkCommandLineDoesNotContain("-g")
@@ -132,7 +133,7 @@ fileprivate struct DebugInformationTests: CoreBasedTests {
     }
 
     /// Check that we only generate dSYMs when appropriate.
-    @Test(.requireSDKs(.macOS))
+    @Test(.requireSDKs(.host), .skipHostOS(.windows))
     func dSYMGeneration() async throws {
         let testProject = TestProject(
             "aProject",
@@ -158,7 +159,7 @@ fileprivate struct DebugInformationTests: CoreBasedTests {
         let tester = try await TaskConstructionTester(getCore(), testProject)
 
         // Check behavior with dSYMs disabled.
-        await tester.checkBuild(BuildParameters(configuration: "Debug", overrides: ["DEBUG_INFORMATION_FORMAT": "dwarf"]), runDestination: .macOS) { results in
+        await tester.checkBuild(BuildParameters(configuration: "Debug", overrides: ["DEBUG_INFORMATION_FORMAT": "dwarf"]), runDestination: .host) { results in
             // There shouldn't be a dSYM task.
             results.checkNoTask(.matchRuleType("GenerateDSYMFile"))
 
@@ -167,10 +168,14 @@ fileprivate struct DebugInformationTests: CoreBasedTests {
         }
 
         // Check behavior with dSYMs enabled.
-        await tester.checkBuild(BuildParameters(configuration: "Debug", overrides: ["DEBUG_INFORMATION_FORMAT": "dwarf-with-dsym"]), runDestination: .macOS) { results in
+        try await tester.checkBuild(BuildParameters(configuration: "Debug", overrides: ["DEBUG_INFORMATION_FORMAT": "dwarf-with-dsym"]), runDestination: .host) { results in
             // Check the expected dSYM task.
-            results.checkTask(.matchRuleType("GenerateDSYMFile")) { task in
-                task.checkRuleInfo(["GenerateDSYMFile", "/tmp/Test/aProject/build/Debug/CoreFoo.framework.dSYM", "/tmp/Test/aProject/build/Debug/CoreFoo.framework/Versions/A/CoreFoo"])
+            if try ProcessInfo.processInfo.hostOperatingSystem() == .macOS {
+                results.checkTask(.matchRuleType("GenerateDSYMFile")) { task in
+                    task.checkRuleInfo(["GenerateDSYMFile", "/tmp/Test/aProject/build/Debug/CoreFoo.framework.dSYM", "/tmp/Test/aProject/build/Debug/CoreFoo.framework/Versions/A/CoreFoo"])
+                }
+            } else {
+                results.checkNoTask(.matchRuleType("GenerateDSYMFile"))
             }
 
             // Check there are no diagnostics.
@@ -179,26 +184,30 @@ fileprivate struct DebugInformationTests: CoreBasedTests {
 
         // Check install behavior with dSYMs enabled.
         let buildVariants = ["debug", "normal"]
-        await tester.checkBuild(BuildParameters(action: .install, configuration: "Debug", overrides: [
+        try await tester.checkBuild(BuildParameters(action: .install, configuration: "Debug", overrides: [
             "DEBUG_INFORMATION_FORMAT": "dwarf-with-dsym",
             "BUILD_VARIANTS": buildVariants.joined(separator: " "),
-        ]), runDestination: .macOS) { results in
+        ]), runDestination: .host) { results in
             // Check tasks for each build variant.
             for buildVariant in buildVariants {
-                let binaryName = "CoreFoo" + (buildVariant == "normal" ? "" : "_\(buildVariant)")
+                if try ProcessInfo.processInfo.hostOperatingSystem() == .macOS {
+                    let binaryName = "CoreFoo" + (buildVariant == "normal" ? "" : "_\(buildVariant)")
 
-                // Check the dsymutil task for the build variant.
-                var dsymutilTask: (any PlannedTask)? = nil
-                results.checkTask(.matchRuleType("GenerateDSYMFile"), .matchRuleItemBasename(binaryName)) { task in
-                    task.checkRuleInfo(["GenerateDSYMFile", "/tmp/Test/aProject/build/Debug/CoreFoo.framework.dSYM", "/tmp/aProject.dst/Library/Frameworks/CoreFoo.framework/Versions/A/\(binaryName)"])
-                    dsymutilTask = task
-                }
-
-                // Make sure the strip task for this build variant is ordered after the dsymutil task.
-                results.checkTask(.matchRuleType("Strip"), .matchRuleItemBasename(binaryName)) { task in
-                    if let dsymutilTask {
-                        results.checkTaskFollows(task, antecedent: dsymutilTask)
+                    // Check the dsymutil task for the build variant.
+                    var dsymutilTask: (any PlannedTask)? = nil
+                    results.checkTask(.matchRuleType("GenerateDSYMFile"), .matchRuleItemBasename(binaryName)) { task in
+                        task.checkRuleInfo(["GenerateDSYMFile", "/tmp/Test/aProject/build/Debug/CoreFoo.framework.dSYM", "/tmp/aProject.dst/Library/Frameworks/CoreFoo.framework/Versions/A/\(binaryName)"])
+                        dsymutilTask = task
                     }
+
+                    // Make sure the strip task for this build variant is ordered after the dsymutil task.
+                    results.checkTask(.matchRuleType("Strip"), .matchRuleItemBasename(binaryName)) { task in
+                        if let dsymutilTask {
+                            results.checkTaskFollows(task, antecedent: dsymutilTask)
+                        }
+                    }
+                } else {
+                    results.checkNoTask(.matchRuleType("GenerateDSYMFile"))
                 }
             }
 
@@ -207,29 +216,33 @@ fileprivate struct DebugInformationTests: CoreBasedTests {
         }
 
         // Check install behavior with `DWARF_DSYM_FILE_SHOULD_ACCOMPANY_PRODUCT` enabled.
-        await tester.checkBuild(BuildParameters(action: .install, configuration: "Debug", overrides: [
+        try await tester.checkBuild(BuildParameters(action: .install, configuration: "Debug", overrides: [
             "DWARF_DSYM_FILE_SHOULD_ACCOMPANY_PRODUCT": "YES",
             "DEBUG_INFORMATION_FORMAT": "dwarf-with-dsym",
             "BUILD_VARIANTS": buildVariants.joined(separator: " "),
-        ]), runDestination: .macOS) { results in
-            var dsymutilTasks = [any PlannedTask]()
-            results.checkTask(.matchRuleType("GenerateDSYMFile"), .matchRuleItemBasename("CoreFoo")) { task in
-                task.checkRuleInfo(["GenerateDSYMFile", "/tmp/Test/aProject/build/Debug/CoreFoo.framework.dSYM", "/tmp/aProject.dst/Library/Frameworks/CoreFoo.framework/Versions/A/CoreFoo"])
-                dsymutilTasks.append(task)
-            }
-
-            results.checkTask(.matchRuleType("GenerateDSYMFile"), .matchRuleItemBasename("CoreFoo_debug")) { task in
-                task.checkRuleInfo(["GenerateDSYMFile", "/tmp/Test/aProject/build/Debug/CoreFoo.framework.dSYM", "/tmp/aProject.dst/Library/Frameworks/CoreFoo.framework/Versions/A/CoreFoo_debug"])
-                dsymutilTasks.append(task)
-            }
-
-            results.checkTask(.matchRuleType("Copy"), .matchRuleItemBasename("CoreFoo.framework.dSYM")) { task in
-                task.checkCommandLine(["builtin-copy", "-exclude", ".DS_Store", "-exclude", "CVS", "-exclude", ".svn", "-exclude", ".git", "-exclude", ".hg", "-resolve-src-symlinks", "/tmp/Test/aProject/build/Debug/CoreFoo.framework.dSYM", "/tmp/aProject.dst/Library/Frameworks"])
-
-                // Make sure this task follows the dSYM producer tasks.
-                for dsymutilTask in dsymutilTasks {
-                    results.checkTaskDependsOn(task, antecedent: dsymutilTask)
+        ]), runDestination: .host) { results in
+            if try ProcessInfo.processInfo.hostOperatingSystem() == .macOS {
+                var dsymutilTasks = [any PlannedTask]()
+                results.checkTask(.matchRuleType("GenerateDSYMFile"), .matchRuleItemBasename("CoreFoo")) { task in
+                    task.checkRuleInfo(["GenerateDSYMFile", "/tmp/Test/aProject/build/Debug/CoreFoo.framework.dSYM", "/tmp/aProject.dst/Library/Frameworks/CoreFoo.framework/Versions/A/CoreFoo"])
+                    dsymutilTasks.append(task)
                 }
+
+                results.checkTask(.matchRuleType("GenerateDSYMFile"), .matchRuleItemBasename("CoreFoo_debug")) { task in
+                    task.checkRuleInfo(["GenerateDSYMFile", "/tmp/Test/aProject/build/Debug/CoreFoo.framework.dSYM", "/tmp/aProject.dst/Library/Frameworks/CoreFoo.framework/Versions/A/CoreFoo_debug"])
+                    dsymutilTasks.append(task)
+                }
+
+                results.checkTask(.matchRuleType("Copy"), .matchRuleItemBasename("CoreFoo.framework.dSYM")) { task in
+                    task.checkCommandLine(["builtin-copy", "-exclude", ".DS_Store", "-exclude", "CVS", "-exclude", ".svn", "-exclude", ".git", "-exclude", ".hg", "-resolve-src-symlinks", "/tmp/Test/aProject/build/Debug/CoreFoo.framework.dSYM", "/tmp/aProject.dst/Library/Frameworks"])
+
+                    // Make sure this task follows the dSYM producer tasks.
+                    for dsymutilTask in dsymutilTasks {
+                        results.checkTaskDependsOn(task, antecedent: dsymutilTask)
+                    }
+                }
+            } else {
+                results.checkNoTask(.matchRuleType("GenerateDSYMFile"))
             }
 
             // Check there are no diagnostics.
@@ -237,20 +250,24 @@ fileprivate struct DebugInformationTests: CoreBasedTests {
         }
 
         // Check build behavior with `DWARF_DSYM_FILE_SHOULD_ACCOMPANY_PRODUCT` enabled.
-        await tester.checkBuild(BuildParameters(action: .build, configuration: "Debug", overrides: [
+        try await tester.checkBuild(BuildParameters(action: .build, configuration: "Debug", overrides: [
             "DWARF_DSYM_FILE_SHOULD_ACCOMPANY_PRODUCT": "YES",
             "DEBUG_INFORMATION_FORMAT": "dwarf-with-dsym",
             "BUILD_VARIANTS": buildVariants.joined(separator: " "),
-        ]), runDestination: .macOS) { results in
-            results.checkTask(.matchRuleType("GenerateDSYMFile"), .matchRuleItemBasename("CoreFoo")) { task in
-                task.checkRuleInfo(["GenerateDSYMFile", "/tmp/Test/aProject/build/Debug/CoreFoo.framework.dSYM", "/tmp/Test/aProject/build/Debug/CoreFoo.framework/Versions/A/CoreFoo"])
-            }
+        ]), runDestination: .host) { results in
+            if try ProcessInfo.processInfo.hostOperatingSystem() == .macOS {
+                results.checkTask(.matchRuleType("GenerateDSYMFile"), .matchRuleItemBasename("CoreFoo")) { task in
+                    task.checkRuleInfo(["GenerateDSYMFile", "/tmp/Test/aProject/build/Debug/CoreFoo.framework.dSYM", "/tmp/Test/aProject/build/Debug/CoreFoo.framework/Versions/A/CoreFoo"])
+                }
 
-            results.checkTask(.matchRuleType("GenerateDSYMFile"), .matchRuleItemBasename("CoreFoo_debug")) { task in
-                task.checkRuleInfo(["GenerateDSYMFile", "/tmp/Test/aProject/build/Debug/CoreFoo.framework.dSYM", "/tmp/Test/aProject/build/Debug/CoreFoo.framework/Versions/A/CoreFoo_debug"])
-            }
+                results.checkTask(.matchRuleType("GenerateDSYMFile"), .matchRuleItemBasename("CoreFoo_debug")) { task in
+                    task.checkRuleInfo(["GenerateDSYMFile", "/tmp/Test/aProject/build/Debug/CoreFoo.framework.dSYM", "/tmp/Test/aProject/build/Debug/CoreFoo.framework/Versions/A/CoreFoo_debug"])
+                }
 
-            results.checkNoTask(.matchRuleType("Copy"), .matchRuleItemBasename("CoreFoo.framework.dSYM"))
+                results.checkNoTask(.matchRuleType("Copy"), .matchRuleItemBasename("CoreFoo.framework.dSYM"))
+            } else {
+                results.checkNoTask(.matchRuleType("GenerateDSYMFile"))
+            }
 
             // Check there are no diagnostics.
             results.checkNoDiagnostics()
@@ -312,4 +329,41 @@ fileprivate struct DebugInformationTests: CoreBasedTests {
         }
     }
 
+    @Test(.requireSDKs(.macOS))
+    func dsymutilEnvironment() async throws {
+        let testProject = TestProject(
+            "aProject",
+            groupTree: TestGroup(
+                "SomeFiles", path: "Sources",
+                children: [
+                    TestFile("main.c"),
+                ]),
+            buildConfigurations: [
+                TestBuildConfiguration(
+                    "Debug",
+                    buildSettings: [
+                        "GENERATE_INFOPLIST_FILE": "YES",
+                        "PRODUCT_NAME": "$(TARGET_NAME)",
+                        "ALWAYS_SEARCH_USER_PATHS": "NO",
+                        "DEBUG_INFORMATION_FORMAT": "dwarf-with-dsym",
+                    ]),
+            ],
+            targets: [
+                TestStandardTarget(
+                    "CoreFoo", type: .framework,
+                    buildPhases: [
+                        TestSourcesBuildPhase(["main.c"])]),
+            ])
+        let tester = try await TaskConstructionTester(getCore(), testProject)
+
+        let buildParameters = BuildParameters(configuration: "Debug")
+
+        await tester.checkBuild(buildParameters, runDestination: .macOS) { results in
+            results.checkTask(.matchRuleType("GenerateDSYMFile"), .matchRuleItemBasename("CoreFoo")) { task in
+                results.checkNoDiagnostics()
+                // Ensure PATH is set in the dsymutil environment.
+                task.checkEnvironment(["PATH": .any])
+            }
+        }
+    }
 }

@@ -53,7 +53,7 @@
             {
                 Name = CLANG_SDKROOT_LINKER_INPUT;
                 Type = Path;
-                DefaultValue = "$(SDKROOT)";
+                DefaultValue = "$(SYSROOT:default=$(SDKROOT))";
                 Condition = "$(LINKER_DRIVER) == clang";
                 CommandLineFlag = "--sysroot";
                 IsInputDependency = Yes;
@@ -61,7 +61,7 @@
             {
                 Name = SWIFTC_SDKROOT_LINKER_INPUT;
                 Type = Path;
-                DefaultValue = "$(SDKROOT)";
+                DefaultValue = "$(SYSROOT:default=$(SDKROOT))";
                 Condition = "$(LINKER_DRIVER) == swiftc";
                 CommandLineFlag = "-sysroot";
                 IsInputDependency = Yes;
@@ -101,6 +101,16 @@
                     NO = ();
                 };
                 Condition = "$(ALTERNATE_LINKER) == gold";
+            },
+            {
+                Name = "DEAD_CODE_STRIPPING";
+                Type = Boolean;
+                DefaultValue = NO;
+                Condition = "$(MACH_O_TYPE) != mh_object";
+                CommandLineArgs = {
+                    YES = ("-Xlinker", "--gc-sections");
+                    NO = ();
+                };
             },
             {
                 // Frameworks are Mac specific
@@ -170,6 +180,28 @@
                 Name = "SWIFTC__INPUT_FILE_LIST_PATH__";
                 Type = Path;
                 Condition = "NO";
+            },
+            {
+                Name = "LINKER_FILE_LIST_FORMAT";
+                Type = Enumeration;
+                Values = (
+                    unescapedNewlineSeparated,
+                    unixShellQuotedSpaceSeparated,
+                    unixShellQuotedNewlineSeparated,
+                    windowsShellQuotedNewlineSeparated,
+                );
+                DefaultValue = unixShellQuotedNewlineSeparated;
+            },
+            {
+                Name = "LINKER_RESPONSE_FILE_FORMAT";
+                Type = Enumeration;
+                Values = (
+                    unescapedNewlineSeparated,
+                    unixShellQuotedSpaceSeparated,
+                    unixShellQuotedNewlineSeparated,
+                    windowsShellQuotedNewlineSeparated,
+                );
+                DefaultValue = unixShellQuotedSpaceSeparated;
             }
         );
     },

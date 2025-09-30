@@ -28,7 +28,8 @@
         ProgressDescription = "Creating static library";
         InputFileTypes = (
             // TODO: elf files instead
-            compiled.mach-o.objfile
+            compiled.mach-o.objfile,
+            compiled.object-library
         );
         Outputs = (
             // We're a linker-like task, so we expect to be given an output path in 'OutputPath'.
@@ -62,6 +63,28 @@
                 );
                 IsInputDependency = Yes;
             },
+            {
+                Name = "LINKER_FILE_LIST_FORMAT";
+                Type = Enumeration;
+                Values = (
+                    unescapedNewlineSeparated,
+                    unixShellQuotedSpaceSeparated,
+                    unixShellQuotedNewlineSeparated,
+                    windowsShellQuotedNewlineSeparated,
+                );
+                DefaultValue = windowsShellQuotedNewlineSeparated;
+            },
+            {
+                Name = "LINKER_RESPONSE_FILE_FORMAT";
+                Type = Enumeration;
+                Values = (
+                    unescapedNewlineSeparated,
+                    unixShellQuotedSpaceSeparated,
+                    unixShellQuotedNewlineSeparated,
+                    windowsShellQuotedNewlineSeparated,
+                );
+                DefaultValue = windowsShellQuotedNewlineSeparated;
+            }
         );
     },
 )

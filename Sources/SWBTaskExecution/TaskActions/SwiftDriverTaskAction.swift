@@ -14,6 +14,9 @@ public import SWBCore
 import SWBLibc
 import SWBUtil
 import Foundation
+internal import SwiftDriver
+internal import SWBMacro
+internal import SWBProtocol
 
 final public class SwiftDriverTaskAction: TaskAction, BuildValueValidatingTaskAction {
     public override class var toolIdentifier: String {
@@ -93,6 +96,30 @@ final public class SwiftDriverTaskAction: TaskAction, BuildValueValidatingTaskAc
                 outputDelegate.emitNote(message)
             }
 
+            if driverPayload.explicitModulesEnabled,
+               let dependencyValidationPayload = payload.dependencyValidationPayload
+            {
+                let payload: DependencyValidationInfo.Payload
+                if let imports = try await dependencyGraph.mainModuleImportModuleDependencies(for: driverPayload.uniqueID) {
+                    payload = .swiftDependencies(imports: imports.map { .init(dependency: $0.0, importLocations: $0.importLocations) })
+                    outputDelegate.incrementTaskCounter(.moduleDependenciesValidatedTasks)
+                    outputDelegate.incrementTaskCounter(.moduleDependenciesScanned, by: imports.count)
+                } else {
+                    payload = .unsupported
+                    outputDelegate.incrementTaskCounter(.moduleDependenciesNotValidatedTasks)
+                }
+                let validationInfo = DependencyValidationInfo(payload: payload)
+                _ = try executionDelegate.fs.writeIfChanged(
+                    dependencyValidationPayload.dependencyValidationOutputPath,
+                    contents: ByteString(
+                        JSONEncoder(outputFormatting: .sortedKeys).encode(validationInfo)
+                    )
+                )
+            }
+            else {
+                outputDelegate.incrementTaskCounter(.moduleDependenciesNotValidatedTasks)
+            }
+
             if driverPayload.reportRequiredTargetDependencies != .no && driverPayload.explicitModulesEnabled, let target = task.forTarget {
                 let dependencyModuleNames = try await dependencyGraph.queryTransitiveDependencyModuleNames(for: driverPayload.uniqueID)
                 for dependencyModuleName in dependencyModuleNames {
@@ -114,7 +141,7 @@ final public class SwiftDriverTaskAction: TaskAction, BuildValueValidatingTaskAc
                         responseFileCommandLine.append(contentsOf: ["-Xlinker", "-add_ast_path", "-Xlinker", "\(swiftmodulePath)"])
                     }
                 }
-                let contents = ByteString(encodingAsUTF8: ResponseFiles.responseFileContents(args: responseFileCommandLine))
+                let contents = ByteString(encodingAsUTF8: ResponseFiles.responseFileContents(args: responseFileCommandLine, format: driverPayload.linkerResponseFileFormat))
                 try executionDelegate.fs.write(linkerResponseFilePath, contents: contents, atomically: true)
             }
 

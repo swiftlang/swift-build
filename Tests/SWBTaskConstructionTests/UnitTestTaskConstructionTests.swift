@@ -300,7 +300,7 @@ fileprivate struct UnitTestTaskConstructionTests: CoreBasedTests {
     }
 
     @Test(.requireSDKs(.linux))
-    func unitTestTarget_linux() async throws {
+    func unitTestRunnerTarget_linux() async throws {
         let swiftCompilerPath = try await self.swiftCompilerPath
         let swiftVersion = try await self.swiftVersion
         let testProject = TestProject(
@@ -319,9 +319,26 @@ fileprivate struct UnitTestTaskConstructionTests: CoreBasedTests {
                         "PRODUCT_NAME": "$(TARGET_NAME)",
                         "SDKROOT": "linux",
                         "SWIFT_VERSION": swiftVersion,
+                        "INDEX_DATA_STORE_DIR": "/index",
+                        "LINKER_DRIVER": "swiftc"
                     ]),
             ],
             targets: [
+                TestStandardTarget(
+                    "UnitTestRunner",
+                    type: .swiftpmTestRunner,
+                    buildConfigurations: [
+                        TestBuildConfiguration("Debug",
+                                               buildSettings: [:]),
+                    ],
+                    buildPhases: [
+                        TestSourcesBuildPhase(),
+                        TestFrameworksBuildPhase([
+                            "UnitTestTarget.so"
+                        ])
+                    ],
+                    dependencies: ["UnitTestTarget"],
+                ),
                 TestStandardTarget(
                     "UnitTestTarget",
                     type: .unitTest,
@@ -335,7 +352,8 @@ fileprivate struct UnitTestTaskConstructionTests: CoreBasedTests {
                             "TestTwo.swift",
                         ]),
                     ],
-                    dependencies: []
+                    dependencies: [],
+                    productReferenceName: "UnitTestTarget.so"
                 ),
             ])
         let core = try await getCore()
@@ -346,13 +364,16 @@ fileprivate struct UnitTestTaskConstructionTests: CoreBasedTests {
         try await fs.writeFileContents(swiftCompilerPath) { $0 <<< "binary" }
 
         await tester.checkBuild(runDestination: .linux, fs: fs) { results in
-            results.checkTarget("UnitTestTarget") { target in
+            results.checkTarget("UnitTestRunner") { target in
                 results.checkTask(.matchTarget(target), .matchRuleType("GenerateTestEntryPoint")) { task in
-                    task.checkCommandLineMatches([.suffix("builtin-generateTestEntryPoint"), "--output", .suffix("test_entry_point.swift")])
+                    task.checkCommandLineMatches([.suffix("builtin-generateTestEntryPoint"), "--output", .suffix("test_entry_point.swift"), "--discover-tests", "--linker-file-list-format", .any, "--index-store-library-path", .suffix("libIndexStore.so"), "--linker-filelist", .suffix("UnitTestTarget.LinkFileList"), "--index-store", "/index", "--index-unit-base-path", "/tmp/Test/aProject/build"])
+                    task.checkInputs([
+                        .pathPattern(.suffix("UnitTestTarget.LinkFileList")),
+                        .pathPattern(.suffix("UnitTestTarget.so")),
+                        .namePattern(.any),
+                        .namePattern(.any)
+                    ])
                     task.checkOutputs([.pathPattern(.suffix("test_entry_point.swift"))])
-                }
-                results.checkTask(.matchTarget(target), .matchRuleType("SwiftDriver Compilation")) { task in
-                    task.checkInputs(contain: [.pathPattern(.suffix("test_entry_point.swift"))])
                 }
             }
 

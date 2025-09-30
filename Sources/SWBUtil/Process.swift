@@ -26,8 +26,8 @@ extension ProcessInfo {
 #endif
 
 #if (!canImport(Foundation.NSTask) || targetEnvironment(macCatalyst)) && canImport(Darwin)
-public final class Process {
-    public enum TerminationReason: Int {
+public final class Process: @unchecked Sendable {
+    public enum TerminationReason: Int, Sendable {
         case exit = 1
         case uncaughtSignal = 2
     }
@@ -130,7 +130,7 @@ extension Process {
             let (exitStatus, output) = try await _getOutput(url: url, arguments: arguments, currentDirectoryURL: currentDirectoryURL, environment: environment, interruptible: interruptible) { process in
                 process.standardOutputPipe = pipe
                 process.standardErrorPipe = pipe
-                return pipe.fileHandleForReading.bytes(on: .global())
+                return pipe.fileHandleForReading.bytes()
             } collect: { stream in
                 try await stream.collect()
             }
@@ -144,7 +144,7 @@ extension Process {
             let (exitStatus, output) = try await _getOutput(url: url, arguments: arguments, currentDirectoryURL: currentDirectoryURL, environment: environment, interruptible: interruptible) { process in
                 process.standardOutputPipe = pipe
                 process.standardErrorPipe = pipe
-                return pipe.fileHandleForReading._bytes(on: .global())
+                return pipe.fileHandleForReading._bytes()
             } collect: { stream in
                 try await stream.collect()
             }
@@ -152,7 +152,7 @@ extension Process {
         }
     }
 
-    private static func _getOutput<T, U>(url: URL, arguments: [String], currentDirectoryURL: URL?, environment: Environment?, interruptible: Bool, setup: (Process) -> T, collect: (T) async throws -> U) async throws -> (exitStatus: Processes.ExitStatus, output: U) {
+    private static func _getOutput<T, U>(url: URL, arguments: [String], currentDirectoryURL: URL?, environment: Environment?, interruptible: Bool, setup: (Process) -> T, collect: @Sendable (T) async throws -> U) async throws -> (exitStatus: Processes.ExitStatus, output: U) {
         let executableFilePath = try url.standardizedFileURL.filePath
 
         let process = Process()
@@ -173,9 +173,11 @@ extension Process {
 
         let streams = setup(process)
 
+        async let outputTask = await collect(streams)
+
         try await process.run(interruptible: interruptible)
 
-        let output = try await collect(streams)
+        let output = try await outputTask
 
         #if !canImport(Darwin)
         // Clear the pipes to prevent file descriptor leaks on platforms using swift-corelibs-foundation

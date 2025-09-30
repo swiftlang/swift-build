@@ -83,8 +83,7 @@ public final class FilePathResolver: Sendable
                 sourceTreePath = resolveSourceTree(.buildSetting("TARGET_BUILD_DIR"), forReference: reference)
             }
 
-            // FIXME: We are relying on the product reference name being constant here. This is currently true, given how our path resolver works, but it is possible to construct an Xcode project for which this doesn't work (Xcode doesn't, however, handle that situation very well). We should resolve this: <rdar://problem/29410050> Swift Build doesn't support product references with non-constant basenames
-            return sourceTreePath.join(productReference.name)
+            return sourceTreePath.join(scope.evaluate(scope.table.namespace.parseString(productReference.name)))
 
         default:
             preconditionFailure("Cannot resolve the path for a \(type(of: reference))")

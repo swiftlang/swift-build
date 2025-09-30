@@ -673,7 +673,7 @@ fileprivate struct PackageProductConstructionTests: CoreBasedTests {
     @Test(.requireSDKs(.macOS))
     func packageProductReferences() async throws {
         let core = try await getCore()
-        let allPlatforms = core.platformRegistry.platforms.filter { !$0.isSimulator && core.sdkRegistry.lookup($0.name) != nil }
+        let allPlatforms = core.platformRegistry.platforms.filter { !$0.isSimulator && core.sdkRegistry.lookup($0.name) != nil && $0.name != "none" }
         #expect(allPlatforms.count > 0) // ensure we don't just pass this test because we somehow ended up with no platforms
         let targets = allPlatforms.map { $0.name }.map {
             commandLineDynamicLibraryTarget(name: "\($0)Lib", buildSettings: ["SDKROOT": $0])

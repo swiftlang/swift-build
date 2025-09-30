@@ -14,7 +14,7 @@ public import SWBUtil
 public import SWBCore
 import Foundation
 
-@PluginExtensionSystemActor public func initializePlugin(_ manager: PluginManager) {
+public let initializePlugin: PluginInitializationFunction = { manager in
     let plugin = WindowsPlugin()
     manager.register(WindowsDeveloperDirectoryExtension(), type: DeveloperDirectoryExtensionPoint.self)
     manager.register(WindowsPlatformSpecsExtension(), type: SpecificationsExtensionPoint.self)

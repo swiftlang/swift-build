@@ -332,7 +332,7 @@ import SWBServiceCore
             ]))
 
             let delegate = Delegate()
-            let pluginManager = await PluginManager(skipLoadingPluginIdentifiers: [])
+            let pluginManager = await MutablePluginManager(skipLoadingPluginIdentifiers: [])
             await pluginManager.registerExtensionPoint(SpecificationsExtensionPoint())
             await pluginManager.register(BuiltinSpecsExtension(), type: SpecificationsExtensionPoint.self)
             let core = await Core.getInitializedCore(delegate, pluginManager: pluginManager, developerPath: .swiftToolchain(tmpDirPath, xcodeDeveloperPath: nil), buildServiceModTime: Date(), connectionMode: .inProcess)
@@ -383,7 +383,7 @@ import SWBServiceCore
         try await withTemporaryDirectory { tmpDir in
             try localFS.createDirectory(tmpDir.join("Toolchains"))
             let delegate = Delegate()
-            let pluginManager = await PluginManager(skipLoadingPluginIdentifiers: [])
+            let pluginManager = await MutablePluginManager(skipLoadingPluginIdentifiers: [])
             await pluginManager.registerExtensionPoint(DeveloperDirectoryExtensionPoint())
             await pluginManager.registerExtensionPoint(SpecificationsExtensionPoint())
             await pluginManager.registerExtensionPoint(ToolchainRegistryExtensionPoint())
@@ -430,7 +430,7 @@ import SWBServiceCore
 
     func testExternalToolchainPath(toolchainPath: Path, environmentOverrides: [String:String], expecting expectedPathStrings: [String], _ originalToolchainCount: Int) async throws {
         let delegate = Delegate()
-        let pluginManager = await PluginManager(skipLoadingPluginIdentifiers: [])
+        let pluginManager = await MutablePluginManager(skipLoadingPluginIdentifiers: [])
         await pluginManager.registerExtensionPoint(DeveloperDirectoryExtensionPoint())
         await pluginManager.registerExtensionPoint(SpecificationsExtensionPoint())
         await pluginManager.registerExtensionPoint(ToolchainRegistryExtensionPoint())
@@ -460,8 +460,8 @@ import SWBServiceCore
         }
         let toolchainPaths = try #require(core?.toolchainPaths)
         for expectedPathString in expectedPathStrings {
-            #expect(toolchainPaths.contains(where: { paths in
-                paths.0 == Path(expectedPathString) && paths.strict == false
+            #expect(toolchainPaths.contains(where: { searchPath in
+                searchPath.path == Path(expectedPathString) && searchPath.strict == false
             }), "Unable to find \(expectedPathString)")
         }
 

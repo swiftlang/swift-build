@@ -248,6 +248,23 @@ public final class ClangCompileTaskAction: TaskAction, BuildValueValidatingTaskA
                 casDBs = nil
             }
 
+            // Check if verifying dependencies from trace data is enabled.
+            let traceFilePath: Path?
+            let dependencyValidationOutputPath: Path?
+            if let payload = task.payload as? ClangTaskPayload {
+                traceFilePath = payload.traceFilePath
+                dependencyValidationOutputPath = payload.dependencyValidationOutputPath
+            } else {
+                traceFilePath = nil
+                dependencyValidationOutputPath = nil
+            }
+            if let traceFilePath {
+                // Remove the trace output file if it already exists.
+                if executionDelegate.fs.exists(traceFilePath) {
+                    try executionDelegate.fs.remove(traceFilePath)
+                }
+            }
+
             var lastResult: CommandResult? = nil
             for command in dependencyInfo.commands {
                 if let casDBs {
@@ -301,9 +318,34 @@ public final class ClangCompileTaskAction: TaskAction, BuildValueValidatingTaskA
                         outputDelegate.emitOutput("Failed frontend command:\n")
                         outputDelegate.emitOutput(ByteString(encodingAsUTF8: commandString) + "\n")
                     }
+
+                    if case .some(.failed) = lastResult, case .some(.exit(.uncaughtSignal, _)) = outputDelegate.result {
+                        do {
+                            if let reproducerMessage = try clangModuleDependencyGraph.generateReproducer(
+                                    forFailedDependency: dependencyInfo,
+                                    libclangPath: explicitModulesPayload.libclangPath,
+                                    casOptions: explicitModulesPayload.casOptions) {
+                                outputDelegate.emitOutput(ByteString(encodingAsUTF8: reproducerMessage) + "\n")
+                            }
+                        } catch {
+                            outputDelegate.error(error.localizedDescription)
+                        }
+                    }
                     return lastResult ?? .failed
                 }
             }
+
+            if lastResult == .succeeded {
+                // Verify the dependencies from the trace data.
+                try Self.handleDependencyValidation(
+                    traceFilePath: traceFilePath,
+                    dependencyValidationOutputPath: dependencyValidationOutputPath,
+                    fileSystem: executionDelegate.fs,
+                    isModular: true,
+                    outputDelegate: outputDelegate
+                )
+            }
+
             return lastResult ?? .failed
         } catch {
             outputDelegate.emitError("\(error)")
@@ -371,7 +413,7 @@ public final class ClangCompileTaskAction: TaskAction, BuildValueValidatingTaskA
             if enableDiagnosticRemarks {
                 outputDelegate.note("cache miss: \(cacheKey)")
             }
-            outputDelegate.incrementClangCacheMiss()
+            outputDelegate.incrementCounter(.clangCacheMisses)
             outputDelegate.incrementTaskCounter(.cacheMisses)
             outputDelegate.emitOutput("Cache miss\n")
             return false
@@ -384,7 +426,7 @@ public final class ClangCompileTaskAction: TaskAction, BuildValueValidatingTaskA
                     outputDelegate.note("missing CAS output \(output.name): \(output.casID)")
                     outputDelegate.note("cache miss: \(cacheKey)")
                 }
-                outputDelegate.incrementClangCacheMiss()
+                outputDelegate.incrementCounter(.clangCacheMisses)
                 outputDelegate.incrementTaskCounter(.cacheMisses)
                 outputDelegate.emitOutput("Cache miss\n")
                 return false
@@ -397,7 +439,7 @@ public final class ClangCompileTaskAction: TaskAction, BuildValueValidatingTaskA
                 outputDelegate.note("using CAS output \(output.name): \(output.casID)")
             }
         }
-        outputDelegate.incrementClangCacheHit()
+        outputDelegate.incrementCounter(.clangCacheHits)
         outputDelegate.incrementTaskCounter(.cacheHits)
         outputDelegate.emitOutput("Cache hit\n")
         outputDelegate.emitOutput(ByteString(encodingAsUTF8: diagnosticText))
@@ -430,4 +472,235 @@ public final class ClangCompileTaskAction: TaskAction, BuildValueValidatingTaskA
             activityReporter: dynamicExecutionDelegate
         )
     }
+
+    /// Handles dependency validation by reading trace data and writing out DependencyValidationInfo.
+    /// This is shared between modular and non-modular compilation tasks.
+    fileprivate static func handleDependencyValidation(
+        traceFilePath: Path?,
+        dependencyValidationOutputPath: Path?,
+        fileSystem: any FSProxy,
+        isModular: Bool,
+        outputDelegate: any TaskOutputDelegate
+    ) throws {
+        let payload: DependencyValidationInfo.Payload
+        if let traceFilePath,
+           let traceData = try parseTraceData(Data(fileSystem.read(traceFilePath))) {
+
+            outputDelegate.incrementTaskCounter(.headerDependenciesValidatedTasks)
+            if isModular {
+                outputDelegate.incrementTaskCounter(.moduleDependenciesValidatedTasks)
+            }
+
+            switch traceData {
+            case .empty:
+                payload = .clangDependencies(imports: [], includes: [])
+            case let .v1(traceDataV1):
+                // mapping each header path to the set of locations that include it
+                var allFiles = [Path: Set<SWBUtil.Diagnostic.Location>]();
+
+                for entry in traceDataV1 {
+                    entry.includes.forEach { allFiles[$0, default: []].insert(.path(entry.source, fileLocation: nil)) }
+                }
+
+                if isModular {
+                    let (imports, includes) = separateImportsFromIncludes(allFiles)
+                    outputDelegate.incrementTaskCounter(.moduleDependenciesScanned, by: imports.count)
+                    outputDelegate.incrementTaskCounter(.headerDependenciesScanned, by: includes.count)
+                    payload = .clangDependencies(imports: imports, includes: includes)
+                } else {
+                    let includes = allFiles.map { file, locations in DependencyValidationInfo.Include(path: file, includeLocations: Array(locations)) }
+                    outputDelegate.incrementTaskCounter(.headerDependenciesScanned, by: includes.count)
+                    payload = .clangDependencies(imports: [], includes: includes)
+                }
+            case let .v2(traceDataV2):
+                var allIncludes = [Path: Set<SWBUtil.Diagnostic.Location>]();
+                var allImports = [String: Set<SWBUtil.Diagnostic.Location>]();
+
+                for entry in traceDataV2.dependencies {
+                    entry.includes.forEach { allIncludes[$0.file, default: []].insert(parseTraceSourceLocation($0.location)) }
+                    if isModular {
+                        entry.imports.forEach { allImports[$0.module, default: []].insert(parseTraceSourceLocation($0.location)) }
+                    }
+                }
+
+                let imports = allImports.map { name, locations in DependencyValidationInfo.Import(dependency: ModuleDependency(name: name, accessLevel: .Private, optional: false), importLocations: Array(locations)) }
+                let includes = allIncludes.map { file, locations in DependencyValidationInfo.Include(path: file, includeLocations: Array(locations)) }
+                outputDelegate.incrementTaskCounter(.headerDependenciesScanned, by: includes.count)
+                outputDelegate.incrementTaskCounter(.moduleDependenciesScanned, by: imports.count)
+                payload = .clangDependencies(imports: imports, includes: includes)
+            }
+        } else {
+            outputDelegate.incrementTaskCounter(.headerDependenciesNotValidatedTasks)
+            if isModular {
+                outputDelegate.incrementTaskCounter(.moduleDependenciesNotValidatedTasks)
+            }
+            payload = .unsupported
+        }
+
+        if let dependencyValidationOutputPath {
+            let validationInfo = DependencyValidationInfo(payload: payload)
+            _ = try fileSystem.writeIfChanged(
+                dependencyValidationOutputPath,
+                contents: ByteString(
+                    JSONEncoder(outputFormatting: .sortedKeys).encode(validationInfo)
+                )
+            )
+        }
+    }
+
+    // Clang's dependency tracing V1 did not clearly distinguish modular imports from non-modular includes.
+    // To keep supporting those trace files, just guess that if the file is contained in a framework, it comes from a module with
+    // the same name. That is obviously not going to be reliable but it unblocks us from continuing experiments with
+    // dependency specifications.
+    private static func separateImportsFromIncludes(_ files: [Path: Set<SWBUtil.Diagnostic.Location>]) -> ([DependencyValidationInfo.Import], [DependencyValidationInfo.Include]) {
+        func findFrameworkName(_ file: Path) -> String? {
+            if file.fileExtension == "framework" {
+                return file.basenameWithoutSuffix
+            }
+            return file.dirname.isEmpty || file.dirname.isRoot ? nil : findFrameworkName(file.dirname)
+        }
+        var moduleImportsByName = [String: Set<SWBUtil.Diagnostic.Location>]()
+        var headerIncludes: [DependencyValidationInfo.Include] = []
+        for (file, includeLocations) in files {
+            if let frameworkName = findFrameworkName(file) {
+                moduleImportsByName[frameworkName, default: []].formUnion(includeLocations)
+            } else {
+                headerIncludes.append(DependencyValidationInfo.Include(path: file, includeLocations: Array(includeLocations)))
+            }
+        }
+        let moduleImports = moduleImportsByName.map { name, locations in DependencyValidationInfo.Import(dependency: ModuleDependency(name: name, accessLevel: .Private, optional: false), importLocations: Array(locations)) }
+        return (moduleImports, headerIncludes)
+    }
+}
+
+public final class ClangNonModularCompileTaskAction: TaskAction {
+    public override class var toolIdentifier: String {
+        return "ccompile-nonmodular"
+    }
+
+    override public func performTaskAction(
+        _ task: any ExecutableTask,
+        dynamicExecutionDelegate: any DynamicTaskExecutionDelegate,
+        executionDelegate: any TaskExecutionDelegate,
+        clientDelegate: any TaskExecutionClientDelegate,
+        outputDelegate: any TaskOutputDelegate,
+    ) async -> CommandResult {
+        do {
+            // Check if verifying dependencies from trace data is enabled.
+            let traceFilePath: Path?
+            let dependencyValidationOutputPath: Path?
+            if let payload = task.payload as? ClangTaskPayload {
+                traceFilePath = payload.traceFilePath
+                dependencyValidationOutputPath = payload.dependencyValidationOutputPath
+            } else {
+                traceFilePath = nil
+                dependencyValidationOutputPath = nil
+            }
+            if let traceFilePath {
+                // Remove the trace output file if it already exists.
+                if executionDelegate.fs.exists(traceFilePath) {
+                    try executionDelegate.fs.remove(traceFilePath)
+                }
+            }
+
+            let processDelegate = TaskProcessDelegate(outputDelegate: outputDelegate)
+            try await spawn(
+                commandLine: Array(task.commandLineAsStrings),
+                environment: task.environment.bindingsDictionary,
+                workingDirectory: task.workingDirectory,
+                dynamicExecutionDelegate: dynamicExecutionDelegate,
+                clientDelegate: clientDelegate,
+                processDelegate: processDelegate,
+            )
+            if let error = processDelegate.executionError {
+                outputDelegate.error(error)
+                return .failed
+            }
+            let execResult = processDelegate.commandResult ?? .failed
+
+            if execResult == .succeeded {
+                try ClangCompileTaskAction.handleDependencyValidation(
+                    traceFilePath: traceFilePath,
+                    dependencyValidationOutputPath: dependencyValidationOutputPath,
+                    fileSystem: executionDelegate.fs,
+                    isModular: false,
+                    outputDelegate: outputDelegate
+                )
+            }
+
+            return execResult
+        } catch {
+            outputDelegate.error(error.localizedDescription)
+            return .failed
+        }
+    }
+}
+
+fileprivate func parseTraceData(_ data: Data) throws -> TraceData? {
+    // clang will emit an empty file instead of an empty array when there's nothing to trace
+    if data.isEmpty {
+        return .empty
+    }
+
+    let jsonObject = try PropertyList.fromJSONData(data)
+    if let version = jsonObject.dictValue?["version"]?.stringValue {
+        if version == "2.0.0" {
+            return .v2(try JSONDecoder().decode(TraceData.TraceFileV2.self, from: data))
+        }
+        return nil
+    } else {
+        // The initial unversioned format (v1) of the trace file generated from clang
+        // is a JSON array so deserializing it as a dictionary will fail.
+        return .v1(try JSONDecoder().decode(TraceData.TraceFileV1.self, from: data))
+    }
+}
+
+fileprivate func parseTraceSourceLocation(_ locationStr: String) -> SWBUtil.Diagnostic.Location {
+    guard let match = locationStr.wholeMatch(of: #/(?<filename>.+):(?<line>\d+):(?<column>\d+)/#) else {
+        return .unknown
+    }
+    let filename = Path(match.filename)
+    let line = Int(match.line)
+    let column = Int(match.column)
+    if let line {
+        return .path(filename, fileLocation: .textual(line: line, column: column))
+    }
+    return .unknown
+}
+
+// Results from tracing header includes with "direct-per-file" filtering.
+// This is used to validate dependencies.
+fileprivate enum TraceData: Decodable {
+    fileprivate struct Include: Decodable {
+        let location: String
+        let file: Path
+    }
+
+    fileprivate struct Import: Decodable {
+        let location: String
+        let module: String
+        let file: Path
+    }
+
+    fileprivate struct TraceDataObjectV1: Decodable {
+        let source: Path
+        let includes: [Path]
+    }
+
+    fileprivate struct TraceDataObjectV2: Decodable {
+        let source: Path
+        let includes: [Include]
+        let imports: [Import]
+    }
+
+    fileprivate typealias TraceFileV1 = [TraceDataObjectV1]
+
+    fileprivate struct TraceFileV2: Decodable {
+        let version: String
+        let dependencies: [TraceDataObjectV2]
+    }
+
+    case empty
+    case v1(TraceFileV1)
+    case v2(TraceFileV2)
 }

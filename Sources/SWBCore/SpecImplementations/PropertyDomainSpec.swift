@@ -101,6 +101,7 @@ private final class EnumBuildOptionType : BuildOptionType {
             return try namespace.declareEnumMacro(name) as EnumMacroDeclaration<PackageResourceTargetKind>
         case "VALIDATE_DEPENDENCIES",
             "VALIDATE_MODULE_DEPENDENCIES",
+            "VALIDATE_HEADER_DEPENDENCIES",
             "VALIDATE_DEVELOPMENT_ASSET_PATHS":
             return try namespace.declareEnumMacro(name) as EnumMacroDeclaration<BooleanWarningLevel>
         case "STRIP_STYLE":
@@ -113,6 +114,14 @@ private final class EnumBuildOptionType : BuildOptionType {
             return try namespace.declareEnumMacro(name) as EnumMacroDeclaration<SwiftEnableExplicitModulesSetting>
         case "LINKER_DRIVER":
             return try namespace.declareEnumMacro(name) as EnumMacroDeclaration<LinkerDriverChoice>
+        case "SWIFT_API_DIGESTER_MODE":
+            return try namespace.declareEnumMacro(name) as EnumMacroDeclaration<SwiftAPIDigesterMode>
+        case "LINKER_FILE_LIST_FORMAT":
+            return try namespace.declareEnumMacro(name) as EnumMacroDeclaration<ResponseFileFormat>
+        case "LINKER_RESPONSE_FILE_FORMAT":
+            return try namespace.declareEnumMacro(name) as EnumMacroDeclaration<ResponseFileFormat>
+        case "DOCC_MINIMUM_ACCESS_LEVEL":
+            return try namespace.declareEnumMacro(name) as EnumMacroDeclaration<DoccMinimumAccessLevel>
         default:
             return try namespace.declareStringMacro(name)
         }

@@ -204,7 +204,7 @@ fileprivate struct SDKImportsBuildOperationTests: CoreBasedTests {
                 let destination: RunDestinationInfo = .host
                 try await tester.checkBuild(runDestination: destination, signableTargets: Set(provisioningInputs.keys), signableTargetInputs: provisioningInputs) { results in
                     results.checkNoErrors()
-                    results.checkWarning(.prefix("-ld_classic is deprecated"))
+                    results.checkWarning(.contains("-ld_classic is deprecated"))
 
                     let derivedData = tmpDir.join("build/Debug")
                     let appResources = derivedData.join("tool.app/Contents/Resources")

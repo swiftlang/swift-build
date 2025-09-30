@@ -24,7 +24,7 @@ public final class ModulesVerifierToolSpec : GenericCommandLineToolSpec, SpecIde
         let ruleInfo = defaultRuleInfo(cbc, delegate)
 
         let clangSpec = try! cbc.producer.getSpec() as ClangCompilerSpec
-        let clangPath = clangSpec.resolveExecutablePath(cbc, Path("clang"))
+        let clangPath = await clangSpec.resolveExecutablePath(cbc, Path("clang"), delegate: delegate)
         let specialArguments = ["--clang", clangPath.str, "--diagnostic-filename-map", fileNameMapPath.str]
 
         let commandLine = await commandLineFromTemplate(cbc, delegate, optionContext: discoveredCommandLineToolSpecInfo(cbc.producer, cbc.scope, delegate), specialArgs: specialArguments).map(\.asString)

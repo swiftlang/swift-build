@@ -876,7 +876,13 @@ open class CommandLineToolSpec : PropertyDomainSpec, SpecType, TaskTypeDescripti
         let optionContext = await discoveredCommandLineToolSpecInfo(cbc.producer, cbc.scope, delegate)
 
         // Compute the command line arguments from the template.
-        let commandLine = commandLine ?? commandLineFromTemplate(cbc, delegate, optionContext: optionContext, specialArgs: specialArgs, lookup: lookup).map(\.asString)
+        let providedCommandLine = commandLine
+        let commandLine: [String]
+        if let providedCommandLine {
+            commandLine = providedCommandLine
+        } else {
+            commandLine = await commandLineFromTemplate(cbc, delegate, optionContext: optionContext, specialArgs: specialArgs, lookup: lookup).map(\.asString)
+        }
 
         // Compute the environment variables to set.
         var environment: [(String, String)] = environmentFromSpec(cbc, delegate, lookup: lookup)
@@ -1162,7 +1168,7 @@ open class CommandLineToolSpec : PropertyDomainSpec, SpecType, TaskTypeDescripti
     }
 
     /// Resolve an executable path or name to an absolute path.
-    open func resolveExecutablePath(_ cbc: CommandBuildContext, _ path: Path) -> Path {
+    open func resolveExecutablePath(_ cbc: CommandBuildContext, _ path: Path, delegate: any CoreClientTargetDiagnosticProducingDelegate) async -> Path {
         return resolveExecutablePath(cbc.producer, path)
     }
 
@@ -1195,14 +1201,14 @@ open class CommandLineToolSpec : PropertyDomainSpec, SpecType, TaskTypeDescripti
         return executionDescription
     }
 
-    open func commandLineFromTemplate(_ cbc: CommandBuildContext, _ delegate: any TaskGenerationDelegate, optionContext: (any DiscoveredCommandLineToolSpecInfo)?, specialArgs: [String] = [], lookup: ((MacroDeclaration) -> MacroExpression?)? = nil) -> [CommandLineArgument] {
-        return commandLineArgumentsFromTemplate(cbc, delegate, optionContext: optionContext, specialArgs: specialArgs, lookup: lookup)
+    open func commandLineFromTemplate(_ cbc: CommandBuildContext, _ delegate: any TaskGenerationDelegate, optionContext: (any DiscoveredCommandLineToolSpecInfo)?, specialArgs: [String] = [], lookup: ((MacroDeclaration) -> MacroExpression?)? = nil) async -> [CommandLineArgument] {
+        return await commandLineArgumentsFromTemplate(cbc, delegate, optionContext: optionContext, specialArgs: specialArgs, lookup: lookup)
     }
 
     /// Creates and returns the command line from the template provided by the specification.
     /// - parameter specialArgs: Used to replace the `special-args` placeholder in the command line template.
     /// - parameter lookup: An optional closure which functionally defined overriding values during build setting evaluation.
-    public func commandLineArgumentsFromTemplate(_ cbc: CommandBuildContext, _ delegate: any TaskGenerationDelegate, optionContext: (any DiscoveredCommandLineToolSpecInfo)?, specialArgs: [String] = [], lookup: ((MacroDeclaration) -> MacroExpression?)? = nil) -> [CommandLineArgument] {
+    public func commandLineArgumentsFromTemplate(_ cbc: CommandBuildContext, _ delegate: any TaskGenerationDelegate, optionContext: (any DiscoveredCommandLineToolSpecInfo)?, specialArgs: [String] = [], lookup: ((MacroDeclaration) -> MacroExpression?)? = nil) async -> [CommandLineArgument] {
         let commandLineTemplate = self.commandLineTemplate!
         let lookup = { self.lookup($0, cbc, delegate, lookup) }
 
@@ -1249,13 +1255,13 @@ open class CommandLineToolSpec : PropertyDomainSpec, SpecType, TaskTypeDescripti
         // Resolve the executable path.
         //
         // FIXME: It would be nice to just move this to a specific handler for this first item in the template array (we could generalize the existing ExecPath key for this purpose).
-        args[0] = { path in
+        args[0] = await { path in
             if path.asString.hasPrefix("builtin-") || (path.asString.hasPrefix("<") && path.asString.hasSuffix(">")) {
                 return path
             }
 
             // Otherwise, look up the path if necessary.
-            return .path(resolveExecutablePath(cbc, Path(path.asString)))
+            return .path(await resolveExecutablePath(cbc, Path(path.asString), delegate: delegate))
         }(args[0])
 
         return args
@@ -1457,7 +1463,7 @@ open class GenericOutputParser : TaskOutputParser {
     public let toolBasenames: Set<String>
 
     /// Buffered output that has not yet been parsed (parsing is line-by-line, so we buffer incomplete lines until we receive more output).
-    private var unparsedBytes: ArraySlice<UInt8> = []
+    internal var unparsedBytes: ArraySlice<UInt8> = []
 
     /// The Diagnostic that is being constructed, possibly across multiple lines of input.
     private var inProgressDiagnostic: Diagnostic?

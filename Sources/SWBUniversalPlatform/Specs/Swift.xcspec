@@ -225,8 +225,16 @@
                 Type = String;
                 DefaultValue = "";
                 Category = "General";
-                DisplayName = "Objective-C Bridging Header";
-                Description = "Path to the header defining the Objective-C interfaces to be exposed in Swift.";
+                DisplayName = "Bridging Header";
+                Description = "Path to the header defining the C interfaces to be exposed in Swift.";
+            },
+            {
+                Name = "SWIFT_BRIDGING_HEADER_IS_INTERNAL";
+                Type = Boolean;
+                DefaultValue = "NO";
+                Category = "General";
+                DisplayName = "Bridging Header is Internal to the Module";
+                Description = "When there is a bridging header, this setting indicates whether the contents of that bridging header should be imported as-if they came from an internal import. This is necessary when using bridging headers with Swift modules that are imported into other modules.";
             },
             {
                 Name = "SWIFT_OBJC_INTERFACE_HEADER_NAME";
@@ -1013,6 +1021,25 @@
                 Condition = "$(GCC_GENERATE_DEBUGGING_SYMBOLS) && $(DEBUG_INFORMATION_FORMAT) != \"\"";
             },
             {
+                Name = "SWIFT_OMIT_FRAME_POINTERS";
+                Type = Enumeration;
+                Values = (
+                    "compiler-default",
+                    YES,
+                    NO,
+                );
+                CommandLineArgs = {
+                    YES = (
+                        "-Xcc", "-fomit-frame-pointer",
+                    );
+                    NO = (
+                        "-Xcc", "-fno-omit-frame-pointer",
+                    );
+                    "<<otherwise>>" = ();
+                };
+                DefaultValue = "compiler-default";
+            },
+            {
                 Name = "CLANG_MODULE_CACHE_PATH";
                 Type = Path;
                 CommandLineFlag = "-module-cache-path";
@@ -1292,6 +1319,33 @@
                     NO = ();
                 };
             },
+            {
+                Name = "SWIFT_INDEX_STORE_ONLY_PROJECT_FILES";
+                Type = Boolean;
+                DefaultValue = "$(INDEX_STORE_ONLY_PROJECT_FILES)";
+                Condition = "$(SWIFT_INDEX_STORE_ENABLE)";
+                CommandLineArgs = {
+                    YES = (
+                        // Assume that clang modules are getting indexed by a clang file within them. While this is technically not correct, since you could have a clang module that only consists of header files and is only included from Swift, such scenarios are rare.
+                        "-index-ignore-clang-modules",
+                        "-index-ignore-system-modules",
+                    );
+                    NO = ();
+                };
+            },
+            {
+                Name = "SWIFT_INDEX_STORE_COMPRESS";
+                Type = Boolean;
+                DefaultValue = "$(INDEX_STORE_COMPRESS)";
+                Condition = "$(SWIFT_INDEX_STORE_ENABLE)";
+                CommandLineArgs = {
+                    YES = (
+                        "-Xfrontend",
+                        "-index-store-compress",
+                    );
+                    NO = ();
+                };
+            },
 
             // Swift caching options.
             {
@@ -1409,7 +1463,7 @@
     RuleName = "CheckSwiftABI $(CURRENT_VARIANT) $(CURRENT_ARCH)";
     ExecDescription = "Check ABI stability for $(PRODUCT_MODULE_NAME).swiftinterface";
     ProgressDescription = "Checking ABI stability for $(PRODUCT_MODULE_NAME).swiftinterface";
-    CommandLine = "swift-api-digester -diagnose-sdk -abort-on-module-fail -abi -compiler-style-diags [options]";
+    CommandLine = "swift-api-digester -diagnose-sdk -abort-on-module-fail -compiler-style-diags [options]";
     CommandOutputParser = "XCGccCommandOutputParser";
     Options = (
           {
@@ -1426,6 +1480,20 @@
               CommandLineFlag = "-F";
           },
           {
+              Name = SYSTEM_FRAMEWORK_SEARCH_PATHS;
+              Type = PathList;
+              DefaultValue = "$(SYSTEM_FRAMEWORK_SEARCH_PATHS)";
+              FlattenRecursiveSearchPathsInValue = YES;
+              CommandLineFlag = "-Fsystem";
+          },
+          {
+              Name = SWIFT_SYSTEM_INCLUDE_PATHS;
+              Type = PathList;
+              DefaultValue = "$(SWIFT_SYSTEM_INCLUDE_PATHS)";
+              FlattenRecursiveSearchPathsInValue = YES;
+              CommandLineFlag = "-Isystem";
+          },
+          {
               Name = SDKROOT;
               Type = Path;
               CommandLineFlag = "-sdk";
@@ -1438,9 +1506,25 @@
               CommandLineArgs = (
                 "-module",
                 "$(value)",
-                "-use-interface-for-module",
-                "$(value)",
               );
+          },
+          {
+              Name = "SWIFT_API_DIGESTER_MODE";
+              Type = Enumeration;
+              Values = (
+                  abi,
+                  api,
+              );
+              DefaultValue = abi;
+              CommandLineArgs = {
+                  abi = (
+                      "-abi",
+                      "-use-interface-for-module",
+                      "$(SWIFT_MODULE_NAME)",
+                  );
+                  api = (
+                  );
+              };
           },
           {
               Name = "OTHER_SWIFT_ABI_CHECKER_FLAGS";
@@ -1459,7 +1543,7 @@
     RuleName = "GenerateSwiftABIBaseline $(CURRENT_VARIANT) $(CURRENT_ARCH)";
     ExecDescription = "Generate ABI baseline for $(PRODUCT_MODULE_NAME).swiftinterface";
     ProgressDescription = "Generating ABI baseline for $(PRODUCT_MODULE_NAME).swiftinterface";
-    CommandLine = "swift-api-digester -dump-sdk -abort-on-module-fail -abi -swift-only -avoid-tool-args [options]";
+    CommandLine = "swift-api-digester -dump-sdk -abort-on-module-fail -swift-only -avoid-tool-args [options]";
     CommandOutputParser = "XCGccCommandOutputParser";
     Options = (
           {
@@ -1476,6 +1560,20 @@
               CommandLineFlag = "-F";
           },
           {
+              Name = SYSTEM_FRAMEWORK_SEARCH_PATHS;
+              Type = PathList;
+              DefaultValue = "$(SYSTEM_FRAMEWORK_SEARCH_PATHS)";
+              FlattenRecursiveSearchPathsInValue = YES;
+              CommandLineFlag = "-Fsystem";
+          },
+          {
+              Name = SWIFT_SYSTEM_INCLUDE_PATHS;
+              Type = PathList;
+              DefaultValue = "$(SWIFT_SYSTEM_INCLUDE_PATHS)";
+              FlattenRecursiveSearchPathsInValue = YES;
+              CommandLineFlag = "-Isystem";
+          },
+          {
               Name = SDKROOT;
               Type = Path;
               CommandLineFlag = "-sdk";
@@ -1488,9 +1586,25 @@
               CommandLineArgs = (
                 "-module",
                 "$(value)",
-                "-use-interface-for-module",
-                "$(value)",
               );
+          },
+          {
+              Name = "SWIFT_API_DIGESTER_MODE";
+              Type = Enumeration;
+              Values = (
+                  abi,
+                  api,
+              );
+              DefaultValue = abi;
+              CommandLineArgs = {
+                  abi = (
+                      "-abi",
+                      "-use-interface-for-module",
+                      "$(SWIFT_MODULE_NAME)",
+                  );
+                  api = (
+                  );
+              };
           },
           {
               Name = "OTHER_SWIFT_ABI_CHECKER_FLAGS";
