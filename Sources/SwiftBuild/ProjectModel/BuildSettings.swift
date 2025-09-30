@@ -137,6 +137,7 @@ extension ProjectModel {
             case SWIFT_WARNINGS_AS_ERRORS_GROUPS
         }
 
+        @available(*, deprecated, message: "Use subscripts to set platform-specific SingleValueSetting/MultipleValueSettings instead")
         public enum Declaration: String, Hashable, CaseIterable, Sendable {
             case ARCHS
             case GCC_PREPROCESSOR_DEFINITIONS
@@ -186,8 +187,6 @@ extension ProjectModel {
             }
         }
 
-        public var platformSpecificSettings = [Platform: [Declaration: [String]]]()
-
         public init() {
             var settings: [Declaration: [String]] = [:]
             for declaration in Declaration.allCases {
@@ -201,6 +200,13 @@ extension ProjectModel {
 
         private(set) var singleValueSettings: OrderedDictionary<String, String> = [:]
         private(set) var multipleValueSettings: OrderedDictionary<String, [String]> = [:]
+        private(set) var singleValuePlatformSpecificSettings = [Platform: OrderedDictionary<String, String>]()
+        private(set) var multipleValuePlatformSpecificSettings = [Platform: OrderedDictionary<String, [String]>]()
+
+        // Kept for API compatibility
+        @available(*, deprecated, message: "Use subscripts to set platform-specific settings instead")
+        public var platformSpecificSettings = [Platform: [Declaration: [String]]]()
+
 
         public subscript(_ setting: SingleValueSetting) -> String? {
             get { singleValueSettings[setting.rawValue] }
@@ -220,6 +226,16 @@ extension ProjectModel {
         public subscript(multiple setting: String) -> [String]? {
             get { multipleValueSettings[setting] }
             set { multipleValueSettings[setting] = newValue }
+        }
+
+        public subscript(_ setting: SingleValueSetting, platform: Platform) -> String? {
+            get { singleValuePlatformSpecificSettings[platform]?[setting.rawValue] }
+            set { singleValuePlatformSpecificSettings[platform, default: .init()][setting.rawValue] = newValue }
+        }
+
+        public subscript(_ setting: MultipleValueSetting, platform: Platform) -> [String]? {
+            get { multipleValuePlatformSpecificSettings[platform]?[setting.rawValue] }
+            set { multipleValuePlatformSpecificSettings[platform, default: .init()][setting.rawValue] = newValue }
         }
     }
 }
@@ -325,6 +341,23 @@ extension ProjectModel.BuildSettings: Codable {
                         self.platformSpecificSettings[platform, default: [:]][declaration] = value
                     }
                 }
+                let declarationValues = Set(Declaration.allCases.map(\.rawValue))
+                for key in SingleValueSetting.allCases {
+                    if declarationValues.contains(key.rawValue) {
+                        continue
+                    }
+                    if let value = try container.decodeIfPresent(String.self, forKey: StringKey("\(key.rawValue)[\(condition)]")) {
+                        self[key, platform] = value
+                    }
+                }
+                for key in MultipleValueSetting.allCases {
+                    if declarationValues.contains(key.rawValue) {
+                        continue
+                    }
+                    if let value = try container.decodeIfPresent([String].self, forKey: StringKey("\(key.rawValue)[\(condition)]")) {
+                        self[key, platform] = value
+                    }
+                }
             }
         }
     }
@@ -348,6 +381,22 @@ extension ProjectModel.BuildSettings: Codable {
                         continue
                     }
                     try container.encode(value, forKey: StringKey("\(key.rawValue)[\(condition)]"))
+                }
+            }
+        }
+
+        for (platform, table) in singleValuePlatformSpecificSettings {
+            for condition in platform.asConditionStrings {
+                for (key, value) in table {
+                    try container.encode(value, forKey: StringKey("\(key)[\(condition)]"))
+                }
+            }
+        }
+
+        for (platform, table) in multipleValuePlatformSpecificSettings {
+            for condition in platform.asConditionStrings {
+                for (key, value) in table {
+                    try container.encode(value, forKey: StringKey("\(key)[\(condition)]"))
                 }
             }
         }
