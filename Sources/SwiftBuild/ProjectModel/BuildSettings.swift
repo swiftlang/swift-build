@@ -116,6 +116,7 @@ extension ProjectModel {
         }
 
         public enum MultipleValueSetting: String, CaseIterable, Sendable, Hashable, Codable {
+            case ARCHS
             case EMBED_PACKAGE_RESOURCE_BUNDLE_NAMES
             case FRAMEWORK_SEARCH_PATHS
             case GCC_PREPROCESSOR_DEFINITIONS
