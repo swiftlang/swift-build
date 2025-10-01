@@ -373,7 +373,8 @@ fileprivate struct ClangExplicitModulesTests: CoreBasedTests {
         }
     }
 
-    @Test(.requireSDKs(.macOS))
+    @Test(.requireSDKs(.macOS), .disabled("setting global environment interferes concurrent tests"),
+          .bug("https://github.com/swiftlang/swift-build/issues/835"))
     func explicitModulesEnvironment() async throws {
         try await withTemporaryDirectory { tmpDirPath in
             let testWorkspace = TestWorkspace(
