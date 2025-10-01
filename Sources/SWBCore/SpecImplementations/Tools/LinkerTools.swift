@@ -723,15 +723,18 @@ public final class LdLinkerSpec : GenericLinkerSpec, SpecIdentifierType, @unchec
             }
         }
 
-        let environment: EnvironmentBindings = self.environmentFromSpec(cbc, delegate)
-
+        var environment: [(String, String)] = self.environmentFromSpec(cbc, delegate)
+        // On Windows, some linker drivers require TMPDIR to be set.
+        if cbc.producer.hostOperatingSystem == .windows {
+            environment.append(("TMPDIR", cbc.scope.evaluate(BuiltinMacros.OBJROOT).str))
+        }
         // Compute the inputs and outputs.
         var inputs: [any PlannedNode] = inputPaths.map{ delegate.createNode($0) }
 
         await inputs.append(contentsOf: additionalInputDependencies(cbc, delegate, optionContext: discoveredCommandLineToolSpecInfo(cbc.producer, cbc.scope, delegate), lookup: lookup).map(delegate.createNode))
 
         // Add dependencies for any arguments indicating a file path.
-        Self.addAdditionalDependenciesFromCommandLine(cbc, commandLine, environment, &inputs, &outputs, delegate)
+        Self.addAdditionalDependenciesFromCommandLine(cbc, commandLine, EnvironmentBindings(environment), &inputs, &outputs, delegate)
 
         let architecture = cbc.scope.evaluate(BuiltinMacros.arch)
         let buildVariant = cbc.scope.evaluate(BuiltinMacros.variant)
@@ -777,7 +780,7 @@ public final class LdLinkerSpec : GenericLinkerSpec, SpecIdentifierType, @unchec
         let otherInputs = delegate.buildDirectories.sorted().compactMap { path in ldSearchPaths.contains(path.str) ? delegate.createBuildDirectoryNode(absolutePath: path) : nil } + cbc.commandOrderingInputs
 
         // Create the task.
-        delegate.createTask(type: self, dependencyData: dependencyInfo, payload: payload, ruleInfo: defaultRuleInfo(cbc, delegate), commandLine: commandLine, environment: environment, workingDirectory: cbc.producer.defaultWorkingDirectory, inputs: inputs + otherInputs, outputs: outputs, action: delegate.taskActionCreationDelegate.createDeferredExecutionTaskActionIfRequested(userPreferences: cbc.producer.userPreferences), execDescription: resolveExecutionDescription(cbc, delegate), enableSandboxing: enableSandboxing)
+        delegate.createTask(type: self, dependencyData: dependencyInfo, payload: payload, ruleInfo: defaultRuleInfo(cbc, delegate), commandLine: commandLine, environment: EnvironmentBindings(environment), workingDirectory: cbc.producer.defaultWorkingDirectory, inputs: inputs + otherInputs, outputs: outputs, action: delegate.taskActionCreationDelegate.createDeferredExecutionTaskActionIfRequested(userPreferences: cbc.producer.userPreferences), execDescription: resolveExecutionDescription(cbc, delegate), enableSandboxing: enableSandboxing)
     }
 
     public static func addAdditionalDependenciesFromCommandLine(_ cbc: CommandBuildContext, _ commandLine: [String], _ environment: EnvironmentBindings, _ inputs: inout [any PlannedNode], _ outputs: inout [any PlannedNode], _ delegate: any TaskGenerationDelegate) {
