@@ -310,6 +310,7 @@ extension ProjectModel {
         public enum ProductType: String, Sendable, Codable, CaseIterable {
             case application = "com.apple.product-type.application"
             case staticArchive = "com.apple.product-type.library.static"
+            case commonObject = "org.swift.product-type.common.object"
             case objectFile = "com.apple.product-type.objfile"
             case dynamicLibrary = "com.apple.product-type.library.dynamic"
             case framework = "com.apple.product-type.framework"

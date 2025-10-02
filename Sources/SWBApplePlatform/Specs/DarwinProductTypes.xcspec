@@ -474,4 +474,15 @@
             com.apple.package-type.mach-o-executable
         );
     },
+    {
+        _Domain = darwin;
+        Type = ProductType;
+        Identifier = org.swift.product-type.common.object;
+        BasedOn = com.apple.product-type.objfile;
+        Class = XCStandaloneExecutableProductType;
+        Description = "Object File";
+        IconNamePrefix = "TargetPlugin";
+        DefaultTargetName = "Object File";
+    },
+
 )
