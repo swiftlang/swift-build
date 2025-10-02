@@ -60,7 +60,7 @@ fileprivate struct GeneralCommandsTests {
                     XCTAssertMatch(reply, .contains("service pid = "))
 
                     // The service PID is NOT the swbuild PID
-                    XCTAssertNoMatch(reply, .contains("service pid = \(cli.processIdentifier)"))
+                    XCTAssertNoMatch(reply, .contains("service pid = \(cli.processIdentifier ?? -1)"))
                 case "headermap", "serializedDiagnostics":
                     XCTAssertMatch(reply, .suffix("\(command)\r\nerror: no path specified\r\n\r\nusage: \(command) --dump path\r\nswbuild> "))
                 case "help":
