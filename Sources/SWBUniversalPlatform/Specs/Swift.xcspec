@@ -1420,6 +1420,8 @@
                     "objcxx-gnu++20" = ("-Xcc", "-std=$(CLANG_CXX_LANGUAGE_STANDARD)");
                     "objcxx-c++23" = ("-Xcc", "-std=$(CLANG_CXX_LANGUAGE_STANDARD)");
                     "objcxx-gnu++23" = ("-Xcc", "-std=$(CLANG_CXX_LANGUAGE_STANDARD)");
+                    "objcxx-c++2b" = ("-Xcc", "-std=$(CLANG_CXX_LANGUAGE_STANDARD)");
+                    "objcxx-gnu++2b" = ("-Xcc", "-std=$(CLANG_CXX_LANGUAGE_STANDARD)");
                     "<<otherwise>>" = ();
                 };
             },
