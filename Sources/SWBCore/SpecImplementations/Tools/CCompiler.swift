@@ -689,15 +689,32 @@ public class ClangCompilerSpec : CompilerSpec, SpecIdentifierType, GCCCompatible
         let sparseSDKSearchPaths = GCCCompatibleCompilerSpecSupport.sparseSDKSearchPathArguments(producer.sparseSDKs, headerSearchPaths.headerSearchPaths, frameworkSearchPaths.frameworkSearchPaths)
         commandLine += sparseSDKSearchPaths.searchPathArguments(for: self, scope: scope)
 
+        // Extract arguments to write to the response file, if enabled.
         if scope.evaluate(BuiltinMacros.CLANG_USE_RESPONSE_FILE) && (optionContext?.toolPath.basenameWithoutSuffix == "clang" || optionContext?.toolPath.basenameWithoutSuffix == "clang++") {
             var responseFileCommandLine: [String] = []
             var regularCommandLine: [String] = []
 
+            // Filter out select arguments from the response file.
             var iterator = commandLine.makeIterator()
             var previousArg: ByteString? = nil
             while let arg = iterator.next() {
                 let argAsByteString = ByteString(encodingAsUTF8: arg)
-                if ClangSourceFileIndexingInfo.skippedArgsWithValues.contains(argAsByteString) || arg == "-include" {
+                if arg == "-target" {
+                    // Exclude -target from the response file to make reading the build log easier.
+                    regularCommandLine.append(arg)
+                    if let nextArg = iterator.next() {
+                        regularCommandLine.append(nextArg)
+                    }
+                }
+                else if arg == "-isysroot" || arg == "--sysroot" {
+                    // Exclude the options to pass the path to the base SDK from the response file to make reading the build log easier.
+                    // Sparse SDK options do not get similar treatment since they are passed as normal search paths.
+                    regularCommandLine.append(arg)
+                    if let nextArg = iterator.next() {
+                        regularCommandLine.append(nextArg)
+                    }
+                }
+                else if ClangSourceFileIndexingInfo.skippedArgsWithValues.contains(argAsByteString) || arg == "-include" {
                     // Relevant to indexing, so exclude arg and value from response file.
                     regularCommandLine.append(arg)
                     if let nextArg = iterator.next() {
@@ -713,6 +730,7 @@ public class ClangCompilerSpec : CompilerSpec, SpecIdentifierType, GCCCompatible
                     // Exclude from response file.
                     regularCommandLine.append(arg)
                 } else {
+                    // All other args get added to the response file.
                     responseFileCommandLine.append(arg)
                 }
                 previousArg = argAsByteString
