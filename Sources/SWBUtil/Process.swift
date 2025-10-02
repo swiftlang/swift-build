@@ -175,7 +175,13 @@ extension Process {
 
         async let outputTask = await collect(streams)
 
-        try await process.run(interruptible: interruptible)
+        do {
+            try await process.run(interruptible: interruptible)
+        } catch is CancellationError {
+            throw CancellationError()
+        } catch {
+            throw try RunProcessLaunchError(process, context: error.localizedDescription)
+        }
 
         let output = try await outputTask
 
