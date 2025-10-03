@@ -315,6 +315,10 @@ package final class TestFile: TestInternalStructureItem, CustomStringConvertible
             return "folder.documentationcatalog"
         case ".tightbeam":
             return "sourcecode.tightbeam"
+        case ".myPackage":
+            return "com.apple.package"
+        case "":
+            return "public.directory"
         case let ext where ext.hasPrefix(".fake-"):
             // If this is a fake extension, just return "file".
             return "file"

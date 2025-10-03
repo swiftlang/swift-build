@@ -226,6 +226,10 @@ class CopyFilesTaskProducer: FilesBasedBuildPhaseTaskProducerBase, FilesBasedBui
                         return
                     }
                 }
+            } else if scope.evaluate(BuiltinMacros.INSTALLLOC_DIRECTORY_CONTENTS), !ftb.isValidLocalizedContent(scope), context.workspaceContext.fs.isDirectory(ftb.absolutePath) {
+                // Treat any package or directory the same as a copied bundle and copy over the relevant lproj directories.
+                await addTasksForEmbeddedLocalizedBundle(ftb, buildFilesContext, scope, &tasks)
+                return
             }
             guard ftb.isValidLocalizedContent(scope) || targetBundleProduct else { return }
         }

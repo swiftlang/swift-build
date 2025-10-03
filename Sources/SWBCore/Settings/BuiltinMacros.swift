@@ -780,6 +780,7 @@ public final class BuiltinMacros {
     public static let INPUT_FILE_SUFFIX = BuiltinMacros.declareStringMacro("INPUT_FILE_SUFFIX")
     public static let INSTALLHDRS_COPY_PHASE = BuiltinMacros.declareBooleanMacro("INSTALLHDRS_COPY_PHASE")
     public static let INSTALLHDRS_SCRIPT_PHASE = BuiltinMacros.declareBooleanMacro("INSTALLHDRS_SCRIPT_PHASE")
+    public static let INSTALLLOC_DIRECTORY_CONTENTS = BuiltinMacros.declareBooleanMacro("INSTALLLOC_DIRECTORY_CONTENTS")
     public static let INSTALLLOC_LANGUAGE = BuiltinMacros.declareStringListMacro("INSTALLLOC_LANGUAGE")
     public static let INSTALLLOC_SCRIPT_PHASE = BuiltinMacros.declareBooleanMacro("INSTALLLOC_SCRIPT_PHASE")
     public static let INSTALL_DIR = BuiltinMacros.declarePathMacro("INSTALL_DIR")
@@ -1877,6 +1878,7 @@ public final class BuiltinMacros {
         INSTALLED_PRODUCT_ASIDES,
         INSTALLHDRS_COPY_PHASE,
         INSTALLHDRS_SCRIPT_PHASE,
+        INSTALLLOC_DIRECTORY_CONTENTS,
         INSTALLLOC_LANGUAGE,
         INSTALLLOC_SCRIPT_PHASE,
         INSTALL_DIR,
