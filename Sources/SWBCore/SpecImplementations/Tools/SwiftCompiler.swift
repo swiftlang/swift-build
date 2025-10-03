@@ -2947,7 +2947,7 @@ public final class SwiftCompilerSpec : CompilerSpec, SpecIdentifierType, SwiftDi
         return (isEnabled, isExplicitlyEnabled)
     }
 
-    private func staticallyLinkSwiftStdlib(_ producer: any CommandProducer, scope: MacroEvaluationScope) -> Bool {
+    private func staticallyLinkSwiftStdlib(_ producer: any CommandProducer, scope: MacroEvaluationScope, lookup: @escaping ((MacroDeclaration) -> MacroStringExpression?)) -> Bool {
         // Determine whether we should statically link the Swift stdlib, and determined
         // by the following logic in the following order:
         //
@@ -2960,17 +2960,17 @@ public final class SwiftCompilerSpec : CompilerSpec, SpecIdentifierType, SwiftDi
         //
         // NOTE: With Swift in the OS, static libs aren't being supplied by the toolchains
         //       so users of this flag will need to provide their own.
-        if scope.evaluate(BuiltinMacros.SWIFT_FORCE_STATIC_LINK_STDLIB) {
+        if scope.evaluate(BuiltinMacros.SWIFT_FORCE_STATIC_LINK_STDLIB, lookup: lookup) {
             return true
         }
         return false
     }
 
-    public override func computeAdditionalLinkerArgs(_ producer: any CommandProducer, scope: MacroEvaluationScope, inputFileTypes: [FileTypeSpec], optionContext: (any BuildOptionGenerationContext)?, delegate: any TaskGenerationDelegate) async -> (args: [[String]], inputPaths: [Path]) {
-        return await computeAdditionalLinkerArgs(producer, scope: scope, inputFileTypes: inputFileTypes, optionContext: optionContext, forTAPI: false, delegate: delegate)
+    public override func computeAdditionalLinkerArgs(_ producer: any CommandProducer, scope: MacroEvaluationScope, lookup: @escaping ((MacroDeclaration) -> MacroStringExpression?), inputFileTypes: [FileTypeSpec], optionContext: (any BuildOptionGenerationContext)?, delegate: any TaskGenerationDelegate) async -> (args: [[String]], inputPaths: [Path]) {
+        return await computeAdditionalLinkerArgs(producer, scope: scope, lookup: lookup, inputFileTypes: inputFileTypes, optionContext: optionContext, forTAPI: false, delegate: delegate)
     }
 
-    func computeAdditionalLinkerArgs(_ producer: any CommandProducer, scope: MacroEvaluationScope, inputFileTypes: [FileTypeSpec], optionContext: (any BuildOptionGenerationContext)?, forTAPI: Bool = false, delegate: any TaskGenerationDelegate) async -> (args: [[String]], inputPaths: [Path]) {
+    func computeAdditionalLinkerArgs(_ producer: any CommandProducer, scope: MacroEvaluationScope, lookup: @escaping ((MacroDeclaration) -> MacroStringExpression?), inputFileTypes: [FileTypeSpec], optionContext: (any BuildOptionGenerationContext)?, forTAPI: Bool = false, delegate: any TaskGenerationDelegate) async -> (args: [[String]], inputPaths: [Path]) {
         guard let swiftToolSpec = optionContext as? DiscoveredSwiftCompilerToolSpecInfo else {
             // An error message would have already been emitted by this point
             return (args: [[]], inputPaths: [])
@@ -2983,21 +2983,21 @@ public final class SwiftCompilerSpec : CompilerSpec, SpecIdentifierType, SwiftDi
         var inputPaths: [Path] = []
         if !forTAPI {
             // TAPI can't use all of the additional linker options, and its spec has all of the build setting/option arguments that it can use.
-            args = producer.effectiveFlattenedOrderedBuildOptions(self).map { $0.getAdditionalLinkerArgs(producer, scope: scope, inputFileTypes: inputFileTypes) }.filter { !$0.isEmpty }
+            args = producer.effectiveFlattenedOrderedBuildOptions(self).map { $0.getAdditionalLinkerArgs(producer, scope: scope, lookup: lookup, inputFileTypes: inputFileTypes) }.filter { !$0.isEmpty }
         }
 
         // Determine if we are forced to use the standard system location; this is currently only for OS adopters of Swift, not any client.
-        let useSystemSwift = scope.evaluate(BuiltinMacros.SWIFT_FORCE_SYSTEM_LINK_STDLIB)
+        let useSystemSwift = scope.evaluate(BuiltinMacros.SWIFT_FORCE_SYSTEM_LINK_STDLIB, lookup: lookup)
 
         // Determine whether we should statically link the Swift stdlib.
-        let shouldStaticLinkStdlib = staticallyLinkSwiftStdlib(producer, scope: scope)
+        let shouldStaticLinkStdlib = staticallyLinkSwiftStdlib(producer, scope: scope, lookup: lookup)
 
-        let swiftStdlibName = scope.evaluate(BuiltinMacros.SWIFT_STDLIB)
-        var swiftLibraryPath = scope.evaluate(BuiltinMacros.SWIFT_LIBRARY_PATH)
-        let dynamicLibraryExtension = scope.evaluate(BuiltinMacros.DYNAMIC_LIBRARY_EXTENSION)
+        let swiftStdlibName = scope.evaluate(BuiltinMacros.SWIFT_STDLIB, lookup: lookup)
+        var swiftLibraryPath = scope.evaluate(BuiltinMacros.SWIFT_LIBRARY_PATH, lookup: lookup)
+        let dynamicLibraryExtension = scope.evaluate(BuiltinMacros.DYNAMIC_LIBRARY_EXTENSION, lookup: lookup)
 
         // If we weren't given an explicit library path, compute one
-        let platformName = scope.evaluate(BuiltinMacros.PLATFORM_NAME)
+        let platformName = scope.evaluate(BuiltinMacros.PLATFORM_NAME, lookup: lookup)
         if swiftLibraryPath.isEmpty {
             // Look next to the compiler and in the toolchains for one.
             if shouldStaticLinkStdlib {
@@ -3015,13 +3015,13 @@ public final class SwiftCompilerSpec : CompilerSpec, SpecIdentifierType, SwiftDi
             }
         }
 
-        let isMacCatalystUnzippered = producer.sdkVariant?.isMacCatalyst == true && !scope.evaluate(BuiltinMacros.IS_ZIPPERED)
+        let isMacCatalystUnzippered = producer.sdkVariant?.isMacCatalyst == true && !scope.evaluate(BuiltinMacros.IS_ZIPPERED, lookup: lookup)
 
         var sdkPathArgument: [String] = []
         var unzipperedSDKPathArgument: [String] = []
         if forTAPI {
             // TAPI requires absolute paths.
-            let sdkroot = scope.evaluate(BuiltinMacros.SDKROOT)
+            let sdkroot = scope.evaluate(BuiltinMacros.SDKROOT, lookup: lookup)
             if !sdkroot.isEmpty {
                 sdkPathArgument = ["-L" + sdkroot.join("usr/lib/swift").str]
                 unzipperedSDKPathArgument = ["-L" + sdkroot.join("System/iOSSupport/usr/lib/swift").str]
@@ -3072,24 +3072,24 @@ public final class SwiftCompilerSpec : CompilerSpec, SpecIdentifierType, SwiftDi
             // be a source-less target which just contains object files in it's framework phase.
             let currentPlatformFilter = PlatformFilter(scope)
             let containsSources = (producer.configuredTarget?.target as? StandardTarget)?.sourcesBuildPhase?.buildFiles.filter { currentPlatformFilter.matches($0.platformFilters) }.isEmpty == false
-            if containsSources && inputFileTypes.contains(where: { $0.conformsTo(identifier: "sourcecode.swift") }) && scope.evaluate(BuiltinMacros.GCC_GENERATE_DEBUGGING_SYMBOLS) && !scope.evaluate(BuiltinMacros.PLATFORM_REQUIRES_SWIFT_MODULEWRAP) {
-                let moduleName = scope.evaluate(BuiltinMacros.SWIFT_MODULE_NAME)
-                let moduleFileDir = scope.evaluate(BuiltinMacros.PER_ARCH_MODULE_FILE_DIR)
+            if containsSources && inputFileTypes.contains(where: { $0.conformsTo(identifier: "sourcecode.swift") }) && scope.evaluate(BuiltinMacros.GCC_GENERATE_DEBUGGING_SYMBOLS, lookup: lookup) && !scope.evaluate(BuiltinMacros.PLATFORM_REQUIRES_SWIFT_MODULEWRAP, lookup: lookup) {
+                let moduleName = scope.evaluate(BuiltinMacros.SWIFT_MODULE_NAME, lookup: lookup)
+                let moduleFileDir = scope.evaluate(BuiltinMacros.PER_ARCH_MODULE_FILE_DIR, lookup: lookup)
                 let moduleFilePath = moduleFileDir.join(moduleName + ".swiftmodule")
                 args += [["-Xlinker", "-add_ast_path", "-Xlinker", moduleFilePath.str]]
-                if scope.evaluate(BuiltinMacros.SWIFT_GENERATE_ADDITIONAL_LINKER_ARGS) {
+                if scope.evaluate(BuiltinMacros.SWIFT_GENERATE_ADDITIONAL_LINKER_ARGS, lookup: lookup) {
                     args += [["@\(Path(moduleFilePath.appendingFileNameSuffix("-linker-args").withoutSuffix + ".resp").str)"]]
                 }
             }
         }
 
-        if scope.evaluate(BuiltinMacros.SWIFT_ADD_TOOLCHAIN_SWIFTSYNTAX_SEARCH_PATHS) {
+        if scope.evaluate(BuiltinMacros.SWIFT_ADD_TOOLCHAIN_SWIFTSYNTAX_SEARCH_PATHS, lookup: lookup) {
             args += [["-L\(swiftToolSpec.hostLibraryDirectory.str)"]]
         }
 
         let containsSwiftSources = (producer.configuredTarget?.target as? StandardTarget)?.sourcesBuildPhase?.containsSwiftSources(producer, producer, scope, producer.filePathResolver) == true
-        if scope.evaluate(BuiltinMacros.PLATFORM_REQUIRES_SWIFT_AUTOLINK_EXTRACT) && containsSwiftSources {
-            let inputPath = scope.evaluate(BuiltinMacros.SWIFT_AUTOLINK_EXTRACT_OUTPUT_PATH)
+        if scope.evaluate(BuiltinMacros.PLATFORM_REQUIRES_SWIFT_AUTOLINK_EXTRACT, lookup: lookup) && containsSwiftSources {
+            let inputPath = scope.evaluate(BuiltinMacros.SWIFT_AUTOLINK_EXTRACT_OUTPUT_PATH, lookup: lookup)
             args += [["@\(inputPath.str)"]]
             inputPaths.append(inputPath)
         }

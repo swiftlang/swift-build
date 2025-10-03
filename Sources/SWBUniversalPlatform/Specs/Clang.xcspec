@@ -2850,6 +2850,26 @@
                 Name = "CLANG_COVERAGE_MAPPING_LINKER_ARGS";
                 Type = Boolean;
                 DefaultValue = "$(CLANG_COVERAGE_MAPPING)";
+            },
+
+            {
+                Name = "SWIFTC_CLANG_COVERAGE_MAPPING_LINKER_ARGS";
+                Type = Boolean;
+                DefaultValue = "$(CLANG_COVERAGE_MAPPING_LINKER_ARGS)";
+                Condition = "$(LINKER_DRIVER) == swiftc";
+                AdditionalLinkerArgs = {
+                    NO = ();
+                    YES = (
+                        "-Xclang-linker", "-fprofile-instr-generate",
+                    );
+                };
+            },
+
+            {
+                Name = "CLANG_CLANG_COVERAGE_MAPPING_LINKER_ARGS";
+                Type = Boolean;
+                DefaultValue = "$(CLANG_COVERAGE_MAPPING_LINKER_ARGS)";
+                Condition = "$(LINKER_DRIVER) == clang";
                 AdditionalLinkerArgs = {
                     NO = ();
                     YES = (
