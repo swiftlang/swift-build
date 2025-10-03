@@ -1311,9 +1311,9 @@ open class CommandLineToolSpec : PropertyDomainSpec, SpecType, TaskTypeDescripti
     }
 
     /// Compute the list of additional linker arguments to use when this tool is used for building with the given scope.
-    public func computeAdditionalLinkerArgs(_ producer: any CommandProducer, scope: MacroEvaluationScope, inputFileTypes: [FileTypeSpec], optionContext: (any BuildOptionGenerationContext)?, delegate: any TaskGenerationDelegate) async -> (args: [[String]], inputPaths: [Path]) {
+    public func computeAdditionalLinkerArgs(_ producer: any CommandProducer, scope: MacroEvaluationScope, lookup: @escaping ((MacroDeclaration) -> MacroStringExpression?), inputFileTypes: [FileTypeSpec], optionContext: (any BuildOptionGenerationContext)?, delegate: any TaskGenerationDelegate) async -> (args: [[String]], inputPaths: [Path]) {
         // FIXME: Optimize the list to search here.
-        return (args: producer.effectiveFlattenedOrderedBuildOptions(self).map { $0.getAdditionalLinkerArgs(producer, scope: scope, inputFileTypes: inputFileTypes) }, inputPaths: [])
+        return (args: producer.effectiveFlattenedOrderedBuildOptions(self).map { $0.getAdditionalLinkerArgs(producer, scope: scope, lookup: lookup, inputFileTypes: inputFileTypes) }, inputPaths: [])
     }
 
     // Creates and returns the environment from the specification.  This includes both the 'EnvironmentVariables' property for this tool spec, and any build options which define that their value should be exported via their 'SetValueInEnvironmentVariable' property.

@@ -113,5 +113,26 @@ fileprivate struct CodeCoverageTaskConstructionTests: CoreBasedTests {
 
             results.checkNoDiagnostics()
         }
-    }
+
+        for linkerDriver in ["auto", "swiftc"] {
+            // Repeat the linker argument checks using alternate drivers
+            await tester.checkBuild(BuildParameters(configuration: "Debug", overrides: ["CLANG_COVERAGE_MAPPING": "YES", "LINKER_DRIVER": linkerDriver]), runDestination: .host) { results in
+                results.checkTarget("Target") { target in
+                    // There should be one Ld task, which includes coverage options
+                    results.checkTask(.matchTarget(target), .matchRuleType("Ld")) { task in
+                        task.checkCommandLineContains(["-Xclang-linker", "-fprofile-instr-generate"])
+                    }
+                }
+
+                results.checkTarget("NoCoverageTarget") { target in
+                    // There should be one Ld task, which includes coverage options
+                    results.checkTask(.matchTarget(target), .matchRuleType("Ld")) { task in
+                        task.checkCommandLineContains(["-Xclang-linker", "-fprofile-instr-generate"])
+                    }
+                }
+
+                results.checkNoDiagnostics()
+            }
+        }
+        }
 }

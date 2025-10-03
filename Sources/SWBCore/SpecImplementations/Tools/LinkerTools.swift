@@ -510,7 +510,7 @@ public final class LdLinkerSpec : GenericLinkerSpec, SpecIdentifierType, @unchec
 
             let spec = info.key
             let inputFileTypes = info.value
-            let (args, inputs) = await spec.computeAdditionalLinkerArgs(cbc.producer, scope: cbc.scope, inputFileTypes: [FileTypeSpec](inputFileTypes), optionContext: spec.discoveredCommandLineToolSpecInfo(cbc.producer, cbc.scope, delegate), delegate: delegate)
+            let (args, inputs) = await spec.computeAdditionalLinkerArgs(cbc.producer, scope: cbc.scope, lookup: linkerDriverLookup, inputFileTypes: [FileTypeSpec](inputFileTypes), optionContext: spec.discoveredCommandLineToolSpecInfo(cbc.producer, cbc.scope, delegate), delegate: delegate)
             additionalLinkerArgsArray.append(contentsOf: args)
             inputPaths.append(contentsOf: inputs)
         }
@@ -531,7 +531,7 @@ public final class LdLinkerSpec : GenericLinkerSpec, SpecIdentifierType, @unchec
                 for scope in depScopes {
                     if scope.evaluate(BuiltinMacros.SWIFT_OBJC_INTEROP_MODE) == "objcxx" {
                         let optionContext = await cbc.producer.swiftCompilerSpec.discoveredCommandLineToolSpecInfo(cbc.producer, scope, delegate)
-                        additionalLinkerArgsArray.append(contentsOf: await cbc.producer.swiftCompilerSpec.computeAdditionalLinkerArgs(cbc.producer, scope: cbc.scope, inputFileTypes: [FileTypeSpec](), optionContext: optionContext, delegate: delegate).args)
+                        additionalLinkerArgsArray.append(contentsOf: await cbc.producer.swiftCompilerSpec.computeAdditionalLinkerArgs(cbc.producer, scope: cbc.scope, lookup: linkerDriverLookup, inputFileTypes: [FileTypeSpec](), optionContext: optionContext, delegate: delegate).args)
                         additionalLinkerArgsArray.append(["-l\(cbc.scope.evaluate(BuiltinMacros.SWIFT_STDLIB))"])
                         break
                     }

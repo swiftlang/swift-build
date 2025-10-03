@@ -1567,7 +1567,7 @@ private let buildOptionTypes: [String: any BuildOptionType] = [
     }
 
     /// Get the command line arguments to use for this option in the given scope.
-    func getAdditionalLinkerArgs(_ producer: any CommandProducer, scope: MacroEvaluationScope, inputFileTypes: [FileTypeSpec]) -> [String] {
+    func getAdditionalLinkerArgs(_ producer: any CommandProducer, scope: MacroEvaluationScope, lookup: @escaping ((MacroDeclaration) -> MacroStringExpression?), inputFileTypes: [FileTypeSpec]) -> [String] {
         // Filter by (any) supported file type.
         func supportsAnyFileType() -> Bool {
             for fileType in inputFileTypes {
@@ -1582,7 +1582,7 @@ private let buildOptionTypes: [String: any BuildOptionType] = [
         }
 
         // Filter by macro condition expression.  If we don't have one, or we do have one and it evaluates to true, then we can proceed with argument generation.
-        guard condition == nil || condition!.evaluateAsBoolean(scope) else {
+        guard condition == nil || condition!.evaluateAsBoolean(scope, lookup: lookup) else {
             return []
         }
 
@@ -1594,16 +1594,16 @@ private let buildOptionTypes: [String: any BuildOptionType] = [
             guard let valueDefnOpt = scope.evaluate(self.macro as! BooleanMacroDeclaration) ? otherValueDefn : emptyValueDefn else { return [] }
 
             guard let expr = valueDefnOpt.additionalLinkerArgs else { return [] }
-            return scope.evaluate(expr)
+            return scope.evaluate(expr, lookup: lookup)
         }
 
         // Handle list typed options.
         guard !type.isListType else {
             let values = switch self.macro {
             case let macro as StringListMacroDeclaration:
-                scope.evaluate(macro)
+                scope.evaluate(macro, lookup: lookup)
             case let macro as PathListMacroDeclaration:
-                scope.evaluate(macro)
+                scope.evaluate(macro, lookup: lookup)
             default:
                 fatalError("invalid macro type for List option")
             }
@@ -1612,11 +1612,11 @@ private let buildOptionTypes: [String: any BuildOptionType] = [
             let valueDefnOpt = values.isEmpty ? emptyValueDefn : otherValueDefn
 
             guard let expr = valueDefnOpt?.additionalLinkerArgs else { return [] }
-            return scope.evaluate(expr)
+            return scope.evaluate(expr, lookup: lookup)
         }
 
         // Otherwise, we have a scalar option.
-        let value = scope.evaluateAsString(self.macro)
+        let value = scope.evaluateAsString(self.macro, lookup: lookup)
 
         // Get the value expression to use.
         let valueDefnOpt = valueDefns.flatMap { $0[value] } ?? (value.isEmpty ? emptyValueDefn : otherValueDefn)
@@ -1626,6 +1626,9 @@ private let buildOptionTypes: [String: any BuildOptionType] = [
         return scope.evaluate(expr) { macro in
             if macro === BuiltinMacros.value {
                 return scope.table.namespace.parseLiteralString(value)
+            }
+            if let lookupResult = lookup(macro) {
+                return lookupResult
             }
             return nil
         }

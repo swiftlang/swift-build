@@ -142,7 +142,7 @@ fileprivate final class TestSwiftParserDelegate: TaskOutputParserDelegate, Senda
             let scope = MacroEvaluationScope(table: table)
             let delegate = TestTaskPlanningDelegate(clientDelegate: MockTestTaskPlanningClientDelegate(), fs: localFS)
             let optionContext = await spec.discoveredCommandLineToolSpecInfo(producer, scope, delegate)
-            try await #expect(spec.computeAdditionalLinkerArgs(producer, scope: scope, inputFileTypes: [], optionContext: optionContext, delegate: CapturingTaskGenerationDelegate(producer: producer, userPreferences: .defaultForTesting)).args == additionalSwiftLinkerArgs(spec, producer, scope, stdlibPath))
+            try await #expect(spec.computeAdditionalLinkerArgs(producer, scope: scope, lookup: { _ in nil }, inputFileTypes: [], optionContext: optionContext, delegate: CapturingTaskGenerationDelegate(producer: producer, userPreferences: .defaultForTesting)).args == additionalSwiftLinkerArgs(spec, producer, scope, stdlibPath))
         }
 
         // Check force static stdlib.
@@ -157,7 +157,7 @@ fileprivate final class TestSwiftParserDelegate: TaskOutputParserDelegate, Senda
             let scope = MacroEvaluationScope(table: table)
             let delegate = TestTaskPlanningDelegate(clientDelegate: MockTestTaskPlanningClientDelegate(), fs: localFS)
             let optionContext = await spec.discoveredCommandLineToolSpecInfo(producer, scope, delegate)
-            try await #expect(spec.computeAdditionalLinkerArgs(producer, scope: scope, inputFileTypes: [], optionContext: optionContext, delegate: CapturingTaskGenerationDelegate(producer: producer, userPreferences: .defaultForTesting)).args == (additionalSwiftLinkerArgs(spec, producer, scope, stdlibPath)) + [["-Xlinker", "-force_load_swift_libs"], ["-lc++", "-framework", "Foundation"]])
+            try await #expect(spec.computeAdditionalLinkerArgs(producer, scope: scope, lookup: { _ in nil }, inputFileTypes: [], optionContext: optionContext, delegate: CapturingTaskGenerationDelegate(producer: producer, userPreferences: .defaultForTesting)).args == (additionalSwiftLinkerArgs(spec, producer, scope, stdlibPath)) + [["-Xlinker", "-force_load_swift_libs"], ["-lc++", "-framework", "Foundation"]])
         }
 
         // Check tool product type.
@@ -171,7 +171,7 @@ fileprivate final class TestSwiftParserDelegate: TaskOutputParserDelegate, Senda
             let scope = MacroEvaluationScope(table: table)
             let delegate = TestTaskPlanningDelegate(clientDelegate: MockTestTaskPlanningClientDelegate(), fs: localFS)
             let optionContext = await spec.discoveredCommandLineToolSpecInfo(producer, scope, delegate)
-            try await #expect(spec.computeAdditionalLinkerArgs(producer, scope: scope, inputFileTypes: [], optionContext: optionContext, delegate: CapturingTaskGenerationDelegate(producer: producer, userPreferences: .defaultForTesting)).args == additionalSwiftLinkerArgs(spec, producer, scope, stdlibPath))
+            try await #expect(spec.computeAdditionalLinkerArgs(producer, scope: scope, lookup: { _ in nil }, inputFileTypes: [], optionContext: optionContext, delegate: CapturingTaskGenerationDelegate(producer: producer, userPreferences: .defaultForTesting)).args == additionalSwiftLinkerArgs(spec, producer, scope, stdlibPath))
         }
 
         // Check tool product type forced to dynamic link.
@@ -186,7 +186,7 @@ fileprivate final class TestSwiftParserDelegate: TaskOutputParserDelegate, Senda
             let scope = MacroEvaluationScope(table: table)
             let delegate = TestTaskPlanningDelegate(clientDelegate: MockTestTaskPlanningClientDelegate(), fs: localFS)
             let optionContext = await spec.discoveredCommandLineToolSpecInfo(producer, scope, delegate)
-            try await #expect(spec.computeAdditionalLinkerArgs(producer, scope: scope, inputFileTypes: [], optionContext: optionContext, delegate: CapturingTaskGenerationDelegate(producer: producer, userPreferences: .defaultForTesting)).args == additionalSwiftLinkerArgs(spec, producer, scope, stdlibPath))
+            try await #expect(spec.computeAdditionalLinkerArgs(producer, scope: scope, lookup: { _ in nil }, inputFileTypes: [], optionContext: optionContext, delegate: CapturingTaskGenerationDelegate(producer: producer, userPreferences: .defaultForTesting)).args == additionalSwiftLinkerArgs(spec, producer, scope, stdlibPath))
         }
 
         // Check system stdlib option.
@@ -201,7 +201,7 @@ fileprivate final class TestSwiftParserDelegate: TaskOutputParserDelegate, Senda
             let scope = MacroEvaluationScope(table: table)
             let delegate = TestTaskPlanningDelegate(clientDelegate: MockTestTaskPlanningClientDelegate(), fs: localFS)
             let optionContext = await spec.discoveredCommandLineToolSpecInfo(producer, scope, delegate)
-            try await #expect(spec.computeAdditionalLinkerArgs(producer, scope: scope, inputFileTypes: [], optionContext: optionContext, delegate: CapturingTaskGenerationDelegate(producer: producer, userPreferences: .defaultForTesting)).args == ([["-L/usr/lib/swift"]] + additionalSwiftLinkerArgs(spec, producer, scope, stdlibPath)))
+            try await #expect(spec.computeAdditionalLinkerArgs(producer, scope: scope, lookup: { _ in nil }, inputFileTypes: [], optionContext: optionContext, delegate: CapturingTaskGenerationDelegate(producer: producer, userPreferences: .defaultForTesting)).args == ([["-L/usr/lib/swift"]] + additionalSwiftLinkerArgs(spec, producer, scope, stdlibPath)))
         }
     }
 }

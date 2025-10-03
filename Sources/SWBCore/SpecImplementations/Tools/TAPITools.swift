@@ -120,7 +120,7 @@ public final class TAPIToolSpec : GenericCommandLineToolSpec, GCCCompatibleCompi
             let producer = cbc.producer
             let swiftCompilerSpec = producer.swiftCompilerSpec
             let optionContext = await swiftCompilerSpec.discoveredCommandLineToolSpecInfo(producer, scope, delegate)
-            commandLine += await swiftCompilerSpec.computeAdditionalLinkerArgs(producer, scope: scope, inputFileTypes: [], optionContext: optionContext, forTAPI: true, delegate: delegate).args.flatMap({ $0 })
+            commandLine += await swiftCompilerSpec.computeAdditionalLinkerArgs(producer, scope: scope, lookup: { _ in nil }, inputFileTypes: [], optionContext: optionContext, forTAPI: true, delegate: delegate).args.flatMap({ $0 })
 
             if !scope.evaluate(BuiltinMacros.SWIFT_OBJC_INTERFACE_HEADER_NAME).isEmpty && scope.evaluate(BuiltinMacros.SWIFT_INSTALL_OBJC_HEADER) {
                 let generatedHeaderPath = SwiftCompilerSpec.generatedObjectiveCHeaderOutputPath(scope).str
