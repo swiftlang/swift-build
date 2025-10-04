@@ -75,7 +75,7 @@ public final class TAPIToolSpec : GenericCommandLineToolSpec, GCCCompatibleCompi
         let scope = cbc.scope
         let useOnlyFilelist = scope.evaluate(BuiltinMacros.TAPI_ENABLE_PROJECT_HEADERS) || scope.evaluate(BuiltinMacros.TAPI_USE_SRCROOT)
 
-        let runpathSearchPaths = await LdLinkerSpec.computeRPaths(cbc, delegate, inputRunpathSearchPaths: scope.evaluate(BuiltinMacros.TAPI_RUNPATH_SEARCH_PATHS), isUsingSwift: !generatedTBDFiles.isEmpty)
+        let runpathSearchPaths = await LdLinkerSpec.computeRPaths(cbc, delegate, inputRunpathSearchPaths: scope.evaluate(BuiltinMacros.TAPI_RUNPATH_SEARCH_PATHS), isUsingSwift: !generatedTBDFiles.isEmpty).paths
         let runpathSearchPathsExpr = scope.namespace.parseStringList(runpathSearchPaths)
 
         // Create a lookup closure for build setting overrides.

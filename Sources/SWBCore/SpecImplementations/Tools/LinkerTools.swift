@@ -334,10 +334,18 @@ public final class LdLinkerSpec : GenericLinkerSpec, SpecIdentifierType, @unchec
         return usedTools.keys.map({ type(of: $0) }).contains(where: { $0 == SwiftCompilerSpec.self })
     }
 
-    static public func computeRPaths(_ cbc: CommandBuildContext,_ delegate: any TaskGenerationDelegate, inputRunpathSearchPaths: [String], isUsingSwift: Bool ) async -> [String] {
+    public struct RuntimeSearchPaths {
+        // The rpaths themselves
+        let paths: [String]
+        // Whether we should suppress rpaths the linker driver might otherwise insert
+        let suppressDriverStdlibPaths: Bool
+    }
+
+    static public func computeRPaths(_ cbc: CommandBuildContext, _ delegate: any TaskGenerationDelegate, inputRunpathSearchPaths: [String], isUsingSwift: Bool ) async -> RuntimeSearchPaths {
         // Product types can provide their own set of rpath values, we need to ensure that our rpath flags for Swift in the OS appear before those. Also, due to the fact that we are staging this rollout, we need to specifically override any Swift libraries that may be in the bundle _when_ the Swift ABI version matches on the system with that in which the tool was built with.
 
         var runpathSearchPaths = inputRunpathSearchPaths
+        var suppressDriverStdlibPaths = false
         // NOTE: For swift.org toolchains, we always add the search paths to the Swift SDK location as the overlays do not have the install name set. This also works when `SWIFT_USE_DEVELOPMENT_TOOLCHAIN_RUNTIME=YES` as `DYLD_LIBRARY_PATH` is used to override these settings during debug time. If users wish to use the development runtime while not debugging, they need to manually set their rpaths as this is not a supported configuration.
         // Also, if the deployment target does not support Swift in the OS, the rpath entries need to be added as well.
         // And, if the deployment target does not support Swift Concurrency natively, then the rpath needs to be added as well so that the shim library can find the real implementation. Note that we assume `true` in the case where `supportsSwiftInTheOS` is `nil` as we don't have the platform data to make the correct choice; so fallback to existing behavior.
@@ -357,9 +365,11 @@ public final class LdLinkerSpec : GenericLinkerSpec, SpecIdentifierType, @unchec
             // NOTE: For swift.org toolchains, this is fine as `DYLD_LIBRARY_PATH` is used to override these settings.
             let swiftABIVersion =  await (cbc.producer.swiftCompilerSpec.discoveredCommandLineToolSpecInfo(cbc.producer, cbc.scope, delegate) as? DiscoveredSwiftCompilerToolSpecInfo)?.swiftABIVersion
             runpathSearchPaths.insert( swiftABIVersion.flatMap { "/usr/lib/swift-\($0)" } ?? "/usr/lib/swift", at: 0)
+            // Ensure the linker driver does not insert a duplicate rpath (if linking using swiftc)
+            suppressDriverStdlibPaths = true
         }
 
-        return runpathSearchPaths
+        return .init(paths: runpathSearchPaths, suppressDriverStdlibPaths: suppressDriverStdlibPaths)
     }
 
     private static func swiftcSupportsLinkingMachOType(_ type: String) -> Bool {
@@ -545,8 +555,13 @@ public final class LdLinkerSpec : GenericLinkerSpec, SpecIdentifierType, @unchec
 
         // See related:
         var runpathSearchPaths: [String] = []
+        var stdlibRPathArgs: [String] = []
         if machOTypeString != "mh_object" {
-            runpathSearchPaths =  await LdLinkerSpec.computeRPaths(cbc, delegate, inputRunpathSearchPaths: cbc.scope.evaluate(BuiltinMacros.LD_RUNPATH_SEARCH_PATHS), isUsingSwift: isLinkUsingSwift)
+            let rpaths = await LdLinkerSpec.computeRPaths(cbc, delegate, inputRunpathSearchPaths: cbc.scope.evaluate(BuiltinMacros.LD_RUNPATH_SEARCH_PATHS), isUsingSwift: isLinkUsingSwift)
+            runpathSearchPaths = rpaths.paths
+            if rpaths.suppressDriverStdlibPaths && cbc.scope.evaluate(BuiltinMacros.LINKER_DRIVER, lookup: linkerDriverLookup) == .swiftc {
+                stdlibRPathArgs.append("-no-stdlib-rpath")
+            }
 
             // If we're merging libraries and we're reexporting any libraries, then add an rpath to the ReexportedBinaries directory.
             // This coordinates with the logic in SourcesTaskProducer which copies content to that directory.
@@ -657,6 +672,8 @@ public final class LdLinkerSpec : GenericLinkerSpec, SpecIdentifierType, @unchec
 
         // Generate the command line.
         var commandLine = await commandLineFromTemplate(cbc, delegate, optionContext: optionContext, specialArgs: specialArgs, lookup: lookup).map(\.asString)
+
+        commandLine.append(contentsOf: stdlibRPathArgs)
 
         // Add flags to emit SDK imports info.
         let sdkImportsInfoFile = cbc.scope.evaluate(BuiltinMacros.LD_SDK_IMPORTS_FILE)
