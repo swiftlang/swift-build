@@ -94,4 +94,51 @@ fileprivate struct LinkerTaskConstructionTests: CoreBasedTests {
             }
         }
     }
+
+    @Test(.requireSDKs(.macOS))
+    func stdlibRpathSuppression() async throws {
+        let testProject = TestProject(
+            "aProject",
+            groupTree: TestGroup(
+                "SomeFiles",
+                children: [
+                    TestFile("s.swift"),
+                ]),
+            buildConfigurations: [
+                TestBuildConfiguration("Debug", buildSettings: [
+                    "PRODUCT_NAME": "$(TARGET_NAME)",
+                    "SWIFT_EXEC": try await swiftCompilerPath.str,
+                    "SWIFT_VERSION": try await swiftVersion,
+                    "MACOSX_DEPLOYMENT_TARGET": "10.13"
+                ]),
+            ],
+            targets: [
+                TestStandardTarget(
+                    "Library",
+                    type: .dynamicLibrary,
+                    buildConfigurations: [
+                        TestBuildConfiguration("Debug", buildSettings: [:]),
+                    ],
+                    buildPhases: [
+                        TestSourcesBuildPhase(["s.swift"]),
+                    ]
+                ),
+            ])
+        let core = try await getCore()
+        let tester = try TaskConstructionTester(core, testProject)
+
+        await tester.checkBuild(BuildParameters(configuration: "Debug", overrides: ["LINKER_DRIVER": "swiftc"]), runDestination: .macOS) { results in
+            results.checkNoDiagnostics()
+            results.checkTask(.matchRuleType("Ld")) { task in
+                task.checkCommandLineContains(["-no-stdlib-rpath"])
+            }
+        }
+
+        await tester.checkBuild(BuildParameters(configuration: "Debug", overrides: ["LINKER_DRIVER": "clang"]), runDestination: .macOS) { results in
+            results.checkNoDiagnostics()
+            results.checkTask(.matchRuleType("Ld")) { task in
+                task.checkCommandLineDoesNotContain("-no-stdlib-rpath")
+            }
+        }
+    }
 }
