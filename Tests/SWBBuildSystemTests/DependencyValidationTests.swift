@@ -345,8 +345,7 @@ fileprivate struct DependencyValidationTests: CoreBasedTests {
         }
     }
 
-    @Test(.requireSDKs(.host), .skipHostOS(.windows, "toolchain too old"), .skipHostOS(.linux, "toolchain too old"))
-    func validateModuleDependenciesSwift() async throws {
+    func validateModuleDependenciesSwift(explicitModules: Bool) async throws {
         try await withTemporaryDirectory { tmpDir in
             let testWorkspace = try await TestWorkspace(
                 "Test",
@@ -366,8 +365,8 @@ fileprivate struct DependencyValidationTests: CoreBasedTests {
                             buildSettings: [
                                 "PRODUCT_NAME": "$(TARGET_NAME)",
                                 "CLANG_ENABLE_MODULES": "YES",
-                                "CLANG_ENABLE_EXPLICIT_MODULES": "YES",
-                                "SWIFT_ENABLE_EXPLICIT_MODULES": "YES",
+                                "CLANG_ENABLE_EXPLICIT_MODULES": explicitModules ? "YES" : "NO",
+                                "SWIFT_ENABLE_EXPLICIT_MODULES": explicitModules ? "YES" : "NO",
                                 "SWIFT_UPCOMING_FEATURE_INTERNAL_IMPORTS_BY_DEFAULT": "YES",
                                 "SWIFT_VERSION": swiftVersion,
                                 "DEFINES_MODULE": "YES",
@@ -418,50 +417,58 @@ fileprivate struct DependencyValidationTests: CoreBasedTests {
             let projectXCConfigFinalLineNumber = projectXCConfigLines.count
             let projectXCConfigFinalColumnNumber = (projectXCConfigLines.last?.count ?? 0) + 1
 
-            let expectedDiagsByTarget: [String: [Diagnostic]] = [
-                "TargetA": [
-                    Diagnostic(
-                        behavior: .error,
-                        location: Diagnostic.Location.path(projectXCConfigPath, line: 1, column: 47),
-                        data: DiagnosticData("Missing entries in MODULE_DEPENDENCIES: Foundation"),
-                        fixIts: [
-                            Diagnostic.FixIt(
-                                sourceRange: Diagnostic.SourceRange(path: projectXCConfigPath, startLine: 1, startColumn: 47, endLine: 1, endColumn: 47),
-                                newText: " \\\n    Foundation"),
-                        ],
-                        childDiagnostics: [
-                            Diagnostic(
-                                behavior: .error,
-                                location: Diagnostic.Location.path(swiftSourcePath, line: 1, column: 8),
-                                data: DiagnosticData("Missing entry in MODULE_DEPENDENCIES: Foundation"),
-                                fixIts: [Diagnostic.FixIt(
+            let expectedDiagsByTarget: [String: [Diagnostic]]
+            if explicitModules {
+                expectedDiagsByTarget = [
+                    "TargetA": [
+                        Diagnostic(
+                            behavior: .error,
+                            location: Diagnostic.Location.path(projectXCConfigPath, line: 1, column: 47),
+                            data: DiagnosticData("Missing entries in MODULE_DEPENDENCIES: Foundation"),
+                            fixIts: [
+                                Diagnostic.FixIt(
                                     sourceRange: Diagnostic.SourceRange(path: projectXCConfigPath, startLine: 1, startColumn: 47, endLine: 1, endColumn: 47),
-                                    newText: " \\\n    Foundation")],
-                            ),
-                        ]),
-                ],
-                "TargetB": [
-                    Diagnostic(
-                        behavior: .error,
-                        location: Diagnostic.Location.path(projectXCConfigPath, line: projectXCConfigFinalLineNumber, column: projectXCConfigFinalColumnNumber),
-                        data: DiagnosticData("Missing entries in MODULE_DEPENDENCIES: Foundation"),
-                        fixIts: [
-                            Diagnostic.FixIt(
-                                sourceRange: Diagnostic.SourceRange(path: projectXCConfigPath, startLine: projectXCConfigFinalLineNumber, startColumn: projectXCConfigFinalColumnNumber, endLine: projectXCConfigFinalLineNumber, endColumn: projectXCConfigFinalColumnNumber),
-                                newText: "\nMODULE_DEPENDENCIES[target=TargetB] = $(inherited) \\\n    Foundation\n"),
-                        ],
-                        childDiagnostics: [
-                            Diagnostic(
-                                behavior: .error,
-                                location: Diagnostic.Location.path(swiftSourcePath, line: 1, column: 8),
-                                data: DiagnosticData("Missing entry in MODULE_DEPENDENCIES: Foundation"),
-                                fixIts: [Diagnostic.FixIt(
+                                    newText: " \\\n    Foundation"),
+                            ],
+                            childDiagnostics: [
+                                Diagnostic(
+                                    behavior: .error,
+                                    location: Diagnostic.Location.path(swiftSourcePath, line: 1, column: 8),
+                                    data: DiagnosticData("Missing entry in MODULE_DEPENDENCIES: Foundation"),
+                                    fixIts: [Diagnostic.FixIt(
+                                        sourceRange: Diagnostic.SourceRange(path: projectXCConfigPath, startLine: 1, startColumn: 47, endLine: 1, endColumn: 47),
+                                        newText: " \\\n    Foundation")],
+                                ),
+                            ]),
+                    ],
+                    "TargetB": [
+                        Diagnostic(
+                            behavior: .error,
+                            location: Diagnostic.Location.path(projectXCConfigPath, line: projectXCConfigFinalLineNumber, column: projectXCConfigFinalColumnNumber),
+                            data: DiagnosticData("Missing entries in MODULE_DEPENDENCIES: Foundation"),
+                            fixIts: [
+                                Diagnostic.FixIt(
                                     sourceRange: Diagnostic.SourceRange(path: projectXCConfigPath, startLine: projectXCConfigFinalLineNumber, startColumn: projectXCConfigFinalColumnNumber, endLine: projectXCConfigFinalLineNumber, endColumn: projectXCConfigFinalColumnNumber),
-                                    newText: "\nMODULE_DEPENDENCIES[target=TargetB] = $(inherited) \\\n    Foundation\n")],
-                            ),
-                        ]),
-                ],
-            ]
+                                    newText: "\nMODULE_DEPENDENCIES[target=TargetB] = $(inherited) \\\n    Foundation\n"),
+                            ],
+                            childDiagnostics: [
+                                Diagnostic(
+                                    behavior: .error,
+                                    location: Diagnostic.Location.path(swiftSourcePath, line: 1, column: 8),
+                                    data: DiagnosticData("Missing entry in MODULE_DEPENDENCIES: Foundation"),
+                                    fixIts: [Diagnostic.FixIt(
+                                        sourceRange: Diagnostic.SourceRange(path: projectXCConfigPath, startLine: projectXCConfigFinalLineNumber, startColumn: projectXCConfigFinalColumnNumber, endLine: projectXCConfigFinalLineNumber, endColumn: projectXCConfigFinalColumnNumber),
+                                        newText: "\nMODULE_DEPENDENCIES[target=TargetB] = $(inherited) \\\n    Foundation\n")],
+                                ),
+                            ]),
+                    ],
+                ]
+            } else {
+                expectedDiagsByTarget = [
+                    "TargetA": [],
+                    "TargetB": [],
+                ]
+            }
 
             for (targetName, expectedDiags) in expectedDiagsByTarget {
                 let target = try #require(tester.workspace.projects.only?.targets.first { $0.name == targetName })
@@ -480,6 +487,16 @@ fileprivate struct DependencyValidationTests: CoreBasedTests {
                 }
             }
         }
+    }
+
+    @Test(.requireSDKs(.host), .skipHostOS(.windows, "toolchain too old"), .skipHostOS(.linux, "toolchain too old"))
+    func validateModuleDependenciesSwift() async throws {
+        try await validateModuleDependenciesSwift(explicitModules: true)
+    }
+
+    @Test(.requireSDKs(.host), .skipHostOS(.windows, "toolchain too old"), .skipHostOS(.linux, "toolchain too old"))
+    func validateModuleDependenciesSwiftExplicitModulesOff() async throws {
+        try await validateModuleDependenciesSwift(explicitModules: false)
     }
 
     @Test(.requireSDKs(.host), .requireClangFeatures(.printHeadersDirectPerFile))

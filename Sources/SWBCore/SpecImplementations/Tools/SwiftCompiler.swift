@@ -2311,7 +2311,7 @@ public final class SwiftCompilerSpec : CompilerSpec, SpecIdentifierType, SwiftDi
             }
 
             let dependencyValidationPayload: SwiftDependencyValidationPayload?
-            if let context = cbc.producer.moduleDependenciesContext, let outputPath = objectOutputPaths.first, context.validate != .no {
+            if explicitModuleBuildEnabled, let context = cbc.producer.moduleDependenciesContext, let outputPath = objectOutputPaths.first, context.validate != .no {
                 let primarySwiftBaseName = cbc.scope.evaluate(BuiltinMacros.TARGET_NAME) + compilationMode.moduleBaseNameSuffix + "-primary"
                 let dependencyValidationOutputPath = outputPath.dirname.join(primarySwiftBaseName + ".dependencies")
                 extraOutputPaths.append(dependencyValidationOutputPath)
