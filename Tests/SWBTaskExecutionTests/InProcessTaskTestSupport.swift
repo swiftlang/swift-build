@@ -36,6 +36,7 @@ struct MockExecutionDelegate: TaskExecutionDelegate {
     let environment: [String: String]?
     let userPreferences: UserPreferences
     let infoLookup: any PlatformInfoLookup
+    var hostOperatingSystem: OperatingSystem { core!.hostOperatingSystem }
     var sdkRegistry: SDKRegistry { core!.sdkRegistry }
     var specRegistry: SpecRegistry { core!.specRegistry }
     var platformRegistry: PlatformRegistry { core!.platformRegistry }
