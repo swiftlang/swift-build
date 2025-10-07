@@ -516,7 +516,7 @@
                 DisplayName = "Product Bundle Identifier";
                 Description = "A string that uniquely identifies the bundle. The string should be in reverse DNS format using only alphanumeric characters (`A-Z`, `a-z`, `0-9`), the dot (`.`), and the hyphen (`-`).
 
-When `GENERATE_INFOPLIST_FILE` is enabled, sets the value of the [CFBundleIdentifier](https://developer.apple.com/documentation/bundleresources/information_property_list/cfbundleidentifier) key in the `Info.plist` file to the value of this build setting.";
+When `GENERATE_INFOPLIST_FILE` is enabled, sets the value of the [CFBundleIdentifier](https://developer.apple.com/documentation/bundleresources/information-property-list/cfbundleidentifier) key in the `Info.plist` file to the value of this build setting.";
                 DefaultValue = "";
                 ConditionFlavors = (
                     sdk,
@@ -3771,7 +3771,7 @@ When this setting is enabled:
                     sdk,
                 );
                 DisplayName = "Bundle Display Name";
-                Description = "When `GENERATE_INFOPLIST_FILE` is enabled, sets the value of the [CFBundleDisplayName](https://developer.apple.com/documentation/bundleresources/information_property_list/cfbundledisplayname) key in the `Info.plist` file to the value of this build setting.";
+                Description = "When `GENERATE_INFOPLIST_FILE` is enabled, sets the value of the [CFBundleDisplayName](https://developer.apple.com/documentation/bundleresources/information-property-list/cfbundledisplayname) key in the `Info.plist` file to the value of this build setting.";
             },
             {
                 Name = INFOPLIST_KEY_ITSAppUsesNonExemptEncryption;
@@ -3781,7 +3781,7 @@ When this setting is enabled:
                     sdk,
                 );
                 DisplayName = "App Uses Non-Exempt Encryption";
-                Description = "When `GENERATE_INFOPLIST_FILE` is enabled, sets the value of the [ITSAppUsesNonExemptEncryption](https://developer.apple.com/documentation/bundleresources/information_property_list/itsappusesnonexemptencryption) key in the `Info.plist` file to the value of this build setting.";
+                Description = "When `GENERATE_INFOPLIST_FILE` is enabled, sets the value of the [ITSAppUsesNonExemptEncryption](https://developer.apple.com/documentation/bundleresources/information-property-list/itsappusesnonexemptencryption) key in the `Info.plist` file to the value of this build setting.";
             },
             {
                 Name = INFOPLIST_KEY_ITSEncryptionExportComplianceCode;
@@ -3791,7 +3791,7 @@ When this setting is enabled:
                     sdk,
                 );
                 DisplayName = "App Encryption Export Compliance Code";
-                Description = "When `GENERATE_INFOPLIST_FILE` is enabled, sets the value of the [ITSEncryptionExportComplianceCode](https://developer.apple.com/documentation/bundleresources/information_property_list/itsencryptionexportcompliancecode) key in the `Info.plist` file to the value of this build setting.";
+                Description = "When `GENERATE_INFOPLIST_FILE` is enabled, sets the value of the [ITSEncryptionExportComplianceCode](https://developer.apple.com/documentation/bundleresources/information-property-list/itsencryptionexportcompliancecode) key in the `Info.plist` file to the value of this build setting.";
             },
             {
                 Name = INFOPLIST_KEY_LSApplicationCategoryType;
@@ -3895,7 +3895,7 @@ When this setting is enabled:
                     sdk,
                 );
                 DisplayName = "Application Category";
-                Description = "When `GENERATE_INFOPLIST_FILE` is enabled, sets the value of the [LSApplicationCategoryType](https://developer.apple.com/documentation/bundleresources/information_property_list/lsapplicationcategorytype) key in the `Info.plist` file to the value of this build setting.";
+                Description = "When `GENERATE_INFOPLIST_FILE` is enabled, sets the value of the [LSApplicationCategoryType](https://developer.apple.com/documentation/bundleresources/information-property-list/lsapplicationcategorytype) key in the `Info.plist` file to the value of this build setting.";
             },
             {
                 Name = INFOPLIST_KEY_LSBackgroundOnly;
@@ -3905,7 +3905,7 @@ When this setting is enabled:
                     sdk,
                 );
                 DisplayName = "Application is Background Only";
-                Description = "When `GENERATE_INFOPLIST_FILE` is enabled, sets the value of the [LSBackgroundOnly](https://developer.apple.com/documentation/bundleresources/information_property_list/lsbackgroundonly) key in the `Info.plist` file to the value of this build setting.";
+                Description = "When `GENERATE_INFOPLIST_FILE` is enabled, sets the value of the [LSBackgroundOnly](https://developer.apple.com/documentation/bundleresources/information-property-list/lsbackgroundonly) key in the `Info.plist` file to the value of this build setting.";
             },
             {
                 Name = INFOPLIST_KEY_LSUIElement;
@@ -3915,7 +3915,7 @@ When this setting is enabled:
                     sdk,
                 );
                 DisplayName = "Application is Agent (UIElement)";
-                Description = "When `GENERATE_INFOPLIST_FILE` is enabled, sets the value of the [LSUIElement](https://developer.apple.com/documentation/bundleresources/information_property_list/lsuielement) key in the `Info.plist` file to the value of this build setting.";
+                Description = "When `GENERATE_INFOPLIST_FILE` is enabled, sets the value of the [LSUIElement](https://developer.apple.com/documentation/bundleresources/information-property-list/lsuielement) key in the `Info.plist` file to the value of this build setting.";
             },
             {
                 Name = INFOPLIST_KEY_NSHumanReadableCopyright;
@@ -3925,7 +3925,7 @@ When this setting is enabled:
                     sdk,
                 );
                 DisplayName = "Copyright (Human-Readable)";
-                Description = "When `GENERATE_INFOPLIST_FILE` is enabled, sets the value of the [NSHumanReadableCopyright](https://developer.apple.com/documentation/bundleresources/information_property_list/nshumanreadablecopyright) key in the `Info.plist` file to the value of this build setting.";
+                Description = "When `GENERATE_INFOPLIST_FILE` is enabled, sets the value of the [NSHumanReadableCopyright](https://developer.apple.com/documentation/bundleresources/information-property-list/nshumanreadablecopyright) key in the `Info.plist` file to the value of this build setting.";
             },
             {
                 Name = INFOPLIST_KEY_NSPrincipalClass;
@@ -3935,7 +3935,7 @@ When this setting is enabled:
                     sdk,
                 );
                 DisplayName = "Principal Class";
-                Description = "When `GENERATE_INFOPLIST_FILE` is enabled, sets the value of the [NSPrincipalClass](https://developer.apple.com/documentation/bundleresources/information_property_list/nsprincipalclass) key in the `Info.plist` file to the value of this build setting.";
+                Description = "When `GENERATE_INFOPLIST_FILE` is enabled, sets the value of the [NSPrincipalClass](https://developer.apple.com/documentation/bundleresources/information-property-list/nsprincipalclass) key in the `Info.plist` file to the value of this build setting.";
             },
 
             // Info.plist Keys - Usage Descriptions
@@ -3944,49 +3944,49 @@ When this setting is enabled:
                 Type = String;
                 Category = "Info.plist Values";
                 DisplayName = "Privacy - NFC Scan Usage Description";
-                Description = "When `GENERATE_INFOPLIST_FILE` is enabled, sets the value of the [NFCReaderUsageDescription](https://developer.apple.com/documentation/bundleresources/information_property_list/nfcreaderusagedescription) key in the `Info.plist` file to the value of this build setting.";
+                Description = "When `GENERATE_INFOPLIST_FILE` is enabled, sets the value of the [NFCReaderUsageDescription](https://developer.apple.com/documentation/bundleresources/information-property-list/nfcreaderusagedescription) key in the `Info.plist` file to the value of this build setting.";
             },
             {
                 Name = INFOPLIST_KEY_NSAccessoryTrackingUsageDescription;
                 Type = String;
                 Category = "Info.plist Values";
                 DisplayName = "Privacy - Accessory Tracking Usage Description";
-                Description = "When `GENERATE_INFOPLIST_FILE` is enabled, sets the value of the [NSAccessoryTrackingUsageDescription](https://developer.apple.com/documentation/bundleresources/information_property_list/nsaccessorytrackingusagedescription) key in the `Info.plist` file to the value of this build setting.";
+                Description = "When `GENERATE_INFOPLIST_FILE` is enabled, sets the value of the [NSAccessoryTrackingUsageDescription](https://developer.apple.com/documentation/bundleresources/information-property-list/nsaccessorytrackingusagedescription) key in the `Info.plist` file to the value of this build setting.";
             },
             {
                 Name = INFOPLIST_KEY_NSAppDataUsageDescription;
                 Type = String;
                 Category = "Info.plist Values";
                 DisplayName = "Privacy - Other Application Data Usage Description";
-                Description = "When `GENERATE_INFOPLIST_FILE` is enabled, sets the value of the [NSAppDataUsageDescription](https://developer.apple.com/documentation/bundleresources/information_property_list/nsappdatausagedescription) key in the `Info.plist` file to the value of this build setting.";
+                Description = "When `GENERATE_INFOPLIST_FILE` is enabled, sets the value of the [NSAppDataUsageDescription](https://developer.apple.com/documentation/bundleresources/information-property-list/nsappdatausagedescription) key in the `Info.plist` file to the value of this build setting.";
             },
             {
                 Name = INFOPLIST_KEY_NSAppleEventsUsageDescription;
                 Type = String;
                 Category = "Info.plist Values";
                 DisplayName = "Privacy - AppleEvents Sending Usage Description";
-                Description = "When `GENERATE_INFOPLIST_FILE` is enabled, sets the value of the [NSAppleEventsUsageDescription](https://developer.apple.com/documentation/bundleresources/information_property_list/nsappleeventsusagedescription) key in the `Info.plist` file to the value of this build setting.";
+                Description = "When `GENERATE_INFOPLIST_FILE` is enabled, sets the value of the [NSAppleEventsUsageDescription](https://developer.apple.com/documentation/bundleresources/information-property-list/nsappleeventsusagedescription) key in the `Info.plist` file to the value of this build setting.";
             },
             {
                 Name = INFOPLIST_KEY_NSAppleMusicUsageDescription;
                 Type = String;
                 Category = "Info.plist Values";
                 DisplayName = "Privacy - Media Library Usage Description";
-                Description = "When `GENERATE_INFOPLIST_FILE` is enabled, sets the value of the [NSAppleMusicUsageDescription](https://developer.apple.com/documentation/bundleresources/information_property_list/nsapplemusicusagedescription) key in the `Info.plist` file to the value of this build setting.";
+                Description = "When `GENERATE_INFOPLIST_FILE` is enabled, sets the value of the [NSAppleMusicUsageDescription](https://developer.apple.com/documentation/bundleresources/information-property-list/nsapplemusicusagedescription) key in the `Info.plist` file to the value of this build setting.";
             },
             {
                 Name = INFOPLIST_KEY_NSBluetoothAlwaysUsageDescription;
                 Type = String;
                 Category = "Info.plist Values";
                 DisplayName = "Privacy - Bluetooth Always Usage Description";
-                Description = "When `GENERATE_INFOPLIST_FILE` is enabled, sets the value of the [NSBluetoothAlwaysUsageDescription](https://developer.apple.com/documentation/bundleresources/information_property_list/nsbluetoothalwaysusagedescription) key in the `Info.plist` file to the value of this build setting.";
+                Description = "When `GENERATE_INFOPLIST_FILE` is enabled, sets the value of the [NSBluetoothAlwaysUsageDescription](https://developer.apple.com/documentation/bundleresources/information-property-list/nsbluetoothalwaysusagedescription) key in the `Info.plist` file to the value of this build setting.";
             },
             {
                 Name = INFOPLIST_KEY_NSBluetoothPeripheralUsageDescription;
                 Type = String;
                 Category = "Info.plist Values";
                 DisplayName = "Privacy - Bluetooth Peripheral Usage Description";
-                Description = "When `GENERATE_INFOPLIST_FILE` is enabled, sets the value of the [NSBluetoothPeripheralUsageDescription](https://developer.apple.com/documentation/bundleresources/information_property_list/nsbluetoothperipheralusagedescription) key in the `Info.plist` file to the value of this build setting.";
+                Description = "When `GENERATE_INFOPLIST_FILE` is enabled, sets the value of the [NSBluetoothPeripheralUsageDescription](https://developer.apple.com/documentation/bundleresources/information-property-list/nsbluetoothperipheralusagedescription) key in the `Info.plist` file to the value of this build setting.";
             },
             {
                 Name = INFOPLIST_KEY_NSBluetoothWhileInUseUsageDescription;
@@ -4000,84 +4000,84 @@ When this setting is enabled:
                 Type = String;
                 Category = "Info.plist Values";
                 DisplayName = "Privacy - Calendars Usage Description";
-                Description = "When `GENERATE_INFOPLIST_FILE` is enabled, sets the value of the [NSCalendarsUsageDescription](https://developer.apple.com/documentation/bundleresources/information_property_list/nscalendarsusagedescription) key in the `Info.plist` file to the value of this build setting.";
+                Description = "When `GENERATE_INFOPLIST_FILE` is enabled, sets the value of the [NSCalendarsUsageDescription](https://developer.apple.com/documentation/bundleresources/information-property-list/nscalendarsusagedescription) key in the `Info.plist` file to the value of this build setting.";
             },
             {
                 Name = INFOPLIST_KEY_NSCalendarsFullAccessUsageDescription;
                 Type = String;
                 Category = "Info.plist Values";
                 DisplayName = "Privacy - Calendars Full Access Usage Description";
-                Description = "When `GENERATE_INFOPLIST_FILE` is enabled, sets the value of the [NSCalendarsFullAccessUsageDescription](https://developer.apple.com/documentation/bundleresources/information_property_list/nscalendarsfullaccessusagedescription) key in the `Info.plist` file to the value of this build setting.";
+                Description = "When `GENERATE_INFOPLIST_FILE` is enabled, sets the value of the [NSCalendarsFullAccessUsageDescription](https://developer.apple.com/documentation/bundleresources/information-property-list/nscalendarsfullaccessusagedescription) key in the `Info.plist` file to the value of this build setting.";
             },
             {
                 Name = INFOPLIST_KEY_NSCalendarsWriteOnlyAccessUsageDescription;
                 Type = String;
                 Category = "Info.plist Values";
                 DisplayName = "Privacy - Calendars Write Only Usage Description";
-                Description = "When `GENERATE_INFOPLIST_FILE` is enabled, sets the value of the [NSCalendarsWriteOnlyAccessUsageDescription](https://developer.apple.com/documentation/bundleresources/information_property_list/nscalendarswriteonlyaccessusagedescription) key in the `Info.plist` file to the value of this build setting.";
+                Description = "When `GENERATE_INFOPLIST_FILE` is enabled, sets the value of the [NSCalendarsWriteOnlyAccessUsageDescription](https://developer.apple.com/documentation/bundleresources/information-property-list/nscalendarswriteonlyaccessusagedescription) key in the `Info.plist` file to the value of this build setting.";
             },
             {
                 Name = INFOPLIST_KEY_NSCameraUsageDescription;
                 Type = String;
                 Category = "Info.plist Values";
                 DisplayName = "Privacy - Camera Usage Description";
-                Description = "When `GENERATE_INFOPLIST_FILE` is enabled, sets the value of the [NSCameraUsageDescription](https://developer.apple.com/documentation/bundleresources/information_property_list/nscamerausagedescription) key in the `Info.plist` file to the value of this build setting.";
+                Description = "When `GENERATE_INFOPLIST_FILE` is enabled, sets the value of the [NSCameraUsageDescription](https://developer.apple.com/documentation/bundleresources/information-property-list/nscamerausagedescription) key in the `Info.plist` file to the value of this build setting.";
             },
             {
                 Name = INFOPLIST_KEY_NSContactsUsageDescription;
                 Type = String;
                 Category = "Info.plist Values";
                 DisplayName = "Privacy - Contacts Usage Description";
-                Description = "When `GENERATE_INFOPLIST_FILE` is enabled, sets the value of the [NSContactsUsageDescription](https://developer.apple.com/documentation/bundleresources/information_property_list/nscontactsusagedescription) key in the `Info.plist` file to the value of this build setting.";
+                Description = "When `GENERATE_INFOPLIST_FILE` is enabled, sets the value of the [NSContactsUsageDescription](https://developer.apple.com/documentation/bundleresources/information-property-list/nscontactsusagedescription) key in the `Info.plist` file to the value of this build setting.";
             },
             {
                 Name = INFOPLIST_KEY_NSCriticalMessagingUsageDescription;
                 Type = String;
                 Category = "Info.plist Values";
                 DisplayName = "Privacy - Critical Messaging Usage Description";
-                Description = "When `GENERATE_INFOPLIST_FILE` is enabled, sets the value of the [NSCriticalMessagingUsageDescription](https://developer.apple.com/documentation/bundleresources/information_property_list/nscriticalmessagingusagedescription) key in the `Info.plist` file to the value of this build setting.";
+                Description = "When `GENERATE_INFOPLIST_FILE` is enabled, sets the value of the [NSCriticalMessagingUsageDescription](https://developer.apple.com/documentation/bundleresources/information-property-list/nscriticalmessagingusagedescription) key in the `Info.plist` file to the value of this build setting.";
             },
             {
                 Name = INFOPLIST_KEY_NSDesktopFolderUsageDescription;
                 Type = String;
                 Category = "Info.plist Values";
                 DisplayName = "Privacy - Desktop Folder Usage Description";
-                Description = "When `GENERATE_INFOPLIST_FILE` is enabled, sets the value of the [NSDesktopFolderUsageDescription](https://developer.apple.com/documentation/bundleresources/information_property_list/nsdesktopfolderusagedescription) key in the `Info.plist` file to the value of this build setting.";
+                Description = "When `GENERATE_INFOPLIST_FILE` is enabled, sets the value of the [NSDesktopFolderUsageDescription](https://developer.apple.com/documentation/bundleresources/information-property-list/nsdesktopfolderusagedescription) key in the `Info.plist` file to the value of this build setting.";
             },
             {
                 Name = INFOPLIST_KEY_NSDocumentsFolderUsageDescription;
                 Type = String;
                 Category = "Info.plist Values";
                 DisplayName = "Privacy - Documents Folder Usage Description";
-                Description = "When `GENERATE_INFOPLIST_FILE` is enabled, sets the value of the [NSDocumentsFolderUsageDescription](https://developer.apple.com/documentation/bundleresources/information_property_list/nsdocumentsfolderusagedescription) key in the `Info.plist` file to the value of this build setting.";
+                Description = "When `GENERATE_INFOPLIST_FILE` is enabled, sets the value of the [NSDocumentsFolderUsageDescription](https://developer.apple.com/documentation/bundleresources/information-property-list/nsdocumentsfolderusagedescription) key in the `Info.plist` file to the value of this build setting.";
             },
             {
                 Name = INFOPLIST_KEY_NSDownloadsFolderUsageDescription;
                 Type = String;
                 Category = "Info.plist Values";
                 DisplayName = "Privacy - Downloads Folder Usage Description";
-                Description = "When `GENERATE_INFOPLIST_FILE` is enabled, sets the value of the [NSDownloadsFolderUsageDescription](https://developer.apple.com/documentation/bundleresources/information_property_list/nsdownloadsfolderusagedescription) key in the `Info.plist` file to the value of this build setting.";
+                Description = "When `GENERATE_INFOPLIST_FILE` is enabled, sets the value of the [NSDownloadsFolderUsageDescription](https://developer.apple.com/documentation/bundleresources/information-property-list/nsdownloadsfolderusagedescription) key in the `Info.plist` file to the value of this build setting.";
             },
             {
                 Name = INFOPLIST_KEY_NSFaceIDUsageDescription;
                 Type = String;
                 Category = "Info.plist Values";
                 DisplayName = "Privacy - Face ID Usage Description";
-                Description = "When `GENERATE_INFOPLIST_FILE` is enabled, sets the value of the [NSFaceIDUsageDescription](https://developer.apple.com/documentation/bundleresources/information_property_list/nsfaceidusagedescription) key in the `Info.plist` file to the value of this build setting.";
+                Description = "When `GENERATE_INFOPLIST_FILE` is enabled, sets the value of the [NSFaceIDUsageDescription](https://developer.apple.com/documentation/bundleresources/information-property-list/nsfaceidusagedescription) key in the `Info.plist` file to the value of this build setting.";
             },
             {
                 Name = INFOPLIST_KEY_NSFallDetectionUsageDescription;
                 Type = String;
                 Category = "Info.plist Values";
                 DisplayName = "Privacy - Fall Detection Usage Description";
-                Description = "When `GENERATE_INFOPLIST_FILE` is enabled, sets the value of the [NSFallDetectionUsageDescription](https://developer.apple.com/documentation/bundleresources/information_property_list/nsfalldetectionusagedescription) key in the `Info.plist` file to the value of this build setting.";
+                Description = "When `GENERATE_INFOPLIST_FILE` is enabled, sets the value of the [NSFallDetectionUsageDescription](https://developer.apple.com/documentation/bundleresources/information-property-list/nsfalldetectionusagedescription) key in the `Info.plist` file to the value of this build setting.";
             },
             {
                 Name = INFOPLIST_KEY_NSFileProviderDomainUsageDescription;
                 Type = String;
                 Category = "Info.plist Values";
                 DisplayName = "Privacy - Access to a File Provide Domain Usage Description";
-                Description = "When `GENERATE_INFOPLIST_FILE` is enabled, sets the value of the [NSFileProviderDomainUsageDescription](https://developer.apple.com/documentation/bundleresources/information_property_list/nsfileproviderdomainusagedescription) key in the `Info.plist` file to the value of this build setting.";
+                Description = "When `GENERATE_INFOPLIST_FILE` is enabled, sets the value of the [NSFileProviderDomainUsageDescription](https://developer.apple.com/documentation/bundleresources/information-property-list/nsfileproviderdomainusagedescription) key in the `Info.plist` file to the value of this build setting.";
             },
             {
                 Name = INFOPLIST_KEY_NSFileProviderPresenceUsageDescription;
@@ -4091,7 +4091,7 @@ When this setting is enabled:
                 Type = String;
                 Category = "Info.plist Values";
                 DisplayName = "Privacy - Financial Data Usage Description";
-                Description = "When `GENERATE_INFOPLIST_FILE` is enabled, sets the value of the [NSFinancialDataUsageDescription](https://developer.apple.com/documentation/bundleresources/information_property_list/nsfinancialdatausagedescription) key in the `Info.plist` file to the value of this build setting.";
+                Description = "When `GENERATE_INFOPLIST_FILE` is enabled, sets the value of the [NSFinancialDataUsageDescription](https://developer.apple.com/documentation/bundleresources/information-property-list/nsfinancialdatausagedescription) key in the `Info.plist` file to the value of this build setting.";
             },
             {
                 Name = INFOPLIST_KEY_NSFocusStatusUsageDescription;
@@ -4105,203 +4105,203 @@ When this setting is enabled:
                 Type = String;
                 Category = "Info.plist Values";
                 DisplayName = "Privacy - GameKit Friend List Usage Description";
-                Description = "When `GENERATE_INFOPLIST_FILE` is enabled, sets the value of the [NSGKFriendListUsageDescription](https://developer.apple.com/documentation/bundleresources/information_property_list/nsgkfriendlistusagedescription) key in the `Info.plist` file to the value of this build setting.";
+                Description = "When `GENERATE_INFOPLIST_FILE` is enabled, sets the value of the [NSGKFriendListUsageDescription](https://developer.apple.com/documentation/bundleresources/information-property-list/nsgkfriendlistusagedescription) key in the `Info.plist` file to the value of this build setting.";
             },
             {
                 Name = INFOPLIST_KEY_NSHandsTrackingUsageDescription;
                 Type = String;
                 Category = "Info.plist Values";
                 DisplayName = "Privacy - Hands Tracking Usage Description";
-                Description = "When `GENERATE_INFOPLIST_FILE` is enabled, sets the value of the [NSHandsTrackingUsageDescription](https://developer.apple.com/documentation/bundleresources/information_property_list/nshandstrackingusagedescription) key in the `Info.plist` file to the value of this build setting.";
+                Description = "When `GENERATE_INFOPLIST_FILE` is enabled, sets the value of the [NSHandsTrackingUsageDescription](https://developer.apple.com/documentation/bundleresources/information-property-list/nshandstrackingusagedescription) key in the `Info.plist` file to the value of this build setting.";
             },
             {
                 Name = INFOPLIST_KEY_NSHealthClinicalHealthRecordsShareUsageDescription;
                 Type = String;
                 Category = "Info.plist Values";
                 DisplayName = "Privacy - Health Records Usage Description";
-                Description = "When `GENERATE_INFOPLIST_FILE` is enabled, sets the value of the [NSHealthClinicalHealthRecordsShareUsageDescription](https://developer.apple.com/documentation/bundleresources/information_property_list/nshealthclinicalhealthrecordsshareusagedescription) key in the `Info.plist` file to the value of this build setting.";
+                Description = "When `GENERATE_INFOPLIST_FILE` is enabled, sets the value of the [NSHealthClinicalHealthRecordsShareUsageDescription](https://developer.apple.com/documentation/bundleresources/information-property-list/nshealthclinicalhealthrecordsshareusagedescription) key in the `Info.plist` file to the value of this build setting.";
             },
             {
                 Name = INFOPLIST_KEY_NSHealthShareUsageDescription;
                 Type = String;
                 Category = "Info.plist Values";
                 DisplayName = "Privacy - Health Share Usage Description";
-                Description = "When `GENERATE_INFOPLIST_FILE` is enabled, sets the value of the [NSHealthShareUsageDescription](https://developer.apple.com/documentation/bundleresources/information_property_list/nshealthshareusagedescription) key in the `Info.plist` file to the value of this build setting.";
+                Description = "When `GENERATE_INFOPLIST_FILE` is enabled, sets the value of the [NSHealthShareUsageDescription](https://developer.apple.com/documentation/bundleresources/information-property-list/nshealthshareusagedescription) key in the `Info.plist` file to the value of this build setting.";
             },
             {
                 Name = INFOPLIST_KEY_NSHealthUpdateUsageDescription;
                 Type = String;
                 Category = "Info.plist Values";
                 DisplayName = "Privacy - Health Update Usage Description";
-                Description = "When `GENERATE_INFOPLIST_FILE` is enabled, sets the value of the [NSHealthUpdateUsageDescription](https://developer.apple.com/documentation/bundleresources/information_property_list/nshealthupdateusagedescription) key in the `Info.plist` file to the value of this build setting.";
+                Description = "When `GENERATE_INFOPLIST_FILE` is enabled, sets the value of the [NSHealthUpdateUsageDescription](https://developer.apple.com/documentation/bundleresources/information-property-list/nshealthupdateusagedescription) key in the `Info.plist` file to the value of this build setting.";
             },
             {
                 Name = INFOPLIST_KEY_NSHomeKitUsageDescription;
                 Type = String;
                 Category = "Info.plist Values";
                 DisplayName = "Privacy - HomeKit Usage Description";
-                Description = "When `GENERATE_INFOPLIST_FILE` is enabled, sets the value of the [NSHomeKitUsageDescription](https://developer.apple.com/documentation/bundleresources/information_property_list/nshomekitusagedescription) key in the `Info.plist` file to the value of this build setting.";
+                Description = "When `GENERATE_INFOPLIST_FILE` is enabled, sets the value of the [NSHomeKitUsageDescription](https://developer.apple.com/documentation/bundleresources/information-property-list/nshomekitusagedescription) key in the `Info.plist` file to the value of this build setting.";
             },
             {
                 Name = INFOPLIST_KEY_NSIdentityUsageDescription;
                 Type = String;
                 Category = "Info.plist Values";
                 DisplayName = "Privacy - Identity Usage Description";
-                Description = "When `GENERATE_INFOPLIST_FILE` is enabled, sets the value of the [NSIdentityUsageDescription](https://developer.apple.com/documentation/bundleresources/information_property_list/nsidentityusagedescription) key in the `Info.plist` file to the value of this build setting.";
+                Description = "When `GENERATE_INFOPLIST_FILE` is enabled, sets the value of the [NSIdentityUsageDescription](https://developer.apple.com/documentation/bundleresources/information-property-list/nsidentityusagedescription) key in the `Info.plist` file to the value of this build setting.";
             },
             {
                 Name = INFOPLIST_KEY_NSLocalNetworkUsageDescription;
                 Type = String;
                 Category = "Info.plist Values";
                 DisplayName = "Privacy - Local Network Usage Description";
-                Description = "When `GENERATE_INFOPLIST_FILE` is enabled, sets the value of the [NSLocalNetworkUsageDescription](https://developer.apple.com/documentation/bundleresources/information_property_list/nslocalnetworkusagedescription) key in the `Info.plist` file to the value of this build setting.";
+                Description = "When `GENERATE_INFOPLIST_FILE` is enabled, sets the value of the [NSLocalNetworkUsageDescription](https://developer.apple.com/documentation/bundleresources/information-property-list/nslocalnetworkusagedescription) key in the `Info.plist` file to the value of this build setting.";
             },
             {
                 Name = INFOPLIST_KEY_NSLocationAlwaysAndWhenInUseUsageDescription;
                 Type = String;
                 Category = "Info.plist Values";
                 DisplayName = "Privacy - Location Always and When In Use Usage Description";
-                Description = "When `GENERATE_INFOPLIST_FILE` is enabled, sets the value of the [NSLocationAlwaysAndWhenInUseUsageDescription](https://developer.apple.com/documentation/bundleresources/information_property_list/nslocationalwaysandwheninuseusagedescription) key in the `Info.plist` file to the value of this build setting.";
+                Description = "When `GENERATE_INFOPLIST_FILE` is enabled, sets the value of the [NSLocationAlwaysAndWhenInUseUsageDescription](https://developer.apple.com/documentation/bundleresources/information-property-list/nslocationalwaysandwheninuseusagedescription) key in the `Info.plist` file to the value of this build setting.";
             },
             {
                 Name = INFOPLIST_KEY_NSLocationAlwaysUsageDescription;
                 Type = String;
                 Category = "Info.plist Values";
                 DisplayName = "Privacy - Location Always Usage Description";
-                Description = "When `GENERATE_INFOPLIST_FILE` is enabled, sets the value of the [NSLocationAlwaysUsageDescription](https://developer.apple.com/documentation/bundleresources/information_property_list/nslocationalwaysusagedescription) key in the `Info.plist` file to the value of this build setting.";
+                Description = "When `GENERATE_INFOPLIST_FILE` is enabled, sets the value of the [NSLocationAlwaysUsageDescription](https://developer.apple.com/documentation/bundleresources/information-property-list/nslocationalwaysusagedescription) key in the `Info.plist` file to the value of this build setting.";
             },
             {
                 Name = INFOPLIST_KEY_NSLocationTemporaryUsageDescriptionDictionary;
                 Type = String;
                 Category = "Info.plist Values";
                 DisplayName = "Privacy - Location Temporary Usage Description Dictionary";
-                Description = "When `GENERATE_INFOPLIST_FILE` is enabled, sets the value of the [NSLocationTemporaryUsageDescriptionDictionary](https://developer.apple.com/documentation/bundleresources/information_property_list/nslocationtemporaryusagedescriptiondictionary) key in the `Info.plist` file to the value of this build setting.";
+                Description = "When `GENERATE_INFOPLIST_FILE` is enabled, sets the value of the [NSLocationTemporaryUsageDescriptionDictionary](https://developer.apple.com/documentation/bundleresources/information-property-list/nslocationtemporaryusagedescriptiondictionary) key in the `Info.plist` file to the value of this build setting.";
             },
             {
                 Name = INFOPLIST_KEY_NSLocationUsageDescription;
                 Type = String;
                 Category = "Info.plist Values";
                 DisplayName = "Privacy - Location Usage Description";
-                Description = "When `GENERATE_INFOPLIST_FILE` is enabled, sets the value of the [NSLocationUsageDescription](https://developer.apple.com/documentation/bundleresources/information_property_list/nslocationusagedescription) key in the `Info.plist` file to the value of this build setting.";
+                Description = "When `GENERATE_INFOPLIST_FILE` is enabled, sets the value of the [NSLocationUsageDescription](https://developer.apple.com/documentation/bundleresources/information-property-list/nslocationusagedescription) key in the `Info.plist` file to the value of this build setting.";
             },
             {
                 Name = INFOPLIST_KEY_NSLocationWhenInUseUsageDescription;
                 Type = String;
                 Category = "Info.plist Values";
                 DisplayName = "Privacy - Location When In Use Usage Description";
-                Description = "When `GENERATE_INFOPLIST_FILE` is enabled, sets the value of the [NSLocationWhenInUseUsageDescription](https://developer.apple.com/documentation/bundleresources/information_property_list/nslocationwheninuseusagedescription) key in the `Info.plist` file to the value of this build setting.";
+                Description = "When `GENERATE_INFOPLIST_FILE` is enabled, sets the value of the [NSLocationWhenInUseUsageDescription](https://developer.apple.com/documentation/bundleresources/information-property-list/nslocationwheninuseusagedescription) key in the `Info.plist` file to the value of this build setting.";
             },
             {
                 Name = INFOPLIST_KEY_NSMainCameraUsageDescription;
                 Type = String;
                 Category = "Info.plist Values";
                 DisplayName = "Privacy - Main Camera Usage Description";
-                Description = "When `GENERATE_INFOPLIST_FILE` is enabled, sets the value of the [NSMainCameraUsageDescription](https://developer.apple.com/documentation/bundleresources/information_property_list/nsmaincamerausagedescription) key in the `Info.plist` file to the value of this build setting.";
+                Description = "When `GENERATE_INFOPLIST_FILE` is enabled, sets the value of the [NSMainCameraUsageDescription](https://developer.apple.com/documentation/bundleresources/information-property-list/nsmaincamerausagedescription) key in the `Info.plist` file to the value of this build setting.";
             },
             {
                 Name = INFOPLIST_KEY_NSMicrophoneUsageDescription;
                 Type = String;
                 Category = "Info.plist Values";
                 DisplayName = "Privacy - Microphone Usage Description";
-                Description = "When `GENERATE_INFOPLIST_FILE` is enabled, sets the value of the [NSMicrophoneUsageDescription](https://developer.apple.com/documentation/bundleresources/information_property_list/nsmicrophoneusagedescription) key in the `Info.plist` file to the value of this build setting.";
+                Description = "When `GENERATE_INFOPLIST_FILE` is enabled, sets the value of the [NSMicrophoneUsageDescription](https://developer.apple.com/documentation/bundleresources/information-property-list/nsmicrophoneusagedescription) key in the `Info.plist` file to the value of this build setting.";
             },
             {
                 Name = INFOPLIST_KEY_NSMotionUsageDescription;
                 Type = String;
                 Category = "Info.plist Values";
                 DisplayName = "Privacy - Motion Usage Description";
-                Description = "When `GENERATE_INFOPLIST_FILE` is enabled, sets the value of the [NSMotionUsageDescription](https://developer.apple.com/documentation/bundleresources/information_property_list/nsmotionusagedescription) key in the `Info.plist` file to the value of this build setting.";
+                Description = "When `GENERATE_INFOPLIST_FILE` is enabled, sets the value of the [NSMotionUsageDescription](https://developer.apple.com/documentation/bundleresources/information-property-list/nsmotionusagedescription) key in the `Info.plist` file to the value of this build setting.";
             },
             {
                 Name = INFOPLIST_KEY_NSNearbyInteractionAllowOnceUsageDescription;
                 Type = String;
                 Category = "Info.plist Values";
                 DisplayName = "Privacy - Nearby Interaction Allow Once Usage Description";
-                Description = "When `GENERATE_INFOPLIST_FILE` is enabled, sets the value of the [NSNearbyInteractionAllowOnceUsageDescription](https://developer.apple.com/documentation/bundleresources/information_property_list/nsnearbyinteractionallowonceusagedescription) key in the `Info.plist` file to the value of this build setting.";
+                Description = "When `GENERATE_INFOPLIST_FILE` is enabled, sets the value of the [NSNearbyInteractionAllowOnceUsageDescription](https://developer.apple.com/documentation/bundleresources/information-property-list/nsnearbyinteractionallowonceusagedescription) key in the `Info.plist` file to the value of this build setting.";
             },
             {
                 Name = INFOPLIST_KEY_NSNearbyInteractionUsageDescription;
                 Type = String;
                 Category = "Info.plist Values";
                 DisplayName = "Privacy - Nearby Interaction Usage Description";
-                Description = "When `GENERATE_INFOPLIST_FILE` is enabled, sets the value of the [NSNearbyInteractionUsageDescription](https://developer.apple.com/documentation/bundleresources/information_property_list/nsnearbyinteractionusagedescription) key in the `Info.plist` file to the value of this build setting.";
+                Description = "When `GENERATE_INFOPLIST_FILE` is enabled, sets the value of the [NSNearbyInteractionUsageDescription](https://developer.apple.com/documentation/bundleresources/information-property-list/nsnearbyinteractionusagedescription) key in the `Info.plist` file to the value of this build setting.";
             },
             {
                 Name = INFOPLIST_KEY_NSNetworkVolumesUsageDescription;
                 Type = String;
                 Category = "Info.plist Values";
                 DisplayName = "Privacy - Network Volumes Usage Description";
-                Description = "When `GENERATE_INFOPLIST_FILE` is enabled, sets the value of the [NSNetworkVolumesUsageDescription](https://developer.apple.com/documentation/bundleresources/information_property_list/nsnetworkvolumesusagedescription) key in the `Info.plist` file to the value of this build setting.";
+                Description = "When `GENERATE_INFOPLIST_FILE` is enabled, sets the value of the [NSNetworkVolumesUsageDescription](https://developer.apple.com/documentation/bundleresources/information-property-list/nsnetworkvolumesusagedescription) key in the `Info.plist` file to the value of this build setting.";
             },
             {
                 Name = INFOPLIST_KEY_NSPhotoLibraryAddUsageDescription;
                 Type = String;
                 Category = "Info.plist Values";
                 DisplayName = "Privacy - Photo Library Additions Usage Description";
-                Description = "When `GENERATE_INFOPLIST_FILE` is enabled, sets the value of the [NSPhotoLibraryAddUsageDescription](https://developer.apple.com/documentation/bundleresources/information_property_list/nsphotolibraryaddusagedescription) key in the `Info.plist` file to the value of this build setting.";
+                Description = "When `GENERATE_INFOPLIST_FILE` is enabled, sets the value of the [NSPhotoLibraryAddUsageDescription](https://developer.apple.com/documentation/bundleresources/information-property-list/nsphotolibraryaddusagedescription) key in the `Info.plist` file to the value of this build setting.";
             },
             {
                 Name = INFOPLIST_KEY_NSPhotoLibraryUsageDescription;
                 Type = String;
                 Category = "Info.plist Values";
                 DisplayName = "Privacy - Photo Library Usage Description";
-                Description = "When `GENERATE_INFOPLIST_FILE` is enabled, sets the value of the [NSPhotoLibraryUsageDescription](https://developer.apple.com/documentation/bundleresources/information_property_list/nsphotolibraryusagedescription) key in the `Info.plist` file to the value of this build setting.";
+                Description = "When `GENERATE_INFOPLIST_FILE` is enabled, sets the value of the [NSPhotoLibraryUsageDescription](https://developer.apple.com/documentation/bundleresources/information-property-list/nsphotolibraryusagedescription) key in the `Info.plist` file to the value of this build setting.";
             },
             {
                 Name = INFOPLIST_KEY_NSRemindersUsageDescription;
                 Type = String;
                 Category = "Info.plist Values";
                 DisplayName = "Privacy - Reminders Usage Description";
-                Description = "When `GENERATE_INFOPLIST_FILE` is enabled, sets the value of the [NSRemindersUsageDescription](https://developer.apple.com/documentation/bundleresources/information_property_list/nsremindersusagedescription) key in the `Info.plist` file to the value of this build setting.";
+                Description = "When `GENERATE_INFOPLIST_FILE` is enabled, sets the value of the [NSRemindersUsageDescription](https://developer.apple.com/documentation/bundleresources/information-property-list/nsremindersusagedescription) key in the `Info.plist` file to the value of this build setting.";
             },
             {
                 Name = INFOPLIST_KEY_NSRemindersFullAccessUsageDescription;
                 Type = String;
                 Category = "Info.plist Values";
                 DisplayName = "Privacy - Reminders Full Access Usage Description";
-                Description = "When `GENERATE_INFOPLIST_FILE` is enabled, sets the value of the [NSRemindersFullAccessUsageDescription](https://developer.apple.com/documentation/bundleresources/information_property_list/nsremindersfullaccessusagedescription) key in the `Info.plist` file to the value of this build setting.";
+                Description = "When `GENERATE_INFOPLIST_FILE` is enabled, sets the value of the [NSRemindersFullAccessUsageDescription](https://developer.apple.com/documentation/bundleresources/information-property-list/nsremindersfullaccessusagedescription) key in the `Info.plist` file to the value of this build setting.";
             },
             {
                 Name = INFOPLIST_KEY_NSRemovableVolumesUsageDescription;
                 Type = String;
                 Category = "Info.plist Values";
                 DisplayName = "Privacy - Removable Volumes Usage Description";
-                Description = "When `GENERATE_INFOPLIST_FILE` is enabled, sets the value of the [NSRemovableVolumesUsageDescription](https://developer.apple.com/documentation/bundleresources/information_property_list/nsremovablevolumesusagedescription) key in the `Info.plist` file to the value of this build setting.";
+                Description = "When `GENERATE_INFOPLIST_FILE` is enabled, sets the value of the [NSRemovableVolumesUsageDescription](https://developer.apple.com/documentation/bundleresources/information-property-list/nsremovablevolumesusagedescription) key in the `Info.plist` file to the value of this build setting.";
             },
             {
                 Name = INFOPLIST_KEY_NSSensorKitPrivacyPolicyURL;
                 Type = String;
                 Category = "Info.plist Values";
                 DisplayName = "Privacy - SensorKit Privacy Policy URL";
-                Description = "When `GENERATE_INFOPLIST_FILE` is enabled, sets the value of the [NSSensorKitPrivacyPolicyURL](https://developer.apple.com/documentation/bundleresources/information_property_list/nssensorkitprivacypolicyurl) key in the `Info.plist` file to the value of this build setting.";
+                Description = "When `GENERATE_INFOPLIST_FILE` is enabled, sets the value of the [NSSensorKitPrivacyPolicyURL](https://developer.apple.com/documentation/bundleresources/information-property-list/nssensorkitprivacypolicyurl) key in the `Info.plist` file to the value of this build setting.";
             },
             {
                 Name = INFOPLIST_KEY_NSSensorKitUsageDescription;
                 Type = String;
                 Category = "Info.plist Values";
                 DisplayName = "Privacy - SensorKit Usage Description";
-                Description = "When `GENERATE_INFOPLIST_FILE` is enabled, sets the value of the [NSSensorKitUsageDescription](https://developer.apple.com/documentation/bundleresources/information_property_list/nssensorkitusagedescription) key in the `Info.plist` file to the value of this build setting.";
+                Description = "When `GENERATE_INFOPLIST_FILE` is enabled, sets the value of the [NSSensorKitUsageDescription](https://developer.apple.com/documentation/bundleresources/information-property-list/nssensorkitusagedescription) key in the `Info.plist` file to the value of this build setting.";
             },
             {
                 Name = INFOPLIST_KEY_NSSiriUsageDescription;
                 Type = String;
                 Category = "Info.plist Values";
                 DisplayName = "Privacy - Siri Usage Description";
-                Description = "When `GENERATE_INFOPLIST_FILE` is enabled, sets the value of the [NSSiriUsageDescription](https://developer.apple.com/documentation/bundleresources/information_property_list/nssiriusagedescription) key in the `Info.plist` file to the value of this build setting.";
+                Description = "When `GENERATE_INFOPLIST_FILE` is enabled, sets the value of the [NSSiriUsageDescription](https://developer.apple.com/documentation/bundleresources/information-property-list/nssiriusagedescription) key in the `Info.plist` file to the value of this build setting.";
             },
             {
                 Name = INFOPLIST_KEY_NSSpeechRecognitionUsageDescription;
                 Type = String;
                 Category = "Info.plist Values";
                 DisplayName = "Privacy - Speech Recognition Usage Description";
-                Description = "When `GENERATE_INFOPLIST_FILE` is enabled, sets the value of the [NSSpeechRecognitionUsageDescription](https://developer.apple.com/documentation/bundleresources/information_property_list/nsspeechrecognitionusagedescription) key in the `Info.plist` file to the value of this build setting.";
+                Description = "When `GENERATE_INFOPLIST_FILE` is enabled, sets the value of the [NSSpeechRecognitionUsageDescription](https://developer.apple.com/documentation/bundleresources/information-property-list/nsspeechrecognitionusagedescription) key in the `Info.plist` file to the value of this build setting.";
             },
             {
                 Name = INFOPLIST_KEY_NSSystemAdministrationUsageDescription;
                 Type = String;
                 Category = "Info.plist Values";
                 DisplayName = "Privacy - System Administration Usage Description";
-                Description = "When `GENERATE_INFOPLIST_FILE` is enabled, sets the value of the [NSSystemAdministrationUsageDescription](https://developer.apple.com/documentation/bundleresources/information_property_list/nssystemadministrationusagedescription) key in the `Info.plist` file to the value of this build setting.";
+                Description = "When `GENERATE_INFOPLIST_FILE` is enabled, sets the value of the [NSSystemAdministrationUsageDescription](https://developer.apple.com/documentation/bundleresources/information-property-list/nssystemadministrationusagedescription) key in the `Info.plist` file to the value of this build setting.";
             },
             {
                 Name = INFOPLIST_KEY_NSSystemExtensionUsageDescription;
@@ -4315,14 +4315,14 @@ When this setting is enabled:
                 Type = String;
                 Category = "Info.plist Values";
                 DisplayName = "Privacy - Tracking Usage Description";
-                Description = "When `GENERATE_INFOPLIST_FILE` is enabled, sets the value of the [NSUserTrackingUsageDescription](https://developer.apple.com/documentation/bundleresources/information_property_list/nsusertrackingusagedescription) key in the `Info.plist` file to the value of this build setting.";
+                Description = "When `GENERATE_INFOPLIST_FILE` is enabled, sets the value of the [NSUserTrackingUsageDescription](https://developer.apple.com/documentation/bundleresources/information-property-list/nsusertrackingusagedescription) key in the `Info.plist` file to the value of this build setting.";
             },
             {
                 Name = INFOPLIST_KEY_NSVideoSubscriberAccountUsageDescription;
                 Type = String;
                 Category = "Info.plist Values";
                 DisplayName = "Privacy - TV Provider Usage Description";
-                Description = "When `GENERATE_INFOPLIST_FILE` is enabled, sets the value of the [NSVideoSubscriberAccountUsageDescription](https://developer.apple.com/documentation/bundleresources/information_property_list/nsvideosubscriberaccountusagedescription) key in the `Info.plist` file to the value of this build setting.";
+                Description = "When `GENERATE_INFOPLIST_FILE` is enabled, sets the value of the [NSVideoSubscriberAccountUsageDescription](https://developer.apple.com/documentation/bundleresources/information-property-list/nsvideosubscriberaccountusagedescription) key in the `Info.plist` file to the value of this build setting.";
             },
             {
                 Name = INFOPLIST_KEY_NSVoIPUsageDescription;
@@ -4336,7 +4336,7 @@ When this setting is enabled:
                 Type = String;
                 Category = "Info.plist Values";
                 DisplayName = "Privacy - World Sensing Usage Description";
-                Description = "When `GENERATE_INFOPLIST_FILE` is enabled, sets the value of the [NSWorldSensingUsageDescription](https://developer.apple.com/documentation/bundleresources/information_property_list/nsworldsensingusagedescription) key in the `Info.plist` file to the value of this build setting.";
+                Description = "When `GENERATE_INFOPLIST_FILE` is enabled, sets the value of the [NSWorldSensingUsageDescription](https://developer.apple.com/documentation/bundleresources/information-property-list/nsworldsensingusagedescription) key in the `Info.plist` file to the value of this build setting.";
             },
             {
                 Name = INFOPLIST_KEY_OSBundleUsageDescription;
@@ -4355,7 +4355,7 @@ When this setting is enabled:
                     sdk,
                 );
                 DisplayName = "Main Nib File Base Name";
-                Description = "When `GENERATE_INFOPLIST_FILE` is enabled, sets the value of the [NSMainNibFile](https://developer.apple.com/documentation/bundleresources/information_property_list/nsmainnibfile) key in the `Info.plist` file to the value of this build setting.";
+                Description = "When `GENERATE_INFOPLIST_FILE` is enabled, sets the value of the [NSMainNibFile](https://developer.apple.com/documentation/bundleresources/information-property-list/nsmainnibfile) key in the `Info.plist` file to the value of this build setting.";
             },
             {
                 Name = INFOPLIST_KEY_NSMainStoryboardFile;
@@ -4365,7 +4365,7 @@ When this setting is enabled:
                     sdk,
                 );
                 DisplayName = "AppKit Main Storyboard File Base Name";
-                Description = "When `GENERATE_INFOPLIST_FILE` is enabled, sets the value of the [NSMainStoryboardFile](https://developer.apple.com/documentation/bundleresources/information_property_list/nsmainstoryboardfile) key in the `Info.plist` file to the value of this build setting.";
+                Description = "When `GENERATE_INFOPLIST_FILE` is enabled, sets the value of the [NSMainStoryboardFile](https://developer.apple.com/documentation/bundleresources/information-property-list/nsmainstoryboardfile) key in the `Info.plist` file to the value of this build setting.";
             },
 
             // Info.plist Keys - iOS and Derived Platforms
@@ -4377,7 +4377,7 @@ When this setting is enabled:
                     sdk,
                 );
                 DisplayName = "Launch Screen (Generation)";
-                Description = "When `GENERATE_INFOPLIST_FILE` is enabled, sets the value of the [UILaunchScreen](https://developer.apple.com/documentation/bundleresources/information_property_list/uilaunchscreen) key in the Info.plist file to an empty dictionary.";
+                Description = "When `GENERATE_INFOPLIST_FILE` is enabled, sets the value of the [UILaunchScreen](https://developer.apple.com/documentation/bundleresources/information-property-list/uilaunchscreen) key in the Info.plist file to an empty dictionary.";
             },
             {
                 Name = INFOPLIST_KEY_UILaunchStoryboardName;
@@ -4387,7 +4387,7 @@ When this setting is enabled:
                     sdk,
                 );
                 DisplayName = "Launch Screen Interface File Base Name";
-                Description = "When `GENERATE_INFOPLIST_FILE` is enabled, sets the value of the [UILaunchStoryboardName](https://developer.apple.com/documentation/bundleresources/information_property_list/uilaunchstoryboardname) key in the `Info.plist` file to the value of this build setting.";
+                Description = "When `GENERATE_INFOPLIST_FILE` is enabled, sets the value of the [UILaunchStoryboardName](https://developer.apple.com/documentation/bundleresources/information-property-list/uilaunchstoryboardname) key in the `Info.plist` file to the value of this build setting.";
             },
             {
                 Name = INFOPLIST_KEY_UIMainStoryboardFile;
@@ -4397,7 +4397,7 @@ When this setting is enabled:
                     sdk,
                 );
                 DisplayName = "UIKit Main Storyboard File Base Name";
-                Description = "When `GENERATE_INFOPLIST_FILE` is enabled, sets the value of the [UIMainStoryboardFile](https://developer.apple.com/documentation/bundleresources/information_property_list/uimainstoryboardfile) key in the `Info.plist` file to the value of this build setting.";
+                Description = "When `GENERATE_INFOPLIST_FILE` is enabled, sets the value of the [UIMainStoryboardFile](https://developer.apple.com/documentation/bundleresources/information-property-list/uimainstoryboardfile) key in the `Info.plist` file to the value of this build setting.";
             },
             {
                 Name = INFOPLIST_KEY_UIRequiredDeviceCapabilities;
@@ -4407,7 +4407,7 @@ When this setting is enabled:
                     sdk,
                 );
                 DisplayName = "Required Device Capabilities";
-                Description = "When `GENERATE_INFOPLIST_FILE` is enabled, sets the value of the [UIRequiredDeviceCapabilities](https://developer.apple.com/documentation/bundleresources/information_property_list/uirequireddevicecapabilities) key in the `Info.plist` file to the value of this build setting.";
+                Description = "When `GENERATE_INFOPLIST_FILE` is enabled, sets the value of the [UIRequiredDeviceCapabilities](https://developer.apple.com/documentation/bundleresources/information-property-list/uirequireddevicecapabilities) key in the `Info.plist` file to the value of this build setting.";
             },
             {
                 Name = INFOPLIST_KEY_UISupportedInterfaceOrientations;
@@ -4417,7 +4417,7 @@ When this setting is enabled:
                     sdk,
                 );
                 DisplayName = "Supported Interface Orientations";
-                Description = "When `GENERATE_INFOPLIST_FILE` is enabled, sets the value of the [UISupportedInterfaceOrientations](https://developer.apple.com/documentation/bundleresources/information_property_list/uisupportedinterfaceorientations) key in the `Info.plist` file to the value of this build setting.";
+                Description = "When `GENERATE_INFOPLIST_FILE` is enabled, sets the value of the [UISupportedInterfaceOrientations](https://developer.apple.com/documentation/bundleresources/information-property-list/uisupportedinterfaceorientations) key in the `Info.plist` file to the value of this build setting.";
             },
             {
                 Name = INFOPLIST_KEY_UIUserInterfaceStyle;
@@ -4432,7 +4432,7 @@ When this setting is enabled:
                     sdk,
                 );
                 DisplayName = "User Interface Style";
-                Description = "When `GENERATE_INFOPLIST_FILE` is enabled, sets the value of the [UIUserInterfaceStyle](https://developer.apple.com/documentation/bundleresources/information_property_list/uiuserinterfacestyle) key in the `Info.plist` file to the value of this build setting.";
+                Description = "When `GENERATE_INFOPLIST_FILE` is enabled, sets the value of the [UIUserInterfaceStyle](https://developer.apple.com/documentation/bundleresources/information-property-list/uiuserinterfacestyle) key in the `Info.plist` file to the value of this build setting.";
             },
 
             // Info.plist Keys - iOS
@@ -4444,7 +4444,7 @@ When this setting is enabled:
                     sdk,
                 );
                 DisplayName = "Supports Opening Documents in Place";
-                Description = "When `GENERATE_INFOPLIST_FILE` is enabled, sets the value of the [LSSupportsOpeningDocumentsInPlace](https://developer.apple.com/documentation/bundleresources/information_property_list/lssupportsopeningdocumentsinplace) key in the `Info.plist` file to the value of this build setting.";
+                Description = "When `GENERATE_INFOPLIST_FILE` is enabled, sets the value of the [LSSupportsOpeningDocumentsInPlace](https://developer.apple.com/documentation/bundleresources/information-property-list/lssupportsopeningdocumentsinplace) key in the `Info.plist` file to the value of this build setting.";
             },
             {
                 Name = INFOPLIST_KEY_NSSupportsLiveActivities;
@@ -4454,7 +4454,7 @@ When this setting is enabled:
                     sdk,
                 );
                 DisplayName = "Supports Live Activities";
-                Description = "When `GENERATE_INFOPLIST_FILE` is enabled, sets the value of the [NSSupportsLiveActivities](https://developer.apple.com/documentation/bundleresources/information_property_list/nssupportsliveactivities) key in the `Info.plist` file to the value of this build setting.";
+                Description = "When `GENERATE_INFOPLIST_FILE` is enabled, sets the value of the [NSSupportsLiveActivities](https://developer.apple.com/documentation/bundleresources/information-property-list/nssupportsliveactivities) key in the `Info.plist` file to the value of this build setting.";
             },
             {
                 Name = INFOPLIST_KEY_NSSupportsLiveActivitiesFrequentUpdates;
@@ -4464,7 +4464,7 @@ When this setting is enabled:
                     sdk,
                 );
                 DisplayName = "Supports Frequent Updates of Live Activities";
-                Description = "When `GENERATE_INFOPLIST_FILE` is enabled, sets the value of the [NSSupportsLiveActivitiesFrequentUpdates](https://developer.apple.com/documentation/bundleresources/information_property_list/nssupportsliveactivitiesfrequentupdates) key in the `Info.plist` file to the value of this build setting.";
+                Description = "When `GENERATE_INFOPLIST_FILE` is enabled, sets the value of the [NSSupportsLiveActivitiesFrequentUpdates](https://developer.apple.com/documentation/bundleresources/information-property-list/nssupportsliveactivitiesfrequentupdates) key in the `Info.plist` file to the value of this build setting.";
             },
             {
                 Name = INFOPLIST_KEY_UIApplicationSceneManifest_Generation;
@@ -4474,7 +4474,7 @@ When this setting is enabled:
                     sdk,
                 );
                 DisplayName = "Application Scene Manifest (Generation)";
-                Description = "When `GENERATE_INFOPLIST_FILE` is enabled, sets the value of the [UIApplicationSceneManifest](https://developer.apple.com/documentation/bundleresources/information_property_list/uiapplicationscenemanifest) key in the Info.plist file to an entry suitable for a multi-window application.";
+                Description = "When `GENERATE_INFOPLIST_FILE` is enabled, sets the value of the [UIApplicationSceneManifest](https://developer.apple.com/documentation/bundleresources/information-property-list/uiapplicationscenemanifest) key in the Info.plist file to an entry suitable for a multi-window application.";
             },
             {
                 Name = INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents;
@@ -4484,7 +4484,7 @@ When this setting is enabled:
                     sdk,
                 );
                 DisplayName = "Supports Indirect Events";
-                Description = "When `GENERATE_INFOPLIST_FILE` is enabled, sets the value of the [UIApplicationSupportsIndirectInputEvents](https://developer.apple.com/documentation/bundleresources/information_property_list/uiapplicationsupportsindirectinputevents) key in the `Info.plist` file to the value of this build setting.";
+                Description = "When `GENERATE_INFOPLIST_FILE` is enabled, sets the value of the [UIApplicationSupportsIndirectInputEvents](https://developer.apple.com/documentation/bundleresources/information-property-list/uiapplicationsupportsindirectinputevents) key in the `Info.plist` file to the value of this build setting.";
             },
             {
                 Name = INFOPLIST_KEY_UIRequiresFullScreen;
@@ -4494,7 +4494,7 @@ When this setting is enabled:
                     sdk,
                 );
                 DisplayName = "Requires Full Screen";
-                Description = "When `GENERATE_INFOPLIST_FILE` is enabled, sets the value of the [UIRequiresFullScreen](https://developer.apple.com/documentation/bundleresources/information_property_list/uirequiresfullscreen) key in the `Info.plist` file to the value of this build setting.";
+                Description = "When `GENERATE_INFOPLIST_FILE` is enabled, sets the value of the [UIRequiresFullScreen](https://developer.apple.com/documentation/bundleresources/information-property-list/uirequiresfullscreen) key in the `Info.plist` file to the value of this build setting.";
             },
             {
                 Name = INFOPLIST_KEY_UIStatusBarHidden;
@@ -4504,7 +4504,7 @@ When this setting is enabled:
                     sdk,
                 );
                 DisplayName = "Status Bar Initially Hidden";
-                Description = "When `GENERATE_INFOPLIST_FILE` is enabled, sets the value of the [UIStatusBarHidden](https://developer.apple.com/documentation/bundleresources/information_property_list/uistatusbarhidden) key in the `Info.plist` file to the value of this build setting.";
+                Description = "When `GENERATE_INFOPLIST_FILE` is enabled, sets the value of the [UIStatusBarHidden](https://developer.apple.com/documentation/bundleresources/information-property-list/uistatusbarhidden) key in the `Info.plist` file to the value of this build setting.";
             },
             {
                 Name = INFOPLIST_KEY_UIStatusBarStyle;
@@ -4526,7 +4526,7 @@ When this setting is enabled:
                     sdk,
                 );
                 DisplayName = "Status Bar Style";
-                Description = "When `GENERATE_INFOPLIST_FILE` is enabled, sets the value of the [UIStatusBarStyle](https://developer.apple.com/documentation/bundleresources/information_property_list/uistatusbarstyle) key in the `Info.plist` file to the value of this build setting.";
+                Description = "When `GENERATE_INFOPLIST_FILE` is enabled, sets the value of the [UIStatusBarStyle](https://developer.apple.com/documentation/bundleresources/information-property-list/uistatusbarstyle) key in the `Info.plist` file to the value of this build setting.";
             },
             {
                 Name = INFOPLIST_KEY_UISupportedInterfaceOrientations_iPad;
@@ -4536,7 +4536,7 @@ When this setting is enabled:
                     sdk,
                 );
                 DisplayName = "Supported Interface Orientations (iPad)";
-                Description = "When `GENERATE_INFOPLIST_FILE` is enabled, sets the value of the [UISupportedInterfaceOrientations~iPad](https://developer.apple.com/documentation/bundleresources/information_property_list/uisupportedinterfaceorientations) key in the `Info.plist` file to the value of this build setting.";
+                Description = "When `GENERATE_INFOPLIST_FILE` is enabled, sets the value of the [UISupportedInterfaceOrientations~iPad](https://developer.apple.com/documentation/bundleresources/information-property-list/uisupportedinterfaceorientations) key in the `Info.plist` file to the value of this build setting.";
             },
             {
                 Name = INFOPLIST_KEY_UISupportedInterfaceOrientations_iPhone;
@@ -4546,7 +4546,7 @@ When this setting is enabled:
                     sdk,
                 );
                 DisplayName = "Supported Interface Orientations (iPhone)";
-                Description = "When `GENERATE_INFOPLIST_FILE` is enabled, sets the value of the [UISupportedInterfaceOrientations~iPhone](https://developer.apple.com/documentation/bundleresources/information_property_list/uisupportedinterfaceorientations) key in the `Info.plist` file to the value of this build setting.";
+                Description = "When `GENERATE_INFOPLIST_FILE` is enabled, sets the value of the [UISupportedInterfaceOrientations~iPhone](https://developer.apple.com/documentation/bundleresources/information-property-list/uisupportedinterfaceorientations) key in the `Info.plist` file to the value of this build setting.";
             },
             {
                 Name = INFOPLIST_KEY_UISupportsDocumentBrowser;
@@ -4556,7 +4556,7 @@ When this setting is enabled:
                     sdk,
                 );
                 DisplayName = "Supports Document Browser";
-                Description = "When `GENERATE_INFOPLIST_FILE` is enabled, sets the value of the [UISupportsDocumentBrowser](https://developer.apple.com/documentation/bundleresources/information_property_list/uisupportsdocumentbrowser) key in the `Info.plist` file to the value of this build setting.";
+                Description = "When `GENERATE_INFOPLIST_FILE` is enabled, sets the value of the [UISupportsDocumentBrowser](https://developer.apple.com/documentation/bundleresources/information-property-list/uisupportsdocumentbrowser) key in the `Info.plist` file to the value of this build setting.";
             },
 
             // Info.plist Keys - watchOS
@@ -4568,7 +4568,7 @@ When this setting is enabled:
                     sdk,
                 );
                 DisplayName = "Complication Principal Class";
-                Description = "When `GENERATE_INFOPLIST_FILE` is enabled, sets the value of the [CLKComplicationPrincipalClass](https://developer.apple.com/documentation/bundleresources/information_property_list/clkcomplicationprincipalclass) key in the `Info.plist` file to the value of this build setting.";
+                Description = "When `GENERATE_INFOPLIST_FILE` is enabled, sets the value of the [CLKComplicationPrincipalClass](https://developer.apple.com/documentation/bundleresources/information-property-list/clkcomplicationprincipalclass) key in the `Info.plist` file to the value of this build setting.";
             },
             {
                 Name = INFOPLIST_KEY_WKCompanionAppBundleIdentifier;
@@ -4578,7 +4578,7 @@ When this setting is enabled:
                     sdk,
                 );
                 DisplayName = "WatchKit Companion App Bundle Identifier";
-                Description = "When `GENERATE_INFOPLIST_FILE` is enabled, sets the value of the [WKCompanionAppBundleIdentifier](https://developer.apple.com/documentation/bundleresources/information_property_list/wkcompanionappbundleidentifier) key in the `Info.plist` file to the value of this build setting.";
+                Description = "When `GENERATE_INFOPLIST_FILE` is enabled, sets the value of the [WKCompanionAppBundleIdentifier](https://developer.apple.com/documentation/bundleresources/information-property-list/wkcompanionappbundleidentifier) key in the `Info.plist` file to the value of this build setting.";
             },
             {
                 Name = INFOPLIST_KEY_WKExtensionDelegateClassName;
@@ -4588,7 +4588,7 @@ When this setting is enabled:
                     sdk,
                 );
                 DisplayName = "WatchKit Extension Delegate Class Name";
-                Description = "When `GENERATE_INFOPLIST_FILE` is enabled, sets the value of the [WKExtensionDelegateClassName](https://developer.apple.com/documentation/bundleresources/information_property_list/wkextensiondelegateclassname) key in the `Info.plist` file to the value of this build setting.";
+                Description = "When `GENERATE_INFOPLIST_FILE` is enabled, sets the value of the [WKExtensionDelegateClassName](https://developer.apple.com/documentation/bundleresources/information-property-list/wkextensiondelegateclassname) key in the `Info.plist` file to the value of this build setting.";
             },
             {
                 Name = INFOPLIST_KEY_WKRunsIndependentlyOfCompanionApp;
@@ -4598,7 +4598,7 @@ When this setting is enabled:
                     sdk,
                 );
                 DisplayName = "App Can Run Independently of Companion iPhone App";
-                Description = "When `GENERATE_INFOPLIST_FILE` is enabled, sets the value of the [WKRunsIndependentlyOfCompanionApp](https://developer.apple.com/documentation/bundleresources/information_property_list/wkrunsindependentlyofcompanionapp) key in the `Info.plist` file to the value of this build setting.";
+                Description = "When `GENERATE_INFOPLIST_FILE` is enabled, sets the value of the [WKRunsIndependentlyOfCompanionApp](https://developer.apple.com/documentation/bundleresources/information-property-list/wkrunsindependentlyofcompanionapp) key in the `Info.plist` file to the value of this build setting.";
             },
             {
                 Name = INFOPLIST_KEY_WKWatchOnly;
@@ -4608,7 +4608,7 @@ When this setting is enabled:
                     sdk,
                 );
                 DisplayName = "App is Available Only on Apple Watch";
-                Description = "When `GENERATE_INFOPLIST_FILE` is enabled, sets the value of the [WKWatchOnly](https://developer.apple.com/documentation/bundleresources/information_property_list/wkwatchonly) key in the `Info.plist` file to the value of this build setting.";
+                Description = "When `GENERATE_INFOPLIST_FILE` is enabled, sets the value of the [WKWatchOnly](https://developer.apple.com/documentation/bundleresources/information-property-list/wkwatchonly) key in the `Info.plist` file to the value of this build setting.";
             },
 
             {
