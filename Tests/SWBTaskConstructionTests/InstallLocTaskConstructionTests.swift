@@ -654,7 +654,7 @@ fileprivate struct InstallLocTaskConstructionTests: CoreBasedTests {
     }
 
     /// Test an App that has a directory or package (not an explicit bundle) in resources phase
-    @Test(.requireSDKs(.macOS))
+    @Test(.requireSDKs(.macOS, .iOS))
     func embeddedDirectoriesInResources() async throws {
         try await withTemporaryDirectory { tmpDir in
             let srcRoot = tmpDir.join("srcroot")
