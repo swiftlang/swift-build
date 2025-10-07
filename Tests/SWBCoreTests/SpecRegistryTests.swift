@@ -329,7 +329,7 @@ import SWBUtil
                         break
                     }
 
-                    let url = "https://developer.apple.com/documentation/bundleresources/information_property_list/\(keyName.lowercased())"
+                    let url = "https://developer.apple.com/documentation/bundleresources/information-property-list/\(keyName.lowercased())"
 
                     group.addTask {
                         let (_, response) = try await URLSession.shared.data(from: #require(URL(string: url)))
@@ -369,7 +369,7 @@ import SWBUtil
                 }
                 return (String(baseKeyName), String(baseKeyName))
             }()
-            let url = "https://developer.apple.com/documentation/bundleresources/information_property_list/\(keyURLPart.lowercased())"
+            let url = "https://developer.apple.com/documentation/bundleresources/information-property-list/\(keyURLPart.lowercased())"
 
             // FIXME: There are some duplicate definitions of these keys, with empty descriptions.
             if !option.name.hasPrefix("INFOPLIST_KEY_") && option.localizedDescription == nil {

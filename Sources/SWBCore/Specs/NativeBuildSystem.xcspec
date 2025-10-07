@@ -106,7 +106,7 @@
                 DefaultValue = "";
                 Description = "Specifies the name of the binary the target produces.
 
-When `GENERATE_INFOPLIST_FILE` is enabled, sets the value of the [CFBundleExecutable](https://developer.apple.com/documentation/bundleresources/information_property_list/cfbundleexecutable) key in the `Info.plist` file to the value of this build setting.";
+When `GENERATE_INFOPLIST_FILE` is enabled, sets the value of the [CFBundleExecutable](https://developer.apple.com/documentation/bundleresources/information-property-list/cfbundleexecutable) key in the `Info.plist` file to the value of this build setting.";
             },
             {   Name = EXECUTABLE_PATH;
                 Type = Path;
