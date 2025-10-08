@@ -740,16 +740,12 @@ public final class LdLinkerSpec : GenericLinkerSpec, SpecIdentifierType, @unchec
             }
         }
 
-        var environment: [(String, String)] = self.environmentFromSpec(cbc, delegate)
-        // On Windows, some linker drivers require TMPDIR to be set.
-        if cbc.producer.hostOperatingSystem == .windows {
-            environment.append(("TMPDIR", cbc.scope.evaluate(BuiltinMacros.OBJROOT).str))
-        }
         // Compute the inputs and outputs.
         var inputs: [any PlannedNode] = inputPaths.map{ delegate.createNode($0) }
 
         await inputs.append(contentsOf: additionalInputDependencies(cbc, delegate, optionContext: discoveredCommandLineToolSpecInfo(cbc.producer, cbc.scope, delegate), lookup: lookup).map(delegate.createNode))
 
+        let environment: [(String, String)] = self.environmentFromSpec(cbc, delegate)
         // Add dependencies for any arguments indicating a file path.
         Self.addAdditionalDependenciesFromCommandLine(cbc, commandLine, EnvironmentBindings(environment), &inputs, &outputs, delegate)
 
