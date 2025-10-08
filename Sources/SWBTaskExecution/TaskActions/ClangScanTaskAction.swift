@@ -74,7 +74,7 @@ public final class ClangScanTaskAction: TaskAction, BuildValueValidatingTaskActi
             self.scanningOutput = parsedOutput
             if expandResponseFiles {
                 do {
-                    self.commandLine = try ResponseFiles.expandResponseFiles(cliArguments, fileSystem: executionDelegate.fs, relativeTo: workingDirectory, format: .llvmStyleEscaping)
+                    self.commandLine = try ResponseFiles.expandResponseFiles(cliArguments, fileSystem: executionDelegate.fs, relativeTo: workingDirectory, format: ClangCompilerSpec.responseFileFormat(hostOS: executionDelegate.hostOperatingSystem))
                 } catch {
                     outputDelegate.error(error.localizedDescription)
                     return nil

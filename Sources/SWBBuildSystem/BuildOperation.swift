@@ -983,6 +983,10 @@ extension BuildOperation: TaskExecutionDelegate {
         return core
     }
 
+    package var hostOperatingSystem: OperatingSystem {
+        core.hostOperatingSystem
+    }
+
     package var sdkRegistry: SDKRegistry {
         return core.sdkRegistry
     }

@@ -103,6 +103,7 @@ public struct ClangIndexingPayload: Serializable, Encodable, Sendable {
     let prefixInfo: ClangPrefixInfo?
     public let toolchains: [String]
     let responseFileAttachmentPaths: [Path: Path]
+    let responseFileFormat: ResponseFileFormat
 
     init(sourceFileIndex: Int,
          outputFileIndex: Int,
@@ -112,7 +113,8 @@ public struct ClangIndexingPayload: Serializable, Encodable, Sendable {
          workingDir: Path,
          prefixInfo: ClangPrefixInfo?,
          toolchains: [String],
-         responseFileAttachmentPaths: [Path: Path]) {
+         responseFileAttachmentPaths: [Path: Path],
+         responseFileFormat: ResponseFileFormat) {
         self.sourceFileIndex = sourceFileIndex
         self.outputFileIndex = outputFileIndex
         self.sourceLanguageIndex = sourceLanguageIndex
@@ -122,6 +124,7 @@ public struct ClangIndexingPayload: Serializable, Encodable, Sendable {
         self.prefixInfo = prefixInfo
         self.toolchains = toolchains
         self.responseFileAttachmentPaths = responseFileAttachmentPaths
+        self.responseFileFormat = responseFileFormat
     }
 
     func sourceFile(for task: any ExecutableTask) -> Path {
@@ -129,7 +132,7 @@ public struct ClangIndexingPayload: Serializable, Encodable, Sendable {
     }
 
     public func serialize<T: Serializer>(to serializer: T) {
-        serializer.serializeAggregate(9) {
+        serializer.serializeAggregate(10) {
             serializer.serialize(sourceFileIndex)
             serializer.serialize(outputFileIndex)
             serializer.serialize(sourceLanguageIndex)
@@ -139,11 +142,12 @@ public struct ClangIndexingPayload: Serializable, Encodable, Sendable {
             serializer.serializeUniquely(prefixInfo)
             serializer.serialize(toolchains)
             serializer.serialize(responseFileAttachmentPaths)
+            serializer.serialize(responseFileFormat)
         }
     }
 
     public init(from deserializer: any Deserializer) throws {
-        try deserializer.beginAggregate(9)
+        try deserializer.beginAggregate(10)
         self.sourceFileIndex = try deserializer.deserialize()
         self.outputFileIndex = try deserializer.deserialize()
         self.sourceLanguageIndex = try deserializer.deserialize()
@@ -153,6 +157,7 @@ public struct ClangIndexingPayload: Serializable, Encodable, Sendable {
         self.prefixInfo = try deserializer.deserializeUniquely()
         self.toolchains = try deserializer.deserialize()
         self.responseFileAttachmentPaths = try deserializer.deserialize()
+        self.responseFileFormat = try deserializer.deserialize()
     }
 }
 
@@ -192,7 +197,7 @@ public struct ClangSourceFileIndexingInfo: SourceFileIndexingInfo {
     fileprivate init(task: any ExecutableTask, payload: ClangIndexingPayload, enableIndexBuildArena: Bool) {
         self.outputFile = Path(task.commandLine[payload.outputFileIndex].asString)
         self.sourceLanguage = task.commandLine[payload.sourceLanguageIndex].asByteString
-        self.commandLine = Self.indexingCommandLine(from: task.commandLine.map(\.asByteString), workingDir: payload.workingDir, prefixInfo: payload.prefixInfo, addSupplementary: !enableIndexBuildArena, responseFileMapping: payload.responseFileAttachmentPaths)
+        self.commandLine = Self.indexingCommandLine(from: task.commandLine.map(\.asByteString), workingDir: payload.workingDir, prefixInfo: payload.prefixInfo, addSupplementary: !enableIndexBuildArena, responseFileMapping: payload.responseFileAttachmentPaths, responseFileFormat: payload.responseFileFormat)
         self.builtProductsDir = payload.builtProductsDir
         self.assetSymbolIndexPath = payload.assetSymbolIndexPath
         self.prefixInfo = payload.prefixInfo
@@ -202,7 +207,7 @@ public struct ClangSourceFileIndexingInfo: SourceFileIndexingInfo {
     static let skippedArgsWithoutValues = Set<ByteString>(["-M", "-MD", "-MMD", "-MG", "-MJ", "-MM", "-MP", "-MV", "-fmodules-validate-once-per-build-session"])
     static let skippedArgsWithValues = Set<ByteString>(["-MT", "-MF", "-MQ", "--serialize-diagnostics"])
 
-    public static func indexingCommandLine(from commandLine: [ByteString], workingDir: Path, prefixInfo: ClangPrefixInfo? = nil, addSupplementary: Bool = true, replaceCompile: Bool = true, responseFileMapping: [Path: Path]) -> [ByteString] {
+    public static func indexingCommandLine(from commandLine: [ByteString], workingDir: Path, prefixInfo: ClangPrefixInfo? = nil, addSupplementary: Bool = true, replaceCompile: Bool = true, responseFileMapping: [Path: Path], responseFileFormat: ResponseFileFormat?) -> [ByteString] {
         var result = [ByteString]()
         var iterator = commandLine.makeIterator()
         let _ = iterator.next() // Skip compiler path
@@ -235,7 +240,8 @@ public struct ClangSourceFileIndexingInfo: SourceFileIndexingInfo {
                 // Skip
             } else if arg.starts(with: ByteString(unicodeScalarLiteral: "@")),
                       let attachmentPath = responseFileMapping[Path(arg.asString.dropFirst())],
-                      let responseFileArgs = try? ResponseFiles.expandResponseFiles(["@\(attachmentPath.str)"], fileSystem: localFS, relativeTo: workingDir, format: .llvmStyleEscaping) {
+                      let responseFileFormat,
+                      let responseFileArgs = try? ResponseFiles.expandResponseFiles(["@\(attachmentPath.str)"], fileSystem: localFS, relativeTo: workingDir, format: responseFileFormat) {
                 result.append(contentsOf: responseFileArgs.map { ByteString(encodingAsUTF8: $0) })
             } else {
                 result.append(arg)
@@ -741,7 +747,8 @@ public class ClangCompilerSpec : CompilerSpec, SpecIdentifierType, GCCCompatible
             ctx.add(string: self.identifier)
 
             let responseFilePath = scope.evaluate(BuiltinMacros.PER_ARCH_OBJECT_FILE_DIR).join("\(ctx.signature.asString)-common-args.resp")
-            let attachmentPath = producer.writeFileSpec.constructFileTasks(CommandBuildContext(producer: producer, scope: scope, inputs: [], output: responseFilePath), delegate, contents: ByteString(encodingAsUTF8: ResponseFiles.responseFileContents(args: responseFileCommandLine, format: .llvmStyleEscaping)), permissions: nil, logContents: true, preparesForIndexing: true, additionalTaskOrderingOptions: [.immediate, .ignorePhaseOrdering])
+            let responseFileFormat = Self.responseFileFormat(hostOS: producer.hostOperatingSystem)
+            let attachmentPath = producer.writeFileSpec.constructFileTasks(CommandBuildContext(producer: producer, scope: scope, inputs: [], output: responseFilePath), delegate, contents: ByteString(encodingAsUTF8: ResponseFiles.responseFileContents(args: responseFileCommandLine, format: responseFileFormat)), permissions: nil, logContents: true, preparesForIndexing: true, additionalTaskOrderingOptions: [.immediate, .ignorePhaseOrdering])
 
             return ConstantFlags(flags: regularCommandLine + ["@\(responseFilePath.str)"], headerSearchPaths: headerSearchPaths, inputs: [responseFilePath], responseFileMapping: [responseFilePath: attachmentPath])
         } else {
@@ -1307,7 +1314,8 @@ public class ClangCompilerSpec : CompilerSpec, SpecIdentifierType, GCCCompatible
                 workingDir: cbc.scope.evaluate(BuiltinMacros.PROJECT_DIR),
                 prefixInfo: prefixInfo,
                 toolchains: cbc.producer.toolchains.map{ $0.identifier },
-                responseFileAttachmentPaths: constantFlags.responseFileMapping
+                responseFileAttachmentPaths: constantFlags.responseFileMapping,
+                responseFileFormat: Self.responseFileFormat(hostOS: cbc.producer.hostOperatingSystem)
             )
         } else {
             indexingPayload  = nil
@@ -1794,7 +1802,7 @@ public class ClangCompilerSpec : CompilerSpec, SpecIdentifierType, GCCCompatible
         return ClangPrefixInfo.PCHInfo(
             output: precompPath,
             hashCriteria: nil, // rdar://problem/24469921
-            commandLine: ClangSourceFileIndexingInfo.indexingCommandLine(from: byteStringCommandLine, workingDir: cbc.scope.evaluate(BuiltinMacros.PROJECT_DIR), addSupplementary: !hasEnabledIndexBuildArena, replaceCompile: false, responseFileMapping: constantFlags.responseFileMapping)
+            commandLine: ClangSourceFileIndexingInfo.indexingCommandLine(from: byteStringCommandLine, workingDir: cbc.scope.evaluate(BuiltinMacros.PROJECT_DIR), addSupplementary: !hasEnabledIndexBuildArena, replaceCompile: false, responseFileMapping: constantFlags.responseFileMapping, responseFileFormat: Self.responseFileFormat(hostOS: cbc.producer.hostOperatingSystem))
         )
     }
 
@@ -1844,6 +1852,16 @@ public class ClangCompilerSpec : CompilerSpec, SpecIdentifierType, GCCCompatible
         let userSpecifiedBlocklists = scope.evaluate(BuiltinMacros.BLOCKLISTS_PATH).nilIfEmpty.map { Path($0) }
 
         return try await discoveredClangToolInfo(producer, delegate, toolPath: toolPath, arch: arch, sysroot: sdk?.path, language: fileType?.languageDialect?.dialectNameForCompilerCommandLineArgument ?? "c", blocklistsPathOverride: userSpecifiedBlocklists)
+    }
+
+    package static func responseFileFormat(hostOS: OperatingSystem) -> ResponseFileFormat {
+        switch hostOS {
+        case .macOS:
+            // Maintained for compatibility with projects which do manual shell escaping of their own in build settings.
+            .unixShellQuotedSpaceSeparated
+        default:
+            .llvmStyleEscaping
+        }
     }
 
     override public func discoveredCommandLineToolSpecInfo(_ producer: any CommandProducer, _ scope: MacroEvaluationScope, _ delegate: any CoreClientTargetDiagnosticProducingDelegate) async -> (any DiscoveredCommandLineToolSpecInfo)? {

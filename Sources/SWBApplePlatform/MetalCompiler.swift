@@ -33,7 +33,7 @@ struct MetalSourceFileIndexingInfo: SourceFileIndexingInfo {
 
     fileprivate init(task: any ExecutableTask, payload: MetalIndexingPayload) {
         self.outputFile = Path(task.commandLine[payload.outputFileIndex].asString)
-        self.commandLine = ClangSourceFileIndexingInfo.indexingCommandLine(from: task.commandLine.map(\.asByteString), workingDir: payload.workingDir, responseFileMapping: [:])
+        self.commandLine = ClangSourceFileIndexingInfo.indexingCommandLine(from: task.commandLine.map(\.asByteString), workingDir: payload.workingDir, responseFileMapping: [:], responseFileFormat: nil)
         self.builtProductsDir = payload.builtProductsDir
         self.toolchains = payload.toolchains
     }
