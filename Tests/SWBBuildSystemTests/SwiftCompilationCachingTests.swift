@@ -191,7 +191,7 @@ fileprivate struct SwiftCompilationCachingTests: CoreBasedTests {
                             "PRODUCT_NAME": "$(TARGET_NAME)",
                             "SWIFT_ENABLE_COMPILE_CACHE": "YES",
                             "COMPILATION_CACHE_ENABLE_DIAGNOSTIC_REMARKS": "YES",
-                            "COMPILATION_CACHE_CAS_PATH": "$(DSTROOT)/CompilationCache"])],
+                            "COMPILATION_CACHE_CAS_PATH": tmpDirPath.join("CompilationCache").str])],
                         buildPhases: [
                             TestSourcesBuildPhase(["App1.swift"]),
                             TestFrameworksBuildPhase([TestBuildFile(.target("FooProduct"))])],
