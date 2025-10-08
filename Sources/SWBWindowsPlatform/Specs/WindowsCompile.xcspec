@@ -17,6 +17,8 @@
         Type = Compiler;
         BasedOn = "default:com.apple.compilers.llvm.clang.1_0";
         EnvironmentVariables = {
+            "TEMP" = "$(OBJROOT)";
+            "TMP" = "$(OBJROOT)";
         };
         Name = "Apple LLVM Windows";
         Description = "Apple LLVM Windows compiler";
