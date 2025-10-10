@@ -573,10 +573,6 @@ final class WorkspaceSettings: Sendable {
             table.push(BuiltinMacros.EXPERIMENTAL_ALLOW_INSTALL_HEADERS_FILTERING, literal: true)
         }
 
-        if SWBFeatureFlag.enableClangExplicitModulesByDefault.value {
-            table.push(BuiltinMacros.CLANG_ENABLE_EXPLICIT_MODULES, literal: true)
-        }
-
         if SWBFeatureFlag.enableSwiftExplicitModulesByDefault.value {
             table.push(BuiltinMacros.SWIFT_ENABLE_EXPLICIT_MODULES, literal: .enabled)
         }

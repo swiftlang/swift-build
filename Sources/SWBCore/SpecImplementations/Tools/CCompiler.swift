@@ -972,7 +972,8 @@ public class ClangCompilerSpec : CompilerSpec, SpecIdentifierType, GCCCompatible
                         // Check that this is the same toolchain and version as the compiler. Mismatched clang/libclang is not supported with explicit modules.
                         let compilerAndLibraryAreInSameToolchain = toolchainPath.isAncestor(of: compiler)
                         let libclangVersion = cbc.producer.lookupLibclang(path: path).version
-                        let compilerAndLibraryVersionsMatch = libclangVersion != nil && libclangVersion == clangInfo?.clangVersion
+                        // On macOS we enforce a matching clang and libclang version, the versioning schemes on other host platforms currently make this difficult.
+                        let compilerAndLibraryVersionsMatch = libclangVersion != nil && libclangVersion == clangInfo?.clangVersion || cbc.producer.hostOperatingSystem != .macOS
                         if compilerAndLibraryAreInSameToolchain && (compilerAndLibraryVersionsMatch || cbc.scope.evaluate(BuiltinMacros.CLANG_EXPLICIT_MODULES_IGNORE_LIBCLANG_VERSION_MISMATCH)) {
                             return path
                         }

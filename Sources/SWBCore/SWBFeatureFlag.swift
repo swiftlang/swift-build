@@ -141,9 +141,6 @@ public enum SWBFeatureFlag {
     /// Remove this feature flag after landing rdar://104894978 (Write "perform-ownership-analysis" = "yes" to build manifest by default)
     public static let performOwnershipAnalysis = SWBFeatureFlagProperty("PerformOwnershipAnalysis", defaultValue: false)
 
-    /// Enable clang explicit modules by default.
-    public static let enableClangExplicitModulesByDefault = SWBFeatureFlagProperty("EnableClangExplicitModulesByDefault", defaultValue: false)
-
     /// Enable Swift explicit modules by default.
     public static let enableSwiftExplicitModulesByDefault = SWBFeatureFlagProperty("EnableSwiftExplicitModulesByDefault", defaultValue: false)
 
