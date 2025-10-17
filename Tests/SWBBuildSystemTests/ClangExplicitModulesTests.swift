@@ -1422,8 +1422,8 @@ fileprivate struct ClangExplicitModulesTests: CoreBasedTests {
                                     "PRODUCT_NAME": "$(TARGET_NAME)",
                                     "CLANG_ENABLE_MODULES": "YES",
                                     "_EXPERIMENTAL_CLANG_EXPLICIT_MODULES": "YES",
-                                    "HEADER_SEARCH_PATHS": "$(inherited) \(tmpDir.join("Test/aProject").str)",
-                                    "CLANG_EXPLICIT_MODULES_OUTPUT_PATH": "\(tmpDir.join("clangmodules").str)",
+                                    "HEADER_SEARCH_PATHS": "$(inherited) \(tmpDir.join("Test").join("aProject").strWithPosixSlashes)",
+                                    "CLANG_EXPLICIT_MODULES_OUTPUT_PATH": "\(tmpDir.join("clangmodules").strWithPosixSlashes)",
                                 ])],
                             targets: [
                                 TestStandardTarget(
