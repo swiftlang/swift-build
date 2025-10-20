@@ -499,7 +499,7 @@ fileprivate struct DependencyValidationTests: CoreBasedTests {
         try await validateModuleDependenciesSwift(explicitModules: false)
     }
 
-    @Test(.requireSDKs(.host), .requireClangFeatures(.printHeadersDirectPerFile))
+    @Test(.requireSDKs(.macOS), .requireClangFeatures(.printHeadersDirectPerFile))
     func validateModuleDependenciesClang() async throws {
         try await withTemporaryDirectory { tmpDir async throws -> Void in
             let testWorkspace = TestWorkspace(
