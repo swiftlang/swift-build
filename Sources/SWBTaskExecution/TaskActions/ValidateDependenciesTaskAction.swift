@@ -116,7 +116,7 @@ public final class ValidateDependenciesTaskAction: TaskAction {
                 if unsupported {
                     diagnostics.append(contentsOf: [headerContext.makeUnsupportedToolchainDiagnostic()])
                 } else {
-                    let (missingDeps, unusedDeps) = headerContext.computeMissingAndUnusedDependencies(includes: allClangIncludes.map { $0.path })
+                    let (missingDeps, unusedDeps) = headerContext.computeMissingAndUnusedDependencies(includes: allClangIncludes.map { ($0.path, $0.includeLocations) })
                     outputDelegate.incrementCounter(.headerDependenciesMissing, by: missingDeps.count)
                     outputDelegate.incrementCounter(.headerDependenciesUnused, by: unusedDeps.count)
 
