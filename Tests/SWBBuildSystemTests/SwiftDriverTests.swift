@@ -22,9 +22,9 @@ import SWBLLBuild
 import SWBCore
 import SWBTaskExecution
 
-@Suite(.requireLLBuild(apiVersion: 12), .requireXcode16())
+@Suite
 fileprivate struct SwiftDriverTests: CoreBasedTests {
-    @Test(.requireSDKs(.macOS))
+    @Test(.requireSDKs(.host))
     func swiftDriverPlanning() async throws {
         try await withTemporaryDirectory { tmpDirPath async throws -> Void in
             let testWorkspace = try await TestWorkspace(
@@ -50,7 +50,6 @@ fileprivate struct SwiftDriverTests: CoreBasedTests {
                                     "PRODUCT_NAME": "$(TARGET_NAME)",
                                     "SWIFT_VERSION": swiftVersion,
                                     "BUILD_VARIANTS": "normal",
-                                    "ARCHS": "arm64e",
 
                                     "SWIFT_USE_INTEGRATED_DRIVER": "YES",
                                 ])
@@ -58,7 +57,7 @@ fileprivate struct SwiftDriverTests: CoreBasedTests {
                         targets: [
                             TestStandardTarget(
                                 "TargetA",
-                                type: .framework,
+                                type: .staticLibrary,
                                 buildPhases: [
                                     TestSourcesBuildPhase([
                                         "file1.swift",
@@ -67,7 +66,7 @@ fileprivate struct SwiftDriverTests: CoreBasedTests {
                                 ]),
                             TestStandardTarget(
                                 "TargetB",
-                                type: .framework,
+                                type: .staticLibrary,
                                 buildPhases: [
                                     TestSourcesBuildPhase([
                                         "file3.swift",
@@ -118,32 +117,32 @@ fileprivate struct SwiftDriverTests: CoreBasedTests {
             }
 
             // Check that subtasks progress events are reported as expected.
-            try await tester.checkBuild(runDestination: .macOS, buildRequest: buildRequest, persistent: true) { results in
+            try await tester.checkBuild(runDestination: .host, buildRequest: buildRequest, persistent: true) { results in
 
                 results.checkNoErrors()
 
                 // Planning needs to follow upstream planning
                 let planningTargetA = try #require(results.getTask(.matchTargetName("TargetA"), .matchRuleType("SwiftDriver")))
                 planningTargetA.checkCommandLineMatches(["builtin-SwiftDriver", "--", .anySequence])
-                #expect(planningTargetA.execDescription == "Planning Swift module TargetA (arm64e)")
+                #expect(planningTargetA.execDescription?.hasPrefix("Planning Swift module TargetA") == true)
 
                 let planningTargetB = try #require(results.getTask(.matchTargetName("TargetB"), .matchRuleType("SwiftDriver")))
                 planningTargetB.checkCommandLineMatches(["builtin-SwiftDriver", "--", .anySequence])
-                #expect(planningTargetB.execDescription == "Planning Swift module TargetB (arm64e)")
+                #expect(planningTargetB.execDescription?.hasPrefix("Planning Swift module TargetB") == true)
 
                 try results.checkTaskFollows(planningTargetB, planningTargetA)
 
                 for targetName in ["TargetA", "TargetB"] {
                     results.checkTask(.matchRuleType("SwiftDriver Compilation Requirements"), .matchTargetName(targetName)) { compilationRequirementTask in
                         compilationRequirementTask.checkCommandLineMatches(["builtin-Swift-Compilation-Requirements"])
-                        #expect(compilationRequirementTask.execDescription == "Unblock downstream dependents of \(targetName) (arm64e)")
+                        #expect(compilationRequirementTask.execDescription?.hasPrefix("Unblock downstream dependents of \(targetName)") == true)
                     }
                 }
 
                 for fileName in ["file1", "file2"] {
-                    let linkTask = try #require(results.getTask(.matchTargetName("TargetA"), .matchRuleType("Ld")))
-                    try results.checkTask(.matchTargetName("TargetA"), .matchRule(["SwiftCompile", "normal", "arm64e", "Compiling \(fileName).swift",SRCROOT.join("Sources/\(fileName).swift").str])) { compileTask in
-                        compileTask.checkCommandLineMatches([.suffix("swift-frontend"), .anySequence, "-primary-file", .anySequence, .equal(SRCROOT.join("Sources/\(fileName).swift").str), .anySequence, "-o", .suffix("\(fileName).o")])
+                    let linkTask = try #require(results.getTask(.matchTargetName("TargetA"), .matchRuleType("Libtool")))
+                    try results.checkTask(.matchTargetName("TargetA"), .matchRulePattern(["SwiftCompile", "normal", .any, "Compiling \(fileName).swift", .equal(SRCROOT.join("Sources/\(fileName).swift").str)])) { compileTask in
+                        compileTask.checkCommandLineMatches([.anySequence, "-primary-file", .anySequence, .equal(SRCROOT.join("Sources/\(fileName).swift").str), .anySequence, "-o", .suffix("\(fileName).o")])
                         let env = compileTask.environment.bindingsDictionary
                         #expect(env["DEVELOPER_DIR"] != nil)
                         #expect(env["SDKROOT"] != nil)
@@ -153,11 +152,11 @@ fileprivate struct SwiftDriverTests: CoreBasedTests {
                 }
 
                 // Swift Driver changed default behavior from merging modules after compilation to eagerly emitting the module, both are valid here.
-                results.checkTask(.matchTargetName("TargetA"), .matchRulePattern([.or("SwiftMergeModule", "SwiftEmitModule"), "normal", "arm64e", .or("Merging module TargetA", "Emitting module for TargetA")])) { task in
+                results.checkTask(.matchTargetName("TargetA"), .matchRulePattern([.or("SwiftMergeModule", "SwiftEmitModule"), "normal", .any, .or("Merging module TargetA", "Emitting module for TargetA")])) { task in
                     if task.ruleIdentifier == "SwiftMergeModule" {
-                        task.checkCommandLineMatches([.suffix("swift-frontend"), .anySequence, "-merge-modules", .anySequence, .suffix("file1~partial.swiftmodule"), .suffix("file2~partial.swiftmodule"), .anySequence, "-o", .suffix("TargetA.swiftmodule")])
+                        task.checkCommandLineMatches([.anySequence, "-merge-modules", .anySequence, .suffix("file1~partial.swiftmodule"), .suffix("file2~partial.swiftmodule"), .anySequence, "-o", .suffix("TargetA.swiftmodule")])
                     } else {
-                        task.checkCommandLineMatches([.suffix("swift-frontend"), .anySequence, "-emit-module", .anySequence, "-o", .suffix("TargetA.swiftmodule")])
+                        task.checkCommandLineMatches([.anySequence, "-emit-module", .anySequence, "-o", .suffix("TargetA.swiftmodule")])
                     }
                     let env = task.environment.bindingsDictionary
                     #expect(env["DEVELOPER_DIR"] != nil)
@@ -165,20 +164,20 @@ fileprivate struct SwiftDriverTests: CoreBasedTests {
                 }
 
                 for fileName in ["file3", "file4"] {
-                    let linkTask = try #require(results.getTask(.matchTargetName("TargetB"), .matchRuleType("Ld")))
-                    try results.checkTask(.matchTargetName("TargetB"), .matchRule(["SwiftCompile", "normal", "arm64e", "Compiling \(fileName).swift", SRCROOT.join("Sources/\(fileName).swift").str])) { compileTask in
-                        compileTask.checkCommandLineMatches([.suffix("swift-frontend"), .anySequence, "-primary-file", .anySequence, .equal(SRCROOT.join("Sources/\(fileName).swift").str), .anySequence, "-o", .suffix("\(fileName).o")])
+                    let linkTask = try #require(results.getTask(.matchTargetName("TargetB"), .matchRuleType("Libtool")))
+                    try results.checkTask(.matchTargetName("TargetB"), .matchRulePattern(["SwiftCompile", "normal", .any, "Compiling \(fileName).swift", .equal(SRCROOT.join("Sources/\(fileName).swift").str)])) { compileTask in
+                        compileTask.checkCommandLineMatches([.anySequence, "-primary-file", .anySequence, .equal(SRCROOT.join("Sources/\(fileName).swift").str), .anySequence, "-o", .suffix("\(fileName).o")])
 
                         try results.checkTaskFollows(linkTask, compileTask)
                     }
                 }
 
                 // Swift Driver changed default behavior from merging modules after compilation to eagerly emitting the module, both are valid here.
-                results.checkTask(.matchTargetName("TargetB"), .matchRulePattern([.or("SwiftMergeModule", "SwiftEmitModule"), "normal", "arm64e", .or("Merging module TargetB", "Emitting module for TargetB")])) { task in
+                results.checkTask(.matchTargetName("TargetB"), .matchRulePattern([.or("SwiftMergeModule", "SwiftEmitModule"), "normal", .any, .or("Merging module TargetB", "Emitting module for TargetB")])) { task in
                     if task.ruleIdentifier == "SwiftMergeModule" {
-                        task.checkCommandLineMatches([.suffix("swift-frontend"), .anySequence, "-merge-modules", .anySequence, .suffix("file3~partial.swiftmodule"), .suffix("file4~partial.swiftmodule"), .anySequence, "-o", .suffix("TargetB.swiftmodule")])
+                        task.checkCommandLineMatches([.anySequence, "-merge-modules", .anySequence, .suffix("file3~partial.swiftmodule"), .suffix("file4~partial.swiftmodule"), .anySequence, "-o", .suffix("TargetB.swiftmodule")])
                     } else {
-                        task.checkCommandLineMatches([.suffix("swift-frontend"), .anySequence, "-emit-module", .anySequence, "-o", .suffix("TargetB.swiftmodule")])
+                        task.checkCommandLineMatches([.anySequence, "-emit-module", .anySequence, "-o", .suffix("TargetB.swiftmodule")])
                     }
                 }
             }
@@ -338,7 +337,7 @@ fileprivate struct SwiftDriverTests: CoreBasedTests {
         }
     }
 
-    @Test(.requireSDKs(.macOS))
+    @Test(.requireSDKs(.host), .skipHostOS(.windows))
     func precompiledHeader() async throws {
         try await withTemporaryDirectory { tmpDirPath async throws -> Void in
             let testWorkspace = try await TestWorkspace(
@@ -353,6 +352,7 @@ fileprivate struct SwiftDriverTests: CoreBasedTests {
                             children: [
                                 TestFile("Bridging-Header.h"),
                                 TestFile("file1.swift"),
+                                TestFile("foo.c"),
                             ]),
                         buildConfigurations: [
                             TestBuildConfiguration(
@@ -361,7 +361,6 @@ fileprivate struct SwiftDriverTests: CoreBasedTests {
                                     "PRODUCT_NAME": "$(TARGET_NAME)",
                                     "SWIFT_VERSION": swiftVersion,
                                     "BUILD_VARIANTS": "normal",
-                                    "ARCHS": "arm64",
                                     "SWIFT_OBJC_BRIDGING_HEADER": "Sources/Bridging-Header.h",
 
                                     "SWIFT_USE_INTEGRATED_DRIVER": "YES",
@@ -370,10 +369,11 @@ fileprivate struct SwiftDriverTests: CoreBasedTests {
                         targets: [
                             TestStandardTarget(
                                 "TargetA",
-                                type: .framework,
+                                type: .staticLibrary,
                                 buildPhases: [
                                     TestSourcesBuildPhase([
                                         "file1.swift",
+                                        "foo.c"
                                     ]),
                                     TestHeadersBuildPhase([
                                         "Bridging-Header.h"
@@ -392,18 +392,26 @@ fileprivate struct SwiftDriverTests: CoreBasedTests {
                 file <<<
                         """
                         public struct A {
-                            public init() {}
+                            public init() {
+                                foo()
+                            }
                         }
                         """
             }
             try await tester.fs.writeFileContents(SRCROOT.join("Sources/Bridging-Header.h")) { file in
                 file <<<
                         """
-                        @import Foundation;
+                        void foo(void);
+                        """
+            }
+            try await tester.fs.writeFileContents(SRCROOT.join("Sources/foo.c")) { file in
+                file <<<
+                        """
+                        void foo(void) {}
                         """
             }
 
-            try await tester.checkBuild(runDestination: .anyMac, buildRequest: buildRequest, persistent: true) { results in
+            try await tester.checkBuild(runDestination: .host, buildRequest: buildRequest, persistent: true) { results in
                 results.checkNoErrors()
             }
         }
@@ -510,7 +518,7 @@ fileprivate struct SwiftDriverTests: CoreBasedTests {
         }
     }
 
-    @Test(.requireSDKs(.macOS), arguments: [true, false])
+    @Test(.requireSDKs(.host), arguments: [true, false])
     func verifyModule(enableWMO: Bool) async throws {
         try await withTemporaryDirectory { tmpDirPath async throws -> Void in
             let testWorkspace = try await TestWorkspace(
@@ -533,7 +541,6 @@ fileprivate struct SwiftDriverTests: CoreBasedTests {
                                     "PRODUCT_NAME": "$(TARGET_NAME)",
                                     "SWIFT_VERSION": swiftVersion,
                                     "BUILD_VARIANTS": "normal",
-                                    "ARCHS": "arm64",
                                     "BUILD_LIBRARY_FOR_DISTRIBUTION": "YES",
                                     "OTHER_SWIFT_FLAGS": "$(inherited) -verify-emitted-module-interface",
 
@@ -568,7 +575,7 @@ fileprivate struct SwiftDriverTests: CoreBasedTests {
                             """
             }
 
-            try await tester.checkBuild(runDestination: .anyMac, buildRequest: buildRequest, persistent: true) { results in
+            try await tester.checkBuild(runDestination: .host, buildRequest: buildRequest, persistent: true) { results in
                 results.checkNoErrors()
 
                 results.checkTask(.matchTargetName("TargetA"), .matchRuleType("SwiftDriver Compilation")) { compileBucket in
@@ -896,264 +903,263 @@ fileprivate struct SwiftDriverTests: CoreBasedTests {
         }
     }
 
-    @Test(.requireSDKs(.macOS))
+    @Test(.requireSDKs(.host), .skipHostOS(.windows))
     func explicitBuild() async throws {
         for setting in ["SWIFT_ENABLE_EXPLICIT_MODULES", "_EXPERIMENTAL_SWIFT_EXPLICIT_MODULES"] {
-            for arch in ["x86_64", "arm64"] {
-                try await withTemporaryDirectory { tmpDirPath async throws -> Void in
-                    let moduleCacheDir = tmpDirPath.join("ModuleCache")
-                    let testWorkspace = try await TestWorkspace(
-                        "Test",
-                        sourceRoot: tmpDirPath.join("Test"),
-                        projects: [
-                            TestProject(
-                                "aProject",
-                                groupTree: TestGroup(
-                                    "Sources",
-                                    path: "Sources",
-                                    children: [
-                                        TestFile("fileC.c"),
-                                        TestFile("fileC.h"),
+            try await withTemporaryDirectory { tmpDirPath async throws -> Void in
+                let moduleCacheDir = tmpDirPath.join("ModuleCache")
+                let testWorkspace = try await TestWorkspace(
+                    "Test",
+                    sourceRoot: tmpDirPath.join("Test"),
+                    projects: [
+                        TestProject(
+                            "aProject",
+                            groupTree: TestGroup(
+                                "Sources",
+                                path: "Sources",
+                                children: [
+                                    TestFile("fileC.c"),
+                                    TestFile("fileC.h"),
 
-                                        TestFile("file1.swift"),
-                                        TestFile("file2.swift"),
+                                    TestFile("file1.swift"),
+                                    TestFile("file2.swift"),
 
-                                        TestFile("file3.swift"),
-                                        TestFile("file4.swift"),
+                                    TestFile("file3.swift"),
+                                    TestFile("file4.swift"),
 
-                                        TestFile("file5.swift"),
-                                        TestFile("file6.swift"),
+                                    TestFile("file5.swift"),
+                                    TestFile("file6.swift"),
+                                ]),
+                            buildConfigurations: [
+                                TestBuildConfiguration(
+                                    "Debug",
+                                    buildSettings: [
+                                        "PRODUCT_NAME": "$(TARGET_NAME)",
+                                        "SWIFT_VERSION": swiftVersion,
+                                        "BUILD_VARIANTS": "normal",
+                                        "SWIFT_USE_INTEGRATED_DRIVER": "YES",
+                                        "CODE_SIGNING_ALLOWED": "NO",
+                                        "EXECUTABLE_PREFIX": "lib",
+                                        "EXECUTABLE_PREFIX[sdk=windows*]": "",
+                                        setting: "YES",
+                                    ])
+                            ],
+                            targets: [
+                                TestStandardTarget(
+                                    "Target0",
+                                    type: .dynamicLibrary,
+                                    buildPhases: [
+                                        TestSourcesBuildPhase([
+                                            "fileC.c",
+                                            "fileC.h"
+                                        ]),
                                     ]),
-                                buildConfigurations: [
-                                    TestBuildConfiguration(
-                                        "Debug",
-                                        buildSettings: [
-                                            "PRODUCT_NAME": "$(TARGET_NAME)",
-                                            "SWIFT_VERSION": swiftVersion,
-                                            "BUILD_VARIANTS": "normal",
-                                            "ARCHS": arch,
-                                            "SWIFT_USE_INTEGRATED_DRIVER": "YES",
-                                            setting: "YES",
-                                        ])
-                                ],
-                                targets: [
-                                    TestStandardTarget(
-                                        "Target0",
-                                        type: .framework,
-                                        buildPhases: [
-                                            TestSourcesBuildPhase([
-                                                "fileC.c",
-                                                "fileC.h"
-                                            ]),
+                                TestStandardTarget(
+                                    "TargetA",
+                                    type: .dynamicLibrary,
+                                    buildPhases: [
+                                        TestSourcesBuildPhase([
+                                            "file1.swift",
+                                            "file2.swift",
                                         ]),
-                                    TestStandardTarget(
-                                        "TargetA",
-                                        type: .framework,
-                                        buildPhases: [
-                                            TestSourcesBuildPhase([
-                                                "file1.swift",
-                                                "file2.swift",
-                                            ]),
+                                    ]),
+                                TestStandardTarget(
+                                    "TargetB",
+                                    type: .dynamicLibrary,
+                                    buildPhases: [
+                                        TestSourcesBuildPhase([
+                                            "file3.swift",
+                                            "file4.swift",
                                         ]),
-                                    TestStandardTarget(
-                                        "TargetB",
-                                        type: .framework,
-                                        buildPhases: [
-                                            TestSourcesBuildPhase([
-                                                "file3.swift",
-                                                "file4.swift",
-                                            ]),
-                                            // Explicit module builds do not currently behave the same way
-                                            // as implicit, which auto-link all dependencies by-default.
-                                            // Explicitly linking dependencies is required. This may cause
-                                            // a lot of projects to break though so we may need to make explicit modules
-                                            // behave the same way and re-introduce auto-linking.
-                                            TestFrameworksBuildPhase([TestBuildFile(.target("TargetA"))])
-                                        ], dependencies: ["TargetA"]),
-                                    TestStandardTarget(
-                                        "TargetC",
-                                        type: .framework,
-                                        buildPhases: [
-                                            TestSourcesBuildPhase([
-                                                "file5.swift",
-                                                "file6.swift",
-                                            ]),
-                                            TestFrameworksBuildPhase([TestBuildFile(.target("TargetA")), TestBuildFile(.target("TargetB"))])
-                                        ], dependencies: ["TargetB", "Target0"])
-                                ])
-                        ])
+                                        // Explicit module builds do not currently behave the same way
+                                        // as implicit, which auto-link all dependencies by-default.
+                                        // Explicitly linking dependencies is required. This may cause
+                                        // a lot of projects to break though so we may need to make explicit modules
+                                        // behave the same way and re-introduce auto-linking.
+                                        TestFrameworksBuildPhase([TestBuildFile(.target("TargetA"))])
+                                    ], dependencies: ["TargetA"]),
+                                TestStandardTarget(
+                                    "TargetC",
+                                    type: .dynamicLibrary,
+                                    buildPhases: [
+                                        TestSourcesBuildPhase([
+                                            "file5.swift",
+                                            "file6.swift",
+                                        ]),
+                                        TestFrameworksBuildPhase([TestBuildFile(.target("TargetA")), TestBuildFile(.target("TargetB"))])
+                                    ], dependencies: ["TargetB", "Target0"])
+                            ])
+                    ])
 
-                    let tester = try await BuildOperationTester(getCore(), testWorkspace, simulated: false)
-                    try tester.fs.createDirectory(moduleCacheDir)
-                    let parameters = BuildParameters(configuration: "Debug")
-                    let buildRequest = BuildRequest(parameters: parameters, buildTargets: tester.workspace.projects[0].targets.map({ BuildRequest.BuildTargetInfo(parameters: parameters, target: $0) }), continueBuildingAfterErrors: false, useParallelTargets: true, useImplicitDependencies: false, useDryRun: false)
-                    let SRCROOT = testWorkspace.sourceRoot.join("aProject")
+                let tester = try await BuildOperationTester(getCore(), testWorkspace, simulated: false)
+                try tester.fs.createDirectory(moduleCacheDir)
+                let parameters = BuildParameters(configuration: "Debug")
+                let buildRequest = BuildRequest(parameters: parameters, buildTargets: tester.workspace.projects[0].targets.map({ BuildRequest.BuildTargetInfo(parameters: parameters, target: $0) }), continueBuildingAfterErrors: false, useParallelTargets: true, useImplicitDependencies: false, useDryRun: false)
+                let SRCROOT = testWorkspace.sourceRoot.join("aProject")
 
-                    // Create the source files.
-                    try await tester.fs.writeFileContents(SRCROOT.join("Sources/fileC.c")) { file in
-                        file <<<
+                // Create the source files.
+                try await tester.fs.writeFileContents(SRCROOT.join("Sources/fileC.c")) { file in
+                    file <<<
                         """
                         int foo() { return 11; }
                         """
-                    }
-                    try await tester.fs.writeFileContents(SRCROOT.join("Sources/fileC.h")) { file in
-                        file <<<
+                }
+                try await tester.fs.writeFileContents(SRCROOT.join("Sources/fileC.h")) { file in
+                    file <<<
                         """
                         int foo();
                         """
-                    }
-                    try await tester.fs.writeFileContents(SRCROOT.join("Sources/file1.swift")) { file in
-                        file <<<
+                }
+                try await tester.fs.writeFileContents(SRCROOT.join("Sources/file1.swift")) { file in
+                    file <<<
                         """
                         public struct A {
                             public init() {}
                         }
                         """
-                    }
-                    try await tester.fs.writeFileContents(SRCROOT.join("Sources/file2.swift")) { file in
-                        file <<<
+                }
+                try await tester.fs.writeFileContents(SRCROOT.join("Sources/file2.swift")) { file in
+                    file <<<
                         """
                         struct B {
                             let a = A()
                         }
                         """
-                    }
+                }
 
-                    try await tester.fs.writeFileContents(SRCROOT.join("Sources/file3.swift")) { file in
-                        file <<<
+                try await tester.fs.writeFileContents(SRCROOT.join("Sources/file3.swift")) { file in
+                    file <<<
                         """
                         public struct C {
                             public init() {}
                         }
                         """
-                    }
-                    try await tester.fs.writeFileContents(SRCROOT.join("Sources/file4.swift")) { file in
-                        file <<<
+                }
+                try await tester.fs.writeFileContents(SRCROOT.join("Sources/file4.swift")) { file in
+                    file <<<
                         """
                         import TargetA
-
+                        
                         struct D {
                             let a = A()
                         }
                         """
-                    }
+                }
 
-                    try await tester.fs.writeFileContents(SRCROOT.join("Sources/file5.swift")) { file in
-                        file <<<
+                try await tester.fs.writeFileContents(SRCROOT.join("Sources/file5.swift")) { file in
+                    file <<<
                         """
                         struct E {}
                         """
-                    }
-                    try await tester.fs.writeFileContents(SRCROOT.join("Sources/file6.swift")) { file in
-                        file <<<
+                }
+                try await tester.fs.writeFileContents(SRCROOT.join("Sources/file6.swift")) { file in
+                    file <<<
                         """
                         import TargetB
-
+                        
                         struct F {
                             let c = C()
                         }
                         """
+                }
+
+                // Check that subtasks progress events are reported as expected.
+                try await tester.checkBuild(runDestination: .host, buildRequest: buildRequest, persistent: true) { results in
+                    results.checkNoErrors()
+                    // Remove in rdar://83104047
+                    results.checkWarnings([.contains("input unused"), .contains("input unused")], failIfNotFound: false)
+
+                    for targetName in ["TargetA", "TargetB"] {
+                        let checkPayload: (BuildOperationTester.BuildResults.Task) -> Void = { task in
+                            guard let swiftPayload = task.payload as? SwiftTaskPayload, let driverPayload = swiftPayload.driverPayload else {
+                                Issue.record("Unexpected payload for Swift driver: \(task.payload as Any)")
+                                return
+                            }
+                            #expect(driverPayload.moduleName == targetName)
+                            #expect(driverPayload.variant == "normal")
+                            #expect(driverPayload.eagerCompilationEnabled)
+                            #expect(driverPayload.explicitModulesEnabled)
+                        }
+
+                        results.checkTask(.matchRuleType("SwiftDriver"), .matchTargetName(targetName)) { driverTask -> Void in
+                            driverTask.checkCommandLineMatches(["builtin-SwiftDriver", .anySequence, "-module-cache-path", .suffix("aProject/build/SwiftExplicitPrecompiledModules")])
+                            #expect(driverTask.execDescription?.hasPrefix("Planning Swift module \(targetName)") == true)
+                            checkPayload(driverTask)
+                        }
+
+                        results.checkTask(.matchRuleType("SwiftDriver Compilation Requirements"), .matchTargetName(targetName)) { driverTask in
+                            driverTask.checkCommandLineMatches(["builtin-Swift-Compilation-Requirements"])
+                            #expect(driverTask.execDescription?.hasPrefix("Unblock downstream dependents of \(targetName)") == true)
+                            checkPayload(driverTask)
+                        }
                     }
 
-                    // Check that subtasks progress events are reported as expected.
-                    try await tester.checkBuild(runDestination: .macOS, buildRequest: buildRequest, persistent: true) { results in
-                        results.checkNoErrors()
-                        // Remove in rdar://83104047
-                        results.checkWarnings([.contains("input unused"), .contains("input unused")], failIfNotFound: false)
+                    results.checkTask(.matchTargetName("TargetA"), .matchRulePattern(["SwiftCompile", "normal", .any, "Compiling file1.swift", .equal(SRCROOT.join("Sources/file1.swift").str)])) { compileFile1Task in
+                        compileFile1Task.checkCommandLineMatches([.anySequence, "-primary-file", .equal(SRCROOT.join("Sources/file1.swift").str), .anySequence, "-disable-implicit-swift-modules", .anySequence, "-o", .suffix("file1.o")])
+                    }
 
-                        for targetName in ["TargetA", "TargetB"] {
-                            let checkPayload: (BuildOperationTester.BuildResults.Task) -> Void = { task in
-                                guard let swiftPayload = task.payload as? SwiftTaskPayload, let driverPayload = swiftPayload.driverPayload else {
-                                    Issue.record("Unexpected payload for Swift driver: \(task.payload as Any)")
-                                    return
-                                }
-                                #expect(driverPayload.moduleName == targetName)
-                                #expect(driverPayload.variant == "normal")
-                                #expect(driverPayload.architecture == arch)
-                                #expect(driverPayload.eagerCompilationEnabled)
-                                #expect(driverPayload.explicitModulesEnabled)
-                            }
+                    results.checkTask(.matchTargetName("TargetA"), .matchRulePattern(["SwiftCompile", "normal", .any, "Compiling file2.swift", .equal(SRCROOT.join("Sources/file2.swift").str)])) { compileFile2Task in
+                        compileFile2Task.checkCommandLineMatches([.anySequence, "-primary-file", .equal(SRCROOT.join("Sources/file2.swift").str), .anySequence, "-disable-implicit-swift-modules",  .anySequence, "-o", .suffix("file2.o")])
+                    }
 
-                            results.checkTask(.matchRuleType("SwiftDriver"), .matchTargetName(targetName)) { driverTask -> Void in
-                                driverTask.checkCommandLineMatches(["builtin-SwiftDriver", .anySequence, "-module-cache-path", .suffix("aProject/build/SwiftExplicitPrecompiledModules")])
-                                #expect(driverTask.execDescription == "Planning Swift module \(targetName) (\(arch))")
-                                checkPayload(driverTask)
-                            }
-
-                            results.checkTask(.matchRuleType("SwiftDriver Compilation Requirements"), .matchTargetName(targetName)) { driverTask in
-                                driverTask.checkCommandLineMatches(["builtin-Swift-Compilation-Requirements"])
-                                #expect(driverTask.execDescription == "Unblock downstream dependents of \(targetName) (\(arch))")
-                                checkPayload(driverTask)
-                            }
+                    // Swift Driver changed default behavior from merging modules after compilation to eagerly emitting the module, both are valid here.
+                    results.checkTask(.matchTargetName("TargetA"), .matchRulePattern([.or("SwiftMergeModule", "SwiftEmitModule"), "normal", .any, .or("Merging module TargetA", "Emitting module for TargetA")])) { task in
+                        if task.ruleIdentifier == "SwiftMergeModule" {
+                            task.checkCommandLineMatches([.anySequence, "-merge-modules", .anySequence, .suffix("file1~partial.swiftmodule"), .suffix("file2~partial.swiftmodule"), .anySequence, "-o", .suffix("TargetA.swiftmodule")])
+                        } else {
+                            task.checkCommandLineMatches([.anySequence, "-emit-module", .anySequence, "-o", .suffix("TargetA.swiftmodule")])
                         }
+                    }
 
-                        results.checkTask(.matchTargetName("TargetA"), .matchRule(["SwiftCompile", "normal", arch, "Compiling file1.swift", SRCROOT.join("Sources/file1.swift").str])) { compileFile1Task in
-                            compileFile1Task.checkCommandLineMatches([.suffix("swift-frontend"), .anySequence, "-primary-file", .equal(SRCROOT.join("Sources/file1.swift").str), .anySequence, "-disable-implicit-swift-modules", .anySequence, "-o", .suffix("file1.o")])
-                        }
+                    results.checkTask(.matchTargetName("TargetB"), .matchRulePattern(["SwiftCompile", "normal", .any, "Compiling file3.swift", .equal(SRCROOT.join("Sources/file3.swift").str)])) { compileFile3Task in
+                        compileFile3Task.checkCommandLineMatches([.anySequence, "-primary-file", .anySequence, .equal(SRCROOT.join("Sources/file3.swift").str), .anySequence, "-disable-implicit-swift-modules",  .anySequence, "-o", .suffix("file3.o")])
+                    }
 
-                        results.checkTask(.matchTargetName("TargetA"), .matchRule(["SwiftCompile", "normal", arch, "Compiling file2.swift", SRCROOT.join("Sources/file2.swift").str])) { compileFile2Task in
-                            compileFile2Task.checkCommandLineMatches([.suffix("swift-frontend"), .anySequence, "-primary-file", .equal(SRCROOT.join("Sources/file2.swift").str), .anySequence, "-disable-implicit-swift-modules",  .anySequence, "-o", .suffix("file2.o")])
-                        }
+                    results.checkTask(.matchTargetName("TargetB"), .matchRulePattern(["SwiftCompile", "normal", .any, "Compiling file4.swift", .equal(SRCROOT.join("Sources/file4.swift").str)])) { compileFile4Task in
+                        compileFile4Task.checkCommandLineMatches([.anySequence, "-primary-file", .anySequence, .equal(SRCROOT.join("Sources/file4.swift").str), .anySequence, "-disable-implicit-swift-modules",  .anySequence, "-o", .suffix("file4.o")])
+                    }
 
-                        // Swift Driver changed default behavior from merging modules after compilation to eagerly emitting the module, both are valid here.
-                        results.checkTask(.matchTargetName("TargetA"), .matchRulePattern([.or("SwiftMergeModule", "SwiftEmitModule"), "normal", "\(arch)", .or("Merging module TargetA", "Emitting module for TargetA")])) { task in
-                            if task.ruleIdentifier == "SwiftMergeModule" {
-                                task.checkCommandLineMatches([.suffix("swift-frontend"), .anySequence, "-merge-modules", .anySequence, .suffix("file1~partial.swiftmodule"), .suffix("file2~partial.swiftmodule"), .anySequence, "-o", .suffix("TargetA.swiftmodule")])
-                            } else {
-                                task.checkCommandLineMatches([.suffix("swift-frontend"), .anySequence, "-emit-module", .anySequence, "-o", .suffix("TargetA.swiftmodule")])
-                            }
+                    // Swift Driver changed default behavior from merging modules after compilation to eagerly emitting the module, both are valid here.
+                    results.checkTask(.matchTargetName("TargetB"), .matchRulePattern([.or("SwiftMergeModule", "SwiftEmitModule"), "normal", .any, .or("Merging module TargetB", "Emitting module for TargetB")])) { task in
+                        if task.ruleIdentifier == "SwiftMergeModule" {
+                            task.checkCommandLineMatches([.anySequence, "-merge-modules", .anySequence, .suffix("file3~partial.swiftmodule"), .suffix("file4~partial.swiftmodule"), .anySequence, "-o", .suffix("TargetB.swiftmodule")])
+                        } else {
+                            task.checkCommandLineMatches([.anySequence, "-emit-module", .anySequence, "-o", .suffix("TargetB.swiftmodule")])
                         }
+                    }
+                    results.checkTask(.matchTargetName("TargetC"), .matchRulePattern(["SwiftCompile", "normal", .any, "Compiling file5.swift", .equal(SRCROOT.join("Sources/file5.swift").str)])) { compileFile3Task in
+                        compileFile3Task.checkCommandLineMatches([.anySequence, "-primary-file", .anySequence, .equal(SRCROOT.join("Sources/file5.swift").str), .anySequence, "-disable-implicit-swift-modules",  .anySequence, "-o", .suffix("file5.o")])
+                    }
 
-                        results.checkTask(.matchTargetName("TargetB"), .matchRule(["SwiftCompile", "normal", arch, "Compiling file3.swift", SRCROOT.join("Sources/file3.swift").str])) { compileFile3Task in
-                            compileFile3Task.checkCommandLineMatches([.suffix("swift-frontend"), .anySequence, "-primary-file", .anySequence, .equal(SRCROOT.join("Sources/file3.swift").str), .anySequence, "-disable-implicit-swift-modules",  .anySequence, "-o", .suffix("file3.o")])
-                        }
+                    results.checkTask(.matchTargetName("TargetC"), .matchRulePattern(["SwiftCompile", "normal", .any, "Compiling file6.swift", .equal(SRCROOT.join("Sources/file6.swift").str)])) { compileFile4Task in
+                        compileFile4Task.checkCommandLineMatches([.anySequence, "-primary-file", .anySequence, .equal(SRCROOT.join("Sources/file6.swift").str), .anySequence, "-disable-implicit-swift-modules",  .anySequence, "-o", .suffix("file6.o")])
+                    }
 
-                        results.checkTask(.matchTargetName("TargetB"), .matchRule(["SwiftCompile", "normal", arch, "Compiling file4.swift", SRCROOT.join("Sources/file4.swift").str])) { compileFile4Task in
-                            compileFile4Task.checkCommandLineMatches([.suffix("swift-frontend"), .anySequence, "-primary-file", .anySequence, .equal(SRCROOT.join("Sources/file4.swift").str), .anySequence, "-disable-implicit-swift-modules",  .anySequence, "-o", .suffix("file4.o")])
+                    // Swift Driver changed default behavior from merging modules after compilation to eagerly emitting the module, both are valid here.
+                    results.checkTask(.matchTargetName("TargetC"), .matchRulePattern([.or("SwiftMergeModule", "SwiftEmitModule"), "normal", .any, .or("Merging module TargetC", "Emitting module for TargetC")])) { task in
+                        if task.ruleIdentifier == "SwiftMergeModule" {
+                            task.checkCommandLineMatches([.anySequence, "-merge-modules", .anySequence, .suffix("file5~partial.swiftmodule"), .suffix("file6~partial.swiftmodule"), .anySequence, "-o", .suffix("TargetC.swiftmodule")])
+                        } else {
+                            task.checkCommandLineMatches([.anySequence, "-emit-module", .anySequence, "-o", .suffix("TargetC.swiftmodule")])
                         }
+                    }
 
-                        // Swift Driver changed default behavior from merging modules after compilation to eagerly emitting the module, both are valid here.
-                        results.checkTask(.matchTargetName("TargetB"), .matchRulePattern([.or("SwiftMergeModule", "SwiftEmitModule"), "normal", "\(arch)", .or("Merging module TargetB", "Emitting module for TargetB")])) { task in
-                            if task.ruleIdentifier == "SwiftMergeModule" {
-                                task.checkCommandLineMatches([.suffix("swift-frontend"), .anySequence, "-merge-modules", .anySequence, .suffix("file3~partial.swiftmodule"), .suffix("file4~partial.swiftmodule"), .anySequence, "-o", .suffix("TargetB.swiftmodule")])
-                            } else {
-                                task.checkCommandLineMatches([.suffix("swift-frontend"), .anySequence, "-emit-module", .anySequence, "-o", .suffix("TargetB.swiftmodule")])
-                            }
+                    // The below checks also ensure uniqueness of these tasks in this build
+                    results.checkTasks(.matchRulePattern(["SwiftExplicitDependencyGeneratePcm", "normal", .any, "Compiling Clang module SwiftShims"]), .matchCommandLineArgument("SwiftShims")) { pcmBuildTasks in
+                        for pcmBuildTask in pcmBuildTasks {
+                            pcmBuildTask.checkCommandLineMatches([.anySequence, "-emit-pcm", .anySequence, "-module-name", "SwiftShims"])
                         }
-                        results.checkTask(.matchTargetName("TargetC"), .matchRule(["SwiftCompile", "normal", "\(arch)", "Compiling file5.swift", SRCROOT.join("Sources/file5.swift").str])) { compileFile3Task in
-                            compileFile3Task.checkCommandLineMatches([.suffix("swift-frontend"), .anySequence, "-primary-file", .anySequence, .equal(SRCROOT.join("Sources/file5.swift").str), .anySequence, "-disable-implicit-swift-modules",  .anySequence, "-o", .suffix("file5.o")])
-                        }
+                    }
 
-                        results.checkTask(.matchTargetName("TargetC"), .matchRule(["SwiftCompile", "normal", "\(arch)", "Compiling file6.swift", SRCROOT.join("Sources/file6.swift").str])) { compileFile4Task in
-                            compileFile4Task.checkCommandLineMatches([.suffix("swift-frontend"), .anySequence, "-primary-file", .anySequence, .equal(SRCROOT.join("Sources/file6.swift").str), .anySequence, "-disable-implicit-swift-modules",  .anySequence, "-o", .suffix("file6.o")])
+                    results.checkTasks(.matchRulePattern(["SwiftExplicitDependencyCompileModuleFromInterface", "normal", .any, "Compiling Swift module _Concurrency"]), .matchCommandLineArgument("_Concurrency")) { emitModuleTasks in
+                        for emitModuleTask in emitModuleTasks {
+                            emitModuleTask.checkCommandLineMatches([.anySequence, "-compile-module-from-interface", .anySequence, "-module-name", "_Concurrency"])
                         }
+                    }
 
-                        // Swift Driver changed default behavior from merging modules after compilation to eagerly emitting the module, both are valid here.
-                        results.checkTask(.matchTargetName("TargetC"), .matchRulePattern([.or("SwiftMergeModule", "SwiftEmitModule"), "normal", "\(arch)", .or("Merging module TargetC", "Emitting module for TargetC")])) { task in
-                            if task.ruleIdentifier == "SwiftMergeModule" {
-                                task.checkCommandLineMatches([.suffix("swift-frontend"), .anySequence, "-merge-modules", .anySequence, .suffix("file5~partial.swiftmodule"), .suffix("file6~partial.swiftmodule"), .anySequence, "-o", .suffix("TargetC.swiftmodule")])
-                            } else {
-                                task.checkCommandLineMatches([.suffix("swift-frontend"), .anySequence, "-emit-module", .anySequence, "-o", .suffix("TargetC.swiftmodule")])
-                            }
-                        }
-
-                        // The below checks also ensure uniqueness of these tasks in this build
-                        results.checkTasks(.matchRule(["SwiftExplicitDependencyGeneratePcm", "normal", arch, "Compiling Clang module SwiftShims"]), .matchCommandLineArgument("SwiftShims")) { pcmBuildTasks in
-                            for pcmBuildTask in pcmBuildTasks {
-                                pcmBuildTask.checkCommandLineMatches([.suffix("swift-frontend"), .anySequence, "-emit-pcm", .anySequence, "-module-name", "SwiftShims"])
-                            }
-                        }
-
-                        results.checkTasks(.matchRule(["SwiftExplicitDependencyCompileModuleFromInterface", "normal", arch, "Compiling Swift module _Concurrency"]), .matchCommandLineArgument("_Concurrency")) { emitModuleTasks in
-                            for emitModuleTask in emitModuleTasks {
-                                emitModuleTask.checkCommandLineMatches([.suffix("swift-frontend"), .anySequence, "-compile-module-from-interface", .anySequence, "-module-name", "_Concurrency"])
-                            }
-                        }
-
-                        results.checkTasks(.matchRule(["SwiftExplicitDependencyCompileModuleFromInterface", "normal", arch, "Compiling Swift module Swift"]), .matchCommandLineArgument("Swift")) { emitModuleTasks in
-                            for emitModuleTask in emitModuleTasks {
-                                emitModuleTask.checkCommandLineMatches([.suffix("swift-frontend"), .anySequence, "-compile-module-from-interface", .anySequence, "-module-name", "Swift"])
-                            }
+                    results.checkTasks(.matchRulePattern(["SwiftExplicitDependencyCompileModuleFromInterface", "normal", .any, "Compiling Swift module Swift"]), .matchCommandLineArgument("Swift")) { emitModuleTasks in
+                        for emitModuleTask in emitModuleTasks {
+                            emitModuleTask.checkCommandLineMatches([.anySequence, "-compile-module-from-interface", .anySequence, "-module-name", "Swift"])
                         }
                     }
                 }
