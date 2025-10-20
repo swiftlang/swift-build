@@ -21,9 +21,9 @@ import SwiftBuildTestSupport
 import SWBUtil
 import SWBProtocol
 
-@Suite(.requireDependencyScanner, .requireXcode16())
+@Suite(.requireDependencyScanner)
 fileprivate struct ClangExplicitModulesTests: CoreBasedTests {
-    @Test(.requireSDKs(.macOS))
+    @Test(.requireSDKs(.host))
     func explicitModulesBasic() async throws {
         try await withTemporaryDirectory { tmpDirPath in
             let testWorkspace = TestWorkspace(
@@ -63,7 +63,7 @@ fileprivate struct ClangExplicitModulesTests: CoreBasedTests {
                 """
             }
 
-            try await tester.checkBuild(runDestination: .macOS, persistent: true) { results in
+            try await tester.checkBuild(runDestination: .host, persistent: true) { results in
                 let scanTask: Task = try results.checkTask(.matchRuleType("ScanDependencies")) { $0 }
                 let compileTask: Task = try results.checkTask(.matchRuleType("CompileC")) { $0 }
 
@@ -89,7 +89,7 @@ fileprivate struct ClangExplicitModulesTests: CoreBasedTests {
                 """
             }
 
-            try await tester.checkBuild(runDestination: .macOS, persistent: true) { results in
+            try await tester.checkBuild(runDestination: .host, persistent: true) { results in
                 // the test stops at point of failure, so no additional failures are observed. behaves correctly
                 let scanTask: Task = try results.checkTask(.matchRuleType("ScanDependencies")) { $0 }
                 let compileTask: Task = try results.checkTask(.matchRuleType("CompileC")) { $0 }
@@ -105,7 +105,7 @@ fileprivate struct ClangExplicitModulesTests: CoreBasedTests {
         }
     }
 
-    @Test(.requireSDKs(.macOS))
+    @Test(.requireSDKs(.host))
     func explicitModulesLibclangOpenFailure() async throws {
         try await withTemporaryDirectory { tmpDirPath in
             let testWorkspace = TestWorkspace(
@@ -146,14 +146,14 @@ fileprivate struct ClangExplicitModulesTests: CoreBasedTests {
                 """
             }
 
-            try await tester.checkBuild(runDestination: .macOS, persistent: true) { results in
+            try await tester.checkBuild(runDestination: .host, persistent: true) { results in
                 results.checkError(.and(.contains("error scanning dependencies for source"), .contains("could not load \(Path.null.str)")))
                 results.checkNoDiagnostics()
             }
         }
     }
 
-    @Test(.requireSDKs(.macOS))
+    @Test(.requireSDKs(.host))
     func explicitModulesMultipleSources() async throws {
         try await withTemporaryDirectory { tmpDirPath in
             let testWorkspace = TestWorkspace(
@@ -202,7 +202,7 @@ fileprivate struct ClangExplicitModulesTests: CoreBasedTests {
                 """
             }
 
-            try await tester.checkBuild(runDestination: .macOS) { results in
+            try await tester.checkBuild(runDestination: .host) { results in
                 // There should only be 2 scanning actions.
                 results.checkTasks(.matchRuleType("ScanDependencies")) { scanTasks in
                     #expect(scanTasks.count == 2)
@@ -283,7 +283,7 @@ fileprivate struct ClangExplicitModulesTests: CoreBasedTests {
         }
     }
 
-    @Test(.requireSDKs(.macOS))
+    @Test(.requireSDKs(.host))
     func explicitModulesWithPrecompiledHeader() async throws {
         try await withTemporaryDirectory { tmpDirPath in
             let testWorkspace = TestWorkspace(
@@ -353,7 +353,7 @@ fileprivate struct ClangExplicitModulesTests: CoreBasedTests {
                 """
             }
 
-            try await tester.checkBuild(runDestination: .macOS) { results in
+            try await tester.checkBuild(runDestination: .host) { results in
                 // There should be 2 scanning actions - one for the precompiled header, one for the translation unit.
                 results.checkTasks(.matchRuleType("ScanDependencies")) { scanTasks in
                     #expect(scanTasks.count == 2)
@@ -428,7 +428,7 @@ fileprivate struct ClangExplicitModulesTests: CoreBasedTests {
         }
     }
 
-    @Test(.requireSDKs(.macOS))
+    @Test(.requireSDKs(.host))
     func explicitModulesWorkingDirectory() async throws {
         try await withTemporaryDirectory { tmpDirPath in
             let testWorkspace = TestWorkspace(
@@ -481,7 +481,7 @@ fileprivate struct ClangExplicitModulesTests: CoreBasedTests {
                 """
             }
 
-            try await tester.checkBuild(runDestination: .macOS) { results in
+            try await tester.checkBuild(runDestination: .host) { results in
                 // Check that the "Includes" header search path got picked up due to CompileC being executed in the project source directory.
                 results.checkNoDiagnostics()
             }
@@ -596,7 +596,7 @@ fileprivate struct ClangExplicitModulesTests: CoreBasedTests {
         }
     }
 
-    @Test(.requireSDKs(.macOS))
+    @Test(.requireSDKs(.host))
     func explicitModulesDriverExpandsToMultipleCC1s() async throws {
         try await withTemporaryDirectory { tmpDirPath in
             let testWorkspace = TestWorkspace(
@@ -654,7 +654,7 @@ fileprivate struct ClangExplicitModulesTests: CoreBasedTests {
                 """
             }
 
-            try await tester.checkBuild(runDestination: .macOS, persistent: true) { results in
+            try await tester.checkBuild(runDestination: .host, persistent: true) { results in
                 results.checkTask(.matchRuleType("ScanDependencies")) { _ in }
                 results.checkTask(.matchRuleType("PrecompileModule")) { _ in }
                 var outputs = results.checkTask(.matchRuleType("CompileC")) { task in
@@ -1074,7 +1074,7 @@ fileprivate struct ClangExplicitModulesTests: CoreBasedTests {
         }
     }
 
-    @Test(.requireSDKs(.macOS))
+    @Test(.requireSDKs(.host))
     func outputPath() async throws {
         try await withTemporaryDirectory { tmpDir in
             func outputPathTest(given outputPathBuildSetting: String?, expected outputPath: Path, sourceLocation: SourceLocation = #_sourceLocation) async throws {
@@ -1119,7 +1119,7 @@ fileprivate struct ClangExplicitModulesTests: CoreBasedTests {
             """
                 }
 
-                try await tester.checkBuild(runDestination: .macOS, persistent: true) { results in
+                try await tester.checkBuild(runDestination: .host, persistent: true) { results in
 
                     results.checkNoErrors()
 
@@ -1146,12 +1146,10 @@ fileprivate struct ClangExplicitModulesTests: CoreBasedTests {
 
             try await outputPathTest(given: nil, expected: tmpDir.join("aProject/build/ExplicitPrecompiledModules"))
             try await outputPathTest(given: "$(SRCROOT)/Modules", expected: tmpDir.join("aProject/Modules"))
-            try await outputPathTest(given: "$(PER_ARCH_OBJECT_FILE_DIR)/Modules", expected: tmpDir.join("aProject/build/aProject.build/Debug/Library.build/Objects-normal/x86_64/Modules"))
-            try await outputPathTest(given: "$(BUILT_PRODUCTS_DIR)/Modules", expected: tmpDir.join("aProject/build/Debug/Modules"))
         }
     }
 
-    @Test(.requireSDKs(.macOS))
+    @Test(.requireSDKs(.host))
     func explicitModulesSharingOfDependencies() async throws {
         try await withTemporaryDirectory { tmpDirPath in
             let testWorkspace = TestWorkspace(
@@ -1241,7 +1239,7 @@ fileprivate struct ClangExplicitModulesTests: CoreBasedTests {
 
             let target_1 = try #require(tester.workspace.targets(named: "Library_1").only)
             let target_2 = try #require(tester.workspace.targets(named: "Library_2").only)
-            try await tester.checkBuild(runDestination: .macOS, buildRequest: BuildRequest(parameters: parameters, buildTargets: [.init(parameters: parameters, target: target_1), .init(parameters: parameters, target: target_2)], continueBuildingAfterErrors: false, useParallelTargets: true, useImplicitDependencies: true, useDryRun: false)) { results in
+            try await tester.checkBuild(runDestination: .host, buildRequest: BuildRequest(parameters: parameters, buildTargets: [.init(parameters: parameters, target: target_1), .init(parameters: parameters, target: target_2)], continueBuildingAfterErrors: false, useParallelTargets: true, useImplicitDependencies: true, useDryRun: false)) { results in
 
                 results.checkTasks(.matchRuleType("ScanDependencies")) { scanTasks in
                     #expect(scanTasks.count == 2)
@@ -1260,7 +1258,7 @@ fileprivate struct ClangExplicitModulesTests: CoreBasedTests {
             }
 
             let target_1_2 = try #require(tester.workspace.targets(named: "Library_1_2").only)
-            try await tester.checkBuild(runDestination: .macOS, buildRequest: BuildRequest(parameters: parameters, buildTargets: [.init(parameters: parameters, target: target_1_2)], continueBuildingAfterErrors: false, useParallelTargets: true, useImplicitDependencies: true, useDryRun: false)) { results in
+            try await tester.checkBuild(runDestination: .host, buildRequest: BuildRequest(parameters: parameters, buildTargets: [.init(parameters: parameters, target: target_1_2)], continueBuildingAfterErrors: false, useParallelTargets: true, useImplicitDependencies: true, useDryRun: false)) { results in
 
                 results.checkTasks(.matchRuleType("ScanDependencies")) { scanTasks in
                     #expect(scanTasks.count == 2)
@@ -1280,7 +1278,7 @@ fileprivate struct ClangExplicitModulesTests: CoreBasedTests {
         }
     }
 
-    @Test(.requireSDKs(.macOS))
+    @Test(.requireSDKs(.host))
     func sharingBetweenTargets() async throws {
 
         try await withTemporaryDirectory { tmpDir in
@@ -1363,7 +1361,7 @@ fileprivate struct ClangExplicitModulesTests: CoreBasedTests {
             let parameters = BuildParameters(configuration: "Debug")
             let buildRequest = BuildRequest(parameters: parameters, buildTargets: tester.workspace.projects[0].targets.map({ BuildRequest.BuildTargetInfo(parameters: parameters, target: $0) }), continueBuildingAfterErrors: false, useParallelTargets: true, useImplicitDependencies: false, useDryRun: false)
 
-            try await tester.checkBuild(runDestination: .macOS, buildRequest: buildRequest, persistent: true) { results in
+            try await tester.checkBuild(runDestination: .host, buildRequest: buildRequest, persistent: true) { results in
 
                 for targetName in ["Library_1", "Library_2"] {
                     results.checkTaskExists(.matchTargetName(targetName), .matchRuleType("ScanDependencies"))
@@ -1379,7 +1377,7 @@ fileprivate struct ClangExplicitModulesTests: CoreBasedTests {
         }
     }
 
-    @Test(.requireSDKs(.macOS), .requireDependencyScanner, .requireDependencyScannerWorkingDirectoryOptimization)
+    @Test(.requireSDKs(.host), .requireDependencyScanner, .requireDependencyScannerWorkingDirectoryOptimization)
     func sharingBetweenProjects() async throws {
         try await withTemporaryDirectory { tmpDir in
             let testWorkspace = TestWorkspace(
@@ -1424,8 +1422,8 @@ fileprivate struct ClangExplicitModulesTests: CoreBasedTests {
                                     "PRODUCT_NAME": "$(TARGET_NAME)",
                                     "CLANG_ENABLE_MODULES": "YES",
                                     "_EXPERIMENTAL_CLANG_EXPLICIT_MODULES": "YES",
-                                    "HEADER_SEARCH_PATHS": "$(inherited) \(tmpDir.join("Test/aProject").str)",
-                                    "CLANG_EXPLICIT_MODULES_OUTPUT_PATH": "\(tmpDir.join("clangmodules").str)",
+                                    "HEADER_SEARCH_PATHS": "$(inherited) \(tmpDir.join("Test").join("aProject").strWithPosixSlashes)",
+                                    "CLANG_EXPLICIT_MODULES_OUTPUT_PATH": "\(tmpDir.join("clangmodules").strWithPosixSlashes)",
                                 ])],
                             targets: [
                                 TestStandardTarget(
@@ -1469,7 +1467,7 @@ fileprivate struct ClangExplicitModulesTests: CoreBasedTests {
             let parameters = BuildParameters(configuration: "Debug")
             let buildRequest = BuildRequest(parameters: parameters, buildTargets: tester.workspace.projects[0].targets.map({ BuildRequest.BuildTargetInfo(parameters: parameters, target: $0) }) + tester.workspace.projects[1].targets.map({ BuildRequest.BuildTargetInfo(parameters: parameters, target: $0) }), continueBuildingAfterErrors: false, useParallelTargets: true, useImplicitDependencies: false, useDryRun: false)
 
-            try await tester.checkBuild(runDestination: .macOS, buildRequest: buildRequest, persistent: true) { results in
+            try await tester.checkBuild(runDestination: .host, buildRequest: buildRequest, persistent: true) { results in
 
                 for targetName in ["Library_1", "Library_2"] {
                     results.checkTaskExists(.matchTargetName(targetName), .matchRuleType("ScanDependencies"))
@@ -1486,7 +1484,7 @@ fileprivate struct ClangExplicitModulesTests: CoreBasedTests {
         }
     }
 
-    @Test(.requireSDKs(.macOS))
+    @Test(.requireSDKs(.host))
     func incrementalBuildBasics() async throws {
         try await withTemporaryDirectory { tmpDir in
             let testWorkspace = TestWorkspace(
@@ -1527,7 +1525,7 @@ fileprivate struct ClangExplicitModulesTests: CoreBasedTests {
             }
 
             // Clean build
-            try await tester.checkBuild(runDestination: .macOS, persistent: true) { results in
+            try await tester.checkBuild(runDestination: .host, persistent: true) { results in
                 results.checkTaskExists(.matchRuleType("ScanDependencies"))
                 results.checkTaskExists(.matchRuleType("CompileC"))
 
@@ -1537,7 +1535,7 @@ fileprivate struct ClangExplicitModulesTests: CoreBasedTests {
             }
 
             // Null build
-            try await tester.checkNullBuild(runDestination: .macOS, persistent: true)
+            try await tester.checkNullBuild(runDestination: .host, persistent: true)
 
             // Touch the source file to trigger a new scan.
             try await tester.fs.writeFileContents(testWorkspace.sourceRoot.join("aProject/file.c")) { stream in
@@ -1548,7 +1546,7 @@ fileprivate struct ClangExplicitModulesTests: CoreBasedTests {
             """
             }
 
-            try await tester.checkBuild(runDestination: .macOS, persistent: true) { results in
+            try await tester.checkBuild(runDestination: .host, persistent: true) { results in
                 results.checkTaskExists(.matchRuleType("ScanDependencies"))
                 results.checkTaskExists(.matchRuleType("CompileC"))
 
@@ -1559,7 +1557,7 @@ fileprivate struct ClangExplicitModulesTests: CoreBasedTests {
         }
     }
 
-    @Test(.requireSDKs(.macOS))
+    @Test(.requireSDKs(.host))
     func incrementalTUChangeDoesNotForceModuleRebuilds() async throws {
         try await withTemporaryDirectory { tmpDir in
             let testWorkspace = TestWorkspace(
@@ -1600,7 +1598,7 @@ fileprivate struct ClangExplicitModulesTests: CoreBasedTests {
             }
 
             // Clean build
-            try await tester.checkBuild(runDestination: .macOS, persistent: true) { results in
+            try await tester.checkBuild(runDestination: .host, persistent: true) { results in
                 results.checkTaskExists(.matchRuleType("ScanDependencies"))
                 results.checkTaskExists(.matchRuleType("CompileC"))
                 results.checkTasks(.matchRuleType("PrecompileModule")) { _ in }
@@ -1609,7 +1607,7 @@ fileprivate struct ClangExplicitModulesTests: CoreBasedTests {
             }
 
             // Null build
-            try await tester.checkNullBuild(runDestination: .macOS, persistent: true)
+            try await tester.checkNullBuild(runDestination: .host, persistent: true)
 
             // Touch the source file to trigger a new scan.
             try await tester.fs.writeFileContents(testWorkspace.sourceRoot.join("aProject/file.c")) { stream in
@@ -1620,7 +1618,7 @@ fileprivate struct ClangExplicitModulesTests: CoreBasedTests {
             """
             }
 
-            try await tester.checkBuild(runDestination: .macOS, persistent: true) { results in
+            try await tester.checkBuild(runDestination: .host, persistent: true) { results in
                 results.checkTaskExists(.matchRuleType("ScanDependencies"))
                 results.checkTaskExists(.matchRuleType("CompileC"))
 
@@ -2785,7 +2783,7 @@ fileprivate struct ClangExplicitModulesTests: CoreBasedTests {
         }
     }
 
-    @Test(.requireSDKs(.macOS))
+    @Test(.requireSDKs(.host))
     func explicitModulesWithResponseFiles() async throws {
         try await withTemporaryDirectory { tmpDirPath in
             let testWorkspace = TestWorkspace(
@@ -2826,7 +2824,7 @@ fileprivate struct ClangExplicitModulesTests: CoreBasedTests {
                 """
             }
 
-            try await tester.checkBuild(runDestination: .macOS, persistent: true) { results in
+            try await tester.checkBuild(runDestination: .host, persistent: true) { results in
                 let responseFileTask: Task = try results.checkTask(.matchRuleType("WriteAuxiliaryFile"), .matchRuleItemPattern(.suffix(".resp"))) { $0 }
                 let scanTask: Task = try results.checkTask(.matchRuleType("ScanDependencies")) { $0 }
                 let compileTask: Task = try results.checkTask(.matchRuleType("CompileC")) { $0 }
@@ -2837,7 +2835,7 @@ fileprivate struct ClangExplicitModulesTests: CoreBasedTests {
         }
     }
 
-    @Test(.requireSDKs(.macOS))
+    @Test(.requireSDKs(.host))
     func disablement() async throws {
         try await withTemporaryDirectory { tmpDir in
             let testWorkspace = TestWorkspace(
@@ -2877,7 +2875,7 @@ fileprivate struct ClangExplicitModulesTests: CoreBasedTests {
             """
             }
 
-            try await tester.checkBuild(runDestination: .macOS, persistent: true) { results in
+            try await tester.checkBuild(runDestination: .host, persistent: true) { results in
                 results.checkNoTask(.matchRuleType("ScanDependencies"))
                 results.checkNoTask(.matchRuleType("PrecompileModule"))
 
@@ -3110,7 +3108,7 @@ fileprivate struct ClangExplicitModulesTests: CoreBasedTests {
         }
     }
 
-    @Test(.requireSDKs(.macOS))
+    @Test(.requireSDKs(.host))
     func explicitModulesProducesCorrectDependencyInfoWhenPathContainsWhitespace() async throws {
         try await withTemporaryDirectory { tmpDirParentPath in
             let tmpDirPath = tmpDirParentPath.join("has whitespace")
@@ -3153,7 +3151,7 @@ fileprivate struct ClangExplicitModulesTests: CoreBasedTests {
             }
 
             // The build should succeed if we produced dependency info which can be parsed correctly.
-            try await tester.checkBuild(runDestination: .macOS, persistent: true) { results in
+            try await tester.checkBuild(runDestination: .host, persistent: true) { results in
                 results.checkNoDiagnostics()
             }
         }

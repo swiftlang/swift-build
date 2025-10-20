@@ -967,12 +967,13 @@ public class ClangCompilerSpec : CompilerSpec, SpecIdentifierType, GCCCompatible
 
                 // If not defined, try to find one from the toolchain.
                 var candidatesSkipped: [Path] = []
-                for (toolchainPath, toolchainLibrarySearchPath) in cbc.producer.toolchains.map({ ($0.path, $0.librarySearchPaths) }) {
-                    if let path = toolchainLibrarySearchPath.findLibrary(operatingSystem: cbc.producer.hostOperatingSystem, basename: "clang") {
+                for toolchain in cbc.producer.toolchains {
+                    if let path = try? toolchain.lookup(subject: .library(basename: "clang"), operatingSystem: cbc.producer.hostOperatingSystem) {
                         // Check that this is the same toolchain and version as the compiler. Mismatched clang/libclang is not supported with explicit modules.
-                        let compilerAndLibraryAreInSameToolchain = toolchainPath.isAncestor(of: compiler)
+                        let compilerAndLibraryAreInSameToolchain = toolchain.path.isAncestor(of: compiler)
                         let libclangVersion = cbc.producer.lookupLibclang(path: path).version
-                        let compilerAndLibraryVersionsMatch = libclangVersion != nil && libclangVersion == clangInfo?.clangVersion
+                        // On macOS we enforce a matching clang and libclang version, the versioning schemes on other host platforms currently make this difficult.
+                        let compilerAndLibraryVersionsMatch = libclangVersion != nil && libclangVersion == clangInfo?.clangVersion || cbc.producer.hostOperatingSystem != .macOS
                         if compilerAndLibraryAreInSameToolchain && (compilerAndLibraryVersionsMatch || cbc.scope.evaluate(BuiltinMacros.CLANG_EXPLICIT_MODULES_IGNORE_LIBCLANG_VERSION_MISMATCH)) {
                             return path
                         }
