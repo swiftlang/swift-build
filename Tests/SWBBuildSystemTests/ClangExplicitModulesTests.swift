@@ -1397,6 +1397,7 @@ fileprivate struct ClangExplicitModulesTests: CoreBasedTests {
                         buildConfigurations: [TestBuildConfiguration(
                             "Debug",
                             buildSettings: [
+                                "OBJROOT": tmpDir.join("objroot").str,
                                 "PRODUCT_NAME": "$(TARGET_NAME)",
                                 "CLANG_ENABLE_MODULES": "YES",
                                 "_EXPERIMENTAL_CLANG_EXPLICIT_MODULES": "YES",
@@ -1419,6 +1420,7 @@ fileprivate struct ClangExplicitModulesTests: CoreBasedTests {
                             buildConfigurations: [TestBuildConfiguration(
                                 "Debug",
                                 buildSettings: [
+                                    "OBJROOT": tmpDir.join("objroot").str,
                                     "PRODUCT_NAME": "$(TARGET_NAME)",
                                     "CLANG_ENABLE_MODULES": "YES",
                                     "_EXPERIMENTAL_CLANG_EXPLICIT_MODULES": "YES",
