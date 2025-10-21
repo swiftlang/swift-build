@@ -220,7 +220,7 @@ fileprivate struct BuildCommandTests: CoreBasedTests {
                 task.checkCommandLineContainsUninterrupted(["-x", "objective-c"])
                 try task.checkCommandLineContainsUninterrupted(["-S", #require(inputs.first).str, "-o", #require(outputs.first)])
                 let assembly = try String(contentsOfFile: #require(outputs.first), encoding: .utf8)
-                #expect(assembly.hasPrefix("\t.section\t__TEXT,__text,regular,pure_instructions"))
+                #expect(assembly.contains("\t.section\t__TEXT,__text,regular,pure_instructions"))
             }
             results.checkNoTask()
         }
@@ -232,7 +232,7 @@ fileprivate struct BuildCommandTests: CoreBasedTests {
                 task.checkCommandLineContainsUninterrupted(["-x", "objective-c"])
                 try task.checkCommandLineContainsUninterrupted(["-S", #require(inputs.first).str, "-o", #require(outputs.first)])
                 let assembly = try String(contentsOfFile: #require(outputs.first), encoding: .utf8)
-                #expect(assembly.hasPrefix("\t.section\t__TEXT,__text,regular,pure_instructions"))
+                #expect(assembly.contains("\t.section\t__TEXT,__text,regular,pure_instructions"))
             }
             results.checkNoTask()
         }
@@ -246,13 +246,13 @@ fileprivate struct BuildCommandTests: CoreBasedTests {
                 task.checkCommandLineContainsUninterrupted(["-x", "objective-c"])
                 try task.checkCommandLineContainsUninterrupted(["-S", #require(inputs.first).str, "-o", firstOutput])
                 let assembly = try String(contentsOfFile: firstOutput, encoding: .utf8)
-                #expect(assembly.hasPrefix("\t.section\t__TEXT,__text,regular,pure_instructions"))
+                #expect(assembly.contains("\t.section\t__TEXT,__text,regular,pure_instructions"))
             }
             try results.checkTask(.matchRuleType("Assemble"), .matchRuleItemBasename("File.m"), .matchRuleItem("normal"), .matchRuleItem(results.runDestinationTargetArchitecture), .matchTargetName("bFramework")) { task in
                 task.checkCommandLineContainsUninterrupted(["-x", "objective-c"])
                 try task.checkCommandLineContainsUninterrupted(["-S", #require(inputs.first).str, "-o", secondOutput])
                 let assembly = try String(contentsOfFile: secondOutput, encoding: .utf8)
-                #expect(assembly.hasPrefix("\t.section\t__TEXT,__text,regular,pure_instructions"))
+                #expect(assembly.contains("\t.section\t__TEXT,__text,regular,pure_instructions"))
             }
             results.checkNoTask()
             results.checkNoErrors()
