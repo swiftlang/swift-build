@@ -551,9 +551,11 @@ fileprivate struct PlatformTaskConstructionTests: CoreBasedTests {
         try fs.write(Path("/Users/whoever/Library/MobileDevice/Provisioning Profiles/8db0e92c-592c-4f06-bfed-9d945841b78d.mobileprovision"), contents: "profile")
         try fs.createDirectory(Path("/tmp/Test/aProject/Stickers.xcstickers/Sticker Pack.stickerpack"), recursive: true)
         try fs.createDirectory(platformPath.join("Library/Application Support/MessagesApplicationStub"), recursive: true)
-        try fs.write(platformPath.join("Library/Application Support/MessagesApplicationStub/MessagesApplicationStub"), contents: "MessagesApplicationStub")
+        let stubPath = platformPath.join("Library/Application Support/MessagesApplicationStub/MessagesApplicationStub")
+        try fs.write(stubPath, contents: localFS.read(stubPath))
         try fs.createDirectory(platformPath.join("Library/Application Support/MessagesApplicationExtensionStub"), recursive: true)
-        try fs.write(platformPath.join("Library/Application Support/MessagesApplicationExtensionStub/MessagesApplicationExtensionStub"), contents: "MessagesApplicationExtensionStub")
+        let extensionStubPath = platformPath.join("Library/Application Support/MessagesApplicationExtensionStub/MessagesApplicationExtensionStub")
+        try fs.write(extensionStubPath, contents: localFS.read(extensionStubPath))
         try fs.createDirectory(tester.workspace.projects[0].sourceRoot, recursive: true)
         try fs.write(tester.workspace.projects[0].sourceRoot.join("Info.plist"), contents: "<dict/>")
 

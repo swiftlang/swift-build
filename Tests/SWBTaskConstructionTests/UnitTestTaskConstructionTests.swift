@@ -1310,9 +1310,11 @@ fileprivate struct UnitTestTaskConstructionTests: CoreBasedTests {
             try fs.write(watchsimframeworkPath, contents: ByteString(encodingAsUTF8: watchosframeworkPath.basename))
         }
         try fs.createDirectory(core.loadSDK(.watchOS).path.join("Library/Application Support/WatchKit"), recursive: true)
-        try fs.write(core.loadSDK(.watchOS).path.join("Library/Application Support/WatchKit/WK"), contents: "WatchKitStub")
+        let stubPath = core.loadSDK(.watchOS).path.join("Library/Application Support/WatchKit/WK")
+        try fs.write(stubPath, contents: localFS.read(stubPath))
         try fs.createDirectory(core.loadSDK(.watchOSSimulator).path.join("Library/Application Support/WatchKit"), recursive: true)
-        try fs.write(core.loadSDK(.watchOSSimulator).path.join("Library/Application Support/WatchKit/WK"), contents: "WatchKitStub")
+        let simStubPath = core.loadSDK(.watchOSSimulator).path.join("Library/Application Support/WatchKit/WK")
+        try fs.write(simStubPath, contents: localFS.read(simStubPath))
 
         // We build the app target and the test target.
         let topLevelTargets = [tester.workspace.projects[0].targets[0], tester.workspace.projects[0].targets[2]]

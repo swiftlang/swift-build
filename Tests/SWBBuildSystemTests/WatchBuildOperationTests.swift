@@ -141,9 +141,11 @@ fileprivate struct WatchBuildOperationTests: CoreBasedTests {
             try fs.createDirectory(Path("/Users/whoever/Library/MobileDevice/Provisioning Profiles"), recursive: true)
             try fs.write(Path("/Users/whoever/Library/MobileDevice/Provisioning Profiles/8db0e92c-592c-4f06-bfed-9d945841b78d.mobileprovision"), contents: "profile")
             try fs.createDirectory(core.loadSDK(.watchOS).path.join("Library/Application Support/WatchKit"), recursive: true)
-            try fs.write(core.loadSDK(.watchOS).path.join("Library/Application Support/WatchKit/WK"), contents: "WatchKitStub")
+            let stubPath = core.loadSDK(.watchOS).path.join("Library/Application Support/WatchKit/WK")
+            try fs.write(stubPath, contents: localFS.read(stubPath))
             try fs.createDirectory(core.loadSDK(.watchOSSimulator).path.join("Library/Application Support/WatchKit"), recursive: true)
-            try fs.write(core.loadSDK(.watchOSSimulator).path.join("Library/Application Support/WatchKit/WK"), contents: "WatchKitStub")
+            let simStubPath = core.loadSDK(.watchOSSimulator).path.join("Library/Application Support/WatchKit/WK")
+            try fs.write(simStubPath, contents: localFS.read(simStubPath))
 
             // Create the iOS stub assets in the wrong SDK so the build doesn't fail early due to missing inputs.
             try fs.createDirectory(core.loadSDK(.watchOS).path.join("../../../Library/Application Support/MessagesApplicationStub"), recursive: true)
@@ -157,6 +159,7 @@ fileprivate struct WatchBuildOperationTests: CoreBasedTests {
                 }
                 results.checkWarning(.contains("Could not read serialized diagnostics file"))
                 results.checkError(.equal("[targetIntegrity] Watch-Only Application Stubs are not available when building for watchOS. (in target 'Watchable' from project 'aProject')"))
+                results.checkError(.prefix("unable to create tasks to copy stub binary"))
                 results.checkWarning(.contains("Unable to perform dependency info modifications"))
                 results.checkNoDiagnostics()
             }

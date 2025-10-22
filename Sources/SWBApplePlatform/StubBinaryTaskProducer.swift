@@ -41,7 +41,8 @@ fileprivate func generateStubBinaryTasks(stubBinarySourcePath: Path, archs: [Str
     func copyBinary(_ cbc: CommandBuildContext, executionDescription: String) async {
         // If we have no architectures, then simply copy the binary as-is
         if thinArchs && !archs.isEmpty {
-            context.lipoSpec.constructCopyAndProcessArchsTasks(cbc, delegate, executionDescription: executionDescription, archsToPreserve: archs)
+            delegate.access(path: stubBinarySourcePath)
+            context.lipoSpec.constructCopyAndProcessArchsTasks(cbc, delegate, executionDescription: executionDescription, archsToPreserve: await context.availableMatchingArchitecturesInStubBinary(at: stubBinarySourcePath, requestedArchs: archs))
         } else {
             await context.copySpec.constructCopyTasks(cbc, delegate, executionDescription: executionDescription, stripUnsignedBinaries: false, stripBitcode: false)
         }

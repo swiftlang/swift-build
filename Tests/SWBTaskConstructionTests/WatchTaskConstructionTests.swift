@@ -198,9 +198,11 @@ fileprivate struct WatchTaskConstructionTests: CoreBasedTests {
         try fs.createDirectory(Path("/Users/whoever/Library/MobileDevice/Provisioning Profiles"), recursive: true)
         try fs.write(Path("/Users/whoever/Library/MobileDevice/Provisioning Profiles/8db0e92c-592c-4f06-bfed-9d945841b78d.mobileprovision"), contents: "profile")
         try fs.createDirectory(core.loadSDK(.watchOS).path.join("Library/Application Support/WatchKit"), recursive: true)
-        try fs.write(core.loadSDK(.watchOS).path.join("Library/Application Support/WatchKit/WK"), contents: "WatchKitStub")
+        let stubPath = core.loadSDK(.watchOS).path.join("Library/Application Support/WatchKit/WK")
+        try fs.write(stubPath, contents: localFS.read(stubPath))
         try fs.createDirectory(core.loadSDK(.watchOSSimulator).path.join("Library/Application Support/WatchKit"), recursive: true)
-        try fs.write(core.loadSDK(.watchOSSimulator).path.join("Library/Application Support/WatchKit/WK"), contents: "WatchKitStub")
+        let simStubPath = core.loadSDK(.watchOSSimulator).path.join("Library/Application Support/WatchKit/WK")
+        try fs.write(simStubPath, contents: localFS.read(simStubPath))
 
         let actoolPath = try await self.actoolPath
 
@@ -1111,12 +1113,15 @@ fileprivate struct WatchTaskConstructionTests: CoreBasedTests {
         try fs.createDirectory(Path("/Users/whoever/Library/MobileDevice/Provisioning Profiles"), recursive: true)
         try fs.write(Path("/Users/whoever/Library/MobileDevice/Provisioning Profiles/8db0e92c-592c-4f06-bfed-9d945841b78d.mobileprovision"), contents: "profile")
         try fs.createDirectory(core.loadSDK(.watchOS).path.join("Library/Application Support/WatchKit"), recursive: true)
-        try fs.write(core.loadSDK(.watchOS).path.join("Library/Application Support/WatchKit/WK"), contents: "WatchKitStub")
+        let stubPath = core.loadSDK(.watchOS).path.join("Library/Application Support/WatchKit/WK")
+        try fs.write(stubPath, contents: localFS.read(stubPath))
         try fs.createDirectory(core.loadSDK(.watchOSSimulator).path.join("Library/Application Support/WatchKit"), recursive: true)
-        try fs.write(core.loadSDK(.watchOSSimulator).path.join("Library/Application Support/WatchKit/WK"), contents: "WatchKitStub")
+        let simStubPath = core.loadSDK(.watchOSSimulator).path.join("Library/Application Support/WatchKit/WK")
+        try fs.write(simStubPath, contents: localFS.read(simStubPath))
         try fs.createDirectory(core.loadSDK(.iOS).path.join("../../../Library/Application Support/MessagesApplicationStub"), recursive: true)
         try await fs.writeAssetCatalog(core.loadSDK(.iOS).path.join("../../../Library/Application Support/MessagesApplicationStub/MessagesApplicationStub.xcassets"), .appIcon("MessagesApplicationStub"))
-        try fs.write(core.loadSDK(.iOS).path.join("../../../Library/Application Support/MessagesApplicationStub/MessagesApplicationStub"), contents: "stub")
+        let messagesStubPath = core.loadSDK(.iOS).path.join("../../../Library/Application Support/MessagesApplicationStub/MessagesApplicationStub")
+        try fs.write(messagesStubPath, contents: localFS.read(messagesStubPath))
 
         let actoolPath = try await self.actoolPath
 
@@ -1346,7 +1351,8 @@ fileprivate struct WatchTaskConstructionTests: CoreBasedTests {
 
         let fs = PseudoFS()
         try fs.createDirectory(core.loadSDK(.watchOS).path.join("Library/Application Support/WatchKit"), recursive: true)
-        try fs.write(core.loadSDK(.watchOS).path.join("Library/Application Support/WatchKit/WK"), contents: "WatchKitStub")
+        let stubPath = core.loadSDK(.watchOS).path.join("Library/Application Support/WatchKit/WK")
+        try fs.write(stubPath, contents: localFS.read(stubPath))
 
         let params = BuildParameters(action: .archive, configuration: "Debug", overrides: ["WATCHKIT_2_SUPPORT_FOLDER_PATH": "/tmp/SideCars"])
         await tester.checkBuild(params, runDestination: .macOS, fs: fs) { results in
