@@ -397,15 +397,18 @@ package extension FSProxy {
 
     func writeSimulatedWatchKitSupportFiles(watchosSDK: TestSDKInfo, watchSimulatorSDK: TestSDKInfo) throws {
         try createDirectory(watchosSDK.path.join("Library/Application Support/WatchKit"), recursive: true)
-        try write(watchosSDK.path.join("Library/Application Support/WatchKit/WK"), contents: "WatchKitStub")
+        let stubPath = watchosSDK.path.join("Library/Application Support/WatchKit/WK")
+        try write(stubPath, contents: localFS.read(stubPath))
         try createDirectory(watchSimulatorSDK.path.join("Library/Application Support/WatchKit"), recursive: true)
-        try write(watchSimulatorSDK.path.join("Library/Application Support/WatchKit/WK"), contents: "WatchKitStub")
+        let simStubPath = watchSimulatorSDK.path.join("Library/Application Support/WatchKit/WK")
+        try write(simStubPath, contents: localFS.read(simStubPath))
     }
 
     func writeSimulatedMessagesAppSupportFiles(iosSDK: TestSDKInfo) async throws {
         try createDirectory(iosSDK.path.join("../../../Library/Application Support/MessagesApplicationStub"), recursive: true)
         try await writeAssetCatalog(iosSDK.path.join("../../../Library/Application Support/MessagesApplicationStub/MessagesApplicationStub.xcassets"), .appIcon("MessagesApplicationStub"))
-        try write(iosSDK.path.join("../../../Library/Application Support/MessagesApplicationStub/MessagesApplicationStub"), contents: "stub")
+        let messagesStubPath = iosSDK.path.join("../../../Library/Application Support/MessagesApplicationStub/MessagesApplicationStub")
+        try write(messagesStubPath, contents: localFS.read(messagesStubPath))
         try await writeStoryboard(iosSDK.path.join("../../../Library/Application Support/MessagesApplicationStub/LaunchScreen.storyboard"), .iOS)
     }
 

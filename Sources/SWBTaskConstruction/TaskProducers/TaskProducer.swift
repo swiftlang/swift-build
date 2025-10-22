@@ -818,6 +818,31 @@ public class TaskProducerContext: StaleFileRemovalContext, BuildFileResolution
         return false
     }
 
+    public func availableMatchingArchitecturesInStubBinary(at stubBinary: Path, requestedArchs: [String]) async -> [String] {
+        let stubArchs: Set<String>
+        do {
+            stubArchs = try globalProductPlan.planRequest.buildRequestContext.getCachedMachOInfo(at: stubBinary).architectures
+        } catch {
+            delegate.error("unable to create tasks to copy stub binary: can't determine architectures of binary: \(stubBinary.str): \(error)")
+            return []
+        }
+        var archsToExtract: Set<String> = []
+        for arch in requestedArchs {
+            if stubArchs.contains(arch) {
+                archsToExtract.insert(arch)
+            } else {
+                let specLookupContext = SpecLookupCtxt(specRegistry: workspaceContext.core.specRegistry, platform: settings.platform)
+                let compatibilityArchs = (specLookupContext.getSpec(arch) as? ArchitectureSpec)?.compatibilityArchs
+                if let compatibleArch = compatibilityArchs?.first(where: { stubArchs.contains($0) }) {
+                    archsToExtract.insert(compatibleArch)
+                } else {
+                    delegate.warning("stub binary at '\(stubBinary.str)' does not contain a slice for '\(arch)' or a compatible architecture")
+                }
+            }
+        }
+        return archsToExtract.sorted()
+    }
+
     /// Returns true if we should emit errors when there are tasks that delay eager compilation.
     func requiresEagerCompilation(_ scope: MacroEvaluationScope) -> Bool {
         return scope.evaluate(BuiltinMacros.EAGER_COMPILATION_REQUIRE)

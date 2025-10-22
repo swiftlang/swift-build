@@ -72,11 +72,6 @@ public final class LipoToolSpec: GenericCommandLineToolSpec, SpecIdentifierType,
         delegate.createTask(type: self, ruleInfo: ["CreateUniversalBinary", outputPath.str, variant, archsString], commandLine: commandLine, environment: EnvironmentBindings(), workingDirectory: cbc.producer.defaultWorkingDirectory, inputs: cbc.inputs.map({ delegate.createNode($0.absolutePath) }), outputs: outputs, action: delegate.taskActionCreationDelegate.createDeferredExecutionTaskActionIfRequested(userPreferences: cbc.producer.userPreferences), execDescription: resolveExecutionDescription(cbc, delegate), enableSandboxing: enableSandboxing)
     }
 
-    /// Invoke lipo to copy a fat Mach-O to a destination path with certain architectures removed.
-    public func constructCopyAndProcessArchsTasks(_ cbc: CommandBuildContext, _ delegate: any TaskGenerationDelegate, executionDescription: String? = nil, archsToRemove: [String]) {
-        return constructCopyAndProcessArchsTasks(cbc, delegate, executionDescription: executionDescription, archsToProcess: archsToRemove, flag: "-remove", ruleName: "CopyAndRemoveArchs")
-    }
-
     /// Invoke lipo to copy a fat Mach-O to a destination path with only certain architectures preserved, and the rest removed.
     public func constructCopyAndProcessArchsTasks(_ cbc: CommandBuildContext, _ delegate: any TaskGenerationDelegate, executionDescription: String? = nil, archsToPreserve: [String]) {
         return constructCopyAndProcessArchsTasks(cbc, delegate, executionDescription: executionDescription, archsToProcess: archsToPreserve, flag: "-extract", ruleName: "CopyAndPreserveArchs")
