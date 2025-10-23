@@ -69,6 +69,7 @@ fileprivate struct GeneralCommandsTests {
                     build\r
                     clang-scan\r
                     clearAllCaches\r
+                    createBuildDescription\r
                     createSession\r
                     createXCFramework\r
                     deleteSession\r
@@ -131,6 +132,7 @@ fileprivate struct GeneralCommandsTests {
             "build",
             "clang-scan",
             "clearAllCaches",
+            "createBuildDescription",
             "createSession",
             "createXCFramework",
             "deleteSession",
