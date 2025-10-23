@@ -39,7 +39,7 @@ public final class ObjectLibraryAssemblerTaskAction: TaskAction {
             _ = try await options.inputs.concurrentMap(maximumParallelism: 10) { input in
                 try executionDelegate.fs.copy(input, to: options.output.join(input.basename))
             }
-            let args = options.inputs.map { $0.strWithPosixSlashes }
+            let args = options.inputs.map { options.output.join($0.basename).strWithPosixSlashes }
             try executionDelegate.fs.write(options.output.join("args.resp"), contents: ByteString(encodingAsUTF8: ResponseFiles.responseFileContents(args: args, format: options.linkerResponseFileFormat)))
             return .succeeded
         } catch {

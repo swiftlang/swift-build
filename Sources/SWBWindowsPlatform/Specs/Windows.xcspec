@@ -109,11 +109,6 @@
         Domain = windows;
         Type = ProductType;
         Identifier = org.swift.product-type.common.object;
-        BasedOn = org.swift.product-type.library.object;
-        Class = XCStandaloneExecutableProductType;
-        Name = "Object Library";
-        Description = "Object library";
-        IconNamePrefix = "TargetLibrary";
-        DefaultTargetName = "Object Library";
+        BasedOn = com.apple.product-type.library.static;
     },
 )
