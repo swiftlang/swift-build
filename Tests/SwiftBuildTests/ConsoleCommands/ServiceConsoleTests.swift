@@ -25,6 +25,8 @@ import System
 import SystemPackage
 #endif
 
+import SWBLibc
+
 @Suite
 fileprivate struct ServiceConsoleTests {
     @Test
