@@ -381,6 +381,10 @@ extension BuildDependencyInfo {
         }
         let inputs = InputCollector()
 
+        for error in settings.errors {
+            await inputs.addError(error)
+        }
+
         // Collect inputs for targets which create a binary.
         if targetCreatesBinary(configuredTarget), let standardTarget = configuredTarget.target as? SWBCore.StandardTarget {
             let buildFilesContext = BuildDependencyInfoBuildFileFilteringContext(scope: settings.globalScope)
