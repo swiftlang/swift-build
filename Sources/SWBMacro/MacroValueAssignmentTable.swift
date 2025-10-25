@@ -85,6 +85,13 @@ public struct MacroValueAssignmentTable: Serializable, Sendable {
         valueAssignments[macro] = MacroValueAssignment(expression: value, conditions: conditions, next: valueAssignments[macro], location: location)
     }
 
+    mutating func push(_ macro: MacroDeclaration, _ value: MacroExpression, conditions: MacroConditionSet? = nil, locationRef: InternedMacroValueAssignmentLocation?) {
+        assert(namespace.lookupMacroDeclaration(macro.name) === macro)
+        // Validate the type.
+        assert(macro.type.matchesExpressionType(value))
+        valueAssignments[macro] = MacroValueAssignment(expression: value, conditions: conditions, next: valueAssignments[macro], locationRef: locationRef)
+    }
+
     /// Adds a mapping from each of the macro-to-value mappings in `otherTable`, inserting them ahead of any already existing assignments in the receiving table.  The other table isn’t affected in any way (in particular, no reference is kept from the receiver to the other table).
     public mutating func pushContentsOf(_ otherTable: MacroValueAssignmentTable) {
         for (macro, firstAssignment) in otherTable.valueAssignments {
@@ -183,7 +190,7 @@ public struct MacroValueAssignmentTable: Serializable, Sendable {
                     if effectiveConditionValue.evaluate(condition) == true {
                         // Condition evaluates to true, so we push an assignment with a condition set that excludes the condition.
                         let filteredConditions = conditions.conditions.filter{ $0.parameter != parameter }
-                        table.push(macro, assignment.expression, conditions: filteredConditions.isEmpty ? nil : MacroConditionSet(conditions: filteredConditions), location: assignment.location)
+                        table.push(macro, assignment.expression, conditions: filteredConditions.isEmpty ? nil : MacroConditionSet(conditions: filteredConditions), locationRef: assignment._location)
                     }
                     else {
                         // Condition evaluates to false, so we elide the assignment.
@@ -191,7 +198,7 @@ public struct MacroValueAssignmentTable: Serializable, Sendable {
                 }
                 else {
                     // Assignment isn't conditioned on the specified parameter, so we just push it as-is.
-                    table.push(macro, assignment.expression, conditions: assignment.conditions, location: assignment.location)
+                    table.push(macro, assignment.expression, conditions: assignment.conditions, locationRef: assignment._location)
                 }
             }
             bindAndPushAssignment(firstAssignment)
@@ -330,7 +337,7 @@ public final class MacroValueAssignment: Serializable, CustomStringConvertible, 
     /// Reference to the next (lower precedence) assignment in the linked list, or nil if this is the last one.
     public let next: MacroValueAssignment?
 
-    private let _location: InternedMacroValueAssignmentLocation?
+    let _location: InternedMacroValueAssignmentLocation?
     private static let macroConfigPaths = SWBMutex<OrderedSet<Path>>(OrderedSet())
 
     public var location: MacroValueAssignmentLocation? {
@@ -348,13 +355,10 @@ public final class MacroValueAssignment: Serializable, CustomStringConvertible, 
     }
 
     /// Initializes the macro value assignment to represent `expression`, with the next existing macro value assignment (if any).
-    init(expression: MacroExpression, conditions: MacroConditionSet? = nil, next: MacroValueAssignment?, location: MacroValueAssignmentLocation?) {
-        self.expression = expression
-        self.conditions = conditions
-        self.next = next
-
+    convenience init(expression: MacroExpression, conditions: MacroConditionSet? = nil, next: MacroValueAssignment?, location: MacroValueAssignmentLocation?) {
+        let locationRef: InternedMacroValueAssignmentLocation?
         if let location {
-            self._location = InternedMacroValueAssignmentLocation(
+            locationRef = InternedMacroValueAssignmentLocation(
                 pathRef: Self.macroConfigPaths.withLock({ $0.append(location.path).index }),
                 startLine: location.startLine,
                 endLine: location.endLine,
@@ -362,8 +366,22 @@ public final class MacroValueAssignment: Serializable, CustomStringConvertible, 
                 endColumn: location.endColumn
             )
         } else {
-            self._location = nil
+            locationRef = nil
         }
+
+        self.init(
+            expression: expression,
+            conditions: conditions,
+            next: next,
+            locationRef: locationRef
+        )
+    }
+
+    init(expression: MacroExpression, conditions: MacroConditionSet? = nil, next: MacroValueAssignment?, locationRef: InternedMacroValueAssignmentLocation?) {
+        self.expression = expression
+        self.conditions = conditions
+        self.next = next
+        self._location = locationRef
     }
 
     /// Returns the first macro value assignment that is reachable from the receiver and whose conditions match the given set of parameter values, or nil if there is no such assignment value.  The returned assignment may be the receiver itself, or it may be any assignment that’s downstream in the linked list of macro value assignments, or it may be nil if there is none.  Unconditional macro value assignments are considered to match any conditions.  Conditions that reference parameters that don’t have a value in `paramValues` are only considered to match if the match pattern is `*`, i.e. the “match-anything” pattern (which is effectively a no-op).
@@ -448,7 +466,7 @@ public struct MacroValueAssignmentLocation: Sendable, Equatable {
     }
 }
 
-private struct InternedMacroValueAssignmentLocation: Serializable, Sendable {
+struct InternedMacroValueAssignmentLocation: Serializable, Sendable {
     let pathRef: OrderedSet<Path>.Index
     public let startLine: Int
     public let endLine: Int
