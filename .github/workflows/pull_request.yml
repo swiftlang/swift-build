@@ -12,49 +12,31 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
-  tests:
-    name: Test
-    uses: swiftlang/github-workflows/.github/workflows/swift_package_test.yml@main
-    with:
-      linux_os_versions: '["amazonlinux2", "bookworm", "noble", "jammy", "rhel-ubi9"]'
-      linux_pre_build_command: ./.github/scripts/prebuild.sh
-      linux_build_command: 'swift test --no-parallel'
-      linux_swift_versions: '["nightly-main", "nightly-6.2"]'
-      windows_pre_build_command: 'Invoke-Program .\.github\scripts\prebuild.ps1'
-      windows_swift_versions: '["nightly-main"]'
-      windows_build_command: 'Invoke-Program swift test --no-parallel'
-      enable_linux_static_sdk_build: true
-      enable_android_sdk_build: true
-      android_sdk_build_command: "swift build --build-tests"
-      android_ndk_version: '["r27d", "r29"]'
-      linux_static_sdk_build_command: SWIFTBUILD_STATIC_LINK=1 LLBUILD_STATIC_LINK=1 swift build
-      enable_ios_checks: true
-      enable_macos_checks: true
-      macos_exclude_xcode_versions: "[{\"xcode_version\": \"16.3\"}, {\"xcode_version\": \"16.4\"}]"
-      macos_pre_build_command: ./.github/scripts/prebuild.sh
-      macos_build_command:
-        swift test &&
-        /usr/bin/xcrun xcodebuild -workspace . -scheme SwiftBuild-Package -destination generic/platform=iOS
-  cmake-smoke-test:
-    name: cmake-smoke-test
-    uses: swiftlang/github-workflows/.github/workflows/swift_package_test.yml@main
-    with:
-      linux_os_versions: '["noble"]'
-      linux_pre_build_command: SKIP_ANDROID=1 INSTALL_CMAKE=1 ./.github/scripts/prebuild.sh
-      linux_build_command: 'swift package -Xbuild-tools-swiftc -DUSE_PROCESS_SPAWNING_WORKAROUND cmake-smoke-test --disable-sandbox --cmake-path `which cmake` --ninja-path `which ninja` --extra-cmake-arg -DCMAKE_C_COMPILER=`which clang` --extra-cmake-arg -DCMAKE_CXX_COMPILER=`which clang++` --extra-cmake-arg -DCMAKE_Swift_COMPILER=`which swiftc`'
-      linux_swift_versions: '["nightly-main"]'
-      enable_macos_checks: true
-      macos_xcode_versions: '["26.0"]'
-      macos_pre_build_command: SKIP_ANDROID=1 INSTALL_CMAKE=1 ./.github/scripts/prebuild.sh
-      macos_build_command: 'export PATH=$PATH:$RUNNER_TOOL_CACHE && swift package cmake-smoke-test --disable-sandbox --cmake-path `which cmake` --ninja-path `which ninja` --extra-cmake-arg -DCMAKE_C_COMPILER=`which clang` --extra-cmake-arg -DCMAKE_CXX_COMPILER=`which clang++` --extra-cmake-arg -DCMAKE_Swift_COMPILER=`which swiftc`'
-      windows_pre_build_command: 'Invoke-Program .\.github\scripts\prebuild.ps1 -SkipAndroid -InstallCMake'
-      windows_swift_versions: '["nightly-main"]'
-      windows_build_command: 'Invoke-Program swift package cmake-smoke-test --disable-sandbox --cmake-path (Get-Command cmake).Path --ninja-path (Get-Command ninja).Path --extra-cmake-arg "-DCMAKE_C_COMPILER=$((Get-Command clang).Path)" --extra-cmake-arg "-DCMAKE_CXX_COMPILER=$((Get-Command clang).Path)" --extra-cmake-arg "-DCMAKE_Swift_COMPILER=$((Get-Command swiftc).Path)" --extra-cmake-arg "-DCMAKE_STATIC_LIBRARY_PREFIX_Swift=lib" --extra-cmake-arg "-DCMAKE_MSVC_RUNTIME_LIBRARY=MultiThreadedDLL"'
+  xxx:
+    name: XXX
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout swiftlang/github-workflows repository
+        if: ${{ github.repository != 'swiftlang/github-workflows' }}
+        uses: actions/checkout@v4
+        with:
+          repository: swiftlang/github-workflows
+          ref: main
+          path: github-workflows
+      - name: Determine script-root path
+        id: script_path
+        run: |
+          if [ "${{ github.repository }}" = "swiftlang/github-workflows" ]; then
+            echo "root=$GITHUB_WORKSPACE" >> $GITHUB_OUTPUT
+          else
+            echo "root=$GITHUB_WORKSPACE/github-workflows" >> $GITHUB_OUTPUT
+          fi
+      - name: Test
+        run: |
+          echo the path is ```${{ steps.script_path.outputs.root }}```
 
-  soundness:
-    name: Soundness
-    uses: swiftlang/github-workflows/.github/workflows/soundness.yml@main
-    with:
-      license_header_check_project_name: "Swift"
-      api_breakage_check_enabled: false
-      format_check_enabled: false
+          echo === ls -l $GITHUB_WORKSPACE ===
+          ls -l $GITHUB_WORKSPACE
+
+          echo === ls -l $GITHUB_WORKSPACE/.. ===
+          ls -l $GITHUB_WORKSPACE/..
