@@ -142,12 +142,13 @@ final public class SwiftDriverTaskAction: TaskAction, BuildValueValidatingTaskAc
                     }
                 }
                 let contents = ByteString(encodingAsUTF8: ResponseFiles.responseFileContents(args: responseFileCommandLine, format: driverPayload.linkerResponseFileFormat))
+                try executionDelegate.fs.createDirectory(linkerResponseFilePath.dirname, recursive: true)
                 try executionDelegate.fs.write(linkerResponseFilePath, contents: contents, atomically: true)
             }
 
             return .succeeded
         } catch {
-            outputDelegate.error("Unexpected error in querying jobs from dependency graph: \(error.localizedDescription)")
+            outputDelegate.error("Unexpected error in querying jobs from dependency graph: \(error)")
             return .failed
         }
     }
