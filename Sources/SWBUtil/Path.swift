@@ -69,17 +69,44 @@ public struct Path: Serializable, Sendable {
     /// The system path separator.
     #if os(Windows)
     public static let pathSeparator = Character("\\")
-    public static let pathSeparatorUTF8 = UInt8(ascii: "\\")
-    public static let pathSeparatorsUTF8 = Set([UInt8(ascii: "\\"), UInt8(ascii: "/")])
+    @inline(__always) public static var pathSeparatorUTF8: UInt8 { UInt8(ascii: "\\") }
     public static let pathEnvironmentSeparator = Character(";")
-    public static let pathSeparators = Set("\\/")
+    @inline(__always) public static func isUTF8PathSeparator(_ char: UInt8) -> Bool {
+        guard let separators else {
+            return char == pathSeparatorUTF8 || char == UInt8(ascii: "/")
+        }
+        // This is a bit inefficient, but separators should always be nil outside of tests
+        return separators.contains(String(decoding: CollectionOfOne(char), as: UTF8.self))
+    }
+    public static func firstPathSeparatorIndex(in str: some StringProtocol, separators: (some Collection<Character>)?) -> String.Index? {
+        guard let separators else {
+            return str.utf8.firstIndex(where: Path.isUTF8PathSeparator)
+        }
+        return str.firstIndex(where: { separators.contains($0) })
+    }
     #else
     public static let pathSeparator = Character("/")
-    public static let pathSeparatorUTF8 = UInt8(ascii: "/")
-    public static let pathSeparatorsUTF8 = Set([UInt8(ascii: "/")])
+    @inline(__always) public static var pathSeparatorUTF8: UInt8 { UInt8(ascii: "/") }
     public static let pathEnvironmentSeparator = Character(":")
-    public static let pathSeparators = Set([Character("/")])
+    @inline(__always) public static func isUTF8PathSeparator(_ char: UInt8, separators: (some Collection<Character>)? = ([Character]?).none) -> Bool {
+        guard let separators else  {
+            return char == pathSeparatorUTF8
+        }
+        // This is a bit inefficient, but separators should always be nil outside of tests
+        return separators.contains(String(decoding: CollectionOfOne(char), as: UTF8.self))
+    }
+    @inline(__always) public static func firstPathSeparatorIndex(in str: some StringProtocol, separators: (some Collection<Character>)?) -> String.Index? {
+        guard let separators else {
+            return str.utf8.index(of: pathSeparatorUTF8)
+        }
+        return str.firstIndex(where: { separators.contains($0) })
+    }
     #endif
+
+    @inline(__always) public static func isPathSeparator(_ char: Character, separators: (some Collection<Character>)?) -> Bool {
+        guard let c = char.utf8.first else { return false }
+        return isUTF8PathSeparator(c, separators: separators)
+    }
 
     /// The system path separator, as a string.
     public static let pathSeparatorString = String(pathSeparator)
@@ -717,9 +744,10 @@ public struct Path: Serializable, Sendable {
             var numComponents = 0
             var isInPathComponent = false
             var nextCharacterIsEscaped = false
-            for idx in pattern.indices {
+            for byte in pattern.utf8 {
                 // Skip over path separators, unless they're escaped.
-                if pattern[idx] == Path.pathSeparator {
+                //TODO: should this (and other similar uses) be Path.isUTF8PathSeparator(byte) instead for Windows?
+                if byte == Path.pathSeparatorUTF8 {
                     if !nextCharacterIsEscaped {
                         isInPathComponent = false
                     }
@@ -736,7 +764,7 @@ public struct Path: Serializable, Sendable {
                     nextCharacterIsEscaped = false
                 }
                 else {
-                    nextCharacterIsEscaped = (pattern[idx] == Character("\\"))
+                    nextCharacterIsEscaped = (byte == UInt8(ascii: "\\"))
                 }
             }
             return numComponents
@@ -746,19 +774,20 @@ public struct Path: Serializable, Sendable {
         var numPathComponentsInPath = 0
         var isInPathComponent = false
         var firstIdx: String.Index?
-        for idx in self.str.indices.reversed() {
+        let utf8Str = self.str.utf8
+        for idx in utf8Str.indices.reversed() {
             // Skip over path separators.  We ignore backslashes here, since paths don't have escape characters.
-            if self.str[idx] == Path.pathSeparator {
+            if utf8Str[idx] == Path.pathSeparatorUTF8 {
                 isInPathComponent = false
                 // If we've found the expected number of path components, then we stop, and record the index of the first character we want to match against.
                 if numPathComponentsInPath == numPathComponentsInPattern {
-                    if idx != self.str.endIndex {
-                        firstIdx = self.str.index(after: idx)
+                    if idx != utf8Str.endIndex {
+                        firstIdx = utf8Str.index(after: idx)
                     }
                     break
                 }
             }
-            else if idx == self.str.startIndex {
+            else if idx == utf8Str.startIndex {
                 // If we didn't encounter a path separator, then the full string is the trailing subpath.
                 firstIdx = idx
                 break
@@ -781,7 +810,7 @@ public struct Path: Serializable, Sendable {
         }
 
         // Create a string from the first index we found to the end of the path.
-        let trailingSubpath = String(self.str[first..<self.str.endIndex])
+        let trailingSubpath = self.str[first..<self.str.endIndex]
 
         // Match the pattern against the requisite number of trailing path components.
         do {

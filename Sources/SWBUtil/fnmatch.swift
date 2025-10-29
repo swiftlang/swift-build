@@ -36,16 +36,6 @@ private enum RangeStatus {
     case error
 }
 
-private extension StringProtocol {
-    @inline(__always)
-    func firstIndex(matching characters: Set<Character>) -> String.Index? {
-        if characters.isEmpty {
-            return nil
-        }
-        return firstIndex(where: {characters.contains($0)})
-    }
-}
-
 /// Multi-platform fnmatch implementation. This is intended to be a close match the the POSIX fnmatch of all platforms including Windows (though not all options are supported).
 ///
 /// - parameter pattern: The pattern to match. When using the ``FnmatchOptions/pathname`` option, any path representation in the pattern is expected to use the POSIX path separator (`/`) to match with the input, and on Windows, the path separator (`/`) will be matched to either separator in the input string ( both `/` and `\` will be matched).
@@ -54,7 +44,7 @@ private extension StringProtocol {
 /// - returns: `true` if the pattern matches the input, `false` otherwise.
 ///
 /// - note: On Windows and when using the ``FnmatchOptions/pathname`` option, both separators (`/` and `\`) are recognized (see note on pattern parameter).
-public func fnmatch(pattern: some StringProtocol, input: some StringProtocol, options: FnmatchOptions = .default, pathSeparators: Set<Character> = Path.pathSeparators) throws
+public func fnmatch(pattern: some StringProtocol, input: some StringProtocol, options: FnmatchOptions = .default, pathSeparators: (some Collection<Character>)? = ([Character]?).none) throws
     -> Bool
 {
     // Use Substrings to avoid String allocations
@@ -76,32 +66,32 @@ public func fnmatch(pattern: some StringProtocol, input: some StringProtocol, op
                 return false
             }
         case "?":
-            guard let _sc = input.first else {
+            guard let _sc = input.utf8.first else {
                 return false
             }
-            if options.contains(.pathname) && pathSeparators.contains(_sc) {
+            if options.contains(.pathname) && Path.isUTF8PathSeparator(_sc, separators: pathSeparators) {
                 if backtrack() {
                     return false
                 }
             }
             input = input.dropFirst()
         case "*":
-            var p = pattern.first
-            while pattern.first == "*" {
+            var p = pattern.utf8.first
+            while pattern.utf8.first == UInt8(ascii: "*") {
                 // consume multiple '*' in pattern
                 pattern = pattern.dropFirst()
-                p = pattern.first
+                p = pattern.utf8.first
             }
             if p == nil {
                 if options.contains(.pathname) {
                     // make sure input does not have any more path separators
-                    return input.firstIndex(matching: pathSeparators) == nil ? true : false
+                    return Path.firstPathSeparatorIndex(in: input, separators: pathSeparators) == nil
                 } else {
                     return true  // pattern matched everything else in input
                 }
-            } else if pattern.first == "/" && options.contains(.pathname) {
+            } else if p == UInt8(ascii: "/") && options.contains(.pathname) {
                 // we have a '*/' pattern input must have an path separators to continue
-                guard let newInputIndex = input.firstIndex(matching: pathSeparators) else {
+                guard let newInputIndex = Path.firstPathSeparatorIndex(in: input, separators: pathSeparators) else {
                     return false
                 }
                 input.removeSubrange(..<newInputIndex)
@@ -110,13 +100,13 @@ public func fnmatch(pattern: some StringProtocol, input: some StringProtocol, op
             bt_pattern = pattern
             bt_input = input
         case "[":
-            guard let _sc = input.first else {
-                return false
-            }
-            if pathSeparators.contains(_sc) && options.contains(.pathname) {
+            if let first = input.utf8.first, Path.isUTF8PathSeparator(first, separators: pathSeparators) && options.contains(.pathname) {
                 if backtrack() {
                     return false
                 }
+            }
+            guard let _sc = input.first else {
+                return false
             }
             var new_input = input.dropFirst()
             var new_pattern = pattern
@@ -146,7 +136,7 @@ public func fnmatch(pattern: some StringProtocol, input: some StringProtocol, op
                 continue
             } else {
                 // windows need to test for both path separators
-                if _pc == "/" && options.contains(.pathname) && pathSeparators.contains(_sc) {
+                if _pc == "/" && options.contains(.pathname) && Path.isPathSeparator(_sc, separators: pathSeparators) {
                     continue
                 }
                 if backtrack() {
@@ -177,15 +167,15 @@ public func fnmatch(pattern: some StringProtocol, input: some StringProtocol, op
 }
 
 @inline(__always)
-private func rangematch(pattern: inout Substring, input: inout Substring, test: Character, options: FnmatchOptions,  pathSeparators: Set<Character>) -> RangeStatus {
+private func rangematch(pattern: inout Substring, input: inout Substring, test: Character, options: FnmatchOptions, pathSeparators: (some Collection<Character>)? = ([Character]?).none) -> RangeStatus {
     var test = test
 
-    if !pattern.contains("]") {
+    if !pattern.utf8.contains(UInt8(ascii: "]")) {
         // unmatched '[' test as literal '['
         return "[" == test ? .match : .noMatch
     }
 
-    let negate = pattern.first == "!"
+    let negate = pattern.utf8.first == UInt8(ascii: "!")
     if negate {
         pattern = pattern.dropFirst()
     }
@@ -198,13 +188,13 @@ private func rangematch(pattern: inout Substring, input: inout Substring, test: 
         if c == "]" {
             break
         }
-        if options.contains(.pathname) && pathSeparators.contains(c) {
+        if options.contains(.pathname) && Path.isPathSeparator(c, separators: pathSeparators) {
             return .noMatch
         }
         if options.contains(.caseInsensitive) {
             c = Character(c.lowercased())
         }
-        if pattern.first == "-" {
+        if pattern.utf8.first == UInt8(ascii: "-") {
             let subPattern = pattern.dropFirst()
             if var c2 = subPattern.first {
                 if c2 != "]" {
