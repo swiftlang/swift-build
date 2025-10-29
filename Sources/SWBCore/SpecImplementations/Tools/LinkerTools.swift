@@ -211,13 +211,17 @@ public struct DiscoveredLdLinkerToolSpecInfo: DiscoveredCommandLineToolSpecInfo 
             }
             
             // Forward the bytes
-            let processedBytes = ByteString(processedLines.joined(separator: ByteString("\n")))
-            delegate.emitOutput(processedBytes)
+            processedLines.forEach {
+                delegate.emitOutput($0)
+                delegate.emitOutput("\n")
+            }
         }
         else {
             // Forward the bytes
-            let processedBytes = ByteString(linesToParse.joined(separator: ByteString("\n")))
-            delegate.emitOutput(processedBytes)
+            linesToParse.forEach {
+                delegate.emitOutput(ByteString($0))
+                delegate.emitOutput("\n")
+            }
         }
         
         // Parse any complete lines of output.
