@@ -4674,6 +4674,18 @@ When this setting is enabled:
                 Type = Boolean;
                 DefaultValue = "NO";
             },
+
+            {
+                Name = "DUMP_DEPENDENCIES";
+                Type = Boolean;
+                DefaultValue = "NO";
+            },
+
+            {
+                Name = "DUMP_DEPENDENCIES_OUTPUT_PATH";
+                Type = Path;
+                DefaultValue = "$(TARGET_TEMP_DIR)/$(TARGET_NAME)-BuildDependencyInfo.json";
+            },
         );
     },
 )

@@ -12,6 +12,7 @@ add_library(SWBCore
   ActivityReporting.swift
   Apple/DeviceFamily.swift
   Apple/InterfaceBuilderShared.swift
+  BuildDependencyInfo.swift
   BuildFileFilteringContext.swift
   BuildFileResolution.swift
   BuildParameters.swift

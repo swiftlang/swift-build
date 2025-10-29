@@ -11,9 +11,11 @@
 //===----------------------------------------------------------------------===//
 
 import Foundation
+
 public import SWBCore
-import SWBUtil
+internal import SWBMacro
 internal import SWBProtocol
+import SWBUtil
 
 public final class ValidateDependenciesTaskAction: TaskAction {
     public override class var toolIdentifier: String {
@@ -127,6 +129,12 @@ public final class ValidateDependenciesTaskAction: TaskAction {
                 }
             }
 
+            try dumpDependenciesIfNeeded(
+                imports: Array(allClangImports.union(allSwiftImports)),
+                includes: Array(allClangIncludes),
+                payload: payload
+            )
+
             for diagnostic in diagnostics {
                 outputDelegate.emit(diagnostic)
             }
@@ -140,5 +148,53 @@ public final class ValidateDependenciesTaskAction: TaskAction {
         }
 
         return .succeeded
+    }
+
+    private func dumpDependenciesIfNeeded(imports: [DependencyValidationInfo.Import], includes: [DependencyValidationInfo.Include], payload: ValidateDependenciesPayload) throws {
+        guard payload.dumpDependencies else {
+            return
+        }
+
+        var dependencies = [BuildDependencyInfo.TargetDependencyInfo.Dependency]()
+        imports.forEach {
+            dependencies.append(.import(name: $0.dependency.name, accessLevel: .init($0.dependency.accessLevel), optional: $0.dependency.optional))
+        }
+        includes.forEach {
+            dependencies.append(.include(path: $0.path.str))
+        }
+
+        let dependencyInfo = BuildDependencyInfo(
+            targets: [
+                .init(
+                    targetName: payload.targetName,
+                    projectName: payload.projectName,
+                    platformName: payload.platformName,
+                    inputs: [],
+                    outputPaths: [],
+                    dependencies: dependencies
+                )
+            ], errors: []
+        )
+
+        let outputData = try JSONEncoder().encode(dependencyInfo)
+        let outputURL = URL(fileURLWithPath: payload.dumpDependenciesOutputPath)
+        try outputData.write(to: outputURL)
+    }
+}
+
+extension BuildDependencyInfo.TargetDependencyInfo.AccessLevel {
+    init(_ accessLevel: ModuleDependency.AccessLevel) {
+        switch accessLevel {
+        case .Package: self = .Package
+        case .Private: self = .Private
+        case .Public: self = .Public
+        }
+    }
+
+    init(_ accessLevel: HeaderDependency.AccessLevel) {
+        switch accessLevel {
+        case .Private: self = .Private
+        case .Public: self = .Public
+        }
     }
 }

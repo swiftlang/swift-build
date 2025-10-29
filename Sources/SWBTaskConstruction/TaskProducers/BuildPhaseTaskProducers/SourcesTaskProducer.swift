@@ -1576,14 +1576,22 @@ package final class SourcesTaskProducer: FilesBasedBuildPhaseTaskProducerBase, F
         // Create a task to validate dependencies if that feature is enabled.
         let validateModuleDeps = (context.moduleDependenciesContext?.validate ?? .no) != .no
         let validateHeaderDeps = (context.headerDependenciesContext?.validate ?? .no) != .no
-        if validateModuleDeps || validateHeaderDeps {
+        if validateModuleDeps || validateHeaderDeps, let target = targetContext.configuredTarget?.target {
             var validateDepsTasks = [any PlannedTask]()
             await appendGeneratedTasks(&validateDepsTasks, usePhasedOrdering: true) { delegate in
                 await context.validateDependenciesSpec.createTasks(
                     CommandBuildContext(producer: context, scope: scope, inputs: []),
                     delegate,
                     dependencyInfos: dependencyDataFiles,
-                    payload: .init(moduleDependenciesContext: context.moduleDependenciesContext, headerDependenciesContext: context.headerDependenciesContext)
+                    payload: .init(
+                        moduleDependenciesContext: context.moduleDependenciesContext,
+                        headerDependenciesContext: context.headerDependenciesContext,
+                        dumpDependencies: scope.evaluate(BuiltinMacros.DUMP_DEPENDENCIES),
+                        dumpDependenciesOutputPath: scope.evaluate(BuiltinMacros.DUMP_DEPENDENCIES_OUTPUT_PATH).str,
+                        platformName: context.settings.platform?.name,
+                        projectName: context.settings.project?.name,
+                        targetName: target.name
+                    )
                 )
             }
             tasks.append(contentsOf: validateDepsTasks)
