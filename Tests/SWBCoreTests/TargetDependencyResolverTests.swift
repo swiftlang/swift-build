@@ -3272,8 +3272,152 @@ fileprivate enum TargetPlatformSpecializationMode {
         delegate.checkNoDiagnostics()
     }
 
+    /// Test all the library and framework linkage options which we identify in `OTHER_LDFLAGS` to use to compute implicit dependencies.
     @Test
     func implicitDependenciesUseOtherLinkerFlags() async throws {
+        // Structure which describes the target configuration and the expected dependencies of each target.
+        let targetInfo = [
+            "TestBasic": [
+                "Settings": [
+                    // Test both ways to pass other linker flags.
+                    "OTHER_LDFLAGS": "-framework aFramework",
+                    "PRODUCT_SPECIFIC_LDFLAGS": "-lDynamic -lStatic",
+                ],
+                "ExpectedDependencies": [
+                    "aFramework",
+                    "aDynamicLib",
+                    "aStaticLib",
+                ],
+            ],
+            "TestDelay": [
+                "Settings": [
+                    "OTHER_LDFLAGS": "-delay_framework aFramework -delay-lDynamic -delay-lStatic",
+                ],
+                "ExpectedDependencies": [
+                    "aFramework",
+                    "aDynamicLib",
+                    "aStaticLib",
+                ],
+            ],
+            // There is no -hidden_framework option.
+            "TestHidden": [
+                "Settings": [
+                    "OTHER_LDFLAGS": "-hidden-lDynamic -hidden-lStatic",
+                ],
+                "ExpectedDependencies": [
+                    "aDynamicLib",
+                    "aStaticLib",
+                ],
+            ],
+            "TestLazy": [
+                "Settings": [
+                    "OTHER_LDFLAGS": "-lazy_framework aFramework -lazy-lDynamic -lazy-lStatic",
+                ],
+                "ExpectedDependencies": [
+                    "aFramework",
+                    "aDynamicLib",
+                    "aStaticLib",
+                ],
+            ],
+            "TestMerge": [
+                "Settings": [
+                    "OTHER_LDFLAGS": "-merge_framework aFramework -merge-lDynamic -merge-lStatic",
+                ],
+                "ExpectedDependencies": [
+                    "aFramework",
+                    "aDynamicLib",
+                    "aStaticLib",
+                ],
+            ],
+            "TestNoMerge": [
+                "Settings": [
+                    "OTHER_LDFLAGS": "-no_merge_framework aFramework -no_merge-lDynamic -no_merge-lStatic",
+                ],
+                "ExpectedDependencies": [
+                    "aFramework",
+                    "aDynamicLib",
+                    "aStaticLib",
+                ],
+            ],
+            "TestNeeded": [
+                "Settings": [
+                    "OTHER_LDFLAGS": "-needed_framework aFramework -needed-lDynamic -needed-lStatic",
+                ],
+                "ExpectedDependencies": [
+                    "aFramework",
+                    "aDynamicLib",
+                    "aStaticLib",
+                ],
+            ],
+            "TestReexport": [
+                "Settings": [
+                    "OTHER_LDFLAGS": "-reexport_framework aFramework -reexport-lDynamic -reexport-lStatic",
+                ],
+                "ExpectedDependencies": [
+                    "aFramework",
+                    "aDynamicLib",
+                    "aStaticLib",
+                ]
+            ],
+            "TestWeak": [
+                "Settings": [
+                    "OTHER_LDFLAGS": "-weak_framework aFramework -weak-lDynamic -weak-lStatic",
+                ],
+                "ExpectedDependencies": [
+                    "aFramework",
+                    "aDynamicLib",
+                    "aStaticLib",
+                ],
+            ],
+            "TestAssertWeak": [
+                "Settings": [
+                    "OTHER_LDFLAGS": "-assert_weak_framework aFramework -assert-weak-lDynamic -assert-weak-lStatic",
+                ],
+                "ExpectedDependencies": [
+                    "aFramework",
+                    "aDynamicLib",
+                    "aStaticLib",
+                ],
+            ],
+            // Test that IMPLICIT_DEPENDENCIES_IGNORE_LDFLAGS causes us to not examine OTHER_LDFLAGS.
+            "TestDisabled": [
+                "Settings": [
+                    "OTHER_LDFLAGS": "-framework aFramework -lDynamic -lStatic",
+                    "IMPLICIT_DEPENDENCIES_IGNORE_LDFLAGS": "YES",
+                ],
+                "ExpectedDependencies": [],
+            ],
+        ]
+        let targetNames = targetInfo.keys.sorted()
+        var targets: [any TestTarget] = [
+            TestAggregateTarget("test", dependencies: targetNames),
+        ]
+        targetNames.forEach { targetName in
+            guard let info = targetInfo[targetName] else {
+                Issue.record("No target info record for '\(targetName)'")
+                return
+            }
+            guard let settings = info["Settings"] as? [String: String] else {
+                Issue.record("Target info record for '\(targetName)' does not have a valid 'Settings' entry")
+                return
+            }
+            targets.append(TestStandardTarget(
+                targetName,
+                type: .application,
+                buildConfigurations: [
+                    TestBuildConfiguration(
+                        "Debug",
+                        buildSettings: settings
+                    ),
+                ]
+            ))
+        }
+        // Ensure that more than one target has the same "stem" ("Dynamic"), so that we don't get an ambiguous match including the framework from a -lDynamic argument.  So we never actually match against the 'aFramework2' target, it's just here to test that.
+        targets.append(TestStandardTarget("aFramework", type: .application, productReferenceName: "aFramework.framework"))
+        targets.append(TestStandardTarget("aFramework2", type: .application, productReferenceName: "Dynamic.framework"))
+        targets.append(TestStandardTarget("aDynamicLib", type: .application, productReferenceName: "libDynamic.dylib"))
+        targets.append(TestStandardTarget("aStaticLib", type: .application, productReferenceName: "libStatic.a"))
+
         let core = try await getCore()
         let workspace = try TestWorkspace(
             "Workspace",
@@ -3285,79 +3429,7 @@ fileprivate enum TargetPlatformSpecializationMode {
                         TestFile("libDynamic.dylib"),
                         TestFile("libStatic.a"),
                     ]),
-                    targets: [
-                        TestAggregateTarget("test", dependencies: [
-                            "test0",
-                            "test1",
-                            "test2",
-                            "test3",
-                            "testDisabled",
-                        ]),
-                        TestStandardTarget(
-                            "test0",
-                            type: .application,
-                            buildConfigurations: [
-                                TestBuildConfiguration(
-                                    "Debug",
-                                    buildSettings: [
-                                        // We should support both ways to pass Ld flags
-                                        "OTHER_LDFLAGS": "-framework aFramework",
-                                        "PRODUCT_SPECIFIC_LDFLAGS": "-lDynamic -lStatic",
-                                    ]),
-                            ]
-                        ),
-                        TestStandardTarget(
-                            "test1",
-                            type: .application,
-                            buildConfigurations: [
-                                TestBuildConfiguration(
-                                    "Debug",
-                                    buildSettings: [
-                                        "OTHER_LDFLAGS": "-weak_framework aFramework -weak-lDynamic -weak-lStatic",
-                                    ]),
-                            ]
-                        ),
-                        TestStandardTarget(
-                            "test2",
-                            type: .application,
-                            buildConfigurations: [
-                                TestBuildConfiguration(
-                                    "Debug",
-                                    buildSettings: [
-                                        "OTHER_LDFLAGS": "-reexport_framework aFramework -reexport-lDynamic -reexport-lStatic",
-                                    ]),
-                            ]
-                        ),
-                        TestStandardTarget(
-                            "test3",
-                            type: .application,
-                            buildConfigurations: [
-                                TestBuildConfiguration(
-                                    "Debug",
-                                    buildSettings: [
-                                        "OTHER_LDFLAGS": "-lazy_framework aFramework -lazy-lDynamic -lazy-lStatic",
-                                    ]),
-                            ]
-                        ),
-                        TestStandardTarget(
-                            "testDisabled",
-                            type: .application,
-                            buildConfigurations: [
-                                TestBuildConfiguration(
-                                    "Debug",
-                                    buildSettings: [
-                                        "OTHER_LDFLAGS": "-framework aFramework -lDynamic -lStatic",
-                                        "IMPLICIT_DEPENDENCIES_IGNORE_LDFLAGS": "YES",
-                                    ]),
-                            ]
-                        ),
-
-                        // Ensure that more than one target has the same "stem" ("Dynamic"), so that we don't get an ambiguous match including the framework from a -lDynamic argument.
-                        TestStandardTarget("aFramework", type: .application, productReferenceName: "aFramework.framework"),
-                        TestStandardTarget("aFramework2", type: .application, productReferenceName: "Dynamic.framework"),
-                        TestStandardTarget("aDynamicLib", type: .application, productReferenceName: "libDynamic.dylib"),
-                        TestStandardTarget("aStaticLib", type: .application, productReferenceName: "libStatic.a"),
-                    ]
+                    targets: targets
                 ),
             ]
         ).load(core)
@@ -3376,22 +3448,33 @@ fileprivate enum TargetPlatformSpecializationMode {
         let buildGraph = await TargetGraphFactory(workspaceContext: workspaceContext, buildRequest: buildRequest, buildRequestContext: buildRequestContext, delegate: delegate).graph(type: .dependency)
         let dependencyClosure = buildGraph.allTargets
 
-        guard let fwkTarget = (dependencyClosure.first { $0.target.name == "aFramework" }) else { Issue.record(); return }
-        guard let dynamicLibTarget = (dependencyClosure.first { $0.target.name == "aDynamicLib" }) else { Issue.record(); return }
-        guard let staticLibTarget = (dependencyClosure.first { $0.target.name == "aStaticLib" }) else { Issue.record(); return }
-
         // Check that supported flags get the right dependencies
-        for i in 0...3 {
-            let t = dependencyClosure.first { $0.target.name == "test\(i)" }!
-            #expect(buildGraph.dependencies(of: t).contains(fwkTarget), "Expected \(t.target.name) to depend on \(fwkTarget.target.name)")
-            #expect(buildGraph.dependencies(of: t).contains(dynamicLibTarget), "Expected \(t.target.name) to depend on \(dynamicLibTarget.target.name)")
-            #expect(buildGraph.dependencies(of: t).contains(staticLibTarget), "Expected \(t.target.name) to depend on \(staticLibTarget.target.name)")
-        }
+        for targetName in targetNames {
+            guard let info = targetInfo[targetName] else {
+                Issue.record("No target info record for '\(targetName)'")
+                return
+            }
+            guard let target = dependencyClosure.first(where: { $0.target.name == targetName }) else {
+                Issue.record("Could not find target in dependency closure for '\(targetName)'")
+                return
+            }
 
-        // Check that it can be disabled by a target-level setting
-        do {
-            let t = dependencyClosure.first { $0.target.name == "testDisabled" }!
-            #expect(buildGraph.dependencies(of: t).isEmpty)
+            guard let expectedDependencies = info["ExpectedDependencies"] as? [String] else {
+                Issue.record("Target info record for '\(targetName)' does not have a valid 'ExpectedDependencies' entry")
+                return
+            }
+            if expectedDependencies.isEmpty {
+                #expect(buildGraph.dependencies(of: target).isEmpty)
+            }
+            else {
+                for dependencyName in expectedDependencies {
+                    guard let dependencyTarget = (dependencyClosure.first { $0.target.name == dependencyName }) else {
+                        Issue.record("Could not find target in dependency closure named '\(dependencyName)' from target info record for '\(targetName)'")
+                        return
+                    }
+                    #expect(buildGraph.dependencies(of: target).contains(dependencyTarget), "Expected '\(target.target.name)' to depend on '\(dependencyTarget.target.name)'")
+                }
+            }
         }
 
         delegate.checkNoDiagnostics()
