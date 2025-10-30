@@ -1342,10 +1342,29 @@ public final class LdLinkerSpec : GenericLinkerSpec, SpecIdentifierType, @unchec
     /// - parameter addError: A callback block which will be called when an error in processing the macro's value is found, with an error reason parameter.
     public static func processLinkerSettingsForLibraryOptions(in macros: [StringListMacroDeclaration] = [BuiltinMacros.OTHER_LDFLAGS, BuiltinMacros.PRODUCT_SPECIFIC_LDFLAGS], settings: Settings, addFramework: @Sendable (StringListMacroDeclaration, String, String) async -> Void, addLibrary: @Sendable (StringListMacroDeclaration, String, String) async -> Void, addError: @Sendable (String) async -> Void) async {
         struct StaticVars {
-            static let frameworkArgs = ["-framework", "-weak_framework", "-reexport_framework", "-merge_framework", "-no_merge_framework", "-lazy_framework", "-upward_framework"]
+            static let frameworkArgs = [
+                "-framework",
+                "-delay_framework",
+                "-lazy_framework",
+                "-merge_framework", "-no_merge_framework",
+                "-needed_framework",
+                "-reexport_framework",
+                "-upward_framework",
+                "-weak_framework", "-assert_weak_framework",
+            ]
             // FIXME: Handle the _library options, and also the case of normal linkage where there is no option passed, just an absolute path
-            // We're checking flags in this order, and there's an ambiguity between -l and -lazy-l because of the common prefix, so we need to make sure that -lazy-l goes first
-            static let libPrefixArgs = ["-weak-l", "-merge-l", "-no_merge-l", "-reexport-l", "-lazy-l", "-upward-l", "-l"]
+            static let libPrefixArgs = [
+                "-delay-l",
+                "-hidden-l",
+                "-lazy-l",
+                "-merge-l", "-no_merge-l",
+                "-needed-l",
+                "-reexport-l",
+                "-upward-l",
+                "-weak-l", "-assert-weak-l",
+                // Because of the ambiguity between -lazy-l and -l sharing a prefix, we need to make sure that -lazy-l always comes first.
+                "-l",
+            ]
         }
 
         // TODO: We could use something like the LibrarySpecifier struct to pass back something other than a literal string as the linker option, but it requires some more thought as the LibrarySpecifier as-is isn't really designed for this sort of use.
