@@ -71,14 +71,14 @@ public struct Path: Serializable, Sendable {
     public static let pathSeparator = Character("\\")
     @inline(__always) public static var pathSeparatorUTF8: UInt8 { UInt8(ascii: "\\") }
     public static let pathEnvironmentSeparator = Character(";")
-    @inline(__always) public static func isUTF8PathSeparator(_ char: UInt8) -> Bool {
+    @inline(__always) public static func isUTF8PathSeparator(_ char: UInt8, separators: (some Collection<Character>)? = ([Character]?).none) -> Bool {
         guard let separators else {
             return char == pathSeparatorUTF8 || char == UInt8(ascii: "/")
         }
         // This is a bit inefficient, but separators should always be nil outside of tests
         return separators.contains(String(decoding: CollectionOfOne(char), as: UTF8.self))
     }
-    public static func firstPathSeparatorIndex(in str: some StringProtocol, separators: (some Collection<Character>)?) -> String.Index? {
+    @inline(__always) public static func firstPathSeparatorIndex(in str: some StringProtocol, separators: (some Collection<Character>)?) -> String.Index? {
         guard let separators else {
             return str.utf8.firstIndex(where: Path.isUTF8PathSeparator)
         }
