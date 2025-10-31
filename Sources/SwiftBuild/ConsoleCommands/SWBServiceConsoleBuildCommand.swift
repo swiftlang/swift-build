@@ -345,6 +345,35 @@ class SWBServiceConsolePrepareForIndexCommand: SWBServiceConsoleCommand {
     }
 }
 
+class SWBServiceConsoleDependencyInfoCommand: SWBServiceConsoleCommand {
+    public static let name = "generateDependencyInfo"
+
+    static func usage() -> String {
+        return name + " [options] <container-path>"
+    }
+
+    static func validate(invocation: SWBServiceConsoleCommandInvocation) -> SWBServiceConsoleError? {
+        return nil
+    }
+
+    static func perform(invocation: SWBServiceConsoleCommandInvocation) async -> SWBCommandResult {
+        return await SWBServiceConsoleBuildCommand.perform(invocation: invocation, operationFunc: generateDependencyInfo)
+    }
+}
+
+fileprivate func generateDependencyInfo(startInfo: SwiftBuildMessage.BuildStartedInfo, session: SWBBuildServiceSession, sessionCreationDiagnostics: [SwiftBuildMessage.DiagnosticInfo], request: SWBBuildRequest) async -> SWBCommandResult {
+    do {
+        let output = try await withTemporaryDirectory(removeTreeOnDeinit: true) {
+            let outputPath = $0.join("dump.json")
+            try await session.dumpBuildDependencyInfo(for: request, to: outputPath.str)
+            return try String(contentsOf: URL(fileURLWithPath: outputPath.str))
+        }
+        return .success(.init(output: output))
+    } catch {
+        return .failure(.failedCommandError(description: "\(error)"))
+    }
+}
+
 extension SWBWorkspaceInfo {
     func configuredTargets(targetNames: [String], parameters: SWBBuildParameters) throws -> [SWBConfiguredTarget] {
         return try targetNames.map { targetName in
@@ -499,6 +528,7 @@ func registerBuildCommands() {
         SWBServiceConsoleBuildCommand.self,
         SWBServiceConsolePrepareForIndexCommand.self,
         SWBServiceConsoleCreateBuildDescriptionCommand.self,
+        SWBServiceConsoleDependencyInfoCommand.self,
     ] as [any SWBServiceConsoleCommand.Type]) { SWBServiceConsoleCommandRegistry.registerCommandClass(commandClass) }
 }
 
