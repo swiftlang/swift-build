@@ -11,9 +11,11 @@
 //===----------------------------------------------------------------------===//
 
 import Foundation
+
 public import SWBCore
-import SWBUtil
+internal import SWBMacro
 internal import SWBProtocol
+import SWBUtil
 
 public final class ValidateDependenciesTaskAction: TaskAction {
     public override class var toolIdentifier: String {
@@ -127,6 +129,13 @@ public final class ValidateDependenciesTaskAction: TaskAction {
                 }
             }
 
+            try dumpDependenciesIfNeeded(
+                imports: Array(allClangImports.union(allSwiftImports)),
+                includes: Array(allClangIncludes),
+                for: task.forTarget,
+                context: executionDelegate.requestContext
+            )
+
             for diagnostic in diagnostics {
                 outputDelegate.emit(diagnostic)
             }
@@ -140,5 +149,58 @@ public final class ValidateDependenciesTaskAction: TaskAction {
         }
 
         return .succeeded
+    }
+
+    private func dumpDependenciesIfNeeded(imports: [DependencyValidationInfo.Import], includes: [DependencyValidationInfo.Include], for target: ConfiguredTarget?, context: BuildRequestContext) throws {
+        guard let target else {
+            return
+        }
+
+        let settings = context.getCachedSettings(target.parameters, target: target.target)
+        guard settings.globalScope.evaluate(BuiltinMacros.DUMP_DEPENDENCIES) else {
+            return
+        }
+
+        var dependencies = [BuildDependencyInfo.TargetDependencyInfo.Dependency]()
+        imports.forEach {
+            dependencies.append(.import(name: $0.dependency.name, accessLevel: .init($0.dependency.accessLevel), optional: $0.dependency.optional))
+        }
+        includes.forEach {
+            dependencies.append(.include(path: $0.path.str))
+        }
+
+        let dependencyInfo = BuildDependencyInfo(
+            targets: [
+                .init(
+                    targetName: target.target.name,
+                    projectName: settings.project?.name,
+                    platformName: settings.platform?.name,
+                    inputs: [],
+                    outputPaths: [],
+                    dependencies: dependencies
+                )
+            ], errors: []
+        )
+
+        let outputData = try JSONEncoder().encode(dependencyInfo)
+        let outputURL = URL(fileURLWithPath: settings.globalScope.evaluate(BuiltinMacros.DUMP_DEPENDENCIES_OUTPUT_PATH).str)
+        try outputData.write(to: outputURL)
+    }
+}
+
+extension BuildDependencyInfo.TargetDependencyInfo.AccessLevel {
+    init(_ accessLevel: ModuleDependency.AccessLevel) {
+        switch accessLevel {
+        case .Package: self = .Package
+        case .Private: self = .Private
+        case .Public: self = .Public
+        }
+    }
+
+    init(_ accessLevel: HeaderDependency.AccessLevel) {
+        switch accessLevel {
+        case .Private: self = .Private
+        case .Public: self = .Public
+        }
     }
 }
