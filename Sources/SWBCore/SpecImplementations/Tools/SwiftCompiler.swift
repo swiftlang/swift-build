@@ -3585,14 +3585,18 @@ public final class SwiftCompilerSpec : CompilerSpec, SpecIdentifierType, SwiftDi
             ) {
                 commandLine = newCommandLine
                 // For swift caching jobs, add extra flags.
-                if commandLine.contains("-cache-compile-job") {
+                if driverPayload.casOptions != nil {
                     // Ideally, we should ask if swift-frontend supports the flag but we can only ask driver for an approximation.
                     if LibSwiftDriver.supportsDriverFlag(spelled: "-module-import-from-cas") {
                         commandLine.append("-module-import-from-cas")
                     }
                     // Then drop the cache build flag to do uncached preview compilation.
-                    commandLine.removeAll {
-                        $0 == "-cache-compile-job"
+                    if LibSwiftDriver.supportsDriverFlag(spelled: "-no-cache-compile-job") {
+                        commandLine.append("-no-cache-compile-job")
+                    } else {
+                        commandLine.removeAll {
+                            $0 == "-cache-compile-job"
+                        }
                     }
                 }
                 // Add vfsoverlay after the driver invocation as it can affect the module dependencies, causing modules from regular builds not being reused here.
