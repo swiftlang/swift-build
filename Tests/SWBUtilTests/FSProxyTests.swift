@@ -29,7 +29,7 @@ import SWBTestSupport
             return
         }
         for mode in modes {
-            #expect(sbuf.st_mode & mode > 0, "mode \(mode) not found on \(path)", sourceLocation: sourceLocation)
+            #expect(mode_t(sbuf.st_mode) & mode > 0, "mode \(mode) not found on \(path)", sourceLocation: sourceLocation)
         }
     }
 #endif
