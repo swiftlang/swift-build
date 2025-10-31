@@ -247,7 +247,7 @@ import SWBUtil
 
     @Test(arguments: [true, false])
     func pathnameMatch(isWindows: Bool) throws {
-        let separators = isWindows ? Set("\\/") : Set([Character("/")])
+        let separators = isWindows ? "\\/" : "/"
 
         try assertFnmatch(pattern: "x?y", input: "x/y", separators: separators)
         try assertFnmatch(pattern: "x?y", input: "x/y", shouldMatch: false, options: [.pathname], separators: separators)
@@ -272,7 +272,7 @@ import SWBUtil
     }
 
     func assertFnmatch(
-        pattern: String, input: String, shouldMatch: Bool = true, options: FnmatchOptions = .default, separators: Set<Character> = Path.pathSeparators, sourceLocation: SourceLocation = #_sourceLocation) throws {
+        pattern: String, input: String, shouldMatch: Bool = true, options: FnmatchOptions = .default, separators: (some Collection<Character>)? = ([Character]?).none, sourceLocation: SourceLocation = #_sourceLocation) throws {
         let comment = Comment(stringLiteral: "\(pattern) \(shouldMatch ? "should" : "should not") match \(input)")
         let result = try fnmatch(pattern: pattern, input: input, options: options, pathSeparators: separators)
         shouldMatch ? #expect(result, comment, sourceLocation: sourceLocation) : #expect(!result, comment, sourceLocation: sourceLocation)

@@ -202,7 +202,7 @@ public final class RecursiveSearchPathResolver: Sendable {
                 result.append(Path("."))
             } else if sourcePath.isRoot {
                 result.append(Path(String(path.str[path.str.utf8.index(after: path.str.utf8.startIndex)...])))
-            } else if path.str.hasPrefix(sourcePath.str) && Path.pathSeparatorsUTF8.contains(path.str.utf8[path.str.utf8.index(path.str.utf8.startIndex, offsetBy: sourcePath.str.utf8.count)]) {
+            } else if path.str.hasPrefix(sourcePath.str) && Path.isUTF8PathSeparator(path.str.utf8[path.str.utf8.index(path.str.utf8.startIndex, offsetBy: sourcePath.str.utf8.count)]) {
                 // FIXME: Use dropFirst() once available everywhere.
                 result.append(Path(String(path.str[path.str.utf8.index(path.str.utf8.startIndex, offsetBy: sourcePath.str.utf8.count + 1)...])))
             } else {
