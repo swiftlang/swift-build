@@ -25,7 +25,7 @@ final class TestEntryPointGenerationToolSpec: GenericCommandLineToolSpec, SpecId
             let format = cbc.scope.evaluate(BuiltinMacros.LINKER_FILE_LIST_FORMAT)
             args.append(contentsOf: ["--linker-file-list-format", .literal(.init(encodingAsUTF8: format.rawValue))])
             
-            for toolchainLibrarySearchPath in cbc.producer.toolchains.map({ $0.librarySearchPaths }) {
+            for toolchainLibrarySearchPath in cbc.producer.toolchains.map({ StackedSearchPath(paths: $0.librarySearchPaths.paths + $0.fallbackLibrarySearchPaths.paths, fs: $0.librarySearchPaths.fs) } ) {
                 if let path = toolchainLibrarySearchPath.findLibrary(operatingSystem: cbc.producer.hostOperatingSystem, basename: "IndexStore") {
                     args.append(contentsOf: ["--index-store-library-path", .path(path)])
                     break

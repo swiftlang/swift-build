@@ -299,8 +299,8 @@ fileprivate struct UnitTestTaskConstructionTests: CoreBasedTests {
         }
     }
 
-    @Test(.requireSDKs(.linux))
-    func unitTestRunnerTarget_linux() async throws {
+    @Test(.requireSDKs(.host), .skipHostOS(.macOS))
+    func unitTestRunnerTarget() async throws {
         let swiftCompilerPath = try await self.swiftCompilerPath
         let swiftVersion = try await self.swiftVersion
         let testProject = TestProject(
@@ -317,25 +317,26 @@ fileprivate struct UnitTestTaskConstructionTests: CoreBasedTests {
                     buildSettings: [
                         "CODE_SIGN_IDENTITY": "",
                         "PRODUCT_NAME": "$(TARGET_NAME)",
-                        "SDKROOT": "linux",
+                        "SDKROOT": "auto",
                         "SWIFT_VERSION": swiftVersion,
                         "INDEX_DATA_STORE_DIR": "/index",
-                        "LINKER_DRIVER": "swiftc"
-                    ]),
+                        "LINKER_DRIVER": "swiftc",
+                    ])
             ],
             targets: [
                 TestStandardTarget(
                     "UnitTestRunner",
                     type: .swiftpmTestRunner,
                     buildConfigurations: [
-                        TestBuildConfiguration("Debug",
-                                               buildSettings: [:]),
+                        TestBuildConfiguration(
+                            "Debug",
+                            buildSettings: [:])
                     ],
                     buildPhases: [
                         TestSourcesBuildPhase(),
                         TestFrameworksBuildPhase([
-                            "UnitTestTarget.so"
-                        ])
+                            TestBuildFile(.target("UnitTestTarget"))
+                        ]),
                     ],
                     dependencies: ["UnitTestTarget"],
                 ),
@@ -343,17 +344,18 @@ fileprivate struct UnitTestTaskConstructionTests: CoreBasedTests {
                     "UnitTestTarget",
                     type: .unitTest,
                     buildConfigurations: [
-                        TestBuildConfiguration("Debug",
-                                               buildSettings: [:]),
+                        TestBuildConfiguration(
+                            "Debug",
+                            buildSettings: [:])
                     ],
                     buildPhases: [
                         TestSourcesBuildPhase([
                             "TestOne.swift",
                             "TestTwo.swift",
-                        ]),
+                        ])
                     ],
                     dependencies: [],
-                    productReferenceName: "UnitTestTarget.so"
+                    productReferenceName: "$(EXCTABLE_NAME)"
                 ),
             ])
         let core = try await getCore()
@@ -363,15 +365,28 @@ fileprivate struct UnitTestTaskConstructionTests: CoreBasedTests {
 
         try await fs.writeFileContents(swiftCompilerPath) { $0 <<< "binary" }
 
-        await tester.checkBuild(runDestination: .linux, fs: fs) { results in
+        await tester.checkBuild(runDestination: .host, fs: fs) { results in
             results.checkTarget("UnitTestRunner") { target in
                 results.checkTask(.matchTarget(target), .matchRuleType("GenerateTestEntryPoint")) { task in
-                    task.checkCommandLineMatches([.suffix("builtin-generateTestEntryPoint"), "--output", .suffix("test_entry_point.swift"), "--discover-tests", "--linker-file-list-format", .any, "--index-store-library-path", .suffix("libIndexStore.so"), "--linker-filelist", .suffix("UnitTestTarget.LinkFileList"), "--index-store", "/index", "--index-unit-base-path", "/tmp/Test/aProject/build"])
+                    task.checkCommandLineMatches([
+                        .suffix("builtin-generateTestEntryPoint"), 
+                        "--output", 
+                        .suffix("test_entry_point.swift"), 
+                        "--discover-tests", 
+                        "--linker-file-list-format", 
+                        .any,
+                        "--index-store-library-path", 
+                        .or(.suffix("libIndexStore.so"), .suffix("libIndexStore.dll")), 
+                        "--linker-filelist", .suffix("UnitTestTarget.LinkFileList"), 
+                        "--index-store", .equal(Path("/index").str),
+                        "--index-unit-base-path", 
+                        .equal(Path.root.join("/tmp/Test/aProject/build").str)
+                    ])
                     task.checkInputs([
                         .pathPattern(.suffix("UnitTestTarget.LinkFileList")),
-                        .pathPattern(.suffix("UnitTestTarget.so")),
+                        .pathPattern(.or(.suffix("UnitTestTarget.so"), .suffix("UnitTestTarget.dll"))),
                         .namePattern(.any),
-                        .namePattern(.any)
+                        .namePattern(.any),
                     ])
                     task.checkOutputs([.pathPattern(.suffix("test_entry_point.swift"))])
                 }
