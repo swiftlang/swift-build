@@ -404,6 +404,24 @@ public struct Path: Serializable, Sendable {
         return nil
     }
 
+    /// `true` if the path contains any .lproj directories as path components.
+    public var containsRegionVariantPathComponent: Bool {
+        var path = self.join("File.strings") // since regionVariantName looks at parent dir
+        while !path.isRoot && !path.isEmpty {
+            if path.regionVariantName != nil {
+                return true
+            } else {
+                let parent = path.dirname
+                if parent == path {
+                    break
+                } else {
+                    path = parent
+                }
+            }
+        }
+        return false
+    }
+
     /// Return true if the pathname is conformant to path restrictions on the platform.
     ///
     /// Check the Unicode string representation of the path for reserved characters that cannot be represented as a path.
