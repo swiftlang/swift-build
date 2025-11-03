@@ -1346,23 +1346,30 @@ import SWBMacro
             for useSearchPaths in [true, false] {
                 let searchPathString = useSearchPaths ? "search" : "abs"
                 for mode in LinkerSpec.LibrarySpecifier.Mode.allCases {
+                    let prefix: String?
                     let suffix = "_\(mode)_\(searchPathString)"
                     let filePath: Path
                     switch kind {
                     case .static:
                         filePath = Path.root.join("usr/lib/libfoo\(suffix).a")
+                        prefix = producer.lookupFileType(identifier: "archive.ar")?.prefix
                     case .dynamic:
                         filePath = Path.root.join("usr/lib/libbar\(suffix).dylib")
+                        prefix = producer.lookupFileType(identifier: "compiled.mach-o.dylib")?.prefix
                     case .textBased:
                         filePath = Path.root.join("usr/lib/libbaz\(suffix).tbd")
+                        prefix = producer.lookupFileType(identifier: "sourcecode.text-based-dylib-definition")?.prefix
                     case .framework:
                         filePath = Path.root.join("tmp/Foo\(suffix).framework")
+                        prefix = nil
                     case .object:
+                        prefix = nil
                         continue
                     case .objectLibrary:
+                        prefix = nil
                         continue
                     }
-                    result.append(LinkerSpec.LibrarySpecifier(kind: kind, path: filePath, mode: mode, useSearchPaths: useSearchPaths, swiftModulePaths: [:], swiftModuleAdditionalLinkerArgResponseFilePaths: [:]))
+                    result.append(LinkerSpec.LibrarySpecifier(kind: kind, path: filePath, mode: mode, useSearchPaths: useSearchPaths, swiftModulePaths: [:], swiftModuleAdditionalLinkerArgResponseFilePaths: [:], prefix: prefix))
                 }
             }
             return result
