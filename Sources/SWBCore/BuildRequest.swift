@@ -260,6 +260,9 @@ public final class BuildRequest: CustomStringConvertible, Sendable {
     /// The quality-of-service to use for this request.
     public let qos: SWBQoS
 
+    /// Overrides the number of lanes in the llbuild scheduler.
+    public let schedulerLaneWidthOverride: UInt32?
+
     /// Optional path of a directory into which to write diagnostic information about the build plan.
     public let buildPlanDiagnosticsDirPath: Path?
 
@@ -282,7 +285,7 @@ public final class BuildRequest: CustomStringConvertible, Sendable {
     /// - Parameters:
     ///   - parameters: The default build parameters, used in non-target specific contexts.
     ///   - buildTargets: The list of targets which should be built
-    public init(parameters: BuildParameters, buildTargets: [BuildTargetInfo], dependencyScope: DependencyScope = .workspace, continueBuildingAfterErrors: Bool, hideShellScriptEnvironment: Bool = false, useParallelTargets: Bool, useImplicitDependencies: Bool, useDryRun: Bool, enableStaleFileRemoval: Bool? = nil, showNonLoggedProgress: Bool = true, recordBuildBacktraces: Bool? = nil, generatePrecompiledModulesReport: Bool? = nil, buildDescriptionID: BuildDescriptionID? = nil, qos: SWBQoS? = nil, buildPlanDiagnosticsDirPath: Path? = nil, buildCommand: BuildCommand? = nil, schemeCommand: SchemeCommand? = .launch, containerPath: Path? = nil, jsonRepresentation: Data? = nil) {
+    public init(parameters: BuildParameters, buildTargets: [BuildTargetInfo], dependencyScope: DependencyScope = .workspace, continueBuildingAfterErrors: Bool, hideShellScriptEnvironment: Bool = false, useParallelTargets: Bool, useImplicitDependencies: Bool, useDryRun: Bool, enableStaleFileRemoval: Bool? = nil, showNonLoggedProgress: Bool = true, recordBuildBacktraces: Bool? = nil, generatePrecompiledModulesReport: Bool? = nil, buildDescriptionID: BuildDescriptionID? = nil, qos: SWBQoS? = nil, schedulerLaneWidthOverride: UInt32? = nil, buildPlanDiagnosticsDirPath: Path? = nil, buildCommand: BuildCommand? = nil, schemeCommand: SchemeCommand? = .launch, containerPath: Path? = nil, jsonRepresentation: Data? = nil) {
         self.parameters = parameters
         self.buildTargets = buildTargets
         self.dependencyScope = dependencyScope
@@ -298,6 +301,7 @@ public final class BuildRequest: CustomStringConvertible, Sendable {
         self.generatePrecompiledModulesReport = generatePrecompiledModulesReport ?? SWBFeatureFlag.generatePrecompiledModulesReport.value
         self.buildDescriptionID = buildDescriptionID
         self.qos = qos ?? UserDefaults.defaultRequestQoS
+        self.schedulerLaneWidthOverride = schedulerLaneWidthOverride
         self.buildPlanDiagnosticsDirPath = buildPlanDiagnosticsDirPath
         self.buildCommand = buildCommand ?? .build(style: .buildOnly, skipDependencies: false)
         self.schemeCommand = schemeCommand
@@ -332,7 +336,7 @@ extension BuildRequest {
         case .buildRequest:
             dependencyScope = .buildRequest
         }
-        try self.init(parameters: parameters, buildTargets: payload.configuredTargets.map{ try BuildRequest.BuildTargetInfo(from: $0, defaultParameters: parameters, workspace: workspace) }, dependencyScope: dependencyScope, continueBuildingAfterErrors: payload.continueBuildingAfterErrors, hideShellScriptEnvironment: payload.hideShellScriptEnvironment, useParallelTargets: payload.useParallelTargets, useImplicitDependencies: payload.useImplicitDependencies, useDryRun: payload.useDryRun, enableStaleFileRemoval: nil, showNonLoggedProgress: payload.showNonLoggedProgress, recordBuildBacktraces: payload.recordBuildBacktraces, generatePrecompiledModulesReport: payload.generatePrecompiledModulesReport, buildDescriptionID: payload.buildDescriptionID.map(BuildDescriptionID.init), qos: qos, buildPlanDiagnosticsDirPath: payload.buildPlanDiagnosticsDirPath, buildCommand: buildCommand, schemeCommand: payload.schemeCommand?.coreRepresentation, containerPath: payload.containerPath, jsonRepresentation: payload.jsonRepresentation)
+        try self.init(parameters: parameters, buildTargets: payload.configuredTargets.map{ try BuildRequest.BuildTargetInfo(from: $0, defaultParameters: parameters, workspace: workspace) }, dependencyScope: dependencyScope, continueBuildingAfterErrors: payload.continueBuildingAfterErrors, hideShellScriptEnvironment: payload.hideShellScriptEnvironment, useParallelTargets: payload.useParallelTargets, useImplicitDependencies: payload.useImplicitDependencies, useDryRun: payload.useDryRun, enableStaleFileRemoval: nil, showNonLoggedProgress: payload.showNonLoggedProgress, recordBuildBacktraces: payload.recordBuildBacktraces, generatePrecompiledModulesReport: payload.generatePrecompiledModulesReport, buildDescriptionID: payload.buildDescriptionID.map(BuildDescriptionID.init), qos: qos, schedulerLaneWidthOverride: payload.schedulerLaneWidthOverride, buildPlanDiagnosticsDirPath: payload.buildPlanDiagnosticsDirPath, buildCommand: buildCommand, schemeCommand: payload.schemeCommand?.coreRepresentation, containerPath: payload.containerPath, jsonRepresentation: payload.jsonRepresentation)
     }
 
     /// Whether the build request _explicitly_ contains the specified `target`.

@@ -166,9 +166,10 @@ public struct BuildRequestMessagePayload: SerializableCodable, Equatable, Sendab
     public var containerPath: Path?
     public var buildDescriptionID: String?
     public var qos: BuildQoSMessagePayload?
+    public var schedulerLaneWidthOverride: UInt32?
     public var jsonRepresentation: Foundation.Data?
 
-    public init(parameters: BuildParametersMessagePayload, configuredTargets: [ConfiguredTargetMessagePayload], dependencyScope: DependencyScopeMessagePayload, continueBuildingAfterErrors: Bool, hideShellScriptEnvironment: Bool, useParallelTargets: Bool, useImplicitDependencies: Bool, useDryRun: Bool, showNonLoggedProgress: Bool, recordBuildBacktraces: Bool?, generatePrecompiledModulesReport: Bool?, buildPlanDiagnosticsDirPath: Path?, buildCommand: BuildCommandMessagePayload, schemeCommand: SchemeCommandMessagePayload?, containerPath: Path?, buildDescriptionID: String?, qos: BuildQoSMessagePayload?, jsonRepresentation: Foundation.Data?) {
+    public init(parameters: BuildParametersMessagePayload, configuredTargets: [ConfiguredTargetMessagePayload], dependencyScope: DependencyScopeMessagePayload, continueBuildingAfterErrors: Bool, hideShellScriptEnvironment: Bool, useParallelTargets: Bool, useImplicitDependencies: Bool, useDryRun: Bool, showNonLoggedProgress: Bool, recordBuildBacktraces: Bool?, generatePrecompiledModulesReport: Bool?, buildPlanDiagnosticsDirPath: Path?, buildCommand: BuildCommandMessagePayload, schemeCommand: SchemeCommandMessagePayload?, containerPath: Path?, buildDescriptionID: String?, qos: BuildQoSMessagePayload?, schedulerLaneWidthOverride: UInt32?, jsonRepresentation: Foundation.Data?) {
         self.parameters = parameters
         self.configuredTargets = configuredTargets
         self.dependencyScope = dependencyScope
@@ -186,6 +187,7 @@ public struct BuildRequestMessagePayload: SerializableCodable, Equatable, Sendab
         self.containerPath = containerPath
         self.buildDescriptionID = buildDescriptionID
         self.qos = qos
+        self.schedulerLaneWidthOverride = schedulerLaneWidthOverride
         self.jsonRepresentation = jsonRepresentation
     }
 
@@ -207,6 +209,7 @@ public struct BuildRequestMessagePayload: SerializableCodable, Equatable, Sendab
         case containerPath
         case buildDescriptionID
         case qos
+        case schedulerLaneWidthOverride
         case jsonRepresentation
     }
 
@@ -230,6 +233,7 @@ public struct BuildRequestMessagePayload: SerializableCodable, Equatable, Sendab
         self.containerPath = try container.decodeIfPresent(Path.self, forKey: BuildRequestMessagePayload.CodingKeys.containerPath)
         self.buildDescriptionID = try container.decodeIfPresent(String.self, forKey: BuildRequestMessagePayload.CodingKeys.buildDescriptionID)
         self.qos = try container.decodeIfPresent(BuildQoSMessagePayload.self, forKey: BuildRequestMessagePayload.CodingKeys.qos)
+        self.schedulerLaneWidthOverride = try container.decodeIfPresent(UInt32.self, forKey: BuildRequestMessagePayload.CodingKeys.schedulerLaneWidthOverride)
         self.jsonRepresentation = try container.decodeIfPresent(Data.self, forKey: BuildRequestMessagePayload.CodingKeys.jsonRepresentation)
 
     }
@@ -254,6 +258,7 @@ public struct BuildRequestMessagePayload: SerializableCodable, Equatable, Sendab
         try container.encodeIfPresent(self.containerPath, forKey: BuildRequestMessagePayload.CodingKeys.containerPath)
         try container.encodeIfPresent(self.buildDescriptionID, forKey: BuildRequestMessagePayload.CodingKeys.buildDescriptionID)
         try container.encodeIfPresent(self.qos, forKey: BuildRequestMessagePayload.CodingKeys.qos)
+        try container.encodeIfPresent(self.schedulerLaneWidthOverride, forKey: BuildRequestMessagePayload.CodingKeys.schedulerLaneWidthOverride)
         try container.encodeIfPresent(self.jsonRepresentation, forKey: BuildRequestMessagePayload.CodingKeys.jsonRepresentation)
     }
 }

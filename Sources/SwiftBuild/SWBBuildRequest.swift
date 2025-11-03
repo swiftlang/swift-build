@@ -294,6 +294,9 @@ public struct SWBBuildRequest: Codable, Sendable {
     /// The QoS to use for the build operation. If not set then a default QoS, that can be configured with a UserDefault, will be selected.
     public var qos: SWBBuildQoS? = nil
 
+    /// Overrides the default number of scheduler lanes used by llbuild.
+    public var schedulerLaneWidthOverride: UInt32? = nil
+
     /// Whether or not legacy build locations are being used. Currently, this flag is only relevant for clean build folder.
     public var useLegacyBuildLocations = false
 

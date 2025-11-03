@@ -55,7 +55,7 @@ import Testing
             )
         )
 
-        payload = BuildRequestMessagePayload(parameters: params, configuredTargets: [ConfiguredTargetMessagePayload(guid: "some other guid", parameters: params)], dependencyScope: .workspace, continueBuildingAfterErrors: true, hideShellScriptEnvironment: false, useParallelTargets: true, useImplicitDependencies: false, useDryRun: true, showNonLoggedProgress: false, recordBuildBacktraces: nil, generatePrecompiledModulesReport: nil, buildPlanDiagnosticsDirPath: Path("/tmp/foobar"), buildCommand: .prepareForIndexing(buildOnlyTheseTargets: nil, enableIndexBuildArena: false), schemeCommand: .profile, containerPath: Path("/tmp/foobar.xcodeproj"), buildDescriptionID: nil, qos: nil, jsonRepresentation: Data())
+        payload = BuildRequestMessagePayload(parameters: params, configuredTargets: [ConfiguredTargetMessagePayload(guid: "some other guid", parameters: params)], dependencyScope: .workspace, continueBuildingAfterErrors: true, hideShellScriptEnvironment: false, useParallelTargets: true, useImplicitDependencies: false, useDryRun: true, showNonLoggedProgress: false, recordBuildBacktraces: nil, generatePrecompiledModulesReport: nil, buildPlanDiagnosticsDirPath: Path("/tmp/foobar"), buildCommand: .prepareForIndexing(buildOnlyTheseTargets: nil, enableIndexBuildArena: false), schemeCommand: .profile, containerPath: Path("/tmp/foobar.xcodeproj"), buildDescriptionID: nil, qos: nil, schedulerLaneWidthOverride: nil, jsonRepresentation: Data())
     }
 
     @Test func basicMessagesRoundTrip() throws {
