@@ -249,7 +249,7 @@ extension TargetBuildGraph {
 }
 
 /// Cached information on a target, used as part of resolution.
-private final class DiscoveredTargetInfo {
+private final class DiscoveredTargetInfo: Sendable {
     /// The ordered list of immediate (non-product) dependencies.  This includes implicit dependencies.
     let immediateDependencies: [ResolvedTargetDependency]
 
@@ -319,7 +319,11 @@ fileprivate extension TargetDependencyResolver {
         // For generating assembly or preprocessor output, we limit the build to the requested targets.
         switch buildRequest.buildCommand {
         case .generateAssemblyCode, .generatePreprocessedFile:
-            return await (OrderedSet<ConfiguredTarget>(buildRequest.buildTargets.asyncMap { info in await resolver.lookupConfiguredTarget(info.target, parameters: info.parameters, imposedParameters: resolver.defaultImposedParameters) }), [:], [:], [])
+            var allTargets = OrderedSet<ConfiguredTarget>()
+            for info in buildRequest.buildTargets {
+                allTargets.append(await resolver.lookupConfiguredTarget(info.target, parameters: info.parameters, imposedParameters: resolver.defaultImposedParameters))
+            }
+            return (allTargets, [:], [:], [])
         default:
             break
         }
@@ -444,8 +448,8 @@ fileprivate extension TargetDependencyResolver {
             }
 
             // Find cases where we have configured targets with unsuffixed and suffixed SDKs.
-            _ = await configuredTargetsPerPlatform.asyncMap { platform, configuredTargets in
-                if configuredTargets.count == 1 { return }
+            for (_, configuredTargets) in configuredTargetsPerPlatform {
+                if configuredTargets.count == 1 { continue }
 
                 // Only handle cases where there is exactly one specialization for a suffixed SDK.
                 let targetsUsingSuffixedSDK = configuredTargets.filter { settingsForConfiguredTarget[$0]?.sdk?.canonicalNameSuffix?.nilIfEmpty != nil }
@@ -764,10 +768,10 @@ fileprivate extension TargetDependencyResolver {
         var immediateDependencies = OrderedSet<ResolvedTargetDependency>()
 
         /// Nested function to record that `dependency` is an immediate dependency of the target being processed.
-        func recordImmediateDependency(_ dependency: ResolvedTargetDependency, imposedParameters: SpecializationParameters? = nil) async {
+        let recordImmediateDependency: (ResolvedTargetDependency, SpecializationParameters?, inout OrderedSet<ConfiguredTarget>, inout OrderedSet<ConfiguredTarget>) async -> Void = { [self] dependency, imporsedParameters, dependencyClosure, dependencyPath in
             immediateDependencies.append(dependency)
             let dependencyImposedParameters: SpecializationParameters?
-            if resolver.makeAggregateTargetsTransparentForSpecialization && dependency.target.target.type == .aggregate {
+            if self.resolver.makeAggregateTargetsTransparentForSpecialization && dependency.target.target.type == .aggregate {
                 dependencyImposedParameters = imposedParameters
             } else {
                 dependencyImposedParameters = resolver.specializationParameters(dependency.target, workspaceContext: workspaceContext, buildRequest: buildRequest, buildRequestContext: buildRequestContext)
@@ -790,7 +794,7 @@ fileprivate extension TargetDependencyResolver {
             } else {
                 imposedParametersForDependency = imposedParameters
             }
-            await recordImmediateDependency(configuredDependency, imposedParameters: imposedParametersForDependency)
+            await recordImmediateDependency(configuredDependency, imposedParametersForDependency, &dependencyClosure, &dependencyPath)
         }
 
         // Visit all of the package product targets.
@@ -809,7 +813,7 @@ fileprivate extension TargetDependencyResolver {
 
             // Get the configured dependency.  Package product dependencies are always 'explicit'.
             let configuredDependency = await resolver.lookupConfiguredTarget(dependency, parameters: buildParameters, imposedParameters: specializedParameters)
-            await recordImmediateDependency(ResolvedTargetDependency(target: configuredDependency, reason: .explicit), imposedParameters: specializedParameters)
+            await recordImmediateDependency(ResolvedTargetDependency(target: configuredDependency, reason: .explicit), specializedParameters, &dependencyClosure, &dependencyPath)
         }
 
         // Add the immediate dependencies for this configured target to the cache of that data.

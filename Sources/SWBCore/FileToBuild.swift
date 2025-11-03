@@ -15,7 +15,7 @@ public import SWBProtocol
 public import SWBMacro
 
 /// Represents a file to be passed as input to some part of the build machinery.  May be a source file originally sent down with the PIF, or might be a temporary file.  Once a build rule action has been determined, it is assigned to the FileToBuild so it doesn’t have to be looked up again.  Note that the term “file” here is used in the loosest sense — the path can refer to any file system entity.
-public struct FileToBuild : Hashable {
+public struct FileToBuild : Hashable, Sendable {
     /// Absolute path of the referenced file.
     public let absolutePath: Path
 

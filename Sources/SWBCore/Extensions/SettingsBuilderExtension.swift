@@ -23,7 +23,7 @@ public struct SettingsBuilderExtensionPoint: ExtensionPoint {
     public init() {}
 }
 
-public protocol SettingsBuilderExtension {
+public protocol SettingsBuilderExtension: Sendable {
     /// Provides a table of additional build properties overrides
     func addOverrides(fromEnvironment: [String:String], parameters: BuildParameters) throws -> [String:String]
 

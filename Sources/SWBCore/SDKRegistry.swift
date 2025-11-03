@@ -106,13 +106,21 @@ public final class SDK: Sendable {
     public let defaultSettings: [String: PropertyListItem]
 
     /// The parsed default build settings table.
-    public private(set) var defaultSettingsTable: MacroValueAssignmentTable? = nil
+    /// Note: This is set post-initialization during late binding and is protected by an assertion.
+    fileprivate let _defaultSettingsTable = UnsafeDelayedInitializationSendableWrapper<MacroValueAssignmentTable?>()
+    public var defaultSettingsTable: MacroValueAssignmentTable? {
+        _defaultSettingsTable.value
+    }
 
     /// The overriding build settings.
     public let overrideSettings: [String: PropertyListItem]
 
-    /// The parsed default build settings table.
-    public private(set) var overrideSettingsTable: MacroValueAssignmentTable? = nil
+    /// The parsed override build settings table.
+    /// Note: This is set post-initialization during late binding and is protected by an assertion.
+    fileprivate let _overrideSettingsTable = UnsafeDelayedInitializationSendableWrapper<MacroValueAssignmentTable?>()
+    public var overrideSettingsTable: MacroValueAssignmentTable? {
+        _overrideSettingsTable.value
+    }
 
     /// SDK variants, mapped by their name.  Each variant can define a set of additional settings that a target can opt into by setting `SDK_VARIANT`.
     @_spi(Testing) public let variants: [String: SDKVariant]
@@ -205,17 +213,15 @@ public final class SDK: Sendable {
 
     /// Perform late binding of the SDK data.
     fileprivate func loadExtendedInfo(_ namespace: MacroNamespace) throws {
-        assert(defaultSettingsTable == nil && overrideSettingsTable == nil)
-
         do {
-            defaultSettingsTable = try namespace.parseTable(defaultSettings, allowUserDefined: true, associatedTypesForKeysMatching: associatedTypesForKeysMatching)
-            overrideSettingsTable = try namespace.parseTable(overrideSettings, allowUserDefined: true, associatedTypesForKeysMatching: associatedTypesForKeysMatching)
+            _defaultSettingsTable.initialize(to: try namespace.parseTable(defaultSettings, allowUserDefined: true, associatedTypesForKeysMatching: associatedTypesForKeysMatching))
+            _overrideSettingsTable.initialize(to: try namespace.parseTable(overrideSettings, allowUserDefined: true, associatedTypesForKeysMatching: associatedTypesForKeysMatching))
             for variant in self.variants.values {
                 try variant.parseSettingsTable(namespace, associatedTypesForKeysMatching: associatedTypesForKeysMatching)
             }
         } catch {
-            defaultSettingsTable = nil
-            overrideSettingsTable = nil
+            _defaultSettingsTable.initialize(to: nil)
+            _overrideSettingsTable.initialize(to: nil)
             throw StubError.error("unexpected macro parsing failure loading SDK \(canonicalName): \(error)")
         }
     }
@@ -255,7 +261,11 @@ public final class SDKVariant: PlatformInfoProvider, Sendable {
     public let settings: [String: PropertyListItem]
 
     /// Parsed form of the `settings`.
-    public private(set) var settingsTable: MacroValueAssignmentTable?
+    /// Note: This is set post-initialization during late binding.
+    fileprivate let _settingsTable = UnsafeDelayedInitializationSendableWrapper<MacroValueAssignmentTable?>()
+    public var settingsTable: MacroValueAssignmentTable? {
+        _settingsTable.value
+    }
 
     // FIXME: Presently all of the keys from the 'SupportedTargets' dict are treated as optional.  We should improve this in the future.
 
@@ -485,8 +495,12 @@ public final class SDKVariant: PlatformInfoProvider, Sendable {
     /// - Parameters:
     ///   - associatedTypesForKeysMatching: Passed to `MacroNamespace.parseTable` - refer there for more info.
     fileprivate func parseSettingsTable(_ namespace: MacroNamespace, associatedTypesForKeysMatching: [String: MacroType]? = nil) throws {
-        assert(settingsTable == nil)
-        settingsTable = try namespace.parseTable(settings, allowUserDefined: true, associatedTypesForKeysMatching: associatedTypesForKeysMatching)
+        do {
+            _settingsTable.initialize(to: try namespace.parseTable(settings, allowUserDefined: true, associatedTypesForKeysMatching: associatedTypesForKeysMatching))
+        } catch {
+            _settingsTable.initialize(to: nil)
+            throw error
+        }
     }
 }
 
@@ -1006,7 +1020,7 @@ public final class SDKRegistry: SDKRegistryLookup, CustomStringConvertible, Send
         sdksByPath[path] = sdk
         sdksByPath[pathResolved] = sdk
 
-        platform?.sdks.append(sdk)
+        platform?.registerSDK(sdk)
 
         return sdk
     }

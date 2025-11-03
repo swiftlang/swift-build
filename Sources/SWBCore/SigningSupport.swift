@@ -21,7 +21,7 @@ public enum EntitlementsVariant: Int, Serializable, Sendable {
 }
 
 /// Provides contextual behavior for code signing based on the type of platform being targeted.
-public protocol PlatformSigningContext
+public protocol PlatformSigningContext: Sendable
 {
     func adHocSigningAllowed(_ scope: MacroEvaluationScope) -> Bool
 

@@ -16,6 +16,7 @@ public import SWBUtil
 import struct Foundation.CharacterSet
 import class Foundation.ProcessInfo
 public import SWBMacro
+import Synchronization
 
 /// Delegate protocol used to access external information (such as specifications) and to report diagnostics.
 @_spi(Testing) public protocol PlatformRegistryDelegate: DiagnosticProducingDelegate, SpecRegistryProvider {
@@ -53,7 +54,10 @@ public final class Platform: Sendable {
     public let defaultSettings: [String: PropertyListItem]
 
     /// The parse default build settings table.
-    public fileprivate(set) var defaultSettingsTable: MacroValueAssignmentTable! = nil
+    fileprivate let _defaultSettingsTable = UnsafeDelayedInitializationSendableWrapper<MacroValueAssignmentTable>()
+    public var defaultSettingsTable: MacroValueAssignmentTable {
+        _defaultSettingsTable.value
+    }
 
     /// Whether this is a platform for which real products are deployed. This will be `true` for most platforms, but `false` for a few such as simulators.
     public let isDeploymentPlatform: Bool
@@ -68,16 +72,28 @@ public final class Platform: Sendable {
     public let preferredArch: String?
 
     /// The name of the deployment target build setting for this platform.
-    public fileprivate(set) var deploymentTargetMacro: StringMacroDeclaration? = nil
+    fileprivate let _deploymentTargetMacro = UnsafeDelayedInitializationSendableWrapper<StringMacroDeclaration?>()
+    public var deploymentTargetMacro: StringMacroDeclaration? {
+        _deploymentTargetMacro.value
+    }
 
     /// Minimum OS version for Swift-in-the-OS support. If this is `nil`, the platform does not support Swift-in-the-OS at all.
-    fileprivate(set) var minimumOSForSwiftInTheOS: Version? = nil
+    fileprivate let _minimumOSForSwiftInTheOS = UnsafeDelayedInitializationSendableWrapper<Version?>()
+    var minimumOSForSwiftInTheOS: Version? {
+        _minimumOSForSwiftInTheOS.value
+    }
 
     /// Minimum OS version for Swift concurrency (Swift 5.5). If this is `nil`, the platform does not support Swift concurrency at all.
-    fileprivate(set) var minimumOSForSwiftConcurrency: Version? = nil
+    fileprivate let _minimumOSForSwiftConcurrency = UnsafeDelayedInitializationSendableWrapper<Version?>()
+    var minimumOSForSwiftConcurrency: Version? {
+        _minimumOSForSwiftConcurrency.value
+    }
 
     /// Minimum OS version for Span in the standard library (Swift 6.2). If this is `nil`, Span, MutableSpan, and related types are not available.
-    fileprivate(set) var minimumOSForSwiftSpan: Version? = nil
+    fileprivate let _minimumOSForSwiftSpan = UnsafeDelayedInitializationSendableWrapper<Version?>()
+    var minimumOSForSwiftSpan: Version? {
+        _minimumOSForSwiftSpan.value
+    }
 
     /// The canonical name of the public SDK for this platform.
     /// - remark: This does not mean that this SDK exists, just that this is its canonical name if it does exist.
@@ -90,10 +106,16 @@ public final class Platform: Sendable {
     let correspondingSimulatorPlatformName: String?
 
     /// The corresponding device platform, for simulator-like platforms. Bound via platform registry setup.
-    fileprivate(set) weak var correspondingDevicePlatform: Platform? = nil
+    fileprivate let _correspondingDevicePlatform = UnsafeDelayedInitializationSendableWrapper<WeakRef<Platform?>>()
+    var correspondingDevicePlatform: Platform? {
+        _correspondingDevicePlatform.value.instance?.flatMap(\.self)
+    }
 
     /// The corresponding simulator platform, if available. Bound via platform registry setup.
-    fileprivate(set) weak var correspondingSimulatorPlatform: Platform? = nil
+    fileprivate let _correspondingSimulatorPlatform = UnsafeDelayedInitializationSendableWrapper<WeakRef<Platform?>>()
+    var correspondingSimulatorPlatform: Platform? {
+        _correspondingSimulatorPlatform.value.instance?.flatMap(\.self)
+    }
 
     /// Whether this is a simulator platform or not.
     public var isSimulator: Bool {
@@ -120,7 +142,7 @@ public final class Platform: Sendable {
         return deploymentTargetsCache.getValue(self).range
     }
 
-    private var deploymentTargetsCache = LazyCache { (platform: Platform) -> (targets: [String], range: VersionRange) in
+    private let deploymentTargetsCache = LazyCache { (platform: Platform) -> (targets: [String], range: VersionRange) in
         func addValues(_ values: inout Set<String>, _ from: PropertyListItem?) {
             if case .plArray(let items)? = from {
                 for item in items {
@@ -182,12 +204,18 @@ public final class Platform: Sendable {
     }
 
     /// The list of SDKs present in the platform.  These get added by the `SDKRegistry` as SDKs are loaded.
-    @_spi(Testing) public var sdks: [SDK] = []
+    private let _sdks = SWBMutex<[SDK]>([])
+    func registerSDK(_ sdk: SDK) {
+        _sdks.withLock { $0.append(sdk) }
+    }
+    @_spi(Testing) public var sdks: [SDK] {
+        _sdks.withLock { $0 }
+    }
 
     /// The list of executable search paths in the platform.
-    @_spi(Testing) public var executableSearchPaths: StackedSearchPath
+    @_spi(Testing) public let executableSearchPaths: StackedSearchPath
 
-    var sdkSearchPaths: [Path]
+    let sdkSearchPaths: [Path]
 
     init(_ name: String, _ displayName: String, _ familyName: String, _ familyDisplayName: String?, _ identifier: String, _ devicePlatformName: String?, _ simulatorPlatformName: String?, _ path: Path, _ version: String?, _ productBuildVersion: String?, _ defaultSettings: [String: PropertyListItem], _ additionalInfoPlistEntries: [String: PropertyListItem], _ isDeploymentPlatform: Bool, _ specRegistryProvider: any SpecRegistryProvider, preferredArchValue: String?, executableSearchPaths: [Path], sdkSearchPaths: [Path], fs: any FSProxy) {
         self.name = name
@@ -212,9 +240,8 @@ public final class Platform: Sendable {
 
     /// Perform late binding of the SDK data.
     fileprivate func loadExtendedInfo(_ namespace: MacroNamespace) throws {
-        assert(defaultSettingsTable == nil)
         do {
-            defaultSettingsTable = try namespace.parseTable(defaultSettings, allowUserDefined: true)
+            _defaultSettingsTable.initialize(to: try namespace.parseTable(defaultSettings, allowUserDefined: true))
         } catch {
             throw StubError.error("unexpected macro parsing failure loading platform \(identifier): \(error)")
         }
@@ -648,31 +675,41 @@ public final class PlatformRegistry {
             let deploymentTargets = Set(baseSDKs.map(\.defaultVariant?.deploymentTargetSettingName).compactMap({ $0 }))
             if let value = deploymentTargets.only {
                 do {
-                    platform.deploymentTargetMacro = try namespace.declareStringMacro(value)
+                    platform._deploymentTargetMacro.initialize(to: try namespace.declareStringMacro(value))
                 } catch {
+                    platform._deploymentTargetMacro.initialize(to: nil)
                     delegate.error("error registering deployment target setting name macro '\(value)': \(error)")
                 }
             } else if !deploymentTargets.isEmpty {
+                platform._deploymentTargetMacro.initialize(to: nil)
                 delegate.emit(Diagnostic(behavior: .error, location: .unknown, data: DiagnosticData("Multiple deployment targets for platform '\(platform.name)'"), childDiagnostics: baseSDKs.sorted(by: \.canonicalName).compactMap { baseSDK in
                     guard let deploymentTargetSettingName = baseSDK.defaultVariant?.deploymentTargetSettingName else {
                         return nil
                     }
                     return Diagnostic(behavior: .note, location: .unknown, data: DiagnosticData("\(deploymentTargetSettingName), defined by SDK '\(baseSDK.canonicalName)'"))
                 }))
+            } else {
+                platform._deploymentTargetMacro.initialize(to: nil)
             }
 
             if let variant = platform.defaultSDKVariant {
-                platform.minimumOSForSwiftInTheOS = variant.minimumOSForSwiftInTheOS
-                platform.minimumOSForSwiftConcurrency = variant.minimumOSForSwiftConcurrency
-                platform.minimumOSForSwiftSpan = variant.minimumOSForSwiftSpan
+                platform._minimumOSForSwiftInTheOS.initialize(to: variant.minimumOSForSwiftInTheOS)
+                platform._minimumOSForSwiftConcurrency.initialize(to: variant.minimumOSForSwiftConcurrency)
+                platform._minimumOSForSwiftSpan.initialize(to: variant.minimumOSForSwiftSpan)
+            } else {
+                platform._minimumOSForSwiftInTheOS.initialize(to: nil)
+                platform._minimumOSForSwiftConcurrency.initialize(to: nil)
+                platform._minimumOSForSwiftSpan.initialize(to: nil)
             }
         }
 
         // Perform late binding.
         for platform in platformsByName.values {
             do {
-                platform.correspondingDevicePlatform = lookupCorrespondingPlatform(platform, \.correspondingDevicePlatformName)
-                platform.correspondingSimulatorPlatform = lookupCorrespondingPlatform(platform, \.correspondingSimulatorPlatformName)
+                let devicePlatform = lookupCorrespondingPlatform(platform, \.correspondingDevicePlatformName)
+                let simPlatform = lookupCorrespondingPlatform(platform, \.correspondingSimulatorPlatformName)
+                platform._correspondingDevicePlatform.initialize(to: WeakRef(devicePlatform))
+                platform._correspondingSimulatorPlatform.initialize(to: WeakRef(simPlatform))
                 try platform.loadExtendedInfo(namespace)
             } catch {
                 delegate.warning("\(error)")

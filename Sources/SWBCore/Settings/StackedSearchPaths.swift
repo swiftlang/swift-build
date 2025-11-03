@@ -81,7 +81,7 @@ extension StackedSearchPath {
     }
 }
 
-public enum StackedSearchPathLookupSubject {
+public enum StackedSearchPathLookupSubject: Sendable {
     case executable(basename: String)
     case library(basename: String)
 

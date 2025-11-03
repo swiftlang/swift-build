@@ -100,3 +100,12 @@ public struct RegEx: Sendable {
 
 @available(*, unavailable)
 extension RegEx.MatchResult: Sendable { }
+
+// Unsafe Sendable wrapper for Swift Regexs known to be thread safe because they don't include custom components or non-sendable transform closures.
+public struct UnsafeSendableRegex<Output: Sendable>: @unchecked Sendable {
+    public let regex: _StringProcessing.Regex<Output>
+
+    public init(regex: _StringProcessing.Regex<Output>) {
+        self.regex = regex
+    }
+}

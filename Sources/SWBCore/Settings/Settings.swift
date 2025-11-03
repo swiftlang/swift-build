@@ -20,7 +20,7 @@ fileprivate struct PreOverridesSettings {
 }
 
 /// This class stores settings tables which are cached or shared across all clients of the Core.
-@_spi(Testing) public final class CoreSettings {
+@_spi(Testing) public final class CoreSettings: Sendable {
     /// The core this object is associated with.
     unowned let core: Core
 
@@ -69,7 +69,7 @@ fileprivate struct PreOverridesSettings {
         self.nativeBuildSystemSpec = getRequiredBuildSystemSpec("com.apple.build-system.native")
     }
 
-    private var unionedToolDefaultsCache = Registry<String, (MacroValueAssignmentTable, errors: [String])>()
+    private let unionedToolDefaultsCache = Registry<String, (MacroValueAssignmentTable, errors: [String])>()
     @_spi(Testing) public func unionedToolDefaults(domain: String) -> (table: MacroValueAssignmentTable, errors: [String]) {
         return unionedToolDefaultsCache.getOrInsert(domain) {
             var table = MacroValueAssignmentTable(namespace: core.specRegistry.internalMacroNamespace)
@@ -106,7 +106,7 @@ fileprivate struct PreOverridesSettings {
     }
 
     fileprivate var universalDefaults: MacroValueAssignmentTable { return universalDefaultsCache.getValue(self) }
-    private var universalDefaultsCache = LazyCache{ (settings: CoreSettings) -> MacroValueAssignmentTable in settings.computeUniversalDefaults() }
+    private let universalDefaultsCache = LazyCache{ (settings: CoreSettings) -> MacroValueAssignmentTable in settings.computeUniversalDefaults() }
     private func computeUniversalDefaults() -> MacroValueAssignmentTable {
         var table = MacroValueAssignmentTable(namespace: BuiltinMacros.namespace)
 

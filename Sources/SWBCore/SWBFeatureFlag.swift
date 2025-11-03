@@ -29,7 +29,7 @@ import SWBUtil
 /// "on" or "off" by default. For features whose configurability should be
 /// toggleable indefinitely, do not use a feature flag, and consider an
 /// alternative such as a build setting.
-public struct SWBFeatureFlagProperty {
+public struct SWBFeatureFlagProperty: Sendable {
     private let key: String
     private let defaultValue: Bool
 
@@ -52,7 +52,7 @@ public struct SWBFeatureFlagProperty {
     }
 }
 
-public struct SWBOptionalFeatureFlagProperty {
+public struct SWBOptionalFeatureFlagProperty: Sendable {
     private let key: String
 
     /// Indicates whether the feature flag is currently active in the calling environment.

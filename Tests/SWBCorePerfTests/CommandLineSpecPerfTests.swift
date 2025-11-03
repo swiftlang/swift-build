@@ -19,6 +19,7 @@ import enum SWBProtocol.ExternalToolResult
 import struct SWBProtocol.BuildOperationTaskEnded
 import SWBTaskExecution
 import SWBMacro
+import Synchronization
 
 private final class CapturingTaskGenerationDelegate: TaskGenerationDelegate {
     private let _diagnosticsEngine = DiagnosticsEngine()
@@ -37,7 +38,7 @@ private final class CapturingTaskGenerationDelegate: TaskGenerationDelegate {
         .init(_diagnosticsEngine)
     }
 
-    var shellTasks: [PlannedTaskBuilder] = []
+    let shellTasksCount = SWBMutex<Int>(0)
 
     func beginActivity(ruleInfo: String, executionDescription: String, signature: ByteString, target: ConfiguredTarget?, parentActivity: ActivityID?) -> ActivityID {
         .init(rawValue: -1)
@@ -86,7 +87,7 @@ private final class CapturingTaskGenerationDelegate: TaskGenerationDelegate {
 
     func createTask(_ builder: inout PlannedTaskBuilder)
     {
-        shellTasks.append((builder))
+        shellTasksCount.withLock { $0 += 1 }
     }
     func createGateTask(inputs: [any PlannedNode], output: any PlannedNode, name: String?, mustPrecede: [any PlannedTask], taskConfiguration: (inout PlannedTaskBuilder) -> Void) {
         // Store somewhere if a test needs it.
@@ -320,6 +321,6 @@ fileprivate struct CommandLineSpecPerfTests: CoreBasedTests, PerfTests {
         }
 
         // There should be 10x as many shell tasks as we had iterations, since performance testing runs the measureBlock 10 times.
-        #expect(delegate.shellTasks.count == count * (getEnvironmentVariable("CI")?.boolValue == true ? 1 : 10))
+        #expect(delegate.shellTasksCount.withLock { $0 } == count * (getEnvironmentVariable("CI")?.boolValue == true ? 1 : 10))
     }
 }
