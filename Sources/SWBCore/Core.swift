@@ -116,6 +116,8 @@ public final class Core: Sendable {
             await core.initializeToolchainRegistry()
 
             // Force loading SDKs.
+            let sdkPaths = core.platformRegistry.platforms.flatMap { platform in platform.sdkSearchPaths.map { ($0, platform) } }
+            core._sdkRegistry.initialize(to: SDKRegistry(delegate: core.registryDelegate, searchPaths: sdkPaths, type: .builtin, hostOperatingSystem: hostOperatingSystem))
             let sdkRegistry = core.sdkRegistry
 
             struct Context: SDKRegistryExtensionAdditionalSDKsContext {
@@ -143,8 +145,8 @@ public final class Core: Sendable {
 
             // FIXME: <rdar://problem/36364112> We should also perform late binding of the toolchains' settings here.  Presently this is done when a Settings object which uses a toolchain is constructed.
 
-            // Force loading the CoreSettings (which can emit errors about missing required specs).
-            let _ = core.coreSettings
+            // Initialize the CoreSettings (which can emit errors about missing required specs).
+            core._coreSettings.initialize(to: CoreSettings(core))
 
             // If there were any loading errors, discard the core.
             if delegate.hasErrors {
@@ -308,9 +310,10 @@ public final class Core: Sendable {
     }
 
     /// The shared core settings object.
-    @_spi(Testing) public lazy var coreSettings: CoreSettings = {
-        return CoreSettings(self)
-    }()
+    let _coreSettings = UnsafeDelayedInitializationSendableWrapper<CoreSettings>()
+    @_spi(Testing) public var coreSettings: CoreSettings {
+        _coreSettings.value
+    }
 
     /// The list of plugin search paths.
     private static func pluginPaths(inferiorProductsPath: Path?, developerPath: DeveloperPath) -> [Path] {
@@ -361,13 +364,8 @@ public final class Core: Sendable {
         return result.map { $0.normalize() }
     }
 
-    /// The list of SDK search paths.
-    @_spi(Testing) public lazy var sdkPaths: [(Path, Platform?)] = {
-        return self.platformRegistry.platforms.flatMap { platform in platform.sdkSearchPaths.map { ($0, platform) } }
-    }()
-
     /// The list of toolchain search paths.
-    @_spi(Testing) public var toolchainPaths: [ToolchainRegistry.SearchPath]
+    @_spi(Testing) public let toolchainPaths: [ToolchainRegistry.SearchPath]
 
     /// The platform registry.
     let _platformRegistry: UnsafeDelayedInitializationSendableWrapper<PlatformRegistry> = .init()
@@ -380,12 +378,16 @@ public final class Core: Sendable {
     }
 
     /// The SDK registry for Xcode's builtin SDKs. Clients should generally use `WorkspaceContext.sdkRegistry` to include dynamically discovered SDKs.
-    public lazy var sdkRegistry: SDKRegistry = {
-        return SDKRegistry(delegate: self.registryDelegate, searchPaths: self.sdkPaths, type: .builtin, hostOperatingSystem: hostOperatingSystem)
-    }()
+    let _sdkRegistry = UnsafeDelayedInitializationSendableWrapper<SDKRegistry>()
+    public var sdkRegistry: SDKRegistry {
+        _sdkRegistry.value
+    }
 
     /// The toolchain registry.
-    public private(set) var toolchainRegistry: ToolchainRegistry! = nil
+    let _toolchainRegistry = UnsafeDelayedInitializationSendableWrapper<ToolchainRegistry>()
+    public var toolchainRegistry: ToolchainRegistry {
+        _toolchainRegistry.value
+    }
 
     private let libclangRegistry = Registry<Path, (Libclang?, Version?)>()
     private let stopAfterOpeningLibClang: Bool
@@ -427,15 +429,10 @@ public final class Core: Sendable {
     }
 
     /// The specification registry.
+    private let _specRegistry = UnsafeDelayedInitializationSendableWrapper<SpecRegistry>()
     public var specRegistry: SpecRegistry {
-        guard let specRegistry = _specRegistry else {
-            // FIXME: We should structure the initialization path better and remove reliance on `lazy var` so that this can be handled more cleanly.
-            preconditionFailure("Spec registry not initialized.")
-        }
-        return specRegistry
+        return _specRegistry.value
     }
-
-    private var _specRegistry: SpecRegistry?
 
     @_spi(Testing) public func initializePlatformRegistry() async {
         var searchPaths: [Path]
@@ -466,19 +463,17 @@ public final class Core: Sendable {
 
 
     private func initializeToolchainRegistry() async {
-        self.toolchainRegistry = await ToolchainRegistry(delegate: self.registryDelegate, searchPaths: self.toolchainPaths, fs: localFS, hostOperatingSystem: hostOperatingSystem)
+        self._toolchainRegistry.initialize(to: await ToolchainRegistry(delegate: self.registryDelegate, searchPaths: self.toolchainPaths, fs: localFS, hostOperatingSystem: hostOperatingSystem))
     }
 
     @_spi(Testing) public func initializeSpecRegistry() async {
-        precondition(_specRegistry == nil)
-
         var domainInclusions: [String: [String]] = [:]
 
         // Compute the complete list of search paths (and default domains).
         var searchPaths = additionalContentPaths.map { ($0, "") }
 
         // Find all plugin provided specs.
-        for ext in await self.pluginManager.extensions(of: SpecificationsExtensionPoint.self) {
+        for ext in self.pluginManager.extensions(of: SpecificationsExtensionPoint.self) {
             if let bundle = ext.specificationFiles(resourceSearchPaths: resourceSearchPaths) {
                 for url in bundle.urls(forResourcesWithExtension: "xcspec", subdirectory: nil) ?? [] {
                     do {
@@ -498,7 +493,7 @@ public final class Core: Sendable {
             }
         }
 
-        _specRegistry = await SpecRegistry(self.pluginManager, self.registryDelegate, searchPaths, domainInclusions, [:])
+        _specRegistry.initialize(to: await SpecRegistry(self.pluginManager, self.registryDelegate, searchPaths, domainInclusions, [:]))
     }
 
     /// Force all specs to be loaded.

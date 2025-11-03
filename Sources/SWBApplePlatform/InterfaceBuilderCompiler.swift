@@ -13,11 +13,12 @@
 import SWBUtil
 public import SWBCore
 public import SWBMacro
+import Synchronization
 
 public class IbtoolCompilerSpec : GenericCompilerSpec, IbtoolCompilerSupport, @unchecked Sendable {
     /// The info object collects information across the build phase so that an ibtool task doesn't try to produce a ~device output which is already being explicitly produced from another input.
-    private final class BuildPhaseInfo: BuildPhaseInfoForToolSpec {
-        var allInputFilenames = Set<String>()
+    private final class BuildPhaseInfo: BuildPhaseInfoForToolSpec, Sendable {
+        let allInputFilenames = SWBMutex<Set<String>>([])
 
         func addToContext(_ ftb: FileToBuild) {
             // Only collect info about files we want to match against.
@@ -25,7 +26,7 @@ public class IbtoolCompilerSpec : GenericCompilerSpec, IbtoolCompilerSupport, @u
             guard ftb.fileType.identifier == "file.xib" else {
                 return
             }
-            allInputFilenames.insert(ftb.absolutePath.basenameWithoutSuffix)
+            allInputFilenames.withLock{ $0.insert(ftb.absolutePath.basenameWithoutSuffix) }
         }
 
         func filterOutputFiles(_ outputs: [any PlannedNode], inputs: [Path]) -> [any PlannedNode] {
@@ -40,7 +41,7 @@ public class IbtoolCompilerSpec : GenericCompilerSpec, IbtoolCompilerSupport, @u
                 }
 
                 // If this output filename is among any of the input filenames that *aren't* one of our own inputs, then we remove it.
-                let otherInputFilenames = allInputFilenames.subtracting(inputFilenames)
+                let otherInputFilenames = allInputFilenames.withLock({ $0.subtracting(inputFilenames) })
                 guard !otherInputFilenames.contains(outputFilename) else {
                     return false
                 }

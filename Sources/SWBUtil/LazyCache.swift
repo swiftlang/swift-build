@@ -65,7 +65,7 @@ public final class Lazy<T: Sendable>: Sendable {
 }
 
 /// Wrapper for thread-safe lazily computed values.
-public final class LazyCache<Class, T: Sendable> {
+public final class LazyCache<Class, T: Sendable>: Sendable {
     private let body: @Sendable (Class) -> T
     private let cachedValue = LockedValue<T?>(nil)
 
@@ -85,8 +85,6 @@ public final class LazyCache<Class, T: Sendable> {
         }
     }
 }
-
-extension LazyCache: Sendable where T: Sendable {}
 
 /// Wrapper for thread-safe lazily computed key-value pairs.
 public final class LazyKeyValueCache<Class, Key: Hashable & Sendable, Value: Sendable> {

@@ -20,7 +20,7 @@ import SWBMacro
 @Suite fileprivate struct SpecLoadingTests: CoreBasedTests {
     var specDataCaches = Registry<Spec, any SpecDataCache>()
 
-    class TestDataDelegate : SpecParserDelegate {
+    final class TestDataDelegate : SpecParserDelegate {
         final class MockSpecRegistryDelegate: SpecRegistryDelegate, Sendable {
             private let _diagnosticsEngine: DiagnosticsEngine
 
@@ -35,7 +35,7 @@ import SWBMacro
 
         let specRegistry: SpecRegistry
 
-        var internalMacroNamespace: MacroNamespace
+        let internalMacroNamespace: MacroNamespace
 
         private let _diagnosticsEngine = DiagnosticsEngine()
 

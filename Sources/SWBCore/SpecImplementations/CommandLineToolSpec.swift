@@ -101,7 +101,7 @@ protocol DependencyInfoEditableTaskPayload: TaskPayload {
 
 
 /// A class that adopts this protocol can be used to collect information for creating tasks for a given command line tool spec, e.g. information from elsewhere in the build phase or target which is not local to the input files of the task being created.
-public protocol BuildPhaseInfoForToolSpec: AnyObject {
+public protocol BuildPhaseInfoForToolSpec: AnyObject, Sendable {
     // Certainly other parameters can be added here, or ways to collect broader information than just on individual files, but the initial implementation only covers what it was needed for.
     //
     /// Have the info object collect information from the file-to-build.
@@ -234,7 +234,7 @@ public struct AppleGenericVersionInfo: Sendable {
 
 extension DiscoveredCommandLineToolSpecInfo {
     /// Parses a standard version number from a command line invocation.
-    public static func parseProjectNameAndSourceVersionStyleVersionInfo<T: DiscoveredCommandLineToolSpecInfo>(_ producer: any CommandProducer, _ delegate: any CoreClientTargetDiagnosticProducingDelegate, commandLine: [String], construct: (ProjectVersionInfo) -> T) async throws -> T {
+    public static func parseProjectNameAndSourceVersionStyleVersionInfo<T: DiscoveredCommandLineToolSpecInfo>(_ producer: any CommandProducer, _ delegate: any CoreClientTargetDiagnosticProducingDelegate, commandLine: [String], construct: @Sendable (ProjectVersionInfo) -> T) async throws -> T {
         try await producer.discoveredCommandLineToolSpecInfo(delegate, nil, commandLine) { executionResult in
             let outputString = String(decoding: executionResult.stdout, as: UTF8.self).trimmingCharacters(in: .whitespacesAndNewlines)
             return try construct(ProjectVersionInfo(string: outputString))
@@ -242,7 +242,7 @@ extension DiscoveredCommandLineToolSpecInfo {
     }
 
     /// Parses a standard Apple Generic Versioning style version number from the output of invoking `what -q` on a binary.
-    public static func parseWhatStyleVersionInfo<T: DiscoveredCommandLineToolSpecInfo>(_ producer: any CommandProducer, _ delegate: any CoreClientTargetDiagnosticProducingDelegate, toolPath: Path, construct: (AppleGenericVersionInfo) -> T) async throws -> T {
+    public static func parseWhatStyleVersionInfo<T: DiscoveredCommandLineToolSpecInfo>(_ producer: any CommandProducer, _ delegate: any CoreClientTargetDiagnosticProducingDelegate, toolPath: Path, construct: @Sendable (AppleGenericVersionInfo) -> T) async throws -> T {
         if !toolPath.isAbsolute {
             throw StubError.error("\(toolPath.str) is not absolute")
         }

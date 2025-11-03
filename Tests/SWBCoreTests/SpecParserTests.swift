@@ -42,7 +42,7 @@ fileprivate final class MockSpecType: SpecType {
         }
         let specRegistry: SpecRegistry
 
-        var internalMacroNamespace = MacroNamespace(debugDescription: "internal")
+        let internalMacroNamespace = MacroNamespace(debugDescription: "internal")
 
         private let _diagnosticsEngine = DiagnosticsEngine()
 

@@ -161,18 +161,19 @@ actor LinkageDependencyResolver {
 
         // Even though we do not want to include target dependencies in the graph, we still need to traverse them.
         let linkedTargets = linkageDependencies.map { $0.target.target }
-        let targetDependencies: [ResolvedTargetDependency] = await resolver.explicitDependencies(for: configuredTarget).asyncMap { target in
+        var targetDependencies: [ResolvedTargetDependency] = []
+        for target in resolver.explicitDependencies(for: configuredTarget) {
             guard !linkedTargets.contains(target) else {
-                return nil
+                continue
             }
             let buildParameters = resolver.buildParametersByTarget[target] ?? configuredTarget.parameters
-            if await !resolver.isTargetSuitableForPlatformForIndex(target, parameters: buildParameters, imposedParameters: imposedParameters) {
-                return nil
+            if !resolver.isTargetSuitableForPlatformForIndex(target, parameters: buildParameters, imposedParameters: imposedParameters) {
+                continue
             }
             let effectiveImposedParameters = imposedParameters?.effectiveParameters(target: configuredTarget, dependency: ConfiguredTarget(parameters: buildParameters, target: target), dependencyResolver: resolver)
             let configuredDependency = await resolver.lookupConfiguredTarget(target, parameters: buildParameters, imposedParameters: effectiveImposedParameters)
-            return ResolvedTargetDependency(target: configuredDependency, reason: .explicit)
-        }.compactMap { $0 }
+            targetDependencies.append(ResolvedTargetDependency(target: configuredDependency, reason: .explicit))
+        }
         let dependencies = linkageDependencies + targetDependencies
 
         // If we have no dependencies, we are done.
@@ -465,23 +466,23 @@ actor LinkageDependencyResolver {
     }
 
     private func implicitDependency(forModuleName moduleName: String, from configuredTarget: ConfiguredTarget, imposedParameters: SpecializationParameters?, source: ImplicitDependencySource) async -> ConfiguredTarget? {
-        let candidateConfiguredTargets = await (targetsByUnconfiguredModuleName[moduleName] ?? []).asyncMap { [self] candidateTarget -> ConfiguredTarget? in
+        var candidateConfiguredTargets: [ConfiguredTarget] = []
+        for candidateTarget in (targetsByUnconfiguredModuleName[moduleName] ?? []) {
             // Prefer overriding build parameters from the build request, if present.
-            let buildParameters = resolver.buildParametersByTarget[candidateTarget] ?? configuredTarget.parameters
+            let buildParameters = self.resolver.buildParametersByTarget[candidateTarget] ?? configuredTarget.parameters
 
             // Validate the module name using concrete parameters.
-            let configuredModuleName = buildRequestContext.getCachedSettings(buildParameters, target: candidateTarget).globalScope.evaluate(BuiltinMacros.PRODUCT_MODULE_NAME)
+            let configuredModuleName = self.resolver.buildRequestContext.getCachedSettings(buildParameters, target: candidateTarget).globalScope.evaluate(BuiltinMacros.PRODUCT_MODULE_NAME)
             if configuredModuleName != moduleName {
-                return nil
+                continue
             }
 
             // Get a configured target for this target, and use it as the implicit dependency.
-            if let candidateConfiguredTarget = await implicitDependency(candidate: candidateTarget, parameters: buildParameters, isValidFor: configuredTarget, imposedParameters: imposedParameters, resolver: resolver) {
-                return candidateConfiguredTarget
+            if let candidateConfiguredTarget = await self.implicitDependency(candidate: candidateTarget, parameters: buildParameters, isValidFor: configuredTarget, imposedParameters: imposedParameters, resolver: resolver) {
+                candidateConfiguredTargets.append(candidateConfiguredTarget)
             }
-
-            return nil
-        }.compactMap { $0 }.sorted()
+        }
+        candidateConfiguredTargets.sort()
 
         emitAmbiguousImplicitDependencyWarningIfNeeded(for: configuredTarget, dependencies: candidateConfiguredTargets, from: source)
 
