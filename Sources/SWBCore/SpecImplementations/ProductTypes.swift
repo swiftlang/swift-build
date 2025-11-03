@@ -868,7 +868,7 @@ public struct SymlinkDescriptor: Hashable
     public let location: Path
     /// The path the symbolic link points to.  This may be a relative path.
     public let toPath: Path
-    /// The effective path the symbolic link points to, if we know that `toPath` is itself going to go through symbolic links.  This may be a relative path.  This is important for validation of symlink provisional tasks.
+    /// The effective path the symbolic link points to, if we know that `toPath` is itself going to go through symbolic links.  This may be a relative path.  This is important for validation of symlink tasks.
     public let effectiveToPath: Path?
 
     public func hash(into hasher: inout Hasher) {

@@ -269,7 +269,7 @@ public final class CodesignToolSpec : CommandLineToolSpec, SpecIdentifierType, @
         let commandOrderingOutputs = (!cbc.commandOrderingOutputs.isEmpty ? cbc.commandOrderingOutputs : [delegate.createVirtualNode("CodeSign \(outputPath.str)")])
         outputs.append(contentsOf: commandOrderingOutputs)
 
-        delegate.createTask(type: self, ruleInfo: ["CodeSign", outputPath.str], commandLine: commandLine, additionalOutput: additionalOutput, environment: EnvironmentBindings(environment), workingDirectory: cbc.producer.defaultWorkingDirectory, inputs: inputs, outputs: outputs, mustPrecede: [], action: delegate.taskActionCreationDelegate.createCodeSignTaskAction(), execDescription: resolveExecutionDescription(cbc, delegate), enableSandboxing: enableSandboxing, repairViaOwnershipAnalysis: false)
+        delegate.createTask(type: self, ruleInfo: ["CodeSign", outputPath.str], commandLine: commandLine, additionalOutput: additionalOutput, environment: EnvironmentBindings(environment), workingDirectory: cbc.producer.defaultWorkingDirectory, inputs: inputs, outputs: outputs, mustPrecede: [], action: delegate.taskActionCreationDelegate.createCodeSignTaskAction(), execDescription: resolveExecutionDescription(cbc, delegate), enableSandboxing: enableSandboxing, repairViaOwnershipAnalysis: false, validityCriteria: cbc.validityCriteria)
     }
 
     /// Returns the path to the codesign file for the given target. This is used as a contract between any task that needs to contribe to the invalidation of the signature (e.g. re-running the CodeSign task).

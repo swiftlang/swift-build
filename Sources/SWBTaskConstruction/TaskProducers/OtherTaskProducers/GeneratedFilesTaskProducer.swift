@@ -25,7 +25,7 @@ final class GeneratedFilesTaskProducer: PhasedTaskProducer, TaskProducer {
 
         // Don't generate these files if no product is produced.
         //
-        // FIXME: This should really be phrased in terms of a concrete check against the produced executable (a provisional task), not a phase check.
+        // FIXME: This should really be phrased in terms of a concrete check against the produced executable (a task with validation criteria), not a phase check.
         if context.willProduceProduct(scope) {
             await addCodeSignProvisioningProfileTasks(scope, &tasks)
             await addCodeSignEntitlementsTasks(scope, &tasks)
