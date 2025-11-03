@@ -223,7 +223,8 @@ fileprivate struct LinkerTests: CoreBasedTests {
                             TestSourcesBuildPhase([
                                 "library.swift"
                             ])
-                        ]
+                        ],
+                        productReferenceName: "$(EXECUTABLE_NAME)"
                     ),
                 ])
             let tester = try await BuildOperationTester(getCore(), testProject, simulated: false)

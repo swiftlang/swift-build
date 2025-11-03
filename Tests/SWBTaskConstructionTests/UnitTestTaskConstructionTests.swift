@@ -355,7 +355,6 @@ fileprivate struct UnitTestTaskConstructionTests: CoreBasedTests {
                         ])
                     ],
                     dependencies: [],
-                    productReferenceName: "$(EXCTABLE_NAME)"
                 ),
             ])
         let core = try await getCore()
@@ -384,7 +383,7 @@ fileprivate struct UnitTestTaskConstructionTests: CoreBasedTests {
                     ])
                     task.checkInputs([
                         .pathPattern(.suffix("UnitTestTarget.LinkFileList")),
-                        .pathPattern(.or(.suffix("UnitTestTarget.so"), .suffix("UnitTestTarget.dll"))),
+                        .pathPattern(.or(.suffix("/libUnitTestTarget.so"), .suffix("\\UnitTestTarget.dll"))),
                         .namePattern(.any),
                         .namePattern(.any),
                     ])

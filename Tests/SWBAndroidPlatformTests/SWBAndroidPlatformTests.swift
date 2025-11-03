@@ -70,9 +70,6 @@ fileprivate struct AndroidBuildOperationTests: CoreBasedTests {
                         buildConfigurations: [
                             TestBuildConfiguration("Debug", buildSettings: [
                                 "DYLIB_INSTALL_NAME_BASE": "$ORIGIN",
-
-                                // FIXME: Find a way to make these default
-                                "EXECUTABLE_PREFIX": "lib",
                             ])
                         ],
                         buildPhases: [
@@ -83,12 +80,6 @@ fileprivate struct AndroidBuildOperationTests: CoreBasedTests {
                     TestStandardTarget(
                         "staticlib",
                         type: .staticLibrary,
-                        buildConfigurations: [
-                            TestBuildConfiguration("Debug", buildSettings: [
-                                // FIXME: Find a way to make these default
-                                "EXECUTABLE_PREFIX": "lib",
-                            ])
-                        ],
                         buildPhases: [
                             TestSourcesBuildPhase(["static.c"]),
                         ]

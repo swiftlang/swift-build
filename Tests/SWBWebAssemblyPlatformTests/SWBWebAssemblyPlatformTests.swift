@@ -69,12 +69,6 @@ fileprivate struct SWBWebAssemblyPlatformTests: CoreBasedTests {
                     TestStandardTarget(
                         "staticlib",
                         type: .staticLibrary,
-                        buildConfigurations: [
-                            TestBuildConfiguration("Debug", buildSettings: [
-                                // FIXME: Find a way to make these default
-                                "EXECUTABLE_PREFIX": "lib",
-                            ])
-                        ],
                         buildPhases: [
                             TestSourcesBuildPhase(["static.swift"]),
                         ]
@@ -182,12 +176,6 @@ fileprivate struct SWBWebAssemblyPlatformTests: CoreBasedTests {
                     TestStandardTarget(
                         "Cstaticlib",
                         type: .staticLibrary,
-                        buildConfigurations: [
-                            TestBuildConfiguration("Debug", buildSettings: [
-                                // FIXME: Find a way to make these default
-                                "EXECUTABLE_PREFIX": "lib",
-                            ])
-                        ],
                         buildPhases: [
                             TestSourcesBuildPhase(["static1.c", "static2.cpp"]),
                         ]

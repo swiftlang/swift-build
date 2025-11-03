@@ -671,7 +671,6 @@ fileprivate struct InstallAPITaskConstructionTests: CoreBasedTests {
             buildConfigurations: [
                 TestBuildConfiguration("Debug", buildSettings: [
                     "CODE_SIGN_IDENTITY": "-",
-                    "EXECUTABLE_PREFIX": "lib",
                     "PRODUCT_NAME": "$(TARGET_NAME)",
                     "SUPPORTS_TEXT_BASED_API": "YES",
                     "TAPI_EXEC": tapiToolPath.str,
@@ -813,7 +812,6 @@ fileprivate struct InstallAPITaskConstructionTests: CoreBasedTests {
                     TestFile("Core.c")]),
             buildConfigurations: [
                 TestBuildConfiguration("Debug", buildSettings: [
-                    "EXECUTABLE_PREFIX": "lib",
                     "PRODUCT_NAME": "$(TARGET_NAME)",
                     "SUPPORTS_TEXT_BASED_API": "YES",
                     "TAPI_EXEC": tapiToolPath.str,
@@ -955,7 +953,6 @@ fileprivate struct InstallAPITaskConstructionTests: CoreBasedTests {
                     TestFile("Core.c")]),
             buildConfigurations: [
                 TestBuildConfiguration("Debug", buildSettings: [
-                    "EXECUTABLE_PREFIX": "lib",
                     "PRODUCT_NAME": "$(TARGET_NAME)",
                     "GENERATE_TEXT_BASED_STUBS": "YES",
                     "SKIP_INSTALL": "NO"])],
@@ -1002,7 +999,6 @@ fileprivate struct InstallAPITaskConstructionTests: CoreBasedTests {
                     TestFile("Core.c")]),
             buildConfigurations: [
                 TestBuildConfiguration("Debug", buildSettings: [
-                    "EXECUTABLE_PREFIX": "lib",
                     "PRODUCT_NAME": "$(TARGET_NAME)",
                     "GENERATE_INFOPLIST_FILE": "YES",
                     "GENERATE_TEXT_BASED_STUBS": "YES",

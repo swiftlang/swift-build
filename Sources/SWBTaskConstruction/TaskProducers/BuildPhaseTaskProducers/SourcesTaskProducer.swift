@@ -507,6 +507,7 @@ package final class SourcesTaskProducer: FilesBasedBuildPhaseTaskProducerBase, F
                     useSearchPaths: useSearchPaths,
                     swiftModulePaths: swiftModulePaths,
                     swiftModuleAdditionalLinkerArgResponseFilePaths: swiftModuleAdditionalLinkerArgResponseFilePaths,
+                    prefix: fileType.prefix,
                     privacyFile: privacyFile
                 )
             } else if fileType.conformsTo(context.lookupFileType(identifier: "compiled.mach-o.dylib")!) {
@@ -517,6 +518,7 @@ package final class SourcesTaskProducer: FilesBasedBuildPhaseTaskProducerBase, F
                     useSearchPaths: useSearchPaths,
                     swiftModulePaths: [:],
                     swiftModuleAdditionalLinkerArgResponseFilePaths: [:],
+                    prefix: fileType.prefix,
                     privacyFile: privacyFile
                 )
             } else if fileType.conformsTo(context.lookupFileType(identifier: "sourcecode.text-based-dylib-definition")!) {
@@ -527,17 +529,18 @@ package final class SourcesTaskProducer: FilesBasedBuildPhaseTaskProducerBase, F
                     useSearchPaths: useSearchPaths,
                     swiftModulePaths: [:],
                     swiftModuleAdditionalLinkerArgResponseFilePaths: [:],
+                    prefix: fileType.prefix,
                     privacyFile: privacyFile
                 )
             } else if fileType.conformsTo(context.lookupFileType(identifier: "wrapper.framework")!) {
-                func kindFromSettings(_ settings: Settings) -> LinkerSpec.LibrarySpecifier.Kind? {
+                func kindFromSettings(_ settings: Settings) -> (kind: LinkerSpec.LibrarySpecifier.Kind, prefix: String?)? {
                     switch settings.globalScope.evaluate(BuiltinMacros.MACH_O_TYPE) {
                     case "staticlib":
-                        return .static
+                        return (.static, context.lookupFileType(identifier: "archive.ar")?.prefix)
                     case "mh_dylib":
-                        return .dynamic
+                        return (.dynamic, context.lookupFileType(identifier: "compiled.mach-o.dylib")?.prefix)
                     case "mh_object":
-                        return .object
+                        return (.object, nil)
                     default:
                         return nil
                     }
@@ -547,9 +550,11 @@ package final class SourcesTaskProducer: FilesBasedBuildPhaseTaskProducerBase, F
                 let path: Path
                 let dsymPath: Path?
                 let topLevelItemPath: Path?
+                let prefix: String?
                 if let settingsForRef, let presumedKind = kindFromSettings(settingsForRef), !useSearchPaths {
                     // If we have a Settings from a cross-project reference, use the _actual_ library path. This prevents downstream code from reconstituting the framework path by joining the framework path with the basename of the framework, which won't be correct for deep frameworks which also need the Versions/A path component.
-                    kind = presumedKind
+                    kind = presumedKind.kind
+                    prefix = presumedKind.prefix
                     path = settingsForRef.globalScope.evaluate(BuiltinMacros.TARGET_BUILD_DIR).join(settingsForRef.globalScope.evaluate(BuiltinMacros.EXECUTABLE_PATH)).normalize()
                     topLevelItemPath = absolutePath
                     if shouldGenerateDSYM(settingsForRef.globalScope) {
@@ -563,6 +568,7 @@ package final class SourcesTaskProducer: FilesBasedBuildPhaseTaskProducerBase, F
                     path = absolutePath
                     topLevelItemPath = nil
                     dsymPath = nil
+                    prefix = nil
                 }
 
                 return LinkerSpec.LibrarySpecifier(
@@ -572,6 +578,7 @@ package final class SourcesTaskProducer: FilesBasedBuildPhaseTaskProducerBase, F
                     useSearchPaths: useSearchPaths,
                     swiftModulePaths: [:],
                     swiftModuleAdditionalLinkerArgResponseFilePaths: [:],
+                    prefix: prefix,
                     topLevelItemPath: topLevelItemPath,
                     dsymPath: dsymPath,
                     privacyFile: privacyFile
@@ -581,7 +588,7 @@ package final class SourcesTaskProducer: FilesBasedBuildPhaseTaskProducerBase, F
                     kind: .object,
                     path: absolutePath,
                     mode: buildFile.shouldLinkWeakly ? .weak : .normal,
-                    useSearchPaths: useSearchPaths,
+                    useSearchPaths: false,
                     swiftModulePaths: swiftModulePaths,
                     swiftModuleAdditionalLinkerArgResponseFilePaths: swiftModuleAdditionalLinkerArgResponseFilePaths,
                     privacyFile: privacyFile
@@ -621,10 +628,16 @@ package final class SourcesTaskProducer: FilesBasedBuildPhaseTaskProducerBase, F
                 }
 
                 let libraryKind: LinkerSpec.LibrarySpecifier.Kind
+                let prefix: String?
                 switch library.libraryType {
-                case .framework: libraryKind = .framework; break
-                case .dynamicLibrary: libraryKind = .dynamic; break
-                case .staticLibrary: libraryKind = .static; break
+                case .framework: libraryKind = .framework; prefix = nil
+                case .dynamicLibrary:
+                    libraryKind = .dynamic;
+                    prefix = context.lookupFileType(identifier: "compiled.mach-o.dylib")?.prefix
+                case .staticLibrary:
+                    libraryKind = .static
+                    prefix = context.lookupFileType(identifier: "archive.ar")?.prefix
+                break
                 case let .unknown(fileExtension):
                     // An error of type this type should have already been manifested.
                     assertionFailure("unknown xcframework type: \(fileExtension)")
@@ -651,6 +664,7 @@ package final class SourcesTaskProducer: FilesBasedBuildPhaseTaskProducerBase, F
                     useSearchPaths: useSearchPaths,
                     swiftModulePaths: [:],
                     swiftModuleAdditionalLinkerArgResponseFilePaths: [:],
+                    prefix: prefix,
                     explicitDependencies: outputFilePaths,
                     xcframeworkSourcePath: xcframeworkPath,
                     privacyFile: nil
