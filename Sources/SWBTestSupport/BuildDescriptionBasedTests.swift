@@ -31,7 +31,7 @@ extension BuildDescription {
 /// Category for tests which need to use BuildDescription objects.
 extension CoreBasedTests {
     // This should be private, but is public to work around a compiler bug: rdar://108924001 (Unexpected missing symbol in tests (optimizer issue?))
-    package func buildGraph(for workspaceContext: WorkspaceContext, buildRequestContext: BuildRequestContext, configuration: String = "Debug", activeRunDestination: RunDestinationInfo?, overrides: [String: String] = [:], useImplicitDependencies: Bool = false, dependencyScope: DependencyScope = .workspace, fs: any FSProxy = PseudoFS(), includingTargets predicate: (Target) -> Bool) async -> TargetBuildGraph {
+    package func buildGraph(for workspaceContext: WorkspaceContext, buildRequestContext: BuildRequestContext, configuration: String = "Debug", activeRunDestination: RunDestinationInfo?, overrides: [String: String] = [:], useImplicitDependencies: Bool = false, dependencyScope: DependencyScope = .workspace, fs: any FSProxy = PseudoFS(), includingTargets predicate: (Target) -> Bool) async -> (TargetBuildGraph, BuildRequest) {
         // Create a fake build request to build all targets.
         let parameters = BuildParameters(configuration: configuration, activeRunDestination: activeRunDestination, overrides: overrides)
         let buildTargets = workspaceContext.workspace.projects.flatMap{ project in

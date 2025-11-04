@@ -310,62 +310,6 @@ package final class BuildOperation: BuildSystemOperation {
             return effectiveStatus
         }
 
-        // Helper method to emit information to the CAPTURED_BUILD_INFO_DIR.  This is mainly to be able to gracefully return after emitting a warning if something goes wrong, because not being able to emit this info is typically not serious enough to want to abort the whole build.
-        func emitCapturedBuildInfo(to path: Path) {
-            // If the build description doesn't have captured build info, then we don't emit it.  Otherwise we proceed.
-            guard let capturedBuildInfo = buildDescription.capturedBuildInfo else {
-                buildOutputDelegate.warning("no captured build info available for incremental build - not emitting it")
-                return
-            }
-
-            guard path.isAbsolute else {
-                buildOutputDelegate.warning("CAPTURED_BUILD_INFO_DIR must be an absolute path, but is \(path.str) (skipping emitting captured build info)")
-                return
-            }
-
-            // Create the directory if necessary.
-            if !fs.exists(path) {
-                do {
-                    try fs.createDirectory(path, recursive: true)
-                }
-                catch {
-                    buildOutputDelegate.warning("Could not create directory for CAPTURED_BUILD_INFO_DIR (\(path.str)): \(error) (skipping emitting captured build info)")
-                    return
-                }
-            }
-            else {
-                guard fs.isDirectory(path) else {
-                    buildOutputDelegate.warning("CAPTURED_BUILD_INFO_DIR (\(path.str)) exists but is not a directory (skipping emitting captured build info)")
-                    return
-                }
-            }
-
-            // The output path includes our process ID, since there might be multiple builds dumping information here, e.g. if there's a script which invokes another xcodebuild instance.
-            let pid = ProcessInfo.processInfo.processIdentifier
-            let outputFilePath = path.join("xcodebuildCapturedInfo_\(pid).\(capturedBuildInfoFileExtension)")
-
-            // Write the captured build info to the file.
-            do {
-                try fs.write(outputFilePath, contents: capturedBuildInfo.propertyListItem.asJSONFragment() + "\n")
-            }
-            catch {
-                buildOutputDelegate.warning("Could not write captured build info to '\(outputFilePath.str)': \(error)")
-                return
-            }
-
-            buildOutputDelegate.note("Wrote captured build info to \(outputFilePath.str)")
-        }
-
-        // If we were asked to emit information about the targets being built, then do so now, unless we're in "dry run" mode.
-        if !request.useDryRun, let capturedBuildInfoDir = environment?["CAPTURED_BUILD_INFO_DIR"] {
-            if !capturedBuildInfoDir.isEmpty {
-                // If the resolved path is not empty, then emit the captured build info.
-                emitCapturedBuildInfo(to: Path(capturedBuildInfoDir))
-            } else {
-                buildOutputDelegate.warning("CAPTURED_BUILD_INFO_DIR is set but is empty (skipping emitting captured build info)")
-            }
-        }
-
         // If task construction had errors, fail the build immediately, unless `continueBuildingAfterErrors` is set.
         if !request.continueBuildingAfterErrors && buildDescription.hadErrors {
             let effectiveStatus = BuildOperationEnded.Status.failed
