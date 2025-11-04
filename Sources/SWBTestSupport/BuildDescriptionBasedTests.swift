@@ -42,7 +42,7 @@ extension CoreBasedTests {
         let buildRequest = BuildRequest(parameters: parameters, buildTargets: buildTargets, dependencyScope: dependencyScope, continueBuildingAfterErrors: true, useParallelTargets: true, useImplicitDependencies: useImplicitDependencies, useDryRun: false)
 
         // Create the build graph.
-        return await TargetBuildGraph(workspaceContext: workspaceContext, buildRequest: buildRequest, buildRequestContext: buildRequestContext)
+        return await (TargetBuildGraph(workspaceContext: workspaceContext, buildRequest: buildRequest, buildRequestContext: buildRequestContext), buildRequest)
     }
 
     package func planRequest(for workspace: Workspace, configuration: String = "Debug", activeRunDestination: RunDestinationInfo?, overrides: [String: String] = [:], fs: any FSProxy = PseudoFS(), includingTargets predicate: (Target) -> Bool) async throws -> BuildPlanRequest {
@@ -57,7 +57,7 @@ extension CoreBasedTests {
 
         let buildRequestContext = BuildRequestContext(workspaceContext: workspaceContext)
 
-        let buildGraph = await self.buildGraph(for: workspaceContext, buildRequestContext: buildRequestContext, configuration: configuration, activeRunDestination: activeRunDestination, overrides: overrides, fs: fs, includingTargets: predicate)
+        let (buildGraph, buildRequest) = await self.buildGraph(for: workspaceContext, buildRequestContext: buildRequestContext, configuration: configuration, activeRunDestination: activeRunDestination, overrides: overrides, fs: fs, includingTargets: predicate)
 
         // Construct an appropriate set of provisioning inputs. This is important for performance testing to ensure we end up with representative code signing tasks, which trigger the mutable node analysis during build description construction.
         var provisioningInputs = [ConfiguredTarget: ProvisioningTaskInputs]()
@@ -66,7 +66,7 @@ extension CoreBasedTests {
             provisioningInputs[ct] = ProvisioningTaskInputs(identityHash: "-")
         }
 
-        return BuildPlanRequest(workspaceContext: buildGraph.workspaceContext, buildRequest: buildGraph.buildRequest, buildRequestContext: buildRequestContext, buildGraph: buildGraph, provisioningInputs: provisioningInputs)
+        return BuildPlanRequest(workspaceContext: workspaceContext, buildRequest: buildRequest, buildRequestContext: buildRequestContext, buildGraph: buildGraph, provisioningInputs: provisioningInputs)
     }
 
     package func buildDescription(for workspace: Workspace, configuration: String = "Debug", activeRunDestination: RunDestinationInfo?, overrides: [String: String] = [:], fs: any FSProxy = PseudoFS(), includingTargets predicate: (Target) -> Bool = { _ in true }) async throws -> (BuildDescription, WorkspaceContext) {

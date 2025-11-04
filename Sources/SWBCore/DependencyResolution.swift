@@ -15,8 +15,6 @@ import struct SWBProtocol.RunDestinationInfo
 import SWBMacro
 
 public protocol TargetGraph: Sendable {
-    var workspaceContext: WorkspaceContext { get }
-
     var allTargets: OrderedSet<ConfiguredTarget> { get }
 
     func dependencies(of target: ConfiguredTarget) -> [ConfiguredTarget]

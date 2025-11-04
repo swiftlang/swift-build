@@ -644,7 +644,7 @@ package final class GlobalProductPlan: GlobalTargetInfoProvider
             guard staticTarget.type == .packageProduct else { continue }
 
             let packageTargetDependencies = staticTarget.dependencies.compactMap { targetDependency in
-                planRequest.buildGraph.workspaceContext.workspace.target(for: targetDependency.guid)
+                planRequest.workspaceContext.workspace.target(for: targetDependency.guid)
             }.filter {
                 $0.type != .packageProduct
             }
