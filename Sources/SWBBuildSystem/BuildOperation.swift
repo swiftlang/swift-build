@@ -525,7 +525,7 @@ package final class BuildOperation: BuildSystemOperation {
             return .commandNamePriority
         }()
 
-        let laneWidth = UserDefaults.schedulerLaneWidth ?? 0
+        let laneWidth = request.schedulerLaneWidthOverride ?? UserDefaults.schedulerLaneWidth ?? 0
 
         // Create the low-level build system.
         let adaptor: OperationSystemAdaptor
@@ -542,7 +542,7 @@ package final class BuildOperation: BuildSystemOperation {
 
         if let entry {
             // If the entry is valid, reuse it.
-            if let cachedAdaptor = entry.adaptor, entry.environment == buildEnvironment, entry.buildDescription! === buildDescription, entry.llbQoS == llbQoS {
+            if let cachedAdaptor = entry.adaptor, entry.environment == buildEnvironment, entry.buildDescription! === buildDescription, entry.llbQoS == llbQoS, entry.laneWidth == laneWidth {
                 adaptor = cachedAdaptor
                 await adaptor.reset(operation: self, buildOutputDelegate: buildOutputDelegate)
             } else {
@@ -551,6 +551,7 @@ package final class BuildOperation: BuildSystemOperation {
                 entry.adaptor = adaptor
                 entry.buildDescription = buildDescription
                 entry.llbQoS = llbQoS
+                entry.laneWidth = laneWidth
                 entry.fileSystemMode = fs.fileSystemMode
                 entry.system = SWBLLBuild.BuildSystem(buildFile: buildDescription.manifestPath.str, databaseFile: dbPath.str, delegate: adaptor, environment: buildEnvironment, serial: serial, traceFile: traceFile?.str, schedulerAlgorithm: algorithm, schedulerLanes: laneWidth, qos: llbQoS)
             }
