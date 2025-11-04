@@ -1037,7 +1037,7 @@ public class TaskProducerContext: StaleFileRemovalContext, BuildFileResolution
 }
 
 public final class TargetTaskProducerContext: TaskProducerContext {
-    private let targetTaskInfo: TargetTaskInfo
+    private let targetTaskInfo: TargetGateNodes
 
     /// A path node representing the tasks necessary to 'prepare-for-index' a target, before any compilation can occur.
     /// This is only set for an index build.
@@ -1077,7 +1077,7 @@ public final class TargetTaskProducerContext: TaskProducerContext {
     /// - parameter targetTaskInfo: The high-level target task information.
     /// - parameter globalProductPlan: The high-level global build information.
     /// - parameter delegate: The delegate to use for task construction.
-    init(configuredTarget: ConfiguredTarget, workspaceContext: WorkspaceContext, targetTaskInfo: TargetTaskInfo, globalProductPlan: GlobalProductPlan, delegate: any TaskPlanningDelegate) {
+    init(configuredTarget: ConfiguredTarget, workspaceContext: WorkspaceContext, targetTaskInfo: TargetGateNodes, globalProductPlan: GlobalProductPlan, delegate: any TaskPlanningDelegate) {
         self.targetTaskInfo = targetTaskInfo
 
         // Create the target end gate task, which connects the target's start node to its end node.
@@ -1111,7 +1111,7 @@ public final class TargetTaskProducerContext: TaskProducerContext {
 
         // Create the will-sign gate task.
         // This depends on the unsigned-products-ready node, and also on the end nodes of all the targets whose products this target is hosting.
-        let willSignTaskInputs = [targetTaskInfo.unsignedProductReadyNode] + (globalProductPlan.hostedTargetsForTargets[configuredTarget]?.compactMap({ globalProductPlan.targetTaskInfos[$0]?.endNode }) ?? [])
+        let willSignTaskInputs = [targetTaskInfo.unsignedProductReadyNode] + (globalProductPlan.hostedTargetsForTargets[configuredTarget]?.compactMap({ globalProductPlan.targetGateNodes[$0]?.endNode }) ?? [])
         self.willSignTask = delegate.createGateTask(willSignTaskInputs, output: targetTaskInfo.willSignNode, name: targetTaskInfo.willSignNode.name, mustPrecede: []) {
             $0.forTarget = configuredTarget
             $0.makeGate()

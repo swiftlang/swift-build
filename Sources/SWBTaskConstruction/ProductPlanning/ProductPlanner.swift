@@ -45,7 +45,7 @@ package struct ProductPlanner
         return await planRequest.buildRequestContext.keepAliveSettingsCache {
             // Construct the global product plan.
             let globalProductPlan = await GlobalProductPlan(planRequest: planRequest, delegate: delegate, nodeCreationDelegate: delegate)
-            let targetTaskInfos = globalProductPlan.targetTaskInfos
+            let targetTaskInfos = globalProductPlan.targetGateNodes
 
             // Create the plans themselves in parallel.
             var productPlans = await globalProductPlan.allTargets.asyncMap { configuredTarget in
@@ -113,7 +113,7 @@ private struct ProductPlanBuilder
 
 
     /// Create the product plan.
-    func createProductPlan(_ targetTaskInfo: TargetTaskInfo, _ globalProductPlan: GlobalProductPlan) async -> ProductPlan
+    func createProductPlan(_ targetTaskInfo: TargetGateNodes, _ globalProductPlan: GlobalProductPlan) async -> ProductPlan
     {
         // Create the context object for the task producers.
         // FIXME: Either each task producer should get its own file path resolver, or the path resolver's caching logic needs to be thread-safe.

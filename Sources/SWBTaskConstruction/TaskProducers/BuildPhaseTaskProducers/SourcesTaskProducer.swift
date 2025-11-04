@@ -1337,7 +1337,7 @@ package final class SourcesTaskProducer: FilesBasedBuildPhaseTaskProducerBase, F
             let dependencies = context.globalProductPlan.planRequest.buildGraph.dependencies(of: configuredTarget)
             let moduleInputs = dependencies.compactMap { dependency -> (any PlannedNode)? in
                 guard dependency !== configuredTarget else { return nil }
-                let taskInfo = context.globalProductPlan.targetTaskInfos[dependency]!
+                let taskInfo = context.globalProductPlan.targetGateNodes[dependency]!
                 if context.globalProductPlan.targetsRequiredToBuildForIndexing.contains(dependency) {
                     return taskInfo.endNode
                 } else {
