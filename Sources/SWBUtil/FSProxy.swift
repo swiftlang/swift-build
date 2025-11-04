@@ -757,16 +757,15 @@ class LocalFS: FSProxy, @unchecked Sendable {
     }
 
     func realpath(_ path: Path) throws -> Path {
-        #if os(Windows)
-        guard exists(path) else {
+        if path.isAbsolute && !exists(path) {
             throw POSIXError(ENOENT, context: "realpath", path.str)
         }
-        return Path(path.str.standardizingPath)
-        #else
-        guard let result = SWBLibc.realpath(path.str, nil) else { throw POSIXError(errno, context: "realpath", path.str) }
-        defer { free(result) }
-        return Path(String(cString: result))
-        #endif
+        let url = URL(fileURLWithPath: path.str)
+        let values = try url.resolvingSymlinksInPath().resourceValues(forKeys: Set([URLResourceKey.canonicalPathKey]))
+        guard let canonicalPath = values.canonicalPath else {
+            throw POSIXError(ENOENT, context: "realpath", path.str)
+        }
+        return try Path(canonicalPath.canonicalPathRepresentation)
     }
 
     func isOnPotentiallyRemoteFileSystem(_ path: Path) -> Bool {

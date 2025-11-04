@@ -927,6 +927,39 @@ extension Path {
     }
 }
 
+extension String {
+    @_spi(Testing) public var canonicalPathRepresentation: String {
+        get throws {
+            #if os(Windows)
+            return try withCString(encodedAs: UTF16.self) { platformPath in
+                return try platformPath.withCanonicalPathRepresentation { canonicalPath in
+                    return String(decodingCString: canonicalPath, as: UTF16.self)
+                }
+            }
+            #else
+            return self
+            #endif
+        }
+    }
+}
+
+extension Path {
+     @_spi(Testing) public var canonicalPathRepresentation: String {
+        get throws {
+            #if os(Windows)
+            return try withPlatformString { platformPath in
+                return try platformPath.withCanonicalPathRepresentation { canonicalPath in
+                    return String(decodingCString: canonicalPath, as: UTF16.self)
+                }
+            }
+            #else
+            return str
+            #endif
+        }
+    }
+}
+
+
 /// A wrapper for a string which is used to identify an absolute path on the file system.
 public struct AbsolutePath: Hashable, Equatable, Serializable, Sendable {
     public let path: Path
