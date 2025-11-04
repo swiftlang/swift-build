@@ -295,7 +295,7 @@ extension TaskProducerContext {
         }
 
         return clients.compactMap {
-            let scope = self.globalProductPlan.planRequest.buildRequestContext.getCachedSettings($0.parameters, target: $0.target).globalScope
+            let scope = self.globalProductPlan.getTargetSettings($0).globalScope
             // Filter non-library clients.
             let machOType = scope.evaluate(BuiltinMacros.MACH_O_TYPE)
             guard ["mh_bundle", "mh_dylib", "mh_object", "staticlib"].contains(machOType) else {

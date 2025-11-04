@@ -32,7 +32,7 @@ class TestEntryPointTaskProducer: PhasedTaskProducer, TaskProducer {
                 var indexUnitBasePaths: OrderedSet<Path> = []
                 var binaryPaths: OrderedSet<Path> = []
                 for directDependency in context.globalProductPlan.dependencies(of: configuredTarget) {
-                    let settings = context.globalProductPlan.planRequest.buildRequestContext.getCachedSettings(directDependency.parameters, target: directDependency.target)
+                    let settings = context.globalProductPlan.getTargetSettings(directDependency)
                     guard settings.productType?.conformsTo(identifier: "com.apple.product-type.bundle.unit-test") == true else {
                         continue
                     }

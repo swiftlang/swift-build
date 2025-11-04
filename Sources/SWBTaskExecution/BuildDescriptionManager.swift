@@ -193,7 +193,7 @@ package final class BuildDescriptionManager: Sendable {
         staleFileRemovalIdentifierPerTarget[nil] = plan.staleFileRemovalTaskIdentifier(for: nil)
 
         for target in buildGraph.allTargets {
-            let settings = planRequest.buildRequestContext.getCachedSettings(target.parameters, target: target.target)
+            let settings = plan.globalProductPlan.getTargetSettings(target)
             rootPathsPerTarget[target] = [
                 settings.globalScope.evaluate(BuiltinMacros.DSTROOT),
                 settings.globalScope.evaluate(BuiltinMacros.OBJROOT),
@@ -227,7 +227,7 @@ package final class BuildDescriptionManager: Sendable {
         let definingTargetsByModuleName = {
             var definingTargetsByModuleName: [String: OrderedSet<ConfiguredTarget>] = [:]
             for target in buildGraph.allTargets {
-                let settings = planRequest.buildRequestContext.getCachedSettings(target.parameters, target: target.target)
+                let settings = plan.globalProductPlan.getTargetSettings(target)
                 let moduleInfo = plan.globalProductPlan.getModuleInfo(target)
                 let specLookupContext = SpecLookupCtxt(specRegistry: planRequest.workspaceContext.core.specRegistry, platform: settings.platform)
                 let buildingAnySwiftSourceFiles = (target.target as? BuildPhaseTarget)?.sourcesBuildPhase?.containsSwiftSources(planRequest.workspaceContext.workspace, specLookupContext, settings.globalScope, settings.filePathResolver) ?? false
