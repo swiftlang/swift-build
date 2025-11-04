@@ -17,6 +17,12 @@ import SWBLibc
 import SWBTestSupport
 @_spi(TestSupport) import SWBUtil
 
+#if canImport(System)
+public import System
+#else
+public import SystemPackage
+#endif
+
 @Suite fileprivate struct FSProxyTests {
 
 #if !os(Windows)
@@ -1332,6 +1338,41 @@ import SWBTestSupport
             #expect(try !fs.writeIfChanged(dir.join("foo"), contents: "a"))
             #expect(try fs.read(dir.join("foo")) == ByteString(encodingAsUTF8: "a"))
         }
+    }
+
+    @Test(.requireHostOS(.windows))
+    func realpathWindows() async throws {
+        let fs = localFS
+        let windir = try #require(getEnvironmentVariable("WINDIR"))
+        do {
+            // Case-insensitive comparison because WINDIR might be C:\WINDOWS while the actual path is C:\Windows
+            // The main thing is the \\?\ prefix handling
+            #expect(try fs.realpath(Path(windir)).str.caseInsensitiveCompare(windir) == .orderedSame)
+            #expect(try fs.realpath(Path(#"\\?\"# + windir)).str.caseInsensitiveCompare(windir) == .orderedSame)
+        }
+
+        do {
+            let root = Path(windir).drive
+            #expect(try fs.realpath(root.join("Program Files")).str.caseInsensitiveCompare(root.join("Program Files").str) == .orderedSame)
+
+            if !fs.exists(root.join("Progra~1")) {
+                withKnownIssue {
+                    Issue.record("8.3 filenames are likely disabled in this environment (running in a container?)")
+                }
+                return
+            }
+
+            #expect(try fs.realpath(root.join("Progra~1")).str.caseInsensitiveCompare(root.join("Program Files").str) == .orderedSame)
+            #expect(try fs.realpath(Path(#"\\?\"# + root.join("Progra~1").str)).str.caseInsensitiveCompare(root.join("Program Files").str) == .orderedSame)
+        }
+    }
+}
+
+fileprivate extension Path {
+    var drive: Path {
+        var fp = FilePath(str)
+        fp.components.removeAll()
+        return Path(fp.string).withTrailingSlash
     }
 }
 
