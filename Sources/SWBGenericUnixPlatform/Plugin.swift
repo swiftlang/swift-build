@@ -126,8 +126,10 @@ struct GenericUnixSDKRegistryExtension: SDKRegistryExtension {
                 defaultProperties = [:]
             }
 
-            if operatingSystem == .freebsd || operatingSystem != context.hostOperatingSystem {
-                // FreeBSD is always LLVM-based, and if we're cross-compiling, use lld
+            if operatingSystem == .freebsd || (operatingSystem == .linux && operatingSystem.distribution?.kind == .amazon && operatingSystem.distribution?.version == "2") || operatingSystem != context.hostOperatingSystem {
+                // FreeBSD is always LLVM-based, use lld
+                // Amazon Linux 2 has a gold linker bug see: https://sourceware.org/bugzilla/show_bug.cgi?id=23016, use lld
+                // or if we're cross-compiling, use lld
                 defaultProperties["ALTERNATE_LINKER"] = "lld"
             }
 
