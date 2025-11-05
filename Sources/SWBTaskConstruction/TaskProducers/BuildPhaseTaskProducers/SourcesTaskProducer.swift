@@ -1337,7 +1337,7 @@ package final class SourcesTaskProducer: FilesBasedBuildPhaseTaskProducerBase, F
             let dependencies = context.globalProductPlan.planRequest.buildGraph.dependencies(of: configuredTarget)
             let moduleInputs = dependencies.compactMap { dependency -> (any PlannedNode)? in
                 guard dependency !== configuredTarget else { return nil }
-                let taskInfo = context.globalProductPlan.targetTaskInfos[dependency]!
+                let taskInfo = context.globalProductPlan.targetGateNodes[dependency]!
                 if context.globalProductPlan.targetsRequiredToBuildForIndexing.contains(dependency) {
                     return taskInfo.endNode
                 } else {
@@ -1440,7 +1440,7 @@ package final class SourcesTaskProducer: FilesBasedBuildPhaseTaskProducerBase, F
                         // Compute the subpaths of the linked item we want to copy.  This means we need to get the scope for the producing target.
                         // FIXME: We should unify this as much as possible with the logic in CopyFilesTaskProducer.
                         if let producingTarget = context.globalProductPlan.productPathsToProducingTargets[libraryPath] {
-                            let copiedFileSettings = context.globalProductPlan.planRequest.buildRequestContext.getCachedSettings(producingTarget.parameters, target: producingTarget.target)
+                            let copiedFileSettings = context.globalProductPlan.getTargetSettings(producingTarget)
 
                             if let productType = copiedFileSettings.productType {
                                 // If this is a standalone binary product then we just copy it.  Otherwise PBXCp will include the subpaths we assemble here.

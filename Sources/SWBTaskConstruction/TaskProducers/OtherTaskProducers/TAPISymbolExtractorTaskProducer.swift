@@ -69,33 +69,13 @@ final class TAPISymbolExtractorTaskProducer: PhasedTaskProducer, TaskProducer {
         // which in turn depends on the PACKAGE:TARGET target that generates the module map.
         var dependenciesModuleMaps = OrderedSet<Path>()
         if let configuredTarget = context.configuredTarget {
-            let currentPlatformFilter = PlatformFilter(scope)
-            var remainingDependenciesToProcess = configuredTarget.target.dependencies[...]
-            var encounteredDependencies = Set(remainingDependenciesToProcess.map { $0.guid })
-            while let dependency = remainingDependenciesToProcess.popFirst() {
-                if currentPlatformFilter.matches(dependency.platformFilters),
-                   let dependencyTarget = context.workspaceContext.workspace.dynamicTarget(for: dependency.guid, dynamicallyBuildingTargets: context.globalProductPlan.dynamicallyBuildingTargets)
-                {
-                    // Find the right build parameters for each dependency
-                    let dependencyParameters: BuildParameters
-                    if let otherConfiguredTarget = context.globalProductPlan.planRequest.buildGraph.dependencies(of: configuredTarget).first(where: { $0.target.guid == dependencyTarget.guid }) {
-                        dependencyParameters = otherConfiguredTarget.parameters
-                    } else {
-                        dependencyParameters = context.globalProductPlan.planRequest.buildGraph.buildRequest.buildTargets.first(where: { $0.target.guid == dependencyTarget.guid })?.parameters ?? configuredTarget.parameters
-                    }
-
-                    let settings = context.settingsForProductReferenceTarget(dependencyTarget, parameters: dependencyParameters)
-                    let dependencyConfiguredTarget = ConfiguredTarget(parameters: dependencyParameters, target: dependencyTarget)
-
-                    if let moduleInfo = context.globalProductPlan.getModuleInfo(dependencyConfiguredTarget) {
-                        dependenciesModuleMaps.append(moduleInfo.moduleMapPaths.builtPath)
-                    } else if let moduleMapPath = settings.globalScope.evaluate(BuiltinMacros.MODULEMAP_PATH).nilIfEmpty {
-                        dependenciesModuleMaps.append(Path(moduleMapPath))
-                    }
-
-                    let newDependencies = dependencyConfiguredTarget.target.dependencies.filter { !encounteredDependencies.contains($0.guid) }
-                    encounteredDependencies.formUnion(newDependencies.map { $0.guid} )
-                    remainingDependenciesToProcess.append(contentsOf: newDependencies)
+            let transitiveClosure = transitiveClosure([configuredTarget], successors: { context.globalProductPlan.dependencies(of: $0) }).result
+            for dependencyTarget in transitiveClosure {
+                let settings = context.globalProductPlan.getTargetSettings(dependencyTarget)
+                if let moduleInfo = context.globalProductPlan.getModuleInfo(dependencyTarget) {
+                    dependenciesModuleMaps.append(moduleInfo.moduleMapPaths.builtPath)
+                } else if let moduleMapPath = settings.globalScope.evaluate(BuiltinMacros.MODULEMAP_PATH).nilIfEmpty {
+                    dependenciesModuleMaps.append(Path(moduleMapPath))
                 }
             }
         }

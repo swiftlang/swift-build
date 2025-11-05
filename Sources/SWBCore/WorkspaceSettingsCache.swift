@@ -70,7 +70,7 @@ final class WorkspaceSettingsCache: Sendable {
     }
 
     /// Get the cached settings for the given parameters, without considering the context of any project/target.
-    public func getCachedSettings(_ parameters: BuildParameters, buildRequestContext: BuildRequestContext, purpose: SettingsPurpose = .build, filesSignature: ([Path]) -> FilesSignature) -> Settings {
+    public func getCachedSettings(_ parameters: BuildParameters, buildRequestContext: BuildRequestContext, purpose: SettingsPurpose, filesSignature: ([Path]) -> FilesSignature) -> Settings {
         let key = SettingsCacheKey(parameters: parameters, projectGUID: nil, targetGUID: nil, purpose: purpose, provisioningTaskInputs: nil, impartedBuildProperties: nil)
 
         // Check if there were any changes in used xcconfigs
@@ -80,20 +80,10 @@ final class WorkspaceSettingsCache: Sendable {
         }
     }
 
-    /// Get the cached settings for the given parameters and project.
-    public func getCachedSettings(_ parameters: BuildParameters, project: Project, purpose: SettingsPurpose = .build, provisioningTaskInputs: ProvisioningTaskInputs? = nil, impartedBuildProperties: [ImpartedBuildProperties]? = nil, buildRequestContext: BuildRequestContext, filesSignature: ([Path]) -> FilesSignature) -> Settings {
-        return getCachedSettings(parameters, project: project, target: nil, purpose: purpose, provisioningTaskInputs: provisioningTaskInputs, impartedBuildProperties: impartedBuildProperties, buildRequestContext: buildRequestContext, filesSignature: filesSignature)
-    }
-
-    /// Get the cached settings for the given parameters and target.
-    public func getCachedSettings(_ parameters: BuildParameters, target: Target, purpose: SettingsPurpose = .build, provisioningTaskInputs: ProvisioningTaskInputs? = nil, impartedBuildProperties: [ImpartedBuildProperties]? = nil, buildRequestContext: BuildRequestContext, filesSignature: ([Path]) -> FilesSignature) -> Settings {
-        return getCachedSettings(parameters, project: workspaceContext.workspace.project(for: target), target: target, purpose: purpose, provisioningTaskInputs: provisioningTaskInputs, impartedBuildProperties: impartedBuildProperties, buildRequestContext: buildRequestContext, filesSignature: filesSignature)
-    }
-
     /// Private method to get the cached settings for the given parameters, project, and target.
     ///
     /// - remark: This is internal so that clients don't somehow call this with a project which doesn't match the target, except for `BuildRequestContext` which has a cover method for it.  There are public methods covering this one.
-    internal func getCachedSettings(_ parameters: BuildParameters, project: Project, target: Target? = nil, purpose: SettingsPurpose = .build, provisioningTaskInputs: ProvisioningTaskInputs? = nil, impartedBuildProperties: [ImpartedBuildProperties]? = nil, buildRequestContext: BuildRequestContext, filesSignature: ([Path]) -> FilesSignature) -> Settings {
+    internal func getCachedSettings(_ parameters: BuildParameters, project: Project, target: Target?, purpose: SettingsPurpose, provisioningTaskInputs: ProvisioningTaskInputs?, impartedBuildProperties: [ImpartedBuildProperties]?, buildRequestContext: BuildRequestContext, filesSignature: ([Path]) -> FilesSignature) -> Settings {
         let key = SettingsCacheKey(parameters: parameters, projectGUID: project.guid, targetGUID: target?.guid, purpose: purpose, provisioningTaskInputs: provisioningTaskInputs, impartedBuildProperties: impartedBuildProperties)
 
         // Check if there were any changes in used xcconfigs

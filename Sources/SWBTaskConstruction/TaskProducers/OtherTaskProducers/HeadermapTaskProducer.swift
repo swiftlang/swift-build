@@ -376,7 +376,7 @@ final class HeadermapTaskProducer: PhasedTaskProducer, TaskProducer {
 
 /// Performance testing entry point to headermap construction.
 package func perfTestHeadermapProducer(planRequest: BuildPlanRequest, delegate: any TaskPlanningDelegate) async -> [String: [any PlannedTask]] {
-    let targetTaskInfo = TargetTaskInfo(startNode: MakePlannedPathNode(Path("a")), endNode: MakePlannedPathNode(Path("b")), unsignedProductReadyNode: MakePlannedPathNode(Path("c")), willSignNode: MakePlannedPathNode(Path("d")))
+    let targetTaskInfo = TargetGateNodes(startNode: MakePlannedPathNode(Path("a")), endNode: MakePlannedPathNode(Path("b")), unsignedProductReadyNode: MakePlannedPathNode(Path("c")), willSignNode: MakePlannedPathNode(Path("d")))
     let globalProductPlan = await GlobalProductPlan(planRequest: planRequest, delegate: delegate, nodeCreationDelegate: delegate)
     var result = [String: [any PlannedTask]]()
     for configuredTarget in planRequest.buildGraph.allTargets {

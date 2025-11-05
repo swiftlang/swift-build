@@ -290,7 +290,7 @@ class CopyFilesTaskProducer: FilesBasedBuildPhaseTaskProducerBase, FilesBasedBui
                     }
                 }
             }
-            let settings = context.globalProductPlan.planRequest.buildRequestContext.getCachedSettings(producingTarget.parameters, target: producingTarget.target)
+            let settings = context.globalProductPlan.getTargetSettings(producingTarget)
             // We want to not exclude the binary if DONT_EMBED_REEXPORTED_MERGEABLE_LIBRARIES is enabled in debug builds.  If we get here then we know this is a mergeable library, but if MAKE_MERGEABLE is enabled on the producing target then we expect this to be a debug build.  (We want to check MAKE_MERGEABLE because it's possible that setting was enabled manually, and in that case DONT_EMBED_REEXPORTED_MERGEABLE_LIBRARIES doesn't apply.)
             if !settings.globalScope.evaluate(BuiltinMacros.MAKE_MERGEABLE) && scope.evaluate(BuiltinMacros.DONT_EMBED_REEXPORTED_MERGEABLE_LIBRARIES) {
                 shouldSkipCopyingBinary = false
@@ -336,7 +336,7 @@ class CopyFilesTaskProducer: FilesBasedBuildPhaseTaskProducerBase, FilesBasedBui
                                         if let resolvedLinkedBuildFile = try? context.resolveBuildFileReference(linkedBuildFile), resolvedLinkedBuildFile.fileType.identifier == "wrapper.xcframework", resolvedBuildFile.absolutePath == resolvedLinkedBuildFile.absolutePath {
                                             // Here we know that this is an XCFramework which is being linked by us or one of our dependencies, and that this XCFramework is marked as mergeable.  So we decide what we want to do with it.
                                             didFindBuildFile = true
-                                            let cTargetSettings = context.globalProductPlan.planRequest.buildRequestContext.getCachedSettings(cTarget.parameters, target: cTarget.target)
+                                            let cTargetSettings = context.globalProductPlan.getTargetSettings(cTarget)
                                             let mergeLinkedLibraries = cTargetSettings.globalScope.evaluate(BuiltinMacros.MERGE_LINKED_LIBRARIES)
                                             if mergeLinkedLibraries {
                                                 shouldSkipCopyingBinary = true

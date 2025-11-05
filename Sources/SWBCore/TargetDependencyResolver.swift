@@ -79,12 +79,12 @@ public struct TargetBuildGraph: TargetGraph, Sendable {
     }
 
     /// The workspace context this graph is for.
-    public let workspaceContext: WorkspaceContext
+    private let workspaceContext: WorkspaceContext
 
     /// The build request the graph is for.
-    public let buildRequest: BuildRequest
+    private let buildRequest: BuildRequest
 
-    public let buildRequestContext: BuildRequestContext
+    private let buildRequestContext: BuildRequestContext
 
     /// The complete list of configured targets, in topological order. That is, each target will be included in the array only after all of the targets that it depends on (unless there is a target dependency cycle).
     public let allTargets: OrderedSet<ConfiguredTarget>
