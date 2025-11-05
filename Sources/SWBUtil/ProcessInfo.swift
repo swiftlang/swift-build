@@ -228,35 +228,44 @@ public enum OperatingSystem: Hashable, Sendable {
         }
     }
 
-    /// Detects the Linux distribution by examining system files
+    private func detectHostLinuxDistribution() -> LinuxDistribution? {
+        return detectHostLinuxDistribution(fs: localFS)
+    }
+
+    /// Detects the Linux distribution by examining system files with an injected filesystem
     /// Start with the "generic" /etc/os-release then fallback
     /// to various distribution named files.
-    private func detectHostLinuxDistribution() -> LinuxDistribution? {
-        #if os(Linux)
-            // Try /etc/os-release first (standard)
-            if let osRelease = try? String(contentsOfFile: "/etc/os-release") {
+    public func detectHostLinuxDistribution(fs: any FSProxy) -> LinuxDistribution? {
+        // Try /etc/os-release first (standard)
+        let osReleasePath = Path("/etc/os-release")
+        if fs.exists(osReleasePath) {
+            if let osReleaseData = try? fs.read(osReleasePath),
+               let osRelease = String(data: Data(osReleaseData.bytes), encoding: .utf8) {
                 if let distribution = parseOSRelease(osRelease) {
                     return distribution
                 }
             }
-            // Fallback to distribution-specific files
-            let distributionFiles: [(String, LinuxDistribution.Kind)] = [
-                ("/etc/ubuntu-release", .ubuntu),
-                ("/etc/debian_version", .debian),
-                ("/etc/amazon-release", .amazon),
-                ("/etc/centos-release", .centos),
-                ("/etc/redhat-release", .rhel),
-                ("/etc/fedora-release", .fedora),
-                ("/etc/SuSE-release", .suse),
-                ("/etc/alpine-release", .alpine),
-                ("/etc/arch-release", .arch),
-          ]
-           for (file, kind) in distributionFiles {
-                if FileManager.default.fileExists(atPath: file) {
-                    return LinuxDistribution(kind: kind)
-                }
+        }
+
+        // Fallback to distribution-specific files
+        let distributionFiles: [(String, LinuxDistribution.Kind)] = [
+            ("/etc/ubuntu-release", .ubuntu),
+            ("/etc/debian_version", .debian),
+            ("/etc/amazon-release", .amazon),
+            ("/etc/centos-release", .centos),
+            ("/etc/redhat-release", .rhel),
+            ("/etc/fedora-release", .fedora),
+            ("/etc/SuSE-release", .suse),
+            ("/etc/alpine-release", .alpine),
+            ("/etc/arch-release", .arch),
+        ]
+
+        for (file, kind) in distributionFiles {
+            if fs.exists(Path(file)) {
+                return LinuxDistribution(kind: kind)
             }
-        #endif
+        }
+        
         return nil
     }
 

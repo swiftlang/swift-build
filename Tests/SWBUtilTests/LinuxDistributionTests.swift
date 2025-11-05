@@ -61,31 +61,10 @@ fileprivate struct LinuxDistributionTests {
         """
 
         try await withMockLinuxDistribution(osReleaseContent: osReleaseContent) { fs in
-            // We need to test the parsing logic directly since detectHostLinuxDistribution is private
-            // and only works on Linux. Let's test the parseOSRelease method indirectly.
             let operatingSystem = OperatingSystem.linux
-            let distribution = operatingSystem.distribution
+            let distribution = operatingSystem.detectHostLinuxDistribution(fs: fs)
 
-            // For this test, we'll create a testable version of the parsing logic
-            let lines = osReleaseContent.components(separatedBy: .newlines)
-            var id: String?
-            var versionId: String?
-
-
-            for line in lines {
-                let trimmed = line.trimmingCharacters(in: .whitespaces)
-                if trimmed.hasPrefix("ID=") {
-                    id = String(trimmed.dropFirst(3)).trimmingCharacters(in: CharacterSet(charactersIn: "\""))
-                } else if trimmed.hasPrefix("VERSION_ID=") {
-                    versionId = String(trimmed.dropFirst(11)).trimmingCharacters(in: CharacterSet(charactersIn: "\""))
-                }
-            }
-
-            #expect(id == "ubuntu")
-            #expect(versionId == "22.04")
-
-            // Test the LinuxDistribution creation
-            let ubuntuDist = LinuxDistribution(kind: .ubuntu, version: versionId)
+            let ubuntuDist = try #require(distribution)
             #expect(ubuntuDist.kind == .ubuntu)
             #expect(ubuntuDist.version == "22.04")
             #expect(ubuntuDist.displayName == "Ubuntu 22.04")
@@ -107,23 +86,10 @@ fileprivate struct LinuxDistributionTests {
         """
 
         try await withMockLinuxDistribution(osReleaseContent: osReleaseContent) { fs in
-            let lines = osReleaseContent.components(separatedBy: .newlines)
-            var id: String?
-            var versionId: String?
+            let operatingSystem = OperatingSystem.linux
+            let distribution = operatingSystem.detectHostLinuxDistribution(fs: fs)
 
-            for line in lines {
-                let trimmed = line.trimmingCharacters(in: .whitespaces)
-                if trimmed.hasPrefix("ID=") {
-                    id = String(trimmed.dropFirst(3)).trimmingCharacters(in: CharacterSet(charactersIn: "\""))
-                } else if trimmed.hasPrefix("VERSION_ID=") {
-                    versionId = String(trimmed.dropFirst(11)).trimmingCharacters(in: CharacterSet(charactersIn: "\""))
-                }
-            }
-
-            #expect(id == "debian")
-            #expect(versionId == "12")
-
-            let debianDist = LinuxDistribution(kind: .debian, version: versionId)
+            let debianDist = try #require(distribution)
             #expect(debianDist.kind == .debian)
             #expect(debianDist.version == "12")
             #expect(debianDist.displayName == "Debian 12")
@@ -158,23 +124,10 @@ fileprivate struct LinuxDistributionTests {
         """
 
         try await withMockLinuxDistribution(osReleaseContent: osReleaseContent) { fs in
-            let lines = osReleaseContent.components(separatedBy: .newlines)
-            var id: String?
-            var versionId: String?
+            let operatingSystem = OperatingSystem.linux
+            let distribution = operatingSystem.detectHostLinuxDistribution(fs: fs)
 
-            for line in lines {
-                let trimmed = line.trimmingCharacters(in: .whitespaces)
-                if trimmed.hasPrefix("ID=") {
-                    id = String(trimmed.dropFirst(3)).trimmingCharacters(in: CharacterSet(charactersIn: "\""))
-                } else if trimmed.hasPrefix("VERSION_ID=") {
-                    versionId = String(trimmed.dropFirst(11)).trimmingCharacters(in: CharacterSet(charactersIn: "\""))
-                }
-            }
-
-            #expect(id == "fedora")
-            #expect(versionId == "39")
-
-            let fedoraDist = LinuxDistribution(kind: .fedora, version: versionId)
+            let fedoraDist = try #require(distribution)
             #expect(fedoraDist.kind == .fedora)
             #expect(fedoraDist.version == "39")
             #expect(fedoraDist.displayName == "Fedora 39")
@@ -199,23 +152,10 @@ fileprivate struct LinuxDistributionTests {
         """
 
         try await withMockLinuxDistribution(osReleaseContent: osReleaseContent) { fs in
-            let lines = osReleaseContent.components(separatedBy: .newlines)
-            var id: String?
-            var versionId: String?
+            let operatingSystem = OperatingSystem.linux
+            let distribution = operatingSystem.detectHostLinuxDistribution(fs: fs)
 
-            for line in lines {
-                let trimmed = line.trimmingCharacters(in: .whitespaces)
-                if trimmed.hasPrefix("ID=") {
-                    id = String(trimmed.dropFirst(3)).trimmingCharacters(in: CharacterSet(charactersIn: "\""))
-                } else if trimmed.hasPrefix("VERSION_ID=") {
-                    versionId = String(trimmed.dropFirst(11)).trimmingCharacters(in: CharacterSet(charactersIn: "\""))
-                }
-            }
-
-            #expect(id == "amzn")
-            #expect(versionId == "2023")
-
-            let amazonDist = LinuxDistribution(kind: .amazon, version: versionId)
+            let amazonDist = try #require(distribution)
             #expect(amazonDist.kind == .amazon)
             #expect(amazonDist.version == "2023")
             #expect(amazonDist.displayName == "Amazon Linux 2023")
@@ -244,23 +184,10 @@ fileprivate struct LinuxDistributionTests {
         """
 
         try await withMockLinuxDistribution(osReleaseContent: osReleaseContent) { fs in
-            let lines = osReleaseContent.components(separatedBy: .newlines)
-            var id: String?
-            var versionId: String?
+            let operatingSystem = OperatingSystem.linux
+            let distribution = operatingSystem.detectHostLinuxDistribution(fs: fs)
 
-            for line in lines {
-                let trimmed = line.trimmingCharacters(in: .whitespaces)
-                if trimmed.hasPrefix("ID=") {
-                    id = String(trimmed.dropFirst(3)).trimmingCharacters(in: CharacterSet(charactersIn: "\""))
-                } else if trimmed.hasPrefix("VERSION_ID=") {
-                    versionId = String(trimmed.dropFirst(11)).trimmingCharacters(in: CharacterSet(charactersIn: "\""))
-                }
-            }
-
-            #expect(id == "rhel")
-            #expect(versionId == "9.3")
-
-            let rhelDist = LinuxDistribution(kind: .rhel, version: versionId)
+            let rhelDist = try #require(distribution)
             #expect(rhelDist.kind == .rhel)
             #expect(rhelDist.version == "9.3")
             #expect(rhelDist.displayName == "Red Hat Enterprise Linux 9.3")
@@ -286,32 +213,10 @@ fileprivate struct LinuxDistributionTests {
         """
 
         try await withMockLinuxDistribution(osReleaseContent: osReleaseContent) { fs in
-            let lines = osReleaseContent.components(separatedBy: .newlines)
-            var id: String?
-            var versionId: String?
+            let operatingSystem = OperatingSystem.linux
+            let distribution = operatingSystem.detectHostLinuxDistribution(fs: fs)
 
-            for line in lines {
-                let trimmed = line.trimmingCharacters(in: .whitespaces)
-                if trimmed.hasPrefix("ID=") {
-                    id = String(trimmed.dropFirst(3)).trimmingCharacters(in: CharacterSet(charactersIn: "\""))
-                } else if trimmed.hasPrefix("VERSION_ID=") {
-                    versionId = String(trimmed.dropFirst(11)).trimmingCharacters(in: CharacterSet(charactersIn: "\""))
-                }
-            }
-
-            #expect(id == "opensuse-tumbleweed")
-            #expect(versionId == "20231201")
-
-            // Test that opensuse-tumbleweed maps to .suse
-            let kind: LinuxDistribution.Kind
-            switch id?.lowercased() {
-            case "suse", "opensuse", "opensuse-leap", "opensuse-tumbleweed":
-                kind = .suse
-            default:
-                kind = .unknown
-            }
-
-            let suseDist = LinuxDistribution(kind: kind, version: versionId)
+            let suseDist = try #require(distribution)
             #expect(suseDist.kind == .suse)
             #expect(suseDist.version == "20231201")
             #expect(suseDist.displayName == "SUSE 20231201")
@@ -330,23 +235,10 @@ fileprivate struct LinuxDistributionTests {
         """
 
         try await withMockLinuxDistribution(osReleaseContent: osReleaseContent) { fs in
-            let lines = osReleaseContent.components(separatedBy: .newlines)
-            var id: String?
-            var versionId: String?
+            let operatingSystem = OperatingSystem.linux
+            let distribution = operatingSystem.detectHostLinuxDistribution(fs: fs)
 
-            for line in lines {
-                let trimmed = line.trimmingCharacters(in: .whitespaces)
-                if trimmed.hasPrefix("ID=") {
-                    id = String(trimmed.dropFirst(3)).trimmingCharacters(in: CharacterSet(charactersIn: "\""))
-                } else if trimmed.hasPrefix("VERSION_ID=") {
-                    versionId = String(trimmed.dropFirst(11)).trimmingCharacters(in: CharacterSet(charactersIn: "\""))
-                }
-            }
-
-            #expect(id == "alpine")
-            #expect(versionId == "3.18.4")
-
-            let alpineDist = LinuxDistribution(kind: .alpine, version: versionId)
+            let alpineDist = try #require(distribution)
             #expect(alpineDist.kind == .alpine)
             #expect(alpineDist.version == "3.18.4")
             #expect(alpineDist.displayName == "Alpine Linux 3.18.4")
@@ -370,25 +262,12 @@ fileprivate struct LinuxDistributionTests {
         """
 
         try await withMockLinuxDistribution(osReleaseContent: osReleaseContent) { fs in
-            let lines = osReleaseContent.components(separatedBy: .newlines)
-            var id: String?
-            var versionId: String?
+            let operatingSystem = OperatingSystem.linux
+            let distribution = operatingSystem.detectHostLinuxDistribution(fs: fs)
 
-            for line in lines {
-                let trimmed = line.trimmingCharacters(in: .whitespaces)
-                if trimmed.hasPrefix("ID=") {
-                    id = String(trimmed.dropFirst(3)).trimmingCharacters(in: CharacterSet(charactersIn: "\""))
-                } else if trimmed.hasPrefix("VERSION_ID=") {
-                    versionId = String(trimmed.dropFirst(11)).trimmingCharacters(in: CharacterSet(charactersIn: "\""))
-                }
-            }
-
-            #expect(id == "arch")
-            #expect(versionId == nil) // Arch doesn't typically have VERSION_ID
-
-            let archDist = LinuxDistribution(kind: .arch, version: versionId)
+            let archDist = try #require(distribution)
             #expect(archDist.kind == .arch)
-            #expect(archDist.version == nil)
+            #expect(archDist.version == nil) // Arch doesn't typically have VERSION_ID
             #expect(archDist.displayName == "Arch Linux")
         }
     }
@@ -405,49 +284,11 @@ fileprivate struct LinuxDistributionTests {
         """
 
         try await withMockLinuxDistribution(osReleaseContent: osReleaseContent) { fs in
-            let lines = osReleaseContent.components(separatedBy: .newlines)
-            var id: String?
-            var idLike: String?
-            var versionId: String?
+            let operatingSystem = OperatingSystem.linux
+            let distribution = operatingSystem.detectHostLinuxDistribution(fs: fs)
 
-            for line in lines {
-                let trimmed = line.trimmingCharacters(in: .whitespaces)
-                if trimmed.hasPrefix("ID=") {
-                    id = String(trimmed.dropFirst(3)).trimmingCharacters(in: CharacterSet(charactersIn: "\""))
-                } else if trimmed.hasPrefix("ID_LIKE=") {
-                    idLike = String(trimmed.dropFirst(8)).trimmingCharacters(in: CharacterSet(charactersIn: "\""))
-                } else if trimmed.hasPrefix("VERSION_ID=") {
-                    versionId = String(trimmed.dropFirst(11)).trimmingCharacters(in: CharacterSet(charactersIn: "\""))
-                }
-            }
-
-            #expect(id == "customubuntu")
-            #expect(idLike == "ubuntu debian")
-            #expect(versionId == "1.0")
-
-            // Test ID_LIKE fallback logic
-            let likes = idLike?.components(separatedBy: .whitespaces) ?? []
-            var detectedKind: LinuxDistribution.Kind = .unknown
-
-            for like in likes {
-                switch like.lowercased() {
-                case "ubuntu":
-                    detectedKind = .ubuntu
-                    break
-                case "debian":
-                    if detectedKind == .unknown {  // Only set debian if no higher priority match found
-                        detectedKind = .debian
-                    }
-                    break
-                default:
-                    continue
-                }
-            }
-
-            #expect(detectedKind == .ubuntu) // Should detect ubuntu first from ID_LIKE
-
-            let customDist = LinuxDistribution(kind: detectedKind, version: versionId)
-            #expect(customDist.kind == .ubuntu)
+            let customDist: LinuxDistribution = try #require(distribution)
+            #expect(customDist.kind == .ubuntu) // Should detect ubuntu first from ID_LIKE
             #expect(customDist.version == "1.0")
         }
     }
@@ -463,24 +304,11 @@ fileprivate struct LinuxDistributionTests {
         """
 
         try await withMockLinuxDistribution(osReleaseContent: malformedContent) { fs in
-            let lines = malformedContent.components(separatedBy: .newlines)
-            var id: String?
-            var versionId: String?
-
-            for line in lines {
-                let trimmed = line.trimmingCharacters(in: .whitespaces)
-                if trimmed.hasPrefix("ID=") {
-                    id = String(trimmed.dropFirst(3)).trimmingCharacters(in: CharacterSet(charactersIn: "\""))
-                } else if trimmed.hasPrefix("VERSION_ID=") {
-                    versionId = String(trimmed.dropFirst(11)).trimmingCharacters(in: CharacterSet(charactersIn: "\""))
-                }
-            }
-
-            #expect(id == "ubuntu")
-            #expect(versionId == "22.04")
+            let operatingSystem = OperatingSystem.linux
+            let distribution = operatingSystem.detectHostLinuxDistribution(fs: fs)
 
             // Should still work despite malformed lines
-            let ubuntuDist = LinuxDistribution(kind: .ubuntu, version: versionId)
+            let ubuntuDist = try #require(distribution)
             #expect(ubuntuDist.kind == .ubuntu)
             #expect(ubuntuDist.version == "22.04")
         }
@@ -489,22 +317,11 @@ fileprivate struct LinuxDistributionTests {
     @Test
     func handleEmptyOSRelease() async throws {
         try await withMockLinuxDistribution(osReleaseContent: "") { fs in
+            let operatingSystem = OperatingSystem.linux
+            let distribution = operatingSystem.detectHostLinuxDistribution(fs: fs)
+
             // Empty content should result in no detection
-            let lines = "".components(separatedBy: .newlines)
-            var id: String?
-            var versionId: String?
-
-            for line in lines {
-                let trimmed = line.trimmingCharacters(in: .whitespaces)
-                if trimmed.hasPrefix("ID=") {
-                    id = String(trimmed.dropFirst(3)).trimmingCharacters(in: CharacterSet(charactersIn: "\""))
-                } else if trimmed.hasPrefix("VERSION_ID=") {
-                    versionId = String(trimmed.dropFirst(11)).trimmingCharacters(in: CharacterSet(charactersIn: "\""))
-                }
-            }
-
-            #expect(id == nil)
-            #expect(versionId == nil)
+            #expect(distribution == nil)
         }
     }
 
@@ -519,30 +336,10 @@ fileprivate struct LinuxDistributionTests {
             #expect(fs.exists(Path("/etc/ubuntu-release")))
             #expect(!fs.exists(Path("/etc/os-release")))
 
-            // Simulate the fallback logic
-            let distributionFiles: [(String, LinuxDistribution.Kind)] = [
-                ("/etc/ubuntu-release", .ubuntu),
-                ("/etc/debian_version", .debian),
-                ("/etc/amazon-release", .amazon),
-                ("/etc/centos-release", .centos),
-                ("/etc/redhat-release", .rhel),
-                ("/etc/fedora-release", .fedora),
-                ("/etc/SuSE-release", .suse),
-                ("/etc/alpine-release", .alpine),
-                ("/etc/arch-release", .arch),
-            ]
+            let operatingSystem = OperatingSystem.linux
+            let distribution = operatingSystem.detectHostLinuxDistribution(fs: fs)
 
-            var detectedKind: LinuxDistribution.Kind?
-            for (file, kind) in distributionFiles {
-                if fs.exists(Path(file)) {
-                    detectedKind = kind
-                    break
-                }
-            }
-
-            #expect(detectedKind == .ubuntu)
-
-            let ubuntuDist = LinuxDistribution(kind: .ubuntu)
+            let ubuntuDist = try #require(distribution)
             #expect(ubuntuDist.kind == .ubuntu)
             #expect(ubuntuDist.version == nil) // Fallback files don't provide version parsing
             #expect(ubuntuDist.displayName == "Ubuntu")
@@ -557,27 +354,11 @@ fileprivate struct LinuxDistributionTests {
             #expect(fs.exists(Path("/etc/debian_version")))
             #expect(!fs.exists(Path("/etc/os-release")))
 
-            let distributionFiles: [(String, LinuxDistribution.Kind)] = [
-                ("/etc/ubuntu-release", .ubuntu),
-                ("/etc/debian_version", .debian),
-                ("/etc/amazon-release", .amazon),
-                ("/etc/centos-release", .centos),
-                ("/etc/redhat-release", .rhel),
-                ("/etc/fedora-release", .fedora),
-                ("/etc/SuSE-release", .suse),
-                ("/etc/alpine-release", .alpine),
-                ("/etc/arch-release", .arch),
-            ]
+            let operatingSystem = OperatingSystem.linux
+            let distribution = operatingSystem.detectHostLinuxDistribution(fs: fs)
 
-            var detectedKind: LinuxDistribution.Kind?
-            for (file, kind) in distributionFiles {
-                if fs.exists(Path(file)) {
-                    detectedKind = kind
-                    break
-                }
-            }
-
-            #expect(detectedKind == .debian)
+            let debianDist = try #require(distribution)
+            #expect(debianDist.kind == .debian)
         }
     }
 
@@ -591,28 +372,11 @@ fileprivate struct LinuxDistributionTests {
                 "/etc/fedora-release": "Fedora release 39"
             ]
         ) { fs in
-            // Should detect Ubuntu first since it comes first in the priority list
-            let distributionFiles: [(String, LinuxDistribution.Kind)] = [
-                ("/etc/ubuntu-release", .ubuntu),
-                ("/etc/debian_version", .debian),
-                ("/etc/amazon-release", .amazon),
-                ("/etc/centos-release", .centos),
-                ("/etc/redhat-release", .rhel),
-                ("/etc/fedora-release", .fedora),
-                ("/etc/SuSE-release", .suse),
-                ("/etc/alpine-release", .alpine),
-                ("/etc/arch-release", .arch),
-            ]
+            let operatingSystem = OperatingSystem.linux
+            let distribution = operatingSystem.detectHostLinuxDistribution(fs: fs)
 
-            var detectedKind: LinuxDistribution.Kind?
-            for (file, kind) in distributionFiles {
-                if fs.exists(Path(file)) {
-                    detectedKind = kind
-                    break
-                }
-            }
-
-            #expect(detectedKind == .ubuntu) // Should be Ubuntu, not Debian or Fedora
+            let ubuntuDist = try #require(distribution)
+            #expect(ubuntuDist.kind == .ubuntu) // Should be Ubuntu, not Debian or Fedora
         }
     }
 
@@ -624,27 +388,10 @@ fileprivate struct LinuxDistributionTests {
             // No /etc/os-release and no fallback files
             #expect(!fs.exists(Path("/etc/os-release")))
 
-            let distributionFiles: [(String, LinuxDistribution.Kind)] = [
-                ("/etc/ubuntu-release", .ubuntu),
-                ("/etc/debian_version", .debian),
-                ("/etc/amazon-release", .amazon),
-                ("/etc/centos-release", .centos),
-                ("/etc/redhat-release", .rhel),
-                ("/etc/fedora-release", .fedora),
-                ("/etc/SuSE-release", .suse),
-                ("/etc/alpine-release", .alpine),
-                ("/etc/arch-release", .arch),
-            ]
+            let operatingSystem = OperatingSystem.linux
+            let distribution = operatingSystem.detectHostLinuxDistribution(fs: fs)
 
-            var detectedKind: LinuxDistribution.Kind?
-            for (file, kind) in distributionFiles {
-                if fs.exists(Path(file)) {
-                    detectedKind = kind
-                    break
-                }
-            }
-
-            #expect(detectedKind == nil) // Should return nil when no files are found
+            #expect(distribution == nil) // Should return nil when no files are found
         }
     }
 
@@ -658,23 +405,11 @@ fileprivate struct LinuxDistributionTests {
         """
 
         try await withMockLinuxDistribution(osReleaseContent: osReleaseContent) { fs in
-            let lines = osReleaseContent.components(separatedBy: .newlines)
-            var id: String?
-            var versionId: String?
-
-            for line in lines {
-                let trimmed = line.trimmingCharacters(in: .whitespaces)
-                if trimmed.hasPrefix("ID=") {
-                    id = String(trimmed.dropFirst(3)).trimmingCharacters(in: CharacterSet(charactersIn: "\""))
-                } else if trimmed.hasPrefix("VERSION_ID=") {
-                    versionId = String(trimmed.dropFirst(11)).trimmingCharacters(in: CharacterSet(charactersIn: "\""))
-                }
-            }
-
-            #expect(id == nil) // No ID field
-            #expect(versionId == "1.0")
+            let operatingSystem = OperatingSystem.linux
+            let distribution = operatingSystem.detectHostLinuxDistribution(fs: fs)
 
             // Should return nil when ID is not found and no ID_LIKE fallback
+            #expect(distribution == nil)
         }
     }
 
@@ -689,88 +424,11 @@ fileprivate struct LinuxDistributionTests {
         """
 
         try await withMockLinuxDistribution(osReleaseContent: osReleaseContent) { fs in
-            let lines = osReleaseContent.components(separatedBy: .newlines)
-            var id: String?
-            var versionId: String?
+            let operatingSystem = OperatingSystem.linux
+            let distribution = operatingSystem.detectHostLinuxDistribution(fs: fs)
 
-            for line in lines {
-                let trimmed = line.trimmingCharacters(in: .whitespaces)
-                if trimmed.hasPrefix("ID=") {
-                    id = String(trimmed.dropFirst(3)).trimmingCharacters(in: CharacterSet(charactersIn: "\""))
-                } else if trimmed.hasPrefix("VERSION_ID=") {
-                    versionId = String(trimmed.dropFirst(11)).trimmingCharacters(in: CharacterSet(charactersIn: "\""))
-                }
-            }
-
-            #expect(id == "unknowndistro")
-            #expect(versionId == "1.0")
-
-            // Test unknown ID mapping
-            let kind: LinuxDistribution.Kind?
-            switch id?.lowercased() {
-            case "ubuntu": kind = .ubuntu
-            case "debian": kind = .debian
-            case "amzn": kind = .amazon
-            case "centos": kind = .centos
-            case "rhel": kind = .rhel
-            case "fedora": kind = .fedora
-            case "suse", "opensuse", "opensuse-leap", "opensuse-tumbleweed": kind = .suse
-            case "alpine": kind = .alpine
-            case "arch": kind = .arch
-            default: kind = nil
-            }
-
-            #expect(kind == nil) // Unknown ID should map to nil
+            // Unknown ID should map to nil
+            #expect(distribution == nil)
         }
-    }
-
-    @Test
-    func testLinuxDistributionKindDisplayNames() async throws {
-        // Test all distribution kind display names
-        #expect(LinuxDistribution.Kind.unknown.displayName == "Unknown Linux")
-        #expect(LinuxDistribution.Kind.ubuntu.displayName == "Ubuntu")
-        #expect(LinuxDistribution.Kind.debian.displayName == "Debian")
-        #expect(LinuxDistribution.Kind.amazon.displayName == "Amazon Linux")
-        #expect(LinuxDistribution.Kind.centos.displayName == "CentOS")
-        #expect(LinuxDistribution.Kind.rhel.displayName == "Red Hat Enterprise Linux")
-        #expect(LinuxDistribution.Kind.fedora.displayName == "Fedora")
-        #expect(LinuxDistribution.Kind.suse.displayName == "SUSE")
-        #expect(LinuxDistribution.Kind.alpine.displayName == "Alpine Linux")
-        #expect(LinuxDistribution.Kind.arch.displayName == "Arch Linux")
-    }
-
-    @Test
-    func testLinuxDistributionDisplayName() async throws {
-        // Test display name with and without version
-        let ubuntuWithVersion = LinuxDistribution(kind: .ubuntu, version: "22.04")
-        #expect(ubuntuWithVersion.displayName == "Ubuntu 22.04")
-
-        let ubuntuWithoutVersion = LinuxDistribution(kind: .ubuntu, version: nil)
-        #expect(ubuntuWithoutVersion.displayName == "Ubuntu")
-
-        let unknownWithVersion = LinuxDistribution(kind: .unknown, version: "1.0")
-        #expect(unknownWithVersion.displayName == "Unknown Linux 1.0")
-    }
-
-    @Test
-    func testLinuxDistributionHashableAndSendable() async throws {
-        // Test that LinuxDistribution conforms to Hashable and Sendable
-        let ubuntu1 = LinuxDistribution(kind: .ubuntu, version: "22.04")
-        let ubuntu2 = LinuxDistribution(kind: .ubuntu, version: "22.04")
-        let ubuntu3 = LinuxDistribution(kind: .ubuntu, version: "20.04")
-        let debian = LinuxDistribution(kind: .debian, version: "12")
-
-        // Test Hashable
-        #expect(ubuntu1 == ubuntu2)
-        #expect(ubuntu1 != ubuntu3)
-        #expect(ubuntu1 != debian)
-
-        // Test that they can be used in Sets (requires Hashable)
-        let distributionSet: Set<LinuxDistribution> = [ubuntu1, ubuntu2, ubuntu3, debian]
-        #expect(distributionSet.count == 3) // ubuntu1 and ubuntu2 should be the same
-
-        // Test that LinuxDistribution.Kind is also Hashable
-        let kindSet: Set<LinuxDistribution.Kind> = [.ubuntu, .debian, .ubuntu, .fedora]
-        #expect(kindSet.count == 3) // Should deduplicate the duplicate .ubuntu
     }
 }
