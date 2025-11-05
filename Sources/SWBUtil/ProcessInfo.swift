@@ -265,7 +265,7 @@ public enum OperatingSystem: Hashable, Sendable {
                 return LinuxDistribution(kind: kind)
             }
         }
-        
+
         return nil
     }
 
@@ -419,3 +419,4 @@ extension FixedWidthInteger {
         return self != 0 ? self : other
     }
 }
+

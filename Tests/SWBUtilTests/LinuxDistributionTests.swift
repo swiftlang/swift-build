@@ -14,8 +14,7 @@ import Foundation
 import Testing
 import SWBTestSupport
 import SWBUtil
-
-@Suite
+@Suite(.skipHostOS(.windows))
 fileprivate struct LinuxDistributionTests {
 
     /// Test helper to create a mock filesystem with specific files
