@@ -126,7 +126,7 @@ final class AppExtensionInfoPlistGeneratorTaskProducer: PhasedTaskProducer, Task
         let isApplePlatform = context.isApplePlatform
         guard AppExtensionPlistGeneratorSpec.shouldConstructTask(scope: scope, productType: productType, isApplePlatform: isApplePlatform) else {
             return []
-        }        
+        }
 
         let tasks: [any PlannedTask] = []
         let buildFilesProcessingContext = BuildFilesProcessingContext(scope)

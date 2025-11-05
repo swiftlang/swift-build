@@ -286,7 +286,7 @@ public struct CreateBuildRequest: SessionChannelBuildMessage, RequestMessage, Se
 
 public struct BuildStartRequest: SessionMessage, RequestMessage, Equatable {
     public typealias ResponseMessage = VoidResponse
-    
+
     public static let name = "BUILD_START"
 
     /// The identifier for the session to initiate the request in.

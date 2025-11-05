@@ -20,7 +20,7 @@ extension ProjectModel {
         public var name: String
         public var settings: BuildSettings
         public var impartedBuildProperties: ImpartedBuildProperties
-        
+
         public init(id: GUID, name: String, settings: BuildSettings, impartedBuildSettings: BuildSettings = .init()) {
             precondition(!name.isEmpty)
             self.id = id
@@ -39,7 +39,7 @@ extension ProjectModel.BuildConfig: Codable {
         self.settings = try container.decode(ProjectModel.BuildSettings.self, forKey: .buildSettings)
         self.impartedBuildProperties = try container.decode(ProjectModel.ImpartedBuildProperties.self, forKey: .impartedBuildProperties)
     }
-    
+
     public func encode(to encoder: any Encoder) throws {
         var container = encoder.container(keyedBy: CodingKeys.self)
         try container.encode(id, forKey: .guid)

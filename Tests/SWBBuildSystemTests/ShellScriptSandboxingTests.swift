@@ -415,14 +415,14 @@ fileprivate struct ShellScriptSandboxingTests: CoreBasedTests {
                                             set -o pipefail
                                             mkdir -p "${SCRIPT_OUTPUT_FILE_0}"
                                             cd "${SCRIPT_INPUT_FILE_0}"
-                                            
+
                                             for headerFile in ${SCRIPT_INPUT_FILE_0}/*.fake-h
                                             do
                                                 cp "$headerFile" "${SCRIPT_OUTPUT_FILE_0}"/
                                             done
-                                            
+
                                             ls "${SCRIPT_OUTPUT_FILE_0}"/
-                                            
+
                                             cat "${SCRIPT_OUTPUT_FILE_0}"/*
                                             """#,
                                         inputs: ["$(SRCROOT)/myCryptoProject/raw/"], outputs: ["$(SHARED_DERIVED_FILE_DIR)/headers/"]),

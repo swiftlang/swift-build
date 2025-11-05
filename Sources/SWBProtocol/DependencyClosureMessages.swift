@@ -14,7 +14,7 @@ public import SWBUtil
 
 public struct ComputeDependencyClosureRequest: SessionMessage, RequestMessage, SerializableCodable, Equatable {
     public typealias ResponseMessage = StringListResponse
-    
+
     public static let name = "COMPUTE_DEPENDENCY_CLOSURE_REQUEST"
 
     public let sessionHandle: String

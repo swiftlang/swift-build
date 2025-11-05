@@ -474,7 +474,7 @@ package final class BuildOperation: BuildSystemOperation {
         // Create the low-level build system.
         let adaptor: OperationSystemAdaptor
         let system: BuildSystem
-        
+
         let llbQoS: SWBLLBuild.BuildSystem.QualityOfService?
         switch request.qos {
         case .default: llbQoS = .default

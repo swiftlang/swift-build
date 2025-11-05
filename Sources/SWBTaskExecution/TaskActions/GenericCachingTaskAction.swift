@@ -247,12 +247,12 @@ public final class GenericCachingTaskAction: TaskAction {
         let sandboxProfile: ByteString = """
         (version 1)
         (allow default)
-        
+
         (deny network*)
-        
+
         (deny file-write*)
         (allow file-write* (subpath "/dev/")) ; Allow writes to locations such as /dev/null
-        
+
         (deny file-read* (subpath "/Users/")) ; Block access to most locations under user control, while allowing reads to parts of the system required by frameworks and tools
         (allow file-read* (subpath (param "XCODE"))) ; Allow reads into Xcode.app
 
@@ -265,7 +265,7 @@ public final class GenericCachingTaskAction: TaskAction {
 
         ; Allow reads and writes to the task sandbox location
         (allow file-read* file-write* (subpath (param "TASK_SANDBOX")))
-        
+
         ; Allow reads and writes to specific files required by system frameworks and libraries
         (allow file-read-data file-write-data
           (regex
@@ -273,7 +273,7 @@ public final class GenericCachingTaskAction: TaskAction {
             #"^/usr/share/nls/"
             #"^/usr/share/zoneinfo /var/db/timezone/zoneinfo/"
           ))
-        
+
         (allow file-read-metadata)
         """
         try executionDelegate.fs.write(sandboxPath, contents: sandboxProfile)

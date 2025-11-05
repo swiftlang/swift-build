@@ -21,7 +21,7 @@ final class CustomTaskProducer: PhasedTaskProducer, TaskProducer {
 
         await appendGeneratedTasks(&tasks) { delegate in
             for customTask in context.configuredTarget?.target.customTasks ?? [] {
-                
+
                 let commandLine = customTask.commandLine.map { context.settings.globalScope.evaluate($0) }
                 var environmentAssignments = await computeScriptEnvironment(.shellScriptPhase, scope: context.settings.globalScope, settings: context.settings, workspaceContext: context.workspaceContext, allDeploymentTargetMacroNames: context.allDeploymentTargetMacroNames())
                 if context.workspaceContext.core.hostOperatingSystem != .macOS {
@@ -67,7 +67,7 @@ final class CustomTaskProducer: PhasedTaskProducer, TaskProducer {
                     // If there are no outputs, create a virtual output that can be wired up to gates
                     outputs.append(delegate.createVirtualNode("CustomTask-\(taskSignature)"))
                 }
-                
+
                 delegate.createTask(
                     type: CustomTaskTypeDescription.only,
                     ruleInfo: ["CustomTask", context.settings.globalScope.evaluate(customTask.executionDescription), taskSignature],

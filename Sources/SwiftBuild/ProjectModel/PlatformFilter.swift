@@ -31,7 +31,7 @@ extension ProjectModel.PlatformFilter: Codable {
         self.platform = try container.decode(String.self, forKey: .platform)
         self.environment = try container.decodeIfPresent(String.self, forKey: .environment) ?? ""
     }
-    
+
     public func encode(to encoder: any Encoder) throws {
         var container = encoder.container(keyedBy: CodingKeys.self)
         try container.encode(self.platform, forKey: .platform)

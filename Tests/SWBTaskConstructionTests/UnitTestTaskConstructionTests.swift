@@ -369,17 +369,17 @@ fileprivate struct UnitTestTaskConstructionTests: CoreBasedTests {
             results.checkTarget("UnitTestRunner") { target in
                 results.checkTask(.matchTarget(target), .matchRuleType("GenerateTestEntryPoint")) { task in
                     task.checkCommandLineMatches([
-                        .suffix("builtin-generateTestEntryPoint"), 
-                        "--output", 
-                        .suffix("test_entry_point.swift"), 
-                        "--discover-tests", 
-                        "--linker-file-list-format", 
+                        .suffix("builtin-generateTestEntryPoint"),
+                        "--output",
+                        .suffix("test_entry_point.swift"),
+                        "--discover-tests",
+                        "--linker-file-list-format",
                         .any,
-                        "--index-store-library-path", 
-                        .or(.suffix("libIndexStore.so"), .suffix("libIndexStore.dll")), 
-                        "--linker-filelist", .suffix("UnitTestTarget.LinkFileList"), 
+                        "--index-store-library-path",
+                        .or(.suffix("libIndexStore.so"), .suffix("libIndexStore.dll")),
+                        "--linker-filelist", .suffix("UnitTestTarget.LinkFileList"),
                         "--index-store", .equal(Path("/index").str),
-                        "--index-unit-base-path", 
+                        "--index-unit-base-path",
                         .equal(Path.root.join("/tmp/Test/aProject/build").str)
                     ])
                     task.checkInputs([

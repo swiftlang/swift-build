@@ -36,7 +36,7 @@ fileprivate struct ToolchainTests: CoreBasedTests {
                         try await testSession.close()
                     }
                 }
-                
+
                 let id = try await testSession.session.lookupToolchain(at: tmpDir.join("toolchain.xctoolchain").str)
                 #expect(id?.rawValue == "com.foo.bar")
             }

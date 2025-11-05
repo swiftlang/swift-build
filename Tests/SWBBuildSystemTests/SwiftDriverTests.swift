@@ -1039,7 +1039,7 @@ fileprivate struct SwiftDriverTests: CoreBasedTests {
                     file <<<
                         """
                         import TargetA
-                        
+
                         struct D {
                             let a = A()
                         }
@@ -1056,7 +1056,7 @@ fileprivate struct SwiftDriverTests: CoreBasedTests {
                     file <<<
                         """
                         import TargetB
-                        
+
                         struct F {
                             let c = C()
                         }
@@ -5186,7 +5186,7 @@ fileprivate struct SwiftDriverTests: CoreBasedTests {
                         public struct A {
                             public init() { }
                         }
-                        
+
                         public func foo() { }
                         """
             }

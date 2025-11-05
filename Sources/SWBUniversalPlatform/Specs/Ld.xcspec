@@ -642,7 +642,7 @@
                 CommandLineArgs = {
                     "" = ();
                     "<<otherwise>>" = (
-                        "-Xlinker", 
+                        "-Xlinker",
                         "-dependency_info",
                         "-Xlinker",
                         "$(value)",

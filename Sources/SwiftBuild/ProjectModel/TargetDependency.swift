@@ -34,7 +34,7 @@ extension ProjectModel.TargetDependency: Codable {
         self.targetId = try container.decode(ProjectModel.GUID.self, forKey: .guid)
         self.platformFilters = try container.decode(Set<ProjectModel.PlatformFilter>.self, forKey: .platformFilters)
     }
-    
+
     public func encode(to encoder: any Encoder) throws {
         var container = encoder.container(keyedBy: CodingKeys.self)
         try container.encode(self.targetId, forKey: .guid)

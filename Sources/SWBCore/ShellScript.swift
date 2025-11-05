@@ -153,7 +153,7 @@ public func computeScriptEnvironment(_ type: ScriptType, scope: MacroEvaluationS
     for macro in alwaysPresentPathMacros {
         result[macro.name] = scope.evaluate(macro).str
     }
-    
+
     for macro in [BuiltinMacros.BUILD_COMPONENTS, BuiltinMacros.BUILD_VARIANTS] {
         result[macro.name] = scope.evaluateAsString(macro)
     }

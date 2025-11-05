@@ -122,7 +122,7 @@ public struct SwiftSDK: Sendable {
         // Load info.json from the artifact bundle
         let infoPath = artifactBundle.join("info.json")
         guard try fs.isFile(infoPath) else { return [] }
-        
+
         let infoData = try Data(fs.read(infoPath))
 
         let schema = try JSONDecoder().decode(SchemaVersionInfo.self, from: infoData)

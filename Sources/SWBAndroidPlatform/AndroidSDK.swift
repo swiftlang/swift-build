@@ -108,11 +108,11 @@ public import Foundation
             init(from decoder: any Decoder, configuration: Version) throws {
                 struct DynamicCodingKey: CodingKey {
                     var stringValue: String
-                    
+
                     init?(stringValue: String) {
                         self.stringValue = stringValue
                     }
-                    
+
                     let intValue: Int? = nil
 
                     init?(intValue: Int) {

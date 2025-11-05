@@ -41,7 +41,7 @@ import SWBUtil
 }
 
 @Suite fileprivate struct TaskCheckingTests: CoreBasedTests {
-    @Test(.requireSDKs(.host)) 
+    @Test(.requireSDKs(.host))
     func ensureTaskBelongToCorrectBuild() async throws {
         try await withTemporaryDirectory { tmpDir in
             let testWorkspace = TestWorkspace("TestWorkspace", sourceRoot: tmpDir, projects: [

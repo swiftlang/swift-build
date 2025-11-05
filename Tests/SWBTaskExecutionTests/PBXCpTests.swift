@@ -298,7 +298,7 @@ fileprivate struct PBXCpTests: CoreBasedTests {
     }
 
     /// Check that we can invoke `strip`.
-    @Test 
+    @Test
     func stripUnstrippedBinaries() async throws {
         try await withTemporaryDirectory { tmp in
             let src = tmp.join("src")
@@ -324,7 +324,7 @@ fileprivate struct PBXCpTests: CoreBasedTests {
         }
     }
 
-     @Test 
+     @Test
     func relativeDestinationToCWD() async throws {
         try await withTemporaryDirectory { tmp in
             let src = tmp.join("src")

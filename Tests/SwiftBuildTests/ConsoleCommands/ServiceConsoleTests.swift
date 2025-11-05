@@ -56,7 +56,7 @@ fileprivate struct ServiceConsoleTests {
         let executionResult = try await Process.getOutput(url: try CLIConnection.swiftbuildToolURL, arguments: ["isAlive"], environment: CLIConnection.environment)
 
         let output = String(decoding: executionResult.stdout, as: UTF8.self)
-        
+
         // Verify there were no errors.
         #expect(output == "is alive? yes\(String.newline)")
 
