@@ -680,7 +680,7 @@ fileprivate struct BuildActionTaskConstructionTests: CoreBasedTests {
     }
 
 
-    /// Test running an install on a product to a location which contains an upwards path component ('..'), as path normalization and provisional task nullification can results in some build artifacts not being produced if paths don't line up.
+    /// Test running an install on a product to a location which contains an upwards path component ('..'), as path normalization and task validation criteria nullification can results in some build artifacts not being produced if paths don't line up.
     @Test(.requireSDKs(.macOS))
     func installWithUpwardsPath() async throws {
         // Test running the installhdrs build action on a framework.

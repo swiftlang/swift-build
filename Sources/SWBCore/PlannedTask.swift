@@ -59,7 +59,7 @@ public protocol PlannedTaskInputsOutputs {
 /// A task is a concrete unit of work to be performed by the build system as a result of task construction.  For example the compilation of an individual file or the copying of a single resource. In many cases, each task will directly correspond to an external command line to be executed.  Every task also has inputs and outputs which will be honored by the build system.
 ///
 /// A *planned* task contains information used only during task construction or which is added to the `BuildDescription` and not otherwise used during execution; information used during execution is stored in a corresponding *executable* task.  A planned task also contains a strong reference to its executable task (since during task construction the planned task is the only object which is keeping the executable task alive).
-public protocol PlannedTask: AnyObject, CustomStringConvertible, Sendable, PlannedTaskInputsOutputs {
+public protocol PlannedTask: AnyObject, CustomStringConvertible, Sendable, PlannedTaskInputsOutputs, Sendable {
     /// The type description of the task.
     var type: any TaskTypeDescription { get }
 
@@ -87,10 +87,8 @@ public protocol PlannedTask: AnyObject, CustomStringConvertible, Sendable, Plann
     /// The executable task for this planned task.
     var execTask: any ExecutableTask { get }
 
-    /// The provisional task corresponding to this task, if any.
-    ///
-    /// This is mainly important for resolution of provisional tasks for directory creation: We don't want to consider a provisional task for directory creation valid just because other provisional tasks (and *only* provisional tasks) are placing content there; we want to be able to easily determine that non-provisional tasks are placing content there.
-    var provisionalTask: ProvisionalTask? { get set }
+    /// Criteria for determining if this task should be included in the build plan.
+    var validityCriteria: (any TaskValidityCriteria)? { get }
 
     /// Allows a task to always be executed.
     var alwaysExecuteTask: Bool { get }
@@ -133,7 +131,7 @@ extension PlannedTask {
 }
 
 /// A constructed task is a concrete instance of `PlannedTask` which captures information about a task which is used during task construction and creation of the `BuildDescription`.  It has a reference to the executable task which will be used during task execution.
-public final class ConstructedTask: PlannedTask {
+public final class ConstructedTask: PlannedTask, Sendable {
     /// The task identifier.
     public let identifier: TaskIdentifier
 
@@ -159,14 +157,8 @@ public final class ConstructedTask: PlannedTask {
 
     public let repairViaOwnershipAnalysis: Bool
 
-    /// The provisional task corresponding to this task, if any.
-    ///
-    /// This is mainly important for resolution of provisional tasks for directory creation: We don't want to consider a provisional task for directory creation valid just because other provisional tasks (and *only* provisional tasks) are placing content there; we want to be able to easily determine that non-provisional tasks are placing content there.
-    public weak var provisionalTask: ProvisionalTask? = nil {
-        willSet(newProvisionalTask) {
-            precondition(provisionalTask == nil, "A provisional task has already been assigned to planned task \(self)")
-        }
-    }
+    /// Criteria for determining if this task should be included in the build plan.
+    public let validityCriteria: (any TaskValidityCriteria)?
 
     /// Construct a new task from a task builder.
     ///
@@ -181,6 +173,7 @@ public final class ConstructedTask: PlannedTask {
         self.alwaysExecuteTask = builder.alwaysExecuteTask
         self.priority = builder.priority
         self.repairViaOwnershipAnalysis = builder.repairViaOwnershipAnalysis
+        self.validityCriteria = builder.validityCriteria
     }
 
     private enum CodingKeys: String, CodingKey {
@@ -206,7 +199,7 @@ public final class ConstructedTask: PlannedTask {
 }
 
 
-public final class GateTask: PlannedTask {
+public final class GateTask: PlannedTask, Sendable {
     /// A static task type description for gate tasks.
     private final class GateTaskTypeDescription: TaskTypeDescription {
         let payloadType: (any TaskPayload.Type)? = nil
@@ -258,11 +251,14 @@ public final class GateTask: PlannedTask {
     public let execTask: any ExecutableTask
 
     /// Gate tasks do not support always execute mode.
-    public let alwaysExecuteTask = false
+    public var alwaysExecuteTask: Bool { false }
 
     public var priority: TaskPriority { .gate }
 
-    public let repairViaOwnershipAnalysis: Bool = false
+    public var repairViaOwnershipAnalysis: Bool { false }
+
+    /// Gate tasks never have validity criteria.
+    public var validityCriteria: (any TaskValidityCriteria)? { nil }
 
     private enum CodingKeys: String, CodingKey {
         case type
@@ -275,16 +271,6 @@ public final class GateTask: PlannedTask {
         case execTask
         case alwaysExecuteTask
         case repairViaOwnershipAnalysis
-    }
-
-    /// The provisional task corresponding to this task, if any.
-    ///
-    /// This is mainly important for resolution of provisional tasks for directory creation: We don't want to consider a provisional task for directory creation valid just because other provisional tasks (and *only* provisional tasks) are placing content there; we want to be able to easily determine that non-provisional tasks are placing content there.
-    /// The provisional task corresponding to this task, if any.
-    public weak var provisionalTask: ProvisionalTask? = nil {
-        willSet(newProvisionalTask) {
-            preconditionFailure("Tried to assign a provisional task to gate task \(self)")
-        }
     }
 
     /// Construct a new task from a task builder.

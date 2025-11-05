@@ -60,64 +60,13 @@ final class ProductPostprocessingTaskProducer: PhasedTaskProducer, TaskProducer 
         return paths
     }
 
-
-    // MARK: Provisional task setup
-
-
-    class func provisionalTasks(_ settings: Settings) -> [String: ProvisionalTask] {
-        var provisionalTasks = [String: ProvisionalTask]()
-
-        let scope = settings.globalScope
-
-        // Use per-variant copy aside only if this is not a wrapped product.
-        //
-        // In Xcode, the copy aside has a custom check to see if the destination has a producer. In practice, this means it is generally only done for the first copy if the paths are the same.
-        //
-        // FIXME: We should find a clean way to model this that doesn't rely on state like the Xcode approach.
-        // TODO: Figure out how to compute this value in the context of provisional task creation.
-//        let usePerVariantCopyAside = !(context.settings.productType is BundleProductTypeSpec)
-
-        // Create the provisional tasks for each type of postprocessing step.
-        let variants = scope.evaluate(BuiltinMacros.BUILD_VARIANTS)
-        let postprocessingItems = [
-            (addChangePermissionProvisionalTasks, false),
-            (addChangeAlternatePermissionProvisionalTasks, false),
-
-            // CodeSign is actually per-variant, but it enumerates variants itself because it might need to coalesce tasks (see `testPerVariantSigning()`)
-            (addCodeSignProvisionalTasks, false),
-        ]
-
-        for (fn, perVariant) in postprocessingItems {
-            if perVariant {
-                let variantSubscopes = perVariantSubscopes(scope, variants: variants)
-                for variantSubscope in variantSubscopes {
-                    fn(variantSubscope.scope, settings, &provisionalTasks)
-                }
-            } else {
-                // We still need to set the 'normal' variant condition here, for bug compatibility, or the first variant if that one is not present. This behavior is depended upon by 'libplatform', for example, although we should consider migrating away from it.
-                // FIXME: in the comment above, what does 'This' in "This behavior" refer to?  The setting of the 'normal' variant, or picking the first variant if there is no 'normal'?
-                // FIXME: is using the first of variants the right thing?  BUILD_VARIANTS has a stable order since it is user-defined but is that order is supposed to matter?
-                let variant = variants.contains("normal") ? "normal" : (variants.first ?? "normal")
-
-                // Enter the per-variant scope.
-                let scope = scope.subscope(binding: BuiltinMacros.variantCondition, to: variant)
-
-                fn(scope, settings, &provisionalTasks)
-            }
-        }
-
-        return provisionalTasks
-    }
-
-
     // MARK: Task generation
-
 
     func generateTasks() async -> [any PlannedTask] {
         let scope = context.settings.globalScope
         var tasks: [any PlannedTask] = []
 
-        // FIXME: This should really be phrased in terms of a concrete check against the produced executable (a provisional task), not a phase check.
+        // FIXME: This should really be phrased in terms of a concrete check against the produced executable (a task with validation criteria), not a phase check.
         let isProducingProduct = context.willProduceProduct(scope)
 
         // Use per-variant copy aside only if this is not a wrapped product.
@@ -216,12 +165,6 @@ final class ProductPostprocessingTaskProducer: PhasedTaskProducer, TaskProducer 
 
 
     // MARK: Copy aside
-
-
-    private class func addCopyAsideProvisionalTasks(_ scope: MacroEvaluationScope, _ provisionalTasks: inout [String: ProvisionalTask]) {
-
-        // TODO: Implement copy aside provisional tasks
-    }
 
     /// Creates a task to copy aside the symboled product to the SYMROOT during an install build.
     private func addCopyAsideTasks(_ scope: MacroEvaluationScope, _ tasks: inout [any PlannedTask]) async {
@@ -378,17 +321,6 @@ final class ProductPostprocessingTaskProducer: PhasedTaskProducer, TaskProducer 
 
     // MARK: Changing ownership and permissions
 
-
-    private class func addChangePermissionProvisionalTasks(_ scope: MacroEvaluationScope, _ settings: Settings, _ provisionalTasks: inout [String: ProvisionalTask]) {
-
-        // TODO: Implement change permission provisional tasks
-    }
-
-    private class func addChangeAlternatePermissionProvisionalTasks(_ scope: MacroEvaluationScope, _ settings: Settings, _ provisionalTasks: inout [String: ProvisionalTask]) {
-
-        // TODO: Implement change alternate permission provisional tasks
-    }
-
     private func addChangePermissionTasks(_ scope: MacroEvaluationScope, _ tasks: inout [any PlannedTask]) async {
         // Change permissions tasks are performed only when the "build" component is present.
         guard scope.evaluate(BuiltinMacros.BUILD_COMPONENTS).contains("build") else { return }
@@ -443,10 +375,6 @@ final class ProductPostprocessingTaskProducer: PhasedTaskProducer, TaskProducer 
 
     // MARK: Code signing
 
-    private class func codeSignProvisionalTaskIdentifier(pathToSign: Path) -> String {
-        return "CodeSign \(pathToSign.str)"
-    }
-
     /// Returns a list of files to sign for the current product.
     /// - returns: An array of tuples consisting of:
     ///     - *pathToSign*: The path to the file to sign.
@@ -500,13 +428,6 @@ final class ProductPostprocessingTaskProducer: PhasedTaskProducer, TaskProducer 
         return paths.sorted(by: { $1.isNormalProductPath })
     }
 
-    private class func addCodeSignProvisionalTasks(_ scope: MacroEvaluationScope, _ settings: Settings, _ provisionalTasks: inout [String: ProvisionalTask]) {
-        for pathToSign in pathsToSign(scope, settings) {
-            let provisionalTaskIdentifier = ProductPostprocessingTaskProducer.codeSignProvisionalTaskIdentifier(pathToSign: pathToSign.path)
-            provisionalTasks[provisionalTaskIdentifier] = ProductPostprocessingProvisionalTask(identifier: provisionalTaskIdentifier, mustBeDependedOn: false)
-        }
-    }
-
     /// The entry point for signing the main product of the configured target.
     ///
     /// Other than constructing the context for signing the main product, this method is mainly concerned with emitting errors and warnings about signing for the target, and any other functionality which should only occur once per target (and not once per signing, since a target may sign other things besides its main product).
@@ -518,81 +439,76 @@ final class ProductPostprocessingTaskProducer: PhasedTaskProducer, TaskProducer 
         let pathsToSign = ProductPostprocessingTaskProducer.pathsToSign(scope, context.settings)
         for pathToSign in pathsToSign {
             let scope = pathToSign.variantSubscope
-            let provisionalTaskIdentifier = ProductPostprocessingTaskProducer.codeSignProvisionalTaskIdentifier(pathToSign: pathToSign.path)
-            guard let provisionalTask = context.provisionalTasks[provisionalTaskIdentifier] else { preconditionFailure("Expected to find provisional task for: \(provisionalTaskIdentifier)") }
 
             // Create the task to sign the main product.
             // For frameworks on macOS, the output is the Versions/A folder inside the framework and the productToSign is the .framework itself.
             // For UI tests, the output is the XCTRunner.app and the productToSign is the .xctest product which gets built inside the runner - so that both of them can use the .xcent file emitted for the target.
-            let codeSignTask: (any PlannedTask)? = await {
-                guard context.signingSettings != nil else { return nil }
+            guard context.signingSettings != nil else { continue }
 
-                // When signing for a variant, we will only be signing a single binary, even though we would expect a bundle based on the product type
-                let isSigningBinary = !pathToSign.isNormalProductPath && (context.productType?.isWrapper ?? false)
+            // When signing for a variant, we will only be signing a single binary, even though we would expect a bundle based on the product type
+            let isSigningBinary = !pathToSign.isNormalProductPath && (context.productType?.isWrapper ?? false)
 
-                // We aren't going to be producing a binary if we have no ARCHS...
-                let archs = scope.evaluate(BuiltinMacros.ARCHS)
-                guard !archs.isEmpty else { return nil }
+            // We aren't going to be producing a binary if we have no ARCHS...
+            let archs = scope.evaluate(BuiltinMacros.ARCHS)
+            guard !archs.isEmpty else { continue }
 
-                let isProducingBinary = context.willProduceBinary(scope)
+            let isProducingBinary = context.willProduceBinary(scope)
 
-                // If we're not going to be producing a product, we stop right now.  This is important because even though the CodeSign task itself is provisional, the ProcessProductPackaging task and others on which the CodeSign task relies are not currently provisional, which will cause CodeSign to run anyway.
-                guard isSigningBinary ? isProducingBinary : isProducingProduct else { return nil }
+            // If we're not going to be producing a product, we stop right now.
+            guard isSigningBinary ? isProducingBinary : isProducingProduct else { continue }
 
-                // If we don't have an Info.plist (but the product type expects one), we can't ever code sign.
-                if scope.effectiveInputInfoPlistPath().isEmpty && context.settings.productType?.hasInfoPlist == true {
-                    let message = "Cannot code sign because the target does not have an Info.plist file and one is not being generated automatically. Apply an Info.plist file to the target using the \(BuiltinMacros.INFOPLIST_FILE.name) build setting or generate one automatically by setting the \(BuiltinMacros.GENERATE_INFOPLIST_FILE.name) build setting to YES (recommended)."
-                    if scope.evaluate(BuiltinMacros.DOWNGRADE_CODESIGN_MISSING_INFO_PLIST_ERROR) {
-                        context.warning(message)
-                    } else {
-                        context.error(message)
-                    }
-                    return nil
+            // If we don't have an Info.plist (but the product type expects one), we can't ever code sign.
+            if scope.effectiveInputInfoPlistPath().isEmpty && context.settings.productType?.hasInfoPlist == true {
+                let message = "Cannot code sign because the target does not have an Info.plist file and one is not being generated automatically. Apply an Info.plist file to the target using the \(BuiltinMacros.INFOPLIST_FILE.name) build setting or generate one automatically by setting the \(BuiltinMacros.GENERATE_INFOPLIST_FILE.name) build setting to YES (recommended)."
+                if scope.evaluate(BuiltinMacros.DOWNGRADE_CODESIGN_MISSING_INFO_PLIST_ERROR) {
+                    context.warning(message)
+                } else {
+                    context.error(message)
                 }
-
-                // Create the task to sign the main product.
-                let fileToSign = FileToBuild(context: context, absolutePath: pathToSign.path)
-                let productToSign = scope.evaluate(BuiltinMacros.TARGET_BUILD_DIR).join(scope.evaluate(BuiltinMacros.FULL_PRODUCT_NAME))
-                var orderingOutputs = [any PlannedNode]()
-                let signingOrderingNode = context.createVirtualNode("CodeSign \(fileToSign.absolutePath.str)")
-                orderingOutputs.append(signingOrderingNode)
-
-                // Add a dependency to Info.plist if present.
-                //
-                // This should be fine for now but we ultimately want to add dependency to the directory structure of the product. LLBuild supports that but it doesn't support excluding paths inside the structure. This is required because we don't want to depend on like the binary itself and contents of _CodeSignature/.
-                var extraInputs: [Path] = []
-                if context.productType?.hasInfoPlist == true {
-                    let infoplistFile = scope.effectiveInputInfoPlistPath()
-                    let infoplistPath = scope.evaluate(BuiltinMacros.INFOPLIST_PATH)
-                    if !infoplistFile.isEmpty && !infoplistPath.isEmpty {
-                        let targetBuildDir = scope.evaluate(BuiltinMacros.TARGET_BUILD_DIR)
-                        extraInputs.append(targetBuildDir.join(infoplistPath).normalize())
-                    }
-                }
-
-                // Also depend on any hosted products which are being built directly into our product.
-                extraInputs.append(contentsOf: hostedProductPaths)
-
-                // Now we can set up the signing task.
-                let (codeSignTasks, _) = await self.appendGeneratedTasks(&tasks) { delegate in
-                    let cbc = CommandBuildContext(producer: context, scope: scope, inputs: [fileToSign], commandOrderingInputs: nestedSigningTaskOrderingNodes, commandOrderingOutputs: orderingOutputs)
-                    context.codesignSpec.constructCodesignTasks(cbc, delegate, productToSign: productToSign, isProducingBinary: isProducingBinary, fileToSignMayBeWrapper: pathToSign.mayBeWrapper, ignoreEntitlements: pathToSign.ignoreEntitlements, extraInputs: extraInputs)
-                }
-                precondition(codeSignTasks.count <= 1, "Expected 0 or 1 tasks from constructCodesignTasks")
-
-                // If this is not the path for the normal product, and the product we're signing is a wrapper, then add this task's ordering node to the list so the normal product signing task (which will sign the wrapper) can depend on it.
-                if isSigningBinary {
-                    nestedSigningTaskOrderingNodes.append(signingOrderingNode)
-                }
-
-                return codeSignTasks.first
-            }()
-
-            if let task = codeSignTask {
-                provisionalTask.fulfill(task)
+                continue
             }
-            else {
-                provisionalTask.fulfillWithNoTask()
+
+            // Create the task to sign the main product.
+            let fileToSign = FileToBuild(context: context, absolutePath: pathToSign.path)
+            let productToSign = scope.evaluate(BuiltinMacros.TARGET_BUILD_DIR).join(scope.evaluate(BuiltinMacros.FULL_PRODUCT_NAME))
+            var orderingOutputs = [any PlannedNode]()
+            let signingOrderingNode = context.createVirtualNode("CodeSign \(fileToSign.absolutePath.str)")
+            orderingOutputs.append(signingOrderingNode)
+
+            // Add a dependency to Info.plist if present.
+            //
+            // This should be fine for now but we ultimately want to add dependency to the directory structure of the product. LLBuild supports that but it doesn't support excluding paths inside the structure. This is required because we don't want to depend on like the binary itself and contents of _CodeSignature/.
+            var extraInputs: [Path] = []
+            if context.productType?.hasInfoPlist == true {
+                let infoplistFile = scope.effectiveInputInfoPlistPath()
+                let infoplistPath = scope.evaluate(BuiltinMacros.INFOPLIST_PATH)
+                if !infoplistFile.isEmpty && !infoplistPath.isEmpty {
+                    let targetBuildDir = scope.evaluate(BuiltinMacros.TARGET_BUILD_DIR)
+                    extraInputs.append(targetBuildDir.join(infoplistPath).normalize())
+                }
+            }
+
+            // Also depend on any hosted products which are being built directly into our product.
+            extraInputs.append(contentsOf: hostedProductPaths)
+
+            let criteria = PostprocessingValidityCriteria()
+
+            // Now we can set up the signing task with validity criteria.
+            await self.appendGeneratedTasks(&tasks) { delegate in
+                let cbc = CommandBuildContext(
+                    producer: context,
+                    scope: scope,
+                    inputs: [fileToSign],
+                    commandOrderingInputs: nestedSigningTaskOrderingNodes,
+                    commandOrderingOutputs: orderingOutputs,
+                    validityCriteria: criteria
+                )
+                context.codesignSpec.constructCodesignTasks(cbc, delegate, productToSign: productToSign, isProducingBinary: isProducingBinary, fileToSignMayBeWrapper: pathToSign.mayBeWrapper, ignoreEntitlements: pathToSign.ignoreEntitlements, extraInputs: extraInputs)
+            }
+
+            // If this is not the path for the normal product, and the product we're signing is a wrapper, then add this task's ordering node to the list so the normal product signing task (which will sign the wrapper) can depend on it.
+            if isSigningBinary {
+                nestedSigningTaskOrderingNodes.append(signingOrderingNode)
             }
         }
     }

@@ -91,7 +91,6 @@ add_library(SWBCore
   ProjectModel/Target.swift
   ProjectModel/Workspace.swift
   ProjectModel/WorkspaceHeaderIndex.swift
-  ProvisionalTask.swift
   Provisioning.swift
   ProvisioningTaskInputs.swift
   SDKRegistry.swift
@@ -172,6 +171,7 @@ add_library(SWBCore
   TargetPlatformDiagnostics.swift
   TaskGeneration.swift
   TaskResult.swift
+  TaskValidityCriteria.swift
   ToolchainRegistry.swift
   ToolInfo/ClangToolInfo.swift
   Tuning.swift

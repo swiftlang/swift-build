@@ -27,7 +27,8 @@ public final class MkdirToolSpec : CommandLineToolSpec, SpecIdentifierType, @unc
             inputs: [], outputs: outputs, action: nil,
             execDescription: resolveExecutionDescription(cbc, delegate),
             preparesForIndexing: cbc.preparesForIndexing,
-            enableSandboxing: enableSandboxing
+            enableSandboxing: enableSandboxing,
+            validityCriteria: cbc.validityCriteria
         )
     }
 }

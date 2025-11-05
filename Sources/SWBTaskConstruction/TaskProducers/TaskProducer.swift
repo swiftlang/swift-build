@@ -32,9 +32,6 @@ enum TaskProducerPhase {
 /// A TaskProducer embodies a set of work which needs to be done create the tasks which, when run, will generate all or part of the product of a ProductPlan.
 package protocol TaskProducer
 {
-    /// Generate the provisional tasks for this task producer.
-    static func provisionalTasks(_ settings: Settings) -> [String: ProvisionalTask]
-
     /// Immutable data available to the task producer.
     var context: TaskProducerContext { get }
 
@@ -50,15 +47,11 @@ package protocol TaskProducer
 
 extension TaskProducer
 {
-    package static func provisionalTasks(_ settings: Settings) -> [String: ProvisionalTask] { return [:] }
-
     /// By default, most task producers should not need to make use of this functionality.
     package func prepare() async {}
 }
 
 /// Context of immutable data available to a task producer.
-///
-/// This class configures the provisional tasks used by the producers.
 public class TaskProducerContext: StaleFileRemovalContext, BuildFileResolution
 {
     /// The workspace context.
@@ -98,9 +91,6 @@ public class TaskProducerContext: StaleFileRemovalContext, BuildFileResolution
 
     /// The build settings the task producer should use.
     public let settings: Settings
-
-    /// Provisional tasks indexed by their identifying string.  This context is the owner of these provisional tasks.
-    let provisionalTasks: [String: ProvisionalTask]
 
     /// The build rule set for file references (includes system rules as well as any custom rules).
     package let buildRuleSet: any BuildRuleSet
@@ -348,10 +338,6 @@ public class TaskProducerContext: StaleFileRemovalContext, BuildFileResolution
         self.onDemandResourcesEnabled = settings.globalScope.evaluate(BuiltinMacros.ENABLE_ON_DEMAND_RESOURCES)
         self.onDemandResourcesInitialInstallTags = Set(settings.globalScope.evaluate(BuiltinMacros.ON_DEMAND_RESOURCES_INITIAL_INSTALL_TAGS))
         self.onDemandResourcesPrefetchOrder = settings.globalScope.evaluate(BuiltinMacros.ON_DEMAND_RESOURCES_PREFETCH_ORDER)
-
-        // Populate the provisional tasks dictionary.
-        self.provisionalTasks = configuredTarget?.target.provisionalTasks(settings) ?? [:]
-
         // Bind known tool specs.
         //
         // FIXME: These should really be bound even earlier, like in the spec cache. Or at least, we should throw here and just produce a dep graph error if any are missing.
@@ -722,7 +708,7 @@ public class TaskProducerContext: StaleFileRemovalContext, BuildFileResolution
         }
     }
 
-    // FIXME: <rdar://problem/30298464> This is something of a hack.  Uses in the ProductPostprocessingTaskProducer say this should be expressed instead on a check against a provisional task of the product, but as of this writing the future of provisional tasks is unclear.
+    // FIXME: <rdar://problem/30298464> This is something of a hack.  Uses in the ProductPostprocessingTaskProducer say this should be expressed instead on a check against task validation criteria of the product.
     //
     /// Returns whether the product of the target is going to be produced.
     ///

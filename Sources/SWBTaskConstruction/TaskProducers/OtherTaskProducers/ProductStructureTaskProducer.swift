@@ -15,46 +15,6 @@ import SWBUtil
 import SWBMacro
 
 final class ProductStructureTaskProducer: PhasedTaskProducer, TaskProducer {
-    private class func mkdirProvisionalTaskName(_ buildSetting: PathMacroDeclaration) -> String
-    {
-        return "MkDir $(\(buildSetting.name))"
-    }
-
-    private class func symlinkProvisionalTaskName(_ location: Path) -> String
-    {
-        return "SymLink \(location.str)"
-    }
-
-    class func provisionalTasks(_ settings: Settings) -> [String: ProvisionalTask]
-    {
-        // Ignore targets with no product type.
-        guard let productType = settings.productType else { return [:] }
-
-        var result = [String: ProvisionalTask]()
-
-        // Set up the provisional tasks for creating directories.
-        for directory in PackageTypeSpec.productStructureDirectories
-        {
-            let name = self.mkdirProvisionalTaskName(directory.buildSetting)
-            let provisionalTask = CreateDirectoryProvisionalTask(identifier: name, nullifyIfProducedByAnotherTask: directory.dontCreateIfProducedByAnotherTask)
-            result[name] = provisionalTask
-        }
-
-        // See 51529407. When building localizations, we don't want the builds to create any symlinks that would overlap with the base project builds.
-        let scope = settings.globalScope
-        if !scope.evaluate(BuiltinMacros.BUILD_COMPONENTS).contains("installLoc") {
-            // Set up the provisional tasks for creating symlinks.
-            for descriptor in productType.productStructureSymlinkDescriptors(settings.globalScope)
-            {
-                let name = self.symlinkProvisionalTaskName(descriptor.location)
-                let provisionalTask = CreateSymlinkProvisionalTask(identifier: name, descriptor: descriptor)
-                result[name] = provisionalTask
-            }
-        }
-
-        return result
-    }
-
     override var defaultTaskOrderingOptions: TaskOrderingOptions {
         return .immediate
     }
@@ -69,43 +29,37 @@ final class ProductStructureTaskProducer: PhasedTaskProducer, TaskProducer {
         guard let productType = context.settings.productType else { return [] }
 
         // Generate tasks to create directories defining the product structure.
-        // This is done by going through the list of product structure directory build settings defined by the `PackageTypeSpec` class.  For each one, if the build setting expands to a non-empty value, then create a task for it and use it to fulfill a provisional task.  If it expands to an empty value, then set the corresponding provisional task to not have a concrete task.
         let targetBuildDir = self.context.settings.globalScope.evaluate(BuiltinMacros.TARGET_BUILD_DIR)
         var outputPaths = Set<Path>()
         for directory in PackageTypeSpec.productStructureDirectories
         {
             let buildSetting = directory.buildSetting
-            let provisionalTaskName = ProductStructureTaskProducer.mkdirProvisionalTaskName(buildSetting)
-            let provisionalTask = context.provisionalTasks[provisionalTaskName]
             let subDir = context.settings.globalScope.evaluate(buildSetting)
-            if !subDir.isEmpty
-            {
-                let outputDir = (subDir.isAbsolute ? subDir : targetBuildDir.join(subDir)).normalize()
-                // If we've already created a task for this directory, then don't create another one.
-                if !outputPaths.contains(outputDir)
-                {
-                    // Create the task.
-                    let (tasks, _) = await appendGeneratedTasks(&tasks) { delegate in
-                        await context.mkdirSpec.constructTasks(CommandBuildContext(producer: context, scope: scope, inputs: [], output: outputDir, preparesForIndexing: true), delegate)
-                    }
 
-                    // Fulfill the provisional task.
-                    assert(tasks.count == 1)
-                    let plannedTask = tasks[0]
-                    let outputNode = plannedTask.outputs.first!         // The first node is the concrete output node of the mkdir task.
-                    provisionalTask?.fulfill(plannedTask, outputNode)
+            guard !subDir.isEmpty else { continue }
 
-                    // Remember that we've already created a task for this outputDir.
-                    outputPaths.insert(outputDir)
-                }
-                else
-                {
-                    provisionalTask?.fulfillWithNoTask()
-                }
-            }
-            else
-            {
-                provisionalTask?.fulfillWithNoTask()
+            let outputDir = (subDir.isAbsolute ? subDir : targetBuildDir.join(subDir)).normalize()
+
+            // Don't create duplicate directory tasks
+            guard outputPaths.insert(outputDir).inserted else { continue }
+
+            let criteria = DirectoryCreationValidityCriteria(
+                directoryPath: outputDir,
+                nullifyIfProducedByAnotherTask: directory.dontCreateIfProducedByAnotherTask
+            )
+
+            await appendGeneratedTasks(&tasks) { delegate in
+                await context.mkdirSpec.constructTasks(
+                    CommandBuildContext(
+                        producer: context,
+                        scope: scope,
+                        inputs: [],
+                        output: outputDir,
+                        preparesForIndexing: true,
+                        validityCriteria: criteria
+                    ),
+                    delegate
+                )
             }
         }
 
@@ -113,22 +67,32 @@ final class ProductStructureTaskProducer: PhasedTaskProducer, TaskProducer {
         if !scope.evaluate(BuiltinMacros.BUILD_COMPONENTS).contains("installLoc") {
 
             // Generate tasks to create symbolic links in the product structure.
-            // This is done by going through the list of product structure symlink descriptors defined by the target's `ProductTypeSpec` instance.  For each one we create a task to create the symlink and use it to fulfill a provisional task.
-            // At present, we expect that every symlink descriptor will have a provisional task which is fulfilled by an actual task.
             for descriptor in productType.productStructureSymlinkDescriptors(scope)
             {
-                // Create the task.
-                let (tasks, _) = await appendGeneratedTasks(&tasks) { delegate in
-                    context.symlinkSpec.constructSymlinkTask(CommandBuildContext(producer: context, scope: scope, inputs: [], output: descriptor.location, preparesForIndexing: true), delegate, toPath: descriptor.toPath, repairViaOwnershipAnalysis: false)
-                }
+                let destinationPath = descriptor.toPath.isAbsolute
+                    ? descriptor.toPath
+                    : descriptor.location.dirname.join(descriptor.effectiveToPath ?? descriptor.toPath).normalize()
 
-                // Fulfill provisional tasks.
-                precondition(tasks.count == 1, "Created wrong number of tasks (\(tasks.count)) for symlink at \(descriptor.location.str)")
-                let task = tasks.first!
-                let provisionalTaskName = ProductStructureTaskProducer.self.symlinkProvisionalTaskName(descriptor.location)
-                let provisionalTask = context.provisionalTasks[provisionalTaskName]
-                let outputNode = context.createNode(descriptor.location)
-                provisionalTask?.fulfill(task, outputNode)
+                let criteria = SymlinkCreationValidityCriteria(
+                    symlinkPath: descriptor.location,
+                    destinationPath: destinationPath
+                )
+
+                await appendGeneratedTasks(&tasks) { delegate in
+                    context.symlinkSpec.constructSymlinkTask(
+                        CommandBuildContext(
+                            producer: context,
+                            scope: scope,
+                            inputs: [],
+                            output: descriptor.location,
+                            preparesForIndexing: true,
+                            validityCriteria: criteria
+                        ),
+                        delegate,
+                        toPath: descriptor.toPath,
+                        repairViaOwnershipAnalysis: false
+                    )
+                }
             }
         }
 

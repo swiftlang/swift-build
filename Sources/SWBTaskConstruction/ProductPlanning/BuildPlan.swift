@@ -221,15 +221,15 @@ package final class BuildPlan: StaleFileRemovalContext {
             return nil
         }
 
-        // Now we have a list of product plan result contexts, each of which contains a list of all planned tasks for each plan, as well as the information needed to validate the provisional tasks in the plan.
-        // Since these contexts are independent of each other, we can in parallel have each one validate its provisional tasks, and then serially add the tasks it ends up with to a final task array.
-        delegate.updateProgress(statusMessage: messageShortening == .full ? "Finalizing plan" : "Finalizing provisional tasks", showInLog: false)
+        // Now we have a list of product plan result contexts, each of which contains a list of all planned tasks for each plan, as well as the information needed to validate them.
+        // Since these contexts are independent of each other, we can in parallel have each one validate its tasks, and then serially add the tasks it ends up with to a final task array.
+        delegate.updateProgress(statusMessage: "Finalizing plan", showInLog: false)
         let tasks = await withTaskGroup(of: [any PlannedTask].self) { group in
             for resultContext in productPlanResultContexts {
                 group.addTask {
                     if delegate.cancelled { return [] }
 
-                    // Get the list of effective planned tasks for the product plan (validating any provisional tasks).
+                    // Get the list of effective planned tasks for the product plan.
                     return await aggregationQueue.sync { resultContext.plannedTasks }
                 }
             }
@@ -238,7 +238,7 @@ package final class BuildPlan: StaleFileRemovalContext {
             return await group.reduce(into: [], { $0.append(contentsOf: $1) })
         }
 
-        // Wait for provisional task validation.
+        // Wait for task validation.
         await aggregationQueue.sync{ }
         if delegate.cancelled {
             return nil
@@ -298,10 +298,10 @@ package final class BuildPlan: StaleFileRemovalContext {
 
 
 
-/// This context stores the results of task generation for a product plan.  It is used by a build plan to collect results of task generation, and once task generation is complete to compute the final set of planned tasks to be used for a product plan by nullifying the tasks for any provisional tasks which were not fulfilled.
+/// This context stores the results of task generation for a product plan.  It is used by a build plan to collect results of task generation, and once task generation is complete to compute the final set of planned tasks to be used for a product plan by evaluating task validity criteria..
 ///
 /// This class is not thread-safe; the build plan is expected to build up the context in a manner that accounts for that.
-private final class ProductPlanResultContext: ProvisionalTaskValidationContext, CustomStringConvertible {
+private final class ProductPlanResultContext: TaskValidationContext, CustomStringConvertible {
     fileprivate let productPlan: ProductPlan
 
     private let targetName: String
@@ -309,36 +309,31 @@ private final class ProductPlanResultContext: ProvisionalTaskValidationContext, 
     /// All planned tasks for the product plan.
     private var allPlannedTasks: Set<Ref<any PlannedTask>>
 
-    /// All provisional tasks for the product plan.
-    private var provisionalTasks: [ProvisionalTask]
-
-    /// The set of paths which have been declared as inputs to one or more tasks.  Inputs of tasks which have fulfilled provisional tasks are not included in this set (unless they're also the input to a non-provisional task).
+    /// The set of paths which have been declared as inputs to one or more tasks.  Inputs of tasks with validation criteria are not included in this set (unless they're also the input to a non-conditional task).
     fileprivate private(set) var inputPaths: Set<Path>
 
-    /// The set of paths which have been declared as outputs of one or more tasks.  Outputs of tasks which have fulfilled provisional tasks are not included in this set.
+    /// The set of paths which have been declared as outputs of one or more tasks.  Outputs of tasks with validation criteria are not included in this set.
     fileprivate private(set) var outputPaths: Set<Path>
 
-    /// The set of paths which have been declared as inputs to one or more tasks, plus all of their ancestor directories.  Inputs of tasks which have fulfilled provisional tasks are not included in this set (unless they're also the input to a non-provisional task).
+    /// The set of paths which have been declared as inputs to one or more tasks, plus all of their ancestor directories.  Inputs of tasks with validation criteria are not included in this set (unless they're also the input to a non-conditional task).
     fileprivate private(set) var inputPathsAndAncestors: Set<Path>
 
-    /// The set of paths which have been declared as outputs of one or more tasks, plus all of their ancestor directories.  Outputs of tasks which have fulfilled provisional tasks are not included in this set.
+    /// The set of paths which have been declared as outputs of one or more tasks, plus all of their ancestor directories.  Outputs of tasks with validation criteria are not included in this set.
     fileprivate private(set) var outputPathsAndAncestors: Set<Path>
 
-    /// The effective planned tasks for the product plan, with planned tasks for unneeded provisional tasks removed.
+    /// The effective planned tasks for the product plan, with tasks that don't meet their validity criteria removed.
     lazy fileprivate private(set) var plannedTasks: [any PlannedTask] = {
-        // Create a copy of allPlannedTasks to work with.
-        var plannedTasks = self.allPlannedTasks
+        return self.allPlannedTasks.compactMap { taskRef in
+            let task = taskRef.instance
 
-        // Go through the provisional tasks.  For each one that has a task which is *not* valid, remove it from our working set.
-        for provisionalTask in self.provisionalTasks {
-            if !provisionalTask.isValid(self) {
-                if let plannedTask = provisionalTask.plannedTask {
-                    plannedTasks.remove(Ref(plannedTask))
-                }
+            // If task has no criteria, it's always valid
+            guard let criteria = task.validityCriteria else {
+                return task
             }
-        }
 
-        return plannedTasks.map{ $0.instance }
+            // Otherwise, check if it meets its criteria
+            return criteria.isValid(task, self) ? task : nil
+        }
     }()
 
     fileprivate var outputNodes: [any PlannedNode] {
@@ -353,19 +348,14 @@ private final class ProductPlanResultContext: ProvisionalTaskValidationContext, 
         self.outputPaths = Set<Path>()
         self.inputPathsAndAncestors = Set<Path>()
         self.outputPathsAndAncestors = Set<Path>()
-
-        // Gather the provisional tasks from the context of the task producers of the product plan.  Note that since all task producers share a context, we only have to use the first producer's context.
-        self.provisionalTasks = [ProvisionalTask]()
-        if let taskProducer = productPlan.taskProducers.first {
-            self.provisionalTasks += taskProducer.context.provisionalTasks.values
-        }
     }
 
     func addPlannedTask(_ plannedTask: any PlannedTask) {
         allPlannedTasks.insert(Ref(plannedTask))
 
-        // Add the task's inputs and outputs to the result context.  However, we only do this if the task is not the assigned task for a provisional task, because we don't want (for example) a provisional task to be considered valid because some other provisional task was created, only to have the latter be considered invalid, and thus the first one having been improperly validated.
-        if plannedTask.provisionalTask == nil {
+        // Add the task's inputs and outputs to the result context. However, we only do this if the task doesn't have validity criteria.
+        // Otherwise, a task which we later determine is not valid might cause another to be considered valid when it otherwise would not be.
+        if plannedTask.validityCriteria == nil {
             for input in plannedTask.inputs {
                 addInputPath(input.path)
             }

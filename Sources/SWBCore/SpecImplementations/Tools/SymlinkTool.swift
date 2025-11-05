@@ -49,7 +49,8 @@ public final class SymlinkToolSpec : CommandLineToolSpec, SpecIdentifierType, @u
             execDescription: resolveExecutionDescription(cbc, delegate),
             preparesForIndexing: cbc.preparesForIndexing,
             enableSandboxing: enableSandboxing,
-            repairViaOwnershipAnalysis: repairViaOwnershipAnalysis
+            repairViaOwnershipAnalysis: repairViaOwnershipAnalysis,
+            validityCriteria: cbc.validityCriteria
         )
     }
 }

@@ -144,34 +144,11 @@ private struct ProductPlanBuilder
 
 protocol ProductPlanBuilding
 {
-    func provisionalTasks(_ settings: Settings) -> [String: ProvisionalTask]
     func taskProducers(_ taskProducerContext: TargetTaskProducerContext) async -> [any TaskProducer]
 }
 
 extension Target: ProductPlanBuilding
 {
-    func provisionalTasks(_ settings: Settings) -> [String: ProvisionalTask]
-    {
-        switch self
-        {
-        case let target as StandardTarget:
-            return target.self.standardTargetProvisionalTasks(settings)
-
-        case let target as AggregateTarget:
-            return target.self.aggregateTargetProvisionalTasks(settings)
-
-        case let target as ExternalTarget:
-            return target.self.externalTargetProvisionalTasks(settings)
-
-        case is PackageProductTarget:
-            // Package product targets have no provisional tasks.
-            return [:]
-
-        default:
-            preconditionFailure("\(Swift.type(of: self)) does not know how to create TaskProducers")
-        }
-    }
-
     func taskProducers(_ taskProducerContext: TargetTaskProducerContext) async -> [any TaskProducer]
     {
         switch self
@@ -196,13 +173,6 @@ extension Target: ProductPlanBuilding
 
 extension BuildPhaseTarget
 {
-    func buildPhaseTargetProvisionalTasks(_ settings: Settings) -> [String: ProvisionalTask]
-    {
-        let provisionalTasks = [String: ProvisionalTask]()
-        // TODO: Create provisional tasks for other task producers.
-        return provisionalTasks
-    }
-
     /// The base name used by phase start and end nodes set up for task producers for this target.
     func phaseNodeRoot(_ configuredTarget: ConfiguredTarget?) -> String {
         return configuredTarget?.guid.stringValue ?? "target-\(self.name)-\(self.guid)"
@@ -345,17 +315,6 @@ extension BuildPhaseTarget
 
 extension StandardTarget
 {
-    func standardTargetProvisionalTasks(_ settings: Settings) -> [String: ProvisionalTask]
-    {
-        var provisionalTasks = super.buildPhaseTargetProvisionalTasks(settings)
-
-        provisionalTasks.addContents(of: ProductStructureTaskProducer.self.provisionalTasks(settings))
-        // TODO: Create provisional tasks for other task producers.
-        provisionalTasks.addContents(of: ProductPostprocessingTaskProducer.self.provisionalTasks(settings))
-
-        return provisionalTasks
-    }
-
     func standardTargetTaskProducers(_ taskProducerContext: TargetTaskProducerContext) async -> [any TaskProducer]
     {
         let taskProducerExtensions = await taskProducerExtensions(taskProducerContext.workspaceContext)
@@ -493,12 +452,6 @@ extension StandardTarget
 
 extension AggregateTarget
 {
-    func aggregateTargetProvisionalTasks(_ settings: Settings) -> [String: ProvisionalTask]
-    {
-        // TODO: We should probably check that only build phases useful in an aggregate target are present here.
-        return super.buildPhaseTargetProvisionalTasks(settings)
-    }
-
     func aggregateTargetTaskProducers(_ taskProducerContext: TargetTaskProducerContext) -> [any TaskProducer]
     {
         // TODO: We should probably check that only build phases useful in an aggregate target are present here.
@@ -508,12 +461,6 @@ extension AggregateTarget
 
 extension ExternalTarget
 {
-    func externalTargetProvisionalTasks(_ settings: Settings) -> [String: ProvisionalTask]
-    {
-        // External targets have no provisional tasks.
-        return [:]
-    }
-
     func externalTargetTaskProducers(_ taskProducerContext: TaskProducerContext) -> [any TaskProducer]
     {
         if !customTasks.isEmpty {

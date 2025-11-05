@@ -53,7 +53,7 @@ final class HeadermapTaskProducer: PhasedTaskProducer, TaskProducer {
 
         // We always generate every file that can be used.
         //
-        // FIXME: This is somewhat inefficient. We should be able to use the provisional task mechanism to avoid this.
+        // FIXME: This is somewhat inefficient. We should be able to use the task validation mechanism to avoid this.
         var tasks = [any PlannedTask]()
         // We do not support the traditional header map, but currently always generate an empty one for backwards compatibility.
         await defineHeadermap(target, scope.evaluate(BuiltinMacros.CPP_HEADERMAP_FILE), &tasks) { _, _ in (.init(), []) }
