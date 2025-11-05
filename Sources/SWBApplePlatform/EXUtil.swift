@@ -46,7 +46,7 @@ final class ExtensionPointExtractorSpec: GenericCommandLineToolSpec, SpecIdentif
         let inputs = cbc.inputs.map { input in
             return delegate.createNode(input.absolutePath)
         }.filter { node in
-            node.path.fileExtension == "swiftconstvalues" 
+            node.path.fileExtension == "swiftconstvalues"
         }
         var outputs = [any PlannedNode]()
 

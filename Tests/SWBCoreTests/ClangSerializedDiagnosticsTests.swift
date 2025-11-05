@@ -54,15 +54,15 @@ fileprivate struct ClangSerializedDiagnosticsTests: CoreBasedTests {
             try localFS.write(cFilePath, contents: "#include \"other/foo.h\"\nint main() { return 0; }")
             let taskWorkingDirectory = cFilePath.dirname
             _ = try? await runHostProcess(["clang", "-I../", "-Wall", "-serialize-diagnostics", diagnosticsPath.str, "foo.c"], workingDirectory: taskWorkingDirectory)
-            
+
             let libclang = try #require(await Libclang(path: libclangPath))
             libclang.leak()
-            
+
             // Ensure there's only one diagnostic and its path is relative.
             let clangDiagnostics = try libclang.loadDiagnostics(filePath: diagnosticsPath.str)
             #expect(clangDiagnostics.count == 1, Comment(rawValue: clangDiagnostics.description))
             #expect(clangDiagnostics.only?.fileName == "../other/foo.h")
-            
+
             // Ensure there's only one diagnostic and its path has been made absolute.
             let diagnostics = clangDiagnostics.map { Diagnostic($0, workingDirectory: taskWorkingDirectory, appendToOutputStream: false) }
             #expect(diagnostics.count == 1)

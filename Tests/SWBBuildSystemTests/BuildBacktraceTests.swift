@@ -236,7 +236,7 @@ fileprivate struct BuildBacktraceTests: CoreBasedTests {
                 file <<<
                     """
                     func foo() {}
-                    
+
                     func bar() {}
                     """
             }
@@ -568,7 +568,7 @@ fileprivate struct BuildBacktraceTests: CoreBasedTests {
                     #5: the task producing file '\(SRCROOT.str)/build/aProject.build/Debug/TargetFoo.build/Objects-normal/x86_64/foo.o' ran
                     #6: an input of 'Compile foo.c (x86_64)' changed
                     #7: file '\(SRCROOT.str)/Sources/foo.c' changed
-                    
+
                     """)
                 }
             }

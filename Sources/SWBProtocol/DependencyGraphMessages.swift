@@ -77,7 +77,7 @@ public struct DependencyGraphResponse: Message, SerializableCodable, Equatable {
 
 public struct DumpBuildDependencyInfoRequest: SessionChannelBuildMessage, RequestMessage, SerializableCodable, Equatable {
     public typealias ResponseMessage = VoidResponse
-    
+
     public static let name = "DUMP_BUILD_DEPENDENCY_INFO_REQUEST"
 
     /// The identifier for the session to initiate the request in.

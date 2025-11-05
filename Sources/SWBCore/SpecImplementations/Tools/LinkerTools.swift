@@ -183,7 +183,7 @@ public struct DiscoveredLdLinkerToolSpecInfo: DiscoveredCommandLineToolSpecInfo 
 
         // Any unparsed bytes belong to the first line. We don't want to run `split` over these because it can lead to accidentally quadratic behavior if write is called many times per line.
         lines[0] = unparsedBytes + lines[0]
-        
+
         let linesToParse = lines.dropLast()
 
         if let target = self.task.forTarget?.target {
@@ -203,13 +203,13 @@ public struct DiscoveredLdLinkerToolSpecInfo: DiscoveredCommandLineToolSpecInfo 
                 let lineString = String(decoding: lineBytes, as: Unicode.UTF8.self)
                 if lineString.contains(": error:")
                     || lineString.contains(": warning:") {
-                    
+
                     let issueString = "\(projectPath.str): \(targetName): \(lineString)"
                     return ByteString(encodingAsUTF8: issueString)
                 }
                 return ByteString(lineBytes)
             }
-            
+
             // Forward the bytes
             processedLines.forEach {
                 delegate.emitOutput($0)
@@ -223,12 +223,12 @@ public struct DiscoveredLdLinkerToolSpecInfo: DiscoveredCommandLineToolSpecInfo 
                 delegate.emitOutput("\n")
             }
         }
-        
+
         // Parse any complete lines of output.
         for line in linesToParse {
             parseLine(line)
         }
-        
+
         // Track the last, incomplete line to as the unparsed bytes.
         unparsedBytes = lines.last ?? []
     }
@@ -809,7 +809,7 @@ public final class LdLinkerSpec : GenericLinkerSpec, SpecIdentifierType, @unchec
             func emitDependencyDiagnostic(type: String, node: PlannedPathNode) {
                 if delegate.userPreferences.enableDebugActivityLogs {
                     let projectLocation = cbc.producer.projectLocation
-                    
+
                     delegate.note("Added \(type) dependency '\(node.path.str)' from command line argument \(arg)", location: projectLocation)
                 }
             }

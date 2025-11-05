@@ -20,7 +20,7 @@ import Testing
     init() throws {
         isCaseInsensitive = try ProcessInfo.processInfo.hostOperatingSystem() == .windows
     }
-    
+
     @Test func comparable() {
         let key0 = EnvironmentKey("Test")
         let key1 = EnvironmentKey("Test1")

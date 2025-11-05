@@ -367,15 +367,15 @@
                 );
                 // Disable c++ modules if it was set by CLANG_ENABLE_MODULES or
                 // when using a c++ language mode that implicitly enables it.
-                Condition = "$(CLANG_ENABLE_MODULES) || 
+                Condition = "$(CLANG_ENABLE_MODULES) ||
                     !($(CLANG_CXX_LANGUAGE_STANDARD) == 'c++98' ||
-                      $(CLANG_CXX_LANGUAGE_STANDARD) == 'gnu++98' || 
+                      $(CLANG_CXX_LANGUAGE_STANDARD) == 'gnu++98' ||
                       $(CLANG_CXX_LANGUAGE_STANDARD) == 'c++0x' ||
                       $(CLANG_CXX_LANGUAGE_STANDARD) == 'gnu++0x' ||
                       $(CLANG_CXX_LANGUAGE_STANDARD) == 'c++14' ||
                       $(CLANG_CXX_LANGUAGE_STANDARD) == 'gnu++14' ||
                       $(CLANG_CXX_LANGUAGE_STANDARD) == 'c++17' ||
-                      $(CLANG_CXX_LANGUAGE_STANDARD) == 'gnu++17'|| 
+                      $(CLANG_CXX_LANGUAGE_STANDARD) == 'gnu++17'||
                       $(CLANG_CXX_LANGUAGE_STANDARD) == 'compiler-default')";
                 // Intentionally hidden.
             },

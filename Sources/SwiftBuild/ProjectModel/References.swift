@@ -136,7 +136,7 @@ extension ProjectModel.Reference: Codable {
             throw DecodingError.dataCorruptedError(forKey: .type, in: container, debugDescription: "Unknown value for key")
         }
     }
-    
+
     public func encode(to encoder: any Encoder) throws {
         switch self {
         case let .file(fref):

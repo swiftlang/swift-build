@@ -67,11 +67,11 @@ public struct FileInfo: Equatable, Sendable {
     }
 
     public var isDirectory: Bool {
-        return fileAttrs[.type] as! FileAttributeType == .typeDirectory 
+        return fileAttrs[.type] as! FileAttributeType == .typeDirectory
     }
 
     public var isSymlink: Bool {
-        return fileAttrs[.type] as! FileAttributeType == .typeSymbolicLink 
+        return fileAttrs[.type] as! FileAttributeType == .typeSymbolicLink
     }
 
     public var size: Int64 {

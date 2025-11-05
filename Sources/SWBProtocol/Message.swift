@@ -65,7 +65,7 @@ public struct PingRequest: RequestMessage, Equatable {
 
 public struct SetConfigItemRequest: RequestMessage, Equatable {
     public typealias ResponseMessage = VoidResponse
-    
+
     public static let name = "SET_CONFIG_ITEM"
 
     public let key: String
@@ -288,7 +288,7 @@ public struct GetBuildSettingsDescriptionRequest: SessionMessage, RequestMessage
 
 public struct CreateXCFrameworkRequest: RequestMessage, Equatable, SerializableCodable {
     public typealias ResponseMessage = StringResponse
-    
+
     public static let name = "CREATE_XCFRAMEWORK_REQUEST"
 
     public let developerPath: Path?

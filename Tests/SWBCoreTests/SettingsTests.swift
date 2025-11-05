@@ -5371,7 +5371,7 @@ import SWBMacro
         #include \"\(Path.root.join("tmp/A.xcconfig").strWithPosixSlashes)\"
         #include \"\(Path.root.join("tmp/D.xcconfig").strWithPosixSlashes)\"
         #include \"\(Path.root.join("tmp/E.xcconfig").strWithPosixSlashes)\"
-        
+
         """
 
         let info = buildRequestContext.loadSettingsFromConfig(data: ByteString(encodingAsUTF8: data), path: Path.root.join("mock/base/path"), namespace: MacroNamespace(), searchPaths: [Path]())
@@ -5393,7 +5393,7 @@ import SWBMacro
         let data: String = """
         #include "\(Path.root.join("tmp/A").strWithPosixSlashes)"
         #include "\(Path.root.join("tmp/B").strWithPosixSlashes)"
-        
+
         """
 
         let buildRequestContext = BuildRequestContext(workspaceContext: context)

@@ -15,11 +15,11 @@ public import SWBCore
 public import SWBUtil
 
 public final class LinkerTaskAction: TaskAction {
-    
+
     public override class var toolIdentifier: String {
         return "linker"
     }
-    
+
     /// Whether response files should be expanded before invoking the linker.
     private let expandResponseFiles: Bool
     private let responseFileFormat: ResponseFileFormat
@@ -29,7 +29,7 @@ public final class LinkerTaskAction: TaskAction {
         self.responseFileFormat = responseFileFormat
         super.init()
     }
-    
+
     public override func serialize<T: Serializer>(to serializer: T) {
         serializer.beginAggregate(3)
         serializer.serialize(expandResponseFiles)
@@ -37,14 +37,14 @@ public final class LinkerTaskAction: TaskAction {
         super.serialize(to: serializer)
         serializer.endAggregate()
     }
-    
+
     public required init(from deserializer: any Deserializer) throws {
         try deserializer.beginAggregate(3)
         self.expandResponseFiles = try deserializer.deserialize()
         self.responseFileFormat = try deserializer.deserialize()
         try super.init(from: deserializer)
     }
-    
+
     public override func performTaskAction(
         _ task: any ExecutableTask,
         dynamicExecutionDelegate: any DynamicTaskExecutionDelegate,
@@ -53,7 +53,7 @@ public final class LinkerTaskAction: TaskAction {
         outputDelegate: any TaskOutputDelegate
     ) async -> CommandResult {
         var commandLine = Array(task.commandLineAsStrings)
-        
+
         if expandResponseFiles {
             do {
                 commandLine = try ResponseFiles.expandResponseFiles(
@@ -67,7 +67,7 @@ public final class LinkerTaskAction: TaskAction {
                 return .failed
             }
         }
-        
+
         let processDelegate = TaskProcessDelegate(outputDelegate: outputDelegate)
         do {
             let success = try await dynamicExecutionDelegate.spawn(
@@ -76,7 +76,7 @@ public final class LinkerTaskAction: TaskAction {
                 workingDirectory: task.workingDirectory,
                 processDelegate: processDelegate
             )
-            
+
             if let error = processDelegate.executionError {
                 outputDelegate.emitError(error)
                 return .failed

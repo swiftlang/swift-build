@@ -74,7 +74,7 @@ public struct DiscoveredClangToolSpecInfo: DiscoveredCommandLineToolSpecInfo {
     public var toolFeatures: ToolFeatures<FeatureFlag>
     public func hasFeature(_ feature: String) -> Bool {
         // FIXME: Remove once the feature flag is re-added to clang.
-        // rdar://139515136 
+        // rdar://139515136
         if feature == FeatureFlag.extractAPISupportsCPlusPlus.rawValue {
             return clangVersion > Version(17)
         }

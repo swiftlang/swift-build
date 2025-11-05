@@ -824,7 +824,7 @@ fileprivate let testFileData = [
                                   expectedIncludeDirectivesCount: 1
         )
     }
-    
+
     @Test
     func finalLineAndColumnTracking() {
         // Test empty string
@@ -835,7 +835,7 @@ fileprivate let testFileData = [
                                   expectedEndLine: 1,
                                   expectedEndColumn: 1
         )
-        
+
         // Test single line assignment
         TestMacroConfigFileParser("A = B",
                                   expectedAssignments: [(macro: "A", conditions: [], value: "B")],
@@ -844,7 +844,7 @@ fileprivate let testFileData = [
                                   expectedEndLine: 1,
                                   expectedEndColumn: 6
         )
-        
+
         // Test multiple lines with empty line at end
         TestMacroConfigFileParser("A = B\n\n",
                                   expectedAssignments: [(macro: "A", conditions: [], value: "B")],
@@ -853,7 +853,7 @@ fileprivate let testFileData = [
                                   expectedEndLine: 3,
                                   expectedEndColumn: 1
         )
-        
+
         // Test with comment-only line at end
         TestMacroConfigFileParser("A = B\n// This is a comment",
                                   expectedAssignments: [(macro: "A", conditions: [], value: "B")],
@@ -912,7 +912,7 @@ private func TestMacroConfigFileParser(_ string: String, expectedAssignments: [A
     // Create a parser, and do the parse.
     let parser = MacroConfigFileParser(byteString: ByteString(encodingAsUTF8: string), path: Path("TestMacroConfigFileParser().xcconfig"), delegate: delegate)
     parser.parse()
-    
+
     // Check the final line and column numbers if expected values are provided.
     if let expectedEndLine {
         #expect(parser.finalLineNumber == expectedEndLine, "expected final line number \(expectedEndLine), but instead got \(parser.finalLineNumber)", sourceLocation: sourceLocation)

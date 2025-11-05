@@ -28,7 +28,7 @@ struct GenerateWindowsInstallerComponentGroups: CommandPlugin {
                   <Component>
                     <File Source="$(ToolchainRoot)\usr\bin\\#(sourceModule.name).dll" />
                   </Component>
-            
+
             """#
 
             let resources = sourceModule.sourceFiles.filter { resource in resource.type == .resource && ["xcspec", "xcbuildrules"].contains(resource.url.pathExtension) }
@@ -41,7 +41,7 @@ struct GenerateWindowsInstallerComponentGroups: CommandPlugin {
                       <Component>
                         <File Source="$(ToolchainRoot)\usr\share\pm\SwiftBuild_\#(sourceModule.name).resources\\#(resource.url.lastPathComponent)" />
                       </Component>
-                
+
                 """#
                 }
                 resourcesComponents += "    </ComponentGroup>\n"
