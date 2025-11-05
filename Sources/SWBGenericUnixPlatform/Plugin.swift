@@ -130,10 +130,14 @@ struct GenericUnixSDKRegistryExtension: SDKRegistryExtension {
                 switch operatingSystem {
                 case .freebsd:
                     return true // FreeBSD is always LLVM-based.
-                case .linux where operatingSystem.distribution?.kind == .amazon && operatingSystem.distribution?.version == "2":
-                    return true // Amazon Linux 2 has a gold linker bug see: https://sourceware.org/bugzilla/show_bug.cgi?id=23016.
+                case .linux:
+                    // Amazon Linux 2 has a gold linker bug see: https://sourceware.org/bugzilla/show_bug.cgi?id=23016.
+                    guard let distribution = operatingSystem.distribution else {
+                        return false
+                    }
+                    return distribution.kind == .amazon && distribution.version == "2"
                 default:
-                    return operatingSystem != context.hostOperatingSystem // Cross-compiling
+                    return operatingSystem != context.hostOperatingSystem // Cross-compiling.
                 }
             }()
 
