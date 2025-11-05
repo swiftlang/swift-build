@@ -20,7 +20,6 @@ add_library(SWBCore
   BuildRuleAction.swift
   BuildRuleCondition.swift
   BuildRuleSet.swift
-  CapturedBuildInfo.swift
   ClangModuleVerifier/ModuleVerifierFilenameMap.swift
   ClangModuleVerifier/ModuleVerifierFramework.swift
   ClangModuleVerifier/ModuleVerifierHeader.swift
