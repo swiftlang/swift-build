@@ -616,6 +616,8 @@ public final class BuiltinMacros {
     public static let DSYMUTIL_VARIANT_SUFFIX = BuiltinMacros.declareStringMacro("DSYMUTIL_VARIANT_SUFFIX")
     public static let DSYMUTIL_DSYM_SEARCH_PATHS = BuiltinMacros.declarePathListMacro("DSYMUTIL_DSYM_SEARCH_PATHS")
     public static let DSYMUTIL_QUIET_OPERATION = BuiltinMacros.declareBooleanMacro("DSYMUTIL_QUIET_OPERATION")
+    public static let DUMP_DEPENDENCIES = BuiltinMacros.declareBooleanMacro("DUMP_DEPENDENCIES")
+    public static let DUMP_DEPENDENCIES_OUTPUT_PATH = BuiltinMacros.declarePathMacro("DUMP_DEPENDENCIES_OUTPUT_PATH")
     public static let DWARF_DSYM_FILE_NAME = BuiltinMacros.declareStringMacro("DWARF_DSYM_FILE_NAME")
     public static let DWARF_DSYM_FILE_SHOULD_ACCOMPANY_PRODUCT = BuiltinMacros.declareBooleanMacro("DWARF_DSYM_FILE_SHOULD_ACCOMPANY_PRODUCT")
     public static let DWARF_DSYM_FOLDER_PATH = BuiltinMacros.declarePathMacro("DWARF_DSYM_FOLDER_PATH")
@@ -1685,6 +1687,8 @@ public final class BuiltinMacros {
         DSYMUTIL_DSYM_SEARCH_PATHS,
         DSYMUTIL_QUIET_OPERATION,
         DT_TOOLCHAIN_DIR,
+        DUMP_DEPENDENCIES,
+        DUMP_DEPENDENCIES_OUTPUT_PATH,
         DWARF_DSYM_FILE_NAME,
         DWARF_DSYM_FILE_SHOULD_ACCOMPANY_PRODUCT,
         DWARF_DSYM_FOLDER_PATH,

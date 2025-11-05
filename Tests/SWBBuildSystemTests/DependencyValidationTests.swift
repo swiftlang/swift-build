@@ -345,7 +345,7 @@ fileprivate struct DependencyValidationTests: CoreBasedTests {
         }
     }
 
-    func validateModuleDependenciesSwift(explicitModules: Bool) async throws {
+    func validateModuleDependenciesSwift(explicitModules: Bool, dumpDependencies: Bool = false, body: ((Path, BuildOperationTester.BuildResults) async throws -> ())? = nil) async throws {
         try await withTemporaryDirectory { tmpDir in
             let testWorkspace = try await TestWorkspace(
                 "Test",
@@ -371,6 +371,7 @@ fileprivate struct DependencyValidationTests: CoreBasedTests {
                                 "SWIFT_VERSION": swiftVersion,
                                 "DEFINES_MODULE": "YES",
                                 "DSTROOT": tmpDir.join("dstroot").str,
+                                "DUMP_DEPENDENCIES": dumpDependencies ? "YES" : "NO",
                                 "VALIDATE_MODULE_DEPENDENCIES": "YES_ERROR",
                                 "SDKROOT": "$(HOST_PLATFORM)",
                                 "SUPPORTED_PLATFORMS": "$(HOST_PLATFORM)",
@@ -476,6 +477,10 @@ fileprivate struct DependencyValidationTests: CoreBasedTests {
                 let buildRequest = BuildRequest(parameters: parameters, buildTargets: [BuildRequest.BuildTargetInfo(parameters: parameters, target: target)], continueBuildingAfterErrors: false, useParallelTargets: true, useImplicitDependencies: true, useDryRun: false)
 
                 try await tester.checkBuild(runDestination: .host, buildRequest: buildRequest, persistent: true) { results in
+                    if let body {
+                        try await body(tmpDir, results)
+                    }
+
                     guard !results.checkWarning(.prefix("The current toolchain does not support VALIDATE_MODULE_DEPENDENCIES"), failIfNotFound: false) else { return }
 
                     for expectedDiag in expectedDiags {
@@ -799,6 +804,24 @@ fileprivate struct DependencyValidationTests: CoreBasedTests {
 
                 // This diagnostic should only report AppKit because UIKit is marked optional.
                 results.checkWarning(.equal("Unused entries in MODULE_DEPENDENCIES: AppKit (for task: [\"ValidateDependencies\"])"))
+            }
+        }
+    }
+
+    @Test(.requireSDKs(.macOS))
+    func dumpDependenciesDuringBuild() async throws {
+        try await validateModuleDependenciesSwift(explicitModules: true, dumpDependencies: true) { tmpDir, _ in
+            let debugDir = tmpDir.join("Test/Project/build/Project.build/Debug")
+            for dir in try localFS.listdir(debugDir) {
+                let buildDir = debugDir.join(dir)
+                if buildDir.fileExtension == "build" {
+                    let dependencyInfos = try localFS.listdir(buildDir).filter { $0.hasSuffix("BuildDependencyInfo.json") }
+                    #expect(dependencyInfos.count == 1)
+                    let dependencyInfoPath = buildDir.join(dependencyInfos.first)
+                    let dependencyInfo = try JSONDecoder().decode(BuildDependencyInfo.self, from: dependencyInfoPath, fs: localFS)
+                    // One "actual" dependency, plus `Swift`, `_Concurrency`, `_StringProcessing`, `_SwiftConcurrencyShims` which are always present.
+                    #expect(dependencyInfo.targets.first?.dependencies.count == 5)
+                }
             }
         }
     }

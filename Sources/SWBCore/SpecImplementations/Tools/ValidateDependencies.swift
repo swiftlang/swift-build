@@ -58,8 +58,20 @@ public struct ValidateDependenciesPayload: TaskPayload, Sendable, SerializableCo
     public let moduleDependenciesContext: ModuleDependenciesContext?
     public let headerDependenciesContext: HeaderDependenciesContext?
 
-    public init(moduleDependenciesContext: ModuleDependenciesContext?, headerDependenciesContext: HeaderDependenciesContext?) {
+    public let dumpDependencies: Bool
+    public let dumpDependenciesOutputPath: String
+
+    public let platformName: String?
+    public let projectName: String?
+    public let targetName: String
+
+    public init(moduleDependenciesContext: ModuleDependenciesContext?, headerDependenciesContext: HeaderDependenciesContext?, dumpDependencies: Bool, dumpDependenciesOutputPath: String, platformName: String?, projectName: String?, targetName: String) {
         self.moduleDependenciesContext = moduleDependenciesContext
         self.headerDependenciesContext = headerDependenciesContext
+        self.dumpDependencies = dumpDependencies
+        self.dumpDependenciesOutputPath = dumpDependenciesOutputPath
+        self.platformName = platformName
+        self.projectName = projectName
+        self.targetName = targetName
     }
 }
