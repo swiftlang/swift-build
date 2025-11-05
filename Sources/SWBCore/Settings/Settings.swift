@@ -811,12 +811,12 @@ public final class Settings: PlatformBuildContext, Sendable {
     /// The information about the project model components from which these settings were constructed.
     public let constructionComponents: ConstructionComponents
 
-    public convenience init(workspaceContext: WorkspaceContext, buildRequestContext: BuildRequestContext, parameters: BuildParameters, project: Project, target: Target? = nil, purpose: SettingsPurpose = .build, provisioningTaskInputs: ProvisioningTaskInputs? = nil, impartedBuildProperties: [ImpartedBuildProperties]? = nil, includeExports: Bool = true, sdkRegistry: (any SDKRegistryLookup)? = nil) {
-        self.init(workspaceContext: workspaceContext, buildRequestContext: buildRequestContext, parameters: parameters, settingsContext: SettingsContext(purpose, project: project, target: target), purpose: purpose, provisioningTaskInputs: provisioningTaskInputs, impartedBuildProperties: impartedBuildProperties, includeExports: includeExports, sdkRegistry: sdkRegistry)
+    package convenience init(workspaceContext: WorkspaceContext, buildRequestContext: BuildRequestContext, parameters: BuildParameters, project: Project, target: Target? = nil, purpose: SettingsPurpose = .build, provisioningTaskInputs: ProvisioningTaskInputs? = nil, impartedBuildProperties: [ImpartedBuildProperties]? = nil, artifactBundleInfo: [ArtifactBundleInfo]? = nil, includeExports: Bool = true, sdkRegistry: (any SDKRegistryLookup)? = nil) {
+        self.init(workspaceContext: workspaceContext, buildRequestContext: buildRequestContext, parameters: parameters, settingsContext: SettingsContext(purpose, project: project, target: target), purpose: purpose, provisioningTaskInputs: provisioningTaskInputs, impartedBuildProperties: impartedBuildProperties, artifactBundleInfo: artifactBundleInfo, includeExports: includeExports, sdkRegistry: sdkRegistry)
     }
 
     /// Construct the settings for a project and optionally a target.
-    public init(workspaceContext: WorkspaceContext, buildRequestContext: BuildRequestContext, parameters: BuildParameters, settingsContext: SettingsContext, purpose: SettingsPurpose = .build, provisioningTaskInputs: ProvisioningTaskInputs? = nil, impartedBuildProperties: [ImpartedBuildProperties]? = nil, includeExports: Bool = true, sdkRegistry: (any SDKRegistryLookup)? = nil) {
+    package init(workspaceContext: WorkspaceContext, buildRequestContext: BuildRequestContext, parameters: BuildParameters, settingsContext: SettingsContext, purpose: SettingsPurpose = .build, provisioningTaskInputs: ProvisioningTaskInputs? = nil, impartedBuildProperties: [ImpartedBuildProperties]? = nil, artifactBundleInfo: [ArtifactBundleInfo]? = nil, includeExports: Bool = true, sdkRegistry: (any SDKRegistryLookup)? = nil) {
         if let target = settingsContext.target {
             precondition(workspaceContext.workspace.project(for: target) === settingsContext.project)
         }
@@ -825,8 +825,8 @@ public final class Settings: PlatformBuildContext, Sendable {
         self.settingsContext = settingsContext
 
         // Construct the settings table.
-        let builder = SettingsBuilder(workspaceContext, buildRequestContext, parameters, settingsContext, provisioningTaskInputs, includeExports: includeExports, sdkRegistry)
-        let (boundProperties, boundDeploymentTarget) = MacroNamespace.withExpressionInterningEnabled{ builder.construct(impartedBuildProperties) }
+        let builder = SettingsBuilder(workspaceContext, buildRequestContext, parameters, settingsContext, provisioningTaskInputs, impartedBuildProperties, artifactBundleInfo, includeExports: includeExports, sdkRegistry)
+        let (boundProperties, boundDeploymentTarget) = MacroNamespace.withExpressionInterningEnabled{ builder.construct() }
 
         // Extract the constructed data.
         self.targetConfiguration = builder.targetConfiguration
@@ -1241,6 +1241,8 @@ private class SettingsBuilder {
     }
 
     let provisioningTaskInputs: ProvisioningTaskInputs?
+    let impartedBuildProperties: [ImpartedBuildProperties]?
+    let artifactBundleInfo: [ArtifactBundleInfo]?
 
     /// Whether this builder was constructed specifically for binding properties (versus for general table construction).
     let forBindingProperties: Bool
@@ -1350,13 +1352,15 @@ private class SettingsBuilder {
         )
     }
 
-    init(_ workspaceContext: WorkspaceContext, _ buildRequestContext: BuildRequestContext, _ parameters: BuildParameters, _ settingsContext: SettingsContext, _ provisioningTaskInputs: ProvisioningTaskInputs? = nil, includeExports: Bool = true, forBindingProperties: Bool = false, _ sdkRegistry: (any SDKRegistryLookup)?) {
+    init(_ workspaceContext: WorkspaceContext, _ buildRequestContext: BuildRequestContext, _ parameters: BuildParameters, _ settingsContext: SettingsContext, _ provisioningTaskInputs: ProvisioningTaskInputs? = nil, _ impartedBuildProperties: [ImpartedBuildProperties]? = nil, _ artifactBundleInfo: [ArtifactBundleInfo]? = nil, includeExports: Bool = true, forBindingProperties: Bool = false, _ sdkRegistry: (any SDKRegistryLookup)?) {
         self.workspaceContext = workspaceContext
         self.buildRequestContext = buildRequestContext
         self.sdkRegistry = sdkRegistry ?? workspaceContext.sdkRegistry
         self.parameters = parameters
         self.settingsContext = settingsContext
         self.provisioningTaskInputs = provisioningTaskInputs
+        self.impartedBuildProperties = impartedBuildProperties
+        self.artifactBundleInfo = artifactBundleInfo
         // FIXME: We should almost certainly not be creating a namespace here, but instead should use an already bound one.
         self.userNamespace = MacroNamespace(parent: workspaceContext.workspace.userNamespace, debugDescription: "settings")
         self._table = MacroValueAssignmentTable(namespace: userNamespace)
@@ -1368,7 +1372,7 @@ private class SettingsBuilder {
     // MARK: Settings construction
 
     /// Construct the settings data.
-    func construct(_ impartedBuildProperties: [ImpartedBuildProperties]? = nil) -> (BoundProperties, BoundDeploymentTarget) {
+    func construct() -> (BoundProperties, BoundDeploymentTarget) {
         precondition(!forBindingProperties)
 
         // Compute the effective configurations to build with.
@@ -1573,6 +1577,52 @@ private class SettingsBuilder {
             for property in impartedBuildProperties ?? [] {
                 // Imparted build properties are always from packages, so force allow platform filter conditionals.
                 bindConditionParameters(bindTargetCondition(property.buildSettings), sdk, forceAllowPlatformFilterCondition: true)
+            }
+        }
+
+        for artifactBundle in artifactBundleInfo ?? [] {
+            pushTable(.exported) { table in
+                for artifact in artifactBundle.metadata.artifacts.values {
+                    switch artifact.type {
+                    case .staticLibrary:
+                        for variant in artifact.variants {
+                            guard let staticLibraryMetadata = variant.staticLibraryMetadata else {
+                                continue
+                            }
+                            var conditionSets: [MacroConditionSet?] = []
+                            if let triples = variant.supportedTriples {
+                                for triple in triples {
+                                    conditionSets.append(.init(conditions: [.init(parameter: BuiltinMacros.normalizedUnversionedTripleCondition, valuePattern: triple)]))
+                                }
+                            } else {
+                                conditionSets.append(nil)
+                            }
+                            for conditionSet in conditionSets {
+                                if !staticLibraryMetadata.headerPaths.isEmpty {
+                                    table.push(
+                                        BuiltinMacros.HEADER_SEARCH_PATHS,
+                                        BuiltinMacros.namespace.parseStringList(["$(inherited)"] + staticLibraryMetadata.headerPaths.map { artifactBundle.bundlePath.join($0).str }),
+                                        conditions: conditionSet
+                                    )
+                                }
+                                if let moduleMapPath = staticLibraryMetadata.moduleMapPath {
+                                    table.push(
+                                        BuiltinMacros.OTHER_CFLAGS,
+                                        BuiltinMacros.namespace.parseStringList(["$(inherited)", "-fmodule-map-file=\(artifactBundle.bundlePath.join(moduleMapPath).str)"]),
+                                        conditions: conditionSet
+                                    )
+                                    table.push(
+                                        BuiltinMacros.OTHER_SWIFT_FLAGS,
+                                        BuiltinMacros.namespace.parseStringList(["$(inherited)", "-Xcc", "-fmodule-map-file=\(artifactBundle.bundlePath.join(moduleMapPath).str)"]),
+                                        conditions: conditionSet
+                                    )
+                                }
+                            }
+                        }
+                    case .crossCompilationDestination, .swiftSDK, .executable:
+                        break
+                    }
+                }
             }
         }
 
@@ -4609,7 +4659,7 @@ private class SettingsBuilder {
                 for variant in buildVariants {
                     let scope = scope.subscope(binding: BuiltinMacros.variantCondition, to: variant)
                     for arch in archs {
-                        let scope = scope.subscope(binding: BuiltinMacros.archCondition, to: arch)
+                        let scope = scope.subscopeBindingArchAndTriple(arch: arch)
                         let originalValues = scope.evaluate(macro)
                         processRemapping(scope, originalValues.map{ Path($0) }, variant: variant, arch: arch)
                     }

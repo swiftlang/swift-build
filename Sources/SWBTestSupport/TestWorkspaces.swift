@@ -301,6 +301,8 @@ package final class TestFile: TestInternalStructureItem, CustomStringConvertible
             return "text.plist.xcappextensionpoints"
         case ".xcframework":
             return "wrapper.xcframework"
+        case ".artifactbundle":
+            return "wrapper.artifactbundle"
         case ".xcspec":
             return "text.plist.xcspec"
         case ".xib":

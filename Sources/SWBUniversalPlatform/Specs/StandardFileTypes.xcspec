@@ -1213,6 +1213,13 @@
     },
     {
         Type = FileType;
+        Identifier = wrapper.artifactbundle;
+        BasedOn = wrapper;
+        Extensions = (artifactbundle);
+        UTI = "org.swift.artifactbundle";
+    },
+    {
+        Type = FileType;
         Identifier = wrapper.plug-in;
         Class = PBXCFBundleWrapperFileType;
         BasedOn = wrapper.cfbundle;

@@ -62,6 +62,9 @@ package final class GlobalProductPlan: GlobalTargetInfoProvider
     /// The mapping of user-module info for targets.
     private let moduleInfo = Registry<ConfiguredTarget, ModuleInfo?>()
 
+    /// Cache of parsed artifact bundle metadata.
+    package let artifactBundleMetadataCache = Registry<Path, ArtifactBundleMetadata>()
+
     /// The information about XCFrameworks used throughout the task planning process.
     let xcframeworkContext: XCFrameworkContext
 
@@ -90,6 +93,9 @@ package final class GlobalProductPlan: GlobalTargetInfoProvider
 
     /// The set of targets which need to build a swiftmodule during installAPI
     package private(set) var targetsWhichShouldBuildModulesDuringInstallAPI: Set<ConfiguredTarget>?
+
+    /// Maps each target to its artifactbundles (direct and transitive).
+    package private(set) var artifactBundlesByTarget: [ConfiguredTarget: [ArtifactBundleInfo]]
 
     /// All targets in the product plan.
     /// - remark: This property is preferred over the `TargetBuildGraph` in the `BuildPlanRequest` as it performs additional computations for Swift packages.
@@ -202,10 +208,19 @@ package final class GlobalProductPlan: GlobalTargetInfoProvider
         self.xcframeworkContext = XCFrameworkContext(workspaceContext: planRequest.workspaceContext, buildRequestContext: planRequest.buildRequestContext)
         self.buildDirectories = BuildDirectoryContext()
 
+        enum LinkageGraphCacheKey: Hashable { case only }
+        let linkageGraphCache = AsyncCache<LinkageGraphCacheKey, TargetLinkageGraph>()
+        let getLinkageGraph: @Sendable () async throws -> TargetLinkageGraph = {
+            try await linkageGraphCache.value(forKey: LinkageGraphCacheKey.only) {
+                await TargetLinkageGraph(workspaceContext: planRequest.workspaceContext, buildRequest: planRequest.buildRequest, buildRequestContext: planRequest.buildRequestContext, delegate: WrappingDelegate(delegate: delegate))
+            }
+        }
+
         // Perform post-processing analysis of the build graph
         self.clientsOfBundlesByTarget = Self.computeBundleClients(buildGraph: planRequest.buildGraph, buildRequestContext: planRequest.buildRequestContext)
+        self.artifactBundlesByTarget = await Self.computeArtifactBundleInfo(buildGraph: planRequest.buildGraph, provisioningInputs: planRequest.provisioningInputs, buildRequest: planRequest.buildRequest, buildRequestContext: planRequest.buildRequestContext, workspaceContext: planRequest.workspaceContext, getLinkageGraph: getLinkageGraph, metadataCache: self.artifactBundleMetadataCache, delegate: delegate)
         let directlyLinkedDependenciesByTarget: [ConfiguredTarget: OrderedSet<LinkedDependency>]
-        (self.impartedBuildPropertiesByTarget, directlyLinkedDependenciesByTarget) = await Self.computeImpartedBuildProperties(planRequest: planRequest, delegate: delegate)
+        (self.impartedBuildPropertiesByTarget, directlyLinkedDependenciesByTarget) = await Self.computeImpartedBuildProperties(planRequest: planRequest, getLinkageGraph: getLinkageGraph, delegate: delegate)
         self.mergeableTargetsToMergingTargets = Self.computeMergeableLibraries(buildGraph: planRequest.buildGraph, provisioningInputs: planRequest.provisioningInputs, buildRequestContext: planRequest.buildRequestContext)
         self.productPathsToProducingTargets = Self.computeProducingTargetsForProducts(buildGraph: planRequest.buildGraph, provisioningInputs: planRequest.provisioningInputs, buildRequestContext: planRequest.buildRequestContext)
         self.targetGateNodes = Self.constructTargetGateNodes(buildGraph: planRequest.buildGraph, provisioningInputs: planRequest.provisioningInputs, buildRequestContext: planRequest.buildRequestContext, impartedBuildPropertiesByTarget: impartedBuildPropertiesByTarget, enableIndexBuildArena: planRequest.buildRequest.enableIndexBuildArena, nodeCreationDelegate: nodeCreationDelegate)
@@ -441,59 +456,121 @@ package final class GlobalProductPlan: GlobalTargetInfoProvider
         }
     }
 
+    /// Compute artifactbundle metadata for each target in the build graph.
+    private static func computeArtifactBundleInfo(buildGraph: TargetBuildGraph, provisioningInputs: [ConfiguredTarget: ProvisioningTaskInputs], buildRequest: BuildRequest, buildRequestContext: BuildRequestContext, workspaceContext: WorkspaceContext, getLinkageGraph: @Sendable () async throws -> TargetLinkageGraph, metadataCache: Registry<Path, ArtifactBundleMetadata>, delegate: any GlobalProductPlanDelegate) async -> [ConfiguredTarget: [ArtifactBundleInfo]] {
+        var artifactBundlesInfoByTarget: [ConfiguredTarget: Set<ArtifactBundleInfo>] = [:]
+
+        // Process targets in topological order
+        for configuredTarget in buildGraph.allTargets {
+            guard let standardTarget = configuredTarget.target as? SWBCore.StandardTarget else {
+                continue
+            }
+            let settings = buildRequestContext.getCachedSettings(configuredTarget.parameters, target: configuredTarget.target, provisioningTaskInputs: provisioningInputs[configuredTarget])
+            let scope = settings.globalScope
+
+            // Parse artifact bundle info from any bundles this target directly depends upon.
+            //
+            // We consider both the frameworks phase and resources phase because when building a relocatable object, SwiftPM PIF generation
+            // adds binary targets to the resources phase so their static content isn't pulled into the object. This model
+            // is confusing and we should reconsider it.
+            for phase in [standardTarget.frameworksBuildPhase, standardTarget.resourcesBuildPhase].compactMap(\.self) {
+                for buildFile in phase.buildFiles {
+                    let currentPlatformFilter = PlatformFilter(scope)
+                    guard currentPlatformFilter.matches(buildFile.platformFilters) else { continue }
+                    guard case .reference(let referenceGUID) = buildFile.buildableItem else { continue }
+                    guard let reference = workspaceContext.workspace.lookupReference(for: referenceGUID) else { continue }
+                    let resolvedPath = settings.filePathResolver.resolveAbsolutePath(reference)
+                    if resolvedPath.fileExtension == "artifactbundle" {
+                        do {
+                            let metadata = try metadataCache.getOrInsert(resolvedPath) {
+                                try ArtifactBundleMetadata.parse(at: resolvedPath, fileSystem: buildRequestContext.fs)
+                            }
+                            let info = ArtifactBundleInfo(bundlePath: resolvedPath, metadata: metadata)
+                            artifactBundlesInfoByTarget[configuredTarget, default: []].insert(info)
+                        } catch {
+                            delegate.error("Failed to parse artifactbundle at '\(resolvedPath.str)': \(error.localizedDescription)")
+                        }
+                    }
+                }
+            }
+
+            // Propagate artifact bundle info from dependencies to dependents. Because we're considering targets in topological order, the info recorded for direct dependencies is already complete.
+            if !artifactBundlesInfoByTarget.isEmpty {
+                do {
+                    let linkageGraph = try await getLinkageGraph()
+                    for dependency in linkageGraph.dependencies(of: configuredTarget) {
+                        if let dependencyArtifactInfo = artifactBundlesInfoByTarget[dependency] {
+                            artifactBundlesInfoByTarget[configuredTarget, default: []].formUnion(dependencyArtifactInfo)
+                        }
+                    }
+                } catch {
+                    delegate.error("failed to determine linkage dependencies of '\(configuredTarget.target.name)' when computing artifact bundle usage: \(error.localizedDescription)")
+                }
+            }
+        }
+
+        return artifactBundlesInfoByTarget.mapValues {
+            $0.sorted(by: \.bundlePath.str)
+        }
+    }
+
     /// Compute the build properties imparted on each target in the graph.
-    private static func computeImpartedBuildProperties(planRequest: BuildPlanRequest, delegate: any GlobalProductPlanDelegate) async -> ([ConfiguredTarget:[SWBCore.ImpartedBuildProperties]], [ConfiguredTarget:OrderedSet<LinkedDependency>]) {
+    private static func computeImpartedBuildProperties(planRequest: BuildPlanRequest, getLinkageGraph: @Sendable () async throws -> TargetLinkageGraph, delegate: any GlobalProductPlanDelegate) async -> ([ConfiguredTarget:[SWBCore.ImpartedBuildProperties]], [ConfiguredTarget:OrderedSet<LinkedDependency>]) {
         var impartedBuildPropertiesByTarget = [ConfiguredTarget:[SWBCore.ImpartedBuildProperties]]()
         var directlyLinkedDependenciesByTarget = [ConfiguredTarget:OrderedSet<LinkedDependency>]()
 
         // We can skip computing contributing properties entirely if no target declares any and if there are no package products in the graph.
         let targetsContributingProperties = planRequest.buildGraph.allTargets.filter { !$0.target.hasImpartedBuildProperties || $0.target.type == .packageProduct }
         if !targetsContributingProperties.isEmpty {
-            let linkageGraph = await TargetLinkageGraph(workspaceContext: planRequest.workspaceContext, buildRequest: planRequest.buildRequest, buildRequestContext: planRequest.buildRequestContext, delegate: WrappingDelegate(delegate: delegate))
+            do {
+                let linkageGraph = try await getLinkageGraph()
 
-            let configuredTargets = planRequest.buildGraph.allTargets
-            let targetsByBundleLoader = Self.computeBundleLoaderDependencies(
-                planRequest: planRequest,
-                configuredTargets: AnyCollection(configuredTargets),
-                diagnosticDelegate: delegate
-            )
-            var bundleLoaderByTarget = [ConfiguredTarget:ConfiguredTarget]()
-            for (bundleLoaderTarget, targetsUsingThatBundleLoader) in targetsByBundleLoader {
-                for targetUsingBundleLoader in targetsUsingThatBundleLoader {
-                    bundleLoaderByTarget[targetUsingBundleLoader] = bundleLoaderTarget
-                }
-            }
-
-            for configuredTarget in configuredTargets {
-                // Compute the transitive dependencies of the configured target.
-                let dependencies: OrderedSet<ConfiguredTarget>
-                if UserDefaults.useTargetDependenciesForImpartedBuildSettings {
-                    dependencies = transitiveClosure([configuredTarget], successors: planRequest.buildGraph.dependencies(of:)).0
-                } else {
-                    dependencies = transitiveClosure([configuredTarget], successors: linkageGraph.dependencies(of:)).0
+                let configuredTargets = planRequest.buildGraph.allTargets
+                let targetsByBundleLoader = Self.computeBundleLoaderDependencies(
+                    planRequest: planRequest,
+                    configuredTargets: AnyCollection(configuredTargets),
+                    diagnosticDelegate: delegate
+                )
+                var bundleLoaderByTarget = [ConfiguredTarget:ConfiguredTarget]()
+                for (bundleLoaderTarget, targetsUsingThatBundleLoader) in targetsByBundleLoader {
+                    for targetUsingBundleLoader in targetsUsingThatBundleLoader {
+                        bundleLoaderByTarget[targetUsingBundleLoader] = bundleLoaderTarget
+                    }
                 }
 
-                let linkedDependencies: [LinkedDependency] = linkageGraph.dependencies(of: configuredTarget).map { .direct($0) }
-                let transitiveStaticDependencies: [LinkedDependency] = linkedDependencies.flatMap { origin in
-                    transitiveClosure([origin.target]) {
-                        let settings = planRequest.buildRequestContext.getCachedSettings($0.parameters, target: $0.target)
-                        guard !Self.dynamicMachOTypes.contains(settings.globalScope.evaluate(BuiltinMacros.MACH_O_TYPE)) else {
-                            return []
-                        }
-                        return linkageGraph.dependencies(of: $0)
-                    }.0.map { .staticTransitive($0, origin: origin.target) }
+                for configuredTarget in configuredTargets {
+                    // Compute the transitive dependencies of the configured target.
+                    let dependencies: OrderedSet<ConfiguredTarget>
+                    if UserDefaults.useTargetDependenciesForImpartedBuildSettings {
+                        dependencies = transitiveClosure([configuredTarget], successors: planRequest.buildGraph.dependencies(of:)).0
+                    } else {
+                        dependencies = transitiveClosure([configuredTarget], successors: linkageGraph.dependencies(of:)).0
+                    }
+
+                    let linkedDependencies: [LinkedDependency] = linkageGraph.dependencies(of: configuredTarget).map { .direct($0) }
+                    let transitiveStaticDependencies: [LinkedDependency] = linkedDependencies.flatMap { origin in
+                        transitiveClosure([origin.target]) {
+                            let settings = planRequest.buildRequestContext.getCachedSettings($0.parameters, target: $0.target)
+                            guard !Self.dynamicMachOTypes.contains(settings.globalScope.evaluate(BuiltinMacros.MACH_O_TYPE)) else {
+                                return []
+                            }
+                            return linkageGraph.dependencies(of: $0)
+                        }.0.map { .staticTransitive($0, origin: origin.target) }
+                    }
+
+                    directlyLinkedDependenciesByTarget[configuredTarget] = OrderedSet(linkedDependencies + transitiveStaticDependencies + (bundleLoaderByTarget[configuredTarget].map { [.bundleLoader($0)] } ?? []))
+                    impartedBuildPropertiesByTarget[configuredTarget] = dependencies.compactMap { $0.getImpartedBuildProperties(using: planRequest) }
                 }
 
-                directlyLinkedDependenciesByTarget[configuredTarget] = OrderedSet(linkedDependencies + transitiveStaticDependencies + (bundleLoaderByTarget[configuredTarget].map { [.bundleLoader($0)] } ?? []))
-                impartedBuildPropertiesByTarget[configuredTarget] = dependencies.compactMap { $0.getImpartedBuildProperties(using: planRequest) }
-            }
-
-            for (targetToImpart, bundleLoaderTargets) in targetsByBundleLoader {
-                for bundleLoaderTarget in bundleLoaderTargets {
-                    // Bundle loader target gets all of the build settings that are imparted to the target it is referencing _and_ the build settings that are being imparted by that referenced target.
-                    let currentImpartedBuildProperties = targetToImpart.getImpartedBuildProperties(using: planRequest).map { [$0] } ?? []
-                    impartedBuildPropertiesByTarget[bundleLoaderTarget, default: []] += currentImpartedBuildProperties + (impartedBuildPropertiesByTarget[targetToImpart] ?? [])
+                for (targetToImpart, bundleLoaderTargets) in targetsByBundleLoader {
+                    for bundleLoaderTarget in bundleLoaderTargets {
+                        // Bundle loader target gets all of the build settings that are imparted to the target it is referencing _and_ the build settings that are being imparted by that referenced target.
+                        let currentImpartedBuildProperties = targetToImpart.getImpartedBuildProperties(using: planRequest).map { [$0] } ?? []
+                        impartedBuildPropertiesByTarget[bundleLoaderTarget, default: []] += currentImpartedBuildProperties + (impartedBuildPropertiesByTarget[targetToImpart] ?? [])
+                    }
                 }
+            } catch {
+                delegate.error("failed to compute imparted build properties: \(error.localizedDescription)")
             }
         }
         return (impartedBuildPropertiesByTarget, directlyLinkedDependenciesByTarget)
@@ -923,7 +1000,7 @@ package final class GlobalProductPlan: GlobalTargetInfoProvider
     package func getTargetSettings(_ configuredTarget: ConfiguredTarget) -> Settings {
         // FIXME: Reevaluate whether or not we should cache all of the things we compute here in the workspace context, that may lead to more memory use than it is worth.
         let provisioningTaskInputs: ProvisioningTaskInputs? = planRequest.buildRequest.enableIndexBuildArena ? nil : planRequest.provisioningInputs(for: configuredTarget)
-        return planRequest.buildRequestContext.getCachedSettings(configuredTarget.parameters, target: configuredTarget.target, provisioningTaskInputs: provisioningTaskInputs, impartedBuildProperties: impartedBuildPropertiesByTarget[configuredTarget])
+        return planRequest.buildRequestContext.getCachedSettings(configuredTarget.parameters, target: configuredTarget.target, provisioningTaskInputs: provisioningTaskInputs, impartedBuildProperties: impartedBuildPropertiesByTarget[configuredTarget], artifactBundleInfo: artifactBundlesByTarget[configuredTarget])
     }
 
     /// Get the settings to use for an unconfigured target.

@@ -108,6 +108,8 @@ extension PIF.FileReference : PIFRepresentable {
 
         case "xcframework":
             return "wrapper.xcframework"
+        case "artifactbundle":
+            return "wrapper.artifactbundle"
 
         case "docc":
             return "folder.documentationcatalog"
