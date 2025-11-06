@@ -123,6 +123,56 @@ extension ProcessInfo {
         return .unknown
         #endif
     }
+
+
+}
+
+public struct LinuxDistribution: Hashable, Sendable {
+    public enum Kind: String, CaseIterable, Hashable, Sendable {
+        case unknown
+        case ubuntu
+        case debian
+        case amazon = "amzn"
+        case centos
+        case rhel
+        case fedora
+        case suse
+        case alpine
+        case arch
+
+        /// The display name for the distribution kind
+        public var displayName: String {
+            switch self {
+            case .unknown: return "Unknown Linux"
+            case .ubuntu: return "Ubuntu"
+            case .debian: return "Debian"
+            case .amazon: return "Amazon Linux"
+            case .centos: return "CentOS"
+            case .rhel: return "Red Hat Enterprise Linux"
+            case .fedora: return "Fedora"
+            case .suse: return "SUSE"
+            case .alpine: return "Alpine Linux"
+            case .arch: return "Arch Linux"
+            }
+        }
+    }
+
+    public let kind: Kind
+    public let version: String?
+
+    public init(kind: Kind, version: String? = nil) {
+        self.kind = kind
+        self.version = version
+    }
+
+    /// The display name for the distribution including version if available
+    public var displayName: String {
+        if let version = version {
+            return "\(kind.displayName) \(version)"
+        } else {
+            return kind.displayName
+        }
+    }
 }
 
 public enum OperatingSystem: Hashable, Sendable {
@@ -157,6 +207,16 @@ public enum OperatingSystem: Hashable, Sendable {
         }
     }
 
+    /// The distribution if this is a Linux operating system
+    public var distribution: LinuxDistribution? {
+        switch self {
+        case .linux:
+            return detectHostLinuxDistribution()
+        default:
+            return nil
+        }
+    }
+
     public var imageFormat: ImageFormat {
         switch self {
         case .macOS, .iOS, .tvOS, .watchOS, .visionOS:
@@ -166,6 +226,110 @@ public enum OperatingSystem: Hashable, Sendable {
         case .linux, .freebsd, .openbsd, .android, .unknown:
             return .elf
         }
+    }
+
+    private func detectHostLinuxDistribution() -> LinuxDistribution? {
+        return detectHostLinuxDistribution(fs: localFS)
+    }
+
+    /// Detects the Linux distribution by examining system files with an injected filesystem
+    /// Start with the "generic" /etc/os-release then fallback
+    /// to various distribution named files.
+    public func detectHostLinuxDistribution(fs: any FSProxy) -> LinuxDistribution? {
+        // Try /etc/os-release first (standard)
+        let osReleasePath = Path("/etc/os-release")
+        if fs.exists(osReleasePath) {
+            if let osReleaseData = try? fs.read(osReleasePath),
+               let osRelease = String(data: Data(osReleaseData.bytes), encoding: .utf8) {
+                if let distribution = parseOSRelease(osRelease) {
+                    return distribution
+                }
+            }
+        }
+
+        // Fallback to distribution-specific files
+        let distributionFiles: [(String, LinuxDistribution.Kind)] = [
+            ("/etc/ubuntu-release", .ubuntu),
+            ("/etc/debian_version", .debian),
+            ("/etc/amazon-release", .amazon),
+            ("/etc/centos-release", .centos),
+            ("/etc/redhat-release", .rhel),
+            ("/etc/fedora-release", .fedora),
+            ("/etc/SuSE-release", .suse),
+            ("/etc/alpine-release", .alpine),
+            ("/etc/arch-release", .arch),
+        ]
+
+        for (file, kind) in distributionFiles {
+            if fs.exists(Path(file)) {
+                return LinuxDistribution(kind: kind)
+            }
+        }
+
+        return nil
+    }
+
+    /// Parses /etc/os-release content to determine distribution and version
+    /// Fallback to just getting the distribution from specific files.
+    private func parseOSRelease(_ content: String) -> LinuxDistribution? {
+        let lines = content.components(separatedBy: .newlines)
+        var id: String?
+        var idLike: String?
+        var versionId: String?
+
+        // Parse out ID, ID_LIKE and VERSION_ID
+        for line in lines {
+            let trimmed = line.trimmingCharacters(in: .whitespaces)
+            if trimmed.hasPrefix("ID=") {
+                id = String(trimmed.dropFirst(3)).trimmingCharacters(in: CharacterSet(charactersIn: "\""))
+            } else if trimmed.hasPrefix("ID_LIKE=") {
+                idLike = String(trimmed.dropFirst(8)).trimmingCharacters(in: CharacterSet(charactersIn: "\""))
+            } else if trimmed.hasPrefix("VERSION_ID=") {
+                versionId = String(trimmed.dropFirst(11)).trimmingCharacters(in: CharacterSet(charactersIn: "\""))
+            }
+        }
+
+        // Check ID first
+        if let id = id {
+            let kind: LinuxDistribution.Kind?
+            switch id.lowercased() {
+            case "ubuntu": kind = .ubuntu
+            case "debian": kind = .debian
+            case "amzn": kind = .amazon
+            case "centos": kind = .centos
+            case "rhel": kind = .rhel
+            case "fedora": kind = .fedora
+            case "suse", "opensuse", "opensuse-leap", "opensuse-tumbleweed": kind = .suse
+            case "alpine": kind = .alpine
+            case "arch": kind = .arch
+            default: kind = nil
+            }
+
+            if let kind = kind {
+                return LinuxDistribution(kind: kind, version: versionId)
+            }
+        }
+
+        // Check ID_LIKE as fallback
+        if let idLike = idLike {
+            let likes = idLike.components(separatedBy: .whitespaces)
+            for like in likes {
+                let kind: LinuxDistribution.Kind?
+                switch like.lowercased() {
+                case "ubuntu": kind = .ubuntu
+                case "debian": kind = .debian
+                case "rhel", "fedora": kind = .rhel
+                case "suse": kind = .suse
+                case "arch": kind = .arch
+                default: kind = nil
+                }
+
+                if let kind = kind {
+                    return LinuxDistribution(kind: kind, version: versionId)
+                }
+            }
+        }
+        return nil
     }
 }
 
@@ -255,3 +419,4 @@ extension FixedWidthInteger {
         return self != 0 ? self : other
     }
 }
+
