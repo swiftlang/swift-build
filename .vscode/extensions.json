@@ -1,3 +1,7 @@
 {
-  "recommendations": ["swiftlang.swift-vscode", "editorconfig.editorconfig"]
+    "recommendations": [
+        "swiftlang.swift-vscode",
+        "editorconfig.editorconfig",
+        "llvm-vs-code-extensions.lldb-dap"
+    ]
 }
