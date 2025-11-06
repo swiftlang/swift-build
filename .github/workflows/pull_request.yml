@@ -24,7 +24,11 @@ jobs:
       windows_swift_versions: '["nightly-main"]'
       windows_build_command: 'Invoke-Program swift test --no-parallel'
       enable_linux_static_sdk_build: true
+      enable_android_sdk_build: true
+      android_sdk_build_command: "swift build --build-tests"
+      android_ndk_versions: '["r27d", "r29"]'
       linux_static_sdk_build_command: SWIFTBUILD_STATIC_LINK=1 LLBUILD_STATIC_LINK=1 swift build
+      enable_ios_checks: true
       enable_macos_checks: true
       macos_exclude_xcode_versions: "[{\"xcode_version\": \"16.3\"}, {\"xcode_version\": \"16.4\"}]"
       macos_pre_build_command: ./.github/scripts/prebuild.sh
