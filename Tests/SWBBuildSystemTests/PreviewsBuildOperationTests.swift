@@ -299,6 +299,7 @@ fileprivate struct PreviewsBuildOperationTests: CoreBasedTests {
                         #expect(targetPreviewInfo.context.sdkRoot == core.loadSDK(.iOSSimulator).name)
                         #expect(targetPreviewInfo.context.sdkVariant == "iphonesimulator")
 
+                        #expect(targetPreviewInfo.targetDependencyInfo?.productModuleName == "AppTarget")
                         #expect(targetPreviewInfo.targetDependencyInfo?.objectFileInputMap == [
                             "\(srcRoot.str)/build/ProjectName.build/Debug-iphonesimulator/AppTarget.build/Objects-normal/\(results.runDestinationTargetArchitecture)/main.o": Set(["\(srcRoot.str)/Sources/main.swift"])
                             ])
@@ -603,6 +604,7 @@ fileprivate struct PreviewsBuildOperationTests: CoreBasedTests {
                         #expect(targetPreviewInfo.context.sdkRoot == core.loadSDK(.iOSSimulator).name)
                         #expect(targetPreviewInfo.context.sdkVariant == "iphonesimulator")
 
+                        #expect(targetPreviewInfo.targetDependencyInfo?.productModuleName == "AppTarget")
                         #expect(targetPreviewInfo.targetDependencyInfo?.objectFileInputMap == [
                             "\(srcRoot.str)/build/ProjectName.build/Debug-iphonesimulator/AppTarget.build/Objects-normal/\(results.runDestinationTargetArchitecture)/main.o": Set(["\(srcRoot.str)/Sources/main.swift"]),
                             "\(srcRoot.str)/build/ProjectName.build/Debug-iphonesimulator/AppTarget.build/Objects-normal/\(results.runDestinationTargetArchitecture)/File1.o": Set(["\(srcRoot.str)/Sources/File1.swift"]),

@@ -50,6 +50,7 @@ package struct PreviewInfoOutput: Sendable {
     }
 
     package struct TargetDependencyInfo: Sendable {
+        package let productModuleName: String
         package let objectFileInputMap: [String: Set<String>]
         package let linkCommandLine: [String]
         package let linkerWorkingDirectory: String?
@@ -265,6 +266,7 @@ extension BuildDescription {
                     case .targetDependencyInfo:
                         let swiftInfos = Dictionary(grouping: relevantPreviewInfos.filter({ $0.type == .Swift }), by: { $0.output.str }).mapValues { Set($0.map { $0.input.str }) }
                         let targetInfo = PreviewInfoOutput.TargetDependencyInfo(
+                            productModuleName: settings.globalScope.evaluate(BuiltinMacros.PRODUCT_MODULE_NAME),
                             objectFileInputMap: swiftInfos,
                             linkCommandLine: linkInfo?.commandLine ?? [],
                             linkerWorkingDirectory: linkInfo?.workingDirectory.str,

@@ -1092,6 +1092,7 @@ private extension PreviewInfoOutput {
         case let .targetDependencyInfo(info):
             kind = .targetDependencyInfo(
                 PreviewInfoTargetDependencyInfo(
+                    productModuleName: info.productModuleName,
                     objectFileInputMap: info.objectFileInputMap,
                     linkCommandLine: info.linkCommandLine,
                     linkerWorkingDirectory: info.linkerWorkingDirectory,

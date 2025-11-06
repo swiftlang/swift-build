@@ -206,6 +206,7 @@ fileprivate struct GeneratePreviewInfoTests: CoreBasedTests {
                             buildVariant: "normal",
                             architecture: activeRunDestination.targetArchitecture,
                             pifGUID: appTarget.guid,
+                            productModuleName: "App",
                             objectFileInputMap: [
                                 "\(tmpDir.str)/Test/build/Test.build/Debug-iphoneos/App.build/Objects-normal/\(activeRunDestination.targetArchitecture)/TestFile4.o": Set(["\(tmpDir.str)/Test/TestFile4.swift"]),
                                 "\(tmpDir.str)/Test/build/Test.build/Debug-iphoneos/App.build/Objects-normal/\(activeRunDestination.targetArchitecture)/GeneratedAssetSymbols.o": Set(["\(tmpDir.str)/Test/build/Test.build/Debug-iphoneos/App.build/DerivedSources/GeneratedAssetSymbols.swift"])
@@ -381,6 +382,7 @@ fileprivate struct GeneratePreviewInfoTests: CoreBasedTests {
                             buildVariant: "normal",
                             architecture: activeRunDestination.targetArchitecture,
                             pifGUID: libTarget.guid,
+                            productModuleName: "StaticLib",
                             objectFileInputMap: [
                                 "\(tmpDir.str)/Test/build/Test.build/Debug-iphoneos/StaticLib.build/Objects-normal/arm64/TestFile4.o": Set(["\(tmpDir.str)/Test/TestFile4.swift"])
                             ],
@@ -505,6 +507,7 @@ fileprivate struct GeneratePreviewInfoTests: CoreBasedTests {
                             buildVariant: "normal",
                             architecture: activeRunDestination.targetArchitecture,
                             pifGUID: target.guid,
+                            productModuleName: "CApplication",
                             objectFileInputMap: [:],
                             linkCommandLine: [
                                 "\(developerDir)/Toolchains/XcodeDefault.xctoolchain/usr/bin/clang",

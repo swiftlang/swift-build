@@ -443,6 +443,7 @@ public struct PreviewInfoThunkInfo: Codable, Equatable, Sendable {
 }
 
 public struct PreviewInfoTargetDependencyInfo: Codable, Equatable, Sendable {
+    public let productModuleName: String
     public let objectFileInputMap: [String: Set<String>]
     public let linkCommandLine: [String]
     public let linkerWorkingDirectory: String?
@@ -455,6 +456,7 @@ public struct PreviewInfoTargetDependencyInfo: Codable, Equatable, Sendable {
     public let enableUndefinedBehaviorSanitizer: Bool
 
     public init(
+        productModuleName: String,
         objectFileInputMap: [String : Set<String>],
         linkCommandLine: [String],
         linkerWorkingDirectory: String?,
@@ -466,6 +468,7 @@ public struct PreviewInfoTargetDependencyInfo: Codable, Equatable, Sendable {
         enableThreadSanitizer: Bool,
         enableUndefinedBehaviorSanitizer: Bool
     ) {
+        self.productModuleName = productModuleName
         self.objectFileInputMap = objectFileInputMap
         self.linkCommandLine = linkCommandLine
         self.linkerWorkingDirectory = linkerWorkingDirectory
