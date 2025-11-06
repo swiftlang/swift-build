@@ -465,7 +465,7 @@ private struct WorkspaceInfoMsg: MessageHandler {
 
         return WorkspaceInfoResponse(sessionHandle: session.UID, workspaceInfo: .init(targetInfos: workspaceContext.workspace.projects.flatMap { project in
             return project.targets.map { target in
-                return .init(guid: target.guid, targetName: target.name, projectName: project.name)
+                return .init(guid: target.guid, targetName: target.name, projectName: project.name, dynamicTargetVariantGuid: target.dynamicTargetVariantGuid)
             }
         }))
     }

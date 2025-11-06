@@ -94,7 +94,7 @@ import Testing
         assertMsgPackMessageRoundTrip(AuditSessionPIFRequest(sessionHandle: "theSession", pifContents: [4, 7, 9, 13]))
         assertMsgPackMessageRoundTrip(IncrementalPIFLookupFailureRequest(sessionHandle: "theSession", diagnostic: "everything went wrong"))
         assertMsgPackMessageRoundTrip(WorkspaceInfoRequest(sessionHandle: "theSession"))
-        assertMsgPackMessageRoundTrip(WorkspaceInfoResponse(sessionHandle: "theSession", workspaceInfo: .init(targetInfos: [.init(guid: "theGuid", targetName: "aTarget", projectName: "aProject")])))
+        assertMsgPackMessageRoundTrip(WorkspaceInfoResponse(sessionHandle: "theSession", workspaceInfo: .init(targetInfos: [.init(guid: "theGuid", targetName: "aTarget", projectName: "aProject", dynamicTargetVariantGuid: nil)])))
 
         assertMsgPackMessageRoundTrip(ErrorResponse("everything went wrong"))
         assertMsgPackMessageRoundTrip(BoolResponse(true))
