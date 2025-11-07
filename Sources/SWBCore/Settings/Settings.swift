@@ -4192,9 +4192,17 @@ private class SettingsBuilder {
 
         // If testability is enabled, then that overrides certain other settings, and in a way that the user cannot override: They're either using testability, or they're not.
         if scope.evaluate(BuiltinMacros.ENABLE_TESTABILITY) {
+            let exportGlobalSymbols: Bool
+            if let standardTarget = target as? StandardTarget, ["com.apple.product-type.objfile", "org.swift.product-type.common.object"].contains(standardTarget.productTypeIdentifier) {
+                // with lld, -r and --export-dynamic may not be used together, but this is assumed to be a generally nonsensical combination even if other linkers like gold don't necessarily error out
+                exportGlobalSymbols = false
+            } else {
+                exportGlobalSymbols = true
+            }
+
             table.push(BuiltinMacros.GCC_SYMBOLS_PRIVATE_EXTERN, literal: false)
             table.push(BuiltinMacros.SWIFT_ENABLE_TESTABILITY, literal: true)
-            table.push(BuiltinMacros.LD_EXPORT_GLOBAL_SYMBOLS, literal: true)       // So symbols are available for testing even when LTO is enabled
+            table.push(BuiltinMacros.LD_EXPORT_GLOBAL_SYMBOLS, literal: exportGlobalSymbols)  // So symbols are available for testing even when LTO is enabled
             table.push(BuiltinMacros.STRIP_INSTALLED_PRODUCT, literal: false)
         }
 
