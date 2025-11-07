@@ -57,6 +57,7 @@ class SWBServiceConsoleBuildCommand: SWBServiceConsoleCommand {
         var buildRequestFile: Path? = nil
         var buildParametersFile: Path? = nil
         var derivedDataPath: Path? = nil
+        var buildAllTargets: Bool = false
 
         var iterator = invocation.commandLine.makeIterator()
         _ = iterator.next()
@@ -68,6 +69,9 @@ class SWBServiceConsoleBuildCommand: SWBServiceConsoleCommand {
                 }
 
                 actionName = name
+
+            case "--allTargets":
+                buildAllTargets = true
 
             case "--target":
                 guard let name = iterator.next() else {
@@ -120,6 +124,10 @@ class SWBServiceConsoleBuildCommand: SWBServiceConsoleCommand {
 
         let containerPath = Path(positionalArgs[0])
 
+        if !configuredTargetNames.isEmpty, buildAllTargets {
+            return .failure(.invalidCommandError(description: "error: pass either --allTargets or --target"))
+        }
+
         return await invocation.console.service.withSession(sessionName: containerPath.str) { session, diagnostics in
             let baseDirectory: AbsolutePath
             do {
@@ -165,7 +173,7 @@ class SWBServiceConsoleBuildCommand: SWBServiceConsoleCommand {
             let configuredTargets: [SWBConfiguredTarget]
             do {
                 let workspaceInfo = try await session.workspaceInfo()
-                configuredTargets = try workspaceInfo.configuredTargets(targetNames: configuredTargetNames, parameters: parameters)
+                configuredTargets = try workspaceInfo.configuredTargets(targetNames: configuredTargetNames, parameters: parameters, buildAllTargets: buildAllTargets)
             } catch {
                 return .failure(.failedCommandError(description: error.localizedDescription))
             }
@@ -303,11 +311,11 @@ class SWBServiceConsolePrepareForIndexCommand: SWBServiceConsoleCommand {
             var prepareTargets: [String]?
             do {
                 let workspaceInfo = try await session.workspaceInfo()
-                configuredTargets = try workspaceInfo.configuredTargets(targetNames: configuredTargetNames, parameters: parameters)
+                configuredTargets = try workspaceInfo.configuredTargets(targetNames: configuredTargetNames, parameters: parameters, buildAllTargets: false)
 
                 if !prepareTargetNames.isEmpty {
                     do {
-                        prepareTargets = try workspaceInfo.configuredTargets(targetNames: configuredTargetNames, parameters: parameters).map(\.guid)
+                        prepareTargets = try workspaceInfo.configuredTargets(targetNames: configuredTargetNames, parameters: parameters, buildAllTargets: false).map(\.guid)
                     } catch {
                         return .failure(.failedCommandError(description: error.localizedDescription))
                     }
@@ -375,7 +383,17 @@ fileprivate func generateDependencyInfo(startInfo: SwiftBuildMessage.BuildStarte
 }
 
 extension SWBWorkspaceInfo {
-    func configuredTargets(targetNames: [String], parameters: SWBBuildParameters) throws -> [SWBConfiguredTarget] {
+    func configuredTargets(targetNames: [String], parameters: SWBBuildParameters, buildAllTargets: Bool) throws -> [SWBConfiguredTarget] {
+        if buildAllTargets {
+            // Filter all dynamic targets to avoid building the same content multiple times.
+            let dynamicTargetVariantGuids = targetInfos.compactMap { $0.dynamicTargetVariantGuid }
+            let targets = targetInfos.filter {
+                !dynamicTargetVariantGuids.contains($0.guid)
+            }.map {
+                SWBConfiguredTarget(guid: $0.guid, parameters: parameters)
+            }
+            return targets
+        }
         return try targetNames.map { targetName in
             let infos = targetInfos.filter { $0.targetName == targetName }
             switch infos.count {
