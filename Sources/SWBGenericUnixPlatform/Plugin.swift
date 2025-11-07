@@ -200,9 +200,6 @@ struct GenericUnixSDKRegistryExtension: SDKRegistryExtension {
                         try ("__SYSROOT_\(LLVMTriple(targetTriple.key).arch)", .plString(swiftSDK.path.join(targetTriple.value.sdkRootPath).str))
                     }).merging([
                         "SYSROOT": "$(__SYSROOT_$(CURRENT_ARCH))",
-
-                        // ld.lld: error: -r and --export-dynamic (-rdynamic) may not be used together
-                        "LD_EXPORT_GLOBAL_SYMBOLS": "YES",
                     ], uniquingKeysWith: { _, new in new })
                 } catch {
                     // FIXME: Handle errors?
