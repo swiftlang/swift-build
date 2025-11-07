@@ -111,6 +111,10 @@ extension CapturingTaskGenerationDelegate: TaskActionCreationDelegate {
         return AuxiliaryFileTaskAction(context)
     }
 
+    public func createBuildDependencyInfoTaskAction() -> any PlannedTaskAction {
+        return BuildDependencyInfoTaskAction()
+    }
+
     public func createCodeSignTaskAction() -> any PlannedTaskAction {
         return CodeSignTaskAction()
     }

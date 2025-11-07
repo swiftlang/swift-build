@@ -315,6 +315,7 @@ extension FileCopyTaskActionContext {
 public protocol TaskActionCreationDelegate
 {
     func createAuxiliaryFileTaskAction(_ context: AuxiliaryFileTaskActionContext) -> any PlannedTaskAction
+    func createBuildDependencyInfoTaskAction() -> any PlannedTaskAction
     func createBuildDirectoryTaskAction() -> any PlannedTaskAction
     func createCodeSignTaskAction() -> any PlannedTaskAction
     func createConcatenateTaskAction() -> any PlannedTaskAction

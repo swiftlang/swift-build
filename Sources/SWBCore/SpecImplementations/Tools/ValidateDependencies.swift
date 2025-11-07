@@ -49,8 +49,13 @@ public final class ValidateDependenciesSpec: CommandLineToolSpec, SpecImplementa
             return
         }
         let signature = String(decoding: jsonData, as: UTF8.self)
-        let output =  delegate.createVirtualNode("ValidateDependencies \(configuredTarget.guid)")
-        delegate.createTask(type: self, payload: payload, ruleInfo: ["ValidateDependencies"], additionalSignatureData: signature, commandLine: ["builtin-validate-dependencies"] + dependencyInfos.map { $0.path.str }, environment: EnvironmentBindings(), workingDirectory: cbc.producer.defaultWorkingDirectory, inputs: dependencyInfos + cbc.commandOrderingInputs, outputs: [output], action: delegate.taskActionCreationDelegate.createValidateDependenciesTaskAction(), preparesForIndexing: false, enableSandboxing: false)
+
+        var outputs: [any PlannedNode] = [delegate.createVirtualNode("ValidateDependencies \(configuredTarget.guid)")]
+        if cbc.scope.evaluate(BuiltinMacros.DUMP_DEPENDENCIES) {
+            outputs.append(MakePlannedPathNode(cbc.scope.evaluate(BuiltinMacros.DUMP_DEPENDENCIES_OUTPUT_PATH)))
+        }
+
+        delegate.createTask(type: self, payload: payload, ruleInfo: ["ValidateDependencies"], additionalSignatureData: signature, commandLine: ["builtin-validate-dependencies"] + dependencyInfos.map { $0.path.str }, environment: EnvironmentBindings(), workingDirectory: cbc.producer.defaultWorkingDirectory, inputs: dependencyInfos + cbc.commandOrderingInputs, outputs: outputs, action: delegate.taskActionCreationDelegate.createValidateDependenciesTaskAction(), preparesForIndexing: false, enableSandboxing: false)
     }
 }
 

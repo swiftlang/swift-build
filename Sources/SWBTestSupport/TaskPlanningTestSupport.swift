@@ -344,6 +344,10 @@ extension TestTaskPlanningDelegate: TaskActionCreationDelegate {
         return AuxiliaryFileTaskAction(context)
     }
 
+    package func createBuildDependencyInfoTaskAction() -> any PlannedTaskAction {
+        return BuildDependencyInfoTaskAction()
+    }
+
     package func createCodeSignTaskAction() -> any PlannedTaskAction {
         return CodeSignTaskAction()
     }

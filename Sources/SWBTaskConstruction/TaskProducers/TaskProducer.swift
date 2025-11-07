@@ -220,6 +220,7 @@ public class TaskProducerContext: StaleFileRemovalContext, BuildFileResolution
 
     public let appShortcutStringsMetadataCompilerSpec: AppShortcutStringsMetadataCompilerSpec
     let appleScriptCompilerSpec: CommandLineToolSpec
+    let buildDependencyInfoSpec: BuildDependencyInfoSpec
     public let clangSpec: ClangCompilerSpec
     public let clangAssemblerSpec: ClangCompilerSpec
     public let clangPreprocessorSpec: ClangCompilerSpec
@@ -344,6 +345,7 @@ public class TaskProducerContext: StaleFileRemovalContext, BuildFileResolution
         let domain = settings.platform?.name ?? ""
         self.appShortcutStringsMetadataCompilerSpec = workspaceContext.core.specRegistry.getSpec("com.apple.compilers.appshortcutstringsmetadata", domain: domain) as! AppShortcutStringsMetadataCompilerSpec
         self.appleScriptCompilerSpec = workspaceContext.core.specRegistry.getSpec("com.apple.compilers.osacompile", domain: domain) as! CommandLineToolSpec
+        self.buildDependencyInfoSpec = workspaceContext.core.specRegistry.getSpec(BuildDependencyInfoSpec.identifier, domain: domain) as! BuildDependencyInfoSpec
         self.clangSpec = try! workspaceContext.core.specRegistry.getSpec(domain: domain) as ClangCompilerSpec
         self.clangAssemblerSpec = try! workspaceContext.core.specRegistry.getSpec(domain: domain) as ClangAssemblerSpec
         self.clangPreprocessorSpec = try! workspaceContext.core.specRegistry.getSpec(domain: domain) as ClangPreprocessorSpec

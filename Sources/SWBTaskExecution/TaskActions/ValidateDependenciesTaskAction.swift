@@ -176,7 +176,7 @@ public final class ValidateDependenciesTaskAction: TaskAction {
             ], errors: []
         )
 
-        let outputData = try JSONEncoder().encode(dependencyInfo)
+        let outputData = try JSONEncoder(outputFormatting: [.prettyPrinted, .sortedKeys, .withoutEscapingSlashes]).encode(dependencyInfo)
         let outputURL = URL(fileURLWithPath: payload.dumpDependenciesOutputPath)
         try outputData.write(to: outputURL)
     }
