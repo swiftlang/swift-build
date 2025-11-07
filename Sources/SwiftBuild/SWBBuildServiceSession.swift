@@ -990,6 +990,7 @@ fileprivate extension SWBPreviewTargetDependencyInfo {
         case .thunkInfo:
             throw StubError.error("Unexpected response type for request")
         case let .targetDependencyInfo(targetDependencyInfo):
+            self.productModuleName = targetDependencyInfo.productModuleName
             self.objectFileInputMap = targetDependencyInfo.objectFileInputMap
             self.linkCommandLine = targetDependencyInfo.linkCommandLine
             self.linkerWorkingDirectory = targetDependencyInfo.linkerWorkingDirectory

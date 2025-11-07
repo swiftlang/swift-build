@@ -60,6 +60,8 @@ public struct SWBPreviewTargetDependencyInfo: SWBPreviewInfoContext, Hashable, S
 
     public let pifGUID: String
 
+    public let productModuleName: String
+
     /// Mapping of object files to the source file inputs they came from.
     public let objectFileInputMap: [String: Set<String>]
 
@@ -110,6 +112,7 @@ public struct SWBPreviewTargetDependencyInfo: SWBPreviewInfoContext, Hashable, S
         buildVariant: String,
         architecture: String,
         pifGUID: String,
+        productModuleName: String,
         objectFileInputMap: [String : Set<String>],
         linkCommandLine: [String],
         linkerWorkingDirectory: String?,
@@ -126,6 +129,7 @@ public struct SWBPreviewTargetDependencyInfo: SWBPreviewInfoContext, Hashable, S
         self.buildVariant = buildVariant
         self.architecture = architecture
         self.pifGUID = pifGUID
+        self.productModuleName = productModuleName
         self.objectFileInputMap = objectFileInputMap
         self.linkCommandLine = linkCommandLine
         self.linkerWorkingDirectory = linkerWorkingDirectory
