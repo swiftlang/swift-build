@@ -572,7 +572,7 @@ package final class ClangModuleDependencyGraph {
     }
 
     package func generateReproducer(forFailedDependency dependency: DependencyInfo,
-                                    libclangPath: Path, casOptions: CASOptions?) throws -> String? {
+                                    libclangPath: Path, casOptions: CASOptions?, location: String?) throws -> String? {
         let clangWithScanner = try libclangWithScanner(
             forPath: libclangPath,
             casOptions: casOptions,
@@ -583,7 +583,7 @@ package final class ClangModuleDependencyGraph {
             return nil
         }
         return try clangWithScanner.scanner.generateReproducer(
-            commandLine: dependency.scanningCommandLine, workingDirectory: dependency.workingDirectory.str)
+            commandLine: dependency.scanningCommandLine, workingDirectory: dependency.workingDirectory.str, location: location)
     }
 
     package var isEmpty: Bool {

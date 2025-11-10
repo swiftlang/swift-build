@@ -138,7 +138,8 @@ public final class ClangCompileTaskAction: TaskAction, BuildValueValidatingTaskA
                 libclangPath: explicitModulesPayload.libclangPath,
                 casOptions: explicitModulesPayload.casOptions,
                 verifyingModule: explicitModulesPayload.verifyingModule,
-                fileNameMapPath: payload.fileNameMapPath
+                fileNameMapPath: payload.fileNameMapPath,
+                reproducerOutputPath: explicitModulesPayload.reproducerOutputPath
             )
 
             dynamicExecutionDelegate.requestDynamicTask(
@@ -327,7 +328,8 @@ public final class ClangCompileTaskAction: TaskAction, BuildValueValidatingTaskA
                             if let reproducerMessage = try clangModuleDependencyGraph.generateReproducer(
                                     forFailedDependency: dependencyInfo,
                                     libclangPath: explicitModulesPayload.libclangPath,
-                                    casOptions: explicitModulesPayload.casOptions) {
+                                    casOptions: explicitModulesPayload.casOptions,
+                                    location: explicitModulesPayload.reproducerOutputPath?.str) {
                                 outputDelegate.emitOutput(ByteString(encodingAsUTF8: reproducerMessage) + "\n")
                             }
                         } catch {

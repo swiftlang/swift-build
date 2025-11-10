@@ -2213,11 +2213,12 @@ extern "C" {
     bool libclang_scanner_generate_reproducer(libclang_scanner_t scanner,
                                               int argc, char *const *argv,
                                               const char *workingDirectory,
+                                              const char *reproducerLocation,
                                               const char **message) {
         auto lib = scanner->scanner->lib;
         LibclangFunctions::CXString messageString;
         auto reproducerOpts = lib->fns.clang_experimental_DependencyScannerReproducerOptions_create(
-            argc, argv, /*ModuleName=*/nullptr, workingDirectory, /*ReproducerLocation=*/nullptr, /*UseUniqueReproducerName=*/true);
+            argc, argv, /*ModuleName=*/nullptr, workingDirectory, reproducerLocation, /*UseUniqueReproducerName=*/true);
         auto result = lib->fns.clang_experimental_DependencyScanner_generateReproducer(
             reproducerOpts, &messageString);
         lib->fns.clang_experimental_DependencyScannerReproducerOptions_dispose(reproducerOpts);

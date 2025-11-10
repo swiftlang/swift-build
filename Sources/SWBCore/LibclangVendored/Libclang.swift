@@ -291,13 +291,14 @@ public final class DependencyScanner {
 
     public func generateReproducer(
         commandLine: [String],
-        workingDirectory: String
+        workingDirectory: String,
+        location: String?
     ) throws -> String {
         let args = CStringArray(commandLine)
         var messageUnsafe: UnsafePointer<Int8>!
         defer { messageUnsafe?.deallocate() }
         // The count is `- 1` here, because CStringArray appends a trailing nullptr.
-        let success = libclang_scanner_generate_reproducer(scanner, CInt(args.cArray.count - 1), args.cArray, workingDirectory, &messageUnsafe);
+        let success = libclang_scanner_generate_reproducer(scanner, CInt(args.cArray.count - 1), args.cArray, workingDirectory, location, &messageUnsafe);
         let message = String(cString: messageUnsafe)
         guard success else {
             throw message.isEmpty ? Error.dependencyScanUnknownError : Error.dependencyScanErrorString(message)

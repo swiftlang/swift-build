@@ -368,8 +368,9 @@ public struct ClangExplicitModulesPayload: Serializable, Encodable, Sendable {
     public let reportRequiredTargetDependencies: BooleanWarningLevel
     public let verifyingModule: String?
     public let shouldGenerateReproducerForErrors: Bool
+    public let reproducerOutputPath: Path?
 
-    fileprivate init(uniqueID: String, sourcePath: Path, libclangPath: Path, usesCompilerLauncher: Bool, outputPath: Path, scanningOutputPath: Path, casOptions: CASOptions?, cacheFallbackIfNotAvailable: Bool, dependencyFilteringRootPath: Path?, reportRequiredTargetDependencies: BooleanWarningLevel, verifyingModule: String?, shouldGenerateReproducerForErrors: Bool) {
+    fileprivate init(uniqueID: String, sourcePath: Path, libclangPath: Path, usesCompilerLauncher: Bool, outputPath: Path, scanningOutputPath: Path, casOptions: CASOptions?, cacheFallbackIfNotAvailable: Bool, dependencyFilteringRootPath: Path?, reportRequiredTargetDependencies: BooleanWarningLevel, verifyingModule: String?, shouldGenerateReproducerForErrors: Bool, reproducerOutputPath: Path?) {
         self.uniqueID = uniqueID
         self.sourcePath = sourcePath
         self.libclangPath = libclangPath
@@ -382,10 +383,11 @@ public struct ClangExplicitModulesPayload: Serializable, Encodable, Sendable {
         self.reportRequiredTargetDependencies = reportRequiredTargetDependencies
         self.verifyingModule = verifyingModule
         self.shouldGenerateReproducerForErrors = shouldGenerateReproducerForErrors
+        self.reproducerOutputPath = reproducerOutputPath
     }
 
     public func serialize<T: Serializer>(to serializer: T) {
-        serializer.serializeAggregate(12) {
+        serializer.serializeAggregate(13) {
             serializer.serialize(uniqueID)
             serializer.serialize(sourcePath)
             serializer.serialize(libclangPath)
@@ -398,11 +400,12 @@ public struct ClangExplicitModulesPayload: Serializable, Encodable, Sendable {
             serializer.serialize(reportRequiredTargetDependencies)
             serializer.serialize(verifyingModule)
             serializer.serialize(shouldGenerateReproducerForErrors)
+            serializer.serialize(reproducerOutputPath)
         }
     }
 
     public init(from deserializer: any Deserializer) throws {
-        try deserializer.beginAggregate(12)
+        try deserializer.beginAggregate(13)
         self.uniqueID = try deserializer.deserialize()
         self.sourcePath = try deserializer.deserialize()
         self.libclangPath = try deserializer.deserialize()
@@ -415,6 +418,7 @@ public struct ClangExplicitModulesPayload: Serializable, Encodable, Sendable {
         self.reportRequiredTargetDependencies = try deserializer.deserialize()
         self.verifyingModule = try deserializer.deserialize()
         self.shouldGenerateReproducerForErrors = try deserializer.deserialize()
+        self.reproducerOutputPath = try deserializer.deserialize()
     }
 
 }
@@ -1028,7 +1032,8 @@ public class ClangCompilerSpec : CompilerSpec, SpecIdentifierType, GCCCompatible
                     dependencyFilteringRootPath: isForPCHTask ? nil : cbc.producer.sdk?.path,
                     reportRequiredTargetDependencies: cbc.scope.evaluate(BuiltinMacros.DIAGNOSE_MISSING_TARGET_DEPENDENCIES),
                     verifyingModule: verifyingModule(cbc),
-                    shouldGenerateReproducerForErrors: cbc.scope.evaluate(BuiltinMacros.CLANG_EXPLICIT_MODULES_ENABLE_REPRODUCER_FOR_ERRORS)
+                    shouldGenerateReproducerForErrors: cbc.scope.evaluate(BuiltinMacros.CLANG_EXPLICIT_MODULES_ENABLE_REPRODUCER_FOR_ERRORS),
+                    reproducerOutputPath: cbc.scope.evaluate(BuiltinMacros.CLANG_EXPLICIT_MODULES_REPRODUCER_OUTPUT_PATH).nilIfEmpty
                 )
                 let explicitModulesSignatureData = cachedBuild ? "cached" : nil
 

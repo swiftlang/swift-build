@@ -222,7 +222,7 @@ CSUPPORT_EXPORT bool libclang_scanner_scan_dependencies(
 /// \returns True on success, false if something failed (see \p message for more details).
 CSUPPORT_EXPORT bool libclang_scanner_generate_reproducer(
     libclang_scanner_t scanner, int argc, char *const *argv, const char *workingDirectory,
-    const char **message);
+    const char *reproducerLocation, const char **message);
 
 /// Get the list of commands invoked by the given Clang driver command line.
 ///
