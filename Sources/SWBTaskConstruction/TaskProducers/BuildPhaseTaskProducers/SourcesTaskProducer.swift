@@ -15,6 +15,7 @@ package import SWBUtil
 import struct SWBProtocol.BuildOperationTaskEnded
 import Foundation
 package import SWBMacro
+import SwiftDriver
 
 // Some things that should probably live in this task producer that might not be immediately obvious:
 //      Emitting an error if PGO is turned on for a target containing Swift files.
@@ -408,7 +409,7 @@ package final class SourcesTaskProducer: FilesBasedBuildPhaseTaskProducerBase, F
                                 continue
                             }
                             processedArchitectures.insert(originalArch)
-                            let scope = settings.globalScope.subscope(binding: BuiltinMacros.archCondition, to: originalArch)
+                            let scope = settings.globalScope.subscopeBindingArchAndTriple(arch: originalArch)
                             // Binding the architecture may change how we evaluate $(ARCHS). Ensure we process any new architectures.
                             for potentiallyNewArch in scope.evaluate(BuiltinMacros.ARCHS) {
                                 if !processedArchitectures.contains(potentiallyNewArch) {
@@ -654,6 +655,46 @@ package final class SourcesTaskProducer: FilesBasedBuildPhaseTaskProducerBase, F
                     xcframeworkSourcePath: xcframeworkPath,
                     privacyFile: nil
                 )
+            } else if fileType.conformsTo(identifier: "wrapper.artifactbundle") {
+                let metadata: ArtifactBundleMetadata
+                do {
+                    metadata = try context.globalProductPlan.artifactBundleMetadataCache.getOrInsert(absolutePath) {
+                       try ArtifactBundleMetadata.parse(at: absolutePath, fileSystem: context.fs)
+                   }
+                } catch {
+                    context.error("failed to parse artifact bundle metadata for '\(absolutePath)': \(error.localizedDescription)")
+                    return nil
+                }
+                for (name, artifact) in metadata.artifacts {
+                    switch artifact.type {
+                    case .crossCompilationDestination, .executable, .swiftSDK:
+                        context.warning("ignoring artifact '\(name)' of type '\(artifact.type)' because it cannot be linked", location: .path(absolutePath))
+                        continue
+                    case .staticLibrary:
+                        var foundMatch = false
+                        let currentTripleString = scope.evaluate(BuiltinMacros.SWIFT_TARGET_TRIPLE)
+                        for variant in artifact.variants {
+                            if variant.supportedTriples == nil || variant.supportedTriples?.contains(where: {
+                                normalizedTriplesCompareDisregardingOSVersions($0, currentTripleString)
+                            }) == true {
+                                foundMatch = true
+                                return LinkerSpec.LibrarySpecifier(
+                                    kind: .static,
+                                    path: absolutePath.join(variant.path),
+                                    mode: .normal,
+                                    useSearchPaths: false,
+                                    swiftModulePaths: [:],
+                                    swiftModuleAdditionalLinkerArgResponseFilePaths: [:],
+                                    privacyFile: privacyFile
+                                )
+                            }
+                        }
+                        if !foundMatch {
+                            context.warning("ignoring '\(name)' because the artifact bundle did not contain a matching variant", location: .path(absolutePath))
+                        }
+                    }
+                }
+                return nil
             } else if fileType.conformsTo(identifier: "compiled.object-library") {
                 return LinkerSpec.LibrarySpecifier(
                     kind: .objectLibrary,
@@ -825,7 +866,7 @@ package final class SourcesTaskProducer: FilesBasedBuildPhaseTaskProducerBase, F
 
             for arch in archs {
                 // Enter the per-arch scope.
-                let scope = scope.subscope(binding: BuiltinMacros.archCondition, to: arch)
+                let scope = scope.subscopeBindingArchAndTriple(arch: arch)
                 let currentArchSpec = context.getSpec(arch) as! ArchitectureSpec?
 
                 // Reset the set of used tools.
@@ -1169,7 +1210,7 @@ package final class SourcesTaskProducer: FilesBasedBuildPhaseTaskProducerBase, F
             // Generate tasks for the module-only architectures.
             for arch in moduleOnlyArchs {
                 // Enter the per-arch scope.
-                let scope = scope.subscope(binding: BuiltinMacros.archCondition, to: arch)
+                let scope = scope.subscopeBindingArchAndTriple(arch: arch)
                 let currentArchSpec = context.getSpec(arch) as! ArchitectureSpec?
 
                 // Reset the set of used tools.

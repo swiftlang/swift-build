@@ -735,7 +735,9 @@ public class TaskProducerContext: StaleFileRemovalContext, BuildFileResolution
         assert((scope.values(for: BuiltinMacros.archCondition) != nil) == forArch)
 
         if !forArch {
-            return scope.evaluate(BuiltinMacros.ARCHS).contains(where: { arch in willProduceBinary(scope.subscope(binding: BuiltinMacros.archCondition, to: arch), forArch: true) })
+            return scope.evaluate(BuiltinMacros.ARCHS).contains(where: { arch in
+                willProduceBinary(scope.subscopeBindingArchAndTriple(arch: arch), forArch: true)
+            })
         }
 
         // If we're copying a stub binary for this target, then we have a binary.
@@ -1340,7 +1342,7 @@ extension TaskProducerContext: CommandProducer {
 
             return dependencyScope
                 .subscope(binding: BuiltinMacros.variantCondition, to: variant)
-                .subscope(binding: BuiltinMacros.archCondition, to: arch)
+                .subscopeBindingArchAndTriple(arch: arch)
         }
     }
 
@@ -1432,7 +1434,9 @@ extension TaskProducerContext {
         guard let swiftFileType = lookupFileType(identifier: "sourcecode.swift") else { return false }
         guard let applescriptFileType = lookupFileType(identifier: "sourcecode.applescript") else { return false }
         guard let doccFileType = lookupFileType(identifier: "folder.documentationcatalog") else { return false }
-        for archSpecificSubscope in scope.evaluate(BuiltinMacros.ARCHS).map({ arch in scope.subscope(binding: BuiltinMacros.archCondition, to: arch) }) {
+        for archSpecificSubscope in scope.evaluate(BuiltinMacros.ARCHS).map({ arch in
+            scope.subscopeBindingArchAndTriple(arch: arch)
+        }) {
             let context = BuildFilesProcessingContext(archSpecificSubscope)
             guard !sourcesBuildPhase.buildFiles.contains(where: { buildFile in
                 guard let resolvedBuildFileInfo = try? resolveBuildFileReference(buildFile),

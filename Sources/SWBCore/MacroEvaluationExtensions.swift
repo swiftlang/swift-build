@@ -126,4 +126,10 @@ extension MacroEvaluationScope {
             return ($0 == BuiltinMacros.TARGET_BUILD_SUBPATH) ? self.table.namespace.parseLiteralString("") : nil
         })
     }
+
+    public func subscopeBindingArchAndTriple(arch: String) -> MacroEvaluationScope {
+        let archScope = subscope(binding: BuiltinMacros.archCondition, to: arch)
+        let swiftTargetTriple = archScope.evaluate(BuiltinMacros.SWIFT_TARGET_TRIPLE)
+        return archScope.subscope(binding: BuiltinMacros.normalizedUnversionedTripleCondition, to: swiftTargetTriple)
+    }
 }

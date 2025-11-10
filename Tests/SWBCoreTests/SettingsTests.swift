@@ -5630,5 +5630,27 @@ import SWBMacro
             let otherCflagsValues = BuiltinMacros.ifSet(BuiltinMacros.OTHER_CFLAGS, in: scope) { ["blah", $0] }
             #expect(otherCflagsValues == ["blah", "-Wall", "blah", "-O3"])
         }
+
+        @Test
+        func tripleCondition() async throws {
+            let namespace = try await getCore().specRegistry.internalMacroNamespace
+            var table = MacroValueAssignmentTable(namespace: namespace)
+
+            table.push(
+                BuiltinMacros.OTHER_CFLAGS,
+                literal: ["-DARM64_APPLE_IOS"],
+                conditions: .init(conditions: [MacroCondition(parameter: BuiltinMacros.normalizedUnversionedTripleCondition, valuePattern: "arm64-apple-ios")])
+            )
+
+            do {
+                let scope = MacroEvaluationScope(table: table).subscope(binding: BuiltinMacros.normalizedUnversionedTripleCondition, to: "arm64-apple-ios26.0")
+                #expect(scope.evaluate(BuiltinMacros.OTHER_CFLAGS) == ["-DARM64_APPLE_IOS"])
+            }
+
+            do {
+                let scope = MacroEvaluationScope(table: table).subscope(binding: BuiltinMacros.normalizedUnversionedTripleCondition, to: "arm64-apple-macos")
+                #expect(scope.evaluate(BuiltinMacros.OTHER_CFLAGS) == [])
+            }
+        }
     }
 }

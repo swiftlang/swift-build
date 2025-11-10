@@ -96,6 +96,7 @@ add_library(SWBUtil
   Statistics.swift
   String.swift
   SWBDispatch.swift
+  SwiftDriverTripleExtensions.swift
   TAPIFileList.swift
   UniqueSerialization.swift
   UnsafeSendableDelayedInitializationWrapper.swift
@@ -115,6 +116,7 @@ target_link_libraries(SWBUtil PUBLIC
   SWBCSupport
   SWBLibc
   ArgumentParser
+  SwiftDriver
   $<$<NOT:$<PLATFORM_ID:Darwin>>:SwiftSystem::SystemPackage>)
 
 set_target_properties(SWBUtil PROPERTIES

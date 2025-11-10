@@ -195,7 +195,7 @@ private extension BundleProductTypeSpec
                 for variant in scope.evaluate(BuiltinMacros.BUILD_VARIANTS) {
                     let scope = scope.subscope(binding: BuiltinMacros.variantCondition, to: variant)
                     for arch in scope.evaluate(BuiltinMacros.ARCHS) {
-                        let scope = scope.subscope(binding: BuiltinMacros.archCondition, to: arch)
+                        let scope = scope.subscopeBindingArchAndTriple(arch: arch)
 
                         // Preprocess the file, if requested.
                         if let preprocessedPlistPath = await self.addInfoPlistPreprocessTaskIfNeeded(rawPlistPath, basename: infoplistPath.basename, producer, scope, &tasks) {
@@ -255,7 +255,7 @@ private extension ToolProductTypeSpec
                     let scope = scope.subscope(binding: BuiltinMacros.variantCondition, to: variant)
                     for arch in scope.evaluate(BuiltinMacros.ARCHS)
                     {
-                        let scope = scope.subscope(binding: BuiltinMacros.archCondition, to: arch)
+                        let scope = scope.subscopeBindingArchAndTriple(arch: arch)
 
                         // Preprocess the file, if requested.
                         let preprocessedPlistPath = await addInfoPlistPreprocessTaskIfNeeded(rawPlistPath, basename: infoplistPath.basename, producer, scope, &tasks) ?? rawPlistPath

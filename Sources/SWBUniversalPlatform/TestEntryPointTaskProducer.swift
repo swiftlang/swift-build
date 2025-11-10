@@ -54,7 +54,7 @@ class TestEntryPointTaskProducer: PhasedTaskProducer, TaskProducer {
                     for arch in settings.globalScope.evaluate(BuiltinMacros.ARCHS) {
                         for variant in settings.globalScope.evaluate(BuiltinMacros.BUILD_VARIANTS) {
                             let innerScope = settings.globalScope
-                                .subscope(binding: BuiltinMacros.archCondition, to: arch)
+                                .subscopeBindingArchAndTriple(arch: arch)
                                 .subscope(binding: BuiltinMacros.variantCondition, to: variant)
                             let linkerFileListPath = innerScope.evaluate(BuiltinMacros.__INPUT_FILE_LIST_PATH__)
                             if !linkerFileListPath.isEmpty {
