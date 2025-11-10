@@ -26,7 +26,7 @@ public import SystemPackage
 /// Represents a `dispatch_fd_t` which is a POSIX file descriptor on Unix-like platforms, or a HANDLE on Windows.
 ///
 /// It performs non-owning conversions from FileDescriptors and FileHandles, but not the reverse. The raw fd/HANDLE value is inaccessible to callers and privately forwarded to relevant Dispatch APIs.
-public struct DispatchFD {
+public struct DispatchFD: Sendable {
     #if os(Windows)
     fileprivate let rawValue: Int
     #else
