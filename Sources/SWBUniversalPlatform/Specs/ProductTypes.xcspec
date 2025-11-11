@@ -82,6 +82,7 @@
             FULL_PRODUCT_NAME = "$(EXECUTABLE_NAME)";
             MACH_O_TYPE = "mh_dylib";
             REZ_EXECUTABLE = YES;
+            EXECUTABLE_PREFIX= "lib";
             EXECUTABLE_SUFFIX = ".$(EXECUTABLE_EXTENSION)";
             EXECUTABLE_EXTENSION = "$(DYNAMIC_LIBRARY_EXTENSION:default=dylib)";
             PUBLIC_HEADERS_FOLDER_PATH = "/usr/local/include";

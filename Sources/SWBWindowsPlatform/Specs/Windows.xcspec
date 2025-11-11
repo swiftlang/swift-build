@@ -87,6 +87,7 @@
         BasedOn = default:com.apple.product-type.library.dynamic;
         HasInfoPlist = NO;
         DefaultBuildProperties = {
+            EXECUTABLE_PREFIX = "";
             PUBLIC_HEADERS_FOLDER_PATH = "";
             PRIVATE_HEADERS_FOLDER_PATH = "";
         };
