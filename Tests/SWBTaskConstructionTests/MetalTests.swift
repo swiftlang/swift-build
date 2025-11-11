@@ -72,4 +72,50 @@ fileprivate struct MetalTests: CoreBasedTests {
             }
         }
     }
+
+    @Test(.requireSDKs(.macOS), .skipInGitHubActions("Metal toolchain is not installed on GitHub runners"))
+    func  indexOptionsNotAddedIfIndexingIsDisabled() async throws {
+        try await withTemporaryDirectory { tmpDir in
+            let testProject = TestProject(
+                "ProjectName",
+                sourceRoot: tmpDir,
+                groupTree: TestGroup(
+                    "SomeFiles",
+                    children: [
+                        TestFile("File1.metal")
+                    ]),
+                targets: [
+                    TestStandardTarget(
+                        "Test",
+                        type: .staticLibrary,
+                        buildConfigurations: [
+                            TestBuildConfiguration(
+                                "Debug",
+                                buildSettings: [
+                                    "COMPILER_INDEX_STORE_ENABLE": "NO",
+                                    "INDEX_DATA_STORE_DIR": tmpDir.join("index").str,
+                                    "INDEX_STORE_COMPRESS": "YES",
+                                    "INDEX_STORE_ONLY_PROJECT_FILES": "YES",
+                                    "CLANG_INDEX_STORE_IGNORE_MACROS": "YES",
+                                ]
+                            ),
+                        ],
+                        buildPhases: [
+                            TestSourcesBuildPhase(["File1.metal"]),
+                        ]
+                    )
+                ])
+
+            let core = try await getCore()
+            let tester = try TaskConstructionTester(core, testProject)
+            await tester.checkBuild(BuildParameters(configuration: "Debug", commandLineOverrides: ["INDEX_ENABLE_DATA_STORE": "YES"]), runDestination: .macOS) { results in
+                results.checkTask(.matchRuleType("CompileMetalFile")) { compileTask in
+                    compileTask.checkCommandLineDoesNotContain("-index-store-path")
+                    compileTask.checkCommandLineDoesNotContain("-index-store-compress")
+                    compileTask.checkCommandLineDoesNotContain("-index-ignore-system-symbols")
+                    compileTask.checkCommandLineDoesNotContain("-index-ignore-pcms")
+                }
+            }
+        }
+    }
 }
