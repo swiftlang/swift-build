@@ -793,6 +793,10 @@ extension BuildSystemTaskPlanningDelegate: TaskActionCreationDelegate {
         return AuxiliaryFileTaskAction(context)
     }
 
+    func createBuildDependencyInfoTaskAction() -> any PlannedTaskAction {
+        return BuildDependencyInfoTaskAction()
+    }
+
     func createCodeSignTaskAction() -> any PlannedTaskAction {
         return CodeSignTaskAction()
     }

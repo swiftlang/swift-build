@@ -81,6 +81,7 @@ private struct WorkspaceProductPlanBuilder {
             SDKStatCacheTaskProducer(context: globalTaskProducerContext, targetContexts: targetContexts),
             HeadermapVFSTaskProducer(context: globalTaskProducerContext, targetContexts: targetContexts),
             PCHModuleMapTaskProducer(context: globalTaskProducerContext, targetContexts: targetContexts),
+            BuildDependencyInfoTaskProducer(context: globalTaskProducerContext, targetContexts: targetContexts),
         ] + (globalProductPlan.planRequest.buildRequest.enableIndexBuildArena ? [IndexBuildVFSDirectoryRemapTaskProducer(context: globalTaskProducerContext)] : [])
 
         for taskProducerExtension in await taskProducerExtensions(globalTaskProducerContext.workspaceContext) {

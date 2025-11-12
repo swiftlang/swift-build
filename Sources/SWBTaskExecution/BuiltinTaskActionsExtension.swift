@@ -56,6 +56,7 @@ public struct BuiltinTaskActionsExtension: TaskActionExtension {
             41: ClangNonModularCompileTaskAction.self,
             42: ObjectLibraryAssemblerTaskAction.self,
             43: LinkerTaskAction.self,
+            45: BuildDependencyInfoTaskAction.self,
         ]
     }
 }

@@ -345,7 +345,7 @@ fileprivate struct DependencyValidationTests: CoreBasedTests {
         }
     }
 
-    func validateModuleDependenciesSwift(explicitModules: Bool, dumpDependencies: Bool = false, body: ((Path, BuildOperationTester.BuildResults) async throws -> ())? = nil) async throws {
+    func validateModuleDependenciesSwift(explicitModules: Bool, dumpDependencies: Bool = false, testFixIts: Bool = true, body: ((Path, BuildOperationTester.BuildResults) async throws -> ())? = nil) async throws {
         try await withTemporaryDirectory { tmpDir in
             let testWorkspace = try await TestWorkspace(
                 "Test",
@@ -407,10 +407,18 @@ fileprivate struct DependencyValidationTests: CoreBasedTests {
 
             let projectXCConfigPath = testWorkspace.sourceRoot.join("Project/Project.xcconfig")
             try await tester.fs.writeFileContents(projectXCConfigPath) { stream in
-                stream <<<
-            """
-            MODULE_DEPENDENCIES[target=TargetA] = Dispatch
-            """
+                if testFixIts {
+                    stream <<<
+                """
+                MODULE_DEPENDENCIES[target=TargetA] = Dispatch
+                """
+                } else {
+                    stream <<<
+                """
+                MODULE_DEPENDENCIES[target=TargetA] = Dispatch Foundation
+                MODULE_DEPENDENCIES[target=TargetB] = Foundation
+                """
+                }
             }
 
             let projectXCConfigContents = try #require(tester.fs.read(projectXCConfigPath).stringValue)
@@ -419,7 +427,7 @@ fileprivate struct DependencyValidationTests: CoreBasedTests {
             let projectXCConfigFinalColumnNumber = (projectXCConfigLines.last?.count ?? 0) + 1
 
             let expectedDiagsByTarget: [String: [Diagnostic]]
-            if explicitModules {
+            if explicitModules, testFixIts {
                 expectedDiagsByTarget = [
                     "TargetA": [
                         Diagnostic(
@@ -810,7 +818,7 @@ fileprivate struct DependencyValidationTests: CoreBasedTests {
 
     @Test(.requireSDKs(.macOS))
     func dumpDependenciesDuringBuild() async throws {
-        try await validateModuleDependenciesSwift(explicitModules: true, dumpDependencies: true) { tmpDir, _ in
+        try await validateModuleDependenciesSwift(explicitModules: true, dumpDependencies: true, testFixIts: false) { tmpDir, _ in
             let debugDir = tmpDir.join("Test/Project/build/Project.build/Debug")
             for dir in try localFS.listdir(debugDir) {
                 let buildDir = debugDir.join(dir)
@@ -823,6 +831,10 @@ fileprivate struct DependencyValidationTests: CoreBasedTests {
                     #expect(dependencyInfo.targets.first?.dependencies.count == 5)
                 }
             }
+
+            let globalDependencyInfoPath = tmpDir.join("Test/build/BuildDependencyInfo.json")
+            let globalDependencyInfo = try JSONDecoder().decode(BuildDependencyInfo.self, from: globalDependencyInfoPath, fs: localFS)
+            #expect(globalDependencyInfo.targets.first?.dependencies.count == 5)
         }
     }
 }

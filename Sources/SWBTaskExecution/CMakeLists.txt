@@ -32,6 +32,7 @@ add_library(SWBTaskExecution
   Task.swift
   TaskActionExtensionPoint.swift
   TaskActions/AuxiliaryFileTaskAction.swift
+  TaskActions/BuildDependencyInfoTaskAction.swift
   TaskActions/ClangCachingKeyQueryTaskAction.swift
   TaskActions/ClangCachingMaterializeKeyTaskAction.swift
   TaskActions/ClangCachingOutputMaterializerTaskAction.swift

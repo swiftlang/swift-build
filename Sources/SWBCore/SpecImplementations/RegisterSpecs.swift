@@ -119,6 +119,7 @@ public struct BuiltinSpecsExtension: SpecificationsExtension {
     // spec implementations (custom classes we provide which have no backing spec file at all).
     public func specificationImplementations() -> [any SpecImplementationType.Type] {
         [
+            BuildDependencyInfoSpec.self,
             ConcatenateToolSpec.self,
             CreateAssetPackManifestToolSpec.self,
             CreateBuildDirectorySpec.self,
