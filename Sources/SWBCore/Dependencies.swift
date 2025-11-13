@@ -302,17 +302,18 @@ public struct HeaderDependenciesContext: Sendable, SerializableCodable {
             data: DiagnosticData("The current toolchain does not support \(BuiltinMacros.VALIDATE_HEADER_DEPENDENCIES.name)"))
     }
 
-    /// Compute missing module dependencies.
-    public func computeMissingAndUnusedDependencies(includes: [Path]) -> (missing: [HeaderDependency], unused: [HeaderDependency]) {
+    /// Compute missing header dependencies.
+    public func computeMissingAndUnusedDependencies(includes: [(Path, includeLocations: [Diagnostic.Location])]) -> (missing: [(HeaderDependency, includeLocations: [Diagnostic.Location])], unused: [HeaderDependency]) {
         let declaredNames = Set(declared.map { $0.name })
 
-        let missing: [HeaderDependency]
+        let missing: [(HeaderDependency, includeLocations: [Diagnostic.Location])]
         if validate != .no {
-            missing = includes.filter { file in
-                return !declaredNames.contains(where: { file.ends(with: $0) })
-            }.map {
+            missing = includes.filter { include in
+                return !declaredNames.contains(where: { include.0.ends(with: $0) })
+            }.map { include in
                 // TODO: What if the basename doesn't uniquely identify the header?
-                HeaderDependency(name: $0.basename, accessLevel: .Private, optional: false)
+                let dep = HeaderDependency(name: include.0.basename, accessLevel: .Private, optional: false)
+                return (dep, includeLocations: include.includeLocations)
             }
         }
         else {
@@ -334,15 +335,26 @@ public struct HeaderDependenciesContext: Sendable, SerializableCodable {
     ///
     /// The compiler tracing information does not provide the include locations or whether they are public imports
     /// (which depends on whether the import is in an installed header file).
-    public func makeDiagnostics(missingDependencies: [HeaderDependency], unusedDependencies: [HeaderDependency]) -> [Diagnostic] {
+    public func makeDiagnostics(missingDependencies: [(HeaderDependency, includeLocations: [Diagnostic.Location])], unusedDependencies: [HeaderDependency]) -> [Diagnostic] {
         let missingDiagnostics: [Diagnostic]
         if !missingDependencies.isEmpty {
             let behavior: Diagnostic.Behavior = validate == .yesError ? .error : .warning
 
-            let fixIt = fixItContext?.makeFixIt(newHeaders: missingDependencies)
+            let fixIt = fixItContext?.makeFixIt(newHeaders: missingDependencies.map { $0.0 })
             let fixIts = fixIt.map { [$0] } ?? []
 
-            let message = "Missing entries in \(BuiltinMacros.HEADER_DEPENDENCIES.name): \(missingDependencies.map { $0.asBuildSettingEntryQuotedIfNeeded }.sorted().joined(separator: " "))"
+            let importDiags: [Diagnostic] = missingDependencies
+                .flatMap { dep in
+                    dep.1.map {
+                        return Diagnostic(
+                            behavior: behavior,
+                            location: $0,
+                            data: DiagnosticData("Missing entry in \(BuiltinMacros.HEADER_DEPENDENCIES.name): \(dep.0.asBuildSettingEntryQuotedIfNeeded)"),
+                            fixIts: fixIts)
+                    }
+                }
+
+            let message = "Missing entries in \(BuiltinMacros.HEADER_DEPENDENCIES.name): \(missingDependencies.map { $0.0.asBuildSettingEntryQuotedIfNeeded }.sorted().joined(separator: " "))"
 
             let location: Diagnostic.Location = fixIt.map {
                 Diagnostic.Location.path($0.sourceRange.path, line: $0.sourceRange.endLine, column: $0.sourceRange.endColumn)
@@ -352,7 +364,8 @@ public struct HeaderDependenciesContext: Sendable, SerializableCodable {
                 behavior: behavior,
                 location: location,
                 data: DiagnosticData(message),
-                fixIts: fixIts)]
+                fixIts: fixIts,
+                childDiagnostics: importDiags)]
         }
         else {
             missingDiagnostics = []
