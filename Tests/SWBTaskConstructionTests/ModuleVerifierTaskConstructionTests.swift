@@ -1249,7 +1249,7 @@ extension ClangModuleVerifierTaskConstructionTestsProtocol {
                     if verifierKind == "external" {
                         AAAVerifierTask.checkRuleInfo([verifierRuleName, "\(SRCROOT)/build/Debug/AAA.framework"])
                     } else {
-                        AAAVerifierTask.checkRuleInfo([verifierRuleName, "\(SRCROOT)/build/Debug/AAA.framework", "", "", "x86_64", "objective-c", "gnu17", "", "com.apple.compilers.llvm.clang.1_0.verify_module"])
+                        AAAVerifierTask.checkRuleInfo([verifierRuleName, "\(SRCROOT)/build/Debug/AAA.framework", "", "", results.runDestinationTargetArchitecture, "objective-c", "gnu17", "", "com.apple.compilers.llvm.clang.1_0.verify_module"])
                     }
 
                     // Make sure AAA VerifyModule runs *after* we produce a module map, headers and copy them over.
@@ -1270,7 +1270,7 @@ extension ClangModuleVerifierTaskConstructionTestsProtocol {
                             if verifierKind == "external" {
                                 BBBVerifierTask.checkRuleInfo([verifierRuleName, "\(SRCROOT)/build/Debug/BBB.framework"])
                             } else {
-                                BBBVerifierTask.checkRuleInfo([verifierRuleName, "\(SRCROOT)/build/Debug/BBB.framework", "", "", "x86_64", "objective-c", "gnu17", "", "com.apple.compilers.llvm.clang.1_0.verify_module"])
+                                BBBVerifierTask.checkRuleInfo([verifierRuleName, "\(SRCROOT)/build/Debug/BBB.framework", "", "", results.runDestinationTargetArchitecture, "objective-c", "gnu17", "", "com.apple.compilers.llvm.clang.1_0.verify_module"])
                             }
 
                             // Make sure BBB VerifyModule runs *after* we produce a module map, headers and copy them over.
@@ -1783,7 +1783,7 @@ extension ClangModuleVerifierTaskConstructionTestsProtocol {
             results.checkTarget("SwiftOnly") { target in
                 results.checkTask(.matchTarget(target), .matchRuleType(verifierInputRuleName)) { task in
                     // Make sure VerifyModule runs after the relevant SwiftMergeGeneratedHeaders task.
-                    results.checkTaskFollows(task, .matchRule(["SwiftMergeGeneratedHeaders", "\(SRCROOT)/build/Debug/SwiftOnly.framework/Versions/A/Headers/SwiftOnly-Swift.h", "\(SRCROOT)/build/Project.build/Debug/SwiftOnly.build/Objects-normal/x86_64/SwiftOnly-Swift.h"]))
+                    results.checkTaskFollows(task, .matchRule(["SwiftMergeGeneratedHeaders", "\(SRCROOT)/build/Debug/SwiftOnly.framework/Versions/A/Headers/SwiftOnly-Swift.h", "\(SRCROOT)/build/Project.build/Debug/SwiftOnly.build/Objects-normal/\(results.runDestinationTargetArchitecture)/SwiftOnly-Swift.h"]))
                     results.checkTaskDoesNotFollow(task, .matchRuleType("SwiftDriver Compilation"))
 
                     // Make sure VerifyModule has all of the relevant SwiftMergeGeneratedHeaders outputs
@@ -1902,10 +1902,10 @@ extension ClangModuleVerifierTaskConstructionTestsProtocol {
                     results.checkTaskDoesNotFollow(task, .matchRule(["Copy", "\(SRCROOT)/build/Debug/Framework.framework/Versions/A/PrivateHeaders/PrivateSource.iig", "\(SRCROOT)/PrivateSource.iig"]))
                     results.checkTaskDoesNotFollow(task, .matchRule(["Iig", "\(SRCROOT)/ProjectSource.iig"]))
                     results.checkTaskDoesNotFollow(task, .matchRule(["IntentDefinitionCodegen", "\(SRCROOT)/Base.lproj/ProjectIntents.intentdefinition"]))
-                    results.checkTaskDoesNotFollow(task, .matchRule(["CompileC", "\(SRCROOT)/build/Project.build/Debug/Framework.build/Objects-normal/x86_64/PublicSource.iig.o", "\(SRCROOT)/build/Project.build/Debug/Framework.build/DerivedSources/Framework/PublicSource.iig.cpp", "normal", "x86_64", "c++", "com.apple.compilers.llvm.clang.1_0.compiler"]))
-                    results.checkTaskDoesNotFollow(task, .matchRule(["CompileC", "\(SRCROOT)/build/Project.build/Debug/Framework.build/Objects-normal/x86_64/PrivateSource.iig.o", "\(SRCROOT)/build/Project.build/Debug/Framework.build/DerivedSources/Framework/PrivateSource.iig.cpp", "normal", "x86_64", "c++", "com.apple.compilers.llvm.clang.1_0.compiler"]))
-                    results.checkTaskDoesNotFollow(task, .matchRule(["CompileC", "\(SRCROOT)/build/Project.build/Debug/Framework.build/Objects-normal/x86_64/ProjectSource.iig.o", "\(SRCROOT)/build/Project.build/Debug/Framework.build/DerivedSources/Framework/ProjectSource.iig.cpp", "normal", "x86_64", "c++", "com.apple.compilers.llvm.clang.1_0.compiler"]))
-                    results.checkTaskDoesNotFollow(task, .matchRule(["CompileC", "\(SRCROOT)/build/Project.build/Debug/Framework.build/Objects-normal/x86_64/Framework.o", "\(SRCROOT)/Framework.m", "normal", "x86_64", "objective-c", "com.apple.compilers.llvm.clang.1_0.compiler"]))
+                    results.checkTaskDoesNotFollow(task, .matchRule(["CompileC", "\(SRCROOT)/build/Project.build/Debug/Framework.build/Objects-normal/\(results.runDestinationTargetArchitecture)/PublicSource.iig.o", "\(SRCROOT)/build/Project.build/Debug/Framework.build/DerivedSources/Framework/PublicSource.iig.cpp", "normal", results.runDestinationTargetArchitecture, "c++", "com.apple.compilers.llvm.clang.1_0.compiler"]))
+                    results.checkTaskDoesNotFollow(task, .matchRule(["CompileC", "\(SRCROOT)/build/Project.build/Debug/Framework.build/Objects-normal/\(results.runDestinationTargetArchitecture)/PrivateSource.iig.o", "\(SRCROOT)/build/Project.build/Debug/Framework.build/DerivedSources/Framework/PrivateSource.iig.cpp", "normal", results.runDestinationTargetArchitecture, "c++", "com.apple.compilers.llvm.clang.1_0.compiler"]))
+                    results.checkTaskDoesNotFollow(task, .matchRule(["CompileC", "\(SRCROOT)/build/Project.build/Debug/Framework.build/Objects-normal/\(results.runDestinationTargetArchitecture)/ProjectSource.iig.o", "\(SRCROOT)/build/Project.build/Debug/Framework.build/DerivedSources/Framework/ProjectSource.iig.cpp", "normal", results.runDestinationTargetArchitecture, "c++", "com.apple.compilers.llvm.clang.1_0.compiler"]))
+                    results.checkTaskDoesNotFollow(task, .matchRule(["CompileC", "\(SRCROOT)/build/Project.build/Debug/Framework.build/Objects-normal/\(results.runDestinationTargetArchitecture)/Framework.o", "\(SRCROOT)/Framework.m", "normal", results.runDestinationTargetArchitecture, "objective-c", "com.apple.compilers.llvm.clang.1_0.compiler"]))
 
                     // Make sure VerifyModule has all of the relevant Iig and Intents outputs as inputs
                     // so that it will run again if any of them change.

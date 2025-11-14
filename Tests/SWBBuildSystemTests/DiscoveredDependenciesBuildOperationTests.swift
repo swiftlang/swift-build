@@ -13,6 +13,7 @@
 import SWBCore
 import SWBTestSupport
 import SwiftBuildTestSupport
+import SWBProtocol
 import SWBUtil
 import Testing
 
@@ -182,7 +183,7 @@ fileprivate struct DiscoveredDependenciesBuildOperationTests: CoreBasedTests {
             // Modify the dep implementation, and rebuild. The swiftmodule of Dep won't change, so Client will not need to run SwiftDriver planning.
             //
             // FIXME: This removal is needed to work around <rdar://problem/29695274>, removal tracked by: <rdar://problem/31455149> [BLOCKED] Remove workarounds for <rdar://problem/29695274>
-            try tester.fs.remove(SRCROOT.join("build/aProject.build/Debug/Dep.build/Objects-normal/x86_64/Dep.o"))
+            try tester.fs.remove(SRCROOT.join("build/aProject.build/Debug/Dep.build/Objects-normal/\(RunDestinationInfo.macOS.targetArchitecture)/Dep.o"))
             try await tester.fs.writeFileContents(SRCROOT.join("Sources/Dep.swift")) { contents in
                 contents <<< "public func dep0() { print() }\n"
             }
@@ -225,7 +226,7 @@ fileprivate struct DiscoveredDependenciesBuildOperationTests: CoreBasedTests {
             // Change the public API of the dep, and rebuild.
             //
             // FIXME: This removal is needed to work around <rdar://problem/29695274>, removal tracked by: <rdar://problem/31455149> [BLOCKED] Remove workarounds for <rdar://problem/29695274>
-            try tester.fs.remove(SRCROOT.join("build/aProject.build/Debug/Dep.build/Objects-normal/x86_64/Dep.o"))
+            try tester.fs.remove(SRCROOT.join("build/aProject.build/Debug/Dep.build/Objects-normal/\(RunDestinationInfo.macOS.targetArchitecture)/Dep.o"))
             try await tester.fs.writeFileContents(SRCROOT.join("Sources/Dep.swift")) { contents in
                 contents <<< "public func dep0() { }\n"
                 contents <<< "public func dep1() { }\n"
@@ -452,15 +453,15 @@ fileprivate struct DiscoveredDependenciesBuildOperationTests: CoreBasedTests {
             // Do a first build where everything should be ok.
             try await tester.checkBuild(parameters: BuildParameters(configuration: "Debug"), runDestination: .macOS, persistent: true) { results in
                 results.checkNoDiagnostics()
-            }
 
-            // The linker dependency info should contain the stub, not the binary.
-            let ldDepsPath = SRCROOT.join("build/aProject.build/Debug/App.build/Objects-normal/x86_64/App_dependency_info.dat")
-            let dependencyInfo = try DependencyInfo(bytes: tester.fs.read(ldDepsPath).bytes)
-            #expect(dependencyInfo.inputs.contains(SRCROOT.join("build/EagerLinkingTBDs/Debug/Fmwk.framework/Fmwk.tbd").str))
-            #expect(dependencyInfo.inputs.contains(SRCROOT.join("build/EagerLinkingTBDs/Debug/Fmwk.framework/Versions/A/Fmwk.tbd").str))
-            #expect(!dependencyInfo.inputs.contains(SRCROOT.join("build/Debug/Fmwk.framework/Fmwk").str))
-            #expect(!dependencyInfo.inputs.contains(SRCROOT.join("build/Debug/Fmwk.framework/Versions/A/Fmwk").str))
+                // The linker dependency info should contain the stub, not the binary.
+                let ldDepsPath = SRCROOT.join("build/aProject.build/Debug/App.build/Objects-normal/\(results.runDestinationTargetArchitecture)/App_dependency_info.dat")
+                let dependencyInfo = try DependencyInfo(bytes: tester.fs.read(ldDepsPath).bytes)
+                #expect(dependencyInfo.inputs.contains(SRCROOT.join("build/EagerLinkingTBDs/Debug/Fmwk.framework/Fmwk.tbd").str))
+                #expect(dependencyInfo.inputs.contains(SRCROOT.join("build/EagerLinkingTBDs/Debug/Fmwk.framework/Versions/A/Fmwk.tbd").str))
+                #expect(!dependencyInfo.inputs.contains(SRCROOT.join("build/Debug/Fmwk.framework/Fmwk").str))
+                #expect(!dependencyInfo.inputs.contains(SRCROOT.join("build/Debug/Fmwk.framework/Versions/A/Fmwk").str))
+            }
         }
     }
 }

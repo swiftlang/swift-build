@@ -97,7 +97,7 @@ fileprivate struct DriverKitTaskConstructionTests: CoreBasedTests {
             results.consumeTasksMatchingRuleTypes(["CreateBuildDirectory", "CodeSign", "Gate", "Ld", "GenerateTAPI", "MkDir", "RegisterExecutionPolicyException", "ProcessInfoPlistFile", "ProcessProductPackaging", "ProcessProductPackagingDER", "SymLink", "Touch", "WriteAuxiliaryFile"])
 
             results.checkTarget("DextTarget") { target in
-                results.checkTask(.matchRule(["CompileC", "\(srcRoot.str)/build/aProject.build/Debug-driverkit/DextTarget.build/Objects-normal/x86_64/main.o", "\(srcRoot.str)/Sources/main.c", "normal", "x86_64", "c", "com.apple.compilers.llvm.clang.1_0.compiler"])) { task in
+                results.checkTask(.matchRule(["CompileC", "\(srcRoot.str)/build/aProject.build/Debug-driverkit/DextTarget.build/Objects-normal/\(results.runDestinationTargetArchitecture)/main.o", "\(srcRoot.str)/Sources/main.c", "normal", results.runDestinationTargetArchitecture, "c", "com.apple.compilers.llvm.clang.1_0.compiler"])) { task in
                     // Ensure that installation of iig-produced headers is treated as a requirement to begin downstream compilation.
                     results.checkTaskFollows(task, .matchTargetName("LibraryTarget"), .matchRuleType("Iig"), .matchRulePattern([.suffix("public.iig")]))
                 }
@@ -106,19 +106,19 @@ fileprivate struct DriverKitTaskConstructionTests: CoreBasedTests {
                     task.checkCommandLine([iigPath.str, "--def", "\(srcRoot.str)/Sources/interface.iig", "--header", "\(srcRoot.str)/build/aProject.build/Debug-driverkit/DextTarget.build/DerivedSources/DextTarget/interface.h", "--impl", "\(srcRoot.str)/build/aProject.build/Debug-driverkit/DextTarget.build/DerivedSources/DextTarget/interface.iig.cpp", "--deployment-target", driverkitSDK.version, "--log", Path.null.str, "--", "-isysroot", driverkitSDK.path.str, "-x", "c++", "-std=c++17", "-D__IIG=1", "-Werror=deprecated-declarations", "-I/tmp/Test/aProject/build/Debug-driverkit/include", "-F/tmp/Test/aProject/build/Debug-driverkit"])
                 }
 
-                results.checkTask(.matchRule(["CompileC", "\(srcRoot.str)/build/aProject.build/Debug-driverkit/DextTarget.build/Objects-normal/x86_64/interface.iig.o", "\(srcRoot.str)/build/aProject.build/Debug-driverkit/DextTarget.build/DerivedSources/DextTarget/interface.iig.cpp", "normal", "x86_64", "c++", "com.apple.compilers.llvm.clang.1_0.compiler"])) { task in }
+                results.checkTask(.matchRule(["CompileC", "\(srcRoot.str)/build/aProject.build/Debug-driverkit/DextTarget.build/Objects-normal/\(results.runDestinationTargetArchitecture)/interface.iig.o", "\(srcRoot.str)/build/aProject.build/Debug-driverkit/DextTarget.build/DerivedSources/DextTarget/interface.iig.cpp", "normal", results.runDestinationTargetArchitecture, "c++", "com.apple.compilers.llvm.clang.1_0.compiler"])) { task in }
 
                 results.checkNoTask(.matchTarget(target))
             }
 
             results.checkTarget("LibraryTarget") { target in
-                results.checkTask(.matchRule(["CompileC", "\(srcRoot.str)/build/aProject.build/Debug-driverkit/LibraryTarget.build/Objects-normal/x86_64/main.o", "\(srcRoot.str)/Sources/main.c", "normal", "x86_64", "c", "com.apple.compilers.llvm.clang.1_0.compiler"])) { task in }
+                results.checkTask(.matchRule(["CompileC", "\(srcRoot.str)/build/aProject.build/Debug-driverkit/LibraryTarget.build/Objects-normal/\(results.runDestinationTargetArchitecture)/main.o", "\(srcRoot.str)/Sources/main.c", "normal", results.runDestinationTargetArchitecture, "c", "com.apple.compilers.llvm.clang.1_0.compiler"])) { task in }
 
                 results.checkTask(.matchRule(["Iig", "\(srcRoot.str)/Sources/project.iig"])) { task in
                     task.checkCommandLine([iigPath.str, "--def", "\(srcRoot.str)/Sources/project.iig", "--header", "\(srcRoot.str)/build/aProject.build/Debug-driverkit/LibraryTarget.build/DerivedSources/LibraryTarget/project.h", "--impl", "\(srcRoot.str)/build/aProject.build/Debug-driverkit/LibraryTarget.build/DerivedSources/LibraryTarget/project.iig.cpp", "--deployment-target", driverkitSDK.version, "--framework-name", "LibraryTarget", "--log", Path.null.str, "--", "-isysroot", driverkitSDK.path.str, "-x", "c++", "-std=c++17", "-D__IIG=1", "-Werror=deprecated-declarations", "-I/tmp/Test/aProject/build/Debug-driverkit/include", "-F/tmp/Test/aProject/build/Debug-driverkit"])
                 }
 
-                results.checkTask(.matchRule(["CompileC", "\(srcRoot.str)/build/aProject.build/Debug-driverkit/LibraryTarget.build/Objects-normal/x86_64/project.iig.o", "\(srcRoot.str)/build/aProject.build/Debug-driverkit/LibraryTarget.build/DerivedSources/LibraryTarget/project.iig.cpp", "normal", "x86_64", "c++", "com.apple.compilers.llvm.clang.1_0.compiler"])) { task in }
+                results.checkTask(.matchRule(["CompileC", "\(srcRoot.str)/build/aProject.build/Debug-driverkit/LibraryTarget.build/Objects-normal/\(results.runDestinationTargetArchitecture)/project.iig.o", "\(srcRoot.str)/build/aProject.build/Debug-driverkit/LibraryTarget.build/DerivedSources/LibraryTarget/project.iig.cpp", "normal", results.runDestinationTargetArchitecture, "c++", "com.apple.compilers.llvm.clang.1_0.compiler"])) { task in }
 
                 results.checkTask(.matchRule(["Iig", "\(srcRoot.str)/Sources/public.iig"])) { task in
                     task.checkCommandLine([iigPath.str, "--def", "\(srcRoot.str)/Sources/public.iig", "--header", "\(srcRoot.str)/build/aProject.build/Debug-driverkit/LibraryTarget.build/DerivedSources/LibraryTarget/public.h", "--impl", "\(srcRoot.str)/build/aProject.build/Debug-driverkit/LibraryTarget.build/DerivedSources/LibraryTarget/public.iig.cpp", "--deployment-target", driverkitSDK.version, "--framework-name", "LibraryTarget", "--log", Path.null.str, "--", "-isysroot", driverkitSDK.path.str, "-x", "c++", "-std=c++17", "-D__IIG=1", "-Werror=deprecated-declarations", "-I/tmp/Test/aProject/build/Debug-driverkit/include", "-F/tmp/Test/aProject/build/Debug-driverkit"])
@@ -138,7 +138,7 @@ fileprivate struct DriverKitTaskConstructionTests: CoreBasedTests {
                     results.checkTask(.matchRule(["CpHeader", "\(srcRoot.str)/build/Debug-driverkit/LibraryTarget.framework/Headers/public.h", "\(srcRoot.str)/build/aProject.build/Debug-driverkit/LibraryTarget.build/DerivedSources/LibraryTarget/public.h"])) { task in }
                 }
 
-                results.checkTask(.matchRule(["CompileC", "\(srcRoot.str)/build/aProject.build/Debug-driverkit/LibraryTarget.build/Objects-normal/x86_64/public.iig.o", "\(srcRoot.str)/build/aProject.build/Debug-driverkit/LibraryTarget.build/DerivedSources/LibraryTarget/public.iig.cpp", "normal", "x86_64", "c++", "com.apple.compilers.llvm.clang.1_0.compiler"])) { task in }
+                results.checkTask(.matchRule(["CompileC", "\(srcRoot.str)/build/aProject.build/Debug-driverkit/LibraryTarget.build/Objects-normal/\(results.runDestinationTargetArchitecture)/public.iig.o", "\(srcRoot.str)/build/aProject.build/Debug-driverkit/LibraryTarget.build/DerivedSources/LibraryTarget/public.iig.cpp", "normal", results.runDestinationTargetArchitecture, "c++", "com.apple.compilers.llvm.clang.1_0.compiler"])) { task in }
 
                 results.checkTask(.matchRule(["Iig", "\(srcRoot.str)/Sources/private.iig"])) { task in
                     task.checkCommandLine([iigPath.str, "--def", "\(srcRoot.str)/Sources/private.iig", "--header", "\(srcRoot.str)/build/aProject.build/Debug-driverkit/LibraryTarget.build/DerivedSources/LibraryTarget/private.h", "--impl", "\(srcRoot.str)/build/aProject.build/Debug-driverkit/LibraryTarget.build/DerivedSources/LibraryTarget/private.iig.cpp", "--deployment-target", driverkitSDK.version, "--framework-name", "LibraryTarget", "--log", Path.null.str, "--", "-isysroot", driverkitSDK.path.str, "-x", "c++", "-std=c++17", "-D__IIG=1", "-Werror=deprecated-declarations", "-I/tmp/Test/aProject/build/Debug-driverkit/include", "-F/tmp/Test/aProject/build/Debug-driverkit"])
@@ -158,7 +158,7 @@ fileprivate struct DriverKitTaskConstructionTests: CoreBasedTests {
                     results.checkTask(.matchRule(["CpHeader", "\(srcRoot.str)/build/Debug-driverkit/LibraryTarget.framework/PrivateHeaders/private.h", "\(srcRoot.str)/build/aProject.build/Debug-driverkit/LibraryTarget.build/DerivedSources/LibraryTarget/private.h"])) { task in }
                 }
 
-                results.checkTask(.matchRule(["CompileC", "\(srcRoot.str)/build/aProject.build/Debug-driverkit/LibraryTarget.build/Objects-normal/x86_64/private.iig.o", "\(srcRoot.str)/build/aProject.build/Debug-driverkit/LibraryTarget.build/DerivedSources/LibraryTarget/private.iig.cpp", "normal", "x86_64", "c++", "com.apple.compilers.llvm.clang.1_0.compiler"])) { task in }
+                results.checkTask(.matchRule(["CompileC", "\(srcRoot.str)/build/aProject.build/Debug-driverkit/LibraryTarget.build/Objects-normal/\(results.runDestinationTargetArchitecture)/private.iig.o", "\(srcRoot.str)/build/aProject.build/Debug-driverkit/LibraryTarget.build/DerivedSources/LibraryTarget/private.iig.cpp", "normal", results.runDestinationTargetArchitecture, "c++", "com.apple.compilers.llvm.clang.1_0.compiler"])) { task in }
 
                 results.checkNoTask(.matchTarget(target))
             }
