@@ -213,7 +213,7 @@ fileprivate struct IndexingInfoTests: CoreBasedTests {
                         let expectedPath = Path("\(projectFilesDir)/Source.c")
                         await results.checkIndexingInfo(.matchSourceFilePath(expectedPath)) { info in
                             info.checkSourceFilePath(expectedPath)
-                            info.checkOutputFilePath(Path("\(projectDir)/build/aProject.build/Config1/Target1.build/Objects-normal/x86_64/Source.o"))
+                            info.checkOutputFilePath(Path("\(projectDir)/build/aProject.build/Config1/Target1.build/Objects-normal/\(RunDestinationInfo.macOS.targetArchitecture)/Source.o"))
 
                             // We should _only_ have the output (and source) file paths due to the `outputPathOnly` flag, no other keys.
                             info.checkNoUnmatchedKeys()
@@ -231,7 +231,7 @@ fileprivate struct IndexingInfoTests: CoreBasedTests {
                         let expectedPath = Path("\(projectFilesDir)/Source.c")
                         await results.checkIndexingInfo(.matchSourceFilePath(expectedPath)) { info in
                             info.checkSourceFilePath(expectedPath)
-                            info.checkOutputFilePath(Path("\(projectDir)/build/aProject.build/Config1/Target1.build/Objects-normal/x86_64/Source.o"))
+                            info.checkOutputFilePath(Path("\(projectDir)/build/aProject.build/Config1/Target1.build/Objects-normal/\(RunDestinationInfo.macOS.targetArchitecture)/Source.o"))
 
                             // We should _only_ have the output (and source) file paths due to the `outputPathOnly` flag, no other keys.
                             info.checkNoUnmatchedKeys()
@@ -242,7 +242,7 @@ fileprivate struct IndexingInfoTests: CoreBasedTests {
                         let expectedPath = Path("\(projectFilesDir)/Source2.c")
                         await results.checkIndexingInfo(.matchSourceFilePath(expectedPath)) { info in
                             info.checkSourceFilePath(expectedPath)
-                            info.checkOutputFilePath(Path("\(projectDir)/build/aProject.build/Config1/Target1.build/Objects-normal/x86_64/Source2.o"))
+                            info.checkOutputFilePath(Path("\(projectDir)/build/aProject.build/Config1/Target1.build/Objects-normal/\(RunDestinationInfo.macOS.targetArchitecture)/Source2.o"))
 
                             // We should _only_ have the output (and source) file paths due to the `outputPathOnly` flag, no other keys.
                             info.checkNoUnmatchedKeys()

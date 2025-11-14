@@ -66,14 +66,14 @@ fileprivate struct LibtoolTaskConstructionTests: CoreBasedTests {
             results.checkTarget("Deterministic") { target in
                 results.checkTask(.matchTarget(target), .matchRuleType("Libtool")) { task in
                     task.checkRuleInfo(["Libtool", "\(SRCROOT)/build/Debug/libDeterministic.a", "normal"])
-                    task.checkCommandLine([libtoolPath.str, "-static", "-arch_only", "x86_64", "-D", "-syslibroot", core.loadSDK(.macOS).path.str, "-L\(SRCROOT)/build/Debug", "-filelist", "\(SRCROOT)/build/aProject.build/Debug/Deterministic.build/Objects-normal/x86_64/Deterministic.LinkFileList", "-dependency_info", "\(SRCROOT)/build/aProject.build/Debug/Deterministic.build/Objects-normal/x86_64/Deterministic_libtool_dependency_info.dat", "-o", "\(SRCROOT)/build/Debug/libDeterministic.a"])
+                    task.checkCommandLine([libtoolPath.str, "-static", "-arch_only", results.runDestinationTargetArchitecture, "-D", "-syslibroot", core.loadSDK(.macOS).path.str, "-L\(SRCROOT)/build/Debug", "-filelist", "\(SRCROOT)/build/aProject.build/Debug/Deterministic.build/Objects-normal/\(results.runDestinationTargetArchitecture)/Deterministic.LinkFileList", "-dependency_info", "\(SRCROOT)/build/aProject.build/Debug/Deterministic.build/Objects-normal/\(results.runDestinationTargetArchitecture)/Deterministic_libtool_dependency_info.dat", "-o", "\(SRCROOT)/build/Debug/libDeterministic.a"])
                 }
             }
 
             results.checkTarget("Nondeterministic") { target in
                 results.checkTask(.matchTarget(target), .matchRuleType("Libtool")) { task in
                     task.checkRuleInfo(["Libtool", "\(SRCROOT)/build/Debug/libNondeterministic.a", "normal"])
-                    task.checkCommandLine([libtoolPath.str, "-static", "-arch_only", "x86_64", "-syslibroot", core.loadSDK(.macOS).path.str, "-L\(SRCROOT)/build/Debug", "-filelist", "\(SRCROOT)/build/aProject.build/Debug/Nondeterministic.build/Objects-normal/x86_64/Nondeterministic.LinkFileList", "-dependency_info", "\(SRCROOT)/build/aProject.build/Debug/Nondeterministic.build/Objects-normal/x86_64/Nondeterministic_libtool_dependency_info.dat", "-o", "\(SRCROOT)/build/Debug/libNondeterministic.a"])
+                    task.checkCommandLine([libtoolPath.str, "-static", "-arch_only", results.runDestinationTargetArchitecture, "-syslibroot", core.loadSDK(.macOS).path.str, "-L\(SRCROOT)/build/Debug", "-filelist", "\(SRCROOT)/build/aProject.build/Debug/Nondeterministic.build/Objects-normal/\(results.runDestinationTargetArchitecture)/Nondeterministic.LinkFileList", "-dependency_info", "\(SRCROOT)/build/aProject.build/Debug/Nondeterministic.build/Objects-normal/\(results.runDestinationTargetArchitecture)/Nondeterministic_libtool_dependency_info.dat", "-o", "\(SRCROOT)/build/Debug/libNondeterministic.a"])
                 }
             }
 

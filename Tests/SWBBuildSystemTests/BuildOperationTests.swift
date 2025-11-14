@@ -1629,8 +1629,8 @@ That command depends on command in Target 'agg2' (project \'aProject\'): script 
                 let driverPlanning = try #require(results.checkTask(.matchRuleType("SwiftDriver")) { $0 })
                 let driverCompilationRequirements = try #require(results.checkTask(.matchRuleType("SwiftDriver Compilation Requirements")) { $0 })
                 let driverCompilation = try #require(results.checkTask(.matchRuleType("SwiftDriver Compilation")) { $0 })
-                results.checkTaskExists(.matchRule(["SwiftCompile", "normal", "x86_64", "Compiling Swifty.swift", SRCROOT.join("Sources/Swifty.swift").str]))
-                results.checkTaskExists(.matchRule(["SwiftEmitModule", "normal", "x86_64", "Emitting module for CoreFoo"]))
+                results.checkTaskExists(.matchRule(["SwiftCompile", "normal", results.runDestinationTargetArchitecture, "Compiling Swifty.swift", SRCROOT.join("Sources/Swifty.swift").str]))
+                results.checkTaskExists(.matchRule(["SwiftEmitModule", "normal", results.runDestinationTargetArchitecture, "Emitting module for CoreFoo"]))
                 try results.checkTask(.matchRuleType("CpHeader"), .matchRuleItemBasename("CoreFoo.h"), .matchRuleItemPattern(.suffix("Versions/A/Headers/CoreFoo.h"))) { cpHeaderTask in
                     try results.checkTaskFollows(driverCompilationRequirements, cpHeaderTask, resolveDynamicTaskRequests: true)
                     try results.checkTaskFollows(driverCompilation, cpHeaderTask, resolveDynamicTaskRequests: true)
@@ -5325,7 +5325,7 @@ That command depends on command in Target 'agg2' (project \'aProject\'): script 
 
             try await tester.checkBuild(runDestination: .macOS, persistent: true) { results in
                 for ruleType in ["SwiftDriver Compilation Requirements", "SwiftDriver Compilation"] {
-                    results.checkError("Build input file cannot be found: \'\(tmpDirPath.str)/Test/aProject/File.swift\'. Did you forget to declare this file as an output of a script phase or custom build rule which produces it? (for task: [\"\(ruleType)\", \"aFramework\", \"normal\", \"x86_64\", \"com.apple.xcode.tools.swift.compiler\"])")
+                    results.checkError("Build input file cannot be found: \'\(tmpDirPath.str)/Test/aProject/File.swift\'. Did you forget to declare this file as an output of a script phase or custom build rule which produces it? (for task: [\"\(ruleType)\", \"aFramework\", \"normal\", \"\(results.runDestinationTargetArchitecture)\", \"com.apple.xcode.tools.swift.compiler\"])")
                 }
                 if !SWBFeatureFlag.performOwnershipAnalysis.value {
                     for fname in ["aFramework.swiftmodule", "aFramework.swiftdoc", "aFramework.swiftsourceinfo", "aFramework.abi.json"] {
@@ -5401,7 +5401,7 @@ That command depends on command in Target 'agg2' (project \'aProject\'): script 
             try await tester.checkBuild(parameters: BuildParameters(action: .install, configuration: "Debug"), runDestination: .macOS, persistent: true) { _ in }
 
             let ldDepsPath = SRCROOT.join(
-                "build/aProject.build/Debug/Tool.build/Objects-normal/x86_64/Tool_dependency_info.dat"
+                "build/aProject.build/Debug/Tool.build/Objects-normal/\(RunDestinationInfo.macOS.targetArchitecture)/Tool_dependency_info.dat"
             )
 
             let dependencyInfo: DependencyInfo = try DependencyInfo(bytes: tester.fs.read(ldDepsPath).bytes)
@@ -5722,28 +5722,28 @@ That command depends on command in Target 'agg2' (project \'aProject\'): script 
 
             try await tester.checkBuild(runDestination: .macOS, persistent: true) { results in
                 // Verify that the .o files are compiled.
-                results.checkTask(.matchRule(["CompileC", "\(buildDirectory)/aProject.build/Debug/DeepLib.build/Objects-normal/x86_64/deeplib.o", "\(SRCROOT)/aProject/deeplib.c", "normal", "x86_64", "c", "com.apple.compilers.llvm.clang.1_0.compiler"])) { _ in }
-                results.checkTask(.matchRule(["CompileC", "\(buildDirectory)/aProject.build/Debug/Lib.build/Objects-normal/x86_64/lib.o", "\(SRCROOT)/aProject/lib.c", "normal", "x86_64", "c", "com.apple.compilers.llvm.clang.1_0.compiler"])) { _ in }
+                results.checkTask(.matchRule(["CompileC", "\(buildDirectory)/aProject.build/Debug/DeepLib.build/Objects-normal/\(results.runDestinationTargetArchitecture)/deeplib.o", "\(SRCROOT)/aProject/deeplib.c", "normal", results.runDestinationTargetArchitecture, "c", "com.apple.compilers.llvm.clang.1_0.compiler"])) { _ in }
+                results.checkTask(.matchRule(["CompileC", "\(buildDirectory)/aProject.build/Debug/Lib.build/Objects-normal/\(results.runDestinationTargetArchitecture)/lib.o", "\(SRCROOT)/aProject/lib.c", "normal", results.runDestinationTargetArchitecture, "c", "com.apple.compilers.llvm.clang.1_0.compiler"])) { _ in }
 
                 // Verify that the .a files are created.
                 results.checkTask(.matchRuleType("Libtool"), .matchRuleItem("\(buildDirectory)/Debug/libDeepLib.a")) { task in
-                    task.checkCommandLineContains(["-dependency_info", "\(buildDirectory)/aProject.build/Debug/DeepLib.build/Objects-normal/x86_64/DeepLib_libtool_dependency_info.dat"])
+                    task.checkCommandLineContains(["-dependency_info", "\(buildDirectory)/aProject.build/Debug/DeepLib.build/Objects-normal/\(results.runDestinationTargetArchitecture)/DeepLib_libtool_dependency_info.dat"])
                 }
                 results.checkTask(.matchRuleType("Libtool"), .matchRuleItem("\(buildDirectory)/Debug/libLib.a")) { task in
                     task.checkCommandLineContains(["-lDeepLib"])
-                    task.checkCommandLineContains(["-dependency_info", "\(buildDirectory)/aProject.build/Debug/Lib.build/Objects-normal/x86_64/Lib_libtool_dependency_info.dat"])
+                    task.checkCommandLineContains(["-dependency_info", "\(buildDirectory)/aProject.build/Debug/Lib.build/Objects-normal/\(results.runDestinationTargetArchitecture)/Lib_libtool_dependency_info.dat"])
                 }
 
                 // Verify that everything is linked together properly. Note that the "deep lib" is linked into the static archive above.
                 results.checkTask(.matchRuleType("Ld"), .matchRuleItem("\(buildDirectory)/Debug/Tool")) { task in
                     task.checkCommandLineContains(["-lLib"])
-                    task.checkCommandLineContains(["-dependency_info", "\(buildDirectory)/aProject.build/Debug/Tool.build/Objects-normal/x86_64/Tool_dependency_info.dat"])
+                    task.checkCommandLineContains(["-dependency_info", "\(buildDirectory)/aProject.build/Debug/Tool.build/Objects-normal/\(results.runDestinationTargetArchitecture)/Tool_dependency_info.dat"])
                 }
 
                 // Verify that the dependency info indeed has the libraries we expected.
-                let actual = try DependencyInfo(bytes: try tester.fs.read(Path("\(buildDirectory)/aProject.build/Debug/Lib.build/Objects-normal/x86_64/Lib_libtool_dependency_info.dat")).bytes)
+                let actual = try DependencyInfo(bytes: try tester.fs.read(Path("\(buildDirectory)/aProject.build/Debug/Lib.build/Objects-normal/\(results.runDestinationTargetArchitecture)/Lib_libtool_dependency_info.dat")).bytes)
                 #expect(actual.inputs.sorted() == [
-                    "\(buildDirectory)/aProject.build/Debug/Lib.build/Objects-normal/x86_64/lib.o",
+                    "\(buildDirectory)/aProject.build/Debug/Lib.build/Objects-normal/\(results.runDestinationTargetArchitecture)/lib.o",
                     "\(buildDirectory)/Debug/libDeepLib.a"
                 ].sorted())
                 #expect(actual.outputs.sorted() == [
@@ -5760,7 +5760,7 @@ That command depends on command in Target 'agg2' (project \'aProject\'): script 
             }
             try await tester.checkBuild(runDestination: .macOS, persistent: true) { results in
                 results.consumeTasksMatchingRuleTypes(["RegisterExecutionPolicyException", "Gate", "ClangStatCache", "ProcessSDKImports"])
-                results.checkTask(.matchRule(["CompileC", "\(buildDirectory)/aProject.build/Debug/Lib.build/Objects-normal/x86_64/lib.o", "\(SRCROOT)/aProject/lib.c", "normal", "x86_64", "c", "com.apple.compilers.llvm.clang.1_0.compiler"])) { _ in }
+                results.checkTask(.matchRule(["CompileC", "\(buildDirectory)/aProject.build/Debug/Lib.build/Objects-normal/\(results.runDestinationTargetArchitecture)/lib.o", "\(SRCROOT)/aProject/lib.c", "normal", results.runDestinationTargetArchitecture, "c", "com.apple.compilers.llvm.clang.1_0.compiler"])) { _ in }
                 results.checkTask(.matchRule(["Libtool", "\(buildDirectory)/Debug/libLib.a", "normal"])) { _ in }
                 results.checkTask(.matchRule(["Ld", "\(buildDirectory)/Debug/Tool", "normal"])) { _ in }
                 results.checkNoTask()
@@ -5772,7 +5772,7 @@ That command depends on command in Target 'agg2' (project \'aProject\'): script 
             }
             try await tester.checkBuild(runDestination: .macOS, persistent: true) { results in
                 results.consumeTasksMatchingRuleTypes(["RegisterExecutionPolicyException", "Gate", "ClangStatCache", "ProcessSDKImports"])
-                results.checkTask(.matchRule(["CompileC", "\(buildDirectory)/aProject.build/Debug/DeepLib.build/Objects-normal/x86_64/deeplib.o", "\(SRCROOT)/aProject/deeplib.c", "normal", "x86_64", "c", "com.apple.compilers.llvm.clang.1_0.compiler"])) { _ in }
+                results.checkTask(.matchRule(["CompileC", "\(buildDirectory)/aProject.build/Debug/DeepLib.build/Objects-normal/\(results.runDestinationTargetArchitecture)/deeplib.o", "\(SRCROOT)/aProject/deeplib.c", "normal", results.runDestinationTargetArchitecture, "c", "com.apple.compilers.llvm.clang.1_0.compiler"])) { _ in }
                 results.checkTask(.matchRule(["Libtool", "\(buildDirectory)/Debug/libDeepLib.a", "normal"])) { _ in }
                 results.checkTask(.matchRule(["Libtool", "\(buildDirectory)/Debug/libLib.a", "normal"])) { _ in }
                 results.checkTask(.matchRule(["Ld", "\(buildDirectory)/Debug/Tool", "normal"])) { _ in }
@@ -5853,28 +5853,28 @@ That command depends on command in Target 'agg2' (project \'aProject\'): script 
             let parameters = BuildParameters(action: .install, configuration: "Debug")
             try await tester.checkBuild(parameters: parameters, runDestination: .macOS, persistent: true) { results in
                 // Verify that the .o files are compiled.
-                results.checkTask(.matchRule(["CompileC", "\(buildDirectory)/aProject.build/Debug/DeepLib.build/Objects-normal/x86_64/deeplib.o", "\(SRCROOT)/aProject/deeplib.c", "normal", "x86_64", "c", "com.apple.compilers.llvm.clang.1_0.compiler"])) { _ in }
-                results.checkTask(.matchRule(["CompileC", "\(buildDirectory)/aProject.build/Debug/Lib.build/Objects-normal/x86_64/lib.o", "\(SRCROOT)/aProject/lib.c", "normal", "x86_64", "c", "com.apple.compilers.llvm.clang.1_0.compiler"])) { _ in }
+                results.checkTask(.matchRule(["CompileC", "\(buildDirectory)/aProject.build/Debug/DeepLib.build/Objects-normal/\(results.runDestinationTargetArchitecture)/deeplib.o", "\(SRCROOT)/aProject/deeplib.c", "normal", results.runDestinationTargetArchitecture, "c", "com.apple.compilers.llvm.clang.1_0.compiler"])) { _ in }
+                results.checkTask(.matchRule(["CompileC", "\(buildDirectory)/aProject.build/Debug/Lib.build/Objects-normal/\(results.runDestinationTargetArchitecture)/lib.o", "\(SRCROOT)/aProject/lib.c", "normal", results.runDestinationTargetArchitecture, "c", "com.apple.compilers.llvm.clang.1_0.compiler"])) { _ in }
 
                 // Verify that the .a files are created.
                 results.checkTask(.matchRuleType("Libtool"), .matchRuleItem("\(buildDirectory)/UninstalledProducts/macosx/libDeepLib.a")) { task in
-                    task.checkCommandLineContains(["-dependency_info", "\(buildDirectory)/aProject.build/Debug/DeepLib.build/Objects-normal/x86_64/DeepLib_libtool_dependency_info.dat"])
+                    task.checkCommandLineContains(["-dependency_info", "\(buildDirectory)/aProject.build/Debug/DeepLib.build/Objects-normal/\(results.runDestinationTargetArchitecture)/DeepLib_libtool_dependency_info.dat"])
                 }
                 results.checkTask(.matchRuleType("Libtool"), .matchRuleItem("\(buildDirectory)/UninstalledProducts/macosx/libLib.a")) { task in
                     task.checkCommandLineContains(["-lDeepLib"])
-                    task.checkCommandLineContains(["-dependency_info", "\(buildDirectory)/aProject.build/Debug/Lib.build/Objects-normal/x86_64/Lib_libtool_dependency_info.dat"])
+                    task.checkCommandLineContains(["-dependency_info", "\(buildDirectory)/aProject.build/Debug/Lib.build/Objects-normal/\(results.runDestinationTargetArchitecture)/Lib_libtool_dependency_info.dat"])
                 }
 
                 // Verify that everything is linked together properly. Note that the "deep lib" is linked into the static archive above.
                 results.checkTask(.matchRuleType("Ld"), .matchRuleItem("\(SRCROOT)/aProject/installable/usr/local/bin/Tool")) { task in
                     task.checkCommandLineContains(["-lLib"])
-                    task.checkCommandLineContains(["-dependency_info", "\(buildDirectory)/aProject.build/Debug/Tool.build/Objects-normal/x86_64/Tool_dependency_info.dat"])
+                    task.checkCommandLineContains(["-dependency_info", "\(buildDirectory)/aProject.build/Debug/Tool.build/Objects-normal/\(results.runDestinationTargetArchitecture)/Tool_dependency_info.dat"])
                 }
 
                 // Verify that the dependency info indeed has the libraries we expected.
-                let actual = try DependencyInfo(bytes: try tester.fs.read(Path("\(buildDirectory)/aProject.build/Debug/Lib.build/Objects-normal/x86_64/Lib_libtool_dependency_info.dat")).bytes)
+                let actual = try DependencyInfo(bytes: try tester.fs.read(Path("\(buildDirectory)/aProject.build/Debug/Lib.build/Objects-normal/\(results.runDestinationTargetArchitecture)/Lib_libtool_dependency_info.dat")).bytes)
                 #expect(actual.inputs.sorted() == [
-                    "\(buildDirectory)/aProject.build/Debug/Lib.build/Objects-normal/x86_64/lib.o",
+                    "\(buildDirectory)/aProject.build/Debug/Lib.build/Objects-normal/\(results.runDestinationTargetArchitecture)/lib.o",
                     "\(buildDirectory)/UninstalledProducts/macosx/libDeepLib.a",
                     "\(buildDirectory)/Debug/libDeepLib.a",
                 ].sorted())
@@ -5892,7 +5892,7 @@ That command depends on command in Target 'agg2' (project \'aProject\'): script 
             }
             try await tester.checkBuild(parameters: parameters, runDestination: .macOS, persistent: true) { results in
                 results.consumeTasksMatchingRuleTypes(excludingTypes)
-                results.checkTask(.matchRule(["CompileC", "\(buildDirectory)/aProject.build/Debug/Lib.build/Objects-normal/x86_64/lib.o", "\(SRCROOT)/aProject/lib.c", "normal", "x86_64", "c", "com.apple.compilers.llvm.clang.1_0.compiler"])) { _ in }
+                results.checkTask(.matchRule(["CompileC", "\(buildDirectory)/aProject.build/Debug/Lib.build/Objects-normal/\(results.runDestinationTargetArchitecture)/lib.o", "\(SRCROOT)/aProject/lib.c", "normal", results.runDestinationTargetArchitecture, "c", "com.apple.compilers.llvm.clang.1_0.compiler"])) { _ in }
                 results.checkTask(.matchRule(["Libtool", "\(buildDirectory)/UninstalledProducts/macosx/libLib.a", "normal"])) { _ in }
                 results.checkTask(.matchRule(["Ld", "\(SRCROOT)/aProject/installable/usr/local/bin/Tool", "normal"])) { _ in }
                 results.checkNoTask()
@@ -5904,7 +5904,7 @@ That command depends on command in Target 'agg2' (project \'aProject\'): script 
             }
             try await tester.checkBuild(parameters: parameters, runDestination: .macOS, persistent: true) { results in
                 results.consumeTasksMatchingRuleTypes(excludingTypes)
-                results.checkTask(.matchRule(["CompileC", "\(buildDirectory)/aProject.build/Debug/DeepLib.build/Objects-normal/x86_64/deeplib.o", "\(SRCROOT)/aProject/deeplib.c", "normal", "x86_64", "c", "com.apple.compilers.llvm.clang.1_0.compiler"])) { _ in }
+                results.checkTask(.matchRule(["CompileC", "\(buildDirectory)/aProject.build/Debug/DeepLib.build/Objects-normal/\(results.runDestinationTargetArchitecture)/deeplib.o", "\(SRCROOT)/aProject/deeplib.c", "normal", results.runDestinationTargetArchitecture, "c", "com.apple.compilers.llvm.clang.1_0.compiler"])) { _ in }
                 results.checkTask(.matchRule(["Libtool", "\(buildDirectory)/UninstalledProducts/macosx/libDeepLib.a", "normal"])) { _ in }
                 results.checkTask(.matchRule(["Libtool", "\(buildDirectory)/UninstalledProducts/macosx/libLib.a", "normal"])) { _ in }
                 results.checkTask(.matchRule(["Ld", "\(SRCROOT)/aProject/installable/usr/local/bin/Tool", "normal"])) { _ in }
@@ -6246,8 +6246,8 @@ That command depends on command in Target 'agg2' (project \'aProject\'): script 
 
             try await tester.checkBuild(runDestination: .macOS, persistent: true, signableTargets: signableTargets) { results in
                 results.consumeTasksMatchingRuleTypes(excludedTasks)
-                results.checkTask(.matchRule(["CompileC", "\(buildDirectory)/aProject.build/Debug/Other.build/Objects-normal/x86_64/other.o", "\(SRCROOT)/aProject/other.c", "normal", "x86_64", "c", "com.apple.compilers.llvm.clang.1_0.compiler"])) { _ in }
-                results.checkTask(.matchRule(["CompileC", "\(buildDirectory)/aProject.build/Debug/Tool.build/Objects-normal/x86_64/tool.o", "\(SRCROOT)/aProject/tool.c", "normal", "x86_64", "c", "com.apple.compilers.llvm.clang.1_0.compiler"])) { _ in }
+                results.checkTask(.matchRule(["CompileC", "\(buildDirectory)/aProject.build/Debug/Other.build/Objects-normal/\(results.runDestinationTargetArchitecture)/other.o", "\(SRCROOT)/aProject/other.c", "normal", results.runDestinationTargetArchitecture, "c", "com.apple.compilers.llvm.clang.1_0.compiler"])) { _ in }
+                results.checkTask(.matchRule(["CompileC", "\(buildDirectory)/aProject.build/Debug/Tool.build/Objects-normal/\(results.runDestinationTargetArchitecture)/tool.o", "\(SRCROOT)/aProject/tool.c", "normal", results.runDestinationTargetArchitecture, "c", "com.apple.compilers.llvm.clang.1_0.compiler"])) { _ in }
                 results.checkTask(.matchRule(["Ld", "\(buildDirectory)/Debug/Other.framework/Versions/A/Other", "normal"])) { _ in }
                 results.checkTask(.matchRule(["GenerateTAPI", "\(buildDirectory)/EagerLinkingTBDs/Debug/Other.framework/Versions/A/Other.tbd"])) { _ in }
                 results.checkTask(.matchRule(["Ld", "\(buildDirectory)/Debug/Tool.app/Contents/MacOS/Tool", "normal"])) { _ in }
@@ -6361,7 +6361,7 @@ That command depends on command in Target 'agg2' (project \'aProject\'): script 
             }
             try await tester.checkBuild(runDestination: .macOS, persistent: true, signableTargets: signableTargets) { results in
                 results.consumeTasksMatchingRuleTypes(excludedTasks)
-                results.checkTask(.matchRule(["CompileC", "\(buildDirectory)/aProject.build/Debug/Other.build/Objects-normal/x86_64/other.o", "\(SRCROOT)/aProject/other.c", "normal", "x86_64", "c", "com.apple.compilers.llvm.clang.1_0.compiler"])) { _ in }
+                results.checkTask(.matchRule(["CompileC", "\(buildDirectory)/aProject.build/Debug/Other.build/Objects-normal/\(results.runDestinationTargetArchitecture)/other.o", "\(SRCROOT)/aProject/other.c", "normal", results.runDestinationTargetArchitecture, "c", "com.apple.compilers.llvm.clang.1_0.compiler"])) { _ in }
                 results.checkTask(.matchRule(["Ld", "\(buildDirectory)/Debug/Other.framework/Versions/A/Other", "normal"])) { _ in }
                 results.checkTask(.matchRule(["GenerateTAPI", "\(buildDirectory)/EagerLinkingTBDs/Debug/Other.framework/Versions/A/Other.tbd"])) { _ in }
                 results.checkTask(.matchRule(["CodeSign", "\(buildDirectory)/Debug/Other.framework/Versions/A"])) { _ in }
@@ -6712,7 +6712,7 @@ That command depends on command in Target 'agg2' (project \'aProject\'): script 
                 // For the first pass, these should be the same for both targets.
 
                 for targetName in signableTargets {
-                    results.checkTask(.matchTargetName(targetName), .matchRule(["CompileC", "\(buildDirectory)/aProject.build/Debug/\(targetName).build/Objects-normal/x86_64/tool.o", "\(SRCROOT)/aProject/tool.c", "normal", "x86_64", "c", "com.apple.compilers.llvm.clang.1_0.compiler"])) { _ in }
+                    results.checkTask(.matchTargetName(targetName), .matchRule(["CompileC", "\(buildDirectory)/aProject.build/Debug/\(targetName).build/Objects-normal/\(results.runDestinationTargetArchitecture)/tool.o", "\(SRCROOT)/aProject/tool.c", "normal", results.runDestinationTargetArchitecture, "c", "com.apple.compilers.llvm.clang.1_0.compiler"])) { _ in }
                     results.checkTask(.matchTargetName(targetName), .matchRule(["Ld", "\(buildDirectory)/Debug/\(targetName).app/Contents/MacOS/\(targetName)", "normal"])) { _ in }
                     results.checkTask(.matchTargetName(targetName), .matchRule(["Copy", "\(buildDirectory)/Debug/\(targetName).app/Contents/Resources/resource.txt", "\(SRCROOT)/aProject/resource.txt"])) { _ in }
                     results.checkTask(.matchTargetName(targetName), .matchRule(["Copy", "\(buildDirectory)/Debug/\(targetName).app/Contents/Resources/other.txt", "\(SRCROOT)/aProject/other.txt"])) { _ in }
@@ -6957,8 +6957,8 @@ That command depends on command in Target 'agg2' (project \'aProject\'): script 
 
             try await tester.checkBuild(runDestination: .macOS, persistent: true, signableTargets: ["Tool"]) { results in
                 results.consumeTasksMatchingRuleTypes(excludedTasks)
-                results.checkTask(.matchRule(["CompileC", "\(buildDirectory)/aProject.build/Debug/Tool.build/Objects-normal/x86_64/tool.o", "\(SRCROOT)/aProject/tool.c", "normal", "x86_64", "c", "com.apple.compilers.llvm.clang.1_0.compiler"])) { _ in }
-                results.checkTask(.matchRule(["Ld", "\(buildDirectory)/Debug/Tool.app/Contents/MacOS/Tool", "normal", "x86_64"])) { _ in }
+                results.checkTask(.matchRule(["CompileC", "\(buildDirectory)/aProject.build/Debug/Tool.build/Objects-normal/\(results.runDestinationTargetArchitecture)/tool.o", "\(SRCROOT)/aProject/tool.c", "normal", results.runDestinationTargetArchitecture, "c", "com.apple.compilers.llvm.clang.1_0.compiler"])) { _ in }
+                results.checkTask(.matchRule(["Ld", "\(buildDirectory)/Debug/Tool.app/Contents/MacOS/Tool", "normal", results.runDestinationTargetArchitecture])) { _ in }
                 results.checkTask(.matchRule(["Copy", "\(buildDirectory)/Debug/Tool.app/Contents/Resources/resource.txt", "\(SRCROOT)/aProject/resource.txt"])) { _ in }
                 results.checkTask(.matchRule(["CodeSign", "\(buildDirectory)/Debug/Tool.app"])) { _ in }
                 results.checkTask(.matchRule(["Copy", "\(buildDirectory)/Debug/Tool.app/Contents/other.txt", "\(SRCROOT)/aProject/other.txt"])) { _ in }
@@ -7360,7 +7360,7 @@ That command depends on command in Target 'agg2' (project \'aProject\'): script 
                     results.checkNoDiagnostics()
 
                     try results.checkTask(.matchRuleType("RuleScriptExecution"), .matchRuleItemBasename("example.fake-ts"), .matchRuleItemBasename("example.fake-ts.fake-js")) { task in
-                        task.checkRuleInfo(["RuleScriptExecution", "\(SRCROOT)/example.fake-ts.fake-js", "\(SRCROOT)/example.fake-ts", "debug", "x86_64"])
+                        task.checkRuleInfo(["RuleScriptExecution", "\(SRCROOT)/example.fake-ts.fake-js", "\(SRCROOT)/example.fake-ts", "debug", results.runDestinationTargetArchitecture])
 
                         if enableSandboxingInTest {
                             #expect(task.commandLine.first == "/usr/bin/sandbox-exec")
@@ -7391,7 +7391,7 @@ That command depends on command in Target 'agg2' (project \'aProject\'): script 
                     }
 
                     try results.checkTask(.matchRuleType("RuleScriptExecution"), .matchRuleItemBasename("example.fake-ts.fake-js"), .matchRuleItemBasename("example.fake-ts.fake-js.fake-uglified")) { task in
-                        task.checkRuleInfo(["RuleScriptExecution", "\(SRCROOT)/example.fake-ts.fake-js.fake-uglified", "\(SRCROOT)/example.fake-ts.fake-js", "debug", "x86_64"])
+                        task.checkRuleInfo(["RuleScriptExecution", "\(SRCROOT)/example.fake-ts.fake-js.fake-uglified", "\(SRCROOT)/example.fake-ts.fake-js", "debug", results.runDestinationTargetArchitecture])
 
                         let path = task.outputPaths[0]
                         let output = try fs.read(path).asString
@@ -7515,7 +7515,7 @@ That command depends on command in Target 'agg2' (project \'aProject\'): script 
                     results.checkNoDiagnostics()
 
                     try results.checkTask(.matchRuleType("RuleScriptExecution"), .matchRuleItemBasename("example-1.fake-ts")) { task in
-                        task.checkRuleInfo(["RuleScriptExecution", "\(SRCROOT)/example-1.fake-ts.E.fake-js", "\(SRCROOT)/example-1.fake-ts.F.fake-js", "\(SRCROOT)/example-1.fake-ts", "debug", "x86_64"])
+                        task.checkRuleInfo(["RuleScriptExecution", "\(SRCROOT)/example-1.fake-ts.E.fake-js", "\(SRCROOT)/example-1.fake-ts.F.fake-js", "\(SRCROOT)/example-1.fake-ts", "debug", results.runDestinationTargetArchitecture])
 
                         if enableSandboxingInTest {
                             #expect(task.commandLine.first == "/usr/bin/sandbox-exec")
@@ -7534,7 +7534,7 @@ That command depends on command in Target 'agg2' (project \'aProject\'): script 
                     }
 
                     try results.checkTask(.matchRuleType("RuleScriptExecution"), .matchRuleItemBasename("example-2.fake-ts")) { task in
-                        task.checkRuleInfo(["RuleScriptExecution", "\(SRCROOT)/example-2.fake-ts.E.fake-js", "\(SRCROOT)/example-2.fake-ts.F.fake-js", "\(SRCROOT)/example-2.fake-ts", "debug", "x86_64"])
+                        task.checkRuleInfo(["RuleScriptExecution", "\(SRCROOT)/example-2.fake-ts.E.fake-js", "\(SRCROOT)/example-2.fake-ts.F.fake-js", "\(SRCROOT)/example-2.fake-ts", "debug", results.runDestinationTargetArchitecture])
 
                         if enableSandboxingInTest {
                             #expect(task.commandLine.first == "/usr/bin/sandbox-exec")

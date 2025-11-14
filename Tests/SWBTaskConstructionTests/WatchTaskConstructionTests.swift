@@ -642,10 +642,10 @@ fileprivate struct WatchTaskConstructionTests: CoreBasedTests {
 
                 // There should be tasks to copy the watchOS stub into the app as its binary, and into the sidecar directory.
                 results.checkTask(.matchTarget(target), .matchRuleType("CopyAndPreserveArchs"), .matchRuleItem("\(builtWatchAppPath)/Watchable WatchKit App")) { task in
-                    task.checkCommandLine(["lipo", "\(core.loadSDK(.watchOSSimulator).path.str)/Library/Application Support/WatchKit/WK", "-output", "\(builtWatchAppPath)/Watchable WatchKit App", "-extract", "x86_64"])
+                    task.checkCommandLine(["lipo", "\(core.loadSDK(.watchOSSimulator).path.str)/Library/Application Support/WatchKit/WK", "-output", "\(builtWatchAppPath)/Watchable WatchKit App", "-extract", results.runDestinationTargetArchitecture])
                 }
                 results.checkTask(.matchTarget(target), .matchRuleType("CopyAndPreserveArchs"), .matchRuleItem("\(builtWatchAppPath)/_WatchKitStub/WK")) { task in
-                    task.checkCommandLine(["lipo", "\(core.loadSDK(.watchOSSimulator).path.str)/Library/Application Support/WatchKit/WK", "-output", "\(builtWatchAppPath)/_WatchKitStub/WK", "-extract", "x86_64"])
+                    task.checkCommandLine(["lipo", "\(core.loadSDK(.watchOSSimulator).path.str)/Library/Application Support/WatchKit/WK", "-output", "\(builtWatchAppPath)/_WatchKitStub/WK", "-extract", results.runDestinationTargetArchitecture])
                 }
 
                 // There should be a task to embed the watchOS extension and another to validate it.

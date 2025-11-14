@@ -156,7 +156,7 @@ fileprivate struct InstallAPITaskConstructionTests: CoreBasedTests {
                 task.checkCommandLineMatches([
                     StringPattern.equal(tapiToolPath.str), "installapi", "--verify-mode=ErrorsOnly", .anySequence,
 
-                    "-target", StringPattern.prefix("x86_64-apple"),
+                    "-target", StringPattern.prefix("\(results.runDestinationTargetArchitecture)-apple"),
 
                         .anySequence,
 
@@ -209,7 +209,7 @@ fileprivate struct InstallAPITaskConstructionTests: CoreBasedTests {
                     "--verify-mode=ErrorsOnly",
                     .anySequence,
 
-                    "-target", StringPattern.prefix("x86_64-apple"),
+                    "-target", StringPattern.prefix("\(results.runDestinationTargetArchitecture)-apple"),
 
                         .anySequence,
 
@@ -324,7 +324,7 @@ fileprivate struct InstallAPITaskConstructionTests: CoreBasedTests {
                 task.checkCommandLineMatches([
                     StringPattern.equal(tapiToolPath.str), "installapi", "--verify-mode=ErrorsOnly", .anySequence,
 
-                    "-target", StringPattern.prefix("x86_64-apple"),
+                    "-target", StringPattern.prefix("\(results.runDestinationTargetArchitecture)-apple"),
 
                         .anySequence,
 
@@ -380,7 +380,7 @@ fileprivate struct InstallAPITaskConstructionTests: CoreBasedTests {
                     "--verify-mode=ErrorsOnly",
                     .anySequence,
 
-                    "-target", StringPattern.prefix("x86_64-apple"),
+                    "-target", StringPattern.prefix("\(results.runDestinationTargetArchitecture)-apple"),
 
                         .anySequence,
 
@@ -524,7 +524,7 @@ fileprivate struct InstallAPITaskConstructionTests: CoreBasedTests {
                 task.checkCommandLineMatches([
                     StringPattern.equal(tapiToolPath.str), "installapi", "--verify-mode=ErrorsOnly", .anySequence,
 
-                    "-target", StringPattern.prefix("x86_64-apple"),
+                    "-target", StringPattern.prefix("\(results.runDestinationTargetArchitecture)-apple"),
                     .anySequence,
 
                     // Check build products search paths
@@ -583,7 +583,7 @@ fileprivate struct InstallAPITaskConstructionTests: CoreBasedTests {
                     "--verify-mode=ErrorsOnly",
                     .anySequence,
 
-                    "-target", StringPattern.prefix("x86_64-apple"),
+                    "-target", StringPattern.prefix("\(results.runDestinationTargetArchitecture)-apple"),
 
                         .anySequence,
 
@@ -725,7 +725,7 @@ fileprivate struct InstallAPITaskConstructionTests: CoreBasedTests {
                 task.checkCommandLineMatches([
                     StringPattern.equal(tapiToolPath.str), "installapi", "--verify-mode=ErrorsOnly", .anySequence,
 
-                    "-target", StringPattern.prefix("x86_64-apple"),
+                    "-target", StringPattern.prefix("\(results.runDestinationTargetArchitecture)-apple"),
 
                     "-dynamiclib",
                     .anySequence,
@@ -773,7 +773,7 @@ fileprivate struct InstallAPITaskConstructionTests: CoreBasedTests {
                     "--verify-mode=ErrorsOnly",
                     .anySequence,
 
-                    "-target", StringPattern.prefix("x86_64-apple"),
+                    "-target", StringPattern.prefix("\(results.runDestinationTargetArchitecture)-apple"),
                     "-dynamiclib",
                     .anySequence,
 
@@ -863,7 +863,7 @@ fileprivate struct InstallAPITaskConstructionTests: CoreBasedTests {
                 task.checkCommandLineMatches([
                     StringPattern.equal(tapiToolPath.str), "installapi", "--verify-mode=ErrorsOnly", .anySequence,
 
-                    "-target", StringPattern.prefix("x86_64-apple"),
+                    "-target", StringPattern.prefix("\(results.runDestinationTargetArchitecture)-apple"),
 
                     "-dynamiclib",
                     .anySequence,
@@ -916,7 +916,7 @@ fileprivate struct InstallAPITaskConstructionTests: CoreBasedTests {
                     "--verify-mode=ErrorsOnly",
                     .anySequence,
 
-                    "-target", StringPattern.prefix("x86_64-apple"),
+                    "-target", StringPattern.prefix("\(results.runDestinationTargetArchitecture)-apple"),
                     "-dynamiclib",
                     .anySequence,
 
@@ -1412,7 +1412,7 @@ fileprivate struct InstallAPITaskConstructionTests: CoreBasedTests {
                     // FIXME: We should check we forced WMO here, and didn't have incremental mode.
                     task.checkCommandLineMatches([
                         "builtin-Swift-Compilation-Requirements", "--", .suffix("swiftc"), "-module-name", "Fwk", .anySequence, .and(.prefix("@"), .suffix("SwiftFileList")), .anySequence,
-                        "-emit-tbd", "-emit-tbd-path", "/TEST/build/aProject.build/Debug/Fwk.build/Objects-normal/x86_64/Swift-API.tbd", .anySequence,
+                        "-emit-tbd", "-emit-tbd-path", "/TEST/build/aProject.build/Debug/Fwk.build/Objects-normal/\(results.runDestinationTargetArchitecture)/Swift-API.tbd", .anySequence,
                         // Check we pass the TBD install name.
                         "-Xfrontend", "-tbd-install_name", "-Xfrontend", "/Library/Frameworks/Fwk.framework/Versions/A/Fwk",
                         // Check we pass the TBD dylib version flags
@@ -1420,7 +1420,7 @@ fileprivate struct InstallAPITaskConstructionTests: CoreBasedTests {
                         "-Xfrontend", "-tbd-compatibility-version", "-Xfrontend", "1.0", .anySequence,
                         // Check we forced WMO mode.
                         "-whole-module-optimization", .anySequence,
-                        "-emit-objc-header", "-emit-objc-header-path", "/TEST/build/aProject.build/Debug/Fwk.build/Objects-normal/x86_64/Fwk-Swift.h"
+                        "-emit-objc-header", "-emit-objc-header-path", "/TEST/build/aProject.build/Debug/Fwk.build/Objects-normal/\(results.runDestinationTargetArchitecture)/Fwk-Swift.h"
                     ])
 
                     // We shouldn't have a '-c'.
@@ -1433,7 +1433,7 @@ fileprivate struct InstallAPITaskConstructionTests: CoreBasedTests {
                     task.checkCommandLineMatches([
                         StringPattern.equal(tapiToolPath.str), "installapi", "--verify-mode=ErrorsOnly", .anySequence,
 
-                        "-target", StringPattern.prefix("x86_64-apple"),
+                        "-target", StringPattern.prefix("\(results.runDestinationTargetArchitecture)-apple"),
 
                             .anySequence,
 
@@ -1453,7 +1453,7 @@ fileprivate struct InstallAPITaskConstructionTests: CoreBasedTests {
                         StringPattern.and(.prefix("-L/"), .contains(".xctoolchain/")),
                         StringPattern.and(.prefix("-L/"), .suffix(".sdk/usr/lib/swift")),
                         "-exclude-public-header", "/tmp/aProject.dst/Library/Frameworks/Fwk.framework/Versions/A/Headers/Fwk-Swift.h",
-                        "-swift-installapi-interface", .suffix("x86_64/Swift-API.tbd")
+                        "-swift-installapi-interface", .suffix("\(results.runDestinationTargetArchitecture)/Swift-API.tbd")
                     ] )
 
                     // Check version specific options
@@ -1466,7 +1466,7 @@ fileprivate struct InstallAPITaskConstructionTests: CoreBasedTests {
 
                 // Check that we generate a copy of the compatibility header.
                 results.checkTask(.matchRuleType("SwiftMergeGeneratedHeaders"), .matchRuleItemBasename("Fwk-Swift.h"), .matchTarget(target)) { task in
-                    task.checkCommandLine(["builtin-swiftHeaderTool", "-arch", "x86_64", "/TEST/build/aProject.build/Debug/Fwk.build/Objects-normal/x86_64/Fwk-Swift.h", "-o", "/tmp/aProject.dst/Library/Frameworks/Fwk.framework/Versions/A/Headers/Fwk-Swift.h"])
+                    task.checkCommandLine(["builtin-swiftHeaderTool", "-arch", results.runDestinationTargetArchitecture, "/TEST/build/aProject.build/Debug/Fwk.build/Objects-normal/\(results.runDestinationTargetArchitecture)/Fwk-Swift.h", "-o", "/tmp/aProject.dst/Library/Frameworks/Fwk.framework/Versions/A/Headers/Fwk-Swift.h"])
                 }
             }
 
@@ -2220,7 +2220,7 @@ fileprivate struct InstallAPITaskConstructionTests: CoreBasedTests {
                 task.checkCommandLineMatches([
                     StringPattern.equal(tapiToolPath.str), "installapi", "--verify-mode=ErrorsOnly", .anySequence,
 
-                    "-target", StringPattern.prefix("x86_64-apple"),
+                    "-target", StringPattern.prefix("\(results.runDestinationTargetArchitecture)-apple"),
                     .anySequence,
 
                     // Check build products search paths
@@ -2269,7 +2269,7 @@ fileprivate struct InstallAPITaskConstructionTests: CoreBasedTests {
                     "--verify-mode=ErrorsOnly",
                     .anySequence,
 
-                    "-target", StringPattern.prefix("x86_64-apple"),
+                    "-target", StringPattern.prefix("\(results.runDestinationTargetArchitecture)-apple"),
 
                         .anySequence,
 
@@ -2431,7 +2431,7 @@ fileprivate struct InstallAPITaskConstructionTests: CoreBasedTests {
                 task.checkCommandLineMatches([
                     StringPattern.equal(tapiToolPath.str), "installapi", "--verify-mode=ErrorsOnly", .anySequence,
 
-                    "-target", StringPattern.prefix("x86_64-apple"),
+                    "-target", StringPattern.prefix("\(results.runDestinationTargetArchitecture)-apple"),
 
                         .anySequence,
                     "-rpath", "@executable_path/../Frameworks", .anySequence,
@@ -2477,7 +2477,7 @@ fileprivate struct InstallAPITaskConstructionTests: CoreBasedTests {
                     StringPattern.equal(tapiToolPath.str), "installapi", .anySequence,
                     "-verify-against", "/tmp/aProject.dst/Library/Frameworks/Fwk.framework/Versions/A/Fwk", .anySequence,
                     "--verify-mode=ErrorsOnly", .anySequence,
-                    "-target", StringPattern.prefix("x86_64-apple"),
+                    "-target", StringPattern.prefix("\(results.runDestinationTargetArchitecture)-apple"),
                     .anySequence,
 
                     // Check RPaths.
@@ -2558,7 +2558,7 @@ fileprivate struct InstallAPITaskConstructionTests: CoreBasedTests {
                 task.checkCommandLineMatches([
                     StringPattern.equal(tapiToolPath.str), "installapi", "--verify-mode=ErrorsOnly", .anySequence,
 
-                    "-target", StringPattern.prefix("x86_64-apple"),
+                    "-target", StringPattern.prefix("\(results.runDestinationTargetArchitecture)-apple"),
 
                         .anySequence,
                     "-rpath", "@executable_path/../Frameworks", .anySequence,
@@ -2600,7 +2600,7 @@ fileprivate struct InstallAPITaskConstructionTests: CoreBasedTests {
                     StringPattern.equal(tapiToolPath.str), "installapi", .anySequence,
                     "-verify-against", "/tmp/aProject.dst/Library/Frameworks/Fwk.framework/Versions/A/Fwk", .anySequence,
                     "--verify-mode=ErrorsOnly", .anySequence,
-                    "-target", StringPattern.prefix("x86_64-apple"),
+                    "-target", StringPattern.prefix("\(results.runDestinationTargetArchitecture)-apple"),
                     .anySequence,
 
                     // Check RPaths.

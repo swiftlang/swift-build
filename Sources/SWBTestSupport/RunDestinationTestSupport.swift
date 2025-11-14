@@ -121,8 +121,7 @@ extension _RunDestinationInfo {
         #if os(macOS)
         switch Architecture.host.stringValue {
         case "arm64":
-            // FIXME: <rdar://78361860> Use results.runDestinationTargetArchitecture in our tests where appropriate so that this works
-            fallthrough // return macOSAppleSilicon
+            return macOSAppleSilicon
         case "x86_64":
             return macOSIntel
         default:
