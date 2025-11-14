@@ -1014,6 +1014,83 @@ fileprivate struct InstallLocTaskConstructionTests: CoreBasedTests {
         }
     }
 
+    @Test(.requireSDKs(.macOS))
+    func copyFilesRulesMergeRegion() async throws {
+        let testProject = TestProject(
+            "aProject",
+            groupTree: TestGroup(
+                "SomeFiles", path: "Sources",
+                children: [
+                    TestVariantGroup("Localizable.strings", children: [
+                        TestFile("en.lproj/Localizable.strings", regionVariantName: "en"),
+                        TestFile("ja.lproj/Localizable.strings", regionVariantName: "ja"),
+                        TestFile("zh_TW.lproj/Localizable.strings", regionVariantName: "zh_TW"),
+                    ]),
+                ]),
+            buildConfigurations: [
+                TestBuildConfiguration(
+                    "Debug",
+                    buildSettings: [
+                        "PRODUCT_NAME": "$(TARGET_NAME)",
+                        "GENERATE_INFOPLIST_FILE": "YES",
+                        "APPLY_RULES_IN_COPY_FILES": "YES"
+                    ]),
+            ],
+            targets: [
+                TestStandardTarget(
+                    "CoreFoo", type: .framework,
+                    buildPhases: [
+                        TestCopyFilesBuildPhase([
+                            "Localizable.strings",
+                        ], destinationSubfolder: .absolute, destinationSubpath: "/System/Library/Bundles/MyBundle.bundle", onlyForDeployment: true),
+                        TestCopyFilesBuildPhase([
+                            "Localizable.strings",
+                        ], destinationSubfolder: .builtProductsDir, destinationSubpath: "OtherProduct.bundle", onlyForDeployment: false),
+                    ]
+                )
+            ])
+        let tester = try await TaskConstructionTester(getCore(), testProject)
+
+        // installloc single language
+        await tester.checkBuild(BuildParameters(action: .installLoc, configuration: "Release", overrides: ["INSTALLLOC_LANGUAGE": "ja"]), runDestination: .macOS) { results in
+            results.checkTarget("CoreFoo") { target in
+                results.checkTaskExists(.matchTarget(target), .matchRule(["Copy", "/tmp/Test/aProject/build/Debug/OtherProduct.bundle/ja.lproj/Localizable.strings", "/tmp/Test/aProject/Sources/ja.lproj/Localizable.strings"]))
+                results.checkTaskExists(.matchTarget(target), .matchRule(["Copy", "/tmp/aProject.dst/System/Library/Bundles/MyBundle.bundle/ja.lproj/Localizable.strings", "/tmp/Test/aProject/Sources/ja.lproj/Localizable.strings"]))
+            }
+
+            results.checkNoDiagnostics()
+        }
+
+        // installloc multi-language
+        await tester.checkBuild(BuildParameters(action: .installLoc, configuration: "Release", overrides: ["INSTALLLOC_LANGUAGE": "ja zh_TW"]), runDestination: .macOS) { results in
+            results.checkTarget("CoreFoo") { target in
+                results.checkTaskExists(.matchTarget(target), .matchRule(["Copy", "/tmp/Test/aProject/build/Debug/OtherProduct.bundle/ja.lproj/Localizable.strings", "/tmp/Test/aProject/Sources/ja.lproj/Localizable.strings"]))
+                results.checkTaskExists(.matchTarget(target), .matchRule(["Copy", "/tmp/aProject.dst/System/Library/Bundles/MyBundle.bundle/ja.lproj/Localizable.strings", "/tmp/Test/aProject/Sources/ja.lproj/Localizable.strings"]))
+
+                results.checkTaskExists(.matchTarget(target), .matchRule(["Copy", "/tmp/Test/aProject/build/Debug/OtherProduct.bundle/zh_TW.lproj/Localizable.strings", "/tmp/Test/aProject/Sources/zh_TW.lproj/Localizable.strings"]))
+                results.checkTaskExists(.matchTarget(target), .matchRule(["Copy", "/tmp/aProject.dst/System/Library/Bundles/MyBundle.bundle/zh_TW.lproj/Localizable.strings", "/tmp/Test/aProject/Sources/zh_TW.lproj/Localizable.strings"]))
+            }
+
+            results.checkNoDiagnostics()
+        }
+
+        // install
+        await tester.checkBuild(BuildParameters(action: .install, configuration: "Release"), runDestination: .macOS) { results in
+            results.checkTarget("CoreFoo") { target in
+                results.checkTaskExists(.matchTarget(target), .matchRule(["CopyStringsFile", "/tmp/Test/aProject/build/Debug/OtherProduct.bundle/en.lproj/Localizable.strings", "/tmp/Test/aProject/Sources/en.lproj/Localizable.strings"]))
+                results.checkTaskExists(.matchTarget(target), .matchRule(["CopyStringsFile", "/tmp/aProject.dst/System/Library/Bundles/MyBundle.bundle/en.lproj/Localizable.strings", "/tmp/Test/aProject/Sources/en.lproj/Localizable.strings"]))
+
+                results.checkTaskExists(.matchTarget(target), .matchRule(["CopyStringsFile", "/tmp/Test/aProject/build/Debug/OtherProduct.bundle/ja.lproj/Localizable.strings", "/tmp/Test/aProject/Sources/ja.lproj/Localizable.strings"]))
+                results.checkTaskExists(.matchTarget(target), .matchRule(["CopyStringsFile", "/tmp/aProject.dst/System/Library/Bundles/MyBundle.bundle/ja.lproj/Localizable.strings", "/tmp/Test/aProject/Sources/ja.lproj/Localizable.strings"]))
+
+                results.checkTaskExists(.matchTarget(target), .matchRule(["CopyStringsFile", "/tmp/Test/aProject/build/Debug/OtherProduct.bundle/zh_TW.lproj/Localizable.strings", "/tmp/Test/aProject/Sources/zh_TW.lproj/Localizable.strings"]))
+                results.checkTaskExists(.matchTarget(target), .matchRule(["CopyStringsFile", "/tmp/aProject.dst/System/Library/Bundles/MyBundle.bundle/zh_TW.lproj/Localizable.strings", "/tmp/Test/aProject/Sources/zh_TW.lproj/Localizable.strings"]))
+            }
+
+            results.checkNoDiagnostics()
+        }
+    }
+
     @Test(.requireSDKs(.iOS))
     func installLocForFramework() async throws {
         let testProject = TestProject(
