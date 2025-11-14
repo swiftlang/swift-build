@@ -280,12 +280,6 @@
                     );
                     NO = ();
                 };
-                AdditionalLinkerArgs = {
-                    YES = (
-                        "-fobjc-arc",
-                    );
-                    NO = ();
-                };
                 FileTypes = (
                     "sourcecode.c.objc",
                     "sourcecode.cpp.objcpp",
