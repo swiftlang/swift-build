@@ -315,7 +315,7 @@ import SWBServiceCore
         #expect(buildSystemSpec != nil)
     }
 
-    @Test(.skipHostOS(.linux, "#expect(core == nil) crashes on Linux"))
+    @Test
     func coreLoadErrors() async throws {
         // Validate that the core fails if there are loading errors.
         try await withTemporaryDirectory { tmpDirPath in
