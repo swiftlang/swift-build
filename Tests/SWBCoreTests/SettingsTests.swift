@@ -17,7 +17,7 @@ import Testing
 import SWBProtocol
 import SWBTestSupport
 @_spi(Testing) import SWBUtil
-import SWBMacro
+@_spi(Testing) import SWBMacro
 @_spi(Testing) import SWBCore
 
 @Suite fileprivate struct SettingsTests: CoreBasedTests {

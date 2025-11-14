@@ -17,7 +17,7 @@ private extension MacroValueAssignmentTable {
     func lookupMacro(_ macro: MacroDeclaration, overrideLookup: ((MacroDeclaration) -> MacroExpression?)? = nil) -> MacroValueAssignment? {
         // See if we have an overriding binding.
         if let override = overrideLookup?(macro) {
-            return MacroValueAssignment(expression: override, conditions: nil, next: lookupMacro(macro), location: nil)
+            return MacroValueAssignment(expression: override, conditions: nil, next: lookupMacro(macro), locationRef: nil)
         }
 
         // Otherwise, return the normal lookup.
