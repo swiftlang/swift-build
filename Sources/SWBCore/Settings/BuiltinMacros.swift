@@ -2876,7 +2876,7 @@ public enum StickerSharingLevel: String, Equatable, Hashable, EnumerationMacroTy
 }
 
 /// Enumeration macro type for the value of the `ENTITLEMENTS_DESTINATION` build setting.
-public enum EntitlementsDestination: String, Equatable, Hashable, EnumerationMacroType {
+public enum EntitlementsDestination: String, Equatable, Hashable, EnumerationMacroType, Serializable {
     public static let defaultValue = EntitlementsDestination.none
 
     case codeSignature = "Signature"

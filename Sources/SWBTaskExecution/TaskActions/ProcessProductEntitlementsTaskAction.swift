@@ -21,15 +21,18 @@ public import SWBMacro
 /// Concrete implementation of task for processing product entitlements.
 public final class ProcessProductEntitlementsTaskAction: TaskAction
 {
-    /// The scope the task should use to evaluate build settings.
-    let scope: MacroEvaluationScope
-
     /// The merged entitlements.
     let entitlements: PropertyListItem
 
     /// When performing a simulator build, we will have both signed and simulated entitlements; this enum indicates which variant of entitlements this task action is processing.
     /// macOS and device builds will normally have only signed entitlements.
     let entitlementsVariant: EntitlementsVariant
+
+    /// Whether unsafe modification of entitlements during the build should be allowed.
+    let allowEntitlementsModification: Bool
+
+    /// The destination of the processed entitlements.
+    let entitlementsDestination: EntitlementsDestination
 
     /// The platform we're building for.
     let destinationPlatformName: String
@@ -42,12 +45,12 @@ public final class ProcessProductEntitlementsTaskAction: TaskAction
     /// The timestamp of the latest modification of the entitlements on `init`
     let entitlementsModificationTimestamp: Result<Date, StubError>?
 
-    public init(scope: MacroEvaluationScope, fs: any FSProxy, entitlements: PropertyListItem, entitlementsVariant: EntitlementsVariant, destinationPlatformName: String, entitlementsFilePath: Path?)
+    public init(fs: any FSProxy, entitlements: PropertyListItem, entitlementsVariant: EntitlementsVariant, allowEntitlementsModification: Bool, entitlementsDestination: EntitlementsDestination, destinationPlatformName: String, entitlementsFilePath: Path?)
     {
-        self.scope = scope
-
         self.entitlements = entitlements
         self.entitlementsVariant = entitlementsVariant
+        self.allowEntitlementsModification = allowEntitlementsModification
+        self.entitlementsDestination = entitlementsDestination
         self.destinationPlatformName = destinationPlatformName
         self.entitlementsFilePath = entitlementsFilePath
         if let entitlementsFilePath, fs.exists(entitlementsFilePath) {
@@ -257,7 +260,7 @@ public final class ProcessProductEntitlementsTaskAction: TaskAction
         // Updating entitlements is not something that is actively encouraged or supported, however, this is a compatibility pain point for certain projects that we need to maintain some ability to do this. A better approach is to plumb this through the system so that we can track this as a proper dependency mechanism, potentially through our virtual task producers... however, until then, we enable this functionality for those existing clients.
 
         // Also, we never modify the signed entitlements when building for simulators and ENTITLEMENTS_DESTINATION is __entitlements, since those are only expected to contain get-task-allow; see rdar://55324156.
-        let entitlementsVariantToModify: EntitlementsVariant = scope.evaluate(BuiltinMacros.ENTITLEMENTS_DESTINATION) == .entitlementsSection ? .simulated : .signed
+        let entitlementsVariantToModify: EntitlementsVariant = entitlementsDestination == .entitlementsSection ? .simulated : .signed
         let allowEntitlementsModification = entitlementsVariantToModify == entitlementsVariant
 
         var userModifiedEntitlements: PropertyListItem?
@@ -279,7 +282,7 @@ public final class ProcessProductEntitlementsTaskAction: TaskAction
             }
 
             if originalModificationTimestamp != currentModificationTimestamp {
-                if scope.evaluate(BuiltinMacros.CODE_SIGN_ALLOW_ENTITLEMENTS_MODIFICATION) == false {
+                if !self.allowEntitlementsModification {
                     outputDelegate.emitError("Entitlements file \"\(entitlementsFilePath.basename)\" was modified during the build, which is not supported. You can disable this error by setting 'CODE_SIGN_ALLOW_ENTITLEMENTS_MODIFICATION' to 'YES', however this may cause the built product's code signature or provisioning profile to contain incorrect entitlements.")
                     return .failed
                 }
@@ -391,12 +394,13 @@ public final class ProcessProductEntitlementsTaskAction: TaskAction
 
     public override func serialize<T: Serializer>(to serializer: T)
     {
-        serializer.serializeAggregate(7)
+        serializer.serializeAggregate(8)
         {
-            serializer.serialize(scope)
             // FIXME: <rdar://problem/40036582> We have no way to handle any errors in PropertyListItem.asBytes() here.
             serializer.serialize(try? entitlements.asBytes(.binary))
             serializer.serialize(entitlementsVariant)
+            serializer.serialize(allowEntitlementsModification)
+            serializer.serialize(entitlementsDestination)
             serializer.serialize(destinationPlatformName)
             serializer.serialize(entitlementsFilePath)
             serializer.serialize(entitlementsModificationTimestamp)
@@ -406,10 +410,11 @@ public final class ProcessProductEntitlementsTaskAction: TaskAction
 
     public required init(from deserializer: any Deserializer) throws
     {
-        try deserializer.beginAggregate(7)
-        self.scope = try deserializer.deserialize()
+        try deserializer.beginAggregate(8)
         self.entitlements = try PropertyList.fromBytes(try deserializer.deserialize())
         self.entitlementsVariant = try deserializer.deserialize()
+        self.allowEntitlementsModification = try deserializer.deserialize()
+        self.entitlementsDestination = try deserializer.deserialize()
         self.destinationPlatformName = try deserializer.deserialize()
         self.entitlementsFilePath = try deserializer.deserialize()
         self.entitlementsModificationTimestamp = try deserializer.deserialize()
