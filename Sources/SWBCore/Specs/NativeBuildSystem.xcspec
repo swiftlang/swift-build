@@ -831,7 +831,7 @@ When `GENERATE_INFOPLIST_FILE` is enabled, sets the value of the [CFBundleExecut
             },
             {   Name = CHOWN;
                 Type = Path;
-                DefaultValue = "/usr/sbin/chown";
+                DefaultValue = "chown";
             },
             {   Name = CHMOD;
                 Type = Path;
