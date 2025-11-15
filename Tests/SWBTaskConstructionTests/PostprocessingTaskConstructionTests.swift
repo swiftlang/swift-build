@@ -65,8 +65,12 @@ fileprivate struct PostprocessingTaskConstructionTests: CoreBasedTests {
 
         let tester = try await TaskConstructionTester(getCore(), testProject)
 
+        let fs = PseudoFS()
+        try fs.createDirectory(.root.join("usr").join("sbin"), recursive: true)
+        try fs.write(.root.join("usr").join("sbin").join("chown"), contents: "")
+
         let installParameters = BuildParameters(action: .install, configuration: "Debug")
-        await tester.checkBuild(installParameters, runDestination: .macOS) { results in
+        await tester.checkBuild(installParameters, runDestination: .macOS, processEnvironment: ["PATH": "/usr/bin:/usr/sbin"], fs: fs) { results in
             results.checkNoDiagnostics()
 
             results.checkTarget("Library") { target in
