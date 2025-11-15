@@ -169,7 +169,7 @@ public final class ProductPackagingToolSpec : GenericCommandLineToolSpec, SpecId
         }
 
         // Create the task action, and then the task.
-        let action = delegate.taskActionCreationDelegate.createProcessProductEntitlementsTaskAction(scope: cbc.scope, mergedEntitlements: entitlements, entitlementsVariant: entitlementsVariant, destinationPlatformName: platform.name, entitlementsFilePath: codeSignEntitlementsInput?.absolutePath, fs: fs)
+        let action = delegate.taskActionCreationDelegate.createProcessProductEntitlementsTaskAction(mergedEntitlements: entitlements, entitlementsVariant: entitlementsVariant, allowEntitlementsModification: cbc.scope.evaluate(BuiltinMacros.CODE_SIGN_ALLOW_ENTITLEMENTS_MODIFICATION), entitlementsDestination: cbc.scope.evaluate(BuiltinMacros.ENTITLEMENTS_DESTINATION), destinationPlatformName: platform.name, entitlementsFilePath: codeSignEntitlementsInput?.absolutePath, fs: fs)
         // The action records a timestamp representing the last modification date of the entitlements file, so changes to the input must invalidate the build description.
         if let path = codeSignEntitlementsInput?.absolutePath {
             delegate.access(path: path)
