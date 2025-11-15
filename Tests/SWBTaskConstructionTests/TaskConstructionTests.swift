@@ -204,8 +204,11 @@ fileprivate struct TaskConstructionTests: CoreBasedTests {
 
             try await fs.writePlist(Path(SRCROOT).join("Entitlements.plist"), .plDict([:]))
 
+            try fs.createDirectory(.root.join("usr").join("sbin"), recursive: true)
+            try fs.write(.root.join("usr").join("sbin").join("chown"), contents: "")
+
             // Check the debug build.
-            await tester.checkBuild(BuildParameters(configuration: "Debug", overrides: ["INFOPLIST_PREPROCESS": "YES", "COMBINE_HIDPI_IMAGES": "YES"]), runDestination: .macOS, fs: fs) { results -> Void in
+            await tester.checkBuild(BuildParameters(configuration: "Debug", overrides: ["INFOPLIST_PREPROCESS": "YES", "COMBINE_HIDPI_IMAGES": "YES"]), runDestination: .macOS, processEnvironment: ["PATH": "/usr/bin:/usr/sbin"], fs: fs) { results -> Void in
                 // There should be two warnings about our custom output files, since we won't reprocess the custom file it generates with the same name.
                 results.checkWarning(.prefix("no rule to process file '\(SRCROOT)/build/aProject.build/Debug/AppTarget.build/DerivedSources-normal/\(results.runDestinationTargetArchitecture)/Custom.fake-lang'"))
                 results.checkWarning(.prefix("no rule to process file '\(SRCROOT)/build/aProject.build/Debug/AppTarget.build/DerivedSources-normal/\(results.runDestinationTargetArchitecture)/en.lproj/Standard.fake-lang'"))
@@ -836,7 +839,7 @@ fileprivate struct TaskConstructionTests: CoreBasedTests {
             try await localFS.writePlist(Path(SRCROOT).join("Entitlements.plist"), .plDict([:]))
 
             // Check an install release build.
-            try await tester.checkBuild(BuildParameters(action: .install, configuration: "Release"), runDestination: .macOS, fs: localFS) { results -> Void in
+            try await tester.checkBuild(BuildParameters(action: .install, configuration: "Release"), runDestination: .macOS, processEnvironment: ["PATH": "/usr/bin:/usr/sbin"], fs: localFS) { results -> Void in
                 try results.checkTarget("AppTarget") { target -> Void in
                     // There should be a symlink task.
                     try results.checkTask(.matchTarget(target), .matchRuleType("SymLink")) { task in
