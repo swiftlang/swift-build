@@ -155,7 +155,7 @@ fileprivate struct SwiftCompilationCachingTests: CoreBasedTests {
                     TestStandardTarget(
                         "Bar",
                         type: .dynamicLibrary,
-                        buildConfigurations: [TestBuildConfiguration("Debug", buildSettings: ["PRODUCT_NAME": "Bar", "EXECUTABLE_PREFIX": "lib"])],
+                        buildConfigurations: [TestBuildConfiguration("Debug", buildSettings: ["PRODUCT_NAME": "Bar"])],
                         buildPhases: [TestSourcesBuildPhase(["Bar.swift"])])])
 
             let package = TestPackageProject(
@@ -172,7 +172,7 @@ fileprivate struct SwiftCompilationCachingTests: CoreBasedTests {
                     TestStandardTarget(
                         "Foo",
                         type: .dynamicLibrary,
-                        buildConfigurations: [TestBuildConfiguration("Debug", buildSettings: ["PRODUCT_NAME": "Foo", "EXECUTABLE_PREFIX": "lib"])],
+                        buildConfigurations: [TestBuildConfiguration("Debug", buildSettings: ["PRODUCT_NAME": "Foo"])],
                         buildPhases: [
                             TestSourcesBuildPhase(["Foo.swift"]),
                             TestFrameworksBuildPhase([TestBuildFile(.target("BarProduct"))])],

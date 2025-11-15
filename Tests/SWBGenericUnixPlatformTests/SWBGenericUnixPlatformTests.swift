@@ -94,25 +94,15 @@ fileprivate struct GenerixUnixBuildOperationTests: CoreBasedTests {
                         buildConfigurations: [
                             TestBuildConfiguration("Debug", buildSettings: [
                                 "DYLIB_INSTALL_NAME_BASE": "$ORIGIN",
-
-                                // FIXME: Find a way to make these default
-                                "EXECUTABLE_PREFIX": "lib",
                             ])
                         ],
                         buildPhases: [
                             TestSourcesBuildPhase(["dynamic.c"]),
                         ],
-                        productReferenceName: "libdynamiclib.so"
                     ),
                     TestStandardTarget(
                         "staticlib",
                         type: .staticLibrary,
-                        buildConfigurations: [
-                            TestBuildConfiguration("Debug", buildSettings: [
-                                // FIXME: Find a way to make these default
-                                "EXECUTABLE_PREFIX": "lib",
-                            ])
-                        ],
                         buildPhases: [
                             TestSourcesBuildPhase(["static.c"]),
                         ]

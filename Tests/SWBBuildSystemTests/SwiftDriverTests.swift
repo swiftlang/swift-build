@@ -939,8 +939,6 @@ fileprivate struct SwiftDriverTests: CoreBasedTests {
                                         "BUILD_VARIANTS": "normal",
                                         "SWIFT_USE_INTEGRATED_DRIVER": "YES",
                                         "CODE_SIGNING_ALLOWED": "NO",
-                                        "EXECUTABLE_PREFIX": "lib",
-                                        "EXECUTABLE_PREFIX[sdk=windows*]": "",
                                         setting: "YES",
                                     ])
                             ],
@@ -2958,7 +2956,7 @@ fileprivate struct SwiftDriverTests: CoreBasedTests {
                                 "DynamicLibrary",
                                 type: .dynamicLibrary,
                                 buildConfigurations: [
-                                    TestBuildConfiguration("Debug", buildSettings: ["PRODUCT_NAME": "libDylib"]),
+                                    TestBuildConfiguration("Debug", buildSettings: ["PRODUCT_NAME": "Dylib"]),
                                 ],
                                 buildPhases: [
                                     TestSourcesBuildPhase([
@@ -2979,7 +2977,7 @@ fileprivate struct SwiftDriverTests: CoreBasedTests {
                 file <<<
                     """
                     import Fwk
-                    import libDylib
+                    import Dylib
                     @main public struct Tool {
                         static func main() {
                             _ = InternalStruct()
@@ -3038,7 +3036,7 @@ fileprivate struct SwiftDriverTests: CoreBasedTests {
                     try results.checkTaskFollows(linkToolTask, .matchTargetName("Fwk"), .matchRule(["SwiftEmitModule", "normal", "arm64e", "Emitting module for Fwk"]))
                     try results.checkTaskFollows(linkToolTask, .matchTargetName("Fwk"), .matchRuleType("GenerateTAPI"))
                     try results.checkTaskDoesNotFollow(linkToolTask, .matchTargetName("Fwk"), .matchRuleType("Ld"))
-                    try results.checkTaskFollows(linkToolTask, .matchTargetName("DynamicLibrary"), .matchRule(["SwiftEmitModule", "normal", "arm64e", "Emitting module for libDylib"]))
+                    try results.checkTaskFollows(linkToolTask, .matchTargetName("DynamicLibrary"), .matchRule(["SwiftEmitModule", "normal", "arm64e", "Emitting module for Dylib"]))
                     try results.checkTaskFollows(linkToolTask, .matchTargetName("DynamicLibrary"), .matchRuleType("GenerateTAPI"))
                     try results.checkTaskDoesNotFollow(linkToolTask, .matchTargetName("DynamicLibrary"), .matchRuleType("Ld"))
                 }

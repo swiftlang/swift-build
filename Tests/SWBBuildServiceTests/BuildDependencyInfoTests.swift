@@ -112,12 +112,6 @@ import Foundation
                 TestStandardTarget(
                     "DylibTarget",
                     type: .dynamicLibrary,
-                    buildConfigurations: [
-                        TestBuildConfiguration("Config",
-                            buildSettings: [
-                                "EXECUTABLE_PREFIX": "lib",
-                            ]),
-                    ],
                     buildPhases: [
                         TestSourcesBuildPhase([
                             "DylibClass.swift",
