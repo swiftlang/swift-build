@@ -582,20 +582,59 @@
                 DefaultValue = YES;
             },
 
+            // Address Sanitizer options
+            {
+                Name = LD_ADDRESS_SANITIZER;
+                DefaultValue = "$(LD_ADDRESS_SANITIZER_$(LINKER_DRIVER))";
+            },
+            {
+                Name = LD_ADDRESS_SANITIZER_clang;
+                DefaultValue = "-fsanitize=address";
+            },
+            {
+                Name = LD_ADDRESS_SANITIZER_swiftc;
+                DefaultValue = "-sanitize=address";
+            },
+
             // Thread Sanitizer options
             {
                 Name = "LD_THREAD_SANITIZER";
                 Type = Boolean;
                 DefaultValue = "$(ENABLE_THREAD_SANITIZER)";
+            },
+            {
+                Name = "CLANG_LD_THREAD_SANITIZER";
+                Type = Boolean;
+                DefaultValue = "$(LD_THREAD_SANITIZER)";
                 Architectures = (
                     x86_64,
                     x86_64h,
                     arm64,
                     arm64e,
                 );
+                Condition = "$(LINKER_DRIVER) == clang";
                 CommandLineArgs = {
                     YES = (
                         "-fsanitize=thread",
+                    );
+                    NO = ();
+                };
+                // Not visible in the build settings editor
+            },
+            {
+                Name = "SWIFTC_LD_THREAD_SANITIZER";
+                Type = Boolean;
+                DefaultValue = "$(LD_THREAD_SANITIZER)";
+                Architectures = (
+                    x86_64,
+                    x86_64h,
+                    arm64,
+                    arm64e,
+                );
+                Condition = "$(LINKER_DRIVER) == swiftc";
+                CommandLineArgs = {
+                    YES = (
+                        "-sanitize=thread",
                     );
                     NO = ();
                 };
