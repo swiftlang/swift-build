@@ -40,8 +40,8 @@ fileprivate struct BuildOperationTests: CoreBasedTests {
                     "SomeFiles",
                     children: [
                         TestFile("main.swift"),
-                        TestFile("dynamic.swift"),
-                        TestFile("static.swift"),
+                        TestFile("dynamic library.swift"),
+                        TestFile("static library.swift"),
                     ]),
                 buildConfigurations: [
                     TestBuildConfiguration("Debug", buildSettings: [
@@ -93,7 +93,7 @@ fileprivate struct BuildOperationTests: CoreBasedTests {
                             ])
                         ],
                         buildPhases: [
-                            TestSourcesBuildPhase(["dynamic.swift"]),
+                            TestSourcesBuildPhase(["dynamic library.swift"]),
                         ]
                     ),
                     TestStandardTarget(
@@ -107,7 +107,7 @@ fileprivate struct BuildOperationTests: CoreBasedTests {
                             ])
                         ],
                         buildPhases: [
-                            TestSourcesBuildPhase(["static.swift"]),
+                            TestSourcesBuildPhase(["static library.swift"]),
                         ]
                     ),
                 ])
@@ -125,11 +125,11 @@ fileprivate struct BuildOperationTests: CoreBasedTests {
                 stream <<< "print(\"Hello world\")\n"
             }
 
-            try await tester.fs.writeFileContents(projectDir.join("dynamic.swift")) { stream in
+            try await tester.fs.writeFileContents(projectDir.join("dynamic library.swift")) { stream in
                 stream <<< "public func dynamicLib() { }"
             }
 
-            try await tester.fs.writeFileContents(projectDir.join("static.swift")) { stream in
+            try await tester.fs.writeFileContents(projectDir.join("static library.swift")) { stream in
                 stream <<< "public func staticLib() { }"
             }
 
