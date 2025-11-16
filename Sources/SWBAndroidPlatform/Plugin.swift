@@ -133,8 +133,6 @@ struct AndroidPlatformExtension: PlatformInfoExtension {
             "GENERATE_TEXT_BASED_STUBS": "NO",
             "GENERATE_INTERMEDIATE_TEXT_BASED_STUBS": "NO",
 
-            "CHOWN": "/usr/bin/chown",
-
             "LIBTOOL": .plString(host.imageFormat.executableName(basename: "llvm-lib")),
             "AR": .plString(host.imageFormat.executableName(basename: "llvm-ar")),
         ]
