@@ -331,7 +331,7 @@ public protocol TaskActionCreationDelegate
     func createLinkAssetCatalogTaskAction() -> any PlannedTaskAction
     func createLSRegisterURLTaskAction() -> any PlannedTaskAction
     func createODRAssetPackManifestTaskAction() -> any PlannedTaskAction
-    func createProcessProductEntitlementsTaskAction(scope: MacroEvaluationScope, mergedEntitlements: PropertyListItem, entitlementsVariant: EntitlementsVariant, destinationPlatformName: String, entitlementsFilePath: Path?, fs: any FSProxy) -> any PlannedTaskAction
+    func createProcessProductEntitlementsTaskAction(mergedEntitlements: PropertyListItem, entitlementsVariant: EntitlementsVariant, allowEntitlementsModification: Bool, entitlementsDestination: EntitlementsDestination, destinationPlatformName: String, entitlementsFilePath: Path?, fs: any FSProxy) -> any PlannedTaskAction
     func createProcessProductProvisioningProfileTaskAction() -> any PlannedTaskAction
     func createRegisterExecutionPolicyExceptionTaskAction() -> any PlannedTaskAction
     func createSwiftHeaderToolTaskAction() -> any PlannedTaskAction
