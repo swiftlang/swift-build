@@ -17,6 +17,7 @@ import enum SWBProtocol.ExternalToolResult
 import struct SWBProtocol.BuildOperationTaskEnded
 package import SWBUtil
 import SWBMacro
+import Foundation
 
 package protocol CoreBasedTests {
     func simulatedInferiorProductsPath() async throws -> Path?
@@ -32,6 +33,10 @@ extension CoreBasedTests {
         } catch {
             core = .failure(error)
         }
+        atexit({
+            print(Thread.callStackSymbols)
+            fflush(stdout)
+        })
         return try _getCore(core: core, sourceLocation: sourceLocation)
     }
 
