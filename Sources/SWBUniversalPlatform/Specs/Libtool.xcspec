@@ -111,6 +111,17 @@
                 Type = Boolean;
                 DefaultValue = YES;
             },
+            {
+                Name = "LIBTOOL_FILE_LIST_FORMAT";
+                Type = Enumeration;
+                Values = (
+                    unescapedNewlineSeparated,
+                    unixShellQuotedSpaceSeparated,
+                    unixShellQuotedNewlineSeparated,
+                    windowsShellQuotedNewlineSeparated,
+                );
+                DefaultValue = unescapedNewlineSeparated;
+            },
         );
     }
 )
