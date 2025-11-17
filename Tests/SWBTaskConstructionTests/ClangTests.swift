@@ -388,4 +388,52 @@ fileprivate struct ClangTests: CoreBasedTests {
             }
         }
     }
+
+    @Test(.requireSDKs(.host))
+    func indexOptionsNotAddedIfIndexingIsDisabled() async throws {
+        try await withTemporaryDirectory { tmpDir in
+            let testProject = TestProject(
+                "ProjectName",
+                sourceRoot: tmpDir,
+                groupTree: TestGroup(
+                    "SomeFiles",
+                    children: [
+                        TestFile("File1.c")
+                    ]),
+                targets: [
+                    TestStandardTarget(
+                        "Test",
+                        type: .dynamicLibrary,
+                        buildConfigurations: [
+                            TestBuildConfiguration(
+                                "Debug",
+                                buildSettings: [
+                                    "COMPILER_INDEX_STORE_ENABLE": "NO",
+                                    "INDEX_DATA_STORE_DIR": tmpDir.join("index").str,
+                                    "INDEX_STORE_COMPRESS": "YES",
+                                    "INDEX_STORE_ONLY_PROJECT_FILES": "YES",
+                                    "CLANG_INDEX_STORE_IGNORE_MACROS": "YES",
+                                    "OTHER_CFLAGS": "-DCLANG_INDEX_STORE_ENABLE=$(CLANG_INDEX_STORE_ENABLE) -DCOMPILER_INDEX_STORE_ENABLE=$(COMPILER_INDEX_STORE_ENABLE)"
+                                ]
+                            ),
+                        ],
+                        buildPhases: [
+                            TestSourcesBuildPhase(["File1.c"]),
+                        ]
+                    )
+                ])
+
+            let core = try await getCore()
+            let tester = try TaskConstructionTester(core, testProject)
+            await tester.checkBuild(BuildParameters(configuration: "Debug", commandLineOverrides: ["INDEX_ENABLE_DATA_STORE": "YES"]), runDestination: .host) { results in
+                results.checkTask(.matchRuleType("CompileC")) { compileTask in
+                    compileTask.checkCommandLineDoesNotContain("-index-store-path")
+                    compileTask.checkCommandLineDoesNotContain("-index-store-compress")
+                    compileTask.checkCommandLineDoesNotContain("-index-ignore-system-symbols")
+                    compileTask.checkCommandLineDoesNotContain("-index-ignore-pcms")
+                    compileTask.checkCommandLineDoesNotContain("-index-ignore-macros")
+                }
+            }
+        }
+    }
 }

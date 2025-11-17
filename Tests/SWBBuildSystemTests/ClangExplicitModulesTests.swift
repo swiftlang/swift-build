@@ -2771,7 +2771,7 @@ fileprivate struct ClangExplicitModulesTests: CoreBasedTests {
             }
 
             // Remove the object file so compilation has to re-run on the next build, but scanning does not.
-            try tester.fs.remove(testWorkspace.sourceRoot.join("aProject/Build/aProject.build/Debug/Library.build/Objects-normal/x86_64/file.o"))
+            try tester.fs.remove(testWorkspace.sourceRoot.join("aProject/Build/aProject.build/Debug/Library.build/Objects-normal/\(RunDestinationInfo.macOS.targetArchitecture)/file.o"))
 
             // The incremental build should succeed because dependencies will be ingested from disk.
             try await tester.checkBuild(runDestination: .macOS, persistent: true) { results in

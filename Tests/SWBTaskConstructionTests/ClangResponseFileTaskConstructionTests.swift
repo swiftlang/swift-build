@@ -168,7 +168,7 @@ fileprivate struct ClangResponseFileTaskConstructionTests: CoreBasedTests {
                     let stringContents = contents.asString
                     #expect(stringContents.contains("-target"))
                     let blocksFlag = switch runDestination {
-                        case .macOS:
+                        case .macOSIntel:
                             "-fasm-blocks"
                         case .linux:
                             "-fblocks"

@@ -119,7 +119,6 @@ struct GenericUnixSDKRegistryExtension: SDKRegistryExtension {
                     "GENERATE_TEXT_BASED_STUBS": "NO",
                     "GENERATE_INTERMEDIATE_TEXT_BASED_STUBS": "NO",
 
-                    "CHOWN": "/usr/bin/chown",
                     "AR": "llvm-ar",
                 ]
             default:

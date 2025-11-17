@@ -25,8 +25,8 @@ fileprivate struct DependencyVerificationTaskConstructionTests: CoreBasedTests {
     let sourceBaseName = "TestSource"
     let source = "TestSource.m"
 
-    func outputFile(_ srcroot: Path, _ filename: String) -> String {
-        return "\(srcroot.str)/build/\(project).build/Debug/\(target).build/Objects-normal/x86_64/\(filename)"
+    func outputFile(_ srcroot: Path, _ filename: String, _ arch: String) -> String {
+        return "\(srcroot.str)/build/\(project).build/Debug/\(target).build/Objects-normal/\(arch)/\(filename)"
     }
 
     @Test(.requireSDKs(.macOS), .requireClangFeatures(.printHeadersDirectPerFile), arguments: ["MODULE", "HEADER"])
@@ -39,7 +39,7 @@ fileprivate struct DependencyVerificationTaskConstructionTests: CoreBasedTests {
                 results.checkTask(.compileC(target, fileName: source)) { task in
                     task.checkCommandLineContains([
                         "-Xclang", "-header-include-file",
-                        "-Xclang", outputFile(srcroot, "\(sourceBaseName).o.trace.json"),
+                        "-Xclang", outputFile(srcroot, "\(sourceBaseName).o.trace.json", results.runDestinationTargetArchitecture),
                         "-Xclang", "-header-include-filtering=direct-per-file",
                         "-Xclang", "-header-include-format=json",
                     ])

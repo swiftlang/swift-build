@@ -18,9 +18,9 @@ import SWBTestSupport
 @_spi(TestSupport) import SWBUtil
 
 #if canImport(System)
-public import System
+import System
 #else
-public import SystemPackage
+import SystemPackage
 #endif
 
 @Suite fileprivate struct FSProxyTests {

@@ -97,7 +97,7 @@ public struct Path: Serializable, Sendable {
     }
     @inline(__always) public static func firstPathSeparatorIndex(in str: some StringProtocol, separators: (some Collection<Character>)?) -> String.Index? {
         guard let separators else {
-            return str.utf8.index(of: pathSeparatorUTF8)
+            return str.utf8.firstIndex(of: pathSeparatorUTF8)
         }
         return str.firstIndex(where: { separators.contains($0) })
     }

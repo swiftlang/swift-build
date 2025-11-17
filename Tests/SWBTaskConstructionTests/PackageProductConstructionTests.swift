@@ -158,7 +158,7 @@ fileprivate struct PackageProductConstructionTests: CoreBasedTests {
                     #expect(task.commandLine.contains(["-lBEGIN", "/tmp/aWorkspace/Package/build/Release/libA.a", "/tmp/aWorkspace/Package/build/Release/libB.a", "/tmp/aWorkspace/Package/build/Release/libC.a", "/tmp/aWorkspace/Package/build/Release/libC_Impl.a", "-lEND"]), "unexpected linker command line: \(task.commandLineAsStrings.quotedDescription)")
                 }
                 results.checkWriteAuxiliaryFileTask(.matchTarget(target), .matchRuleType("WriteAuxiliaryFile"), .matchRuleItemBasename("Tool.LinkFileList")) { task, contents in
-                    #expect(contents == "/tmp/aWorkspace/aProject/build/aProject.build/Release/Tool.build/Objects-normal/x86_64/main.o\n/tmp/aWorkspace/Package/build/Release/E.o\n/tmp/aWorkspace/Package/build/Release/F.o\n")
+                    #expect(contents == "/tmp/aWorkspace/aProject/build/aProject.build/Release/Tool.build/Objects-normal/\(results.runDestinationTargetArchitecture)/main.o\n/tmp/aWorkspace/Package/build/Release/E.o\n/tmp/aWorkspace/Package/build/Release/F.o\n")
                 }
             }
         }
@@ -254,9 +254,9 @@ fileprivate struct PackageProductConstructionTests: CoreBasedTests {
             results.checkNoDiagnostics()
             results.checkTarget("DynamicJSON") { target in
                 results.checkTask(.matchTarget(target), .matchRuleType("Ld")) { task in
-                    task.checkCommandLineContains(["-o", "/tmp/aWorkspace/aProject/build/Debug/DynamicJSON.dylib", "/tmp/aWorkspace/Package/build/Package.build/Debug/SwiftyJSON.build/Objects-normal/x86_64/SwiftyJSON.swiftmodule"])
+                    task.checkCommandLineContains(["-o", "/tmp/aWorkspace/aProject/build/Debug/DynamicJSON.dylib", "/tmp/aWorkspace/Package/build/Package.build/Debug/SwiftyJSON.build/Objects-normal/\(results.runDestinationTargetArchitecture)/SwiftyJSON.swiftmodule"])
 
-                    task.checkCommandLineNoMatch([.any, "-Xlinker", "-add_ast_path", "-Xlinker", "/tmp/aWorkspace/aProject/build/aProject.build/Debug/DynamicJSON.build/Objects-normal/x86_64/DynamicJSON.swiftmodule", .any])
+                    task.checkCommandLineNoMatch([.any, "-Xlinker", "-add_ast_path", "-Xlinker", "/tmp/aWorkspace/aProject/build/aProject.build/Debug/DynamicJSON.build/Objects-normal/\(results.runDestinationTargetArchitecture)/DynamicJSON.swiftmodule", .any])
                 }
 
                 results.checkWriteAuxiliaryFileTask(.matchTarget(target), .matchRuleType("WriteAuxiliaryFile"), .matchRuleItemBasename("DynamicJSON.LinkFileList")) { task, contents in

@@ -90,7 +90,7 @@ fileprivate struct IntermediateStubTaskConstructionTests: CoreBasedTests {
             ])
         let tester = try await TaskConstructionTester(getCore(), testProject)
         await tester.checkBuild(BuildParameters(action: .build, configuration: "Debug"), runDestination: .macOS) { results in
-            results.checkTask(.matchRule(["GenerateTAPI", "/tmp/Test/aProject/build/Debug/Fwk.framework/Versions/A/Fwk.tbd", "normal", "x86_64"])) { _ in }
+            results.checkTask(.matchRule(["GenerateTAPI", "/tmp/Test/aProject/build/Debug/Fwk.framework/Versions/A/Fwk.tbd", "normal", results.runDestinationTargetArchitecture])) { _ in }
             results.checkNoTask(.matchRuleType("GenerateTAPI"))
         }
     }

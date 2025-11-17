@@ -217,10 +217,17 @@ extension Trait where Self == Testing.ConditionTrait {
                 }
             }
 
+            func runProcessIgnoringExitCode(_ args: [String]) async throws -> String {
+                guard let first = args.first else {
+                    throw StubError.error("Invalid number of arguments")
+                }
+                return try await String(decoding: Process.getOutput(url: URL(filePath: first), arguments: Array(args.dropFirst())).stdout, as: UTF8.self)
+            }
+
             func checkInstalled(hostOS: OperatingSystem, packageManagerPath: Path, args: [String], packages: [String], regex: Regex<(Substring, name: Substring)>) async throws -> Bool {
                 if try ProcessInfo.processInfo.hostOperatingSystem() == hostOS && localFS.exists(packageManagerPath) {
                     var installedPackages: Set<String> = []
-                    for line in try await runProcess([packageManagerPath.str] + args + (packageManagerPath.basenameWithoutSuffix == "pkg_info" ? [] : packages)).split(separator: "\n") {
+                    for line in try await runProcessIgnoringExitCode([packageManagerPath.str] + args + (packageManagerPath.basenameWithoutSuffix == "pkg_info" ? [] : packages)).split(separator: "\n") {
                         if let packageName = try regex.firstMatch(in: line)?.output.name {
                             installedPackages.insert(String(packageName))
                         }

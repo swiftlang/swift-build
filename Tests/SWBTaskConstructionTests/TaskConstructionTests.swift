@@ -83,7 +83,7 @@ fileprivate struct TaskConstructionTests: CoreBasedTests {
                             "EXCLUDED_SOURCE_FILE_NAMES": "Sources/*-Matched-*",
                             "INCLUDED_SOURCE_FILE_NAMES": "Sources/$(INCLUDED_SOURCE_FILE_NAMES_$(variant))",
                             "INCLUDED_SOURCE_FILE_NAMES_normal": "$(INCLUDED_SOURCE_FILE_NAMES_$(variant)_$(arch))",
-                            "INCLUDED_SOURCE_FILE_NAMES_normal_x86_64": "*-Included*",
+                            "INCLUDED_SOURCE_FILE_NAMES_normal_\(RunDestinationInfo.macOS.targetArchitecture)": "*-Included*",
                             "COMBINE_HIDPI_IMAGES": "YES",
                             "LEXFLAGS": "-DOTHER_LEX_FLAG",
                             "GCC_PREFIX_HEADER": "Sources/Prefix.pch",
@@ -204,11 +204,14 @@ fileprivate struct TaskConstructionTests: CoreBasedTests {
 
             try await fs.writePlist(Path(SRCROOT).join("Entitlements.plist"), .plDict([:]))
 
+            try fs.createDirectory(.root.join("usr").join("sbin"), recursive: true)
+            try fs.write(.root.join("usr").join("sbin").join("chown"), contents: "")
+
             // Check the debug build.
-            await tester.checkBuild(BuildParameters(configuration: "Debug", overrides: ["INFOPLIST_PREPROCESS": "YES", "COMBINE_HIDPI_IMAGES": "YES"]), runDestination: .macOS, fs: fs) { results -> Void in
+            await tester.checkBuild(BuildParameters(configuration: "Debug", overrides: ["INFOPLIST_PREPROCESS": "YES", "COMBINE_HIDPI_IMAGES": "YES"]), runDestination: .macOS, processEnvironment: ["PATH": "/usr/bin:/usr/sbin"], fs: fs) { results -> Void in
                 // There should be two warnings about our custom output files, since we won't reprocess the custom file it generates with the same name.
-                results.checkWarning(.prefix("no rule to process file '\(SRCROOT)/build/aProject.build/Debug/AppTarget.build/DerivedSources-normal/x86_64/Custom.fake-lang'"))
-                results.checkWarning(.prefix("no rule to process file '\(SRCROOT)/build/aProject.build/Debug/AppTarget.build/DerivedSources-normal/x86_64/en.lproj/Standard.fake-lang'"))
+                results.checkWarning(.prefix("no rule to process file '\(SRCROOT)/build/aProject.build/Debug/AppTarget.build/DerivedSources-normal/\(results.runDestinationTargetArchitecture)/Custom.fake-lang'"))
+                results.checkWarning(.prefix("no rule to process file '\(SRCROOT)/build/aProject.build/Debug/AppTarget.build/DerivedSources-normal/\(results.runDestinationTargetArchitecture)/en.lproj/Standard.fake-lang'"))
 
                 // There shouldn't be any task construction diagnostics.
                 results.checkNoDiagnostics()
@@ -216,7 +219,7 @@ fileprivate struct TaskConstructionTests: CoreBasedTests {
                 results.checkTarget("AppTarget") { target -> Void in
                     // There should be a PCH job for C and Objective-C, and one extra Obj-C one for the file with custom flags.
                     results.checkTask(.matchTarget(target), .matchRuleType("ProcessPCH"), .matchRuleItem("c")) { task in
-                        task.checkRuleInfo([.equal("ProcessPCH"), .suffix("/Prefix.pch.gch"), .equal("\(SRCROOT)/Sources/Prefix.pch"), .equal("normal"), .equal("x86_64"), .equal("c"), .equal("com.apple.compilers.llvm.clang.1_0.compiler")])
+                        task.checkRuleInfo([.equal("ProcessPCH"), .suffix("/Prefix.pch.gch"), .equal("\(SRCROOT)/Sources/Prefix.pch"), .equal("normal"), .equal(results.runDestinationTargetArchitecture), .equal("c"), .equal("com.apple.compilers.llvm.clang.1_0.compiler")])
                     }
                     results.checkTasks(.matchTarget(target), .matchRuleType("ProcessPCH"), .matchRuleItem("objective-c")) { tasks in
                         let taskArray = Array(tasks)
@@ -238,20 +241,20 @@ fileprivate struct TaskConstructionTests: CoreBasedTests {
                             return
                         }
 
-                        mrrTask.checkRuleInfo([.equal("ProcessPCH"), .suffix("/Prefix.pch.gch"), .equal("\(SRCROOT)/Sources/Prefix.pch"), .equal("normal"), .equal("x86_64"), .equal("objective-c"), .equal("com.apple.compilers.llvm.clang.1_0.compiler")])
-                        arcTask.checkRuleInfo([.equal("ProcessPCH"), .suffix("/Prefix.pch.gch"), .equal("\(SRCROOT)/Sources/Prefix.pch"), .equal("normal"), .equal("x86_64"), .equal("objective-c"), .equal("com.apple.compilers.llvm.clang.1_0.compiler")])
+                        mrrTask.checkRuleInfo([.equal("ProcessPCH"), .suffix("/Prefix.pch.gch"), .equal("\(SRCROOT)/Sources/Prefix.pch"), .equal("normal"), .equal(results.runDestinationTargetArchitecture), .equal("objective-c"), .equal("com.apple.compilers.llvm.clang.1_0.compiler")])
+                        arcTask.checkRuleInfo([.equal("ProcessPCH"), .suffix("/Prefix.pch.gch"), .equal("\(SRCROOT)/Sources/Prefix.pch"), .equal("normal"), .equal(results.runDestinationTargetArchitecture), .equal("objective-c"), .equal("com.apple.compilers.llvm.clang.1_0.compiler")])
                     }
 
                     // There should be an Info.plist processing task, and associated Preprocess (we explicitly enable it).
                     results.checkTask(.matchTarget(target), .matchRuleType("Preprocess")) { task in
-                        task.checkRuleInfo(["Preprocess", "\(SRCROOT)/build/aProject.build/Debug/AppTarget.build/normal/x86_64/Preprocessed-Info.plist", "\(SRCROOT)/Sources/Info.plist"])
-                        task.checkCommandLine(["cc", "-E", "-P", "-x", "c", "-Wno-trigraphs", "\(SRCROOT)/Sources/Info.plist", "-F\(SRCROOT)/build/Debug", "-target", "x86_64-apple-macos\(core.loadSDK(.macOS).defaultDeploymentTarget)", "-isysroot", core.loadSDK(.macOS).path.str, "-o", "\(SRCROOT)/build/aProject.build/Debug/AppTarget.build/normal/x86_64/Preprocessed-Info.plist"])
+                        task.checkRuleInfo(["Preprocess", "\(SRCROOT)/build/aProject.build/Debug/AppTarget.build/normal/\(results.runDestinationTargetArchitecture)/Preprocessed-Info.plist", "\(SRCROOT)/Sources/Info.plist"])
+                        task.checkCommandLine(["cc", "-E", "-P", "-x", "c", "-Wno-trigraphs", "\(SRCROOT)/Sources/Info.plist", "-F\(SRCROOT)/build/Debug", "-target", "\(results.runDestinationTargetArchitecture)-apple-macos\(core.loadSDK(.macOS).defaultDeploymentTarget)", "-isysroot", core.loadSDK(.macOS).path.str, "-o", "\(SRCROOT)/build/aProject.build/Debug/AppTarget.build/normal/\(results.runDestinationTargetArchitecture)/Preprocessed-Info.plist"])
                         task.checkInputs([
                             .path("\(SRCROOT)/Sources/Info.plist"),
                             .namePattern(.and(.prefix("target-"), .suffix("Producer"))),
                             .namePattern(.and(.prefix("target-"), .suffix("-entry")))])
                         task.checkOutputs([
-                            .path("\(SRCROOT)/build/aProject.build/Debug/AppTarget.build/normal/x86_64/Preprocessed-Info.plist")])
+                            .path("\(SRCROOT)/build/aProject.build/Debug/AppTarget.build/normal/\(results.runDestinationTargetArchitecture)/Preprocessed-Info.plist")])
                     }
                     results.checkTask(.matchTarget(target), .matchRuleType("ProcessInfoPlistFile")) { task in
                         task.checkRuleInfo(["ProcessInfoPlistFile", "\(SRCROOT)/build/Debug/AppTarget.app/Contents/Info.plist", "\(SRCROOT)/build/aProject.build/Debug/AppTarget.build/Preprocessed-Info.plist"])
@@ -307,7 +310,7 @@ fileprivate struct TaskConstructionTests: CoreBasedTests {
                             return
                         }
 
-                        sortedTasks[0].checkRuleInfo([.equal("CompileC"), .suffix("Lex.yy.o"), .suffix("Lex.yy.c"), .equal("normal"), .equal("x86_64"), .equal("c"), .any])
+                        sortedTasks[0].checkRuleInfo([.equal("CompileC"), .suffix("Lex.yy.o"), .suffix("Lex.yy.c"), .equal("normal"), .equal(results.runDestinationTargetArchitecture), .equal("c"), .any])
 
                         // Check the pair of sources with non-unique names.
                         let nonUniqueASource = Path(sortedTasks[1].ruleInfo[2]).basename
@@ -317,33 +320,33 @@ fileprivate struct TaskConstructionTests: CoreBasedTests {
                         #expect(Set<String>([nonUniqueASource, nonUniqueBSource]) == Set<String>(["NonUnique.m", "NonUnique.mm"]))
                         #expect(nonUniqueAObject != nonUniqueBObject)
 
-                        sortedTasks[3].checkRuleInfo([.equal("CompileC"), .suffix("Script-Output-Custom-SourceFile.o"), .suffix("Script-Output-Custom-SourceFile.c"), .equal("normal"), .equal("x86_64"), .equal("c"), .any])
-                        sortedTasks[4].checkRuleInfo([.equal("CompileC"), .suffix("Script-Output-Standard-SourceFile.o"), .suffix("Script-Output-Standard-SourceFile.c"), .equal("normal"), .equal("x86_64"), .equal("c"), .any])
-                        sortedTasks[5].checkRuleInfo([.equal("CompileC"), .suffix("SourceFile-Matched-Included.o"), .suffix("SourceFile-Matched-Included.m"), .equal("normal"), .equal("x86_64"), .equal("objective-c"), .any])
-                        sortedTasks[6].checkRuleInfo([.equal("CompileC"), .suffix("SourceFile.o"), .suffix("SourceFile.m"), .equal("normal"), .equal("x86_64"), .equal("objective-c"), .any])
-                        sortedTasks[7].checkRuleInfo([.equal("CompileC"), .suffix("SourceFile_MRR.o"), .suffix("SourceFile_MRR.m"), .equal("normal"), .equal("x86_64"), .equal("objective-c"), .any])
-                        sortedTasks[8].checkRuleInfo([.equal("CompileC"), .suffix("y.tab.o"), .suffix("y.tab.c"), .equal("normal"), .equal("x86_64"), .equal("c"), .any])
+                        sortedTasks[3].checkRuleInfo([.equal("CompileC"), .suffix("Script-Output-Custom-SourceFile.o"), .suffix("Script-Output-Custom-SourceFile.c"), .equal("normal"), .equal(results.runDestinationTargetArchitecture), .equal("c"), .any])
+                        sortedTasks[4].checkRuleInfo([.equal("CompileC"), .suffix("Script-Output-Standard-SourceFile.o"), .suffix("Script-Output-Standard-SourceFile.c"), .equal("normal"), .equal(results.runDestinationTargetArchitecture), .equal("c"), .any])
+                        sortedTasks[5].checkRuleInfo([.equal("CompileC"), .suffix("SourceFile-Matched-Included.o"), .suffix("SourceFile-Matched-Included.m"), .equal("normal"), .equal(results.runDestinationTargetArchitecture), .equal("objective-c"), .any])
+                        sortedTasks[6].checkRuleInfo([.equal("CompileC"), .suffix("SourceFile.o"), .suffix("SourceFile.m"), .equal("normal"), .equal(results.runDestinationTargetArchitecture), .equal("objective-c"), .any])
+                        sortedTasks[7].checkRuleInfo([.equal("CompileC"), .suffix("SourceFile_MRR.o"), .suffix("SourceFile_MRR.m"), .equal("normal"), .equal(results.runDestinationTargetArchitecture), .equal("objective-c"), .any])
+                        sortedTasks[8].checkRuleInfo([.equal("CompileC"), .suffix("y.tab.o"), .suffix("y.tab.c"), .equal("normal"), .equal(results.runDestinationTargetArchitecture), .equal("c"), .any])
                     }
 
                     // Check that the expected separate headermaps are created.
                     results.checkHeadermapGenerationTask(.matchTarget(target), .matchRuleItemBasename("AppTarget-project-headers.hmap")) { _ in }
                     results.checkHeadermapGenerationTask(.matchTarget(target), .matchRuleItemBasename("AppTarget-generated-files.hmap")) { headermap in
-                        headermap.checkEntry("AppTarget/Custom.fake-lang", "\(SRCROOT)/build/aProject.build/Debug/AppTarget.build/DerivedSources-normal/x86_64/Custom.fake-lang")
-                        headermap.checkEntry("AppTarget/Standard.fake-lang", "\(SRCROOT)/build/aProject.build/Debug/AppTarget.build/DerivedSources-normal/x86_64/en.lproj/Standard.fake-lang")
-                        headermap.checkEntry("AppTarget/Script-Output-Custom-SourceFile.c", "\(SRCROOT)/build/aProject.build/Debug/AppTarget.build/DerivedSources-normal/x86_64/Script-Output-Custom-SourceFile.c")
-                        headermap.checkEntry("AppTarget/Script-Output-Standard-SourceFile.c", "\(SRCROOT)/build/aProject.build/Debug/AppTarget.build/DerivedSources-normal/x86_64/en.lproj/Script-Output-Standard-SourceFile.c")
-                        headermap.checkEntry("AppTarget/foo-Custom.h", "\(SRCROOT)/build/aProject.build/Debug/AppTarget.build/DerivedSources-normal/x86_64/foo-Custom.h")
-                        headermap.checkEntry("AppTarget/foo-Standard.h", "\(SRCROOT)/build/aProject.build/Debug/AppTarget.build/DerivedSources-normal/x86_64/en.lproj/foo-Standard.h")
-                        headermap.checkEntry("AppTarget/foo.plist", "\(SRCROOT)/build/aProject.build/Debug/AppTarget.build/DerivedSources-normal/x86_64/foo.plist")
+                        headermap.checkEntry("AppTarget/Custom.fake-lang", "\(SRCROOT)/build/aProject.build/Debug/AppTarget.build/DerivedSources-normal/\(results.runDestinationTargetArchitecture)/Custom.fake-lang")
+                        headermap.checkEntry("AppTarget/Standard.fake-lang", "\(SRCROOT)/build/aProject.build/Debug/AppTarget.build/DerivedSources-normal/\(results.runDestinationTargetArchitecture)/en.lproj/Standard.fake-lang")
+                        headermap.checkEntry("AppTarget/Script-Output-Custom-SourceFile.c", "\(SRCROOT)/build/aProject.build/Debug/AppTarget.build/DerivedSources-normal/\(results.runDestinationTargetArchitecture)/Script-Output-Custom-SourceFile.c")
+                        headermap.checkEntry("AppTarget/Script-Output-Standard-SourceFile.c", "\(SRCROOT)/build/aProject.build/Debug/AppTarget.build/DerivedSources-normal/\(results.runDestinationTargetArchitecture)/en.lproj/Script-Output-Standard-SourceFile.c")
+                        headermap.checkEntry("AppTarget/foo-Custom.h", "\(SRCROOT)/build/aProject.build/Debug/AppTarget.build/DerivedSources-normal/\(results.runDestinationTargetArchitecture)/foo-Custom.h")
+                        headermap.checkEntry("AppTarget/foo-Standard.h", "\(SRCROOT)/build/aProject.build/Debug/AppTarget.build/DerivedSources-normal/\(results.runDestinationTargetArchitecture)/en.lproj/foo-Standard.h")
+                        headermap.checkEntry("AppTarget/foo.plist", "\(SRCROOT)/build/aProject.build/Debug/AppTarget.build/DerivedSources-normal/\(results.runDestinationTargetArchitecture)/foo.plist")
                         headermap.checkEntry("AppTarget/y.tab.c", "\(SRCROOT)/build/aProject.build/Debug/AppTarget.build/DerivedSources/y.tab.c")
                         headermap.checkEntry("AppTarget/y.tab.h", "\(SRCROOT)/build/aProject.build/Debug/AppTarget.build/DerivedSources/y.tab.h")
-                        headermap.checkEntry("Custom.fake-lang", "\(SRCROOT)/build/aProject.build/Debug/AppTarget.build/DerivedSources-normal/x86_64/Custom.fake-lang")
-                        headermap.checkEntry("Standard.fake-lang", "\(SRCROOT)/build/aProject.build/Debug/AppTarget.build/DerivedSources-normal/x86_64/en.lproj/Standard.fake-lang")
-                        headermap.checkEntry("Script-Output-Custom-SourceFile.c", "\(SRCROOT)/build/aProject.build/Debug/AppTarget.build/DerivedSources-normal/x86_64/Script-Output-Custom-SourceFile.c")
-                        headermap.checkEntry("Script-Output-Standard-SourceFile.c", "\(SRCROOT)/build/aProject.build/Debug/AppTarget.build/DerivedSources-normal/x86_64/en.lproj/Script-Output-Standard-SourceFile.c")
-                        headermap.checkEntry("foo-Custom.h", "\(SRCROOT)/build/aProject.build/Debug/AppTarget.build/DerivedSources-normal/x86_64/foo-Custom.h")
-                        headermap.checkEntry("foo-Standard.h", "\(SRCROOT)/build/aProject.build/Debug/AppTarget.build/DerivedSources-normal/x86_64/en.lproj/foo-Standard.h")
-                        headermap.checkEntry("foo.plist", "\(SRCROOT)/build/aProject.build/Debug/AppTarget.build/DerivedSources-normal/x86_64/foo.plist")
+                        headermap.checkEntry("Custom.fake-lang", "\(SRCROOT)/build/aProject.build/Debug/AppTarget.build/DerivedSources-normal/\(results.runDestinationTargetArchitecture)/Custom.fake-lang")
+                        headermap.checkEntry("Standard.fake-lang", "\(SRCROOT)/build/aProject.build/Debug/AppTarget.build/DerivedSources-normal/\(results.runDestinationTargetArchitecture)/en.lproj/Standard.fake-lang")
+                        headermap.checkEntry("Script-Output-Custom-SourceFile.c", "\(SRCROOT)/build/aProject.build/Debug/AppTarget.build/DerivedSources-normal/\(results.runDestinationTargetArchitecture)/Script-Output-Custom-SourceFile.c")
+                        headermap.checkEntry("Script-Output-Standard-SourceFile.c", "\(SRCROOT)/build/aProject.build/Debug/AppTarget.build/DerivedSources-normal/\(results.runDestinationTargetArchitecture)/en.lproj/Script-Output-Standard-SourceFile.c")
+                        headermap.checkEntry("foo-Custom.h", "\(SRCROOT)/build/aProject.build/Debug/AppTarget.build/DerivedSources-normal/\(results.runDestinationTargetArchitecture)/foo-Custom.h")
+                        headermap.checkEntry("foo-Standard.h", "\(SRCROOT)/build/aProject.build/Debug/AppTarget.build/DerivedSources-normal/\(results.runDestinationTargetArchitecture)/en.lproj/foo-Standard.h")
+                        headermap.checkEntry("foo.plist", "\(SRCROOT)/build/aProject.build/Debug/AppTarget.build/DerivedSources-normal/\(results.runDestinationTargetArchitecture)/foo.plist")
                         headermap.checkEntry("y.tab.c", "\(SRCROOT)/build/aProject.build/Debug/AppTarget.build/DerivedSources/y.tab.c")
                         headermap.checkEntry("y.tab.h", "\(SRCROOT)/build/aProject.build/Debug/AppTarget.build/DerivedSources/y.tab.h")
 
@@ -354,11 +357,11 @@ fileprivate struct TaskConstructionTests: CoreBasedTests {
 
                     // There should be two CopyPlistFile tasks (from the script rule).
                     results.checkTask(.matchTarget(target), .matchRuleType("CopyPlistFile"), .matchRuleItemPattern(.suffix("en.lproj/foo.plist"))) { task in
-                        task.checkRuleInfo(["CopyPlistFile", "\(SRCROOT)/build/Debug/AppTarget.app/Contents/Resources/en.lproj/foo.plist", "\(SRCROOT)/build/aProject.build/Debug/AppTarget.build/DerivedSources-normal/x86_64/en.lproj/foo.plist"])
-                        task.checkCommandLine(["builtin-copyPlist", "--outdir", "\(SRCROOT)/build/Debug/AppTarget.app/Contents/Resources/en.lproj", "--", "\(SRCROOT)/build/aProject.build/Debug/AppTarget.build/DerivedSources-normal/x86_64/en.lproj/foo.plist"])
+                        task.checkRuleInfo(["CopyPlistFile", "\(SRCROOT)/build/Debug/AppTarget.app/Contents/Resources/en.lproj/foo.plist", "\(SRCROOT)/build/aProject.build/Debug/AppTarget.build/DerivedSources-normal/\(results.runDestinationTargetArchitecture)/en.lproj/foo.plist"])
+                        task.checkCommandLine(["builtin-copyPlist", "--outdir", "\(SRCROOT)/build/Debug/AppTarget.app/Contents/Resources/en.lproj", "--", "\(SRCROOT)/build/aProject.build/Debug/AppTarget.build/DerivedSources-normal/\(results.runDestinationTargetArchitecture)/en.lproj/foo.plist"])
 
                         task.checkInputs([
-                            .path("\(SRCROOT)/build/aProject.build/Debug/AppTarget.build/DerivedSources-normal/x86_64/en.lproj/foo.plist"),
+                            .path("\(SRCROOT)/build/aProject.build/Debug/AppTarget.build/DerivedSources-normal/\(results.runDestinationTargetArchitecture)/en.lproj/foo.plist"),
                             .namePattern(.prefix("target-")),
                             .namePattern(.prefix("target-")),
                             .name("WorkspaceHeaderMapVFSFilesWritten")])
@@ -368,11 +371,11 @@ fileprivate struct TaskConstructionTests: CoreBasedTests {
                     }
 
                     results.checkTask(.matchTarget(target), .matchRuleType("CopyPlistFile"), .matchRuleItemPattern(.suffix("foo.plist"))) { task in
-                        task.checkRuleInfo(["CopyPlistFile", "\(SRCROOT)/build/Debug/AppTarget.app/Contents/Resources/foo.plist", "\(SRCROOT)/build/aProject.build/Debug/AppTarget.build/DerivedSources-normal/x86_64/foo.plist"])
-                        task.checkCommandLine(["builtin-copyPlist", "--outdir", "\(SRCROOT)/build/Debug/AppTarget.app/Contents/Resources", "--", "\(SRCROOT)/build/aProject.build/Debug/AppTarget.build/DerivedSources-normal/x86_64/foo.plist"])
+                        task.checkRuleInfo(["CopyPlistFile", "\(SRCROOT)/build/Debug/AppTarget.app/Contents/Resources/foo.plist", "\(SRCROOT)/build/aProject.build/Debug/AppTarget.build/DerivedSources-normal/\(results.runDestinationTargetArchitecture)/foo.plist"])
+                        task.checkCommandLine(["builtin-copyPlist", "--outdir", "\(SRCROOT)/build/Debug/AppTarget.app/Contents/Resources", "--", "\(SRCROOT)/build/aProject.build/Debug/AppTarget.build/DerivedSources-normal/\(results.runDestinationTargetArchitecture)/foo.plist"])
 
                         task.checkInputs([
-                            .path("\(SRCROOT)/build/aProject.build/Debug/AppTarget.build/DerivedSources-normal/x86_64/foo.plist"),
+                            .path("\(SRCROOT)/build/aProject.build/Debug/AppTarget.build/DerivedSources-normal/\(results.runDestinationTargetArchitecture)/foo.plist"),
                             .namePattern(.prefix("target-")),
                             .namePattern(.prefix("target-")),
                             .name("WorkspaceHeaderMapVFSFilesWritten")])
@@ -383,7 +386,7 @@ fileprivate struct TaskConstructionTests: CoreBasedTests {
 
                     // There should be two RuleScriptExecution tasks.
                     results.checkTask(.matchTarget(target), .matchRuleType("RuleScriptExecution"), .matchRuleItemBasename("Custom.fake-lang")) { task in
-                        task.checkRuleInfo(["RuleScriptExecution",  "\(SRCROOT)/build/aProject.build/Debug/AppTarget.build/DerivedSources-normal/x86_64/foo-Custom.h", "\(SRCROOT)/build/aProject.build/Debug/AppTarget.build/DerivedSources-normal/x86_64/Script-Output-Custom-SourceFile.c", "\(SRCROOT)/build/aProject.build/Debug/AppTarget.build/DerivedSources-normal/x86_64/foo.plist", "\(SRCROOT)/build/aProject.build/Debug/AppTarget.build/DerivedSources-normal/x86_64/Custom.fake-lang", "\(SRCROOT)/Sources/Custom.fake-lang", "normal", "x86_64"])
+                        task.checkRuleInfo(["RuleScriptExecution",  "\(SRCROOT)/build/aProject.build/Debug/AppTarget.build/DerivedSources-normal/\(results.runDestinationTargetArchitecture)/foo-Custom.h", "\(SRCROOT)/build/aProject.build/Debug/AppTarget.build/DerivedSources-normal/\(results.runDestinationTargetArchitecture)/Script-Output-Custom-SourceFile.c", "\(SRCROOT)/build/aProject.build/Debug/AppTarget.build/DerivedSources-normal/\(results.runDestinationTargetArchitecture)/foo.plist", "\(SRCROOT)/build/aProject.build/Debug/AppTarget.build/DerivedSources-normal/\(results.runDestinationTargetArchitecture)/Custom.fake-lang", "\(SRCROOT)/Sources/Custom.fake-lang", "normal", .equal(results.runDestinationTargetArchitecture)])
                         task.checkCommandLine(["/bin/sh", "-c", "echo hi"])
 
                         // Check that we pushed the script rule specific variables correctly.
@@ -398,10 +401,10 @@ fileprivate struct TaskConstructionTests: CoreBasedTests {
                             "SCRIPT_INPUT_FILE_0": .equal("\(SRCROOT)/Sources/Project.fake-lang-settings"),
                             "SCRIPT_INPUT_FILE_1": .equal("\(SRCROOT)/Sources/Custom.fake-lang-settings"),
                             "SCRIPT_INPUT_FILE_COUNT": .equal("2"),
-                            "SCRIPT_OUTPUT_FILE_0": .equal("\(SRCROOT)/build/aProject.build/Debug/AppTarget.build/DerivedSources-normal/x86_64/foo-Custom.h"),
-                            "SCRIPT_OUTPUT_FILE_1": .equal("\(SRCROOT)/build/aProject.build/Debug/AppTarget.build/DerivedSources-normal/x86_64/Script-Output-Custom-SourceFile.c"),
-                            "SCRIPT_OUTPUT_FILE_2": .equal("\(SRCROOT)/build/aProject.build/Debug/AppTarget.build/DerivedSources-normal/x86_64/foo.plist"),
-                            "SCRIPT_OUTPUT_FILE_3": .equal("\(SRCROOT)/build/aProject.build/Debug/AppTarget.build/DerivedSources-normal/x86_64/Custom.fake-lang"),
+                            "SCRIPT_OUTPUT_FILE_0": .equal("\(SRCROOT)/build/aProject.build/Debug/AppTarget.build/DerivedSources-normal/\(results.runDestinationTargetArchitecture)/foo-Custom.h"),
+                            "SCRIPT_OUTPUT_FILE_1": .equal("\(SRCROOT)/build/aProject.build/Debug/AppTarget.build/DerivedSources-normal/\(results.runDestinationTargetArchitecture)/Script-Output-Custom-SourceFile.c"),
+                            "SCRIPT_OUTPUT_FILE_2": .equal("\(SRCROOT)/build/aProject.build/Debug/AppTarget.build/DerivedSources-normal/\(results.runDestinationTargetArchitecture)/foo.plist"),
+                            "SCRIPT_OUTPUT_FILE_3": .equal("\(SRCROOT)/build/aProject.build/Debug/AppTarget.build/DerivedSources-normal/\(results.runDestinationTargetArchitecture)/Custom.fake-lang"),
                             "SCRIPT_OUTPUT_FILE_COUNT": .equal("4"),
 
                             "SYSTEM_APPS_DIR": .equal("/Applications"),
@@ -416,14 +419,14 @@ fileprivate struct TaskConstructionTests: CoreBasedTests {
                             .namePattern(.prefix("target-")),
                             .name("WorkspaceHeaderMapVFSFilesWritten")])
                         task.checkOutputs([
-                            .path("\(SRCROOT)/build/aProject.build/Debug/AppTarget.build/DerivedSources-normal/x86_64/foo-Custom.h"),
-                            .path("\(SRCROOT)/build/aProject.build/Debug/AppTarget.build/DerivedSources-normal/x86_64/Script-Output-Custom-SourceFile.c"),
-                            .path("\(SRCROOT)/build/aProject.build/Debug/AppTarget.build/DerivedSources-normal/x86_64/foo.plist"),
-                            .path("\(SRCROOT)/build/aProject.build/Debug/AppTarget.build/DerivedSources-normal/x86_64/Custom.fake-lang")])
+                            .path("\(SRCROOT)/build/aProject.build/Debug/AppTarget.build/DerivedSources-normal/\(results.runDestinationTargetArchitecture)/foo-Custom.h"),
+                            .path("\(SRCROOT)/build/aProject.build/Debug/AppTarget.build/DerivedSources-normal/\(results.runDestinationTargetArchitecture)/Script-Output-Custom-SourceFile.c"),
+                            .path("\(SRCROOT)/build/aProject.build/Debug/AppTarget.build/DerivedSources-normal/\(results.runDestinationTargetArchitecture)/foo.plist"),
+                            .path("\(SRCROOT)/build/aProject.build/Debug/AppTarget.build/DerivedSources-normal/\(results.runDestinationTargetArchitecture)/Custom.fake-lang")])
                     }
 
                     results.checkTask(.matchTarget(target), .matchRuleType("RuleScriptExecution"), .matchRuleItemBasename("Standard.fake-lang")) { task in
-                        task.checkRuleInfo(["RuleScriptExecution", "\(SRCROOT)/build/aProject.build/Debug/AppTarget.build/DerivedSources-normal/x86_64/en.lproj/foo-Standard.h", "\(SRCROOT)/build/aProject.build/Debug/AppTarget.build/DerivedSources-normal/x86_64/en.lproj/Script-Output-Standard-SourceFile.c", "\(SRCROOT)/build/aProject.build/Debug/AppTarget.build/DerivedSources-normal/x86_64/en.lproj/foo.plist", "\(SRCROOT)/build/aProject.build/Debug/AppTarget.build/DerivedSources-normal/x86_64/en.lproj/Standard.fake-lang", "\(SRCROOT)/Sources/en.lproj/Standard.fake-lang", "normal", "x86_64"])
+                        task.checkRuleInfo(["RuleScriptExecution", "\(SRCROOT)/build/aProject.build/Debug/AppTarget.build/DerivedSources-normal/\(results.runDestinationTargetArchitecture)/en.lproj/foo-Standard.h", "\(SRCROOT)/build/aProject.build/Debug/AppTarget.build/DerivedSources-normal/\(results.runDestinationTargetArchitecture)/en.lproj/Script-Output-Standard-SourceFile.c", "\(SRCROOT)/build/aProject.build/Debug/AppTarget.build/DerivedSources-normal/\(results.runDestinationTargetArchitecture)/en.lproj/foo.plist", "\(SRCROOT)/build/aProject.build/Debug/AppTarget.build/DerivedSources-normal/\(results.runDestinationTargetArchitecture)/en.lproj/Standard.fake-lang", "\(SRCROOT)/Sources/en.lproj/Standard.fake-lang", "normal", .equal(results.runDestinationTargetArchitecture)])
                         task.checkCommandLine(["/bin/sh", "-c", "echo hi"])
 
                         // Check that we pushed the script rule specific variables correctly.
@@ -439,10 +442,10 @@ fileprivate struct TaskConstructionTests: CoreBasedTests {
                             "SCRIPT_INPUT_FILE_0": .equal("\(SRCROOT)/Sources/Project.fake-lang-settings"),
                             "SCRIPT_INPUT_FILE_1": .equal("\(SRCROOT)/Sources/en.lproj/Standard.fake-lang-settings"),
                             "SCRIPT_INPUT_FILE_COUNT": .equal("2"),
-                            "SCRIPT_OUTPUT_FILE_0": .equal("\(SRCROOT)/build/aProject.build/Debug/AppTarget.build/DerivedSources-normal/x86_64/en.lproj/foo-Standard.h"),
-                            "SCRIPT_OUTPUT_FILE_1": .equal("\(SRCROOT)/build/aProject.build/Debug/AppTarget.build/DerivedSources-normal/x86_64/en.lproj/Script-Output-Standard-SourceFile.c"),
-                            "SCRIPT_OUTPUT_FILE_2": .equal("\(SRCROOT)/build/aProject.build/Debug/AppTarget.build/DerivedSources-normal/x86_64/en.lproj/foo.plist"),
-                            "SCRIPT_OUTPUT_FILE_3": .equal("\(SRCROOT)/build/aProject.build/Debug/AppTarget.build/DerivedSources-normal/x86_64/en.lproj/Standard.fake-lang"),
+                            "SCRIPT_OUTPUT_FILE_0": .equal("\(SRCROOT)/build/aProject.build/Debug/AppTarget.build/DerivedSources-normal/\(results.runDestinationTargetArchitecture)/en.lproj/foo-Standard.h"),
+                            "SCRIPT_OUTPUT_FILE_1": .equal("\(SRCROOT)/build/aProject.build/Debug/AppTarget.build/DerivedSources-normal/\(results.runDestinationTargetArchitecture)/en.lproj/Script-Output-Standard-SourceFile.c"),
+                            "SCRIPT_OUTPUT_FILE_2": .equal("\(SRCROOT)/build/aProject.build/Debug/AppTarget.build/DerivedSources-normal/\(results.runDestinationTargetArchitecture)/en.lproj/foo.plist"),
+                            "SCRIPT_OUTPUT_FILE_3": .equal("\(SRCROOT)/build/aProject.build/Debug/AppTarget.build/DerivedSources-normal/\(results.runDestinationTargetArchitecture)/en.lproj/Standard.fake-lang"),
                             "SCRIPT_OUTPUT_FILE_COUNT": .equal("4"),
 
                             "SYSTEM_APPS_DIR": .equal("/Applications"),
@@ -457,10 +460,10 @@ fileprivate struct TaskConstructionTests: CoreBasedTests {
                             .namePattern(.prefix("target-")),
                             .name("WorkspaceHeaderMapVFSFilesWritten")])
                         task.checkOutputs([
-                            .path("\(SRCROOT)/build/aProject.build/Debug/AppTarget.build/DerivedSources-normal/x86_64/en.lproj/foo-Standard.h"),
-                            .path("\(SRCROOT)/build/aProject.build/Debug/AppTarget.build/DerivedSources-normal/x86_64/en.lproj/Script-Output-Standard-SourceFile.c"),
-                            .path("\(SRCROOT)/build/aProject.build/Debug/AppTarget.build/DerivedSources-normal/x86_64/en.lproj/foo.plist"),
-                            .path("\(SRCROOT)/build/aProject.build/Debug/AppTarget.build/DerivedSources-normal/x86_64/en.lproj/Standard.fake-lang")])
+                            .path("\(SRCROOT)/build/aProject.build/Debug/AppTarget.build/DerivedSources-normal/\(results.runDestinationTargetArchitecture)/en.lproj/foo-Standard.h"),
+                            .path("\(SRCROOT)/build/aProject.build/Debug/AppTarget.build/DerivedSources-normal/\(results.runDestinationTargetArchitecture)/en.lproj/Script-Output-Standard-SourceFile.c"),
+                            .path("\(SRCROOT)/build/aProject.build/Debug/AppTarget.build/DerivedSources-normal/\(results.runDestinationTargetArchitecture)/en.lproj/foo.plist"),
+                            .path("\(SRCROOT)/build/aProject.build/Debug/AppTarget.build/DerivedSources-normal/\(results.runDestinationTargetArchitecture)/en.lproj/Standard.fake-lang")])
                     }
 
                     // There should be one file copy of the strings file.
@@ -492,22 +495,22 @@ fileprivate struct TaskConstructionTests: CoreBasedTests {
                     }
 
                     // There should be one link task, and a task to generate its link file list.
-                    results.checkTask(.matchTarget(target), .matchRule(["WriteAuxiliaryFile", "\(SRCROOT)/build/aProject.build/Debug/AppTarget.build/Objects-normal/x86_64/AppTarget.LinkFileList"])) { _ in }
+                    results.checkTask(.matchTarget(target), .matchRule(["WriteAuxiliaryFile", "\(SRCROOT)/build/aProject.build/Debug/AppTarget.build/Objects-normal/\(results.runDestinationTargetArchitecture)/AppTarget.LinkFileList"])) { _ in }
                     results.checkTask(.matchTarget(target), .matchRuleType("Ld")) { task in
                         task.checkRuleInfo(["Ld", "\(SRCROOT)/build/Debug/AppTarget.app/Contents/MacOS/AppTarget", "normal"])
-                        task.checkCommandLine(["clang++", "-Xlinker", "-reproducible", "-target", "x86_64-apple-macos\(MACOSX_DEPLOYMENT_TARGET)", "-isysroot", core.loadSDK(.macOS).path.str, "-Os", "-L\(SRCROOT)/build/EagerLinkingTBDs/Debug", "-L\(SRCROOT)/build/Debug", "-F\(SRCROOT)/build/EagerLinkingTBDs/Debug", "-F\(SRCROOT)/build/Debug", "-filelist", "\(SRCROOT)/build/aProject.build/Debug/AppTarget.build/Objects-normal/x86_64/AppTarget.LinkFileList", "-Xlinker", "-object_path_lto", "-Xlinker", "\(SRCROOT)/build/aProject.build/Debug/AppTarget.build/Objects-normal/x86_64/AppTarget_lto.o", "-Xlinker", "-dependency_info", "-Xlinker", "\(SRCROOT)/build/aProject.build/Debug/AppTarget.build/Objects-normal/x86_64/AppTarget_dependency_info.dat", "-fobjc-arc", "-fobjc-link-runtime", "-lstatic", "-ldynamic", "-framework", "Framework", "-framework", "AppCore", "-weak_framework", "AppExtensions", "-framework", "Framework-Matched-Included", "-o", "\(SRCROOT)/build/Debug/AppTarget.app/Contents/MacOS/AppTarget"])
+                        task.checkCommandLine(["clang++", "-Xlinker", "-reproducible", "-target", "\(results.runDestinationTargetArchitecture)-apple-macos\(MACOSX_DEPLOYMENT_TARGET)", "-isysroot", core.loadSDK(.macOS).path.str, "-Os", "-L\(SRCROOT)/build/EagerLinkingTBDs/Debug", "-L\(SRCROOT)/build/Debug", "-F\(SRCROOT)/build/EagerLinkingTBDs/Debug", "-F\(SRCROOT)/build/Debug", "-filelist", "\(SRCROOT)/build/aProject.build/Debug/AppTarget.build/Objects-normal/\(results.runDestinationTargetArchitecture)/AppTarget.LinkFileList", "-Xlinker", "-object_path_lto", "-Xlinker", "\(SRCROOT)/build/aProject.build/Debug/AppTarget.build/Objects-normal/\(results.runDestinationTargetArchitecture)/AppTarget_lto.o", "-Xlinker", "-dependency_info", "-Xlinker", "\(SRCROOT)/build/aProject.build/Debug/AppTarget.build/Objects-normal/\(results.runDestinationTargetArchitecture)/AppTarget_dependency_info.dat", "-fobjc-link-runtime", "-lstatic", "-ldynamic", "-framework", "Framework", "-framework", "AppCore", "-weak_framework", "AppExtensions", "-framework", "Framework-Matched-Included", "-o", "\(SRCROOT)/build/Debug/AppTarget.app/Contents/MacOS/AppTarget"])
 
                         task.checkInputs([
-                            .path("\(SRCROOT)/build/aProject.build/Debug/AppTarget.build/Objects-normal/x86_64/SourceFile.o"),
+                            .path("\(SRCROOT)/build/aProject.build/Debug/AppTarget.build/Objects-normal/\(results.runDestinationTargetArchitecture)/SourceFile.o"),
                             .any,
                             .any,
                             .any,
                             .any,
-                            .path("\(SRCROOT)/build/aProject.build/Debug/AppTarget.build/Objects-normal/x86_64/Lex.yy.o"),
+                            .path("\(SRCROOT)/build/aProject.build/Debug/AppTarget.build/Objects-normal/\(results.runDestinationTargetArchitecture)/Lex.yy.o"),
                             .any,
                             .any,
                             .any,
-                            .path("\(SRCROOT)/build/aProject.build/Debug/AppTarget.build/Objects-normal/x86_64/AppTarget.LinkFileList"),
+                            .path("\(SRCROOT)/build/aProject.build/Debug/AppTarget.build/Objects-normal/\(results.runDestinationTargetArchitecture)/AppTarget.LinkFileList"),
                             .path("\(SRCROOT)/build/Debug"),
                             .namePattern(.and(.prefix("target-"), .suffix("-generated-headers"))),
                             .namePattern(.and(.prefix("target-"), .suffix("-swift-generated-headers"))),
@@ -517,8 +520,8 @@ fileprivate struct TaskConstructionTests: CoreBasedTests {
                         task.checkOutputs([
                             .path("\(SRCROOT)/build/Debug/AppTarget.app/Contents/MacOS/AppTarget"),
                             .namePattern(.prefix("Linked Binary \(SRCROOT)/build/Debug/AppTarget.app/Contents/MacOS/AppTarget")),
-                            .path("\(SRCROOT)/build/aProject.build/Debug/AppTarget.build/Objects-normal/x86_64/AppTarget_lto.o"),
-                            .path("\(SRCROOT)/build/aProject.build/Debug/AppTarget.build/Objects-normal/x86_64/AppTarget_dependency_info.dat"),
+                            .path("\(SRCROOT)/build/aProject.build/Debug/AppTarget.build/Objects-normal/\(results.runDestinationTargetArchitecture)/AppTarget_lto.o"),
+                            .path("\(SRCROOT)/build/aProject.build/Debug/AppTarget.build/Objects-normal/\(results.runDestinationTargetArchitecture)/AppTarget_dependency_info.dat"),
                         ])
                     }
 
@@ -836,7 +839,7 @@ fileprivate struct TaskConstructionTests: CoreBasedTests {
             try await localFS.writePlist(Path(SRCROOT).join("Entitlements.plist"), .plDict([:]))
 
             // Check an install release build.
-            try await tester.checkBuild(BuildParameters(action: .install, configuration: "Release"), runDestination: .macOS, fs: localFS) { results -> Void in
+            try await tester.checkBuild(BuildParameters(action: .install, configuration: "Release"), runDestination: .macOS, processEnvironment: ["PATH": "/usr/bin:/usr/sbin"], fs: localFS) { results -> Void in
                 try results.checkTarget("AppTarget") { target -> Void in
                     // There should be a symlink task.
                     try results.checkTask(.matchTarget(target), .matchRuleType("SymLink")) { task in
@@ -887,7 +890,7 @@ fileprivate struct TaskConstructionTests: CoreBasedTests {
 
                     // There should be one prelinked object link task.
                     results.checkTask(.matchTarget(target), .matchRuleType("PrelinkedObjectLink")) { task in
-                        task.checkRuleInfo(["PrelinkedObjectLink", "\(SRCROOT)/build/aProject.build/Release/AppTarget.build/Objects-normal/AppTarget-x86_64-prelink.o"])
+                        task.checkRuleInfo(["PrelinkedObjectLink", "\(SRCROOT)/build/aProject.build/Release/AppTarget.build/Objects-normal/AppTarget-\(results.runDestinationTargetArchitecture)-prelink.o"])
                         let nonUniqueObjs = task.commandLineAsStrings.filter { $0.contains("NonUnique") }
                         if nonUniqueObjs.count != 2 {
                             #expect(nonUniqueObjs.count == 2)
@@ -895,16 +898,16 @@ fileprivate struct TaskConstructionTests: CoreBasedTests {
                         }
 
                         #expect(nonUniqueObjs[0] != nonUniqueObjs[1])
-                        task.checkCommandLineMatches([StringPattern.suffix("ld"), "-r", "-arch", "x86_64", "-platform_version", "1", .any, .any, "-syslibroot", .equal(core.loadSDK(.macOS).path.str), .equal("\(SRCROOT)/build/aProject.build/Release/AppTarget.build/Objects-normal/x86_64/SourceFile.o"), .equal("\(SRCROOT)/build/aProject.build/Release/AppTarget.build/Objects-normal/x86_64/SourceFile-Matched-Excluded.o"), .equal("\(SRCROOT)/build/aProject.build/Release/AppTarget.build/Objects-normal/x86_64/SourceFile-Matched-Included.o"), .equal(nonUniqueObjs[0]), .equal(nonUniqueObjs[1]), .equal("\(SRCROOT)/build/aProject.build/Release/AppTarget.build/Objects-normal/x86_64/SourceFile_MRR.o"), .equal("\(SRCROOT)/build/aProject.build/Release/AppTarget.build/Objects-normal/x86_64/Lex.yy.o"), .equal("\(SRCROOT)/build/aProject.build/Release/AppTarget.build/Objects-normal/x86_64/y.tab.o"), .equal("\(SRCROOT)/build/aProject.build/Release/AppTarget.build/Objects-normal/x86_64/Script-Output-Custom-SourceFile.o"), .equal("\(SRCROOT)/build/aProject.build/Release/AppTarget.build/Objects-normal/x86_64/Script-Output-Standard-SourceFile.o"), "-o", .equal("\(SRCROOT)/build/aProject.build/Release/AppTarget.build/Objects-normal/AppTarget-x86_64-prelink.o")])
+                        task.checkCommandLineMatches([StringPattern.suffix("ld"), "-r", "-arch", .equal(results.runDestinationTargetArchitecture), "-platform_version", "1", .any, .any, "-syslibroot", .equal(core.loadSDK(.macOS).path.str), .equal("\(SRCROOT)/build/aProject.build/Release/AppTarget.build/Objects-normal/\(results.runDestinationTargetArchitecture)/SourceFile.o"), .equal("\(SRCROOT)/build/aProject.build/Release/AppTarget.build/Objects-normal/\(results.runDestinationTargetArchitecture)/SourceFile-Matched-Excluded.o"), .equal("\(SRCROOT)/build/aProject.build/Release/AppTarget.build/Objects-normal/\(results.runDestinationTargetArchitecture)/SourceFile-Matched-Included.o"), .equal(nonUniqueObjs[0]), .equal(nonUniqueObjs[1]), .equal("\(SRCROOT)/build/aProject.build/Release/AppTarget.build/Objects-normal/\(results.runDestinationTargetArchitecture)/SourceFile_MRR.o"), .equal("\(SRCROOT)/build/aProject.build/Release/AppTarget.build/Objects-normal/\(results.runDestinationTargetArchitecture)/Lex.yy.o"), .equal("\(SRCROOT)/build/aProject.build/Release/AppTarget.build/Objects-normal/\(results.runDestinationTargetArchitecture)/y.tab.o"), .equal("\(SRCROOT)/build/aProject.build/Release/AppTarget.build/Objects-normal/\(results.runDestinationTargetArchitecture)/Script-Output-Custom-SourceFile.o"), .equal("\(SRCROOT)/build/aProject.build/Release/AppTarget.build/Objects-normal/\(results.runDestinationTargetArchitecture)/Script-Output-Standard-SourceFile.o"), "-o", .equal("\(SRCROOT)/build/aProject.build/Release/AppTarget.build/Objects-normal/AppTarget-\(results.runDestinationTargetArchitecture)-prelink.o")])
 
                         task.checkInputs([
-                            .path("\(SRCROOT)/build/aProject.build/Release/AppTarget.build/Objects-normal/x86_64/SourceFile.o"),
+                            .path("\(SRCROOT)/build/aProject.build/Release/AppTarget.build/Objects-normal/\(results.runDestinationTargetArchitecture)/SourceFile.o"),
                             .any,
                             .any,
                             .any,
                             .any,
-                            .path("\(SRCROOT)/build/aProject.build/Release/AppTarget.build/Objects-normal/x86_64/SourceFile_MRR.o"),
-                            .path("\(SRCROOT)/build/aProject.build/Release/AppTarget.build/Objects-normal/x86_64/Lex.yy.o"),
+                            .path("\(SRCROOT)/build/aProject.build/Release/AppTarget.build/Objects-normal/\(results.runDestinationTargetArchitecture)/SourceFile_MRR.o"),
+                            .path("\(SRCROOT)/build/aProject.build/Release/AppTarget.build/Objects-normal/\(results.runDestinationTargetArchitecture)/Lex.yy.o"),
                             .any,
                             .any,
                             .any,
@@ -915,12 +918,12 @@ fileprivate struct TaskConstructionTests: CoreBasedTests {
                             .namePattern(.prefix("target-"))])
 
                         task.checkOutputs([
-                            .path("\(SRCROOT)/build/aProject.build/Release/AppTarget.build/Objects-normal/AppTarget-x86_64-prelink.o"),])
+                            .path("\(SRCROOT)/build/aProject.build/Release/AppTarget.build/Objects-normal/AppTarget-\(results.runDestinationTargetArchitecture)-prelink.o"),])
 
                     }
 
                     // There should be one link task, and a task to generate its link file list.
-                    results.checkTask(.matchTarget(target), .matchRule(["WriteAuxiliaryFile", "\(SRCROOT)/build/aProject.build/Release/AppTarget.build/Objects-normal/x86_64/AppTarget.LinkFileList"])) { _ in }
+                    results.checkTask(.matchTarget(target), .matchRule(["WriteAuxiliaryFile", "\(SRCROOT)/build/aProject.build/Release/AppTarget.build/Objects-normal/\(results.runDestinationTargetArchitecture)/AppTarget.LinkFileList"])) { _ in }
                     results.checkTask(.matchTarget(target), .matchRuleType("Ld")) { task in
                         task.checkRuleInfo(["Ld", "/tmp/aProject.dst/Applications/AppTarget.app/Contents/MacOS/AppTarget", "normal"])
                     }
@@ -1168,8 +1171,8 @@ fileprivate struct TaskConstructionTests: CoreBasedTests {
                             let sortedTasks = tasks.sorted { $0.ruleInfo.lexicographicallyPrecedes($1.ruleInfo) }
                             #expect(sortedTasks.count == 3)
                             sortedTasks[0].checkRuleInfo(["CopyPlistFile", "\(SRCROOT)/build/Release/AppTarget.app/Contents/Frameworks/PlistFileToCopy.plist", "\(SRCROOT)/Sources/PlistFileToCopy.plist"])
-                            sortedTasks[1].checkRuleInfo(["CopyPlistFile", "\(SRCROOT)/build/Release/AppTarget.app/Contents/Resources/en.lproj/foo.plist", "\(SRCROOT)/build/aProject.build/Release/AppTarget.build/DerivedSources-normal/x86_64/en.lproj/foo.plist"])
-                            sortedTasks[2].checkRuleInfo(["CopyPlistFile", "\(SRCROOT)/build/Release/AppTarget.app/Contents/Resources/foo.plist", "\(SRCROOT)/build/aProject.build/Release/AppTarget.build/DerivedSources-normal/x86_64/foo.plist"])
+                            sortedTasks[1].checkRuleInfo(["CopyPlistFile", "\(SRCROOT)/build/Release/AppTarget.app/Contents/Resources/en.lproj/foo.plist", "\(SRCROOT)/build/aProject.build/Release/AppTarget.build/DerivedSources-normal/\(results.runDestinationTargetArchitecture)/en.lproj/foo.plist"])
+                            sortedTasks[2].checkRuleInfo(["CopyPlistFile", "\(SRCROOT)/build/Release/AppTarget.app/Contents/Resources/foo.plist", "\(SRCROOT)/build/aProject.build/Release/AppTarget.build/DerivedSources-normal/\(results.runDestinationTargetArchitecture)/foo.plist"])
                         }
                     }
 
@@ -1323,21 +1326,21 @@ fileprivate struct TaskConstructionTests: CoreBasedTests {
                 let compileTasks = results.checkTasks(.matchTarget(target), .matchRuleType("CompileC")) { tasks -> [any PlannedTask] in
                     let sortedTasks = tasks.sorted { $0.ruleInfo.lexicographicallyPrecedes($1.ruleInfo) }
                     #expect(sortedTasks.count == 2)
-                    sortedTasks[safe: 0]?.checkRuleInfo([.equal("CompileC"), .suffix("SourceOne.o"), .suffix("SourceOne.m"), .equal("normal"), .equal("x86_64"), .equal("objective-c"), .any])
-                    sortedTasks[safe: 1]?.checkRuleInfo([.equal("CompileC"), .suffix("SourceTwo.o"), .suffix("SourceTwo.m"), .equal("normal"), .equal("x86_64"), .equal("objective-c"), .any])
+                    sortedTasks[safe: 0]?.checkRuleInfo([.equal("CompileC"), .suffix("SourceOne.o"), .suffix("SourceOne.m"), .equal("normal"), .equal(results.runDestinationTargetArchitecture), .equal("objective-c"), .any])
+                    sortedTasks[safe: 1]?.checkRuleInfo([.equal("CompileC"), .suffix("SourceTwo.o"), .suffix("SourceTwo.m"), .equal("normal"), .equal(results.runDestinationTargetArchitecture), .equal("objective-c"), .any])
                     return sortedTasks
                 }
 
                 // There should be one link task, and a task to generate its link file list.
-                results.checkTask(.matchTarget(target), .matchRule(["WriteAuxiliaryFile", "\(SRCROOT)/build/aProject.build/Debug/FrameworkTarget.build/Objects-normal/x86_64/FrameworkTarget.LinkFileList"])) { _ in }
+                results.checkTask(.matchTarget(target), .matchRule(["WriteAuxiliaryFile", "\(SRCROOT)/build/aProject.build/Debug/FrameworkTarget.build/Objects-normal/\(results.runDestinationTargetArchitecture)/FrameworkTarget.LinkFileList"])) { _ in }
                 results.checkTask(.matchTarget(target), .matchRuleType("Ld")) { task in
                     task.checkRuleInfo(["Ld", "\(SRCROOT)/build/Debug/FrameworkTarget.framework/Versions/A/FrameworkTarget", "normal"])
                     task.checkCommandLine([
                         ["clang"],
                         ["-Xlinker", "-reproducible"],
-                        ["-target", "x86_64-apple-macos\(MACOSX_DEPLOYMENT_TARGET)"],
-                        ["-dynamiclib", "-isysroot", core.loadSDK(.macOS).path.str, "-Os", "-L\(SRCROOT)/build/EagerLinkingTBDs/Debug", "-L\(SRCROOT)/build/Debug", "-F\(SRCROOT)/build/EagerLinkingTBDs/Debug", "-F\(SRCROOT)/build/Debug", "-filelist", "\(SRCROOT)/build/aProject.build/Debug/FrameworkTarget.build/Objects-normal/x86_64/FrameworkTarget.LinkFileList", "-install_name", "/Library/Frameworks/FrameworkTarget.framework/Versions/A/FrameworkTarget"],
-                        ["-Xlinker", "-object_path_lto", "-Xlinker", "\(SRCROOT)/build/aProject.build/Debug/FrameworkTarget.build/Objects-normal/x86_64/FrameworkTarget_lto.o", "-Xlinker", "-dependency_info", "-Xlinker", "\(SRCROOT)/build/aProject.build/Debug/FrameworkTarget.build/Objects-normal/x86_64/FrameworkTarget_dependency_info.dat", "-fobjc-link-runtime", "-lstatic", "-ldynamic", "-Xlinker", "-no_adhoc_codesign", "-o", "\(SRCROOT)/build/Debug/FrameworkTarget.framework/Versions/A/FrameworkTarget"]
+                        ["-target", "\(results.runDestinationTargetArchitecture)-apple-macos\(MACOSX_DEPLOYMENT_TARGET)"],
+                        ["-dynamiclib", "-isysroot", core.loadSDK(.macOS).path.str, "-Os", "-L\(SRCROOT)/build/EagerLinkingTBDs/Debug", "-L\(SRCROOT)/build/Debug", "-F\(SRCROOT)/build/EagerLinkingTBDs/Debug", "-F\(SRCROOT)/build/Debug", "-filelist", "\(SRCROOT)/build/aProject.build/Debug/FrameworkTarget.build/Objects-normal/\(results.runDestinationTargetArchitecture)/FrameworkTarget.LinkFileList", "-install_name", "/Library/Frameworks/FrameworkTarget.framework/Versions/A/FrameworkTarget"],
+                        ["-Xlinker", "-object_path_lto", "-Xlinker", "\(SRCROOT)/build/aProject.build/Debug/FrameworkTarget.build/Objects-normal/\(results.runDestinationTargetArchitecture)/FrameworkTarget_lto.o", "-Xlinker", "-dependency_info", "-Xlinker", "\(SRCROOT)/build/aProject.build/Debug/FrameworkTarget.build/Objects-normal/\(results.runDestinationTargetArchitecture)/FrameworkTarget_dependency_info.dat", "-fobjc-link-runtime", "-lstatic", "-ldynamic", "-Xlinker", "-no_adhoc_codesign", "-o", "\(SRCROOT)/build/Debug/FrameworkTarget.framework/Versions/A/FrameworkTarget"]
                     ].reduce([], +))
                 }
 
@@ -1447,26 +1450,26 @@ fileprivate struct TaskConstructionTests: CoreBasedTests {
                 results.checkTasks(.matchTarget(target), .matchRuleType("CompileC")) { tasks in
                     let sortedTasks = tasks.sorted { $0.ruleInfo.lexicographicallyPrecedes($1.ruleInfo) }
                     #expect(sortedTasks.count == 2)
-                    sortedTasks[safe: 0]?.checkRuleInfo([.equal("CompileC"), .suffix("SourceOne.o"), .suffix("SourceOne.m"), .equal("normal"), .equal("x86_64"), .equal("objective-c"), .any])
-                    sortedTasks[safe: 1]?.checkRuleInfo([.equal("CompileC"), .suffix("SourceTwo.o"), .suffix("SourceTwo.m"), .equal("normal"), .equal("x86_64"), .equal("objective-c"), .any])
+                    sortedTasks[safe: 0]?.checkRuleInfo([.equal("CompileC"), .suffix("SourceOne.o"), .suffix("SourceOne.m"), .equal("normal"), .equal(results.runDestinationTargetArchitecture), .equal("objective-c"), .any])
+                    sortedTasks[safe: 1]?.checkRuleInfo([.equal("CompileC"), .suffix("SourceTwo.o"), .suffix("SourceTwo.m"), .equal("normal"), .equal(results.runDestinationTargetArchitecture), .equal("objective-c"), .any])
                 }
 
                 // There should be one link task, and a task to generate its link file list.
-                results.checkTask(.matchTarget(target), .matchRule(["WriteAuxiliaryFile", "\(SRCROOT)/build/aProject.build/Release/FrameworkTarget.build/Objects-normal/x86_64/FrameworkTarget.LinkFileList"])) { _ in }
+                results.checkTask(.matchTarget(target), .matchRule(["WriteAuxiliaryFile", "\(SRCROOT)/build/aProject.build/Release/FrameworkTarget.build/Objects-normal/\(results.runDestinationTargetArchitecture)/FrameworkTarget.LinkFileList"])) { _ in }
                 results.checkTask(.matchTarget(target), .matchRuleType("Ld")) { task in
                     task.checkRuleInfo(["Ld", "/tmp/aProject.dst/Library/Frameworks/FrameworkTarget.framework/Versions/A/FrameworkTarget", "normal"])
                     task.checkCommandLine([
                         ["clang"],
                         ["-Xlinker", "-reproducible"],
-                        ["-target", "x86_64-apple-macos\(MACOSX_DEPLOYMENT_TARGET)"],
-                        ["-dynamiclib", "-isysroot", core.loadSDK(.macOS).path.str, "-Os", "-L\(SRCROOT)/build/EagerLinkingTBDs/Release", "-L\(SRCROOT)/build/Release", "-F\(SRCROOT)/build/EagerLinkingTBDs/Release", "-F\(SRCROOT)/build/Release", "-filelist", "\(SRCROOT)/build/aProject.build/Release/FrameworkTarget.build/Objects-normal/x86_64/FrameworkTarget.LinkFileList", "-exported_symbols_list", "Exports.exp", "-unexported_symbols_list", "Unexports.exp", "-install_name", "/Library/Frameworks/FrameworkTarget.framework/Versions/A/FrameworkTarget"],
-                        ["-Xlinker", "-object_path_lto", "-Xlinker", "\(SRCROOT)/build/aProject.build/Release/FrameworkTarget.build/Objects-normal/x86_64/FrameworkTarget_lto.o", "-Xlinker", "-final_output", "-Xlinker", "/Library/Frameworks/FrameworkTarget.framework/Versions/A/FrameworkTarget", "-Xlinker", "-dependency_info", "-Xlinker", "\(SRCROOT)/build/aProject.build/Release/FrameworkTarget.build/Objects-normal/x86_64/FrameworkTarget_dependency_info.dat", "-fobjc-link-runtime", "-lstatic", "-ldynamic", "-Xlinker", "-no_adhoc_codesign", "-o", "/tmp/aProject.dst/Library/Frameworks/FrameworkTarget.framework/Versions/A/FrameworkTarget"]
+                        ["-target", "\(results.runDestinationTargetArchitecture)-apple-macos\(MACOSX_DEPLOYMENT_TARGET)"],
+                        ["-dynamiclib", "-isysroot", core.loadSDK(.macOS).path.str, "-Os", "-L\(SRCROOT)/build/EagerLinkingTBDs/Release", "-L\(SRCROOT)/build/Release", "-F\(SRCROOT)/build/EagerLinkingTBDs/Release", "-F\(SRCROOT)/build/Release", "-filelist", "\(SRCROOT)/build/aProject.build/Release/FrameworkTarget.build/Objects-normal/\(results.runDestinationTargetArchitecture)/FrameworkTarget.LinkFileList", "-exported_symbols_list", "Exports.exp", "-unexported_symbols_list", "Unexports.exp", "-install_name", "/Library/Frameworks/FrameworkTarget.framework/Versions/A/FrameworkTarget"],
+                        ["-Xlinker", "-object_path_lto", "-Xlinker", "\(SRCROOT)/build/aProject.build/Release/FrameworkTarget.build/Objects-normal/\(results.runDestinationTargetArchitecture)/FrameworkTarget_lto.o", "-Xlinker", "-final_output", "-Xlinker", "/Library/Frameworks/FrameworkTarget.framework/Versions/A/FrameworkTarget", "-Xlinker", "-dependency_info", "-Xlinker", "\(SRCROOT)/build/aProject.build/Release/FrameworkTarget.build/Objects-normal/\(results.runDestinationTargetArchitecture)/FrameworkTarget_dependency_info.dat", "-fobjc-link-runtime", "-lstatic", "-ldynamic", "-Xlinker", "-no_adhoc_codesign", "-o", "/tmp/aProject.dst/Library/Frameworks/FrameworkTarget.framework/Versions/A/FrameworkTarget"]
                     ].reduce([], +))
 
                     task.checkInputs([
-                        .path("\(SRCROOT)/build/aProject.build/Release/FrameworkTarget.build/Objects-normal/x86_64/SourceOne.o"),
-                        .path("\(SRCROOT)/build/aProject.build/Release/FrameworkTarget.build/Objects-normal/x86_64/SourceTwo.o"),
-                        .path("\(SRCROOT)/build/aProject.build/Release/FrameworkTarget.build/Objects-normal/x86_64/FrameworkTarget.LinkFileList"),
+                        .path("\(SRCROOT)/build/aProject.build/Release/FrameworkTarget.build/Objects-normal/\(results.runDestinationTargetArchitecture)/SourceOne.o"),
+                        .path("\(SRCROOT)/build/aProject.build/Release/FrameworkTarget.build/Objects-normal/\(results.runDestinationTargetArchitecture)/SourceTwo.o"),
+                        .path("\(SRCROOT)/build/aProject.build/Release/FrameworkTarget.build/Objects-normal/\(results.runDestinationTargetArchitecture)/FrameworkTarget.LinkFileList"),
                         .path("\(SRCROOT)/Exports.exp"),
                         .path("\(SRCROOT)/Unexports.exp"),
                         .path("\(SRCROOT)/build/Release"),
@@ -1478,8 +1481,8 @@ fileprivate struct TaskConstructionTests: CoreBasedTests {
                     task.checkOutputs([
                         .path("/tmp/aProject.dst/Library/Frameworks/FrameworkTarget.framework/Versions/A/FrameworkTarget"),
                         .name("Linked Binary /tmp/aProject.dst/Library/Frameworks/FrameworkTarget.framework/Versions/A/FrameworkTarget"),
-                        .path("\(SRCROOT)/build/aProject.build/Release/FrameworkTarget.build/Objects-normal/x86_64/FrameworkTarget_lto.o"),
-                        .path("\(SRCROOT)/build/aProject.build/Release/FrameworkTarget.build/Objects-normal/x86_64/FrameworkTarget_dependency_info.dat"),
+                        .path("\(SRCROOT)/build/aProject.build/Release/FrameworkTarget.build/Objects-normal/\(results.runDestinationTargetArchitecture)/FrameworkTarget_lto.o"),
+                        .path("\(SRCROOT)/build/aProject.build/Release/FrameworkTarget.build/Objects-normal/\(results.runDestinationTargetArchitecture)/FrameworkTarget_dependency_info.dat"),
                     ])
                 }
 
@@ -1879,23 +1882,23 @@ fileprivate struct TaskConstructionTests: CoreBasedTests {
                 if runDestination == .macOS {
                     // There should be an Info.plist processing task, and associated Preprocess (we explicitly enable it).
                     results.checkTask(.matchTarget(target), .matchRuleType("Preprocess")) { task in
-                        task.checkRuleInfo(["Preprocess", targetPerArchBuildBaseDir.join("x86_64/Preprocessed-Info.plist").str, "\(SRCROOT)/Tool.plist"])
+                        task.checkRuleInfo(["Preprocess", targetPerArchBuildBaseDir.join("\(results.runDestinationTargetArchitecture)/Preprocessed-Info.plist").str, "\(SRCROOT)/Tool.plist"])
                     }
                     results.checkTask(.matchTarget(target), .matchRuleType("ProcessInfoPlistFile")) { task in
-                        task.checkRuleInfo(["ProcessInfoPlistFile", targetObjectsPerArchBuildBaseDir.join("x86_64/Processed-Info.plist").str, targetPerArchBuildBaseDir.join("x86_64/Preprocessed-Info.plist").str])
-                        task.checkCommandLine(["builtin-infoPlistUtility", targetPerArchBuildBaseDir.join("x86_64/Preprocessed-Info.plist").str, "-producttype", "com.apple.product-type.tool", "-expandbuildsettings", "-platform", "macosx", "-o", targetObjectsPerArchBuildBaseDir.join("x86_64/Processed-Info.plist").str])
+                        task.checkRuleInfo(["ProcessInfoPlistFile", targetObjectsPerArchBuildBaseDir.join("\(results.runDestinationTargetArchitecture)/Processed-Info.plist").str, targetPerArchBuildBaseDir.join("\(results.runDestinationTargetArchitecture)/Preprocessed-Info.plist").str])
+                        task.checkCommandLine(["builtin-infoPlistUtility", targetPerArchBuildBaseDir.join("\(results.runDestinationTargetArchitecture)/Preprocessed-Info.plist").str, "-producttype", "com.apple.product-type.tool", "-expandbuildsettings", "-platform", "macosx", "-o", targetObjectsPerArchBuildBaseDir.join("\(results.runDestinationTargetArchitecture)/Processed-Info.plist").str])
                     }
 
                     // There should be a link task which incorporates the Info.plist file, and a task to generate its link file list.
-                    results.checkTask(.matchTarget(target), .matchRule(["WriteAuxiliaryFile", targetObjectsPerArchBuildBaseDir.join("x86_64/Tool.LinkFileList").str])) { _ in }
+                    results.checkTask(.matchTarget(target), .matchRule(["WriteAuxiliaryFile", targetObjectsPerArchBuildBaseDir.join("\(results.runDestinationTargetArchitecture)/Tool.LinkFileList").str])) { _ in }
                     results.checkTask(.matchTarget(target), .matchRuleType("Ld")) { task in
                         task.checkRuleInfo(["Ld", "/tmp/aProject.dst/usr/local/bin/Tool", "normal"])
-                        task.checkCommandLineContainsUninterrupted(["-sectcreate", "__TEXT", "__info_plist", targetObjectsPerArchBuildBaseDir.join("x86_64/Processed-Info.plist").str])
+                        task.checkCommandLineContainsUninterrupted(["-sectcreate", "__TEXT", "__info_plist", targetObjectsPerArchBuildBaseDir.join("\(results.runDestinationTargetArchitecture)/Processed-Info.plist").str])
                         task.checkInputs(contain: [
-                            .path(targetObjectsPerArchBuildBaseDir.join("x86_64/SourceFile.o").str),
-                            .path(targetObjectsPerArchBuildBaseDir.join("x86_64/PerArchFile.o").str),
-                            .path(targetObjectsPerArchBuildBaseDir.join("x86_64/Tool.LinkFileList").str),
-                            .path(targetObjectsPerArchBuildBaseDir.join("x86_64/Processed-Info.plist").str),
+                            .path(targetObjectsPerArchBuildBaseDir.join("\(results.runDestinationTargetArchitecture)/SourceFile.o").str),
+                            .path(targetObjectsPerArchBuildBaseDir.join("\(results.runDestinationTargetArchitecture)/PerArchFile.o").str),
+                            .path(targetObjectsPerArchBuildBaseDir.join("\(results.runDestinationTargetArchitecture)/Tool.LinkFileList").str),
+                            .path(targetObjectsPerArchBuildBaseDir.join("\(results.runDestinationTargetArchitecture)/Processed-Info.plist").str),
                         ])
                     }
 
@@ -2558,7 +2561,7 @@ fileprivate struct TaskConstructionTests: CoreBasedTests {
             results.checkTarget("Tool") { target in
                 // There should be one Mig task.
                 results.checkTask(.matchTarget(target), .matchRuleType("Mig")) { task in
-                    task.checkRuleInfo(["Mig", "\(SRCROOT)/build/aProject.build/Debug/Tool.build/DerivedSources/x86_64/Interfaces.h", "\(SRCROOT)/build/aProject.build/Debug/Tool.build/DerivedSources/x86_64/InterfacesUser.c", "\(SRCROOT)/build/aProject.build/Debug/Tool.build/DerivedSources/x86_64/InterfacesServer.h", "\(SRCROOT)/build/aProject.build/Debug/Tool.build/DerivedSources/x86_64/InterfacesServer.c", "\(SRCROOT)/Interfaces.defs", "normal", "x86_64"])
+                    task.checkRuleInfo(["Mig", "\(SRCROOT)/build/aProject.build/Debug/Tool.build/DerivedSources/\(results.runDestinationTargetArchitecture)/Interfaces.h", "\(SRCROOT)/build/aProject.build/Debug/Tool.build/DerivedSources/\(results.runDestinationTargetArchitecture)/InterfacesUser.c", "\(SRCROOT)/build/aProject.build/Debug/Tool.build/DerivedSources/\(results.runDestinationTargetArchitecture)/InterfacesServer.h", "\(SRCROOT)/build/aProject.build/Debug/Tool.build/DerivedSources/\(results.runDestinationTargetArchitecture)/InterfacesServer.c", "\(SRCROOT)/Interfaces.defs", "normal", results.runDestinationTargetArchitecture])
 
                     // Check that the outputs are correct.
                     XCTAssertMatch(task.outputs.map { $0.path.str }, [
@@ -2570,8 +2573,8 @@ fileprivate struct TaskConstructionTests: CoreBasedTests {
                 }
 
                 // There should be two compile of the Mig-generated client and server.
-                results.checkTask(.matchTarget(target), .matchRule(["CompileC", "\(SRCROOT)/build/aProject.build/Debug/Tool.build/Objects-normal/x86_64/InterfacesServer.o", "\(SRCROOT)/build/aProject.build/Debug/Tool.build/DerivedSources/x86_64/InterfacesServer.c", "normal", "x86_64", "c", "com.apple.compilers.llvm.clang.1_0.compiler"])) { task in }
-                results.checkTask(.matchTarget(target), .matchRule(["CompileC", "\(SRCROOT)/build/aProject.build/Debug/Tool.build/Objects-normal/x86_64/InterfacesUser.o", "\(SRCROOT)/build/aProject.build/Debug/Tool.build/DerivedSources/x86_64/InterfacesUser.c", "normal", "x86_64", "c", "com.apple.compilers.llvm.clang.1_0.compiler"])) { task in }
+                results.checkTask(.matchTarget(target), .matchRule(["CompileC", "\(SRCROOT)/build/aProject.build/Debug/Tool.build/Objects-normal/\(results.runDestinationTargetArchitecture)/InterfacesServer.o", "\(SRCROOT)/build/aProject.build/Debug/Tool.build/DerivedSources/\(results.runDestinationTargetArchitecture)/InterfacesServer.c", "normal", results.runDestinationTargetArchitecture, "c", "com.apple.compilers.llvm.clang.1_0.compiler"])) { task in }
+                results.checkTask(.matchTarget(target), .matchRule(["CompileC", "\(SRCROOT)/build/aProject.build/Debug/Tool.build/Objects-normal/\(results.runDestinationTargetArchitecture)/InterfacesUser.o", "\(SRCROOT)/build/aProject.build/Debug/Tool.build/DerivedSources/\(results.runDestinationTargetArchitecture)/InterfacesUser.c", "normal", results.runDestinationTargetArchitecture, "c", "com.apple.compilers.llvm.clang.1_0.compiler"])) { task in }
                 results.checkNoTask(.matchRuleType("CompileC"))
             }
 
@@ -2783,14 +2786,14 @@ fileprivate struct TaskConstructionTests: CoreBasedTests {
 
             results.checkTarget("Framework") { target in
                 // There should be one task each for unvarianted content.
-                results.checkTask(.matchTarget(target), .matchRule(["Copy", "/tmp/aProject.dst/Library/Frameworks/Framework.framework/Versions/A/Modules/Framework.swiftmodule/x86_64-apple-macos.swiftmodule", "\(SRCROOT)/build/aProject.build/Release/Framework.build/Objects-normal/x86_64/Framework.swiftmodule"])) { _ in }
-                results.checkNoTask(.matchTarget(target), .matchRule(["Copy", "/tmp/aProject.dst/Library/Frameworks/Framework.framework/Versions/A/Modules/Framework.swiftmodule/x86_64-apple-macos.swiftmodule", "\(SRCROOT)/build/aProject.build/Release/Framework.build/Objects-debug/x86_64/Framework.swiftmodule"]))
+                results.checkTask(.matchTarget(target), .matchRule(["Copy", "/tmp/aProject.dst/Library/Frameworks/Framework.framework/Versions/A/Modules/Framework.swiftmodule/\(results.runDestinationTargetArchitecture)-apple-macos.swiftmodule", "\(SRCROOT)/build/aProject.build/Release/Framework.build/Objects-normal/\(results.runDestinationTargetArchitecture)/Framework.swiftmodule"])) { _ in }
+                results.checkNoTask(.matchTarget(target), .matchRule(["Copy", "/tmp/aProject.dst/Library/Frameworks/Framework.framework/Versions/A/Modules/Framework.swiftmodule/x86_64-apple-macos.swiftmodule", "\(SRCROOT)/build/aProject.build/Release/Framework.build/Objects-debug/\(results.runDestinationTargetArchitecture)/Framework.swiftmodule"]))
 
-                results.checkTask(.matchTarget(target), .matchRule(["Copy", "/tmp/aProject.dst/Library/Frameworks/Framework.framework/Versions/A/Modules/Framework.swiftmodule/x86_64-apple-macos.swiftdoc", "\(SRCROOT)/build/aProject.build/Release/Framework.build/Objects-normal/x86_64/Framework.swiftdoc"])) { _ in }
-                results.checkNoTask(.matchTarget(target), .matchRule(["Copy", "/tmp/aProject.dst/Library/Frameworks/Framework.framework/Versions/A/Modules/Framework.swiftmodule/x86_64-apple-macos.swiftdoc", "\(SRCROOT)/build/aProject.build/Release/Framework.build/Objects-debug/x86_64/Framework.swiftdoc"]))
+                results.checkTask(.matchTarget(target), .matchRule(["Copy", "/tmp/aProject.dst/Library/Frameworks/Framework.framework/Versions/A/Modules/Framework.swiftmodule/\(results.runDestinationTargetArchitecture)-apple-macos.swiftdoc", "\(SRCROOT)/build/aProject.build/Release/Framework.build/Objects-normal/\(results.runDestinationTargetArchitecture)/Framework.swiftdoc"])) { _ in }
+                results.checkNoTask(.matchTarget(target), .matchRule(["Copy", "/tmp/aProject.dst/Library/Frameworks/Framework.framework/Versions/A/Modules/Framework.swiftmodule/x86_64-apple-macos.swiftdoc", "\(SRCROOT)/build/aProject.build/Release/Framework.build/Objects-debug/\(results.runDestinationTargetArchitecture)/Framework.swiftdoc"]))
 
-                results.checkTask(.matchTarget(target), .matchRule(["SwiftMergeGeneratedHeaders", "/tmp/aProject.dst/Library/Frameworks/Framework.framework/Versions/A/Headers/Framework-Swift.h", "\(SRCROOT)/build/aProject.build/Release/Framework.build/Objects-normal/x86_64/Framework-Swift.h"])) { _ in }
-                results.checkNoTask(.matchTarget(target), .matchRule(["Copy", "/tmp/aProject.dst/Library/Frameworks/Framework.framework/Versions/A/Headers/Framework-Swift.h", "\(SRCROOT)/build/aProject.build/Release/Framework.build/Objects-debug/x86_64/Framework-Swift.h"]))
+                results.checkTask(.matchTarget(target), .matchRule(["SwiftMergeGeneratedHeaders", "/tmp/aProject.dst/Library/Frameworks/Framework.framework/Versions/A/Headers/Framework-Swift.h", "\(SRCROOT)/build/aProject.build/Release/Framework.build/Objects-normal/\(results.runDestinationTargetArchitecture)/Framework-Swift.h"])) { _ in }
+                results.checkNoTask(.matchTarget(target), .matchRule(["Copy", "/tmp/aProject.dst/Library/Frameworks/Framework.framework/Versions/A/Headers/Framework-Swift.h", "\(SRCROOT)/build/aProject.build/Release/Framework.build/Objects-debug/\(results.runDestinationTargetArchitecture)/Framework-Swift.h"]))
 
                 // There should be two strip tasks, one per variant.
                 results.checkTasks(.matchTarget(target), .matchRuleType("Strip")) { tasks in
@@ -3351,7 +3354,7 @@ fileprivate struct TaskConstructionTests: CoreBasedTests {
                 results.checkTarget(targetName) { target in
                     // Check the search paths in the CompileC task.
                     results.checkTask(.matchTarget(target), .matchRuleType("CompileC")) { task in
-                        task.checkRuleInfo(["CompileC", "\(SRCROOT)/build/aProject.build/Debug/\(targetName).build/Objects-normal/x86_64/SourceFile.o", "\(SRCROOT)/Sources/SourceFile.m", "normal", "x86_64", "objective-c", "com.apple.compilers.llvm.clang.1_0.compiler"])
+                        task.checkRuleInfo(["CompileC", "\(SRCROOT)/build/aProject.build/Debug/\(targetName).build/Objects-normal/\(results.runDestinationTargetArchitecture)/SourceFile.o", "\(SRCROOT)/Sources/SourceFile.m", "normal", results.runDestinationTargetArchitecture, "objective-c", "com.apple.compilers.llvm.clang.1_0.compiler"])
                         task.checkCommandLineContains([
                             // The target's explicitly specified search paths
                             "-F/Target/Framework/Search/Path/A",
@@ -3367,7 +3370,7 @@ fileprivate struct TaskConstructionTests: CoreBasedTests {
 
                     // Check the search paths in the Swift Planning task.
                     results.checkTask(.matchTarget(target), .matchRuleType("SwiftDriver Compilation")) { task in
-                        task.checkRuleInfo(["SwiftDriver Compilation", targetName, "normal", "x86_64", "com.apple.xcode.tools.swift.compiler"])
+                        task.checkRuleInfo(["SwiftDriver Compilation", targetName, "normal", results.runDestinationTargetArchitecture, "com.apple.xcode.tools.swift.compiler"])
                         task.checkCommandLineContains([
                             // The build directory
                             "-F", "\(SRCROOT)/build/Debug",
@@ -3432,7 +3435,7 @@ fileprivate struct TaskConstructionTests: CoreBasedTests {
                 results.checkTarget(targetName) { target in
                     // Check the search paths in the CompileC task.
                     results.checkTask(.matchTarget(target), .matchRuleType("CompileC")) { task in
-                        task.checkRuleInfo(["CompileC", "\(SRCROOT)/build/aProject.build/Debug/\(targetName).build/Objects-normal/x86_64/SourceFile.o", "\(SRCROOT)/Sources/SourceFile.m", "normal", "x86_64", "objective-c", "com.apple.compilers.llvm.clang.1_0.compiler"])
+                        task.checkRuleInfo(["CompileC", "\(SRCROOT)/build/aProject.build/Debug/\(targetName).build/Objects-normal/\(results.runDestinationTargetArchitecture)/SourceFile.o", "\(SRCROOT)/Sources/SourceFile.m", "normal", results.runDestinationTargetArchitecture, "objective-c", "com.apple.compilers.llvm.clang.1_0.compiler"])
                         task.checkCommandLineContains([
                             // The target's explicitly specified search paths, each preceded by the remapping into the sparse SDK where appropriate
                             "-I\(nonEmbeddedSparseSDKPath.str)/usr/local/include/one",
@@ -3456,7 +3459,7 @@ fileprivate struct TaskConstructionTests: CoreBasedTests {
 
                     // Check the search paths in the SwiftDriver task.
                     results.checkTask(.matchTarget(target), .matchRuleType("SwiftDriver Compilation")) { task in
-                        task.checkRuleInfo(["SwiftDriver Compilation", targetName, "normal", "x86_64", "com.apple.xcode.tools.swift.compiler"])
+                        task.checkRuleInfo(["SwiftDriver Compilation", targetName, "normal", results.runDestinationTargetArchitecture, "com.apple.xcode.tools.swift.compiler"])
                         task.checkCommandLineContains([
                             // The build directory
                             "-F", "\(SRCROOT)/build/Debug",
@@ -3604,22 +3607,22 @@ fileprivate struct TaskConstructionTests: CoreBasedTests {
             results.checkTarget(targetName) { target in
                 // There should be one CompileC task.
                 results.checkTask(.matchTarget(target), .matchRuleType("CompileC")) { task in
-                    task.checkRuleInfo(["CompileC", "\(intermediates.str)/aProject.build/Debug/\(targetName).build/Objects-normal/x86_64/SourceFile.o", "\(SRCROOT)/Sources/SourceFile.m", "normal", "x86_64", "objective-c", "com.apple.compilers.llvm.clang.1_0.compiler"])
+                    task.checkRuleInfo(["CompileC", "\(intermediates.str)/aProject.build/Debug/\(targetName).build/Objects-normal/\(results.runDestinationTargetArchitecture)/SourceFile.o", "\(SRCROOT)/Sources/SourceFile.m", "normal", results.runDestinationTargetArchitecture, "objective-c", "com.apple.compilers.llvm.clang.1_0.compiler"])
                     task.checkCommandLineContains([
                         [clangCompilerPath.str, "-x", "objective-c"],
-                        ["-target", "x86_64-apple-macos\(MACOSX_DEPLOYMENT_TARGET)"],
-                        ["-fmessage-length=0", "-fdiagnostics-show-note-include-stack", "-fmacro-backtrace-limit=0", "-fmodules", "-gmodules", "-fmodules-cache-path=\(derivedData.str)/ModuleCache.noindex", "-fmodules-prune-interval=86400", "-fmodules-prune-after=345600", "-fbuild-session-file=\(derivedData.str)/ModuleCache.noindex/Session.modulevalidation", "-fmodules-validate-once-per-build-session", "-Wnon-modular-include-in-framework-module", "-Werror=non-modular-include-in-framework-module", /* non-module standard flags go here */ "-isysroot", core.loadSDK(.macOS).path.str, "-fasm-blocks", "-fstrict-aliasing", "-Wprotocol", "-Wdeprecated-declarations"],
-                        ["-g", "-Wno-sign-conversion", "-Wno-infinite-recursion", "-iquote", "\(intermediates.str)/aProject.build/Debug/CoreFoo.build/CoreFoo-generated-files.hmap", "-I\(intermediates.str)/aProject.build/Debug/CoreFoo.build/CoreFoo-own-target-headers.hmap", "-I\(intermediates.str)/aProject.build/Debug/CoreFoo.build/CoreFoo-all-non-framework-target-headers.hmap", "-ivfsoverlay"], ["-iquote", "\(intermediates.str)/aProject.build/Debug/CoreFoo.build/CoreFoo-project-headers.hmap", "-I\(products.str)/Debug/include", "-I\(intermediates.str)/aProject.build/Debug/\(targetName).build/DerivedSources-normal/x86_64", "-I\(intermediates.str)/aProject.build/Debug/\(targetName).build/DerivedSources", "-F\(products.str)/Debug", "-MMD", "-MT", "dependencies", "-MF", "\(intermediates.str)/aProject.build/Debug/\(targetName).build/Objects-normal/x86_64/SourceFile.d", "--serialize-diagnostics", "\(intermediates.str)/aProject.build/Debug/\(targetName).build/Objects-normal/x86_64/SourceFile.dia", "-c", "\(SRCROOT)/Sources/SourceFile.m", "-o", "\(intermediates.str)/aProject.build/Debug/\(targetName).build/Objects-normal/x86_64/SourceFile.o"]
+                        ["-target", "\(results.runDestinationTargetArchitecture)-apple-macos\(MACOSX_DEPLOYMENT_TARGET)"],
+                        ["-fmessage-length=0", "-fdiagnostics-show-note-include-stack", "-fmacro-backtrace-limit=0", "-fmodules", "-gmodules", "-fmodules-cache-path=\(derivedData.str)/ModuleCache.noindex", "-fmodules-prune-interval=86400", "-fmodules-prune-after=345600", "-fbuild-session-file=\(derivedData.str)/ModuleCache.noindex/Session.modulevalidation", "-fmodules-validate-once-per-build-session", "-Wnon-modular-include-in-framework-module", "-Werror=non-modular-include-in-framework-module", /* non-module standard flags go here */ "-isysroot", core.loadSDK(.macOS).path.str], ["-fstrict-aliasing", "-Wprotocol", "-Wdeprecated-declarations"],
+                        ["-g", "-Wno-sign-conversion", "-Wno-infinite-recursion", "-iquote", "\(intermediates.str)/aProject.build/Debug/CoreFoo.build/CoreFoo-generated-files.hmap", "-I\(intermediates.str)/aProject.build/Debug/CoreFoo.build/CoreFoo-own-target-headers.hmap", "-I\(intermediates.str)/aProject.build/Debug/CoreFoo.build/CoreFoo-all-non-framework-target-headers.hmap", "-ivfsoverlay"], ["-iquote", "\(intermediates.str)/aProject.build/Debug/CoreFoo.build/CoreFoo-project-headers.hmap", "-I\(products.str)/Debug/include", "-I\(intermediates.str)/aProject.build/Debug/\(targetName).build/DerivedSources-normal/\(results.runDestinationTargetArchitecture)", "-I\(intermediates.str)/aProject.build/Debug/\(targetName).build/DerivedSources", "-F\(products.str)/Debug", "-MMD", "-MT", "dependencies", "-MF", "\(intermediates.str)/aProject.build/Debug/\(targetName).build/Objects-normal/\(results.runDestinationTargetArchitecture)/SourceFile.d", "--serialize-diagnostics", "\(intermediates.str)/aProject.build/Debug/\(targetName).build/Objects-normal/\(results.runDestinationTargetArchitecture)/SourceFile.dia", "-c", "\(SRCROOT)/Sources/SourceFile.m", "-o", "\(intermediates.str)/aProject.build/Debug/\(targetName).build/Objects-normal/\(results.runDestinationTargetArchitecture)/SourceFile.o"]
                     ].reduce([], +))
                 }
 
                 // There should be one SwiftDriver task.
                 results.checkTask(.matchTarget(target), .matchRuleType("SwiftDriver Compilation")) { task in
-                    task.checkRuleInfo(["SwiftDriver Compilation", targetName, "normal", "x86_64", "com.apple.xcode.tools.swift.compiler"])
-                    task.checkCommandLineContains([[swiftCompilerPath.str, "-module-name", targetName, "-O", "@\(intermediates.str)/aProject.build/Debug/\(targetName).build/Objects-normal/x86_64/\(targetName).SwiftFileList", "-sdk", core.loadSDK(.macOS).path.str, "-target", "x86_64-apple-macos\(MACOSX_DEPLOYMENT_TARGET)", "-g", "-module-cache-path", "\(derivedData.str)/ModuleCache.noindex", /* options from the xcspec which sometimes change appear here */ "-swift-version", swiftVersion, "-I", "\(products.str)/Debug", "-F", "\(products.str)/Debug", "-parse-as-library", "-c", "-j\(compilerParallelismLevel)", "-incremental", "-output-file-map", "\(intermediates.str)/aProject.build/Debug/\(targetName).build/Objects-normal/x86_64/\(targetName)-OutputFileMap.json", "-serialize-diagnostics", "-emit-dependencies", "-emit-module", "-emit-module-path", "\(intermediates.str)/aProject.build/Debug/\(targetName).build/Objects-normal/x86_64/\(targetName).swiftmodule", "-Xcc", "-I\(intermediates.str)/aProject.build/Debug/\(targetName).build/swift-overrides.hmap", "-Xcc", "-iquote", "-Xcc", "\(intermediates.str)/aProject.build/Debug/CoreFoo.build/CoreFoo-generated-files.hmap", "-Xcc", "-I\(intermediates.str)/aProject.build/Debug/CoreFoo.build/CoreFoo-own-target-headers.hmap", "-Xcc", "-I\(intermediates.str)/aProject.build/Debug/CoreFoo.build/CoreFoo-all-non-framework-target-headers.hmap", "-Xcc", "-ivfsoverlay", "-Xcc"], ["-Xcc", "-iquote", "-Xcc", "\(intermediates.str)/aProject.build/Debug/CoreFoo.build/CoreFoo-project-headers.hmap", "-Xcc", "-I\(products.str)/Debug/include", "-Xcc", "-I\(intermediates.str)/aProject.build/Debug/\(targetName).build/DerivedSources-normal/x86_64", "-Xcc", "-I\(intermediates.str)/aProject.build/Debug/\(targetName).build/DerivedSources", "-emit-objc-header", "-emit-objc-header-path", "\(intermediates.str)/aProject.build/Debug/\(targetName).build/Objects-normal/x86_64/\(targetName)-Swift.h", "-working-directory", SRCROOT]].reduce([], +))
+                    task.checkRuleInfo(["SwiftDriver Compilation", targetName, "normal", results.runDestinationTargetArchitecture, "com.apple.xcode.tools.swift.compiler"])
+                    task.checkCommandLineContains([[swiftCompilerPath.str, "-module-name", targetName, "-O", "@\(intermediates.str)/aProject.build/Debug/\(targetName).build/Objects-normal/\(results.runDestinationTargetArchitecture)/\(targetName).SwiftFileList", "-sdk", core.loadSDK(.macOS).path.str, "-target", "\(results.runDestinationTargetArchitecture)-apple-macos\(MACOSX_DEPLOYMENT_TARGET)", "-g", "-module-cache-path", "\(derivedData.str)/ModuleCache.noindex", /* options from the xcspec which sometimes change appear here */ "-swift-version", swiftVersion, "-I", "\(products.str)/Debug", "-F", "\(products.str)/Debug", "-parse-as-library", "-c", "-j\(compilerParallelismLevel)", "-incremental", "-output-file-map", "\(intermediates.str)/aProject.build/Debug/\(targetName).build/Objects-normal/\(results.runDestinationTargetArchitecture)/\(targetName)-OutputFileMap.json", "-serialize-diagnostics", "-emit-dependencies", "-emit-module", "-emit-module-path", "\(intermediates.str)/aProject.build/Debug/\(targetName).build/Objects-normal/\(results.runDestinationTargetArchitecture)/\(targetName).swiftmodule", "-Xcc", "-I\(intermediates.str)/aProject.build/Debug/\(targetName).build/swift-overrides.hmap", "-Xcc", "-iquote", "-Xcc", "\(intermediates.str)/aProject.build/Debug/CoreFoo.build/CoreFoo-generated-files.hmap", "-Xcc", "-I\(intermediates.str)/aProject.build/Debug/CoreFoo.build/CoreFoo-own-target-headers.hmap", "-Xcc", "-I\(intermediates.str)/aProject.build/Debug/CoreFoo.build/CoreFoo-all-non-framework-target-headers.hmap", "-Xcc", "-ivfsoverlay", "-Xcc"], ["-Xcc", "-iquote", "-Xcc", "\(intermediates.str)/aProject.build/Debug/CoreFoo.build/CoreFoo-project-headers.hmap", "-Xcc", "-I\(products.str)/Debug/include", "-Xcc", "-I\(intermediates.str)/aProject.build/Debug/\(targetName).build/DerivedSources-normal/\(results.runDestinationTargetArchitecture)", "-Xcc", "-I\(intermediates.str)/aProject.build/Debug/\(targetName).build/DerivedSources", "-emit-objc-header", "-emit-objc-header-path", "\(intermediates.str)/aProject.build/Debug/\(targetName).build/Objects-normal/\(results.runDestinationTargetArchitecture)/\(targetName)-Swift.h", "-working-directory", SRCROOT]].reduce([], +))
                 }
 
-                results.checkWriteAuxiliaryFileTask(.matchTarget(target), .matchRule(["WriteAuxiliaryFile", "\(intermediates.str)/aProject.build/Debug/\(targetName).build/Objects-normal/x86_64/\(targetName).SwiftFileList"])) { task, contents in
+                results.checkWriteAuxiliaryFileTask(.matchTarget(target), .matchRule(["WriteAuxiliaryFile", "\(intermediates.str)/aProject.build/Debug/\(targetName).build/Objects-normal/\(results.runDestinationTargetArchitecture)/\(targetName).SwiftFileList"])) { task, contents in
                     let lines = contents.asString.components(separatedBy: .newlines)
                     #expect(lines == ["\(SRCROOT)/Sources/SwiftFile.swift", ""])
                 }
@@ -3635,22 +3638,22 @@ fileprivate struct TaskConstructionTests: CoreBasedTests {
             results.checkTarget(targetName) { target in
                 // There should be one CompileC task.
                 results.checkTask(.matchTarget(target), .matchRuleType("CompileC")) { task in
-                    task.checkRuleInfo(["CompileC", "\(intermediates.str)/aProject.build/Debug/\(targetName).build/Objects-normal/x86_64/SourceFile.o", "\(SRCROOT)/Sources/SourceFile.m", "normal", "x86_64", "objective-c", "com.apple.compilers.llvm.clang.1_0.compiler"])
+                    task.checkRuleInfo(["CompileC", "\(intermediates.str)/aProject.build/Debug/\(targetName).build/Objects-normal/\(results.runDestinationTargetArchitecture)/SourceFile.o", "\(SRCROOT)/Sources/SourceFile.m", "normal", results.runDestinationTargetArchitecture, "objective-c", "com.apple.compilers.llvm.clang.1_0.compiler"])
                     task.checkCommandLineContains([
                         [clangCompilerPath.str, "-x", "objective-c"],
-                        ["-target", "x86_64-apple-macos\(MACOSX_DEPLOYMENT_TARGET)"],
-                        ["-fmessage-length=0", "-fdiagnostics-show-note-include-stack", "-fmacro-backtrace-limit=0", "-fmodules", "-gmodules", "-fmodules-cache-path=\(derivedData.str)/ModuleCache.noindex", "-fmodules-prune-interval=86400", "-fmodules-prune-after=345600", "-fbuild-session-file=\(derivedData.str)/ModuleCache.noindex/Session.modulevalidation", "-fmodules-validate-once-per-build-session", "-Wnon-modular-include-in-framework-module", "-Werror=non-modular-include-in-framework-module", /* non-module standard flags go here */ "-isysroot", core.loadSDK(.macOS).path.str, "-fasm-blocks", "-fstrict-aliasing", "-Wprotocol", "-Wdeprecated-declarations"],
-                        ["-g", "-Wno-sign-conversion", "-Wno-infinite-recursion", "-iquote", "\(intermediates.str)/aProject.build/Debug/CoreFoo.build/CoreFoo-generated-files.hmap", "-I\(intermediates.str)/aProject.build/Debug/CoreFoo.build/CoreFoo-own-target-headers.hmap", "-I\(intermediates.str)/aProject.build/Debug/CoreFoo.build/CoreFoo-all-target-headers.hmap", "-iquote", "\(intermediates.str)/aProject.build/Debug/CoreFoo.build/CoreFoo-project-headers.hmap", "-I\(products.str)/Debug/include", "-I\(intermediates.str)/aProject.build/Debug/\(targetName).build/DerivedSources-normal/x86_64", "-I\(intermediates.str)/aProject.build/Debug/\(targetName).build/DerivedSources", "-F\(products.str)/Debug", "-MMD", "-MT", "dependencies", "-MF", "\(intermediates.str)/aProject.build/Debug/\(targetName).build/Objects-normal/x86_64/SourceFile.d", "--serialize-diagnostics", "\(intermediates.str)/aProject.build/Debug/\(targetName).build/Objects-normal/x86_64/SourceFile.dia", "-c", "\(SRCROOT)/Sources/SourceFile.m", "-o", "\(intermediates.str)/aProject.build/Debug/\(targetName).build/Objects-normal/x86_64/SourceFile.o"]
+                        ["-target", "\(results.runDestinationTargetArchitecture)-apple-macos\(MACOSX_DEPLOYMENT_TARGET)"],
+                        ["-fmessage-length=0", "-fdiagnostics-show-note-include-stack", "-fmacro-backtrace-limit=0", "-fmodules", "-gmodules", "-fmodules-cache-path=\(derivedData.str)/ModuleCache.noindex", "-fmodules-prune-interval=86400", "-fmodules-prune-after=345600", "-fbuild-session-file=\(derivedData.str)/ModuleCache.noindex/Session.modulevalidation", "-fmodules-validate-once-per-build-session", "-Wnon-modular-include-in-framework-module", "-Werror=non-modular-include-in-framework-module", /* non-module standard flags go here */ "-isysroot", core.loadSDK(.macOS).path.str], ["-fstrict-aliasing", "-Wprotocol", "-Wdeprecated-declarations"],
+                        ["-g", "-Wno-sign-conversion", "-Wno-infinite-recursion", "-iquote", "\(intermediates.str)/aProject.build/Debug/CoreFoo.build/CoreFoo-generated-files.hmap", "-I\(intermediates.str)/aProject.build/Debug/CoreFoo.build/CoreFoo-own-target-headers.hmap", "-I\(intermediates.str)/aProject.build/Debug/CoreFoo.build/CoreFoo-all-target-headers.hmap", "-iquote", "\(intermediates.str)/aProject.build/Debug/CoreFoo.build/CoreFoo-project-headers.hmap", "-I\(products.str)/Debug/include", "-I\(intermediates.str)/aProject.build/Debug/\(targetName).build/DerivedSources-normal/\(results.runDestinationTargetArchitecture)", "-I\(intermediates.str)/aProject.build/Debug/\(targetName).build/DerivedSources", "-F\(products.str)/Debug", "-MMD", "-MT", "dependencies", "-MF", "\(intermediates.str)/aProject.build/Debug/\(targetName).build/Objects-normal/\(results.runDestinationTargetArchitecture)/SourceFile.d", "--serialize-diagnostics", "\(intermediates.str)/aProject.build/Debug/\(targetName).build/Objects-normal/\(results.runDestinationTargetArchitecture)/SourceFile.dia", "-c", "\(SRCROOT)/Sources/SourceFile.m", "-o", "\(intermediates.str)/aProject.build/Debug/\(targetName).build/Objects-normal/\(results.runDestinationTargetArchitecture)/SourceFile.o"]
                     ].reduce([], +))
                 }
 
                 // There should be one SwiftDriver task.
                 results.checkTask(.matchTarget(target), .matchRuleType("SwiftDriver Compilation")) { task in
-                    task.checkRuleInfo(["SwiftDriver Compilation", targetName, "normal", "x86_64", "com.apple.xcode.tools.swift.compiler"])
-                    task.checkCommandLineContains([swiftCompilerPath.str, "-module-name", targetName, "-O", "@\(intermediates.str)/aProject.build/Debug/\(targetName).build/Objects-normal/x86_64/\(targetName).SwiftFileList", "-sdk", core.loadSDK(.macOS).path.str, "-target", "x86_64-apple-macos\(MACOSX_DEPLOYMENT_TARGET)", "-g", "-module-cache-path", "\(derivedData.str)/ModuleCache.noindex", /* options from the xcspec which sometimes change appear here */ "-swift-version", swiftVersion, "-I", "\(products.str)/Debug", "-F", "\(products.str)/Debug", "-parse-as-library", "-c", "-j\(compilerParallelismLevel)", "-incremental", "-output-file-map", "\(intermediates.str)/aProject.build/Debug/\(targetName).build/Objects-normal/x86_64/\(targetName)-OutputFileMap.json", "-serialize-diagnostics", "-emit-dependencies", "-emit-module", "-emit-module-path", "\(intermediates.str)/aProject.build/Debug/\(targetName).build/Objects-normal/x86_64/\(targetName).swiftmodule", "-Xcc", "-I\(intermediates.str)/aProject.build/Debug/\(targetName).build/swift-overrides.hmap", "-Xcc", "-iquote", "-Xcc", "\(intermediates.str)/aProject.build/Debug/CoreFoo.build/CoreFoo-generated-files.hmap", "-Xcc", "-I\(intermediates.str)/aProject.build/Debug/CoreFoo.build/CoreFoo-own-target-headers.hmap", "-Xcc", "-I\(intermediates.str)/aProject.build/Debug/CoreFoo.build/CoreFoo-all-target-headers.hmap", "-Xcc", "-iquote", "-Xcc", "\(intermediates.str)/aProject.build/Debug/CoreFoo.build/CoreFoo-project-headers.hmap", "-Xcc", "-I\(products.str)/Debug/include", "-Xcc", "-I\(intermediates.str)/aProject.build/Debug/\(targetName).build/DerivedSources-normal/x86_64", "-Xcc", "-I\(intermediates.str)/aProject.build/Debug/\(targetName).build/DerivedSources", "-emit-objc-header", "-emit-objc-header-path", "\(intermediates.str)/aProject.build/Debug/\(targetName).build/Objects-normal/x86_64/\(targetName)-Swift.h", "-working-directory", SRCROOT])
+                    task.checkRuleInfo(["SwiftDriver Compilation", targetName, "normal", results.runDestinationTargetArchitecture, "com.apple.xcode.tools.swift.compiler"])
+                    task.checkCommandLineContains([swiftCompilerPath.str, "-module-name", targetName, "-O", "@\(intermediates.str)/aProject.build/Debug/\(targetName).build/Objects-normal/\(results.runDestinationTargetArchitecture)/\(targetName).SwiftFileList", "-sdk", core.loadSDK(.macOS).path.str, "-target", "\(results.runDestinationTargetArchitecture)-apple-macos\(MACOSX_DEPLOYMENT_TARGET)", "-g", "-module-cache-path", "\(derivedData.str)/ModuleCache.noindex", /* options from the xcspec which sometimes change appear here */ "-swift-version", swiftVersion, "-I", "\(products.str)/Debug", "-F", "\(products.str)/Debug", "-parse-as-library", "-c", "-j\(compilerParallelismLevel)", "-incremental", "-output-file-map", "\(intermediates.str)/aProject.build/Debug/\(targetName).build/Objects-normal/\(results.runDestinationTargetArchitecture)/\(targetName)-OutputFileMap.json", "-serialize-diagnostics", "-emit-dependencies", "-emit-module", "-emit-module-path", "\(intermediates.str)/aProject.build/Debug/\(targetName).build/Objects-normal/\(results.runDestinationTargetArchitecture)/\(targetName).swiftmodule", "-Xcc", "-I\(intermediates.str)/aProject.build/Debug/\(targetName).build/swift-overrides.hmap", "-Xcc", "-iquote", "-Xcc", "\(intermediates.str)/aProject.build/Debug/CoreFoo.build/CoreFoo-generated-files.hmap", "-Xcc", "-I\(intermediates.str)/aProject.build/Debug/CoreFoo.build/CoreFoo-own-target-headers.hmap", "-Xcc", "-I\(intermediates.str)/aProject.build/Debug/CoreFoo.build/CoreFoo-all-target-headers.hmap", "-Xcc", "-iquote", "-Xcc", "\(intermediates.str)/aProject.build/Debug/CoreFoo.build/CoreFoo-project-headers.hmap", "-Xcc", "-I\(products.str)/Debug/include", "-Xcc", "-I\(intermediates.str)/aProject.build/Debug/\(targetName).build/DerivedSources-normal/\(results.runDestinationTargetArchitecture)", "-Xcc", "-I\(intermediates.str)/aProject.build/Debug/\(targetName).build/DerivedSources", "-emit-objc-header", "-emit-objc-header-path", "\(intermediates.str)/aProject.build/Debug/\(targetName).build/Objects-normal/\(results.runDestinationTargetArchitecture)/\(targetName)-Swift.h", "-working-directory", SRCROOT])
                 }
 
-                results.checkWriteAuxiliaryFileTask(.matchTarget(target), .matchRule(["WriteAuxiliaryFile", "\(intermediates.str)/aProject.build/Debug/\(targetName).build/Objects-normal/x86_64/\(targetName).SwiftFileList"])) { task, contents in
+                results.checkWriteAuxiliaryFileTask(.matchTarget(target), .matchRule(["WriteAuxiliaryFile", "\(intermediates.str)/aProject.build/Debug/\(targetName).build/Objects-normal/\(results.runDestinationTargetArchitecture)/\(targetName).SwiftFileList"])) { task, contents in
                     let lines = contents.asString.components(separatedBy: .newlines)
                     #expect(lines == ["\(SRCROOT)/Sources/SwiftFile.swift", ""])
                 }
@@ -4000,7 +4003,7 @@ fileprivate struct TaskConstructionTests: CoreBasedTests {
                             searchPaths.append(arg)
                         }
                     }
-                    #expect(searchPaths == ["-iquote", "\(SRCROOT)/build/aProject.build/Debug/\(targetName).build/\(targetName)-generated-files.hmap", "-I\(SRCROOT)/build/aProject.build/Debug/\(targetName).build/\(targetName)-own-target-headers.hmap", "-I\(SRCROOT)/build/aProject.build/Debug/\(targetName).build/\(targetName)-all-target-headers.hmap", "-iquote", "\(SRCROOT)/build/aProject.build/Debug/\(targetName).build/\(targetName)-project-headers.hmap", "-I\(SRCROOT)/build/Debug/include", "-I/Local/Library/Headers", "-I../../Sources", "-isystem", "/System/Library/Include", "-I\(SRCROOT)/build/aProject.build/Debug/\(targetName).build/DerivedSources-normal/x86_64", "-I\(SRCROOT)/build/aProject.build/Debug/\(targetName).build/DerivedSources/x86_64", "-I\(SRCROOT)/build/aProject.build/Debug/\(targetName).build/DerivedSources",  "-F\(SRCROOT)/build/Debug", "-F/Local/Library/Frameworks", "-F/Local/Library/Frameworks", "-iframework", "/System/Library/PrivateFrameworks"])
+                    #expect(searchPaths == ["-iquote", "\(SRCROOT)/build/aProject.build/Debug/\(targetName).build/\(targetName)-generated-files.hmap", "-I\(SRCROOT)/build/aProject.build/Debug/\(targetName).build/\(targetName)-own-target-headers.hmap", "-I\(SRCROOT)/build/aProject.build/Debug/\(targetName).build/\(targetName)-all-target-headers.hmap", "-iquote", "\(SRCROOT)/build/aProject.build/Debug/\(targetName).build/\(targetName)-project-headers.hmap", "-I\(SRCROOT)/build/Debug/include", "-I/Local/Library/Headers", "-I../../Sources", "-isystem", "/System/Library/Include", "-I\(SRCROOT)/build/aProject.build/Debug/\(targetName).build/DerivedSources-normal/\(results.runDestinationTargetArchitecture)", "-I\(SRCROOT)/build/aProject.build/Debug/\(targetName).build/DerivedSources/\(results.runDestinationTargetArchitecture)", "-I\(SRCROOT)/build/aProject.build/Debug/\(targetName).build/DerivedSources",  "-F\(SRCROOT)/build/Debug", "-F/Local/Library/Frameworks", "-F/Local/Library/Frameworks", "-iframework", "/System/Library/PrivateFrameworks"])
                 }
 
                 // Check options in the swiftc command.
@@ -4027,7 +4030,7 @@ fileprivate struct TaskConstructionTests: CoreBasedTests {
                             }
                         }
                     }
-                    #expect(searchPaths == ["-I", "\(SRCROOT)/build/Debug", "-F", "\(SRCROOT)/build/Debug", "-F", "/Local/Library/Frameworks", "-F", "/Local/Library/Frameworks", "-F", "/System/Library/PrivateFrameworks", "-Xcc", "-I\(SRCROOT)/build/aProject.build/Debug/\(targetName).build/swift-overrides.hmap", "-Xcc", "-iquote", "-Xcc", "\(SRCROOT)/build/aProject.build/Debug/\(targetName).build/\(targetName)-generated-files.hmap", "-Xcc", "-I\(SRCROOT)/build/aProject.build/Debug/\(targetName).build/\(targetName)-own-target-headers.hmap", "-Xcc", "-I\(SRCROOT)/build/aProject.build/Debug/\(targetName).build/\(targetName)-all-target-headers.hmap", "-Xcc", "-iquote", "-Xcc", "\(SRCROOT)/build/aProject.build/Debug/\(targetName).build/\(targetName)-project-headers.hmap", "-Xcc", "-I\(SRCROOT)/build/Debug/include", "-Xcc", "-I/Local/Library/Headers", "-Xcc", "-I../../Sources", "-Xcc", "-isystem", "-Xcc", "/System/Library/Include", "-Xcc", "-I\(SRCROOT)/build/aProject.build/Debug/\(targetName).build/DerivedSources-normal/x86_64", "-Xcc", "-I\(SRCROOT)/build/aProject.build/Debug/\(targetName).build/DerivedSources/x86_64", "-Xcc", "-I\(SRCROOT)/build/aProject.build/Debug/\(targetName).build/DerivedSources"])
+                    #expect(searchPaths == ["-I", "\(SRCROOT)/build/Debug", "-F", "\(SRCROOT)/build/Debug", "-F", "/Local/Library/Frameworks", "-F", "/Local/Library/Frameworks", "-F", "/System/Library/PrivateFrameworks", "-Xcc", "-I\(SRCROOT)/build/aProject.build/Debug/\(targetName).build/swift-overrides.hmap", "-Xcc", "-iquote", "-Xcc", "\(SRCROOT)/build/aProject.build/Debug/\(targetName).build/\(targetName)-generated-files.hmap", "-Xcc", "-I\(SRCROOT)/build/aProject.build/Debug/\(targetName).build/\(targetName)-own-target-headers.hmap", "-Xcc", "-I\(SRCROOT)/build/aProject.build/Debug/\(targetName).build/\(targetName)-all-target-headers.hmap", "-Xcc", "-iquote", "-Xcc", "\(SRCROOT)/build/aProject.build/Debug/\(targetName).build/\(targetName)-project-headers.hmap", "-Xcc", "-I\(SRCROOT)/build/Debug/include", "-Xcc", "-I/Local/Library/Headers", "-Xcc", "-I../../Sources", "-Xcc", "-isystem", "-Xcc", "/System/Library/Include", "-Xcc", "-I\(SRCROOT)/build/aProject.build/Debug/\(targetName).build/DerivedSources-normal/\(results.runDestinationTargetArchitecture)", "-Xcc", "-I\(SRCROOT)/build/aProject.build/Debug/\(targetName).build/DerivedSources/\(results.runDestinationTargetArchitecture)", "-Xcc", "-I\(SRCROOT)/build/aProject.build/Debug/\(targetName).build/DerivedSources"])
                 }
 
                 // Check options in the link command.
@@ -4116,13 +4119,13 @@ fileprivate struct TaskConstructionTests: CoreBasedTests {
                 results.checkTarget(targetName) { target in
                     // There should be one CompileC task, which includes the ASan option, and which puts its output in a -asan directory.
                     results.checkTask(.matchTarget(target), .matchRuleType("CompileC")) { task in
-                        task.checkRuleInfo([.equal("CompileC"), .equal("\(SRCROOT)/build/aProject.build/Debug/\(targetName).build/Objects-normal-asan/x86_64/SourceFile.o"), .suffix("SourceFile.m"), .any, .any, .any, .any])
-                        task.checkCommandLineContains(["\(core.developerPath.path.str)/Toolchains/XcodeDefault.xctoolchain/usr/bin/clang", "-fsanitize=address", "-fsanitize-stable-abi", "\(SRCROOT)/build/aProject.build/Debug/\(targetName).build/Objects-normal-asan/x86_64/SourceFile.o"])
+                        task.checkRuleInfo([.equal("CompileC"), .equal("\(SRCROOT)/build/aProject.build/Debug/\(targetName).build/Objects-normal-asan/\(results.runDestinationTargetArchitecture)/SourceFile.o"), .suffix("SourceFile.m"), .any, .any, .any, .any])
+                        task.checkCommandLineContains(["\(core.developerPath.path.str)/Toolchains/XcodeDefault.xctoolchain/usr/bin/clang", "-fsanitize=address", "-fsanitize-stable-abi", "\(SRCROOT)/build/aProject.build/Debug/\(targetName).build/Objects-normal-asan/\(results.runDestinationTargetArchitecture)/SourceFile.o"])
                     }
                     //There should be no task to copy dylib. While testing for -fsanitize-stable-abi is a temporary test. This test should remain.
                     results.checkNoTask(.matchTarget(target), .matchRuleType("Copy"), .matchRuleItemBasename("libclang_rt.asan_osx_dynamic.dylib"))
                     results.checkTask(.matchTarget(target), .matchRuleType("SwiftDriver Compilation")) { task in
-                        task.checkCommandLineContains(["\(core.developerPath.path.str)/Toolchains/XcodeDefault.xctoolchain/usr/bin/swiftc", "-sanitize=address", "-sanitize-stable-abi", "\(SRCROOT)/build/aProject.build/Debug/\(targetName).build/Objects-normal-asan/x86_64/\(targetName)-OutputFileMap.json"])
+                        task.checkCommandLineContains(["\(core.developerPath.path.str)/Toolchains/XcodeDefault.xctoolchain/usr/bin/swiftc", "-sanitize=address", "-sanitize-stable-abi", "\(SRCROOT)/build/aProject.build/Debug/\(targetName).build/Objects-normal-asan/\(results.runDestinationTargetArchitecture)/\(targetName)-OutputFileMap.json"])
                     }
                     results.checkTask(.matchTarget(target), .matchRuleType("Ld")) { task in
                         task.checkCommandLineContains(
@@ -4136,13 +4139,13 @@ fileprivate struct TaskConstructionTests: CoreBasedTests {
                 results.checkTarget(targetName) { target in
                     // There should be one CompileC task, which includes the ASan option, and which puts its output in a -asan directory.
                     results.checkTask(.matchTarget(target), .matchRuleType("CompileC")) { task in
-                        task.checkRuleInfo([.equal("CompileC"), .equal("\(SRCROOT)/build/aProject.build/Debug/\(targetName).build/Objects-normal-asan/x86_64/SourceFile.o"), .suffix("SourceFile.m"), .any, .any, .any, .any])
-                        task.checkCommandLineContains(["\(core.developerPath.path.str)/Toolchains/XcodeDefault.xctoolchain/usr/bin/clang", "-fsanitize=address", "-D_LIBCPP_HAS_NO_ASAN", "-D_LIBCPP_HAS_ASAN=0", "\(SRCROOT)/build/aProject.build/Debug/\(targetName).build/Objects-normal-asan/x86_64/SourceFile.o"])
+                        task.checkRuleInfo([.equal("CompileC"), .equal("\(SRCROOT)/build/aProject.build/Debug/\(targetName).build/Objects-normal-asan/\(results.runDestinationTargetArchitecture)/SourceFile.o"), .suffix("SourceFile.m"), .any, .any, .any, .any])
+                        task.checkCommandLineContains(["\(core.developerPath.path.str)/Toolchains/XcodeDefault.xctoolchain/usr/bin/clang", "-fsanitize=address", "-D_LIBCPP_HAS_NO_ASAN", "-D_LIBCPP_HAS_ASAN=0", "\(SRCROOT)/build/aProject.build/Debug/\(targetName).build/Objects-normal-asan/\(results.runDestinationTargetArchitecture)/SourceFile.o"])
                     }
 
                     // There should be one CompileSwiftSources task, which includes the ASan option, and which puts its output in a -asan directory.
                     results.checkTask(.matchTarget(target), .matchRuleType("SwiftDriver Compilation")) { task in
-                        task.checkCommandLineContains(["\(core.developerPath.path.str)/Toolchains/XcodeDefault.xctoolchain/usr/bin/swiftc", "-sanitize=address", "\(SRCROOT)/build/aProject.build/Debug/\(targetName).build/Objects-normal-asan/x86_64/\(targetName)-OutputFileMap.json"])
+                        task.checkCommandLineContains(["\(core.developerPath.path.str)/Toolchains/XcodeDefault.xctoolchain/usr/bin/swiftc", "-sanitize=address", "\(SRCROOT)/build/aProject.build/Debug/\(targetName).build/Objects-normal-asan/\(results.runDestinationTargetArchitecture)/\(targetName)-OutputFileMap.json"])
                     }
 
                     // There should be one Ld task.
@@ -4270,13 +4273,13 @@ fileprivate struct TaskConstructionTests: CoreBasedTests {
                 results.checkTarget(targetName) { target in
                     // There should be one CompileC task, which includes the TSan option, and which puts its output in a -tsan directory.
                     results.checkTask(.matchTarget(target), .matchRuleType("CompileC")) { task in
-                        task.checkRuleInfo([.equal("CompileC"), .equal("\(SRCROOT)/build/aProject.build/Debug/\(targetName).build/Objects-normal-tsan/x86_64/SourceFile.o"), .suffix("SourceFile.m"), .any, .any, .any, .any])
-                        task.checkCommandLineContains(["\(core.developerPath.path.str)/Toolchains/XcodeDefault.xctoolchain/usr/bin/clang", "-fsanitize=thread", "\(SRCROOT)/build/aProject.build/Debug/\(targetName).build/Objects-normal-tsan/x86_64/SourceFile.o"])
+                        task.checkRuleInfo([.equal("CompileC"), .equal("\(SRCROOT)/build/aProject.build/Debug/\(targetName).build/Objects-normal-tsan/\(results.runDestinationTargetArchitecture)/SourceFile.o"), .suffix("SourceFile.m"), .any, .any, .any, .any])
+                        task.checkCommandLineContains(["\(core.developerPath.path.str)/Toolchains/XcodeDefault.xctoolchain/usr/bin/clang", "-fsanitize=thread", "\(SRCROOT)/build/aProject.build/Debug/\(targetName).build/Objects-normal-tsan/\(results.runDestinationTargetArchitecture)/SourceFile.o"])
                     }
 
                     // There should be one CompileSwiftSources task, which includes the TSan option, and which puts its output in a -tsan directory.
                     results.checkTask(.matchTarget(target), .matchRuleType("SwiftDriver Compilation")) { task in
-                        task.checkCommandLineContains(["\(core.developerPath.path.str)/Toolchains/XcodeDefault.xctoolchain/usr/bin/swiftc", "-sanitize=thread", "\(SRCROOT)/build/aProject.build/Debug/\(targetName).build/Objects-normal-tsan/x86_64/\(targetName)-OutputFileMap.json"])
+                        task.checkCommandLineContains(["\(core.developerPath.path.str)/Toolchains/XcodeDefault.xctoolchain/usr/bin/swiftc", "-sanitize=thread", "\(SRCROOT)/build/aProject.build/Debug/\(targetName).build/Objects-normal-tsan/\(results.runDestinationTargetArchitecture)/\(targetName)-OutputFileMap.json"])
                     }
 
                     // There should be one Ld task.
@@ -4325,13 +4328,13 @@ fileprivate struct TaskConstructionTests: CoreBasedTests {
                 results.checkTarget(targetName) { target in
                     // There should be one CompileC task, which includes the UBSan option, and which puts its output in a -ubsan directory.
                     results.checkTask(.matchTarget(target), .matchRuleType("CompileC")) { task in
-                        task.checkRuleInfo([.equal("CompileC"), .equal("\(SRCROOT)/build/aProject.build/Debug/\(targetName).build/Objects-normal-ubsan/x86_64/SourceFile.o"), .suffix("SourceFile.m"), .any, .any, .any, .any])
-                        task.checkCommandLineContains(["\(core.developerPath.path.str)/Toolchains/XcodeDefault.xctoolchain/usr/bin/clang", "-fsanitize=undefined", "\(SRCROOT)/build/aProject.build/Debug/\(targetName).build/Objects-normal-ubsan/x86_64/SourceFile.o"])
+                        task.checkRuleInfo([.equal("CompileC"), .equal("\(SRCROOT)/build/aProject.build/Debug/\(targetName).build/Objects-normal-ubsan/\(results.runDestinationTargetArchitecture)/SourceFile.o"), .suffix("SourceFile.m"), .any, .any, .any, .any])
+                        task.checkCommandLineContains(["\(core.developerPath.path.str)/Toolchains/XcodeDefault.xctoolchain/usr/bin/clang", "-fsanitize=undefined", "\(SRCROOT)/build/aProject.build/Debug/\(targetName).build/Objects-normal-ubsan/\(results.runDestinationTargetArchitecture)/SourceFile.o"])
                     }
 
                     // There should be one CompileSwiftSources task, which puts its output in a -ubsan directory.  But the UBSan option is not passed for swift.
                     results.checkTask(.matchTarget(target), .matchRuleType("SwiftDriver Compilation")) { task in
-                        task.checkCommandLineContains(["\(core.developerPath.path.str)/Toolchains/XcodeDefault.xctoolchain/usr/bin/swiftc", "\(SRCROOT)/build/aProject.build/Debug/\(targetName).build/Objects-normal-ubsan/x86_64/\(targetName)-OutputFileMap.json"])
+                        task.checkCommandLineContains(["\(core.developerPath.path.str)/Toolchains/XcodeDefault.xctoolchain/usr/bin/swiftc", "\(SRCROOT)/build/aProject.build/Debug/\(targetName).build/Objects-normal-ubsan/\(results.runDestinationTargetArchitecture)/\(targetName)-OutputFileMap.json"])
                     }
 
                     // There should be one Ld task.
@@ -5443,7 +5446,7 @@ fileprivate struct TaskConstructionTests: CoreBasedTests {
         await tester.checkBuild(runDestination: .macOS) { results in
             results.checkTarget("Tool") { target in
                 results.checkWriteAuxiliaryFileTask(.matchTarget(target), .matchRuleType("WriteAuxiliaryFile"), .matchRuleItemBasename("Tool.LinkFileList")) { task, contents in
-                    #expect(contents == "/tmp/Test/aProject/build/aProject.build/Debug/Tool.build/Objects-normal/x86_64/SourceFile.o\n/tmp/Test/aProject/build/Debug/ObjectFile1.o\n")
+                    #expect(contents == "/tmp/Test/aProject/build/aProject.build/Debug/Tool.build/Objects-normal/\(results.runDestinationTargetArchitecture)/SourceFile.o\n/tmp/Test/aProject/build/Debug/ObjectFile1.o\n")
                     task.checkCommandLineDoesNotContain("\(SRCROOT)/build/Debug/ObjectFile2.o")
                 }
             }
@@ -5512,10 +5515,10 @@ fileprivate struct TaskConstructionTests: CoreBasedTests {
         await tester.checkBuild(runDestination: .macOS) { results in
             results.checkTarget("Tool") { target in
                 results.checkTask(.matchTarget(target), .matchRuleType("CompileC"), .matchRuleItemBasename("File.c")) { task in
-                    task.checkCommandLineContains(["\(SRCROOT)/build/aProject.build/Debug/Tool.build/Objects-normal/x86_64/File-\(BuildPhaseWithBuildFiles.filenameUniquefierSuffixFor(path: Path(SRCROOT).join("File.c"))).o"])
+                    task.checkCommandLineContains(["\(SRCROOT)/build/aProject.build/Debug/Tool.build/Objects-normal/\(results.runDestinationTargetArchitecture)/File-\(BuildPhaseWithBuildFiles.filenameUniquefierSuffixFor(path: Path(SRCROOT).join("File.c"))).o"])
                 }
                 results.checkTask(.matchTarget(target), .matchRuleType("CompileC"), .matchRuleItemBasename("file.c")) { task in
-                    task.checkCommandLineContains(["\(SRCROOT)/build/aProject.build/Debug/Tool.build/Objects-normal/x86_64/file-\(BuildPhaseWithBuildFiles.filenameUniquefierSuffixFor(path: Path(SRCROOT).join("file.c"))).o"])
+                    task.checkCommandLineContains(["\(SRCROOT)/build/aProject.build/Debug/Tool.build/Objects-normal/\(results.runDestinationTargetArchitecture)/file-\(BuildPhaseWithBuildFiles.filenameUniquefierSuffixFor(path: Path(SRCROOT).join("file.c"))).o"])
                 }
             }
         }
@@ -7234,7 +7237,7 @@ fileprivate struct TaskConstructionTests: CoreBasedTests {
 
                 // For Swift, we need to check the actual output files.
                 results.checkTask(.matchTarget(target), .matchRuleType("SwiftDriver Compilation")) { task in
-                    task.checkRuleInfo(["SwiftDriver Compilation", "AppTarget", "normal", "x86_64", "com.apple.xcode.tools.swift.compiler"])
+                    task.checkRuleInfo(["SwiftDriver Compilation", "AppTarget", "normal", results.runDestinationTargetArchitecture, "com.apple.xcode.tools.swift.compiler"])
 
                     // Make sure that no path in the outputs occurs more than once.
                     let outputPaths = task.outputs.map({ $0.path })

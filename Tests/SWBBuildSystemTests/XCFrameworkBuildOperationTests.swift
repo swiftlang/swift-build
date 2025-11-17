@@ -265,10 +265,10 @@ fileprivate struct XCFrameworkBuildOperationTests: CoreBasedTests {
                 let buildDir = Path(buildDirectory).join("Debug")
                 let basePath = buildDir.join(frameworkName)
 
-                results.checkTask(.matchRule(["CompileC", "\(buildDirectory)/aProject.build/Debug/F3.build/Objects-normal/x86_64/A3.o", "\(sourceDirectory)/Sources/A3.c", "normal", "x86_64", "c", "com.apple.compilers.llvm.clang.1_0.compiler"])) { _ in }
+                results.checkTask(.matchRule(["CompileC", "\(buildDirectory)/aProject.build/Debug/F3.build/Objects-normal/x86_64/A3.o", "\(sourceDirectory)/Sources/A3.c", "normal", results.runDestinationTargetArchitecture, "c", "com.apple.compilers.llvm.clang.1_0.compiler"])) { _ in }
                 results.checkTask(.matchRule(["ProcessXCFramework", "\(sourceDirectory)/Sources/sample.xcframework", basePath.str, "macos"])) { _ in }
-                results.checkTask(.matchRule(["CompileC", "\(buildDirectory)/aProject.build/Debug/F2.build/Objects-normal/x86_64/A2.o", "\(sourceDirectory)/Sources/A2.c", "normal", "x86_64", "c", "com.apple.compilers.llvm.clang.1_0.compiler"])) { _ in }
-                results.checkTask(.matchRule(["CompileC", "\(buildDirectory)/aProject.build/Debug/F1.build/Objects-normal/x86_64/A1.o", "\(sourceDirectory)/Sources/A1.c", "normal", "x86_64", "c", "com.apple.compilers.llvm.clang.1_0.compiler"])) { _ in }
+                results.checkTask(.matchRule(["CompileC", "\(buildDirectory)/aProject.build/Debug/F2.build/Objects-normal/x86_64/A2.o", "\(sourceDirectory)/Sources/A2.c", "normal", results.runDestinationTargetArchitecture, "c", "com.apple.compilers.llvm.clang.1_0.compiler"])) { _ in }
+                results.checkTask(.matchRule(["CompileC", "\(buildDirectory)/aProject.build/Debug/F1.build/Objects-normal/x86_64/A1.o", "\(sourceDirectory)/Sources/A1.c", "normal", results.runDestinationTargetArchitecture, "c", "com.apple.compilers.llvm.clang.1_0.compiler"])) { _ in }
                 results.checkTask(.matchRuleType("Ld"), .matchRuleItem("\(buildDirectory)/Debug/F3.framework/Versions/A/F3")) { _ in }
                 results.checkTask(.matchRuleType("Ld"), .matchRuleItem("\(buildDirectory)/Debug/F2.app/Contents/MacOS/F2")) { _ in }
                 results.checkTask(.matchRuleType("Ld"), .matchRuleItem("\(buildDirectory)/Debug/F1.app/Contents/MacOS/F1")) { _ in }
@@ -297,20 +297,20 @@ fileprivate struct XCFrameworkBuildOperationTests: CoreBasedTests {
             }
 
             // Check a normal build.
-            try await tester.checkBuild(parameters: parameters, runDestination: .macOS, persistent: true, signableTargets: signableTargets, signableTargetInputs: signableTargetInputs) { results in
+            try await tester.checkBuild(parameters: parameters, runDestination: .macOSIntel, persistent: true, signableTargets: signableTargets, signableTargetInputs: signableTargetInputs) { results in
                 try validateBuild(results)
             }
 
             // Clean out the build folder.
-            try await tester.checkBuild(parameters: parameters, runDestination: .macOS, buildCommand: .cleanBuildFolder(style: .regular)) { _ in }
+            try await tester.checkBuild(parameters: parameters, runDestination: .macOSIntel, buildCommand: .cleanBuildFolder(style: .regular)) { _ in }
 
             // Check a test build.
-            try await tester.checkBuild(parameters: parameters, runDestination: .macOS, schemeCommand: .test, persistent: true, signableTargets: signableTargets, signableTargetInputs: signableTargetInputs) { results in
+            try await tester.checkBuild(parameters: parameters, runDestination: .macOSIntel, schemeCommand: .test, persistent: true, signableTargets: signableTargets, signableTargetInputs: signableTargetInputs) { results in
                 try validateBuild(results)
             }
 
             // Clean out the build folder.
-            try await tester.checkBuild(parameters: parameters, runDestination: .macOS, buildCommand: .cleanBuildFolder(style: .regular)) { _ in }
+            try await tester.checkBuild(parameters: parameters, runDestination: .macOSIntel, buildCommand: .cleanBuildFolder(style: .regular)) { _ in }
 
             // Check building a package.
             let relevantTargets = tester.workspace.allTargets.filter { ["F4", "F5", "F6", "F7", "F8"].contains($0.name) }
@@ -318,7 +318,7 @@ fileprivate struct XCFrameworkBuildOperationTests: CoreBasedTests {
                                        buildTargets: relevantTargets.map { BuildRequest.BuildTargetInfo(parameters: parameters, target: $0) },
                                        continueBuildingAfterErrors: false, useParallelTargets: true, useImplicitDependencies: true, useDryRun: false)
 
-            try await tester.checkBuild(parameters: parameters, runDestination: .macOS, buildRequest: request, persistent: true, signableTargets: signableTargets, signableTargetInputs: signableTargetInputs) { results in
+            try await tester.checkBuild(parameters: parameters, runDestination: .macOSIntel, buildRequest: request, persistent: true, signableTargets: signableTargets, signableTargetInputs: signableTargetInputs) { results in
                 let basePath = Path(pkgBuildDirectory).join("Debug").join(frameworkName)
 
                 results.checkTask(.matchRule(["ProcessXCFramework", "\(testWorkspace.sourceRoot.str)/aPackageProject/Sources/sample.xcframework", basePath.str, "macos"])) { _ in }
@@ -400,7 +400,7 @@ fileprivate struct XCFrameworkBuildOperationTests: CoreBasedTests {
             }
 
             // Clean out the build folder.
-            try await tester.checkBuild(parameters: parameters, runDestination: .macOS, buildCommand: .cleanBuildFolder(style: .regular)) { _ in }
+            try await tester.checkBuild(parameters: parameters, runDestination: .macOSIntel, buildCommand: .cleanBuildFolder(style: .regular)) { _ in }
 
             // Check building a package product only
             let packageProductTarget = try #require(tester.workspace.allTargets.first { $0.name == "P1Product" })
@@ -408,7 +408,7 @@ fileprivate struct XCFrameworkBuildOperationTests: CoreBasedTests {
                                                      buildTargets: [BuildRequest.BuildTargetInfo(parameters: parameters, target: packageProductTarget)],
                                                      continueBuildingAfterErrors: false, useParallelTargets: true, useImplicitDependencies: true, useDryRun: false)
 
-            try await tester.checkBuild(parameters: parameters, runDestination: .macOS, buildRequest: packageProductRequest, persistent: true, signableTargets: signableTargets, signableTargetInputs: signableTargetInputs) { results in
+            try await tester.checkBuild(parameters: parameters, runDestination: .macOSIntel, buildRequest: packageProductRequest, persistent: true, signableTargets: signableTargets, signableTargetInputs: signableTargetInputs) { results in
                 let buildDir = Path(pkgBuildDirectory).join("Debug")
                 let basePath = buildDir.join(frameworkName)
 
@@ -489,7 +489,7 @@ fileprivate struct XCFrameworkBuildOperationTests: CoreBasedTests {
             try fs.createDirectory(otherXCFrameworkPath, recursive: true)
             try await XCFrameworkTestSupport.writeXCFramework(otherXCFramework, fs: fs, path: otherXCFrameworkPath, infoLookup: infoLookup)
 
-            try await tester.checkBuild(parameters: BuildParameters(action: .build, configuration: "Debug"), runDestination: .macOS) { results in
+            try await tester.checkBuild(parameters: BuildParameters(action: .build, configuration: "Debug"), runDestination: .macOSIntel) { results in
                 results.checkError(.equal(
                                     """
                                     Multiple commands produce '\(SRCROOT)/build/Debug/include/header1.h'
@@ -594,7 +594,7 @@ fileprivate struct XCFrameworkBuildOperationTests: CoreBasedTests {
                     try remove(supportXCFrameworkPath.join(library.libraryIdentifier).join(path))
                 }
 
-                try await tester.checkBuild(parameters: BuildParameters(action: .build, configuration: "Debug"), runDestination: .macOS) { results in
+                try await tester.checkBuild(parameters: BuildParameters(action: .build, configuration: "Debug"), runDestination: .macOSIntel) { results in
                     results.checkError(StringPattern(stringLiteral: scenario.message(supportXCFrameworkPath.join("x86_64-apple-macos10.15"))))
                 }
 
@@ -659,7 +659,7 @@ fileprivate struct XCFrameworkBuildOperationTests: CoreBasedTests {
             try await XCFrameworkTestSupport.writeXCFramework(supportXCFramework, fs: fs, path: supportXCFrameworkPath, infoLookup: infoLookup)
 
 
-            try await tester.checkBuild(parameters: BuildParameters(action: .build, configuration: "Debug"), runDestination: .macOS) { results in
+            try await tester.checkBuild(parameters: BuildParameters(action: .build, configuration: "Debug"), runDestination: .macOSIntel) { results in
                 results.checkError(.contains("“libsample.xcframework” is not signed with the expected identity and may have been compromised.\nExpected team identifier: mysignature"))
             }
 
@@ -723,7 +723,7 @@ fileprivate struct XCFrameworkBuildOperationTests: CoreBasedTests {
             try await XCFrameworkTestSupport.writeXCFramework(supportXCFramework, fs: fs, path: supportXCFrameworkPath, infoLookup: infoLookup)
 
 
-            try await tester.checkBuild(parameters: BuildParameters(action: .build, configuration: "Debug", overrides: ["DISABLE_XCFRAMEWORK_SIGNATURE_VALIDATION": "YES"]), runDestination: .macOS) { results in
+            try await tester.checkBuild(parameters: BuildParameters(action: .build, configuration: "Debug", overrides: ["DISABLE_XCFRAMEWORK_SIGNATURE_VALIDATION": "YES"]), runDestination: .macOSIntel) { results in
                 results.checkWarning(.contains("XCFramework signature validation is being skipped. Remove `DISABLE_XCFRAMEWORK_SIGNATURE_VALIDATION` to disable this warning."))
             }
 
@@ -738,7 +738,7 @@ fileprivate struct XCFrameworkBuildOperationTests: CoreBasedTests {
             // Create an XCFramework
             let xcode = try await InstalledXcode.currentlySelected()
             let infoLookup = try await getCore()
-            let frameworkPath = try await xcode.compileFramework(path: tmpDirPath.join("macos"), platform: .macOS, infoLookup: infoLookup, archs: ["x86_64"], useSwift: true, static: false)
+            let frameworkPath = try await xcode.compileFramework(path: tmpDirPath.join("macos"), platform: .macOS, infoLookup: infoLookup, archs: [RunDestinationInfo.macOSIntel.targetArchitecture], useSwift: true, static: false)
             let packageOutputPath = tmpDirPath.join("Test/aPackageProject/Sources/sample.xcframework")
             let commandLine = ["createXCFramework", "-framework", frameworkPath.str, "-output", packageOutputPath.str]
             let service = try await SWBBuildService()
@@ -807,7 +807,7 @@ fileprivate struct XCFrameworkBuildOperationTests: CoreBasedTests {
             let tester = try await BuildOperationTester(getCore(), testWorkspace, simulated: false)
             try await tester.fs.writeFileContents(sourceRoot.join("aProject/Sources/best.swift")) { contents in }
 
-            try await tester.checkBuild(parameters: BuildParameters(configuration: "Debug"), runDestination: .macOS, persistent: true) { results in
+            try await tester.checkBuild(parameters: BuildParameters(configuration: "Debug"), runDestination: .macOSIntel, persistent: true) { results in
                 // The build should succeed without reporting any cycles.
                 results.checkNoDiagnostics()
             }

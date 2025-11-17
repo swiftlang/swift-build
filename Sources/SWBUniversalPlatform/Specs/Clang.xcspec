@@ -280,12 +280,6 @@
                     );
                     NO = ();
                 };
-                AdditionalLinkerArgs = {
-                    YES = (
-                        "-fobjc-arc",
-                    );
-                    NO = ();
-                };
                 FileTypes = (
                     "sourcecode.c.objc",
                     "sourcecode.cpp.objcpp",
@@ -3189,7 +3183,7 @@
                 Name = "CLANG_INDEX_STORE_ONLY_PROJECT_FILES";
                 Type = Boolean;
                 DefaultValue = "$(INDEX_STORE_ONLY_PROJECT_FILES)";
-                Condition = "$(CLANG_INDEX_STORE_ENABLE)";
+                Condition = "$(CLANG_INDEX_STORE_ENABLE)  &&  ( $(COMPILER_INDEX_STORE_ENABLE)  ||  ( $(COMPILER_INDEX_STORE_ENABLE) == Default  &&  $(GCC_OPTIMIZATION_LEVEL) == 0 ) )";
                 CommandLineArgs = {
                     YES = (
                         "-index-ignore-system-symbols",
@@ -3203,7 +3197,7 @@
                 Name = "CLANG_INDEX_STORE_COMPRESS";
                 Type = Boolean;
                 DefaultValue = "$(INDEX_STORE_COMPRESS)";
-                Condition = "$(CLANG_INDEX_STORE_ENABLE)";
+                Condition = "$(CLANG_INDEX_STORE_ENABLE)  &&  ( $(COMPILER_INDEX_STORE_ENABLE)  ||  ( $(COMPILER_INDEX_STORE_ENABLE) == Default  &&  $(GCC_OPTIMIZATION_LEVEL) == 0 ) )";
                 CommandLineArgs = {
                     YES = (
                         "-index-store-compress",
@@ -3215,7 +3209,7 @@
                 Name = "CLANG_INDEX_STORE_IGNORE_MACROS";
                 Type = Boolean;
                 DefaultValue = NO;
-                Condition = "$(CLANG_INDEX_STORE_ENABLE)";
+                Condition = "$(CLANG_INDEX_STORE_ENABLE)  &&  ( $(COMPILER_INDEX_STORE_ENABLE)  ||  ( $(COMPILER_INDEX_STORE_ENABLE) == Default  &&  $(GCC_OPTIMIZATION_LEVEL) == 0 ) )";
                 DisplayName = "Do not index C macros";
                 Description = "Do not emit entries for C macros into the Index Store.";
                 CommandLineArgs = {

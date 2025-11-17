@@ -831,7 +831,29 @@
                     unixShellQuotedNewlineSeparated,
                     windowsShellQuotedNewlineSeparated,
                 );
+                DefaultValue = "$(LINKER_FILE_LIST_FORMAT_$(LINKER_DRIVER))";
+            },
+            {
+                Name = "LINKER_FILE_LIST_FORMAT_clang";
+                Type = Enumeration;
+                Values = (
+                    unescapedNewlineSeparated,
+                    unixShellQuotedSpaceSeparated,
+                    unixShellQuotedNewlineSeparated,
+                    windowsShellQuotedNewlineSeparated,
+                );
                 DefaultValue = unescapedNewlineSeparated;
+            },
+            {
+                Name = "LINKER_FILE_LIST_FORMAT_swiftc";
+                Type = Enumeration;
+                Values = (
+                    unescapedNewlineSeparated,
+                    unixShellQuotedSpaceSeparated,
+                    unixShellQuotedNewlineSeparated,
+                    windowsShellQuotedNewlineSeparated,
+                );
+                DefaultValue = unixShellQuotedSpaceSeparated;
             },
             {
                 Name = "LINKER_RESPONSE_FILE_FORMAT";
@@ -843,7 +865,7 @@
                     windowsShellQuotedNewlineSeparated,
                 );
                 DefaultValue = unixShellQuotedSpaceSeparated;
-            }
+            },
         );
     }
 )

@@ -1198,6 +1198,8 @@ public final class BuiltinMacros {
     public static let _WRAPPER_RESOURCES_DIR = BuiltinMacros.declareStringMacro("_WRAPPER_RESOURCES_DIR")
     public static let __INPUT_FILE_LIST_PATH__ = BuiltinMacros.declarePathMacro("__INPUT_FILE_LIST_PATH__")
     public static let LINKER_FILE_LIST_FORMAT = BuiltinMacros.declareEnumMacro("LINKER_FILE_LIST_FORMAT") as EnumMacroDeclaration<ResponseFileFormat>
+    public static let LIBTOOL_FILE_LIST_FORMAT = BuiltinMacros.declareEnumMacro("LIBTOOL_FILE_LIST_FORMAT") as EnumMacroDeclaration<ResponseFileFormat>
+
     public static let LINKER_RESPONSE_FILE_FORMAT = BuiltinMacros.declareEnumMacro("LINKER_RESPONSE_FILE_FORMAT") as EnumMacroDeclaration<ResponseFileFormat>
     public static let SWIFT_RESPONSE_FILE_PATH = BuiltinMacros.declarePathMacro("SWIFT_RESPONSE_FILE_PATH")
     public static let __ARCHS__ = BuiltinMacros.declareStringListMacro("__ARCHS__")
@@ -2459,6 +2461,7 @@ public final class BuiltinMacros {
         _WRAPPER_RESOURCES_DIR,
         __INPUT_FILE_LIST_PATH__,
         LINKER_FILE_LIST_FORMAT,
+        LIBTOOL_FILE_LIST_FORMAT,
         LINKER_RESPONSE_FILE_FORMAT,
         __ARCHS__,
         __SWIFT_MODULE_ONLY_ARCHS__,
@@ -2876,7 +2879,7 @@ public enum StickerSharingLevel: String, Equatable, Hashable, EnumerationMacroTy
 }
 
 /// Enumeration macro type for the value of the `ENTITLEMENTS_DESTINATION` build setting.
-public enum EntitlementsDestination: String, Equatable, Hashable, EnumerationMacroType {
+public enum EntitlementsDestination: String, Equatable, Hashable, EnumerationMacroType, Serializable {
     public static let defaultValue = EntitlementsDestination.none
 
     case codeSignature = "Signature"

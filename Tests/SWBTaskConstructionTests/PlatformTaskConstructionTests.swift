@@ -271,8 +271,8 @@ fileprivate struct PlatformTaskConstructionTests: CoreBasedTests {
 
             results.checkTarget("AppTarget") { target in
                 results.checkTask(.matchTarget(target), .matchRuleType("CompileC"), .matchRuleItemBasename("main.m"), .matchRuleItem("x86_64")) { task in
-                    task.checkRuleInfo([.equal("CompileC"), .suffix("main.o"), .suffix("main.m"), .equal("normal"), .equal("x86_64"), .equal("objective-c"), .any])
-                    task.checkCommandLineLastArgumentEqual("\(SRCROOT)/build/aProject.build/Debug-iphonesimulator/AppTarget.build/Objects-normal/x86_64/main.o")
+                    task.checkRuleInfo([.equal("CompileC"), .suffix("main.o"), .suffix("main.m"), .equal("normal"), .equal(results.runDestinationTargetArchitecture), .equal("objective-c"), .any])
+                    task.checkCommandLineLastArgumentEqual("\(SRCROOT)/build/aProject.build/Debug-iphonesimulator/AppTarget.build/Objects-normal/\(results.runDestinationTargetArchitecture)/main.o")
                 }
 
                 func checkLdEntitlements(_ task: any PlannedTask) {
@@ -899,7 +899,7 @@ fileprivate struct PlatformTaskConstructionTests: CoreBasedTests {
                                                 "-iframework", "/Library/Frameworks",
                                                 "-iframework", "\(core.loadSDK(.macOS).path.str)/System/iOSSupport/System/Library/Frameworks",
                                                 "-c", "\(SRCROOT)/Sources/ClassOne.m",
-                                                "-o", "\(SRCROOT)/build/aProject.build/Debug\(MacCatalystInfo.publicSDKBuiltProductsDirSuffix)/AppTarget.build/Objects-normal/x86_64/ClassOne.o",
+                                                "-o", "\(SRCROOT)/build/aProject.build/Debug\(MacCatalystInfo.publicSDKBuiltProductsDirSuffix)/AppTarget.build/Objects-normal/\(results.runDestinationTargetArchitecture)/ClassOne.o",
                     ]
                     task.checkCommandLineContains(expectedClangOptions)
                 }

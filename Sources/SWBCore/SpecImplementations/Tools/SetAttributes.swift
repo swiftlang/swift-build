@@ -57,7 +57,7 @@ public final class SetAttributesSpec: CommandLineToolSpec, SpecImplementationTyp
                 execDescription = "Set Group"
             }
 
-            let args = [cbc.scope.evaluate(BuiltinMacros.CHOWN).str, "-RH", attrs, input.absolutePath.str]
+            let args = [resolveExecutablePath(cbc.producer, cbc.scope.evaluate(BuiltinMacros.CHOWN)).str, "-RH", attrs, input.absolutePath.str]
 
             let commandOutput = delegate.createVirtualNode("SetOwner \(input.absolutePath.str)")
             let outputs: [any PlannedNode] = [delegate.createNode(input.absolutePath), commandOutput]

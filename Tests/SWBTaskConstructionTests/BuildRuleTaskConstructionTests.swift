@@ -95,9 +95,9 @@ fileprivate struct BuildRuleTaskConstructionTests: CoreBasedTests {
                 results.checkTask(.matchTarget(target), .matchRule(["RuleScriptExecution", "\(SRCROOT)/build/aProject.build/Debug/SomeFwk.build/DerivedSources/SomeProj.fake-neutral.c", "\(SRCROOT)/Sources/SomeProj.fake-neutral", "normal", "undefined_arch"])) { _ in }
 
                 // Check that the architecture-neutral rule's outputs are still varianted per architecture
-                results.checkTask(.matchTarget(target), .matchRule(["CompileC", "\(SRCROOT)/build/aProject.build/Debug/SomeFwk.build/Objects-normal/x86_64/SomeProj.fake-neutral.o", "\(SRCROOT)/build/aProject.build/Debug/SomeFwk.build/DerivedSources/SomeProj.fake-neutral.c", "normal", "x86_64", "c", "com.apple.compilers.llvm.clang.1_0.compiler"])) { _ in }
-                results.checkTask(.matchTarget(target), .matchRule(["CompileC", "\(SRCROOT)/build/aProject.build/Debug/SomeFwk.build/Objects-debug/x86_64/SomeProj.fake-neutral.o", "\(SRCROOT)/build/aProject.build/Debug/SomeFwk.build/DerivedSources/SomeProj.fake-neutral.c", "debug", "x86_64", "c", "com.apple.compilers.llvm.clang.1_0.compiler"])) { _ in }
-                results.checkTask(.matchTarget(target), .matchRule(["CompileC", "\(SRCROOT)/build/aProject.build/Debug/SomeFwk.build/Objects-profile/x86_64/SomeProj.fake-neutral.o", "\(SRCROOT)/build/aProject.build/Debug/SomeFwk.build/DerivedSources/SomeProj.fake-neutral.c", "profile", "x86_64", "c", "com.apple.compilers.llvm.clang.1_0.compiler"])) { _ in }
+                results.checkTask(.matchTarget(target), .matchRule(["CompileC", "\(SRCROOT)/build/aProject.build/Debug/SomeFwk.build/Objects-normal/\(results.runDestinationTargetArchitecture)/SomeProj.fake-neutral.o", "\(SRCROOT)/build/aProject.build/Debug/SomeFwk.build/DerivedSources/SomeProj.fake-neutral.c", "normal", results.runDestinationTargetArchitecture, "c", "com.apple.compilers.llvm.clang.1_0.compiler"])) { _ in }
+                results.checkTask(.matchTarget(target), .matchRule(["CompileC", "\(SRCROOT)/build/aProject.build/Debug/SomeFwk.build/Objects-debug/\(results.runDestinationTargetArchitecture)/SomeProj.fake-neutral.o", "\(SRCROOT)/build/aProject.build/Debug/SomeFwk.build/DerivedSources/SomeProj.fake-neutral.c", "debug", results.runDestinationTargetArchitecture, "c", "com.apple.compilers.llvm.clang.1_0.compiler"])) { _ in }
+                results.checkTask(.matchTarget(target), .matchRule(["CompileC", "\(SRCROOT)/build/aProject.build/Debug/SomeFwk.build/Objects-profile/\(results.runDestinationTargetArchitecture)/SomeProj.fake-neutral.o", "\(SRCROOT)/build/aProject.build/Debug/SomeFwk.build/DerivedSources/SomeProj.fake-neutral.c", "profile", results.runDestinationTargetArchitecture, "c", "com.apple.compilers.llvm.clang.1_0.compiler"])) { _ in }
 
                 results.checkTask(.matchTarget(target), .matchRule(["RuleScriptExecution", "/tmp/Test/aProject/build/aProject.build/Debug/SomeFwk.build/DerivedSources/file.m.x", "/tmp/Test/aProject/Sources/file.m", "normal", "undefined_arch"])) { _ in }
 
@@ -385,7 +385,7 @@ fileprivate struct BuildRuleTaskConstructionTests: CoreBasedTests {
 
             // Check that the clang tasks which process the output of the .fake-lang task add the appropriate flags.
             results.checkTask(.matchRuleType("RuleScriptExecution"), .matchRuleItemBasename("Custom.fake-lang")) { task in
-                task.checkRuleInfo(["RuleScriptExecution", "\(SRCROOT)/build/aProject.build/Debug/Tool.build/DerivedSources-normal/x86_64/foo1.c", "\(SRCROOT)/build/aProject.build/Debug/Tool.build/DerivedSources-normal/x86_64/foo2.c", "\(SRCROOT)/Sources/Custom.fake-lang", "normal", "x86_64"])
+                task.checkRuleInfo(["RuleScriptExecution", "\(SRCROOT)/build/aProject.build/Debug/Tool.build/DerivedSources-normal/\(results.runDestinationTargetArchitecture)/foo1.c", "\(SRCROOT)/build/aProject.build/Debug/Tool.build/DerivedSources-normal/\(results.runDestinationTargetArchitecture)/foo2.c", "\(SRCROOT)/Sources/Custom.fake-lang", "normal", results.runDestinationTargetArchitecture])
             }
             results.checkTask(.matchRuleType("CompileC"), .matchRuleItemBasename("foo1.c")) { task in
                 task.checkCommandLineContains(["-flag1"])
@@ -396,18 +396,18 @@ fileprivate struct BuildRuleTaskConstructionTests: CoreBasedTests {
 
             // Check that regular.defs is processed by MiG (there's no custom build rule for it).
             results.checkTask(.matchRuleType("Mig")) { task in
-                task.checkRuleInfo(["Mig", "\(SRCROOT)/build/aProject.build/Debug/Tool.build/DerivedSources/x86_64/regular.h", "\(SRCROOT)/build/aProject.build/Debug/Tool.build/DerivedSources/x86_64/regularUser.c", "\(SRCROOT)/Sources/regular.defs", "normal", "x86_64"])
+                task.checkRuleInfo(["Mig", "\(SRCROOT)/build/aProject.build/Debug/Tool.build/DerivedSources/\(results.runDestinationTargetArchitecture)/regular.h", "\(SRCROOT)/build/aProject.build/Debug/Tool.build/DerivedSources/\(results.runDestinationTargetArchitecture)/regularUser.c", "\(SRCROOT)/Sources/regular.defs", "normal", results.runDestinationTargetArchitecture])
             }
 
             // Check that the custom and special .defs files are processed by the build rule.
             results.checkTask(.matchRuleType("RuleScriptExecution"), .matchRuleItemBasename("custom.defs")) { task in
-                task.checkRuleInfo(["RuleScriptExecution", "\(SRCROOT)/build/aProject.build/Debug/Tool.build/DerivedSources-normal/x86_64/customUser.c", "\(SRCROOT)/Sources/custom.defs", "normal", "x86_64"])
+                task.checkRuleInfo(["RuleScriptExecution", "\(SRCROOT)/build/aProject.build/Debug/Tool.build/DerivedSources-normal/\(results.runDestinationTargetArchitecture)/customUser.c", "\(SRCROOT)/Sources/custom.defs", "normal", results.runDestinationTargetArchitecture])
             }
             results.checkTask(.matchRuleType("CompileC"), .matchRuleItemBasename("customUser.c")) { task in
                 task.checkCommandLineContains(["-specialFlag"])
             }
             results.checkTask(.matchRuleType("RuleScriptExecution"), .matchRuleItemBasename("special.defs")) { task in
-                task.checkRuleInfo(["RuleScriptExecution", "\(SRCROOT)/build/aProject.build/Debug/Tool.build/DerivedSources-normal/x86_64/specialUser.c", "\(SRCROOT)/Sources/special.defs", "normal", "x86_64"])
+                task.checkRuleInfo(["RuleScriptExecution", "\(SRCROOT)/build/aProject.build/Debug/Tool.build/DerivedSources-normal/\(results.runDestinationTargetArchitecture)/specialUser.c", "\(SRCROOT)/Sources/special.defs", "normal", results.runDestinationTargetArchitecture])
             }
             results.checkTask(.matchRuleType("CompileC"), .matchRuleItemBasename("specialUser.c")) { task in
                 task.checkCommandLineContains(["-specialFlag"])
@@ -416,7 +416,7 @@ fileprivate struct BuildRuleTaskConstructionTests: CoreBasedTests {
             // Check that the .h file is processed by the build rule.
             // This is tested because early in Swift Build's existence header files were explicitly skipped when matching build rules because the file types specified by compiler specs weren't yet respected.
             results.checkTask(.matchRuleType("RuleScriptExecution"), .matchRuleItemBasename("header.h")) { task in
-                task.checkRuleInfo(["RuleScriptExecution", "\(SRCROOT)/build/aProject.build/Debug/Tool.build/DerivedSourcesx86_64/header_gen.cpp", "\(SRCROOT)/Sources/header.h", "normal", "x86_64"])
+                task.checkRuleInfo(["RuleScriptExecution", "\(SRCROOT)/build/aProject.build/Debug/Tool.build/DerivedSources\(results.runDestinationTargetArchitecture)/header_gen.cpp", "\(SRCROOT)/Sources/header.h", "normal", results.runDestinationTargetArchitecture])
             }
             results.checkTask(.matchRuleType("CompileC"), .matchRuleItemBasename("header_gen.cpp")) { task in
                 task.checkCommandLineContains(["-DHEADER_GEN=1"])
@@ -424,25 +424,25 @@ fileprivate struct BuildRuleTaskConstructionTests: CoreBasedTests {
 
             // Check that the two Gen.fake-c files are compiled to .o files with the uniquing suffix applied.
             results.checkTask(.matchRuleType("RuleScriptExecution"), .matchRuleItem("\(SRCROOT)/Sources/Gen.fake-c")) { task in
-                task.checkRuleInfo(["RuleScriptExecution", "\(SRCROOT)/build/aProject.build/Debug/Tool.build/DerivedSources/tmp/Test/aProject/Sources/Gen.c", "\(SRCROOT)/Sources/Gen.fake-c", "normal", "x86_64"])
+                task.checkRuleInfo(["RuleScriptExecution", "\(SRCROOT)/build/aProject.build/Debug/Tool.build/DerivedSources/tmp/Test/aProject/Sources/Gen.c", "\(SRCROOT)/Sources/Gen.fake-c", "normal", results.runDestinationTargetArchitecture])
                 task.checkOutputs(contain: [
                     .path("\(SRCROOT)/build/aProject.build/Debug/Tool.build/DerivedSources/tmp/Test/aProject/Sources/Gen.c"),
                 ])
             }
             results.checkTask(.matchRuleType("CompileC"), .matchRuleItem("\(SRCROOT)/build/aProject.build/Debug/Tool.build/DerivedSources/tmp/Test/aProject/Sources/Gen.c")) { task in
                 task.checkOutputs(contain: [
-                    .path("\(SRCROOT)/build/aProject.build/Debug/Tool.build/Objects-normal/x86_64/Gen-\(BuildPhaseWithBuildFiles.filenameUniquefierSuffixFor(path: Path("\(SRCROOT)/Sources/Gen.fake-c"))).o"),
+                    .path("\(SRCROOT)/build/aProject.build/Debug/Tool.build/Objects-normal/\(results.runDestinationTargetArchitecture)/Gen-\(BuildPhaseWithBuildFiles.filenameUniquefierSuffixFor(path: Path("\(SRCROOT)/Sources/Gen.fake-c"))).o"),
                 ])
             }
             results.checkTask(.matchRuleType("RuleScriptExecution"), .matchRuleItem("\(SRCROOT)/Sources/Subdir/Gen.fake-c")) { task in
-                task.checkRuleInfo(["RuleScriptExecution", "\(SRCROOT)/build/aProject.build/Debug/Tool.build/DerivedSources/tmp/Test/aProject/Sources/Subdir/Gen.c", "\(SRCROOT)/Sources/Subdir/Gen.fake-c", "normal", "x86_64"])
+                task.checkRuleInfo(["RuleScriptExecution", "\(SRCROOT)/build/aProject.build/Debug/Tool.build/DerivedSources/tmp/Test/aProject/Sources/Subdir/Gen.c", "\(SRCROOT)/Sources/Subdir/Gen.fake-c", "normal", results.runDestinationTargetArchitecture])
                 task.checkOutputs(contain: [
                     .path("\(SRCROOT)/build/aProject.build/Debug/Tool.build/DerivedSources/tmp/Test/aProject/Sources/Subdir/Gen.c"),
                 ])
             }
             results.checkTask(.matchRuleType("CompileC"), .matchRuleItem("\(SRCROOT)/build/aProject.build/Debug/Tool.build/DerivedSources/tmp/Test/aProject/Sources/Subdir/Gen.c")) { task in
                 task.checkOutputs(contain: [
-                    .path("\(SRCROOT)/build/aProject.build/Debug/Tool.build/Objects-normal/x86_64/Gen-\(BuildPhaseWithBuildFiles.filenameUniquefierSuffixFor(path: Path("\(SRCROOT)/Sources/Subdir/Gen.fake-c"))).o"),
+                    .path("\(SRCROOT)/build/aProject.build/Debug/Tool.build/Objects-normal/\(results.runDestinationTargetArchitecture)/Gen-\(BuildPhaseWithBuildFiles.filenameUniquefierSuffixFor(path: Path("\(SRCROOT)/Sources/Subdir/Gen.fake-c"))).o"),
                 ])
             }
         }
@@ -522,7 +522,7 @@ fileprivate struct BuildRuleTaskConstructionTests: CoreBasedTests {
             results.checkTarget(targetName) { target in
                 // There should only be one task to process Multiple.fake-lang, since there are erroneously two build files for one file reference.
                 results.checkTask(.matchTarget(target), .matchRuleType("RuleScriptExecution"), .matchRuleItemBasename("Multiple.fake-lang")) { task in
-                    task.checkRuleInfo(["RuleScriptExecution", "\(SRCROOT)/build/Debug/Multiple.data", "\(SRCROOT)/Sources/Multiple.fake-lang", "normal", "x86_64"])
+                    task.checkRuleInfo(["RuleScriptExecution", "\(SRCROOT)/build/Debug/Multiple.data", "\(SRCROOT)/Sources/Multiple.fake-lang", "normal", results.runDestinationTargetArchitecture])
                 }
 
                 // There should also be a warning emitted about the duplicate file references.
@@ -629,14 +629,14 @@ fileprivate struct BuildRuleTaskConstructionTests: CoreBasedTests {
                 results.checkTask(.matchTarget(target), .matchRule(["RuleScriptExecution", "\(SRCROOT)/build/aProject.build/Debug/SomeFwk.build/DerivedSources/SomeFwk.framework_vers1.c", "\(SRCROOT)/build/aProject.build/Debug/SomeFwk.build/DerivedSources/SomeFwk_vers.c", "normal", "undefined_arch"])) { _ in }
 
                 // Check that the architecture-neutral rule's outputs are still varianted per architecture
-                results.checkTask(.matchTarget(target), .matchRule(["CompileC", "\(SRCROOT)/build/aProject.build/Debug/SomeFwk.build/Objects-normal/x86_64/SomeFwk.framework_vers1.o", "\(SRCROOT)/build/aProject.build/Debug/SomeFwk.build/DerivedSources/SomeFwk.framework_vers1.c", "normal", "x86_64", "c", "com.apple.compilers.llvm.clang.1_0.compiler"])) { _ in }
-                results.checkTask(.matchTarget(target), .matchRule(["CompileC", "\(SRCROOT)/build/aProject.build/Debug/SomeFwk.build/Objects-debug/x86_64/SomeFwk.framework_vers1.o", "\(SRCROOT)/build/aProject.build/Debug/SomeFwk.build/DerivedSources/SomeFwk.framework_vers1.c", "debug", "x86_64", "c", "com.apple.compilers.llvm.clang.1_0.compiler"])) { _ in }
-                results.checkTask(.matchTarget(target), .matchRule(["CompileC", "\(SRCROOT)/build/aProject.build/Debug/SomeFwk.build/Objects-profile/x86_64/SomeFwk.framework_vers1.o", "\(SRCROOT)/build/aProject.build/Debug/SomeFwk.build/DerivedSources/SomeFwk.framework_vers1.c", "profile", "x86_64", "c", "com.apple.compilers.llvm.clang.1_0.compiler"])) { _ in }
+                results.checkTask(.matchTarget(target), .matchRule(["CompileC", "\(SRCROOT)/build/aProject.build/Debug/SomeFwk.build/Objects-normal/\(results.runDestinationTargetArchitecture)/SomeFwk.framework_vers1.o", "\(SRCROOT)/build/aProject.build/Debug/SomeFwk.build/DerivedSources/SomeFwk.framework_vers1.c", "normal", results.runDestinationTargetArchitecture, "c", "com.apple.compilers.llvm.clang.1_0.compiler"])) { _ in }
+                results.checkTask(.matchTarget(target), .matchRule(["CompileC", "\(SRCROOT)/build/aProject.build/Debug/SomeFwk.build/Objects-debug/\(results.runDestinationTargetArchitecture)/SomeFwk.framework_vers1.o", "\(SRCROOT)/build/aProject.build/Debug/SomeFwk.build/DerivedSources/SomeFwk.framework_vers1.c", "debug", results.runDestinationTargetArchitecture, "c", "com.apple.compilers.llvm.clang.1_0.compiler"])) { _ in }
+                results.checkTask(.matchTarget(target), .matchRule(["CompileC", "\(SRCROOT)/build/aProject.build/Debug/SomeFwk.build/Objects-profile/\(results.runDestinationTargetArchitecture)/SomeFwk.framework_vers1.o", "\(SRCROOT)/build/aProject.build/Debug/SomeFwk.build/DerivedSources/SomeFwk.framework_vers1.c", "profile", results.runDestinationTargetArchitecture, "c", "com.apple.compilers.llvm.clang.1_0.compiler"])) { _ in }
             }
 
-            results.checkWarning(.equal("no rule to process file '/tmp/Test/aProject/Sources/file.fake-x' of type 'file' for architecture 'x86_64' (in target 'SomeFwk' from project 'aProject')"))
-            results.checkWarning(.equal("no rule to process file '/tmp/Test/aProject/Sources/file.fake-x' of type 'file' for architecture 'x86_64' (in target 'SomeFwk' from project 'aProject')"))
-            results.checkWarning(.equal("no rule to process file '/tmp/Test/aProject/Sources/file.fake-x' of type 'file' for architecture 'x86_64' (in target 'SomeFwk' from project 'aProject')"))
+            results.checkWarning(.equal("no rule to process file '/tmp/Test/aProject/Sources/file.fake-x' of type 'file' for architecture '\(results.runDestinationTargetArchitecture)' (in target 'SomeFwk' from project 'aProject')"))
+            results.checkWarning(.equal("no rule to process file '/tmp/Test/aProject/Sources/file.fake-x' of type 'file' for architecture '\(results.runDestinationTargetArchitecture)' (in target 'SomeFwk' from project 'aProject')"))
+            results.checkWarning(.equal("no rule to process file '/tmp/Test/aProject/Sources/file.fake-x' of type 'file' for architecture '\(results.runDestinationTargetArchitecture)' (in target 'SomeFwk' from project 'aProject')"))
 
             // Check there are no diagnostics.
             results.checkNoTask()

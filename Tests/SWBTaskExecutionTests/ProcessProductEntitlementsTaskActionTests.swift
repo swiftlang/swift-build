@@ -39,16 +39,12 @@ fileprivate struct ProcessProductEntitlementsTaskActionTests {
         /// - Parameter commandLine: array of passed command line arguments, first one is the programs name
         /// - Parameter expected: the returned status code of the task action that is expected for the given input
         /// - Parameter checkOutput: optional handler to check emitted output
-        func testPerformTaskAction(commandLine: [String], expected expectedResult: CommandResult, entitlementsVariant: EntitlementsVariant = .signed, destinationPlatformName: String = "platformname", schemeCommand: SchemeCommand = .launch, buildSettings: ((inout MacroValueAssignmentTable, MacroNamespace) throws -> Void)? = nil, modifications: (() throws -> Void)? = nil, checkOutput: ((MockTaskOutputDelegate) throws -> Void)? = nil) async rethrows {
-            let namespace = MacroNamespace(parent: BuiltinMacros.namespace, debugDescription: #function)
-            var table = MacroValueAssignmentTable(namespace: namespace)
-            try buildSettings?(&table, namespace)
-            let scope = MacroEvaluationScope(table: table)
-
-            let action = ProcessProductEntitlementsTaskAction(scope: scope,
-                                                              fs: fs,
+        func testPerformTaskAction(commandLine: [String], expected expectedResult: CommandResult, entitlementsVariant: EntitlementsVariant = .signed, allowEntitlementsModification: Bool = false, entitlementsDestination: EntitlementsDestination = .none, destinationPlatformName: String = "platformname", schemeCommand: SchemeCommand = .launch, modifications: (() throws -> Void)? = nil, checkOutput: ((MockTaskOutputDelegate) throws -> Void)? = nil) async rethrows {
+            let action = ProcessProductEntitlementsTaskAction(fs: fs,
                                                               entitlements: entitlements,
                                                               entitlementsVariant: entitlementsVariant,
+                                                              allowEntitlementsModification: allowEntitlementsModification,
+                                                              entitlementsDestination: entitlementsDestination,
                                                               destinationPlatformName: destinationPlatformName,
                                                               entitlementsFilePath: entitlementsPath)
 
@@ -98,7 +94,7 @@ fileprivate struct ProcessProductEntitlementsTaskActionTests {
         // No error if we opt out
         try await testPerformTaskAction(commandLine: ["programName", "-entitlements", "-o", "/temp/foobar.output"],
                                         expected: .succeeded,
-                                        buildSettings: { table, namespace in table.push(BuiltinMacros.CODE_SIGN_ALLOW_ENTITLEMENTS_MODIFICATION, namespace.parseLiteralString("YES")) },
+                                        allowEntitlementsModification: true,
                                         modifications: { try fs.write(entitlementsPath, contents: ByteString(PropertyListItem.plDict(["key": .plString("value2")]).asBytes(.xml))) },
                                         checkOutput: { output in
             #expect(output.warnings.isEmpty, "Warnings shouldn't be emitted")
@@ -110,10 +106,8 @@ fileprivate struct ProcessProductEntitlementsTaskActionTests {
         try await testPerformTaskAction(commandLine: ["programName", "-entitlements", "-o", "/temp/foobar.output"],
                                         expected: .succeeded,
                                         entitlementsVariant: .signed,
-                                        buildSettings: { table, namespace in
-            table.push(BuiltinMacros.CODE_SIGN_ALLOW_ENTITLEMENTS_MODIFICATION, namespace.parseLiteralString("YES"))
-            table.push(BuiltinMacros.ENTITLEMENTS_DESTINATION, namespace.parseLiteralString("__entitlements"))
-        },
+                                        allowEntitlementsModification: true,
+                                        entitlementsDestination: .entitlementsSection,
                                         modifications: { try fs.write(entitlementsPath, contents: ByteString(PropertyListItem.plDict(["key": .plString("value2")]).asBytes(.xml))) },
                                         checkOutput: { output in
             #expect(output.warnings.isEmpty, "Warnings shouldn't be emitted")
@@ -125,10 +119,8 @@ fileprivate struct ProcessProductEntitlementsTaskActionTests {
         try await testPerformTaskAction(commandLine: ["programName", "-entitlements", "-o", "/temp/foobar.output"],
                                         expected: .succeeded,
                                         entitlementsVariant: .signed,
-                                        buildSettings: { table, namespace in
-            table.push(BuiltinMacros.CODE_SIGN_ALLOW_ENTITLEMENTS_MODIFICATION, namespace.parseLiteralString("YES"))
-            table.push(BuiltinMacros.ENTITLEMENTS_DESTINATION, namespace.parseLiteralString("Signature"))
-        },
+                                        allowEntitlementsModification: true,
+                                        entitlementsDestination: .codeSignature,
                                         modifications: { try fs.write(entitlementsPath, contents: ByteString(PropertyListItem.plDict(["key": .plString("value2")]).asBytes(.xml))) },
                                         checkOutput: { output in
             #expect(output.warnings.isEmpty, "Warnings shouldn't be emitted")
@@ -140,10 +132,8 @@ fileprivate struct ProcessProductEntitlementsTaskActionTests {
         try await testPerformTaskAction(commandLine: ["programName", "-entitlements", "-o", "/temp/foobar.output"],
                                         expected: .succeeded,
                                         entitlementsVariant: .simulated,
-                                        buildSettings: { table, namespace in
-            table.push(BuiltinMacros.CODE_SIGN_ALLOW_ENTITLEMENTS_MODIFICATION, namespace.parseLiteralString("YES"))
-            table.push(BuiltinMacros.ENTITLEMENTS_DESTINATION, namespace.parseLiteralString("__entitlements"))
-        },
+                                        allowEntitlementsModification: true,
+                                        entitlementsDestination: .entitlementsSection,
                                         modifications: { try fs.write(entitlementsPath, contents: ByteString(PropertyListItem.plDict(["key": .plString("value2")]).asBytes(.xml))) },
                                         checkOutput: { output in
             #expect(output.warnings.isEmpty, "Warnings shouldn't be emitted")
@@ -153,10 +143,8 @@ fileprivate struct ProcessProductEntitlementsTaskActionTests {
         try await testPerformTaskAction(commandLine: ["programName", "-entitlements", "-o", "/temp/foobar.output"],
                                         expected: .succeeded,
                                         entitlementsVariant: .simulated,
-                                        buildSettings: { table, namespace in
-            table.push(BuiltinMacros.CODE_SIGN_ALLOW_ENTITLEMENTS_MODIFICATION, namespace.parseLiteralString("YES"))
-            table.push(BuiltinMacros.ENTITLEMENTS_DESTINATION, namespace.parseLiteralString("Signature"))
-        },
+                                        allowEntitlementsModification: true,
+                                        entitlementsDestination: .codeSignature,
                                         modifications: { try fs.write(entitlementsPath, contents: ByteString(PropertyListItem.plDict(["key": .plString("value2")]).asBytes(.xml))) },
                                         checkOutput: { output in
             #expect(output.warnings.isEmpty, "Warnings shouldn't be emitted")
@@ -168,10 +156,8 @@ fileprivate struct ProcessProductEntitlementsTaskActionTests {
         try await testPerformTaskAction(commandLine: ["programName", "-entitlements", "-o", "/temp/foobar.output"],
                                         expected: .succeeded,
                                         entitlementsVariant: .simulated,
-                                        buildSettings: { table, namespace in
-            table.push(BuiltinMacros.CODE_SIGN_ALLOW_ENTITLEMENTS_MODIFICATION, namespace.parseLiteralString("YES"))
-            table.push(BuiltinMacros.ENTITLEMENTS_DESTINATION, namespace.parseLiteralString(""))
-        },
+                                        allowEntitlementsModification: true,
+                                        entitlementsDestination: .none,
                                         modifications: { try fs.write(entitlementsPath, contents: ByteString(PropertyListItem.plDict(["key": .plString("value2")]).asBytes(.xml))) },
                                         checkOutput: { output in
             #expect(output.warnings.isEmpty, "Warnings shouldn't be emitted")
@@ -181,10 +167,8 @@ fileprivate struct ProcessProductEntitlementsTaskActionTests {
         try await testPerformTaskAction(commandLine: ["programName", "-entitlements", "-o", "/temp/foobar.output"],
                                         expected: .succeeded,
                                         entitlementsVariant: .signed,
-                                        buildSettings: { table, namespace in
-            table.push(BuiltinMacros.CODE_SIGN_ALLOW_ENTITLEMENTS_MODIFICATION, namespace.parseLiteralString("YES"))
-            table.push(BuiltinMacros.ENTITLEMENTS_DESTINATION, namespace.parseLiteralString(""))
-        },
+                                        allowEntitlementsModification: true,
+                                        entitlementsDestination: .none,
                                         modifications: { try fs.write(entitlementsPath, contents: ByteString(PropertyListItem.plDict(["key": .plString("value2")]).asBytes(.xml))) },
                                         checkOutput: { output in
             #expect(output.warnings.isEmpty, "Warnings shouldn't be emitted")

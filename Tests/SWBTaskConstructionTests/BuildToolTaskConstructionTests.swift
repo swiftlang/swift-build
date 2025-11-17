@@ -312,12 +312,12 @@ fileprivate struct BuildToolTaskConstructionTests: CoreBasedTests {
                             let sortedTasks = tasks.sorted { $0.ruleInfo.lexicographicallyPrecedes($1.ruleInfo) }
                             #expect(sortedTasks.count == 4)
                             for (idx, fileBasename) in ["EntityOne+CoreDataClass", "EntityOne+CoreDataProperties", "\(targetName)+CoreDataModel", "SourceOne"].enumerated() {
-                                try #require(sortedTasks[safe: idx]).checkRuleInfo([.equal("CompileC"), .suffix("\(fileBasename).o"), .suffix("\(fileBasename).m"), .equal("normal"), .equal("x86_64"), .equal("objective-c"), .any])
+                                try #require(sortedTasks[safe: idx]).checkRuleInfo([.equal("CompileC"), .suffix("\(fileBasename).o"), .suffix("\(fileBasename).m"), .equal("normal"), .equal(results.runDestinationTargetArchitecture), .equal("objective-c"), .any])
                             }
                         }
 
                         // There should be one link task, and a task to generate its link file list.
-                        results.checkTask(.matchTarget(target), .matchRule(["WriteAuxiliaryFile", "\(SRCROOT)/build/aProject.build/Debug/\(targetName).build/Objects-normal/x86_64/\(targetName).LinkFileList"])) { _ in }
+                        results.checkTask(.matchTarget(target), .matchRule(["WriteAuxiliaryFile", "\(SRCROOT)/build/aProject.build/Debug/\(targetName).build/Objects-normal/\(results.runDestinationTargetArchitecture)/\(targetName).LinkFileList"])) { _ in }
                         results.checkTask(.matchTarget(target), .matchRuleType("Ld")) { task in
                             task.checkRuleInfo(["Ld", "\(SRCROOT)/build/Debug/\(targetName).framework/Versions/A/\(targetName)", "normal"])
                         }
@@ -356,7 +356,7 @@ fileprivate struct BuildToolTaskConstructionTests: CoreBasedTests {
 
                     if params.action == .installAPI {
                         results.checkTask(.matchTarget(target), .matchRuleType("GenerateTAPI")) { task in
-                            task.checkRuleInfo(["GenerateTAPI", "/tmp/aProject.dst/Library/Frameworks/FrameworkTarget.framework/Versions/A/FrameworkTarget.tbd", "normal", "x86_64"])
+                            task.checkRuleInfo(["GenerateTAPI", "/tmp/aProject.dst/Library/Frameworks/FrameworkTarget.framework/Versions/A/FrameworkTarget.tbd", "normal", results.runDestinationTargetArchitecture])
                         }
                     } else if params.action == .build {
                         results.checkTask(.matchTarget(target), .matchRuleType("GenerateTAPI")) { task in
@@ -701,7 +701,7 @@ fileprivate struct BuildToolTaskConstructionTests: CoreBasedTests {
                         if action == .build || action == .installAPI {
                             // Check the CompileSwiftSources task, which should include the file generated from the model.
                             do {
-                                let responseFilePath = "\(SRCROOT)/build/aProject.build/Debug/\(targetName).build/Objects-normal/x86_64/FrameworkTarget.SwiftFileList"
+                                let responseFilePath = "\(SRCROOT)/build/aProject.build/Debug/\(targetName).build/Objects-normal/\(results.runDestinationTargetArchitecture)/FrameworkTarget.SwiftFileList"
                                 var inputFiles = ["\(SRCROOT)/SourceOne.swift"]
                                 if visibilityBeingTested != .noCodegen {
                                     inputFiles.append("\(SRCROOT)/build/aProject.build/Debug/\(targetName).build/DerivedSources/CoreMLGenerated/SmartStuff/SmartStuff.swift")
@@ -809,7 +809,7 @@ fileprivate struct BuildToolTaskConstructionTests: CoreBasedTests {
                         if action == .build || action == .installAPI {
                             // Check the CompileSwiftSources task, which should include the file generated from the model.
                             do {
-                                let responseFilePath = "\(SRCROOT)/build/aProject.build/Debug/\(targetName).build/Objects-normal/x86_64/FrameworkTarget.SwiftFileList"
+                                let responseFilePath = "\(SRCROOT)/build/aProject.build/Debug/\(targetName).build/Objects-normal/\(results.runDestinationTargetArchitecture)/FrameworkTarget.SwiftFileList"
                                 results.checkTask(.matchTarget(target), .matchRuleType("SwiftDriver Compilation Requirements")) { task in
                                     task.checkCommandLineContains([swiftCompilerPath.str, "@" + responseFilePath])
                                     task.checkCommandLineDoesNotContain("\(SRCROOT)/SourceOne.swift")
@@ -827,15 +827,15 @@ fileprivate struct BuildToolTaskConstructionTests: CoreBasedTests {
                         if action == .build {
                             // Check the CompileC task for the file generated from the model.
                             verifyTask(for: visibilityBeingTested, with: results, in: target, matching: .matchRuleType("CompileC"), .matchRuleItemBasename("SmartStuff.m")) { task in
-                                task.checkRuleInfo([.equal("CompileC"), .suffix("SmartStuff.o"), .suffix("SmartStuff.m"), .equal("normal"), .equal("x86_64"), .equal("objective-c"), .any])
+                                task.checkRuleInfo([.equal("CompileC"), .suffix("SmartStuff.o"), .suffix("SmartStuff.m"), .equal("normal"), .equal(results.runDestinationTargetArchitecture), .equal("objective-c"), .any])
                                 task.checkCommandLineContains(["-fobjc-arc"])
                             }
                             verifyTask(for: visibilityBeingTested, with: results, in: target, matching: .matchRuleType("CompileC"), .matchRuleItemBasename("SmartStuff2.m")) { task in
-                                task.checkRuleInfo([.equal("CompileC"), .suffix("SmartStuff2.o"), .suffix("SmartStuff2.m"), .equal("normal"), .equal("x86_64"), .equal("objective-c"), .any])
+                                task.checkRuleInfo([.equal("CompileC"), .suffix("SmartStuff2.o"), .suffix("SmartStuff2.m"), .equal("normal"), .equal(results.runDestinationTargetArchitecture), .equal("objective-c"), .any])
                                 task.checkCommandLineContains(["-fobjc-arc"])
                             }
                             verifyTask(for: visibilityBeingTested, with: results, in: target, matching: .matchRuleType("CompileC"), .matchRuleItemBasename("SmartStuff3.m")) { task in
-                                task.checkRuleInfo([.equal("CompileC"), .suffix("SmartStuff3.o"), .suffix("SmartStuff3.m"), .equal("normal"), .equal("x86_64"), .equal("objective-c"), .any])
+                                task.checkRuleInfo([.equal("CompileC"), .suffix("SmartStuff3.o"), .suffix("SmartStuff3.m"), .equal("normal"), .equal(results.runDestinationTargetArchitecture), .equal("objective-c"), .any])
                                 task.checkCommandLineContains(["-fobjc-arc"])
                             }
                         }
@@ -901,7 +901,7 @@ fileprivate struct BuildToolTaskConstructionTests: CoreBasedTests {
                         if action == .build || action == .installAPI {
                             // Check the CompileSwiftSources task, which should include the file generated from the model.
                             do {
-                                let responseFilePath = "\(SRCROOT)/build/aProject.build/Debug/\(targetName).build/Objects-normal/x86_64/FrameworkTarget.SwiftFileList"
+                                let responseFilePath = "\(SRCROOT)/build/aProject.build/Debug/\(targetName).build/Objects-normal/\(results.runDestinationTargetArchitecture)/FrameworkTarget.SwiftFileList"
                                 var inputFiles = ["\(SRCROOT)/SourceOne.swift"]
                                 if visibilityBeingTested != .noCodegen {
                                     inputFiles.append("\(SRCROOT)/build/aProject.build/Debug/\(targetName).build/DerivedSources/CoreMLGenerated/SmartStuff/SmartStuff.swift")
@@ -1094,7 +1094,7 @@ fileprivate struct BuildToolTaskConstructionTests: CoreBasedTests {
 
                 // Check the CompileSwiftSources task, which should include the file generated from the model.
                 do {
-                    let responseFilePath = "\(srcroot)/build/aProject.build/Debug/\(targetName).build/Objects-normal/x86_64/FrameworkTarget.SwiftFileList"
+                    let responseFilePath = "\(srcroot)/build/aProject.build/Debug/\(targetName).build/Objects-normal/\(results.runDestinationTargetArchitecture)/FrameworkTarget.SwiftFileList"
                     let inputFiles = ["\(srcroot)/SourceOne.swift", "\(srcroot)/build/aProject.build/Debug/\(targetName).build/DerivedSources/IntentDefinitionGenerated/Intents/XCOrderBurgerIntent.swift"]
                     results.checkTask(.matchTarget(target), .matchRuleType("SwiftDriver Compilation")) { task in
                         task.checkCommandLineContains([swiftCompilerPath.str, "@" + responseFilePath])
@@ -1126,7 +1126,7 @@ fileprivate struct BuildToolTaskConstructionTests: CoreBasedTests {
                 // Check the CompileC task for the file generated from the model.
                 if case .objectiveC = codegenLanguage, shouldCodegen {
                     results.checkTask(.matchTarget(target), .matchRuleType("CompileC")) { task in
-                        task.checkRuleInfo([.equal("CompileC"), .suffix("OrderBurgerIntent.o"), .suffix("OrderBurgerIntent.m"), .equal("normal"), .equal("x86_64"), .equal("objective-c"), .any])
+                        task.checkRuleInfo([.equal("CompileC"), .suffix("OrderBurgerIntent.o"), .suffix("OrderBurgerIntent.m"), .equal("normal"), .equal(results.runDestinationTargetArchitecture), .equal("objective-c"), .any])
                     }
                 }
 

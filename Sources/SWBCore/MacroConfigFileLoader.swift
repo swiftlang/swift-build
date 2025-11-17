@@ -248,7 +248,7 @@ final class MacroConfigFileLoader: Sendable {
                 return MacroConfigFileParser(byteString: data, path: path, delegate: delegate)
             }
 
-            mutating func foundMacroValueAssignment(_ macroName: String, conditions: [(param: String, pattern: String)], value: String, path: Path, startLine: Int, endLine: Int, startColumn: Int, endColumn: Int, parser: MacroConfigFileParser) {
+            mutating func foundMacroValueAssignment(_ macroName: String, conditions: [(param: String, pattern: String)], value: String, path: Path, pathRef: OrderedSet<Path>.Index, startLine: Int, endLine: Int, startColumn: Int, endColumn: Int, parser: MacroConfigFileParser) {
                 // Look up the macro name, creating it as a user-defined macro if it isn’t already known.
                 let macro = table.namespace.lookupOrDeclareMacro(UserDefinedMacroDeclaration.self, macroName)
 
@@ -259,8 +259,8 @@ final class MacroConfigFileLoader: Sendable {
                 }
 
                 // Parse the value in a manner consistent with the macro definition.
-                let location = MacroValueAssignmentLocation(path: path, startLine: startLine, endLine: endLine, startColumn: startColumn, endColumn: endColumn)
-                table.push(macro, table.namespace.parseForMacro(macro, value: value), conditions: conditionSet, location: location)
+                let locationRef = InternedMacroValueAssignmentLocation(pathRef: pathRef, startLine: startLine, endLine: endLine, startColumn: startColumn, endColumn: endColumn)
+                table.push(macro, table.namespace.parseForMacro(macro, value: value), conditions: conditionSet, locationRef: locationRef)
             }
 
             func handleDiagnostic(_ diagnostic: MacroConfigFileDiagnostic, parser: MacroConfigFileParser) {
@@ -308,8 +308,8 @@ fileprivate final class MacroValueAssignmentTableRef {
         table.namespace
     }
 
-    func push(_ macro: MacroDeclaration, _ value: MacroExpression, conditions: MacroConditionSet? = nil, location: MacroValueAssignmentLocation? = nil) {
-        table.push(macro, value, conditions: conditions, location: location)
+    func push(_ macro: MacroDeclaration, _ value: MacroExpression, conditions: MacroConditionSet? = nil, locationRef: InternedMacroValueAssignmentLocation? = nil) {
+        table.push(macro, value, conditions: conditions, locationRef: locationRef)
     }
 }
 

@@ -135,6 +135,7 @@ import SWBUtil
 
         let tester = try await BuildOperationTester(core, workspace, simulated: false)
         let workspaceContext = WorkspaceContext(core: core, workspace: tester.workspace, processExecutionCache: .sharedForTesting)
+        workspaceContext.updateUserPreferences(.defaultForTesting)
         try await tester.checkIndexBuildGraph(targets: [macApp, macApp2, iosApp, iosApp2, fwkTarget_mac, fwkTarget_ios], workspaceOperation: true) { results in
             #expect(results.targets().map { results.targetNameAndPlatform($0) } == [
                 "FwkTarget_mac-macos", "macApp-macos", "macApp2-macos",
@@ -262,6 +263,7 @@ import SWBUtil
 
         let tester = try await BuildOperationTester(core, workspace, simulated: false)
         let workspaceContext = WorkspaceContext(core: core, workspace: tester.workspace, processExecutionCache: .sharedForTesting)
+        workspaceContext.updateUserPreferences(.defaultForTesting)
         try await tester.checkIndexBuildGraph(targets: [macApp, iosApp, watchKitApp, watchKitExt], workspaceOperation: true) { results in
             #expect(results.targets().map { results.targetNameAndPlatform($0) } == [
                 "macApp-macos", "iosApp-iphoneos", "iosApp-iphonesimulator",
@@ -758,6 +760,7 @@ import SWBUtil
 
         let tester = try await BuildOperationTester(core, workspace, simulated: false)
         let workspaceContext = WorkspaceContext(core: core, workspace: tester.workspace, processExecutionCache: .sharedForTesting)
+        workspaceContext.updateUserPreferences(.defaultForTesting)
         try await tester.checkIndexBuildGraph(targets: [catalystAppTarget1, catalystAppTarget2, catalystAppTarget3, osxAppTarget, osxAppTarget_iosmac, fwkTarget, fwkTarget_osx], workspaceOperation: true) { results in
             #expect(results.targets().map { results.targetNameAndPlatform($0) } == [
                 "FwkTarget-iphoneos", "catalystApp1-iphoneos", "FwkTarget-iphonesimulator", "catalystApp1-iphonesimulator", "FwkTarget-iosmac", "catalystApp1-iosmac", "catalystApp2-iphoneos", "catalystApp2-iphonesimulator", "catalystApp2-iosmac", "catalystApp3-iphoneos", "catalystApp3-iphonesimulator", "catalystApp3-iosmac", "FwkTarget_osx-macos", "catalystApp3-macos", "osxApp-macos", "osxApp_iosmac-iosmac", "FwkTarget_osx-iosmac",

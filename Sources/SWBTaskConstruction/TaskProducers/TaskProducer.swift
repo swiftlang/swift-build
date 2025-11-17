@@ -810,8 +810,11 @@ public class TaskProducerContext: StaleFileRemovalContext, BuildFileResolution
 
     public func availableMatchingArchitecturesInStubBinary(at stubBinary: Path, requestedArchs: [String]) async -> [String] {
         let stubArchs: Set<String>
+        let stubPlatforms: [any PlatformInfoProvider]
         do {
-            stubArchs = try globalProductPlan.planRequest.buildRequestContext.getCachedMachOInfo(at: stubBinary).architectures
+            let stubInfo = try globalProductPlan.planRequest.buildRequestContext.getCachedMachOInfo(at: stubBinary)
+            stubArchs = stubInfo.architectures
+            stubPlatforms = stubInfo.platforms.compactMap { lookupPlatformInfo(platform: $0) }
         } catch {
             delegate.error("unable to create tasks to copy stub binary: can't determine architectures of binary: \(stubBinary.str): \(error)")
             return []
@@ -821,12 +824,13 @@ public class TaskProducerContext: StaleFileRemovalContext, BuildFileResolution
             if stubArchs.contains(arch) {
                 archsToExtract.insert(arch)
             } else {
-                let specLookupContext = SpecLookupCtxt(specRegistry: workspaceContext.core.specRegistry, platform: settings.platform)
-                let compatibilityArchs = (specLookupContext.getSpec(arch) as? ArchitectureSpec)?.compatibilityArchs
-                if let compatibleArch = compatibilityArchs?.first(where: { stubArchs.contains($0) }) {
+                let compatibilityArchs: [String] = stubPlatforms.flatMap { platform in
+                    (workspaceContext.core.specRegistry.getSpec(arch, domain: platform.name) as? ArchitectureSpec)?.compatibilityArchs ?? []
+                }
+                if let compatibleArch = compatibilityArchs.first(where: { stubArchs.contains($0) }) {
                     archsToExtract.insert(compatibleArch)
                 } else {
-                    delegate.warning("stub binary at '\(stubBinary.str)' does not contain a slice for '\(arch)' or a compatible architecture")
+                    delegate.warning("stub binary at '\(stubBinary.str)' does not contain a slice for '\(arch)' or a compatible architecture. Stub architectures: \(stubArchs.joined(separator: ", ")). Compatibility architectures for \(arch): \(compatibilityArchs.joined(separator: ", "))")
                 }
             }
         }

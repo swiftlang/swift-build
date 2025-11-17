@@ -11,7 +11,7 @@
 //===----------------------------------------------------------------------===//
 
 public import SWBUtil
-import Synchronization
+public import Synchronization
 
 /// A mapping from macro declarations to corresponding macro value assignments, each of which is a linked list of macro expressions in precedence order.  At the moment it doesn’t support conditional assignments, but that functionality will be implemented soon.
 public struct MacroValueAssignmentTable: Serializable, Sendable {
@@ -78,14 +78,7 @@ public struct MacroValueAssignmentTable: Serializable, Sendable {
 
 
     /// Adds a mapping from `macro` to `value`, inserting it ahead of any already existing assignment for the same macro.  Unless the value refers to the lower-precedence expression (using `$(inherited)` notation), any existing assignments are shadowed but not removed.
-    public mutating func push(_ macro: MacroDeclaration, _ value: MacroExpression, conditions: MacroConditionSet? = nil, location: MacroValueAssignmentLocation? = nil) {
-        assert(namespace.lookupMacroDeclaration(macro.name) === macro)
-        // Validate the type.
-        assert(macro.type.matchesExpressionType(value))
-        valueAssignments[macro] = MacroValueAssignment(expression: value, conditions: conditions, next: valueAssignments[macro], location: location)
-    }
-
-    mutating func push(_ macro: MacroDeclaration, _ value: MacroExpression, conditions: MacroConditionSet? = nil, locationRef: InternedMacroValueAssignmentLocation?) {
+    package mutating func push(_ macro: MacroDeclaration, _ value: MacroExpression, conditions: MacroConditionSet? = nil, locationRef: InternedMacroValueAssignmentLocation? = nil) {
         assert(namespace.lookupMacroDeclaration(macro.name) === macro)
         // Validate the type.
         assert(macro.type.matchesExpressionType(value))
@@ -338,7 +331,7 @@ public final class MacroValueAssignment: Serializable, CustomStringConvertible, 
     public let next: MacroValueAssignment?
 
     let _location: InternedMacroValueAssignmentLocation?
-    private static let macroConfigPaths = SWBMutex<OrderedSet<Path>>(OrderedSet())
+    package static let macroConfigPaths = SWBMutex<OrderedSet<Path>>(OrderedSet())
 
     public var location: MacroValueAssignmentLocation? {
         if let _location {
@@ -355,28 +348,6 @@ public final class MacroValueAssignment: Serializable, CustomStringConvertible, 
     }
 
     /// Initializes the macro value assignment to represent `expression`, with the next existing macro value assignment (if any).
-    convenience init(expression: MacroExpression, conditions: MacroConditionSet? = nil, next: MacroValueAssignment?, location: MacroValueAssignmentLocation?) {
-        let locationRef: InternedMacroValueAssignmentLocation?
-        if let location {
-            locationRef = InternedMacroValueAssignmentLocation(
-                pathRef: Self.macroConfigPaths.withLock({ $0.append(location.path).index }),
-                startLine: location.startLine,
-                endLine: location.endLine,
-                startColumn: location.startColumn,
-                endColumn: location.endColumn
-            )
-        } else {
-            locationRef = nil
-        }
-
-        self.init(
-            expression: expression,
-            conditions: conditions,
-            next: next,
-            locationRef: locationRef
-        )
-    }
-
     init(expression: MacroExpression, conditions: MacroConditionSet? = nil, next: MacroValueAssignment?, locationRef: InternedMacroValueAssignmentLocation?) {
         self.expression = expression
         self.conditions = conditions
@@ -457,7 +428,7 @@ public struct MacroValueAssignmentLocation: Sendable, Equatable {
     public let startColumn: Int
     public let endColumn: Int
 
-    public init(path: Path, startLine: Int, endLine: Int, startColumn: Int, endColumn: Int) {
+    @_spi(Testing) public init(path: Path, startLine: Int, endLine: Int, startColumn: Int, endColumn: Int) {
         self.path = path
         self.startLine = startLine
         self.endLine = endLine
@@ -466,14 +437,14 @@ public struct MacroValueAssignmentLocation: Sendable, Equatable {
     }
 }
 
-struct InternedMacroValueAssignmentLocation: Serializable, Sendable {
+package struct InternedMacroValueAssignmentLocation: Serializable, Sendable {
     let pathRef: OrderedSet<Path>.Index
     public let startLine: Int
     public let endLine: Int
     let startColumn: Int
     let endColumn: Int
 
-    init(pathRef: OrderedSet<Path>.Index, startLine: Int, endLine: Int, startColumn: Int, endColumn: Int) {
+    package init(pathRef: OrderedSet<Path>.Index, startLine: Int, endLine: Int, startColumn: Int, endColumn: Int) {
         self.pathRef = pathRef
         self.startLine = startLine
         self.endLine = endLine
@@ -516,10 +487,10 @@ private func insertCopiesOfMacroValueAssignmentNodes(_ srcAsgn: MacroValueAssign
     }
 
     if let srcNext = srcAsgn.next {
-        return MacroValueAssignment(expression: srcAsgn.expression, conditions:srcAsgn.conditions, next: insertCopiesOfMacroValueAssignmentNodes(srcNext, inFrontOf: dstAsgn), location: srcAsgn.location)
+        return MacroValueAssignment(expression: srcAsgn.expression, conditions:srcAsgn.conditions, next: insertCopiesOfMacroValueAssignmentNodes(srcNext, inFrontOf: dstAsgn), locationRef: srcAsgn._location)
     }
     else {
-        return MacroValueAssignment(expression: srcAsgn.expression, conditions:srcAsgn.conditions, next: dstAsgn, location: srcAsgn.location)
+        return MacroValueAssignment(expression: srcAsgn.expression, conditions:srcAsgn.conditions, next: dstAsgn, locationRef: srcAsgn._location)
     }
 }
 

@@ -797,7 +797,7 @@ fileprivate struct DependencyCycleDiagnosticsTests: CoreBasedTests {
                 try await tester.checkBuild(runDestination: .macOS, persistent: true) { results in
                     // FIXME: (ChecksumOnlyFileSystem)
                     // null build seems to be erroneously spawning a
-                    // ["CompileC", "*/BaseFoo.o", "*/BaseFoo.m", "normal", "x86_64", "objective-c", "com.apple.compilers.llvm.clang.1_0.compiler"]
+                    // ["CompileC", "*/BaseFoo.o", "*/BaseFoo.m", "normal", results.runDestinationTargetArchitecture, "objective-c", "com.apple.compilers.llvm.clang.1_0.compiler"]
                     // Surprisingly "results.checkTask" does not catch the "CompileC" task, but "results.checkTasks" does.
                     results.checkTasks(.matchRuleType("CompileC")) { _ in }
                     results.checkNoTask()

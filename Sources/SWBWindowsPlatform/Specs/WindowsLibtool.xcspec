@@ -64,7 +64,7 @@
                 IsInputDependency = Yes;
             },
             {
-                Name = "LINKER_FILE_LIST_FORMAT";
+                Name = "LIBTOOL_FILE_LIST_FORMAT";
                 Type = Enumeration;
                 Values = (
                     unescapedNewlineSeparated,
